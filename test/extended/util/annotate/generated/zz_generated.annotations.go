@@ -3331,7 +3331,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3363,9 +3363,9 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (filesystem volmode)] volume-lifecycle-performance should provision volumes at scale within performance constraints [Slow] [Serial]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (filesystem volmode)] volume-lifecycle-performance should provision volumes at scale within performance constraints [Slow] [Serial]": " [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3399,7 +3399,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3411,7 +3411,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3473,7 +3473,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -3481,23 +3481,23 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Generic Ephemeral-volume (block volmode) (late-binding)] ephemeral should create read-only inline ephemeral volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3613,7 +3613,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -3697,7 +3697,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -3711,13 +3711,13 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (xfs)][Slow] volumes should store data": " [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: CSI Ephemeral-volume (default fs)] ephemeral should create read-only inline ephemeral volume": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3755,7 +3755,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3767,7 +3767,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3807,7 +3807,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] read-write-once-pod[Feature:ReadWriteOncePod] should block a second pod from using an in-use ReadWriteOncePod volume on the same node": " [Disabled:Alpha] [Skipped:gce] [Suite:k8s]",
 
@@ -3883,7 +3883,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3915,7 +3915,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (filesystem volmode)] volume-lifecycle-performance should provision volumes at scale within performance constraints [Slow] [Serial]": " [Skipped:gce] [Suite:k8s]",
 
@@ -3951,7 +3951,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -3963,7 +3963,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -4025,31 +4025,31 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (xfs)][Slow] volumes should store data": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Generic Ephemeral-volume (block volmode) (late-binding)] ephemeral should create read-only inline ephemeral volume": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -4165,7 +4165,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Skipped:gce] [Suite:k8s]",
 
@@ -4249,7 +4249,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Skipped:gce] [Suite:k8s]",
 
@@ -4263,13 +4263,13 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned PV (xfs)][Slow] volumes should store data": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI mock volume CSI CSIDriver deployment after pod creation using non-attachable mock driver should bringup pod after deploying CSIDriver attach=false [Slow]": " [Suite:k8s]",
 
@@ -4295,9 +4295,9 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI mock volume CSI NodeUnstage error cases [Slow] two pods: should call NodeStage after previous NodeUnstage transient error": " [Suite:k8s]",
 
-	"[sig-storage] CSI mock volume CSI Snapshot Controller metrics [Feature:VolumeSnapshotDataSource] snapshot controller should emit dynamic CreateSnapshot, CreateSnapshotAndReady, and DeleteSnapshot metrics": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI mock volume CSI Snapshot Controller metrics [Feature:VolumeSnapshotDataSource] snapshot controller should emit dynamic CreateSnapshot, CreateSnapshotAndReady, and DeleteSnapshot metrics": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI mock volume CSI Snapshot Controller metrics [Feature:VolumeSnapshotDataSource] snapshot controller should emit pre-provisioned CreateSnapshot, CreateSnapshotAndReady, and DeleteSnapshot metrics": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI mock volume CSI Snapshot Controller metrics [Feature:VolumeSnapshotDataSource] snapshot controller should emit pre-provisioned CreateSnapshot, CreateSnapshotAndReady, and DeleteSnapshot metrics": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI mock volume CSI Volume Snapshots [Feature:VolumeSnapshotDataSource] volumesnapshotcontent and pvc in Bound state with deletion timestamp set should not get deleted while snapshot finalizer exists": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4633,7 +4633,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4645,7 +4645,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4685,7 +4685,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4757,7 +4757,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4789,7 +4789,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -4823,7 +4823,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4835,7 +4835,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -4897,7 +4897,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
@@ -5017,7 +5017,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
@@ -5101,7 +5101,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: aws] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
@@ -5141,7 +5141,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5153,7 +5153,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5193,7 +5193,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5265,7 +5265,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5297,7 +5297,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -5331,7 +5331,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5343,7 +5343,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5405,7 +5405,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -5525,7 +5525,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -5609,7 +5609,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-disk] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -5649,7 +5649,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5661,7 +5661,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5703,7 +5703,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5775,7 +5775,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5807,7 +5807,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -5841,7 +5841,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5853,7 +5853,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -5915,7 +5915,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -6035,7 +6035,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -6121,7 +6121,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: azure-file] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -6161,7 +6161,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6173,7 +6173,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6215,7 +6215,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6287,7 +6287,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6319,7 +6319,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6353,7 +6353,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6365,7 +6365,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6427,7 +6427,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6547,7 +6547,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6633,7 +6633,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: ceph][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6673,7 +6673,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6685,7 +6685,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6725,7 +6725,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6797,7 +6797,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6829,7 +6829,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6863,7 +6863,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6875,7 +6875,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -6937,7 +6937,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -7057,7 +7057,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -7141,7 +7141,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: cinder] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -7181,7 +7181,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7193,7 +7193,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7235,7 +7235,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7307,7 +7307,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7339,7 +7339,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -7373,7 +7373,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7385,7 +7385,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7447,7 +7447,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -7567,7 +7567,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -7653,7 +7653,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: emptydir] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -7693,7 +7693,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7705,7 +7705,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7745,7 +7745,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7817,7 +7817,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7849,7 +7849,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -7883,7 +7883,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7895,7 +7895,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -7957,7 +7957,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -8077,7 +8077,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -8161,7 +8161,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: gcepd] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -8201,7 +8201,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8213,7 +8213,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8255,7 +8255,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8327,7 +8327,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8359,7 +8359,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -8393,7 +8393,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8405,7 +8405,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8467,7 +8467,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -8587,7 +8587,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -8673,7 +8673,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPathSymlink] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -8713,7 +8713,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8725,7 +8725,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8767,7 +8767,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8839,7 +8839,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8871,7 +8871,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -8905,7 +8905,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8917,7 +8917,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -8979,7 +8979,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -9099,7 +9099,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -9185,7 +9185,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: hostPath] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -9225,7 +9225,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9237,7 +9237,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9277,7 +9277,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9349,7 +9349,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9381,7 +9381,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9415,7 +9415,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9427,7 +9427,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9489,7 +9489,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9609,7 +9609,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9693,7 +9693,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: iscsi][Feature:Volumes] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -9733,7 +9733,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9745,7 +9745,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9785,7 +9785,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9857,7 +9857,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9889,7 +9889,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -9923,7 +9923,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9935,7 +9935,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -9997,7 +9997,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -10117,7 +10117,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -10201,7 +10201,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: block] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -10241,7 +10241,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10253,7 +10253,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10295,7 +10295,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10367,7 +10367,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10399,7 +10399,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -10433,7 +10433,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10445,7 +10445,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10507,7 +10507,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -10627,7 +10627,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -10713,7 +10713,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: blockfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -10753,7 +10753,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10765,7 +10765,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10807,7 +10807,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10879,7 +10879,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10911,7 +10911,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -10945,7 +10945,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -10957,7 +10957,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11019,7 +11019,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -11139,7 +11139,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -11225,7 +11225,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-bindmounted] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -11265,7 +11265,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11277,7 +11277,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11319,7 +11319,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11391,7 +11391,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11423,7 +11423,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -11457,7 +11457,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11469,7 +11469,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11531,7 +11531,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -11651,7 +11651,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -11737,7 +11737,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link-bindmounted] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -11777,7 +11777,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11789,7 +11789,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11831,7 +11831,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11903,7 +11903,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11935,7 +11935,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -11969,7 +11969,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -11981,7 +11981,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12043,7 +12043,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -12163,7 +12163,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -12249,7 +12249,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir-link] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -12289,7 +12289,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12301,7 +12301,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12343,7 +12343,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12415,7 +12415,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12447,7 +12447,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -12481,7 +12481,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12493,7 +12493,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -12555,7 +12555,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -12675,7 +12675,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -12761,7 +12761,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: dir] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -12801,7 +12801,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -12813,7 +12813,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -12855,7 +12855,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -12927,7 +12927,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -12959,7 +12959,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -12993,7 +12993,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -13005,7 +13005,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -13067,7 +13067,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Skipped:gce] [Suite:k8s]",
 
@@ -13187,7 +13187,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Skipped:gce] [Suite:k8s]",
 
@@ -13273,7 +13273,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:gce] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: gce-localssd-scsi-fs] [Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Skipped:gce] [Suite:k8s]",
 
@@ -13313,7 +13313,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -13325,7 +13325,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -13367,7 +13367,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -13439,7 +13439,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -13471,7 +13471,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -13505,7 +13505,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -13517,7 +13517,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -13579,7 +13579,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -13699,7 +13699,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -13785,7 +13785,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: local][LocalVolumeType: tmpfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -13825,7 +13825,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Broken] [Suite:k8s]",
 
@@ -13837,7 +13837,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Disabled:Broken] [Suite:k8s]",
 
@@ -13879,7 +13879,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -13951,7 +13951,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
@@ -13983,7 +13983,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -14017,7 +14017,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Broken] [Suite:k8s]",
 
@@ -14029,7 +14029,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -14091,7 +14091,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Disabled:Broken] [Suite:k8s]",
 
@@ -14211,7 +14211,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -14297,7 +14297,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Broken] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: nfs] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Broken] [Suite:k8s]",
 
@@ -14337,7 +14337,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14349,7 +14349,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14389,7 +14389,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14461,7 +14461,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14493,7 +14493,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14527,7 +14527,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14539,7 +14539,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14601,7 +14601,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14721,7 +14721,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14805,7 +14805,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Disabled:Unsupported] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: rbd][Feature:Volumes][Serial] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Disabled:Unsupported] [Suite:k8s]",
 
@@ -14845,7 +14845,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -14857,7 +14857,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -14897,7 +14897,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -14969,7 +14969,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15001,7 +15001,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -15035,7 +15035,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15047,7 +15047,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15109,7 +15109,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -15229,7 +15229,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -15313,7 +15313,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: vsphere] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
@@ -15353,7 +15353,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15365,7 +15365,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (block volmode)] volume-expand should not allow expansion of pvcs without AllowVolumeExpansion property": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15407,7 +15407,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15479,7 +15479,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ext4)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ext4)] volumes should allow exec of files on the volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15511,7 +15511,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (filesystem volmode)] volumeLimits should support volume limits [Serial]": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
@@ -15545,7 +15545,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should mount multiple PV pointing to the same storage on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15557,7 +15557,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with pvc data source": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (ntfs)][Feature:Windows] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -15619,7 +15619,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (xfs)][Slow] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Dynamic PV (xfs)][Slow] volumes should allow exec of files on the volume": " [Suite:k8s]",
 
@@ -15739,7 +15739,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Pre-provisioned PV (block volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Pre-provisioned PV (block volmode)] volumeMode should fail to create pod by failing to mount volume [Slow]": " [Suite:k8s]",
 
@@ -15825,7 +15825,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and its clone from pods on the same node [LinuxOnly][Feature:VolumeSourceXFS]": " [Suite:k8s]",
 
-	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Suite:k8s]",
+	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Pre-provisioned PV (filesystem volmode)] multiVolume [Slow] should concurrently access the volume and restored snapshot from pods on the same node [LinuxOnly][Feature:VolumeSnapshotDataSource][Feature:VolumeSourceXFS]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] In-tree Volumes [Driver: windows-gcepd] [Testpattern: Pre-provisioned PV (filesystem volmode)] volumeMode should fail to use a volume in a pod with mismatched mode [Slow]": " [Suite:k8s]",
 
