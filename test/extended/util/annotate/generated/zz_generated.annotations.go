@@ -3481,23 +3481,23 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable-stress[Feature:VolumeSnapshotDataSource] should support snapshotting of many volumes repeatedly [Slow] [Serial]": " [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Ephemeral Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Generic Ephemeral-volume (block volmode) (late-binding)] ephemeral should create read-only inline ephemeral volume": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -3711,11 +3711,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned PV (xfs)][Slow] volumes should store data": " [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (delete policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works after modifying source data, check deletion (persistent)": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Pre-provisioned Snapshot (retain policy)] snapshottable[Feature:VolumeSnapshotDataSource] volume snapshot controller should check snapshot fields, check restore correctly works, check deletion (ephemeral)": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
