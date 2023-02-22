@@ -343,86 +343,11 @@ var (
 		},
 		// Tests which can't be run/don't make sense to run against a cluster with all optional capabilities disabled
 		"[Skipped:NoOptionalCapabilities]": {
-			// Most storage tests don't pass when the storage capability is disabled.
-			// this list needs to be refined as there are some storage tests we should be able to run.
-			// Tracker for enabling more storage tests: https://issues.redhat.com/browse/OCPPLAN-9509
-
 			// Requires CSISnapshot capability
 			`\[Feature:VolumeSnapshotDataSource\]`,
 			// Requires Storage capability
 			`\[Driver: aws\]`,
 			`\[Feature:StorageProvider\]`,
-
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv used in a pod that is deleted while the kubelet is down cleans up when the kubelet returns.`,
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv used in a pod that is force deleted while the kubelet is down cleans up when the kubelet returns.`,
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] multiVolume \[Slow\] should concurrently access the volume and restored snapshot from pods on the same node`,
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(block volmode\)\] provisioning should provision storage with snapshot data source`,
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should provision storage with snapshot data source`,
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] CSI Volumes \[Driver: csi-hostpath\] \[Testpattern: Dynamic PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-
-			`\[sig-storage\] Dynamic Provisioning DynamicProvisioner \[Slow\] \[Feature:StorageProvider\] deletion should be idempotent`,
-			`\[sig-storage\] Dynamic Provisioning DynamicProvisioner \[Slow\] \[Feature:StorageProvider\] should provision storage with different parameters`,
-
-			`\[sig-storage\] HostPathType Block Device \[Slow\] Should be able to mount block device \'ablkdev\' successfully when HostPathType is HostPathBlockDev`,
-			`\[sig-storage\] HostPathType Block Device \[Slow\] Should be able to mount block device \'ablkdev\' successfully when HostPathType is HostPathUnset`,
-			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting block device \'ablkdev\' when HostPathType is HostPathCharDev`,
-			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting block device \'ablkdev\' when HostPathType is HostPathDirectory`,
-			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting block device \'ablkdev\' when HostPathType is HostPathFile`,
-			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting block device \'ablkdev\' when HostPathType is HostPathSocket`,
-			`\[sig-storage\] HostPathType Block Device \[Slow\] Should fail on mounting non-existent block device \'does-not-exist-blk-dev\' when HostPathType is HostPathBlockDev`,
-			`\[sig-storage\] HostPathType Character Device \[Slow\] Should be able to mount character device \'achardev\' successfully when HostPathType is HostPathCharDev`,
-			`\[sig-storage\] HostPathType Character Device \[Slow\] Should be able to mount character device \'achardev\' successfully when HostPathType is HostPathUnset`,
-			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting character device \'achardev\' when HostPathType is HostPathBlockDev`,
-			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting character device \'achardev\' when HostPathType is HostPathDirectory`,
-			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting character device \'achardev\' when HostPathType is HostPathFile`,
-			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting character device \'achardev\' when HostPathType is HostPathSocket`,
-			`\[sig-storage\] HostPathType Character Device \[Slow\] Should fail on mounting non-existent character device \'does-not-exist-char-dev\' when HostPathType is HostPathCharDev`,
-			`\[sig-storage\] HostPathType Socket \[Slow\] Should be able to mount socket \'asocket\' successfully when HostPathType is HostPathSocket`,
-			`\[sig-storage\] HostPathType Socket \[Slow\] Should be able to mount socket \'asocket\' successfully when HostPathType is HostPathUnset`,
-			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting non-existent socket \'does-not-exist-socket\' when HostPathType is HostPathSocket`,
-			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting socket \'asocket\' when HostPathType is HostPathBlockDev`,
-			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting socket \'asocket\' when HostPathType is HostPathCharDev`,
-			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting socket \'asocket\' when HostPathType is HostPathDirectory`,
-			`\[sig-storage\] HostPathType Socket \[Slow\] Should fail on mounting socket \'asocket\' when HostPathType is HostPathFile`,
-
-			`\[sig-storage\] In-tree Volumes \[Driver: emptydir\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: emptydir\] \[Testpattern: Inline-volume \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-
-			`\[sig-storage\] In-tree Volumes \[Driver: hostPathSymlink\] \[Testpattern: Inline-volume \(default fs\)\] volumeIO should write files of various sizes, verify size, validate content`,
-
-			`\[sig-storage\] In-tree Volumes \[Driver: hostPath\] \[Testpattern: Inline-volume \(default fs\)\] volumeIO should write files of various sizes, verify size, validate content`,
-
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: block\] \[Testpattern: Pre-provisioned PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv used in a pod that is deleted while the kubelet is down cleans up when the kubelet returns.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: block\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: block\] \[Testpattern: Pre-provisioned PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv used in a pod that is force deleted while the kubelet is down cleans up when the kubelet returns.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: block\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-link\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: block\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: blockfs\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: blockfs\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: tmpfs\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-link\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-link-bindmounted\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-bindmounted\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-bindmounted\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-link-bindmounted\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-bindmounted\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: tmpfs\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-link\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: blockfs\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: dir-link-bindmounted\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: block\] \[Testpattern: Pre-provisioned PV \(block volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-			`\[sig-storage\] In-tree Volumes \[Driver: local\]\[LocalVolumeType: tmpfs\] \[Testpattern: Pre-provisioned PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
-
-			`\[sig-storage\] In-tree Volumes \[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should unmount if pod is gracefully deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] subPath should unmount if pod is force deleted while kubelet is down`,
-			`\[sig-storage\] In-tree Volumes \[Driver: nfs\] \[Testpattern: Dynamic PV \(filesystem volmode\)\] disruptive\[Disruptive\]\[LinuxOnly\] Should test that pv written before kubelet restart is readable after restart.`,
 
 			// This test requires a valid console url which doesn't exist when the optional console capability is disabled.
 			`\[sig-cli\] oc basics can show correct whoami result with console`,
