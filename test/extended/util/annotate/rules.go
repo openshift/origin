@@ -86,6 +86,9 @@ var (
 
 			// https://issues.redhat.com/browse/WRKLDS-665
 			`\[sig-scheduling\] SchedulerPreemption \[Serial\] validates pod disruption condition is added to the preempted pod`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-7519 NFS tests in Centos Stream 9 trigger kernel panic
+			`\[sig-storage\] In-tree Volumes \[Driver: nfs\]`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
