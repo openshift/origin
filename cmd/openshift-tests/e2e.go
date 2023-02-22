@@ -446,6 +446,22 @@ var staticSuites = testSuites{
 		},
 		PreSuite: suiteWithProviderPreSuite,
 	},
+	{
+		TestSuite: ginkgo.TestSuite{
+			Name: "openshift/nodes/realtime",
+			Description: templates.LongDesc(`
+		This test suite runs tests to validate realtime functionality on nodes.
+		`),
+			Matches: func(name string) bool {
+				if isDisabled(name) {
+					return false
+				}
+				return strings.Contains(name, "[Suite:openshift/nodes/realtime")
+			},
+			TestTimeout: 30 * time.Minute,
+		},
+		PreSuite: suiteWithProviderPreSuite,
+	},
 }
 
 // isStandardEarlyTest returns true if a test is considered part of the normal

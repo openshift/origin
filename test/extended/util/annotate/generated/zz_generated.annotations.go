@@ -3063,6 +3063,12 @@ var Annotations = map[string]string{
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow deadline_test to run successfully": " [Serial]",
+
+	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow pi_stress to run successfully with the default algorithm": " [Serial]",
+
+	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow pi_stress to run successfully with the round robin algorithm": " [Serial]",
+
 	"[sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-operator] OLM should be installed with catalogsources at version v1alpha1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
