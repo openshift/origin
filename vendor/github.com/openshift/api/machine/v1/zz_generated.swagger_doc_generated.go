@@ -268,6 +268,16 @@ func (OpenShiftMachineV1Beta1MachineTemplate) SwaggerDoc() map[string]string {
 	return map_OpenShiftMachineV1Beta1MachineTemplate
 }
 
+var map_NutanixCategory = map[string]string{
+	"":      "NutanixCategory identifies a pair of prism category key and value",
+	"key":   "key is the prism category key name",
+	"value": "value is the prism category value associated with the key",
+}
+
+func (NutanixCategory) SwaggerDoc() map[string]string {
+	return map_NutanixCategory
+}
+
 var map_NutanixMachineProviderConfig = map[string]string{
 	"":                  "NutanixMachineProviderConfig is the Schema for the nutanixmachineproviderconfigs API Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 	"cluster":           "cluster is to identify the cluster (the Prism Element under management of the Prism Central), in which the Machine's VM will be created. The cluster identifier (uuid or name) can be obtained from the Prism Central console or using the prism_central API.",
@@ -277,6 +287,9 @@ var map_NutanixMachineProviderConfig = map[string]string{
 	"vcpuSockets":       "vcpuSockets is the number of vCPU sockets of the VM",
 	"memorySize":        "memorySize is the memory size (in Quantity format) of the VM The minimum memorySize is 2Gi bytes",
 	"systemDiskSize":    "systemDiskSize is size (in Quantity format) of the system disk of the VM The minimum systemDiskSize is 20Gi bytes",
+	"bootType":          "bootType indicates the boot type (Legacy, UEFI or SecureBoot) the Machine's VM uses to boot. If this field is empty or omitted, the VM will use the default boot type \"Legacy\" to boot. \"SecureBoot\" depends on \"UEFI\" boot, i.e., enabling \"SecureBoot\" means that \"UEFI\" boot is also enabled.",
+	"project":           "project optionally identifies a Prism project for the Machine's VM to associate with.",
+	"categories":        "categories optionally adds one or more prism categories (each with key and value) for the Machine's VM to associate with. All the category key and value pairs specified must already exist in the prism central.",
 	"userDataSecret":    "userDataSecret is a local reference to a secret that contains the UserData to apply to the VM",
 	"credentialsSecret": "credentialsSecret is a local reference to a secret that contains the credentials data to access Nutanix PC client",
 }

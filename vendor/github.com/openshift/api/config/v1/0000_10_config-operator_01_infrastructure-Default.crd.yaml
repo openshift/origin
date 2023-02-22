@@ -79,17 +79,6 @@ spec:
                     external:
                       description: ExternalPlatformType represents generic infrastructure provider. Platform-specific components should be supplemented separately.
                       properties:
-                        cloudControllerManager:
-                          description: CloudControllerManager contains settings specific to the external Cloud Controller Manager (a.k.a. CCM or CPI)
-                          properties:
-                            state:
-                              description: "state determines whether or not an external Cloud Controller Manager is expected to be installed within the cluster. https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/#running-cloud-controller-manager \n When set to \"External\", new nodes will be tainted as uninitialized when created, preventing them from running workloads until they are initialized by the cloud controller manager. When omitted or set to \"None\", new nodes will be not tainted and no extra initialization from the cloud controller manager is expected."
-                              enum:
-                                - ""
-                                - External
-                                - None
-                              type: string
-                          type: object
                         platformName:
                           default: Unknown
                           description: PlatformName holds the arbitrary string representing the infrastructure provider name, expected to be set at the installation time. This field is solely for informational and reporting purposes and is not expected to be used for decision-making.
@@ -534,7 +523,36 @@ spec:
                         resourceGroupName:
                           description: resourceGroupName is the Resource Group for new Azure resources created for the cluster.
                           type: string
+                        resourceTags:
+                          description: resourceTags is a list of additional tags to apply to Azure resources created for the cluster. See https://docs.microsoft.com/en-us/rest/api/resources/tags for information on tagging Azure resources. Due to limitations on Automation, Content Delivery Network, DNS Azure resources, a maximum of 15 tags may be applied. OpenShift reserves 5 tags for internal use, allowing 10 tags for user configuration.
+                          items:
+                            description: AzureResourceTag is a tag to apply to Azure resources created for the cluster.
+                            properties:
+                              key:
+                                description: key is the key part of the tag. A tag key can have a maximum of 128 characters and cannot be empty. Key must begin with a letter, end with a letter, number or underscore, and must contain only alphanumeric characters and the following special characters `_ . -`.
+                                maxLength: 128
+                                minLength: 1
+                                pattern: ^[a-zA-Z]([0-9A-Za-z_.-]*[0-9A-Za-z_])?$
+                                type: string
+                              value:
+                                description: 'value is the value part of the tag. A tag value can have a maximum of 256 characters and cannot be empty. Value must contain only alphanumeric characters and the following special characters `_ + , - . / : ; < = > ? @`.'
+                                maxLength: 256
+                                minLength: 1
+                                pattern: ^[0-9A-Za-z_.=+-@]+$
+                                type: string
+                            required:
+                              - key
+                              - value
+                            type: object
+                          maxItems: 10
+                          type: array
+                          x-kubernetes-validations:
+                            - message: resourceTags are immutable and may only be configured during installation
+                              rule: self.all(x, x in oldSelf) && oldSelf.all(x, x in self)
                       type: object
+                      x-kubernetes-validations:
+                        - message: resourceTags may only be configured during installation
+                          rule: '!has(oldSelf.resourceTags) && !has(self.resourceTags) || has(oldSelf.resourceTags) && has(self.resourceTags)'
                     baremetal:
                       description: BareMetal contains settings specific to the BareMetal platform.
                       properties:
@@ -707,6 +725,14 @@ spec:
                         region:
                           description: region holds the default Power VS region for new Power VS resources created by the cluster.
                           type: string
+                        resourceGroup:
+                          description: 'resourceGroup is the resource group name for new IBMCloud resources created for a cluster. The resource group specified here will be used by cluster-image-registry-operator to set up a COS Instance in IBMCloud for the cluster registry. More about resource groups can be found here: https://cloud.ibm.com/docs/account?topic=account-rgs. When omitted, the image registry operator won''t be able to configure storage, which results in the image registry cluster operator not being in an available state.'
+                          maxLength: 40
+                          pattern: ^[a-zA-Z0-9-_ ]+$
+                          type: string
+                          x-kubernetes-validations:
+                            - message: resourceGroup is immutable once set
+                              rule: oldSelf == '' || self == oldSelf
                         serviceEndpoints:
                           description: serviceEndpoints is a list of custom endpoints which will override the default service endpoints of a Power VS service.
                           items:
@@ -730,6 +756,9 @@ spec:
                           description: 'zone holds the default zone for the new Power VS resources created by the cluster. Note: Currently only single-zone OCP clusters are supported'
                           type: string
                       type: object
+                      x-kubernetes-validations:
+                        - message: cannot unset resourceGroup once set
+                          rule: '!has(oldSelf.resourceGroup) || has(self.resourceGroup)'
                     type:
                       description: "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", \"EquinixMetal\", \"PowerVS\", \"AlibabaCloud\", \"Nutanix\" and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform. \n This value will be synced with to the `status.platform` and `status.platformStatus.type`. Currently this value cannot be changed once set."
                       enum:
