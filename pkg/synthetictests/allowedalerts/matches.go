@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
-
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
 type neverFailAllowance struct {
@@ -18,12 +16,12 @@ func neverFail(flakeDelegate AlertTestAllowanceCalculator) AlertTestAllowanceCal
 	}
 }
 
-func (d *neverFailAllowance) FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error) {
+func (d *neverFailAllowance) FailAfter(key historicaldata.AlertDataKey) (time.Duration, error) {
 	return 24 * time.Hour, nil
 }
 
-func (d *neverFailAllowance) FlakeAfter(alertName string, jobType platformidentification.JobType) time.Duration {
-	return d.flakeDelegate.FlakeAfter(alertName, jobType)
+func (d *neverFailAllowance) FlakeAfter(key historicaldata.AlertDataKey) time.Duration {
+	return d.flakeDelegate.FlakeAfter(key)
 }
 
 // AlertTestAllowanceCalculator provides the duration after which an alert test should flake and fail.
@@ -31,9 +29,9 @@ func (d *neverFailAllowance) FlakeAfter(alertName string, jobType platformidenti
 // returns 6s and the FlakeAfter returns 2s, then test will flake.
 type AlertTestAllowanceCalculator interface {
 	// FailAfter returns a duration an alert can be at or above the required state before failing.
-	FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error)
+	FailAfter(key historicaldata.AlertDataKey) (time.Duration, error)
 	// FlakeAfter returns a duration an alert can be at or above the required state before flaking.
-	FlakeAfter(alertName string, jobType platformidentification.JobType) time.Duration
+	FlakeAfter(key historicaldata.AlertDataKey) time.Duration
 }
 
 type percentileAllowances struct {
@@ -41,18 +39,18 @@ type percentileAllowances struct {
 
 var defaultAllowances = &percentileAllowances{}
 
-func (d *percentileAllowances) FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error) {
-	allowed, _, _ := getClosestPercentilesValues(alertName, jobType)
+func (d *percentileAllowances) FailAfter(key historicaldata.AlertDataKey) (time.Duration, error) {
+	allowed, _, _ := getClosestPercentilesValues(key)
 	return allowed.P99, nil
 }
 
-func (d *percentileAllowances) FlakeAfter(alertName string, jobType platformidentification.JobType) time.Duration {
-	allowed, _, _ := getClosestPercentilesValues(alertName, jobType)
+func (d *percentileAllowances) FlakeAfter(key historicaldata.AlertDataKey) time.Duration {
+	allowed, _, _ := getClosestPercentilesValues(key)
 	return allowed.P95
 }
 
 // getClosestPercentilesValues uses the backend and information about the cluster to choose the best historical p99 to operate against.
 // We enforce "don't get worse" for disruption by watching the aggregate data in CI over many runs.
-func getClosestPercentilesValues(alertName string, jobType platformidentification.JobType) (historicaldata.StatisticalDuration, string, error) {
-	return getCurrentResults().BestMatchDuration(alertName, jobType)
+func getClosestPercentilesValues(key historicaldata.AlertDataKey) (historicaldata.StatisticalDuration, string, error) {
+	return getCurrentResults().BestMatchDuration(key)
 }

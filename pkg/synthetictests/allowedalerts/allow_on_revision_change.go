@@ -8,8 +8,7 @@ import (
 	"time"
 
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
-
+	"github.com/openshift/origin/pkg/synthetictests/historicaldata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -32,7 +31,7 @@ func NewAllowedWhenEtcdRevisionChange(ctx context.Context, kubeClient kubernetes
 	}, nil
 }
 
-func (d *etcdRevisionChangeAllowance) FailAfter(alertName string, jobType platformidentification.JobType) (time.Duration, error) {
+func (d *etcdRevisionChangeAllowance) FailAfter(key historicaldata.AlertDataKey) (time.Duration, error) {
 	// if the number of revisions is different compared to what we have collected at the beginning of the test suite
 	// increase allowed time for the alert
 	// the rationale is that some tests might roll out a new version of etcd during each rollout we allow max 3 elections per revision (we assume there are 3 master machines at most)
@@ -42,12 +41,12 @@ func (d *etcdRevisionChangeAllowance) FailAfter(alertName string, jobType platfo
 		return time.Duration(d.numberOfRevisionDuringTest) * 15 * time.Minute, nil
 
 	}
-	allowed, _, _ := getClosestPercentilesValues(alertName, jobType)
+	allowed, _, _ := getClosestPercentilesValues(key)
 	return allowed.P99, nil
 }
 
-func (d *etcdRevisionChangeAllowance) FlakeAfter(alertName string, jobType platformidentification.JobType) time.Duration {
-	allowed, _, _ := getClosestPercentilesValues(alertName, jobType)
+func (d *etcdRevisionChangeAllowance) FlakeAfter(key historicaldata.AlertDataKey) time.Duration {
+	allowed, _, _ := getClosestPercentilesValues(key)
 	return allowed.P95
 }
 
