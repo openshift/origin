@@ -12,7 +12,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"k8s.io/klog/v2"
 
-	kapiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,8 +21,9 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/kubernetes/openshift-hack/e2e"
 	conformancetestdata "k8s.io/kubernetes/test/conformance/testdata"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/testfiles"
 	e2etestingmanifests "k8s.io/kubernetes/test/e2e/testing-manifests"
 	testfixtures "k8s.io/kubernetes/test/fixtures"
@@ -36,14 +37,20 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-var TestContext *e2e.TestContextType = &e2e.TestContext
+var (
+	// TestContext which allows injecting context data into tests
+	TestContext *framework.TestContextType = &framework.TestContext
+
+	// upgradeFilter is meant for matching upgrade test's namespace
+	upgradeFilter = regexp.MustCompile(`e2e-k8s[\w-]+upgrade`)
+)
 
 func InitStandardFlags() {
-	e2e.RegisterCommonFlags(flag.CommandLine)
-	e2e.RegisterClusterFlags(flag.CommandLine)
+	framework.RegisterCommonFlags(flag.CommandLine)
+	framework.RegisterClusterFlags(flag.CommandLine)
 
 	// replaced by a bare import above.
-	//e2e.RegisterStorageFlags()
+	//framework.RegisterStorageFlags()
 }
 
 func InitTest(dryRun bool) error {
@@ -71,9 +78,18 @@ func InitTest(dryRun bool) error {
 		}
 		TestContext.Host = cfg.Host
 	}
-
 	// Ensure that Kube tests run privileged (like they do upstream)
-	TestContext.CreateTestingNS = createTestingNS
+	TestContext.CreateTestingNS = func(ctx context.Context, baseName string, c kclientset.Interface, labels map[string]string) (*corev1.Namespace, error) {
+		// there are several cases when we want to kick in with namespace customization
+		// which includes setting persmissions for upstream tests to allow for privileged
+		// operations, these cases are:
+		// 1. all tests which namespace matches `e2e-k8s-...-upgrade` pattern
+		//    (mostly k8s upgrades tests, see test/extended/util/disruption/disruption.go#createTestFrameworks)
+		// 2. all k8s tests (based on testfile location), which don't have specific wording in their name (see skipTestNamespaceCustomization)
+		isKubeNamespace := upgradeFilter.MatchString(baseName) || // 1.
+			(isGoModulePath(ginkgo.CurrentSpecReport().FileName(), "k8s.io/kubernetes", "test/e2e") && !skipTestNamespaceCustomization()) // 2.
+		return e2e.CreateTestingNS(ctx, baseName, c, labels, isKubeNamespace)
+	}
 
 	klog.V(2).Infof("Extended test version %s", version.Get().String())
 	return nil
@@ -92,6 +108,24 @@ func requiresTestStart() {
 	if !testsStarted {
 		panic("May only be called from within a test case")
 	}
+}
+
+// isGoModulePath returns true if the packagePath reported by reflection is within a
+// module and given module path. When go mod is in use, module and modulePath are not
+// contiguous as they were in older golang versions with vendoring, so naive contains
+// tests fail.
+//
+// historically: ".../vendor/k8s.io/kubernetes/test/e2e"
+// go.mod:       "k8s.io/kubernetes@0.18.4/test/e2e"
+func isGoModulePath(packagePath, module, modulePath string) bool {
+	return regexp.MustCompile(fmt.Sprintf(`\b%s(@[^/]*|)/%s\b`, regexp.QuoteMeta(module), regexp.QuoteMeta(modulePath))).MatchString(packagePath)
+}
+
+// skipTestNamespaceCustomization returns true for tests which have specific
+// wording in their name and we know they should not be customized
+func skipTestNamespaceCustomization() bool {
+	testName := ginkgo.CurrentSpecReport().FullText()
+	return strings.Contains(testName, "should always delete fast") || strings.Contains(testName, "should delete fast enough")
 }
 
 // WithCleanup instructs utility methods to move out of dry run mode so there are no side
@@ -123,90 +157,6 @@ func InitDefaultEnvironmentVariables() {
 	}
 }
 
-// isGoModulePath returns true if the packagePath reported by reflection is within a
-// module and given module path. When go mod is in use, module and modulePath are not
-// contiguous as they were in older golang versions with vendoring, so naive contains
-// tests fail.
-//
-// historically: ".../vendor/k8s.io/kubernetes/test/e2e"
-// go.mod:       "k8s.io/kubernetes@0.18.4/test/e2e"
-func isGoModulePath(packagePath, module, modulePath string) bool {
-	return regexp.MustCompile(fmt.Sprintf(`\b%s(@[^/]*|)/%s\b`, regexp.QuoteMeta(module), regexp.QuoteMeta(modulePath))).MatchString(packagePath)
-}
-
-func isOriginTest() bool {
-	return isGoModulePath(ginkgo.CurrentSpecReport().FileName(), "github.com/openshift/origin", "test")
-}
-
-func isKubernetesE2ETest() bool {
-	return isGoModulePath(ginkgo.CurrentSpecReport().FileName(), "k8s.io/kubernetes", "test/e2e")
-}
-
-func testNameContains(name string) bool {
-	return strings.Contains(ginkgo.CurrentSpecReport().FullText(), name)
-}
-
-func skipTestNamespaceCustomization() bool {
-	return testNameContains("should always delete fast") || testNameContains("should delete fast enough")
-}
-
-// createTestingNS ensures that kubernetes e2e tests have their service accounts in the privileged and anyuid SCCs
-func createTestingNS(ctx context.Context, baseName string, c kclientset.Interface, labels map[string]string) (*kapiv1.Namespace, error) {
-	if !strings.HasPrefix(baseName, "e2e-") {
-		baseName = "e2e-" + baseName
-	}
-
-	// we skip SCC if this is a kube e2e test
-	isKubeE2ENamespace := strings.HasPrefix(baseName, "e2e-k8s-") || (isKubernetesE2ETest() && !skipTestNamespaceCustomization())
-	if isKubeE2ENamespace {
-		if labels == nil {
-			labels = map[string]string{}
-		}
-		labels["security.openshift.io/disable-securitycontextconstraints"] = "true"
-	}
-
-	ns, err := e2e.CreateTestingNS(ctx, baseName, c, labels)
-	if err != nil {
-		return ns, err
-	}
-
-	// Add anyuid and privileged permissions for upstream tests
-	if isKubeE2ENamespace {
-		clientConfig, err := GetClientConfig(KubeConfigPath())
-		if err != nil {
-			return ns, err
-		}
-		securityClient, err := securityv1client.NewForConfig(clientConfig)
-		if err != nil {
-			return ns, err
-		}
-		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
-		// add the "privileged" scc to ensure pods that explicitly
-		// request extra capabilities are not rejected
-		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "privileged")
-		// add the "anyuid" scc to ensure pods that don't specify a
-		// uid don't get forced into a range (mimics upstream
-		// behavior)
-		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "anyuid")
-		// add the "hostmount-anyuid" scc to ensure pods using hostPath
-		// can execute tests
-		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "hostmount-anyuid")
-
-		// The intra-pod test requires that the service account have
-		// permission to retrieve service endpoints.
-		rbacClient, err := rbacv1client.NewForConfig(clientConfig)
-		if err != nil {
-			return ns, err
-		}
-		addRoleToE2EServiceAccounts(rbacClient, []kapiv1.Namespace{*ns}, "view")
-
-		// in practice too many kube tests ignore scheduling constraints
-		allowAllNodeScheduling(c, ns.Name)
-	}
-
-	return ns, err
-}
-
 var longRetry = wait.Backoff{Steps: 100}
 
 // allowAllNodeScheduling sets the annotation on namespace that allows all nodes to be scheduled onto.
@@ -228,7 +178,7 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	}
 }
 
-func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, namespaces []kapiv1.Namespace, sccName string) {
+func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, namespaces []corev1.Namespace, sccName string) {
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
@@ -253,10 +203,10 @@ func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, names
 	}
 }
 
-func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namespaces []kapiv1.Namespace, roleName string) {
+func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namespaces []corev1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
-			if ns.Status.Phase != kapiv1.NamespaceTerminating {
+			if ns.Status.Phase != corev1.NamespaceTerminating {
 				_, err := rbacClient.RoleBindings(ns.Name).Create(context.Background(), &rbacv1.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{GenerateName: "default-" + roleName, Namespace: ns.Name},
 					RoleRef: rbacv1.RoleRef{
@@ -268,7 +218,7 @@ func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namesp
 					},
 				}, metav1.CreateOptions{})
 				if err != nil {
-					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)
+					framework.Logf("Warning: Failed to add role to e2e service account: %v", err)
 				}
 			}
 		}

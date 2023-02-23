@@ -319,7 +319,8 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 	for _, t := range tests {
 		ns := nsFilter.ReplaceAllString(t.Name(), "-") // and replace with a single hyphen
 		ns = strings.Trim(ns, "-")
-		// identify tests that come from kube as strictly e2e tests so they get the correct semantics
+		// identify tests that come from kube as strictly e2e tests so they get the correct semantics,
+		// which includes privileged namespace access, like all the other k8s e2e-s
 		if isGoModulePath(reflect.ValueOf(t).Elem().Type().PkgPath(), "k8s.io/kubernetes", "test/e2e") {
 			ns = "e2e-k8s-" + ns
 		}
