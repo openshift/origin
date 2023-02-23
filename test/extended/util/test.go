@@ -36,12 +36,6 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-var (
-	reportFileName string
-	syntheticSuite string
-	quiet          bool
-)
-
 var TestContext *e2e.TestContextType = &e2e.TestContext
 
 func InitStandardFlags() {
@@ -54,8 +48,6 @@ func InitStandardFlags() {
 
 func InitTest(dryRun bool) error {
 	InitDefaultEnvironmentVariables()
-	// interpret synthetic input in `--ginkgo.focus` and/or `--ginkgo.skip`
-	ginkgo.BeforeEach(checkSyntheticInput)
 
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
@@ -79,13 +71,6 @@ func InitTest(dryRun bool) error {
 		}
 		TestContext.Host = cfg.Host
 	}
-
-	reportFileName = os.Getenv("TEST_REPORT_FILE_NAME")
-	if reportFileName == "" {
-		reportFileName = "junit"
-	}
-
-	quiet = os.Getenv("TEST_OUTPUT_QUIET") == "true"
 
 	// Ensure that Kube tests run privileged (like they do upstream)
 	TestContext.CreateTestingNS = createTestingNS
@@ -222,29 +207,6 @@ func createTestingNS(ctx context.Context, baseName string, c kclientset.Interfac
 	return ns, err
 }
 
-// checkSyntheticInput selects tests based on synthetic skips or focuses
-func checkSyntheticInput() {
-	checkSuiteSkips()
-}
-
-// checkSuiteSkips ensures Origin/Kubernetes synthetic skip labels are applied
-// DEPRECATED: remove in a future release
-func checkSuiteSkips() {
-	suiteConfig, _ := ginkgo.GinkgoConfiguration()
-	switch {
-	case isOriginTest():
-		skip := strings.Join(suiteConfig.SkipStrings, "|")
-		if strings.Contains(skip, "Synthetic Origin") {
-			ginkgo.Skip("skipping all openshift/origin tests")
-		}
-	case isKubernetesE2ETest():
-		skip := strings.Join(suiteConfig.SkipStrings, "|")
-		if strings.Contains(skip, "Synthetic Kubernetes") {
-			ginkgo.Skip("skipping all k8s.io/kubernetes tests")
-		}
-	}
-}
-
 var longRetry = wait.Backoff{Steps: 100}
 
 // allowAllNodeScheduling sets the annotation on namespace that allows all nodes to be scheduled onto.
@@ -279,9 +241,7 @@ func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, names
 		}
 
 		for _, ns := range namespaces {
-			if isE2ENamespace(ns.Name) {
-				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
-			}
+			scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 		}
 		if _, err := securityClient.SecurityV1().SecurityContextConstraints().Update(context.Background(), scc, metav1.UpdateOptions{}); err != nil {
 			return err
@@ -293,25 +253,10 @@ func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, names
 	}
 }
 
-func isE2ENamespace(ns string) bool {
-	return true
-	//return strings.HasPrefix(ns, "e2e-") ||
-	//	strings.HasPrefix(ns, "aggregator-") ||
-	//	strings.HasPrefix(ns, "csi-") ||
-	//	strings.HasPrefix(ns, "deployment-") ||
-	//	strings.HasPrefix(ns, "disruption-") ||
-	//	strings.HasPrefix(ns, "gc-") ||
-	//	strings.HasPrefix(ns, "kubectl-") ||
-	//	strings.HasPrefix(ns, "proxy-") ||
-	//	strings.HasPrefix(ns, "provisioning-") ||
-	//	strings.HasPrefix(ns, "statefulset-") ||
-	//	strings.HasPrefix(ns, "services-")
-}
-
 func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namespaces []kapiv1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
-			if isE2ENamespace(ns.Name) && ns.Status.Phase != kapiv1.NamespaceTerminating {
+			if ns.Status.Phase != kapiv1.NamespaceTerminating {
 				_, err := rbacClient.RoleBindings(ns.Name).Create(context.Background(), &rbacv1.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{GenerateName: "default-" + roleName, Namespace: ns.Name},
 					RoleRef: rbacv1.RoleRef{

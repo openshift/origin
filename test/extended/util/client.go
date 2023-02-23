@@ -13,8 +13,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1080,29 +1078,8 @@ func GetClientConfig(kubeConfigFile string) (*rest.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	clientConfig.WrapTransport = defaultClientTransport
 
 	return clientConfig, nil
-}
-
-// defaultClientTransport sets defaults for a client Transport that are suitable
-// for use by infrastructure components.
-func defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
-	transport, ok := rt.(*http.Transport)
-	if !ok {
-		return rt
-	}
-
-	// TODO: this should be configured by the caller, not in this method.
-	dialer := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
-	transport.Dial = dialer.Dial
-	// Hold open more internal idle connections
-	// TODO: this should be configured by the caller, not in this method.
-	transport.MaxIdleConnsPerHost = 100
-	return transport
 }
 
 const (
