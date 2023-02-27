@@ -463,9 +463,7 @@ var staticSuites = testSuites{
 				}
 				return strings.Contains(name, "[Suite:openshift/nodes/realtime")
 			},
-			TestTimeout: 30 * time.Minute,
 		},
-		PreSuite: suiteWithProviderPreSuite,
 	},
 }
 
