@@ -49493,6 +49493,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isLateConnection(eventInterval) {
+        if (eventInterval.locator.includes("arrival/")) {
+            return true
+        }
+
+        return false
+    }
+
     function isNodeState(eventInterval) {
         if (eventInterval.locator.startsWith("node/")) {
             return (eventInterval.message.startsWith("reason/NodeUpdate ") || eventInterval.message.includes("node is not ready"))
@@ -49634,6 +49642,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, "", "Disruption"]
     }
 
+    function lateConnectionValue(item) {
+        let warningIndex = item.message.indexOf("reason/VeryLate")
+        if (warningIndex != -1) {
+            return [item.locator, "", "VeryLate"]
+        }
+        return [item.locator, "", "AfterTermination"]
+    }
+
     function getDurationString(durationSeconds) {
         const seconds = durationSeconds % 60;
         const minutes = Math.floor(durationSeconds/60);
@@ -49756,6 +49772,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups.push({group: "endpoint-availability", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
 
+        timelineGroups.push({group: "late-connection", data: []})
+        createTimelineData(lateConnectionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isLateConnection, regex)
+
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
 
@@ -49801,6 +49820,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
                 'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  'StartupProbeFailed', // pods
                 'CIClusterDisruption', 'Disruption', // disruption
+                'VeryLate', 'AfterTermination', // load balancer
                 'Degraded', 'Upgradeable', 'False', 'Unknown',
                 'PodLogInfo', 'PodLogWarning', 'PodLogError'])
             .range([
@@ -49811,6 +49831,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
                 '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', '#d0312d', '#d0312d', '#c90076', // pods
                 '#96cbff', '#d0312d', // disruption
+                '#d0312d', '#96cbff', // load balancer
                 '#b65049', '#32b8b6', '#ffffff', '#bbbbbb',
                 '#96cbff', '#fada5e', '#d0312d']);
         myChart.
