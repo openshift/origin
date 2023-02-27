@@ -2705,6 +2705,14 @@ var Annotations = map[string]string{
 
 	"[sig-node] AppArmor load AppArmor profiles should enforce an AppArmor profile": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
+	"[sig-node] CPU Partitioned cluster infrastructure should be configured correctly": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] CPU Partitioned cluster platform pods should be annotated correctly": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] CPU Partitioned cluster workloads in annotated namespaces should be modified": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] CPU Partitioned cluster workloads in non-annotated namespaces should not be modified": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node] ConfigMap should be consumable via environment variable [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-node] ConfigMap should be consumable via the environment [NodeConformance] [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
