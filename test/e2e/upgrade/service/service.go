@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -45,7 +47,7 @@ func NewServiceLoadBalancerWithNewConnectionsTest() upgrades.Test {
 				serviceLBTest.hostGetter,
 				"service-load-balancer-with-pdb",
 				"/echo?msg=Hello",
-				backenddisruption.NewConnectionType).
+				monitorapi.NewConnectionType).
 				WithExpectedBody("Hello"),
 		).
 			WithPreSetup(serviceLBTest.loadBalancerSetup)
@@ -64,7 +66,7 @@ func NewServiceLoadBalancerWithReusedConnectionsTest() upgrades.Test {
 				serviceLBTest.hostGetter,
 				"service-load-balancer-with-pdb",
 				"/echo?msg=Hello",
-				backenddisruption.ReusedConnectionType).
+				monitorapi.ReusedConnectionType).
 				WithExpectedBody("Hello"),
 		).
 			WithPreSetup(serviceLBTest.loadBalancerSetup)

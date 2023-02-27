@@ -5,6 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/client-go/rest"
 )
 
@@ -32,7 +33,7 @@ func startExternalServiceMonitoringWithNewConnections(ctx context.Context, m mon
 		externalServiceURL,
 		LivenessProbeBackend,
 		"",
-		backenddisruption.NewConnectionType)
+		monitorapi.NewConnectionType)
 	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
@@ -41,6 +42,6 @@ func startExternalServiceMonitoringWithReusedConnections(ctx context.Context, m 
 		externalServiceURL,
 		LivenessProbeBackend,
 		"",
-		backenddisruption.ReusedConnectionType)
+		monitorapi.ReusedConnectionType)
 	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }

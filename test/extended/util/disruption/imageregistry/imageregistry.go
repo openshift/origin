@@ -1,6 +1,7 @@
 package imageregistry
 
 import (
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/imageregistryutil"
 
 	"github.com/openshift/origin/pkg/monitor"
@@ -21,7 +22,7 @@ func NewImageRegistryAvailableWithNewConnectionsTest() upgrades.Test {
 			"test-disruption-new",
 			"image-registry",
 			"/healthz",
-			backenddisruption.NewConnectionType),
+			monitorapi.NewConnectionType),
 	).
 		WithPreSetup(imageregistryutil.SetupImageRegistryFor("test-disruption-new")).
 		WithPostTeardown(imageregistryutil.TeardownImageRegistryFor("test-disruption-new"))
@@ -39,7 +40,7 @@ func NewImageRegistryAvailableWithReusedConnectionsTest() upgrades.Test {
 			"test-disruption-reused",
 			"image-registry",
 			"/healthz",
-			backenddisruption.ReusedConnectionType),
+			monitorapi.ReusedConnectionType),
 	).
 		WithPreSetup(imageregistryutil.SetupImageRegistryFor("test-disruption-reused")).
 		WithPostTeardown(imageregistryutil.TeardownImageRegistryFor("test-disruption-reused"))

@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -18,7 +18,7 @@ import (
 )
 
 type BackendSampler interface {
-	GetConnectionType() backenddisruption.BackendConnectionType
+	GetConnectionType() monitorapi.BackendConnectionType
 	GetDisruptionBackendName() string
 	GetLocator() string
 	GetURL() (string, error)

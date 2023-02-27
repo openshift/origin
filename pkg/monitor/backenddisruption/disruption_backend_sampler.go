@@ -27,13 +27,6 @@ import (
 // we also got stuck on writing the disruption backends.  We need a way to track which disruption checks we have started,
 // so we can properly write out "zero"
 
-type BackendConnectionType string
-
-const (
-	NewConnectionType    BackendConnectionType = "new"
-	ReusedConnectionType BackendConnectionType = "reused"
-)
-
 // BackendSampler is used to monitor an HTTP endpoint and ensure that it is always accessible.
 // It records results into the monitorRecorder that is passed to the StartEndpointMonitoring call.
 type BackendSampler struct {
@@ -43,7 +36,7 @@ type BackendSampler struct {
 	// disruptionBackendName is a shortname for humans to recognize the endpoint being connected to
 	disruptionBackendName string
 	// connectionType indicates what type of connection is being used.
-	connectionType BackendConnectionType
+	connectionType monitorapi.BackendConnectionType
 	// is the `/path` part of the url.  It must start with a slash.
 	path string
 
@@ -90,10 +83,10 @@ type routeCoordinates struct {
 }
 
 // NewSimpleBackend constructs a BackendSampler suitable for use against a generic server
-func NewSimpleBackend(host, disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
+func NewSimpleBackend(host, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
 	ret := &BackendSampler{
 		connectionType:        connectionType,
-		locator:               LocateDisruptionCheck(disruptionBackendName, connectionType),
+		locator:               monitorapi.LocateDisruptionCheck(disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
 		hostGetter:            NewSimpleHostGetter(host),
@@ -104,10 +97,10 @@ func NewSimpleBackend(host, disruptionBackendName, path string, connectionType B
 
 // NewBackend constructs a BackendSampler suitable for use against a generic server, with a late binding HostGetter that
 // allows for later mutation
-func NewBackend(hostGetter HostGetter, disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
+func NewBackend(hostGetter HostGetter, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
 	ret := &BackendSampler{
 		connectionType:        connectionType,
-		locator:               LocateDisruptionCheck(disruptionBackendName, connectionType),
+		locator:               monitorapi.LocateDisruptionCheck(disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
 		hostGetter:            hostGetter,
@@ -117,7 +110,7 @@ func NewBackend(hostGetter HostGetter, disruptionBackendName, path string, conne
 }
 
 // NewAPIServerBackend constructs a BackendSampler suitable for use against a kube-like API server
-func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path string, connectionType BackendConnectionType) (*BackendSampler, error) {
+func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) (*BackendSampler, error) {
 
 	kubeTransportConfig, err := clientConfig.TransportConfig()
 	if err != nil {
@@ -130,7 +123,7 @@ func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path 
 
 	ret := &BackendSampler{
 		connectionType:        connectionType,
-		locator:               LocateDisruptionCheck(disruptionBackendName, connectionType),
+		locator:               monitorapi.LocateDisruptionCheck(disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
 		hostGetter:            NewKubeAPIHostGetter(clientConfig),
@@ -143,10 +136,10 @@ func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path 
 }
 
 // NewRouteBackend constructs a BackendSampler suitable for use against a routes.route.openshift.io
-func NewRouteBackend(clientConfig *rest.Config, namespace, name, disruptionBackendName, path string, connectionType BackendConnectionType) *BackendSampler {
+func NewRouteBackend(clientConfig *rest.Config, namespace, name, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
 	return &BackendSampler{
 		connectionType:        connectionType,
-		locator:               LocateRouteForDisruptionCheck(namespace, name, disruptionBackendName, connectionType),
+		locator:               monitorapi.LocateRouteForDisruptionCheck(namespace, name, disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
 		hostGetter:            NewRouteHostGetter(clientConfig, namespace, name),
@@ -208,7 +201,7 @@ func (b *BackendSampler) GetLocator() string {
 	return b.locator
 }
 
-func (b *BackendSampler) GetConnectionType() BackendConnectionType {
+func (b *BackendSampler) GetConnectionType() monitorapi.BackendConnectionType {
 	return b.connectionType
 }
 
@@ -257,7 +250,7 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 	b.initHTTPClient.Do(func() {
 		var httpTransport *http.Transport
 		switch b.GetConnectionType() {
-		case NewConnectionType:
+		case monitorapi.NewConnectionType:
 			httpTransport = &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout:   timeoutForPartOfRequest,
@@ -272,7 +265,7 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 				Proxy:                 http.ProxyFromEnvironment,
 			}
 
-		case ReusedConnectionType:
+		case monitorapi.ReusedConnectionType:
 			httpTransport = &http.Transport{
 				Dial: (&net.Dialer{
 					Timeout: timeoutForPartOfRequest,
