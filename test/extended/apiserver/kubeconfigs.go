@@ -31,7 +31,7 @@ var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local ku
 		"localhost-recovery.kubeconfig",
 	} {
 		kubeconfig := kc
-		g.It(fmt.Sprintf("%q should be present on all masters and work [apigroup:config.openshift.io]", kubeconfig), func() {
+		g.It(fmt.Sprintf("%q should be present on all masters and work", kubeconfig), func() {
 			// external controlplane topology doesn't have master nodes
 			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())

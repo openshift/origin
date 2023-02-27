@@ -64,6 +64,7 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
@@ -79,23 +80,26 @@ import (
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // clients.
 type CLI struct {
-	execPath           string
-	verb               string
-	configPath         string
-	adminConfigPath    string
-	token              string
-	username           string
-	globalArgs         []string
-	commandArgs        []string
-	finalArgs          []string
-	namespacesToDelete []string
-	stdin              *bytes.Buffer
-	stdout             io.Writer
-	stderr             io.Writer
-	verbose            bool
-	withoutNamespace   bool
-	kubeFramework      *framework.Framework
+	execPath                string
+	verb                    string
+	configPath              string
+	adminConfigPath         string
+	staticConfigManifestDir string
+	token                   string
+	username                string
+	globalArgs              []string
+	commandArgs             []string
+	finalArgs               []string
+	namespacesToDelete      []string
+	stdin                   *bytes.Buffer
+	stdout                  io.Writer
+	stderr                  io.Writer
+	verbose                 bool
+	withoutNamespace        bool
+	kubeFramework           *framework.Framework
 
+	// read from a static manifest directory (set through STATIC_CONFIG_MANIFEST_DIR env)
+	configObjects     []runtime.Object
 	resourcesToDelete []resourceRef
 }
 
@@ -114,6 +118,9 @@ func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
 		execPath:        "oc",
 		adminConfigPath: KubeConfigPath(),
 	}
+	// Called only once (assumed the objects will never get modified)
+	// TODO: run in every BeforeEach
+	cli.setupStaticConfigsFromManifests()
 	return cli
 }
 
@@ -150,12 +157,16 @@ func NewCLIWithoutNamespace(project string) *CLI {
 			},
 			Timeouts: framework.NewTimeoutContextWithDefaults(),
 		},
-		username:         "admin",
-		execPath:         "oc",
-		adminConfigPath:  KubeConfigPath(),
-		withoutNamespace: true,
+		username:                "admin",
+		execPath:                "oc",
+		adminConfigPath:         KubeConfigPath(),
+		staticConfigManifestDir: StaticConfigManifestDir(),
+		withoutNamespace:        true,
 	}
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
+
+	// Called only once (assumed the objects will never get modified)
+	cli.setupStaticConfigsFromManifests()
 
 	// we can't use k8s initialization method to inject these into framework.NewFrameworkExtensions
 	// because we need to have an instance of CLI, so we're rely on the less optimal ginkgo.AfterEach
@@ -563,6 +574,12 @@ func (c *CLI) RESTMapper() meta.RESTMapper {
 	return ret
 }
 
+func (c *CLI) setupStaticConfigsFromManifests() {
+	err, objects := collectConfigManifestsFromDir(c.staticConfigManifestDir)
+	o.Expect(err).ToNot(o.HaveOccurred())
+	c.configObjects = objects
+}
+
 func (c *CLI) AppsClient() appsv1client.Interface {
 	return appsv1client.NewForConfigOrDie(c.UserConfig())
 }
@@ -608,7 +625,10 @@ func (c *CLI) AdminBuildClient() buildv1client.Interface {
 }
 
 func (c *CLI) AdminConfigClient() configv1client.Interface {
-	return configv1client.NewForConfigOrDie(c.AdminConfig())
+	return &ConfigClientShim{
+		adminConfig: c.AdminConfig(),
+		fakeClient:  fakeconfigv1client.NewSimpleClientset(c.configObjects...),
+	}
 }
 
 func (c *CLI) AdminImageClient() imagev1client.Interface {

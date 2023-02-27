@@ -50,7 +50,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 	)
 	noegFwoc := exutil.NewCLIWithPodSecurityLevel(noEgressFWE2E, admissionapi.LevelBaseline)
 	noegFwf := noegFwoc.KubeFramework()
-	g.It("egressFirewall should have no impact outside its namespace [apigroup:config.openshift.io]", func() {
+	g.It("egressFirewall should have no impact outside its namespace", func() {
 		g.By("creating test pod")
 		pod := "dummy"
 		o.Expect(createTestEgressFw(noegFwf, pod)).To(o.Succeed())
