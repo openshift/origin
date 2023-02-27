@@ -3,6 +3,10 @@ package nodedetails
 import (
 	"context"
 	"os"
+	"path/filepath"
+	"time"
+
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -53,12 +57,15 @@ func (o auditLogSummaryOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	auditLogSummary, err := GetKubeAuditLogSummary(ctx, kubeClient)
+	auditLogSummary, monitorEvents, err := IntervalsFromAuditLogs(ctx, kubeClient, time.Time{}, time.Time{})
 	if err != nil {
 		return err
 	}
 
 	if err := WriteAuditLogSummary(o.ArtifactDir, "", auditLogSummary); err != nil {
+		return err
+	}
+	if err := monitorserialization.EventsToFile(filepath.Join(o.ArtifactDir, "audit-events.json"), monitorEvents); err != nil {
 		return err
 	}
 

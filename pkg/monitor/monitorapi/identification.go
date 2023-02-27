@@ -21,6 +21,18 @@ func LocateDisruptionCheck(disruptionBackendName string, connectionType BackendC
 	return fmt.Sprintf("disruption/%s connection/%s", disruptionBackendName, connectionType)
 }
 
+func VeryLateDisruptionCheckForNode(nodeName, disruptionBackendName string, connectionType BackendConnectionType) string {
+	return fmt.Sprintf("arrival/veryLate node/%s disruption/%s connection/%s", nodeName, disruptionBackendName, connectionType)
+}
+
+func DuringTerminationDisruptionCheckForNode(nodeName, disruptionBackendName string, connectionType BackendConnectionType) string {
+	return fmt.Sprintf("arrival/duringTermination node/%s disruption/%s connection/%s", nodeName, disruptionBackendName, connectionType)
+}
+
+func VeryLateRequestForNode(nodeName, userName string) string {
+	return fmt.Sprintf("arrival/veryLate node/%s username/%s", nodeName, userName)
+}
+
 func E2ETestLocator(testName string) string {
 	return fmt.Sprintf("e2e-test/%q", testName)
 }
@@ -43,8 +55,8 @@ func E2ETestFromLocator(locator string) (string, bool) {
 	return testName, true
 }
 
-func NodeLocator(testName string) string {
-	return fmt.Sprintf("node/%v", testName)
+func NodeLocator(name string) string {
+	return fmt.Sprintf("node/%v", name)
 }
 
 func IsNode(locator string) bool {

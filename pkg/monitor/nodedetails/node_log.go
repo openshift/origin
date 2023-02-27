@@ -46,7 +46,7 @@ func GetNodeLog(ctx context.Context, client kubernetes.Interface, nodeName, syst
 	return ioutil.ReadAll(in)
 }
 
-func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface) (*AuditLogSummary, error) {
+func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface) (*AuditLogSummary, *LoadBalancerCheckSummary, error) {
 	masterOnly, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Exists, nil)
 	if err != nil {
 		panic(err)
@@ -56,10 +56,11 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ret := NewAuditLogSummary()
+	retLBSummary := NewLoadBalancerCheckSummary()
 	lock := sync.Mutex{}
 	errCh := make(chan error, len(allNodes.Items))
 	wg := sync.WaitGroup{}
@@ -68,7 +69,7 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 		go func(ctx context.Context, nodeName string) {
 			defer wg.Done()
 
-			auditLogSummary, err := getNodeKubeAuditLogSummary(ctx, kubeClient, nodeName)
+			auditLogSummary, lbCheckSummary, err := getNodeKubeAuditLogSummary(ctx, kubeClient, nodeName)
 			if err != nil {
 				errCh <- err
 				return
@@ -77,6 +78,7 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 			lock.Lock()
 			defer lock.Unlock()
 			ret.AddSummary(auditLogSummary)
+			retLBSummary.AddSummary(lbCheckSummary)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -87,16 +89,17 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 		errs = append(errs, err)
 	}
 
-	return ret, utilerrors.NewAggregate(errs)
+	return ret, retLBSummary, utilerrors.NewAggregate(errs)
 }
 
-func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string) (*AuditLogSummary, error) {
+func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string) (*AuditLogSummary, *LoadBalancerCheckSummary, error) {
 	return getAuditLogSummary(ctx, client, nodeName, "kube-apiserver")
 }
-func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName, apiserver string) (*AuditLogSummary, error) {
+
+func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName, apiserver string) (*AuditLogSummary, *LoadBalancerCheckSummary, error) {
 	auditLogFilenames, err := getAuditLogFilenames(ctx, client, nodeName, apiserver)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// we do not have enough memory to read all the content and then navigate it all in memory.
@@ -107,6 +110,7 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 
 	errCh := make(chan error, len(auditLogFilenames))
 	auditLogSummaries := make(chan *AuditLogSummary, len(auditLogFilenames))
+	lbCheckSummaries := make(chan *LoadBalancerCheckSummary, len(auditLogFilenames))
 	for _, auditLogFilename := range auditLogFilenames {
 		if !strings.HasPrefix(auditLogFilename, "audit") {
 			continue
@@ -126,6 +130,7 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 			}
 
 			auditLogSummary := NewAuditLogSummary()
+			loadBalancerCheckSummary := NewLoadBalancerCheckSummary()
 			scanner := bufio.NewScanner(auditStream)
 			line := 0
 			for scanner.Scan() {
@@ -144,14 +149,16 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 				}
 
 				auditLogSummary.Add(auditEvent, auditEventInfo{})
+				loadBalancerCheckSummary.Add(nodeName, auditEvent, auditEventInfo{})
 			}
 			auditLogSummaries <- auditLogSummary
-
+			lbCheckSummaries <- loadBalancerCheckSummary
 		}(ctx, auditLogFilename)
 	}
 	wg.Wait()
 	close(errCh)
 	close(auditLogSummaries)
+	close(lbCheckSummaries)
 
 	errs := []error{}
 	for err := range errCh {
@@ -163,7 +170,12 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 		fullSummary.AddSummary(auditLogSummary)
 	}
 
-	return fullSummary, utilerrors.NewAggregate(errs)
+	fullLBSummary := NewLoadBalancerCheckSummary()
+	for lbCheckSummary := range lbCheckSummaries {
+		fullLBSummary.AddSummary(lbCheckSummary)
+	}
+
+	return fullSummary, fullLBSummary, utilerrors.NewAggregate(errs)
 }
 
 // this is copy/pasted from the oc node logs impl
