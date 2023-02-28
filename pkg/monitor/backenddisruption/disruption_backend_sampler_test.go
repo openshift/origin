@@ -44,7 +44,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 
 	type fields struct {
 		disruptionBackendName string
-		connectionType        BackendConnectionType
+		connectionType        monitorapi.BackendConnectionType
 		path                  string
 		expect                string
 		expectRegexp          string
@@ -60,7 +60,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			name: "simple-200",
 			fields: fields{
 				disruptionBackendName: "simple-200",
-				connectionType:        NewConnectionType,
+				connectionType:        monitorapi.NewConnectionType,
 				path:                  "/200",
 				expect:                "200",
 			},
@@ -70,7 +70,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			name: "200-bad-exect",
 			fields: fields{
 				disruptionBackendName: "simple-200",
-				connectionType:        NewConnectionType,
+				connectionType:        monitorapi.NewConnectionType,
 				path:                  "/200",
 				expect:                "other",
 			},
@@ -81,7 +81,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			name: "302-no-expect-bad-response",
 			fields: fields{
 				disruptionBackendName: "302-bad-response",
-				connectionType:        NewConnectionType,
+				connectionType:        monitorapi.NewConnectionType,
 				path:                  "/302-bad-response",
 			},
 			// TODO: should this be error when Location header is not set?
@@ -91,7 +91,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			name: "302-no-expect",
 			fields: fields{
 				disruptionBackendName: "302",
-				connectionType:        NewConnectionType,
+				connectionType:        monitorapi.NewConnectionType,
 				path:                  "/302",
 			},
 			wantErr: false,
@@ -100,7 +100,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			name: "503",
 			fields: fields{
 				disruptionBackendName: "503",
-				connectionType:        NewConnectionType,
+				connectionType:        monitorapi.NewConnectionType,
 				path:                  "/503",
 			},
 			wantErr: true,
@@ -109,7 +109,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			name: "timeout",
 			fields: fields{
 				disruptionBackendName: "timeout",
-				connectionType:        NewConnectionType,
+				connectionType:        monitorapi.NewConnectionType,
 				path:                  "/timeout",
 			},
 			wantErr: true,
@@ -118,7 +118,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			name: "cancel-immediately",
 			fields: fields{
 				disruptionBackendName: "timeout",
-				connectionType:        NewConnectionType,
+				connectionType:        monitorapi.NewConnectionType,
 				path:                  "/timeout",
 				cancelImmediately:     true,
 			},
@@ -335,7 +335,7 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			parent := NewSimpleBackend("host", "backend", "path", NewConnectionType)
+			parent := NewSimpleBackend("host", "backend", "path", monitorapi.NewConnectionType)
 			backendSampler := newDisruptionSampler(parent)
 			interval := 1 * time.Second
 			monitor := newSimpleMonitor()

@@ -4,9 +4,8 @@ import (
 	"context"
 
 	"github.com/openshift/origin/pkg/monitor"
-
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/client-go/rest"
 )
 
@@ -147,70 +146,70 @@ func startOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(ctx context.Conte
 }
 
 func createKubeAPIMonitoringWithNewConnections(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
-	return createAPIServerBackendSampler(clusterConfig, "kube-api", "/api/v1/namespaces/default", backenddisruption.NewConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "kube-api", "/api/v1/namespaces/default", monitorapi.NewConnectionType)
 }
 
 func createKubeAPIMonitoringWithNewConnectionsAgainstAPICache(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
-	return createAPIServerBackendSampler(clusterConfig, "cache-kube-api", "/api/v1/namespaces/default?resourceVersion=0", backenddisruption.NewConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "cache-kube-api", "/api/v1/namespaces/default?resourceVersion=0", monitorapi.NewConnectionType)
 }
 
 func createOpenShiftAPIMonitoringWithNewConnections(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// this request should never 404, but should be empty/small
-	return createAPIServerBackendSampler(clusterConfig, "openshift-api", "/apis/image.openshift.io/v1/namespaces/default/imagestreams", backenddisruption.NewConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "openshift-api", "/apis/image.openshift.io/v1/namespaces/default/imagestreams", monitorapi.NewConnectionType)
 }
 
 func createOpenShiftAPIMonitoringWithNewConnectionsAgainstAPICache(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
 	// this request should never 404, but should be empty/small
-	return createAPIServerBackendSampler(clusterConfig, "cache-openshift-api", "/apis/image.openshift.io/v1/namespaces/default/imagestreams?resourceVersion=0", backenddisruption.NewConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "cache-openshift-api", "/apis/image.openshift.io/v1/namespaces/default/imagestreams?resourceVersion=0", monitorapi.NewConnectionType)
 }
 
 func createOAuthAPIMonitoringWithNewConnections(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// this should be relatively small and should not ever 404
-	return createAPIServerBackendSampler(clusterConfig, "oauth-api", "/apis/oauth.openshift.io/v1/oauthclients", backenddisruption.NewConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "oauth-api", "/apis/oauth.openshift.io/v1/oauthclients", monitorapi.NewConnectionType)
 }
 
 func createOAuthAPIMonitoringWithNewConnectionsAgainstAPICache(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
 	// this should be relatively small and should not ever 404
-	return createAPIServerBackendSampler(clusterConfig, "cache-oauth-api", "/apis/oauth.openshift.io/v1/oauthclients?resourceVersion=0", backenddisruption.NewConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "cache-oauth-api", "/apis/oauth.openshift.io/v1/oauthclients?resourceVersion=0", monitorapi.NewConnectionType)
 }
 
 func createKubeAPIMonitoringWithConnectionReuse(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// default gets auto-created, so this should always exist
-	return createAPIServerBackendSampler(clusterConfig, "kube-api", "/api/v1/namespaces/default", backenddisruption.ReusedConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "kube-api", "/api/v1/namespaces/default", monitorapi.ReusedConnectionType)
 }
 
 func createKubeAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
 	// default gets auto-created, so this should always exist
-	return createAPIServerBackendSampler(clusterConfig, "cache-kube-api", "/api/v1/namespaces/default?resourceVersion=0", backenddisruption.ReusedConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "cache-kube-api", "/api/v1/namespaces/default?resourceVersion=0", monitorapi.ReusedConnectionType)
 }
 
 func createOpenShiftAPIMonitoringWithConnectionReuse(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// this request should never 404, but should be empty/small
-	return createAPIServerBackendSampler(clusterConfig, "openshift-api", "/apis/image.openshift.io/v1/namespaces/default/imagestreams", backenddisruption.ReusedConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "openshift-api", "/apis/image.openshift.io/v1/namespaces/default/imagestreams", monitorapi.ReusedConnectionType)
 }
 
 func createOpenShiftAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
 	// this request should never 404, but should be empty/small
-	return createAPIServerBackendSampler(clusterConfig, "cache-openshift-api", "/apis/image.openshift.io/v1/namespaces/default/imagestreams?resourceVersion=0", backenddisruption.ReusedConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "cache-openshift-api", "/apis/image.openshift.io/v1/namespaces/default/imagestreams?resourceVersion=0", monitorapi.ReusedConnectionType)
 }
 
 func createOAuthAPIMonitoringWithConnectionReuse(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// this should be relatively small and should not ever 404
-	return createAPIServerBackendSampler(clusterConfig, "oauth-api", "/apis/oauth.openshift.io/v1/oauthclients", backenddisruption.ReusedConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "oauth-api", "/apis/oauth.openshift.io/v1/oauthclients", monitorapi.ReusedConnectionType)
 }
 
 func createOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {
 	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
 	// this should be relatively small and should not ever 404
-	return createAPIServerBackendSampler(clusterConfig, "cache-oauth-api", "/apis/oauth.openshift.io/v1/oauthclients?resourceVersion=0", backenddisruption.ReusedConnectionType)
+	return createAPIServerBackendSampler(clusterConfig, "cache-oauth-api", "/apis/oauth.openshift.io/v1/oauthclients?resourceVersion=0", monitorapi.ReusedConnectionType)
 }
 
-func createAPIServerBackendSampler(clusterConfig *rest.Config, disruptionBackendName, url string, connectionType backenddisruption.BackendConnectionType) (*backenddisruption.BackendSampler, error) {
+func createAPIServerBackendSampler(clusterConfig *rest.Config, disruptionBackendName, url string, connectionType monitorapi.BackendConnectionType) (*backenddisruption.BackendSampler, error) {
 	// default gets auto-created, so this should always exist
 	backendSampler, err := backenddisruption.NewAPIServerBackend(clusterConfig, disruptionBackendName, url, connectionType)
 	if err != nil {

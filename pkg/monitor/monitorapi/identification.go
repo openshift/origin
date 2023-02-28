@@ -6,6 +6,21 @@ import (
 	"strings"
 )
 
+type BackendConnectionType string
+
+const (
+	NewConnectionType    BackendConnectionType = "new"
+	ReusedConnectionType BackendConnectionType = "reused"
+)
+
+func LocateRouteForDisruptionCheck(ns, name, disruptionBackendName string, connectionType BackendConnectionType) string {
+	return fmt.Sprintf("ns/%s route/%s disruption/%s connection/%s", ns, name, disruptionBackendName, connectionType)
+}
+
+func LocateDisruptionCheck(disruptionBackendName string, connectionType BackendConnectionType) string {
+	return fmt.Sprintf("disruption/%s connection/%s", disruptionBackendName, connectionType)
+}
+
 func E2ETestLocator(testName string) string {
 	return fmt.Sprintf("e2e-test/%q", testName)
 }

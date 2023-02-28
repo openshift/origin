@@ -7,6 +7,7 @@ import (
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/cluster"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -92,7 +93,7 @@ func createOAuthRouteAvailableWithNewConnections() *backenddisruption.BackendSam
 		oauthRouteName,
 		"ingress-to-oauth-server",
 		"/healthz",
-		backenddisruption.NewConnectionType).
+		monitorapi.NewConnectionType).
 		WithExpectedBody("ok")
 }
 
@@ -105,7 +106,7 @@ func createOAuthRouteAvailableWithConnectionReuse() *backenddisruption.BackendSa
 		oauthRouteName,
 		"ingress-to-oauth-server",
 		"/healthz",
-		backenddisruption.ReusedConnectionType).
+		monitorapi.ReusedConnectionType).
 		WithExpectedBody("ok")
 }
 
@@ -118,7 +119,7 @@ func createConsoleRouteAvailableWithNewConnections() *backenddisruption.BackendS
 		"console",
 		"ingress-to-console",
 		"/healthz",
-		backenddisruption.NewConnectionType).
+		monitorapi.NewConnectionType).
 		WithExpectedBodyRegex(`(Red Hat OpenShift|OKD)`)
 }
 
@@ -131,6 +132,6 @@ func createConsoleRouteAvailableWithConnectionReuse() *backenddisruption.Backend
 		"console",
 		"ingress-to-console",
 		"/healthz",
-		backenddisruption.ReusedConnectionType).
+		monitorapi.ReusedConnectionType).
 		WithExpectedBodyRegex(`(Red Hat OpenShift|OKD)`)
 }
