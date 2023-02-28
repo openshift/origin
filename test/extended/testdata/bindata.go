@@ -49434,6 +49434,13 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isKubeletLivenessCheck(eventInterval) {
+        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/LivenessFailed") || eventInterval.message.includes("reason/LivenessErrored"))) {
+            return true
+        }
+        return false
+    }
+
     function isKubeletReadinessCheck(eventInterval) {
         if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ReadinessFailed") || eventInterval.message.includes("reason/ReadinessErrored"))) {
             return true
@@ -49542,6 +49549,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             }
             if (m[2] == "Ready") {
                 return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerReady"];
+            }
+        }
+        if (m && isKubeletLivenessCheck(item)){
+            if (m[2] == "LivenessFailed") {
+                return [item.locator, ` + "`" + ` (kubelet container liveness)` + "`" + `, "ContainerLivenessFailed"];
+            }
+            if (m[2] == "LivenessErrored") {
+                return [item.locator, ` + "`" + ` (kubelet container liveness)` + "`" + `, "ContainerLivenessErrored"];
             }
         }
         if (m && isKubeletReadinessCheck(item)){
