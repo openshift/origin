@@ -154,11 +154,6 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 									Containers: []corev1.Container{
 										tt.container,
 									},
-									SecurityContext: &corev1.PodSecurityContext{
-										SeccompProfile: &corev1.SeccompProfile{
-											Type: corev1.SeccompProfileTypeRuntimeDefault,
-										},
-									},
 								},
 							},
 						},
