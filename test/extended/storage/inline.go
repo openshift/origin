@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -13,13 +12,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	configv1 "github.com/openshift/api/config/v1"
-	securityv1 "github.com/openshift/api/security/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -39,16 +36,11 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 		csiSharedSecret      = filepath.Join(baseDir, "csi-sharedsecret.yaml")
 		csiSharedRole        = filepath.Join(baseDir, "csi-sharedresourcerole.yaml")
 		csiSharedRoleBinding = filepath.Join(baseDir, "csi-sharedresourcerolebinding.yaml")
-		sccVolumeToggle      *SCCVolumeToggle
 
 		beforeEach = func(oc *exutil.CLI) {
+			// TODO: remove this after the shared resource driver is GA
 			if !isTechPreviewNoUpgrade(oc) {
 				g.Skip("this test is only expected to work with TechPreviewNoUpgrade clusters")
-			} else {
-				// TODO: remove the SCCVolumeToggle when CSI volumes are allowed by the default SCC's (i.e. after TechPreview)
-				g.By("adding restricted-v2 SCC permission to use inline CSI volumes")
-				sccVolumeToggle = NewSCCVolumeToggle(oc, "restricted-v2", securityv1.FSTypeCSI)
-				sccVolumeToggle.Enable()
 			}
 			exutil.PreTestDump()
 
@@ -84,8 +76,6 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			g.By("setting the csi-ephemeral-volume-profile label back to restricted")
 			err := setCSIEphemeralVolumeProfile(oc, "restricted")
 			o.Expect(err).NotTo(o.HaveOccurred())
-
-			sccVolumeToggle.Restore()
 		}
 	)
 
@@ -317,75 +307,4 @@ func getTestPodWithInlineVol(namespace string) *corev1.Pod {
 		},
 	}
 	return pod
-}
-
-type SCCVolumeToggle struct {
-	oc         *exutil.CLI
-	sccName    string
-	fsType     securityv1.FSType
-	originalVL *VolumeList
-	patchedVL  *VolumeList
-}
-
-func NewSCCVolumeToggle(oc *exutil.CLI, sccName string, fsType securityv1.FSType) *SCCVolumeToggle {
-	return &SCCVolumeToggle{
-		oc:      oc,
-		sccName: sccName,
-		fsType:  fsType,
-	}
-}
-
-type VolumeList struct {
-	Volumes []securityv1.FSType `json:"volumes"`
-}
-
-func (s *SCCVolumeToggle) Enable() {
-	// The first time this runs, make a copy of the volume list attached to
-	// the SCC. If s.fsType is missing, then create a "patched" volume list
-	if s.originalVL == nil {
-		scc, err := s.oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Get(context.Background(), s.sccName, metav1.GetOptions{})
-		if err != nil {
-			e2e.Failf("failed to get SCC: %v", err)
-		}
-
-		originalVL := &VolumeList{}
-		patchedVL := &VolumeList{}
-		found := false
-		for _, v := range scc.Volumes {
-			if v == s.fsType {
-				found = true
-			}
-			originalVL.Volumes = append(originalVL.Volumes, v)
-			patchedVL.Volumes = append(patchedVL.Volumes, v)
-		}
-		if !found {
-			patchedVL.Volumes = append(patchedVL.Volumes, s.fsType)
-			s.patchedVL = patchedVL
-		}
-		s.originalVL = originalVL
-	}
-
-	// Patch only if s.fsType was not found in the existing SCC
-	if s.patchedVL != nil {
-		s.patchVolumeList(s.patchedVL)
-	}
-}
-
-func (s *SCCVolumeToggle) Restore() {
-	// If this was never patched, there is no reason to restore
-	if s.originalVL == nil || s.patchedVL == nil {
-		return
-	}
-	s.patchVolumeList(s.originalVL)
-}
-
-func (s *SCCVolumeToggle) patchVolumeList(vl *VolumeList) {
-	patch, err := json.Marshal(vl)
-	if err != nil {
-		e2e.Failf("failed to marshal json: %v", err)
-	}
-	_, err = s.oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Patch(context.Background(), s.sccName, types.MergePatchType, patch, metav1.PatchOptions{})
-	if err != nil {
-		e2e.Failf("failed to patch SCC: %v", err)
-	}
 }
