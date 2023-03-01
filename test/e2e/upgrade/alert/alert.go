@@ -5,10 +5,8 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/alerts"
 	exutil "github.com/openshift/origin/test/extended/util"
-	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 )
@@ -16,9 +14,7 @@ import (
 // UpgradeTest runs verifies invariants regarding what alerts are allowed to fire
 // during the upgrade process.
 type UpgradeTest struct {
-	oc               *exutil.CLI
-	prometheusClient prometheusv1.API
-	configClient     configclient.Interface
+	oc *exutil.CLI
 }
 
 func (UpgradeTest) Name() string { return "check-for-alerts" }
@@ -30,10 +26,8 @@ func (UpgradeTest) DisplayName() string {
 func (t *UpgradeTest) Setup(f *framework.Framework) {
 	g.By("Setting up upgrade alert test")
 
-	oc := exutil.NewCLIWithFramework(f)
-	t.oc = oc
-	t.prometheusClient = oc.NewPrometheusClient(context.TODO())
-	t.configClient = oc.AdminConfigClient()
+	t.oc = exutil.NewCLIWithFramework(f)
+
 	framework.Logf("Post-upgrade alert test setup complete")
 }
 
@@ -54,7 +48,8 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 
 	testDuration := time.Now().Sub(startTime).Round(time.Second)
 
-	alerts.CheckAlerts(alerts.AllowedAlertsDuringUpgrade, t.prometheusClient, t.configClient, testDuration, f)
+	alerts.CheckAlerts(alerts.AllowedAlertsDuringUpgrade, t.oc.AdminConfig(),
+		t.oc.NewPrometheusClient(context.TODO()), t.oc.AdminConfigClient(), testDuration, f)
 }
 
 // Teardown cleans up any remaining resources.

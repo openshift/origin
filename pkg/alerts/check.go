@@ -7,26 +7,47 @@ import (
 	"time"
 
 	o "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-type allowedAlertsFunc func(configclient.Interface) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
+type AllowedAlertsFunc func(featureSet configv1.FeatureSet) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
 
 // CheckAlerts will query prometheus and ensure no-unexpected alerts were pending or firing.
-// Used both post-upgrade and post-conformance, with different allowances for each.
-func CheckAlerts(allowancesFunc allowedAlertsFunc, prometheusClient prometheusv1.API, configClient configclient.Interface, testDuration time.Duration, f *framework.Framework) {
-	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
-		allowancesFunc(configClient)
+// Used by both upgrade and conformance suites, with different allowances for each.
+func CheckAlerts(allowancesFunc AllowedAlertsFunc,
+	restConfig *rest.Config,
+	prometheusClient prometheusv1.API, // TODO: remove
+	configClient configclient.Interface, // TODO: remove
+	testDuration time.Duration,
+	f *framework.Framework) {
 
-	// we exclude alerts that have their own separate tests.
-	for _, alertTest := range allowedalerts.AllAlertTests(context.TODO(), nil, 0) {
+	featureSet := configv1.Default
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("ERROR: error checking feature gates in cluster, ignoring: %v", err)
+	} else {
+		featureSet = featureGate.Spec.FeatureSet
+	}
+	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
+		allowancesFunc(featureSet)
+
+	// In addition to the alert allowances passed in (which can differ for upgrades vs conformance),
+	// we also exclude alerts that have their own separate tests codified. This is a backstop test for
+	// everything else.
+	for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{},
+		allowedalerts.DefaultAllowances) {
+
 		switch alertTest.AlertState() {
 		case allowedalerts.AlertPending:
 			// a pending test covers pending and everything above (firing)

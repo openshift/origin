@@ -1,7 +1,6 @@
 package allowedalerts
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -26,7 +24,7 @@ type AlertTest interface {
 	// AlertState is the threshold this test applies to.
 	AlertState() AlertState
 
-	InvariantCheck(ctx context.Context, restConfig *rest.Config, intervals monitorapi.Intervals, r monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error)
+	InvariantCheck(intervals monitorapi.Intervals, r monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error)
 }
 
 // AlertState is the state of the alert. They are logically ordered, so if a test says it limits on "pending", then
@@ -46,6 +44,7 @@ type alertBuilder struct {
 	divideByNamespaces bool
 	alertName          string
 	alertState         AlertState
+	jobType            *platformidentification.JobType
 
 	allowanceCalculator AlertTestAllowanceCalculator
 }
@@ -55,25 +54,28 @@ type basicAlertTest struct {
 	alertName         string
 	namespace         string
 	alertState        AlertState
+	jobType           *platformidentification.JobType
 
 	allowanceCalculator AlertTestAllowanceCalculator
 }
 
-func newAlert(bugzillaComponent, alertName string) *alertBuilder {
+func newAlert(bugzillaComponent, alertName string, jobType *platformidentification.JobType) *alertBuilder {
 	return &alertBuilder{
 		bugzillaComponent:   bugzillaComponent,
 		alertName:           alertName,
 		alertState:          AlertPending,
-		allowanceCalculator: defaultAllowances,
+		allowanceCalculator: DefaultAllowances,
+		jobType:             jobType,
 	}
 }
 
-func newNamespacedAlert(alertName string) *alertBuilder {
+func newNamespacedAlert(alertName string, jobType *platformidentification.JobType) *alertBuilder {
 	return &alertBuilder{
 		divideByNamespaces:  true,
 		alertName:           alertName,
 		alertState:          AlertPending,
-		allowanceCalculator: defaultAllowances,
+		allowanceCalculator: DefaultAllowances,
+		jobType:             jobType,
 	}
 }
 
@@ -115,6 +117,7 @@ func (a *alertBuilder) toTests() []AlertTest {
 				alertName:           a.alertName,
 				alertState:          a.alertState,
 				allowanceCalculator: a.allowanceCalculator,
+				jobType:             a.jobType,
 			},
 		}
 	}
@@ -127,6 +130,7 @@ func (a *alertBuilder) toTests() []AlertTest {
 			alertName:           a.alertName,
 			alertState:          a.alertState,
 			allowanceCalculator: a.allowanceCalculator,
+			jobType:             a.jobType,
 		})
 	}
 	ret = append(ret, &basicAlertTest{
@@ -135,6 +139,7 @@ func (a *alertBuilder) toTests() []AlertTest {
 		alertName:           a.alertName,
 		alertState:          a.alertState,
 		allowanceCalculator: a.allowanceCalculator,
+		jobType:             a.jobType,
 	})
 
 	return ret
@@ -167,7 +172,7 @@ const (
 	fail
 )
 
-func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Config, firingIntervals, pendingIntervals monitorapi.Intervals) (testState, string) {
+func (a *basicAlertTest) failOrFlake(firingIntervals, pendingIntervals monitorapi.Intervals) (testState, string) {
 	var alertIntervals monitorapi.Intervals
 
 	switch a.AlertState() {
@@ -195,19 +200,11 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	firingDuration := firingIntervals.Duration(1 * time.Second)
 	pendingDuration := pendingIntervals.Duration(1 * time.Second)
 
-	jobType, err := platformidentification.GetJobType(ctx, restConfig)
-	if err != nil {
-		return fail, err.Error()
-	}
-
-	// TODO for namespaced alerts, we need to query the data on a per-namespace basis.
-	//  For the ones we're starting with, they tend to fail one at a time, so this will hopefully not be an awful starting point until we get there.
-
 	dataKey := historicaldata.AlertDataKey{
 		AlertName:      a.alertName,
 		AlertLevel:     string(a.alertState),
 		AlertNamespace: a.namespace,
-		JobType:        *jobType,
+		JobType:        *a.jobType,
 	}
 
 	failAfter, err := a.allowanceCalculator.FailAfter(dataKey)
@@ -219,11 +216,11 @@ func (a *basicAlertTest) failOrFlake(ctx context.Context, restConfig *rest.Confi
 	switch {
 	case durationAtOrAboveLevel > failAfter:
 		return fail, fmt.Sprintf("%s was at or above %s for at least %s on %#v (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",
-			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, *jobType, failAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
+			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, *a.jobType, failAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
 
 	case durationAtOrAboveLevel > flakeAfter:
 		return flake, fmt.Sprintf("%s was at or above %s for at least %s on %#v (maxAllowed=%s): pending for %s, firing for %s:\n\n%s",
-			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, *jobType, flakeAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
+			a.AlertName(), a.AlertState(), durationAtOrAboveLevel, *a.jobType, flakeAfter, pendingDuration, firingDuration, strings.Join(describe, "\n"))
 	}
 
 	return pass, ""
@@ -311,11 +308,24 @@ func redhatOperatorPodsNotPending(trackedPodResources monitorapi.InstanceMap, fi
 	return true
 }
 
-func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Config, allEventIntervals monitorapi.Intervals, resourcesMap monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
+func (a *basicAlertTest) InvariantCheck(allEventIntervals monitorapi.Intervals, resourcesMap monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
+
+	if a.jobType == nil {
+		// Hard fail if the higher level job type lookup from the actual cluster failed
+		return []*junitapi.JUnitTestCase{
+			{
+				Name: a.InvariantTestName(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: "Unable to determine JobType for alert InvariantCheck",
+				},
+				SystemOut: "Unable to determine JobType for alert InvariantCheck",
+			},
+		}, nil
+	}
 	pendingIntervals := allEventIntervals.Filter(monitorapi.AlertPendingInNamespace(a.alertName, a.namespace))
 	firingIntervals := allEventIntervals.Filter(monitorapi.AlertFiringInNamespace(a.alertName, a.namespace))
 
-	state, message := a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
+	state, message := a.failOrFlake(firingIntervals, pendingIntervals)
 
 	switch a.alertName {
 	case "KubePodNotReady":
@@ -340,7 +350,7 @@ func (a *basicAlertTest) InvariantCheck(ctx context.Context, restConfig *rest.Co
 		)
 
 		// recheck the state and message.
-		state, message = a.failOrFlake(ctx, restConfig, firingIntervals, pendingIntervals)
+		state, message = a.failOrFlake(firingIntervals, pendingIntervals)
 
 	case "RedhatOperatorsCatalogError":
 		if state == fail && redhatOperatorPodsNotPending(resourcesMap["pods"], firingIntervals) {

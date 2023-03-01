@@ -1,7 +1,6 @@
 package allowedalerts
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -25,7 +25,7 @@ func WriteAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, even
 
 func addMissingAlertsForLevel(alertList *AlertList, level AlertLevel) {
 	wellKnownAlerts := sets.NewString()
-	for _, alertTest := range AllAlertTests(context.TODO(), nil, 0) {
+	for _, alertTest := range AllAlertTests(&platformidentification.JobType{}, DefaultAllowances) {
 		wellKnownAlerts.Insert(alertTest.AlertName())
 	}
 	alertsFound := sets.NewString()

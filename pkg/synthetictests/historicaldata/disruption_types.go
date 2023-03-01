@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/sirupsen/logrus"
 )
 
 // minJobRuns is the required threshold for historical data to be sufficient to run the test.
@@ -91,8 +92,11 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 		BackendName: name,
 		JobType:     jobType,
 	}
+	logrus.WithField("backend", name).Infof("searching for bestMatch for %+v", jobType)
+	logrus.Infof("historicalData has %d entries", len(b.HistoricalData))
 
 	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok && percentiles.JobRuns > minJobRuns {
+		logrus.Infof("found exact match: %+v", percentiles)
 		return percentiles, "", nil
 	}
 
@@ -107,9 +111,13 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 			JobType:     nextBestJobType,
 		}
 		if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns > minJobRuns {
+			logrus.Infof("no exact match fell back to %#v", nextBestMatchKey)
+			logrus.Infof("found inexact match: %+v", percentiles)
 			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
 		}
 	}
+
+	logrus.Warn("no exact or fuzzy match, no results will be returned, test will be skipped")
 
 	// TODO: ensure our core platforms are here, error if not. We need to be sure our aggregated jobs are running this
 	// but in a way that won't require manual code maintenance every release...

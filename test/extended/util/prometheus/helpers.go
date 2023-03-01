@@ -13,6 +13,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -128,9 +129,17 @@ func GetPrometheusSABearerToken(oc *exutil.CLI) string {
 }
 
 type MetricCondition struct {
+	// TODO: Remove in favor of explicit fields
 	Selector map[string]string
-	Text     string
-	Matches  func(sample *model.Sample) bool
+
+	AlertName      string
+	AlertNamespace string
+	AlertLevel     string
+
+	// Text is the description of why this alert condition matched.
+	Text string
+
+	Matches func(sample *model.Sample) bool
 }
 
 type MetricConditions []MetricCondition
@@ -146,6 +155,20 @@ func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
 		}
 		if matches && (condition.Matches == nil || condition.Matches(sample)) {
 			return &c[i]
+		}
+	}
+	return nil
+}
+
+func (c MetricConditions) MatchesInterval(alertInterval monitorapi.EventInterval) *MetricCondition {
+
+	// Parse out the alertInterval:
+	checkAlertName := monitorapi.AlertFromLocator(alertInterval.Locator)
+	checkAlertNamespace := monitorapi.NamespaceFromLocator(alertInterval.Locator)
+
+	for _, condition := range c {
+		if checkAlertName == condition.AlertName && checkAlertNamespace == condition.AlertNamespace {
+			return &condition
 		}
 	}
 	return nil

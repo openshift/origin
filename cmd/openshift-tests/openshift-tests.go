@@ -76,6 +76,7 @@ func main() {
 		newRunUpgradeCommand(),
 		newImagesCommand(),
 		newRunTestCommand(),
+		newDevCommand(),
 		newRunMonitorCommand(),
 		newMonitorCommand(),
 		newTestFailureRiskAnalysisCommand(),

@@ -321,6 +321,24 @@ func AlertPendingInNamespace(alertName, namespace string) EventIntervalMatchesFu
 	}
 }
 
+func AlertFiring() EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
+			return true
+		}
+		return false
+	}
+}
+
+func AlertPending() EventIntervalMatchesFunc {
+	return func(eventInterval EventInterval) bool {
+		if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
+			return true
+		}
+		return false
+	}
+}
+
 // InNamespace if namespace == "", then every event matches, same as kube-api
 func InNamespace(namespace string) func(event EventInterval) bool {
 	return func(event EventInterval) bool {
