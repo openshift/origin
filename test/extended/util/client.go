@@ -64,7 +64,6 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
-	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
@@ -625,10 +624,10 @@ func (c *CLI) AdminBuildClient() buildv1client.Interface {
 }
 
 func (c *CLI) AdminConfigClient() configv1client.Interface {
-	return &ConfigClientShim{
-		adminConfig: c.AdminConfig(),
-		fakeClient:  fakeconfigv1client.NewSimpleClientset(c.configObjects...),
-	}
+	return NewConfigClientShim(
+		configv1client.NewForConfigOrDie(c.AdminConfig()),
+		c.configObjects,
+	)
 }
 
 func (c *CLI) AdminImageClient() imagev1client.Interface {

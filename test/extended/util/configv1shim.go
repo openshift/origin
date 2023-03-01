@@ -1,40 +1,50 @@
 package util
 
 import (
+	"context"
 	"fmt"
+	"sync"
 
+	apiconfigv1 "github.com/openshift/api/config/v1"
+	applyconfigv1 "github.com/openshift/client-go/config/applyconfigurations/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
 	configv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1alpha1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1alpha1"
 
+	"k8s.io/klog/v2"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	clienttesting "k8s.io/client-go/testing"
 )
 
 // ConfigClientShim makes sure whenever there's a static
 // manifest present for a config v1 kind, fake client is used
 // instead of the real one.
 type ConfigClientShim struct {
-	adminConfig *rest.Config
-	v1Kinds     map[string]bool
-	fakeClient  *fakeconfigv1client.Clientset
+	configClient configv1client.Interface
+	v1Kinds      map[string]bool
+	fakeClient   *fakeconfigv1client.Clientset
 }
 
 func (c *ConfigClientShim) Discovery() discovery.DiscoveryInterface {
-	return configv1client.NewForConfigOrDie(c.adminConfig).Discovery()
+	return c.configClient.Discovery()
 }
 func (c *ConfigClientShim) ConfigV1() configv1.ConfigV1Interface {
 	return &ConfigV1ClientShim{
-		configv1:           func() configv1.ConfigV1Interface { return configv1client.NewForConfigOrDie(c.adminConfig).ConfigV1() },
+		configv1:           c.configClient.ConfigV1(),
 		v1Kinds:            c.v1Kinds,
 		fakeConfigV1Client: c.fakeClient.ConfigV1(),
 	}
 }
 func (c *ConfigClientShim) ConfigV1alpha1() configv1alpha1.ConfigV1alpha1Interface {
-	return configv1client.NewForConfigOrDie(c.adminConfig).ConfigV1alpha1()
+	return c.configClient.ConfigV1alpha1()
 }
 
 var _ configv1client.Interface = &ConfigClientShim{}
@@ -43,186 +53,448 @@ var _ configv1client.Interface = &ConfigClientShim{}
 // manifest present for a config v1 kind, fake client is used
 // instead of the real one.
 type ConfigV1ClientShim struct {
-	configv1           func() configv1.ConfigV1Interface
+	configv1           configv1.ConfigV1Interface
 	v1Kinds            map[string]bool
 	fakeConfigV1Client configv1.ConfigV1Interface
 }
 
 func (c *ConfigV1ClientShim) APIServers() configv1.APIServerInterface {
 	if c.v1Kinds["APIServer"] {
-		return c.fakeConfigV1Client.APIServers()
+		panic(fmt.Errorf("APIServer not implemented"))
 	}
-	return c.configv1().APIServers()
+	return c.configv1.APIServers()
 }
 
 func (c *ConfigV1ClientShim) Authentications() configv1.AuthenticationInterface {
 	if c.v1Kinds["Authentication"] {
-		return c.fakeConfigV1Client.Authentications()
+		panic(fmt.Errorf("Authentication not implemented"))
 	}
-	return c.configv1().Authentications()
+	return c.configv1.Authentications()
 }
 
 func (c *ConfigV1ClientShim) Builds() configv1.BuildInterface {
 	if c.v1Kinds["Build"] {
-		return c.fakeConfigV1Client.Builds()
+		panic(fmt.Errorf("Build not implemented"))
 	}
-	return c.configv1().Builds()
+	return c.configv1.Builds()
 }
 
 func (c *ConfigV1ClientShim) ClusterOperators() configv1.ClusterOperatorInterface {
 	if c.v1Kinds["ClusterOperator"] {
-		return c.fakeConfigV1Client.ClusterOperators()
+		panic(fmt.Errorf("ClusterOperator not implemented"))
 	}
-	return c.configv1().ClusterOperators()
+	return c.configv1.ClusterOperators()
 }
 
 func (c *ConfigV1ClientShim) ClusterVersions() configv1.ClusterVersionInterface {
 	if c.v1Kinds["ClusterVersion"] {
-		return c.fakeConfigV1Client.ClusterVersions()
+		panic(fmt.Errorf("ClusterVersion not implemented"))
 	}
-	return c.configv1().ClusterVersions()
+	return c.configv1.ClusterVersions()
 }
 
 func (c *ConfigV1ClientShim) Consoles() configv1.ConsoleInterface {
 	if c.v1Kinds["Console"] {
-		return c.fakeConfigV1Client.Consoles()
+		panic(fmt.Errorf("Console not implemented"))
 	}
-	return c.configv1().Consoles()
+	return c.configv1.Consoles()
 }
 
 func (c *ConfigV1ClientShim) DNSes() configv1.DNSInterface {
 	if c.v1Kinds["DNS"] {
-		return c.fakeConfigV1Client.DNSes()
+		panic(fmt.Errorf("DNS not implemented"))
 	}
-	return c.configv1().DNSes()
+	return c.configv1.DNSes()
 }
 
 func (c *ConfigV1ClientShim) FeatureGates() configv1.FeatureGateInterface {
 	if c.v1Kinds["FeatureGate"] {
-		return c.fakeConfigV1Client.FeatureGates()
+		panic(fmt.Errorf("FeatureGate not implemented"))
 	}
-	return c.configv1().FeatureGates()
+	return c.configv1.FeatureGates()
 }
 
 func (c *ConfigV1ClientShim) Images() configv1.ImageInterface {
 	if c.v1Kinds["Image"] {
-		return c.fakeConfigV1Client.Images()
+		panic(fmt.Errorf("Image not implemented"))
 	}
-	return c.configv1().Images()
+	return c.configv1.Images()
 }
 
 func (c *ConfigV1ClientShim) ImageContentPolicies() configv1.ImageContentPolicyInterface {
 	if c.v1Kinds["ImageContentPolicie"] {
-		return c.fakeConfigV1Client.ImageContentPolicies()
+		panic(fmt.Errorf("ImageContentPolicie not implemented"))
 	}
-	return c.configv1().ImageContentPolicies()
+	return c.configv1.ImageContentPolicies()
 }
 
 func (c *ConfigV1ClientShim) ImageDigestMirrorSets() configv1.ImageDigestMirrorSetInterface {
 	if c.v1Kinds["ImageDigestMirrorSet"] {
-		return c.fakeConfigV1Client.ImageDigestMirrorSets()
+		panic(fmt.Errorf("ImageDigestMirrorSet not implemented"))
 	}
-	return c.configv1().ImageDigestMirrorSets()
+	return c.configv1.ImageDigestMirrorSets()
 }
 
 func (c *ConfigV1ClientShim) ImageTagMirrorSets() configv1.ImageTagMirrorSetInterface {
 	if c.v1Kinds["ImageTagMirrorSet"] {
-		return c.fakeConfigV1Client.ImageTagMirrorSets()
+		panic(fmt.Errorf("ImageTagMirrorSet not implemented"))
 	}
-	return c.configv1().ImageTagMirrorSets()
+	return c.configv1.ImageTagMirrorSets()
 }
 
 func (c *ConfigV1ClientShim) Infrastructures() configv1.InfrastructureInterface {
-	if c.v1Kinds["Infrastructure"] {
-		return c.fakeConfigV1Client.Infrastructures()
+	return &ConfigV1InfrastructuresClientShim{
+		fakeConfigV1InfrastructuresClient: c.fakeConfigV1Client.Infrastructures(),
+		configV1InfrastructuresClient:     c.configv1.Infrastructures(),
 	}
-	return c.configv1().Infrastructures()
 }
 
 func (c *ConfigV1ClientShim) Ingresses() configv1.IngressInterface {
 	if c.v1Kinds["Ingresse"] {
-		return c.fakeConfigV1Client.Ingresses()
+		panic(fmt.Errorf("Ingresse not implemented"))
 	}
-	return c.configv1().Ingresses()
+	return c.configv1.Ingresses()
 }
 
 func (c *ConfigV1ClientShim) Networks() configv1.NetworkInterface {
 	if c.v1Kinds["Network"] {
-		return c.fakeConfigV1Client.Networks()
+		panic(fmt.Errorf("Network not implemented"))
 	}
-	return c.configv1().Networks()
+	return c.configv1.Networks()
 }
 
 func (c *ConfigV1ClientShim) Nodes() configv1.NodeInterface {
 	if c.v1Kinds["Node"] {
-		return c.fakeConfigV1Client.Nodes()
+		panic(fmt.Errorf("Node not implemented"))
 	}
-	return c.configv1().Nodes()
+	return c.configv1.Nodes()
 }
 
 func (c *ConfigV1ClientShim) OAuths() configv1.OAuthInterface {
 	if c.v1Kinds["OAuth"] {
-		return c.fakeConfigV1Client.OAuths()
+		panic(fmt.Errorf("OAuth not implemented"))
 	}
-	return c.configv1().OAuths()
+	return c.configv1.OAuths()
 }
 
 func (c *ConfigV1ClientShim) OperatorHubs() configv1.OperatorHubInterface {
 	if c.v1Kinds["OperatorHub"] {
-		return c.fakeConfigV1Client.OperatorHubs()
+		panic(fmt.Errorf("OperatorHub not implemented"))
 	}
-	return c.configv1().OperatorHubs()
+	return c.configv1.OperatorHubs()
 }
 
 func (c *ConfigV1ClientShim) Projects() configv1.ProjectInterface {
 	if c.v1Kinds["Project"] {
-		return c.fakeConfigV1Client.Projects()
+		panic(fmt.Errorf("Project not implemented"))
 	}
-	return c.configv1().Projects()
+	return c.configv1.Projects()
 }
 
 func (c *ConfigV1ClientShim) Proxies() configv1.ProxyInterface {
 	if c.v1Kinds["Proxie"] {
-		return c.fakeConfigV1Client.Proxies()
+		panic(fmt.Errorf("Proxie not implemented"))
 	}
-	return c.configv1().Proxies()
+	return c.configv1.Proxies()
 }
 
 func (c *ConfigV1ClientShim) Schedulers() configv1.SchedulerInterface {
 	if c.v1Kinds["Scheduler"] {
-		return c.fakeConfigV1Client.Schedulers()
+		panic(fmt.Errorf("Scheduler not implemented"))
 	}
-	return c.configv1().Schedulers()
+	return c.configv1.Schedulers()
 }
 
 func (c *ConfigV1ClientShim) RESTClient() rest.Interface {
-	return c.configv1().RESTClient()
+	return c.configv1.RESTClient()
 }
 
 var _ configv1.ConfigV1Interface = &ConfigV1ClientShim{}
 
-var kind2resourceMapping = map[string]string{
-	"APIServer":            "apiservers",
-	"Authentication":       "authentications",
-	"Build":                "build",
-	"ClusterOperator":      "clusteroperators",
-	"ClusterVersion":       "clusterversions",
-	"Console":              "consoles",
-	"DNS":                  "dnses",
-	"FeatureGate":          "featuregates",
-	"Image":                "images",
-	"ImageContentPolicie":  "imagecontentpolicies",
-	"ImageDigestMirrorSet": "imagedigestmirrorsetes",
-	"ImageTagMirrorSet":    "imagetagmirrorsetes",
-	"Infrastructure":       "infrastructures",
-	"Ingresse":             "ingresses",
-	"Network":              "networks",
-	"Node":                 "nodes",
-	"OAuth":                "oauths",
-	"OperatorHub":          "operatorhub",
-	"Project":              "projects",
-	"Proxie":               "proxies",
-	"Scheduler":            "schedulers",
+type ConfigV1InfrastructuresClientShim struct {
+	fakeConfigV1InfrastructuresClient configv1.InfrastructureInterface
+	configV1InfrastructuresClient     configv1.InfrastructureInterface
+}
+
+var _ configv1.InfrastructureInterface = &ConfigV1InfrastructuresClientShim{}
+
+func (c *ConfigV1InfrastructuresClientShim) Create(ctx context.Context, infrastructure *apiconfigv1.Infrastructure, opts metav1.CreateOptions) (*apiconfigv1.Infrastructure, error) {
+	_, err := c.fakeConfigV1InfrastructuresClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "create"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1InfrastructuresClient.Create(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1InfrastructuresClientShim) Update(ctx context.Context, infrastructure *apiconfigv1.Infrastructure, opts metav1.UpdateOptions) (*apiconfigv1.Infrastructure, error) {
+	_, err := c.fakeConfigV1InfrastructuresClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "update"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1InfrastructuresClient.Update(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1InfrastructuresClientShim) UpdateStatus(ctx context.Context, infrastructure *apiconfigv1.Infrastructure, opts metav1.UpdateOptions) (*apiconfigv1.Infrastructure, error) {
+	_, err := c.fakeConfigV1InfrastructuresClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "updatestatus"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1InfrastructuresClient.UpdateStatus(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1InfrastructuresClientShim) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	_, err := c.fakeConfigV1InfrastructuresClient.Get(ctx, name, metav1.GetOptions{})
+	if err == nil {
+		return &OperationNotPermitted{Action: "delete"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1InfrastructuresClient.Delete(ctx, name, opts)
+	}
+	return err
+}
+
+func (c *ConfigV1InfrastructuresClientShim) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	list, err := c.fakeConfigV1InfrastructuresClient.List(ctx, listOpts)
+	if err != nil {
+		return fmt.Errorf("unable to list objects during DeleteCollection request: %v", err)
+	}
+	// if either of the static manifests is expected to be deleted, the whole request is invalid
+	if len(list.Items) > 0 {
+		return &OperationNotPermitted{Action: "deletecollection"}
+	}
+	return c.configV1InfrastructuresClient.DeleteCollection(ctx, opts, listOpts)
+}
+
+func (c *ConfigV1InfrastructuresClientShim) Get(ctx context.Context, name string, opts metav1.GetOptions) (*apiconfigv1.Infrastructure, error) {
+	obj, err := c.fakeConfigV1InfrastructuresClient.Get(ctx, name, metav1.GetOptions{})
+	if err == nil {
+		return obj, nil
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1InfrastructuresClient.Get(ctx, name, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1InfrastructuresClientShim) List(ctx context.Context, opts metav1.ListOptions) (*apiconfigv1.InfrastructureList, error) {
+	// INFO: field selectors will not work
+	staticObjList, err := c.fakeConfigV1InfrastructuresClient.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	objList, err := c.configV1InfrastructuresClient.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	items := []apiconfigv1.Infrastructure{}
+	knownKeys := make(map[string]struct{})
+	for _, item := range staticObjList.Items {
+		items = append(items, item)
+		knownKeys[item.Name] = struct{}{}
+	}
+
+	for _, item := range objList.Items {
+		// skip objects with corresponding static manifests
+		if _, exists := knownKeys[item.Name]; exists {
+			continue
+		}
+		items = append(items, item)
+		knownKeys[item.Name] = struct{}{}
+	}
+
+	return &apiconfigv1.InfrastructureList{
+		TypeMeta: objList.TypeMeta,
+		ListMeta: objList.ListMeta,
+		Items:    items,
+	}, nil
+}
+
+func (c *ConfigV1InfrastructuresClientShim) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+	// static manifests do not produce any watch event besides create
+	// If the object exists, no need to generate the ADDED watch event
+
+	// INFO: field selectors will not work
+	staticObjList, err := c.fakeConfigV1InfrastructuresClient.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceWatcher, err := c.configV1InfrastructuresClient.Watch(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(staticObjList.Items) == 0 {
+		return resourceWatcher, nil
+	}
+
+	objs := []runtime.Object{}
+	watcher := NewFakeWatcher()
+	// Produce ADDED watch event types for the static manifests
+	for _, item := range staticObjList.Items {
+		// make shallow copy
+		obj := item
+		watcher.Action(watch.Added, &obj)
+		objs = append(objs, &obj)
+	}
+
+	go func() {
+		err := watcher.Follow(resourceWatcher, objs...)
+		if err != nil {
+			klog.Errorf("Config shim fake watcher returned prematurely: %v", err)
+		}
+		watcher.Stop()
+	}()
+
+	return watcher, nil
+}
+
+func (c *ConfigV1InfrastructuresClientShim) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (*apiconfigv1.Infrastructure, error) {
+	_, err := c.fakeConfigV1InfrastructuresClient.Get(ctx, name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "patch"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1InfrastructuresClient.Patch(ctx, name, pt, data, opts, subresources...)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1InfrastructuresClientShim) Apply(ctx context.Context, infrastructure *applyconfigv1.InfrastructureApplyConfiguration, opts metav1.ApplyOptions) (*apiconfigv1.Infrastructure, error) {
+	// Unable to determine existence of a static manifest
+	if infrastructure == nil || infrastructure.Name == nil {
+		return c.configV1InfrastructuresClient.Apply(ctx, infrastructure, opts)
+	}
+	_, err := c.fakeConfigV1InfrastructuresClient.Get(ctx, *infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "apply"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1InfrastructuresClient.Apply(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1InfrastructuresClientShim) ApplyStatus(ctx context.Context, infrastructure *applyconfigv1.InfrastructureApplyConfiguration, opts metav1.ApplyOptions) (*apiconfigv1.Infrastructure, error) {
+	// Unable to determine existence of a static manifest
+	if infrastructure == nil || infrastructure.Name == nil {
+		return c.configV1InfrastructuresClient.ApplyStatus(ctx, infrastructure, opts)
+	}
+	_, err := c.fakeConfigV1InfrastructuresClient.Get(ctx, *infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "applystatus"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1InfrastructuresClient.ApplyStatus(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+const (
+	DefaultChanSize = 1000
+)
+
+// RaceFreeFakeWatcher lets you test anything that consumes a watch.Interface; threadsafe.
+type FakeWatcher struct {
+	result  chan watch.Event
+	Stopped bool
+	sync.Mutex
+}
+
+var _ watch.Interface = &FakeWatcher{}
+
+func NewFakeWatcher() *FakeWatcher {
+	return &FakeWatcher{
+		result: make(chan watch.Event, DefaultChanSize),
+	}
+}
+
+// Stop implements Interface.Stop().
+func (f *FakeWatcher) Stop() {
+	f.Lock()
+	defer f.Unlock()
+	if !f.Stopped {
+		klog.V(4).Infof("Stopping fake watcher.")
+		close(f.result)
+		f.Stopped = true
+	}
+}
+
+func (f *FakeWatcher) IsStopped() bool {
+	f.Lock()
+	defer f.Unlock()
+	return f.Stopped
+}
+
+// Reset prepares the watcher to be reused.
+func (f *FakeWatcher) Reset() {
+	f.Lock()
+	defer f.Unlock()
+	f.Stopped = false
+	f.result = make(chan watch.Event, DefaultChanSize)
+}
+
+func (f *FakeWatcher) ResultChan() <-chan watch.Event {
+	f.Lock()
+	defer f.Unlock()
+	return f.result
+}
+
+type itemKey struct {
+	namespace, name string
+}
+
+func (f *FakeWatcher) Follow(inputChan watch.Interface, ignoreList ...runtime.Object) error {
+	ignore := make(map[itemKey]struct{})
+
+	for _, item := range ignoreList {
+		accessor, err := apimeta.Accessor(item)
+		if err != nil {
+			return fmt.Errorf("unable to construct meta accessor: %v", err)
+		}
+		ignore[itemKey{namespace: accessor.GetNamespace(), name: accessor.GetName()}] = struct{}{}
+	}
+
+	for {
+		if !f.Stopped {
+			select {
+			case item := <-inputChan.ResultChan():
+				accessor, err := apimeta.Accessor(item.Object)
+				if err != nil {
+					return fmt.Errorf("unable to construct meta accessor: %v", err)
+				}
+				if _, exists := ignore[itemKey{namespace: accessor.GetNamespace(), name: accessor.GetName()}]; exists {
+					continue
+				}
+				klog.V(4).Infof("FakeWatcher.Follow: item.Type: %v, item.Object: %v\n", item.Type, item.Object)
+				f.Action(item.Type, item.Object)
+			}
+		}
+	}
+}
+
+// Action sends an event of the requested type, for table-based testing.
+func (f *FakeWatcher) Action(action watch.EventType, obj runtime.Object) {
+	f.Lock()
+	defer f.Unlock()
+	if !f.Stopped {
+		select {
+		case f.result <- watch.Event{action, obj}:
+			return
+		default:
+			panic(fmt.Errorf("channel full"))
+		}
+	}
 }
 
 type OperationNotPermitted struct {
@@ -234,9 +506,9 @@ func (e OperationNotPermitted) Error() string {
 }
 
 func NewConfigClientShim(
-	adminConfig *rest.Config,
+	configClient configv1client.Interface,
 	objects []runtime.Object,
-) (error, *ConfigClientShim) {
+) *ConfigClientShim {
 	fakeClient := fakeconfigv1client.NewSimpleClientset(objects...)
 
 	v1Kinds := make(map[string]bool)
@@ -245,27 +517,17 @@ func NewConfigClientShim(
 		objectKind := object.GetObjectKind().GroupVersionKind()
 		// currently supportig only config.openshift.io/v1 apiversion
 		if objectKind.Group != "config.openshift.io" {
-			return fmt.Errorf("unknown group: %v", objectKind.Group), nil
+			continue
 		}
 		if objectKind.Version != "v1" {
-			return fmt.Errorf("unknown version: %v", objectKind.Version), nil
+			continue
 		}
-		resource, exists := kind2resourceMapping[objectKind.Kind]
-		if !exists {
-			return fmt.Errorf("unknown kind mapping for %v", objectKind.Kind), nil
-		}
-		fakeClient.Fake.PrependReactor("update", resource, func(action clienttesting.Action) (bool, runtime.Object, error) {
-			return true, nil, &OperationNotPermitted{Action: "update"}
-		})
-		fakeClient.Fake.PrependReactor("delete", resource, func(action clienttesting.Action) (bool, runtime.Object, error) {
-			return true, nil, &OperationNotPermitted{Action: "delete"}
-		})
 		v1Kinds[objectKind.Kind] = true
 	}
 
-	return nil, &ConfigClientShim{
-		adminConfig: adminConfig,
-		v1Kinds:     v1Kinds,
-		fakeClient:  fakeClient,
+	return &ConfigClientShim{
+		configClient: configClient,
+		v1Kinds:      v1Kinds,
+		fakeClient:   fakeClient,
 	}
 }
