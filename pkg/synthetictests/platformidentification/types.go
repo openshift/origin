@@ -13,6 +13,10 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// JobType is used as a key
+// for Disruption and other data grouping
+// consider this immutable unless you
+// are fully aware of what you are doing
 type JobType struct {
 	Release      string
 	FromRelease  string
@@ -20,6 +24,17 @@ type JobType struct {
 	Architecture string
 	Network      string
 	Topology     string
+}
+
+// Superset of JobType
+// can be added to as needed
+// to collect more data
+type ClusterData struct {
+	JobType               `json:",inline"`
+	NetworkStack          string
+	CloudRegion           string
+	CloudZone             string
+	ClusterVersionHistory []string
 }
 
 const (
@@ -38,6 +53,98 @@ func CloneJobType(in JobType) JobType {
 		Network:      in.Network,
 		Topology:     in.Topology,
 	}
+}
+
+func BuildClusterData(ctx context.Context, clientConfig *rest.Config) (ClusterData, *[]error) {
+
+	errors := make([]error, 0)
+
+	// we could log the error if there is value
+	jobType, err := GetJobType(ctx, clientConfig)
+
+	if err != nil {
+		errors = append(errors, err)
+	}
+
+	clusterData := ClusterData{}
+
+	if jobType != nil {
+		clusterData.Topology = jobType.Topology
+		clusterData.Release = jobType.Release
+		clusterData.FromRelease = jobType.FromRelease
+		clusterData.Network = jobType.Network
+		clusterData.Platform = jobType.Platform
+		clusterData.Architecture = jobType.Architecture
+	}
+
+	// add in other data like region, etc.
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		errors = append(errors, err)
+		return clusterData, &errors
+	}
+
+	network, err := configClient.Networks().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		errors = append(errors, err)
+	} else if len(network.Spec.ClusterNetwork) > 0 {
+		if strings.Contains(network.Spec.ClusterNetwork[0].CIDR, ":") {
+			clusterData.NetworkStack = "IPv6"
+		} else {
+			clusterData.NetworkStack = "IPv4"
+		}
+	}
+
+	clusterVersions, err := configClient.ClusterVersions().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		errors = append(errors, err)
+	} else if clusterVersions != nil {
+		clusterData.ClusterVersionHistory = getClusterVersions(clusterVersions)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		errors = append(errors, err)
+		return clusterData, &errors
+	}
+
+	kNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		errors = append(errors, err)
+	} else if kNodes != nil && len(kNodes.Items) > 0 {
+		clusterData.CloudRegion = kNodes.Items[0].Labels[`topology.kubernetes.io/region`]
+		clusterData.CloudZone = kNodes.Items[0].Labels[`topology.kubernetes.io/zone`]
+	}
+	if len(errors) == 0 {
+		return clusterData, nil
+	}
+	return clusterData, &errors
+}
+
+func getClusterVersions(versions *configv1.ClusterVersionList) []string {
+	if versions == nil {
+		return nil
+	}
+	cvs := make([]string, 0)
+	for _, v := range versions.Items {
+
+		for _, vv := range v.Status.History {
+			// we could use a map / set but
+			// want to preserve order as well
+			isPresent := false
+			for _, s := range cvs {
+				if vv.Version == s {
+					isPresent = true
+					break
+				}
+			}
+
+			if !isPresent {
+				cvs = append(cvs, vv.Version)
+			}
+		}
+	}
+	return cvs
 }
 
 // GetJobType returns information that can be used to identify a job

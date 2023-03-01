@@ -1,17 +1,22 @@
 package monitor
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"sigs.k8s.io/kustomize/kyaml/sets"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
 func WriteEventsForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
@@ -97,4 +102,36 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 	}
 
 	return ret
+}
+
+func WriteClusterData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
+	return writeClusterData(filepath.Join(artifactDir, fmt.Sprintf("cluster-data%s.json", timeSuffix)), CollectClusterData())
+}
+
+func writeClusterData(filename string, clusterData platformidentification.ClusterData) error {
+	jsonContent, err := json.MarshalIndent(clusterData, "", "    ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, jsonContent, 0644)
+}
+
+func CollectClusterData() platformidentification.ClusterData {
+	clusterData := platformidentification.ClusterData{}
+	var errs *[]error
+	restConfig, err := GetMonitorRESTConfig()
+	if err != nil {
+		return clusterData
+	}
+
+	clusterData, errs = platformidentification.BuildClusterData(context.TODO(), restConfig)
+
+	if errs != nil {
+		for _, err := range *errs {
+			e2e.Logf("Error building cluster data: %s", err.Error())
+		}
+		e2e.Logf("Ignoring cluster data due to previous errors: %v", clusterData)
+		return platformidentification.ClusterData{}
+	}
+	return clusterData
 }
