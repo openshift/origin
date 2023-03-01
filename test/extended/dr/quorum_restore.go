@@ -91,9 +91,6 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				survivingNodeName := survivingNode.Name
 				checkSSH(survivingNode)
 
-				err = scaleEtcdQuorum(oc.AdminKubeClient(), 0)
-				o.Expect(err).NotTo(o.HaveOccurred())
-
 				expectedNumberOfMasters := len(masters)
 				survivingMachineName := getMachineNameByNodeName(oc, survivingNodeName)
 				survivingMachine, err := ms.Get(context.Background(), survivingMachineName, metav1.GetOptions{})
@@ -141,13 +138,6 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 							failures++
 						} else {
 							failures = 0
-						}
-
-						// there is a small chance the cluster restores the default replica size during
-						// this loop process, so keep forcing quorum guard to be zero, without failing on
-						// errors
-						if err := scaleEtcdQuorum(pollClient, 0); err != nil {
-							framework.Logf("Scaling etcd quorum failed: %v", err)
 						}
 
 						// wait to see the control plane go down for good to avoid a transient failure
@@ -281,37 +271,12 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
 				// Recovery 13
 				waitForReadyEtcdPods(oc.AdminKubeClient(), expectedNumberOfMasters)
 
-				// Scale quorum guard in a polling loop to ensure tolerance for disruption
-				err = wait.Poll(10*time.Second, 5*time.Minute, func() (bool, error) {
-					err := scaleEtcdQuorum(pollClient, int32(expectedNumberOfMasters))
-					if err != nil {
-						framework.Logf("Saw an error attempting to scale etcd quorum guard: %v", err)
-						return false, nil
-					}
-					return true, nil
-				})
-				o.Expect(err).NotTo(o.HaveOccurred())
-
 				waitForMastersToUpdate(oc, mcps)
 				waitForOperatorsToSettle()
 			})
 	},
 	)
 })
-
-func scaleEtcdQuorum(client kubernetes.Interface, replicas int32) error {
-	etcdQGScale, err := client.AppsV1().Deployments("openshift-etcd").GetScale(context.Background(), "etcd-quorum-guard", metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	if etcdQGScale.Spec.Replicas == replicas {
-		return nil
-	}
-	framework.Logf("Scale etcd-quorum-guard to %d replicas", replicas)
-	etcdQGScale.Spec.Replicas = replicas
-	_, err = client.AppsV1().Deployments("openshift-etcd").UpdateScale(context.Background(), "etcd-quorum-guard", etcdQGScale, metav1.UpdateOptions{})
-	return err
-}
 
 func getMachineNameByNodeName(oc *exutil.CLI, name string) string {
 	masterNode, err := oc.AdminKubeClient().CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
