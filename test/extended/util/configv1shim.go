@@ -157,10 +157,10 @@ func (c *ConfigV1ClientShim) Ingresses() configv1.IngressInterface {
 }
 
 func (c *ConfigV1ClientShim) Networks() configv1.NetworkInterface {
-	if c.v1Kinds["Network"] {
-		panic(fmt.Errorf("Network not implemented"))
+	return &ConfigV1NetworksClientShim{
+		fakeConfigV1NetworksClient: c.fakeConfigV1Client.Networks(),
+		configV1NetworksClient:     c.configv1.Networks(),
 	}
-	return c.configv1.Networks()
 }
 
 func (c *ConfigV1ClientShim) Nodes() configv1.NodeInterface {
@@ -396,6 +396,195 @@ func (c *ConfigV1InfrastructuresClientShim) ApplyStatus(ctx context.Context, inf
 	}
 	if apierrors.IsNotFound(err) {
 		return c.configV1InfrastructuresClient.ApplyStatus(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+type ConfigV1NetworksClientShim struct {
+	fakeConfigV1NetworksClient configv1.NetworkInterface
+	configV1NetworksClient     configv1.NetworkInterface
+}
+
+var _ configv1.NetworkInterface = &ConfigV1NetworksClientShim{}
+
+func (c *ConfigV1NetworksClientShim) Create(ctx context.Context, infrastructure *apiconfigv1.Network, opts metav1.CreateOptions) (*apiconfigv1.Network, error) {
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "create"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1NetworksClient.Create(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1NetworksClientShim) Update(ctx context.Context, infrastructure *apiconfigv1.Network, opts metav1.UpdateOptions) (*apiconfigv1.Network, error) {
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "update"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1NetworksClient.Update(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1NetworksClientShim) UpdateStatus(ctx context.Context, infrastructure *apiconfigv1.Network, opts metav1.UpdateOptions) (*apiconfigv1.Network, error) {
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "updatestatus"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1NetworksClient.UpdateStatus(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1NetworksClientShim) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, name, metav1.GetOptions{})
+	if err == nil {
+		return &OperationNotPermitted{Action: "delete"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1NetworksClient.Delete(ctx, name, opts)
+	}
+	return err
+}
+
+func (c *ConfigV1NetworksClientShim) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	list, err := c.fakeConfigV1NetworksClient.List(ctx, listOpts)
+	if err != nil {
+		return fmt.Errorf("unable to list objects during DeleteCollection request: %v", err)
+	}
+	// if either of the static manifests is expected to be deleted, the whole request is invalid
+	if len(list.Items) > 0 {
+		return &OperationNotPermitted{Action: "deletecollection"}
+	}
+	return c.configV1NetworksClient.DeleteCollection(ctx, opts, listOpts)
+}
+
+func (c *ConfigV1NetworksClientShim) Get(ctx context.Context, name string, opts metav1.GetOptions) (*apiconfigv1.Network, error) {
+	obj, err := c.fakeConfigV1NetworksClient.Get(ctx, name, metav1.GetOptions{})
+	if err == nil {
+		return obj, nil
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1NetworksClient.Get(ctx, name, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1NetworksClientShim) List(ctx context.Context, opts metav1.ListOptions) (*apiconfigv1.NetworkList, error) {
+	// INFO: field selectors will not work
+	staticObjList, err := c.fakeConfigV1NetworksClient.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	objList, err := c.configV1NetworksClient.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	items := []apiconfigv1.Network{}
+	knownKeys := make(map[string]struct{})
+	for _, item := range staticObjList.Items {
+		items = append(items, item)
+		knownKeys[item.Name] = struct{}{}
+	}
+
+	for _, item := range objList.Items {
+		// skip objects with corresponding static manifests
+		if _, exists := knownKeys[item.Name]; exists {
+			continue
+		}
+		items = append(items, item)
+		knownKeys[item.Name] = struct{}{}
+	}
+
+	return &apiconfigv1.NetworkList{
+		TypeMeta: objList.TypeMeta,
+		ListMeta: objList.ListMeta,
+		Items:    items,
+	}, nil
+}
+
+func (c *ConfigV1NetworksClientShim) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+	// static manifests do not produce any watch event besides create
+	// If the object exists, no need to generate the ADDED watch event
+
+	// INFO: field selectors will not work
+	staticObjList, err := c.fakeConfigV1NetworksClient.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceWatcher, err := c.configV1NetworksClient.Watch(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(staticObjList.Items) == 0 {
+		return resourceWatcher, nil
+	}
+
+	objs := []runtime.Object{}
+	watcher := NewFakeWatcher()
+	// Produce ADDED watch event types for the static manifests
+	for _, item := range staticObjList.Items {
+		// make shallow copy
+		obj := item
+		watcher.Action(watch.Added, &obj)
+		objs = append(objs, &obj)
+	}
+
+	go func() {
+		err := watcher.Follow(resourceWatcher, objs...)
+		if err != nil {
+			klog.Errorf("Config shim fake watcher returned prematurely: %v", err)
+		}
+		watcher.Stop()
+	}()
+
+	return watcher, nil
+}
+
+func (c *ConfigV1NetworksClientShim) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (*apiconfigv1.Network, error) {
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "patch"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1NetworksClient.Patch(ctx, name, pt, data, opts, subresources...)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1NetworksClientShim) Apply(ctx context.Context, infrastructure *applyconfigv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (*apiconfigv1.Network, error) {
+	// Unable to determine existence of a static manifest
+	if infrastructure == nil || infrastructure.Name == nil {
+		return c.configV1NetworksClient.Apply(ctx, infrastructure, opts)
+	}
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, *infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "apply"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1NetworksClient.Apply(ctx, infrastructure, opts)
+	}
+	return nil, err
+}
+
+func (c *ConfigV1NetworksClientShim) ApplyStatus(ctx context.Context, infrastructure *applyconfigv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (*apiconfigv1.Network, error) {
+	// Unable to determine existence of a static manifest
+	if infrastructure == nil || infrastructure.Name == nil {
+		return c.configV1NetworksClient.ApplyStatus(ctx, infrastructure, opts)
+	}
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, *infrastructure.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, &OperationNotPermitted{Action: "applystatus"}
+	}
+	if apierrors.IsNotFound(err) {
+		return c.configV1NetworksClient.ApplyStatus(ctx, infrastructure, opts)
 	}
 	return nil, err
 }
