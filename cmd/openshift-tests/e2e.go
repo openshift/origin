@@ -465,6 +465,22 @@ var staticSuites = testSuites{
 			},
 		},
 	},
+	{
+		TestSuite: ginkgo.TestSuite{
+			Name: "openshift/pods/graceful-shutdown",
+			Description: templates.LongDesc(`
+		This test suite runs graceful shutdown of a node to verify kubelet behavior on pods.
+		`),
+			Matches: func(name string) bool {
+				if isDisabled(name) {
+					return false
+				}
+				return strings.Contains(name, "[Suite:openshift/pods/graceful-shutdown")
+			},
+			TestTimeout: 30 * time.Minute,
+		},
+		PreSuite: suiteWithProviderPreSuite,
+	},
 }
 
 // isStandardEarlyTest returns true if a test is considered part of the normal
