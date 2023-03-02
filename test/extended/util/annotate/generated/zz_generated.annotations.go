@@ -15843,7 +15843,7 @@ var Annotations = map[string]string{
 
 	"[sig-storage] Managed cluster should have no crashlooping recycler pods over four minutes": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-storage] Mounted volume expand [Feature:StorageProvider] Should verify mounted devices can be resized": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] Mounted volume expand [Feature:StorageProvider] Should verify mounted devices can be resized": " [Flaky] [Skipped:NoOptionalCapabilities] [Suite:k8s]",
 
 	"[sig-storage] Multi-AZ Cluster Volumes should schedule pods in the same zones as statically provisioned PVs": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 

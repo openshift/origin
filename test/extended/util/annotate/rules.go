@@ -107,7 +107,8 @@ var (
 		"[Slow]": {},
 		// tests that are known flaky
 		"[Flaky]": {
-			`openshift mongodb replication creating from a template`, // flaking on deployment
+			`openshift mongodb replication creating from a template`,                                                         // flaking on deployment
+			`\[sig-storage\] Mounted volume expand \[Feature:StorageProvider\] Should verify mounted devices can be resized`, // https://issues.redhat.com/browse/OCPBUGS-8092
 		},
 		// tests that must be run without competition
 		"[Serial]": {
