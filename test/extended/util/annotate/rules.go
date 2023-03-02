@@ -194,6 +194,8 @@ var (
 			// Need to access non-cached images like ruby and mongodb
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers`,
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with multiple image change triggers should run a successful deployment with multiple triggers`,
+			`\[sig-apps\] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the AlwaysAllow policy`,
+			`\[sig-apps\] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the IfHealthyBudget policy`,
 
 			// ICSP
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs should adhere to Three Laws of Controllers`,
