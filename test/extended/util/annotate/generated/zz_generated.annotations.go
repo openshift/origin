@@ -2689,12 +2689,6 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:tuning] sysctl allowlist update should start a pod with custom sysctl only when the sysctl is added to whitelist": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:vlan] should create pingable pods with ipvlan interface on an in-container master [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:vlan] should create pingable pods with macvlan interface on an in-container master [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:vlan] should create pingable pods with vlan interface on an in-container master [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of Endpoints pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
