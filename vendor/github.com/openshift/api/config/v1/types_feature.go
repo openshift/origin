@@ -114,12 +114,11 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 		with("BuildCSIVolumes").                   // sig-build, adkaplan, OCP specific
 		with("NodeSwap").                          // sig-node, ehashman, Kubernetes feature gate
 		with("MachineAPIProviderOpenStack").       // openstack, egarcia (#forum-openstack), OCP specific
-		with("CGroupsV2").                         // sig-node, harche, OCP specific
-		with("Crun").                              // sig-node, haircommander, OCP specific
 		with("InsightsConfigAPI").                 // insights, tremes (#ccx), OCP specific
-		with("CSIInlineVolumeAdmission").          // sig-storage, jdobson, OCP specific
 		with("MatchLabelKeysInPodTopologySpread"). // sig-scheduling, ingvagabund (#forum-workloads), Kubernetes feature gate
 		with("RetroactiveDefaultStorageClass").    // sig-storage, RomanBednar, Kubernetes feature gate
+		with("PDBUnhealthyPodEvictionPolicy").     // sig-apps, atiratree (#forum-workloads), Kubernetes feature gate
+		with("DynamicResourceAllocation").         // sig-scheduling, jchaloup (#forum-workloads), Kubernetes feature gate
 		toFeatures(),
 	LatencySensitive: newDefaultFeatures().
 		with(
@@ -133,7 +132,7 @@ var defaultFeatures = &FeatureGateEnabledDisabled{
 		"APIPriorityAndFairness",         // sig-apimachinery, deads2k
 		"RotateKubeletServerCertificate", // sig-pod, sjenning
 		"DownwardAPIHugePages",           // sig-node, rphillips
-		"OpenShiftPodSecurityAdmission",     // bz-auth, stlaz, OCP specific
+		"OpenShiftPodSecurityAdmission",  // bz-auth, stlaz, OCP specific
 	},
 	Disabled: []string{
 		"RetroactiveDefaultStorageClass", // sig-storage, RomanBednar, Kubernetes feature gate

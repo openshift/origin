@@ -2557,6 +2557,10 @@ var Annotations = map[string]string{
 
 	"[sig-network] external gateway address when using openshift ovn-kubernetes should match the address family of the pod": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network] load balancer should be managed by OpenShift": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network] load balancer should not be managed by OpenShift": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should allow multicast traffic in namespaces where it is enabled": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should block multicast traffic in namespaces where it is disabled": " [Suite:openshift/conformance/parallel]",
