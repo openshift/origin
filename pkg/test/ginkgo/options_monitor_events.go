@@ -114,7 +114,7 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 	o.recordedResources = o.monitor.CurrentResourceState()
 
 	var err error
-	fromTime, endTime := time.Time{}, time.Time{}
+	fromTime, endTime := *o.startTime, *o.endTime
 	events := o.monitor.Intervals(fromTime, endTime)
 	// this happens before calculation because events collected here could be used to drive later calculations
 	o.auditLogSummary, events, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, events, o.recordedResources, fromTime, endTime)
