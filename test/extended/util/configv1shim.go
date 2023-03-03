@@ -678,7 +678,7 @@ func (f *FakeWatcher) Action(action watch.EventType, obj runtime.Object) {
 	defer f.Unlock()
 	if !f.Stopped {
 		select {
-		case f.result <- watch.Event{action, obj}:
+		case f.result <- watch.Event{Type: action, Object: obj}:
 			return
 		default:
 			panic(fmt.Errorf("channel full"))
