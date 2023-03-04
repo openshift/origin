@@ -34,6 +34,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/images"
 	_ "github.com/openshift/origin/test/extended/images/trigger"
 	_ "github.com/openshift/origin/test/extended/jobs"
+	_ "github.com/openshift/origin/test/extended/kernel"
 	_ "github.com/openshift/origin/test/extended/machines"
 	_ "github.com/openshift/origin/test/extended/networking"
 	_ "github.com/openshift/origin/test/extended/oauth"
