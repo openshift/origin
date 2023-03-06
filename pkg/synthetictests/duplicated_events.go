@@ -12,10 +12,12 @@ import (
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
@@ -134,6 +136,20 @@ func appendToFirstLine(s string, add string) string {
 	return strings.Join(splits, "\n")
 }
 
+func getJUnitName(testName string, namespace string) string {
+	jUnitName := testName
+	if namespace != "" {
+		jUnitName = jUnitName + " for namespace " + namespace
+	}
+	return jUnitName
+}
+
+func getNamespacesForJUnits() sets.String {
+	namespaces := platformidentification.KnownNamespaces.Clone()
+	namespaces.Insert("")
+	return namespaces
+}
+
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
@@ -145,7 +161,11 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		eventMessage string // holds original message so you can compare with d.knownRepeatedEventsBugs
 	}
 
-	var failures []string
+	type eventResult struct {
+		failures []string
+		flakes   []string
+	}
+
 	displayToCount := map[string]*pathologicalEvents{}
 	for _, event := range events {
 		eventDisplayMessage, times := getTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
@@ -171,8 +191,9 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		}
 	}
 
-	var flakes []string
+	nsResults := map[string]*eventResult{}
 	for msgWithTime, pathoItem := range displayToCount {
+		namespace := monitorapi.NamespaceFromLocator(msgWithTime)
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", pathoItem.count, msgWithTime)
 		flake := false
 		for _, kp := range d.knownRepeatedEventsBugs {
@@ -197,39 +218,53 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			}
 		}
 
+		// We only creates junit for known namespaces
+		if !platformidentification.KnownNamespaces.Has(namespace) {
+			namespace = ""
+		}
+
+		if _, ok := nsResults[namespace]; !ok {
+			tmp := &eventResult{}
+			nsResults[namespace] = tmp
+		}
 		if flake || flakeOnly {
-			flakes = append(flakes, appendToFirstLine(msg, " result=allow "))
+			nsResults[namespace].flakes = append(nsResults[namespace].flakes, appendToFirstLine(msg, " result=allow "))
 		} else {
-			failures = append(failures, appendToFirstLine(msg, " result=reject "))
+			nsResults[namespace].failures = append(nsResults[namespace].failures, appendToFirstLine(msg, " result=reject "))
 		}
 	}
 
 	// failures during a run always fail the test suite
 	var tests []*junitapi.JUnitTestCase
-	if len(failures) > 0 || len(flakes) > 0 {
-		var output string
-		if len(failures) > 0 {
-			output = fmt.Sprintf("%d events happened too frequently\n\n%v", len(failures), strings.Join(failures, "\n"))
-		}
-		if len(flakes) > 0 {
-			if output != "" {
-				output += "\n\n"
+	namespaces := getNamespacesForJUnits()
+	for namespace := range namespaces {
+		jUnitName := getJUnitName(testName, namespace)
+		if result, ok := nsResults[namespace]; ok {
+			var output string
+			if len(result.failures) > 0 {
+				output = fmt.Sprintf("%d events happened too frequently\n\n%v", len(result.failures), strings.Join(result.failures, "\n"))
 			}
-			output += fmt.Sprintf("%d events with known BZs\n\n%v", len(flakes), strings.Join(flakes, "\n"))
+			if len(result.flakes) > 0 {
+				if output != "" {
+					output += "\n\n"
+				}
+				output += fmt.Sprintf("%d events with known BZs\n\n%v", len(result.flakes), strings.Join(result.flakes, "\n"))
+			}
+			tests = append(tests, &junitapi.JUnitTestCase{
+				Name: jUnitName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: output,
+				},
+			})
+			// Add a success for flakes
+			if len(result.failures) == 0 && len(result.flakes) > 0 {
+				tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
+			}
+		} else {
+			tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
 		}
-		tests = append(tests, &junitapi.JUnitTestCase{
-			Name: testName,
-			FailureOutput: &junitapi.FailureOutput{
-				Output: output,
-			},
-		})
 	}
 
-	if len(tests) == 0 || len(failures) == 0 {
-		// Add a successful result to mark the test as flaky if there are no
-		// unknown problems.
-		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
-	}
 	return tests
 }
 
