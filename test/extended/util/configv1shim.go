@@ -17,6 +17,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -122,7 +123,7 @@ func (c *ConfigV1ClientShim) Images() configv1.ImageInterface {
 }
 
 func (c *ConfigV1ClientShim) ImageContentPolicies() configv1.ImageContentPolicyInterface {
-	if c.v1Kinds["ImageContentPolicie"] {
+	if c.v1Kinds["ImageContentPolicy"] {
 		panic(fmt.Errorf("ImageContentPolicie not implemented"))
 	}
 	return c.configv1.ImageContentPolicies()
@@ -150,7 +151,7 @@ func (c *ConfigV1ClientShim) Infrastructures() configv1.InfrastructureInterface 
 }
 
 func (c *ConfigV1ClientShim) Ingresses() configv1.IngressInterface {
-	if c.v1Kinds["Ingresse"] {
+	if c.v1Kinds["Ingress"] {
 		panic(fmt.Errorf("Ingresse not implemented"))
 	}
 	return c.configv1.Ingresses()
@@ -192,7 +193,7 @@ func (c *ConfigV1ClientShim) Projects() configv1.ProjectInterface {
 }
 
 func (c *ConfigV1ClientShim) Proxies() configv1.ProxyInterface {
-	if c.v1Kinds["Proxie"] {
+	if c.v1Kinds["Proxy"] {
 		panic(fmt.Errorf("Proxie not implemented"))
 	}
 	return c.configv1.Proxies()
@@ -286,21 +287,47 @@ func (c *ConfigV1InfrastructuresClientShim) Get(ctx context.Context, name string
 }
 
 func (c *ConfigV1InfrastructuresClientShim) List(ctx context.Context, opts metav1.ListOptions) (*apiconfigv1.InfrastructureList, error) {
-	// INFO: field selectors will not work
-	staticObjList, err := c.fakeConfigV1InfrastructuresClient.List(ctx, opts)
-	if err != nil {
-		return nil, err
+	items := []apiconfigv1.Infrastructure{}
+	knownKeys := make(map[string]struct{})
+
+	if len(opts.FieldSelector) > 0 {
+		sel, err := fields.ParseSelector(opts.FieldSelector)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse field selector")
+		}
+		// list all objects
+		staticObjList, err := c.fakeConfigV1InfrastructuresClient.List(ctx, metav1.ListOptions{LabelSelector: opts.LabelSelector})
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range staticObjList.Items {
+			// existing item is still a known item even though it does not match
+			// the field selector. It still needs to be excluded from the real objects.
+			knownKeys[item.Name] = struct{}{}
+
+			// Based on https://github.com/openshift/origin/pull/27714 and
+			// https://github.com/kubernetes/kubernetes/blob/f14cc7fdfcfcedafc7910f043ec6eb74930cfee7/staging/src/k8s.io/apiextensions-apiserver/pkg/apiserver/conversion/converter.go#L128-L138
+			// only metadata.Name and metadata.Namespaces are supported for CRDs
+			// Infrastructure is cluster scoped -> no metadata.namespace
+			if !sel.Matches(fields.Set(map[string]string{"metadata.name": item.Name})) {
+				continue
+			}
+			items = append(items, item)
+		}
+	} else {
+		staticObjList, err := c.fakeConfigV1InfrastructuresClient.List(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range staticObjList.Items {
+			items = append(items, item)
+			knownKeys[item.Name] = struct{}{}
+		}
 	}
+
 	objList, err := c.configV1InfrastructuresClient.List(ctx, opts)
 	if err != nil {
 		return nil, err
-	}
-
-	items := []apiconfigv1.Infrastructure{}
-	knownKeys := make(map[string]struct{})
-	for _, item := range staticObjList.Items {
-		items = append(items, item)
-		knownKeys[item.Name] = struct{}{}
 	}
 
 	for _, item := range objList.Items {
@@ -338,13 +365,30 @@ func (c *ConfigV1InfrastructuresClientShim) Watch(ctx context.Context, opts meta
 		return resourceWatcher, nil
 	}
 
+	// Only reduces the set of objects generating the ADD event
+	// The Follow will still get the full list of ignored objects
+	watchSel := fields.Everything()
+	if len(opts.FieldSelector) > 0 {
+		sel, err := fields.ParseSelector(opts.FieldSelector)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse field selector")
+		}
+		watchSel = sel
+	}
+
 	objs := []runtime.Object{}
 	watcher := NewFakeWatcher()
 	// Produce ADDED watch event types for the static manifests
 	for _, item := range staticObjList.Items {
 		// make shallow copy
 		obj := item
-		watcher.Action(watch.Added, &obj)
+		// Based on https://github.com/openshift/origin/pull/27714 and
+		// https://github.com/kubernetes/kubernetes/blob/f14cc7fdfcfcedafc7910f043ec6eb74930cfee7/staging/src/k8s.io/apiextensions-apiserver/pkg/apiserver/conversion/converter.go#L128-L138
+		// only metadata.Name and metadata.Namespaces are supported for CRDs
+		// Infrastructure is cluster scoped -> no metadata.namespace
+		if watchSel.Matches(fields.Set(map[string]string{"metadata.name": item.Name})) {
+			watcher.Action(watch.Added, &obj)
+		}
 		objs = append(objs, &obj)
 	}
 
@@ -475,21 +519,47 @@ func (c *ConfigV1NetworksClientShim) Get(ctx context.Context, name string, opts 
 }
 
 func (c *ConfigV1NetworksClientShim) List(ctx context.Context, opts metav1.ListOptions) (*apiconfigv1.NetworkList, error) {
-	// INFO: field selectors will not work
-	staticObjList, err := c.fakeConfigV1NetworksClient.List(ctx, opts)
-	if err != nil {
-		return nil, err
+	items := []apiconfigv1.Network{}
+	knownKeys := make(map[string]struct{})
+
+	if len(opts.FieldSelector) > 0 {
+		sel, err := fields.ParseSelector(opts.FieldSelector)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse field selector")
+		}
+		// list all objects
+		staticObjList, err := c.fakeConfigV1NetworksClient.List(ctx, metav1.ListOptions{LabelSelector: opts.LabelSelector})
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range staticObjList.Items {
+			// existing item is still a known item even though it does not match
+			// the field selector. It still needs to be excluded from the real objects.
+			knownKeys[item.Name] = struct{}{}
+
+			// Based on https://github.com/openshift/origin/pull/27714 and
+			// https://github.com/kubernetes/kubernetes/blob/f14cc7fdfcfcedafc7910f043ec6eb74930cfee7/staging/src/k8s.io/apiextensions-apiserver/pkg/apiserver/conversion/converter.go#L128-L138
+			// only metadata.Name and metadata.Namespaces are supported for CRDs
+			// Network is cluster scoped -> no metadata.namespace
+			if !sel.Matches(fields.Set(map[string]string{"metadata.name": item.Name})) {
+				continue
+			}
+			items = append(items, item)
+		}
+	} else {
+		staticObjList, err := c.fakeConfigV1NetworksClient.List(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range staticObjList.Items {
+			items = append(items, item)
+			knownKeys[item.Name] = struct{}{}
+		}
 	}
+
 	objList, err := c.configV1NetworksClient.List(ctx, opts)
 	if err != nil {
 		return nil, err
-	}
-
-	items := []apiconfigv1.Network{}
-	knownKeys := make(map[string]struct{})
-	for _, item := range staticObjList.Items {
-		items = append(items, item)
-		knownKeys[item.Name] = struct{}{}
 	}
 
 	for _, item := range objList.Items {
@@ -527,13 +597,30 @@ func (c *ConfigV1NetworksClientShim) Watch(ctx context.Context, opts metav1.List
 		return resourceWatcher, nil
 	}
 
+	// Only reduces the set of objects generating the ADD event
+	// The Follow will still get the full list of ignored objects
+	watchSel := fields.Everything()
+	if len(opts.FieldSelector) > 0 {
+		sel, err := fields.ParseSelector(opts.FieldSelector)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse field selector")
+		}
+		watchSel = sel
+	}
+
 	objs := []runtime.Object{}
 	watcher := NewFakeWatcher()
 	// Produce ADDED watch event types for the static manifests
 	for _, item := range staticObjList.Items {
 		// make shallow copy
 		obj := item
-		watcher.Action(watch.Added, &obj)
+		// Based on https://github.com/openshift/origin/pull/27714 and
+		// https://github.com/kubernetes/kubernetes/blob/f14cc7fdfcfcedafc7910f043ec6eb74930cfee7/staging/src/k8s.io/apiextensions-apiserver/pkg/apiserver/conversion/converter.go#L128-L138
+		// only metadata.Name and metadata.Namespaces are supported for CRDs
+		// Infrastructure is cluster scoped -> no metadata.namespace
+		if watchSel.Matches(fields.Set(map[string]string{"metadata.name": item.Name})) {
+			watcher.Action(watch.Added, &obj)
+		}
 		objs = append(objs, &obj)
 	}
 
@@ -559,32 +646,32 @@ func (c *ConfigV1NetworksClientShim) Patch(ctx context.Context, name string, pt 
 	return nil, err
 }
 
-func (c *ConfigV1NetworksClientShim) Apply(ctx context.Context, infrastructure *applyconfigv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (*apiconfigv1.Network, error) {
+func (c *ConfigV1NetworksClientShim) Apply(ctx context.Context, network *applyconfigv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (*apiconfigv1.Network, error) {
 	// Unable to determine existence of a static manifest
-	if infrastructure == nil || infrastructure.Name == nil {
-		return c.configV1NetworksClient.Apply(ctx, infrastructure, opts)
+	if network == nil || network.Name == nil {
+		return c.configV1NetworksClient.Apply(ctx, network, opts)
 	}
-	_, err := c.fakeConfigV1NetworksClient.Get(ctx, *infrastructure.Name, metav1.GetOptions{})
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, *network.Name, metav1.GetOptions{})
 	if err == nil {
 		return nil, &OperationNotPermitted{Action: "apply"}
 	}
 	if apierrors.IsNotFound(err) {
-		return c.configV1NetworksClient.Apply(ctx, infrastructure, opts)
+		return c.configV1NetworksClient.Apply(ctx, network, opts)
 	}
 	return nil, err
 }
 
-func (c *ConfigV1NetworksClientShim) ApplyStatus(ctx context.Context, infrastructure *applyconfigv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (*apiconfigv1.Network, error) {
+func (c *ConfigV1NetworksClientShim) ApplyStatus(ctx context.Context, network *applyconfigv1.NetworkApplyConfiguration, opts metav1.ApplyOptions) (*apiconfigv1.Network, error) {
 	// Unable to determine existence of a static manifest
-	if infrastructure == nil || infrastructure.Name == nil {
-		return c.configV1NetworksClient.ApplyStatus(ctx, infrastructure, opts)
+	if network == nil || network.Name == nil {
+		return c.configV1NetworksClient.ApplyStatus(ctx, network, opts)
 	}
-	_, err := c.fakeConfigV1NetworksClient.Get(ctx, *infrastructure.Name, metav1.GetOptions{})
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, *network.Name, metav1.GetOptions{})
 	if err == nil {
 		return nil, &OperationNotPermitted{Action: "applystatus"}
 	}
 	if apierrors.IsNotFound(err) {
-		return c.configV1NetworksClient.ApplyStatus(ctx, infrastructure, opts)
+		return c.configV1NetworksClient.ApplyStatus(ctx, network, opts)
 	}
 	return nil, err
 }

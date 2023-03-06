@@ -2099,7 +2099,7 @@ func collectConfigManifestsFromDir(configManifestsDir string) (error, []runtime.
 			return nil
 		}
 
-		body, err := ioutil.ReadFile(path)
+		body, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
