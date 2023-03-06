@@ -177,6 +177,8 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 	scanner := bufio.NewScanner(bytes.NewBuffer(kubeletLog))
 	for scanner.Scan() {
 		currLine := scanner.Text()
+		ret = append(ret, livenessFailure(currLine)...)
+		ret = append(ret, livenessError(currLine)...)
 		ret = append(ret, readinessFailure(currLine)...)
 		ret = append(ret, readinessError(currLine)...)
 		ret = append(ret, statusHttpClientConnectionLostError(currLine)...)
@@ -193,19 +195,19 @@ type kubeletLogLineEventCreator func(logLine string) monitorapi.Intervals
 
 var lineToEvents = []kubeletLogLineEventCreator{}
 
-func readinessFailure(logLine string) monitorapi.Intervals {
-	if !strings.Contains(logLine, `Probe failed`) {
+func extractProbeInterval(probeCheck, probeTypeCheck string, outputRegex *regexp.Regexp, reason, logLine string) monitorapi.Intervals {
+	if !strings.Contains(logLine, probeCheck) {
 		return nil
 	}
-	if !strings.Contains(logLine, `probeType="Readiness"`) {
+	if !strings.Contains(logLine, probeTypeCheck) {
 		return nil
 	}
 
-	readinessFailureOutputRegex.MatchString(logLine)
-	if !readinessFailureOutputRegex.MatchString(logLine) {
+	outputRegex.MatchString(logLine)
+	if !outputRegex.MatchString(logLine) {
 		return nil
 	}
-	outputSubmatches := readinessFailureOutputRegex.FindStringSubmatch(logLine)
+	outputSubmatches := outputRegex.FindStringSubmatch(logLine)
 	message := outputSubmatches[1]
 	// message contains many \", this removes the escaping to result in message containing "
 	// if we have an error, just use the original message, we don't really care that much.
@@ -220,43 +222,28 @@ func readinessFailure(logLine string) monitorapi.Intervals {
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: containerRef.ToLocator(),
-				Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonReadinessFailed, message),
+				Message: monitorapi.ReasonedMessage(reason, message),
 			},
 			From: failureTime,
-			To:   failureTime,
+			To:   failureTime.Add(1 * time.Second),
 		},
 	}
 }
 
+func livenessFailure(logLine string) monitorapi.Intervals {
+	return extractProbeInterval(`Probe failed`, `probeType="Liveness"`, livenessFailureOutputRegex, monitorapi.ContainerReasonLivenessFailed, logLine)
+}
+
+func livenessError(logLine string) monitorapi.Intervals {
+	return extractProbeInterval(`Probe errored`, `probeType="Liveness"`, livenessErrorOutputRegex, monitorapi.ContainerReasonLivenessErrored, logLine)
+}
+
+func readinessFailure(logLine string) monitorapi.Intervals {
+	return extractProbeInterval(`Probe failed`, `probeType="Readiness"`, readinessFailureOutputRegex, monitorapi.ContainerReasonReadinessFailed, logLine)
+}
+
 func readinessError(logLine string) monitorapi.Intervals {
-	if !strings.Contains(logLine, `Probe errored`) {
-		return nil
-	}
-	if !strings.Contains(logLine, `probeType="Readiness"`) {
-		return nil
-	}
-
-	readinessErrorOutputRegex.MatchString(logLine)
-	if !readinessErrorOutputRegex.MatchString(logLine) {
-		return nil
-	}
-	outputSubmatches := readinessErrorOutputRegex.FindStringSubmatch(logLine)
-	message := outputSubmatches[1]
-	message, _ = strconv.Unquote(`"` + message + `"`)
-
-	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := kubeletLogTime(logLine)
-	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.Condition{
-				Level:   monitorapi.Info,
-				Locator: containerRef.ToLocator(),
-				Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonReadinessErrored, message),
-			},
-			From: failureTime,
-			To:   failureTime,
-		},
-	}
+	return extractProbeInterval(`Probe errored`, `probeType="Readiness"`, readinessErrorOutputRegex, monitorapi.ContainerReasonReadinessErrored, logLine)
 }
 
 func errParsingSignature(logLine string) monitorapi.Intervals {
@@ -333,6 +320,8 @@ func startupProbeError(logLine string) monitorapi.Intervals {
 var imagePullContainerRefRegex = regexp.MustCompile(`err=.*for \\"(?P<CONTAINER>[a-z0-9.-]+)\\".*pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID=(?P<PODUID>[a-z0-9.-]+)`)
 
 var containerRefRegex = regexp.MustCompile(`pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID=(?P<PODUID>[a-z0-9.-]+) containerName="(?P<CONTAINER>[a-z0-9.-]+)"`)
+var livenessFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Liveness".*output="(?P<OUTPUT>.+)"`)
+var livenessErrorOutputRegex = regexp.MustCompile(`"Probe errored" err="(?P<OUTPUT>.+)" probeType="Liveness"`)
 var readinessFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Readiness".*output="(?P<OUTPUT>.+)"`)
 var readinessErrorOutputRegex = regexp.MustCompile(`"Probe errored" err="(?P<OUTPUT>.+)" probeType="Readiness"`)
 var startupFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Startup".*output="(?P<OUTPUT>.+)"`)

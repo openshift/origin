@@ -116,6 +116,8 @@ const (
 	ContainerReasonContainerExit      = "ContainerExit"
 	ContainerReasonContainerStart     = "ContainerStart"
 	ContainerReasonContainerWait      = "ContainerWait"
+	ContainerReasonLivenessFailed     = "LivenessFailed"
+	ContainerReasonLivenessErrored    = "LivenessErrored"
 	ContainerReasonReadinessFailed    = "ReadinessFailed"
 	ContainerReasonReadinessErrored   = "ReadinessErrored"
 	ContainerReasonStartupProbeFailed = "StartupProbeFailed"
