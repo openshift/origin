@@ -1,0 +1,80 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nginx-with-delayed-ready
+  labels:
+    app: nginx-with-delayed-ready
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-with-delayed-ready
+  template:
+    metadata:
+      labels:
+        app: nginx-with-delayed-ready
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: nginx-with-delayed-ready
+          image: registry.k8s.io/e2e-test-images/nginx:1.15-4
+          command:
+            - /usr/sbin/nginx
+          args:
+            - "-g"
+            - "daemon off;"
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 40
+            successThreshold: 2
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/nginx/conf.d
+            - name: tmp
+              mountPath: /var/cache/nginx
+            - name: tmp2
+              mountPath: /var/run
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: conf
+          configMap:
+            name: nginx-conf
+        - name: tmp
+          emptyDir: {}
+        - name: tmp2
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name  localhost;
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }
+    }

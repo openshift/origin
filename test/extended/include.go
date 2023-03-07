@@ -40,6 +40,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/oauth"
 	_ "github.com/openshift/origin/test/extended/olm"
 	_ "github.com/openshift/origin/test/extended/operators"
+	_ "github.com/openshift/origin/test/extended/poddisruptionbudget"
 	_ "github.com/openshift/origin/test/extended/pods"
 	_ "github.com/openshift/origin/test/extended/project"
 	_ "github.com/openshift/origin/test/extended/prometheus"

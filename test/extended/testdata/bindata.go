@@ -422,6 +422,9 @@
 // test/extended/testdata/oauthserver/oauth-sa.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/olm/subscription.yaml
+// test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
+// test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml
+// test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml
 // test/extended/testdata/releases/payload-1/etcd-operator/image-references
 // test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml
 // test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml
@@ -45871,6 +45874,161 @@ func testExtendedTestdataOlmSubscriptionYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml = []byte(`---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: always-allow-policy
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app: nginx-with-delayed-ready
+
+`)
+
+func testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, nil
+}
+
+func testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml = []byte(`---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: if-healthy-budget-policy
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+  selector:
+    matchLabels:
+      app: nginx-with-delayed-ready
+
+`)
+
+func testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml, nil
+}
+
+func testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml = []byte(`---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nginx-with-delayed-ready
+  labels:
+    app: nginx-with-delayed-ready
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-with-delayed-ready
+  template:
+    metadata:
+      labels:
+        app: nginx-with-delayed-ready
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: nginx-with-delayed-ready
+          image: registry.k8s.io/e2e-test-images/nginx:1.15-4
+          command:
+            - /usr/sbin/nginx
+          args:
+            - "-g"
+            - "daemon off;"
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 40
+            successThreshold: 2
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/nginx/conf.d
+            - name: tmp
+              mountPath: /var/cache/nginx
+            - name: tmp2
+              mountPath: /var/run
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: conf
+          configMap:
+            name: nginx-conf
+        - name: tmp
+          emptyDir: {}
+        - name: tmp2
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name  localhost;
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }
+    }
+`)
+
+func testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml, nil
+}
+
+func testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences = []byte(`kind: ImageStream
 apiVersion: image.openshift.io/v1
 spec:
@@ -46362,7 +46520,7 @@ items:
         mountPath: /etc/nginx
       - name: tmp
         mountPath: /var/cache/nginx
-      - name: tmp
+      - name: tmp2
         mountPath: /var/run
     volumes:
     - name: conf
@@ -50267,6 +50425,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                       testExtendedTestdataOauthserverOauthSaYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                          testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/olm/subscription.yaml":                                                           testExtendedTestdataOlmSubscriptionYaml,
+	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
+	"test/extended/testdata/poddisruptionbudgets/if-healthy-budget-policy-pdb.yaml":                          testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml,
+	"test/extended/testdata/poddisruptionbudgets/nginx-with-delayed-ready-deployment.yaml":                   testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml,
 	"test/extended/testdata/releases/payload-1/etcd-operator/image-references":                               testExtendedTestdataReleasesPayload1EtcdOperatorImageReferences,
 	"test/extended/testdata/releases/payload-1/etcd-operator/manifest.yaml":                                  testExtendedTestdataReleasesPayload1EtcdOperatorManifestYaml,
 	"test/extended/testdata/releases/payload-1/image-registry/10_image-registry_crd.yaml":                    testExtendedTestdataReleasesPayload1ImageRegistry10_imageRegistry_crdYaml,
@@ -50990,6 +51151,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"olm": {nil, map[string]*bintree{
 					"operatorgroup.yaml": {testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
 					"subscription.yaml":  {testExtendedTestdataOlmSubscriptionYaml, map[string]*bintree{}},
+				}},
+				"poddisruptionbudgets": {nil, map[string]*bintree{
+					"always-allow-policy-pdb.yaml":             {testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml, map[string]*bintree{}},
+					"if-healthy-budget-policy-pdb.yaml":        {testExtendedTestdataPoddisruptionbudgetsIfHealthyBudgetPolicyPdbYaml, map[string]*bintree{}},
+					"nginx-with-delayed-ready-deployment.yaml": {testExtendedTestdataPoddisruptionbudgetsNginxWithDelayedReadyDeploymentYaml, map[string]*bintree{}},
 				}},
 				"releases": {nil, map[string]*bintree{
 					"payload-1": {nil, map[string]*bintree{
