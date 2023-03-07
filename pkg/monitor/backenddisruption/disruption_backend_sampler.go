@@ -13,9 +13,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	v1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/transport"
@@ -306,15 +310,15 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 	return b.httpClient, b.httpClientErr
 }
 
-func (b *BackendSampler) checkConnection(ctx context.Context) error {
+func (b *BackendSampler) checkConnection(ctx context.Context) (string, error) {
 	httpClient, err := b.GetHTTPClient()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	url, err := b.GetURL()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// this is longer than the http client timeout to avoid tripping, but is here to be sure we finish eventually
@@ -323,13 +327,16 @@ func (b *BackendSampler) checkConnection(ctx context.Context) error {
 	defer requestCancel()
 	req, err := http.NewRequestWithContext(requestContext, http.MethodGet, url, nil)
 	if err != nil {
-		return err
+		return "", err
 	}
+
+	uid := uuid.New().String()
+	req.Header.Set(audit.HeaderAuditID, uid)
 
 	resp, getErr := httpClient.Do(req)
 	if requestContext.Err() == context.Canceled {
 		// this isn't an error, we were simply cancelled
-		return nil
+		return uid, nil
 	}
 
 	var body []byte
@@ -355,7 +362,7 @@ func (b *BackendSampler) checkConnection(ctx context.Context) error {
 		}
 	}
 
-	return sampleErr
+	return uid, sampleErr
 }
 
 // RunEndpointMonitoring sets up a client for the given BackendSampler, starts checking the endpoint, and recording
@@ -480,8 +487,21 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 		// was actually 30s before.
 		currDisruptionSample := b.newSample(ctx)
 		go func() {
-			sampleErr := b.backendSampler.checkConnection(ctx)
+			uid, sampleErr := b.backendSampler.checkConnection(ctx)
 			currDisruptionSample.setSampleError(sampleErr)
+			if sampleErr != nil {
+				// We'd like to include these UUIDs in the backend-disruption.json file but this is
+				// not possible without some work as we're basing everything off intervals today. There is
+				// no place to store request UUIDs without stuffing them into the  interval message, which would break
+				// the code that determines when disruption started/stopped based on the similarity of the message.
+				// For now we will just log clearly the requests that failed and use this to correlate with the
+				// audit log manually.
+				logrus.WithFields(logrus.Fields{
+					"backend": b.backendSampler.disruptionBackendName,
+					"type":    b.backendSampler.connectionType,
+					"auditID": uid,
+				}).Errorf("disruption sample failed: %v", sampleErr)
+			}
 			close(currDisruptionSample.finished)
 		}()
 
@@ -655,6 +675,7 @@ func newDisruptionSample(startTime time.Time) *disruptionSample {
 		finished:  make(chan struct{}),
 	}
 }
+
 func (s *disruptionSample) setSampleError(sampleErr error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()

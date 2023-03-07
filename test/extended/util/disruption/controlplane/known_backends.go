@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -215,7 +216,7 @@ func createAPIServerBackendSampler(clusterConfig *rest.Config, disruptionBackend
 	if err != nil {
 		return nil, err
 	}
-	backendSampler.WithUserAgent("openshift-origin-external-backend-sampler")
+	backendSampler = backendSampler.WithUserAgent(fmt.Sprintf("openshift-external-backend-sampler-%s-%s", connectionType, disruptionBackendName))
 
 	return backendSampler, nil
 }

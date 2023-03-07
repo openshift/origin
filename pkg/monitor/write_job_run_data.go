@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-
 	"path/filepath"
 	"strings"
 
@@ -91,7 +90,8 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 		connectionType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
 		aggregatedDisruptionName := strings.ToLower(fmt.Sprintf("%s-%s-connections", disruptionBackend, connectionType))
 
-		disruptionDuration, disruptionMessages, connectionType := monitorapi.BackendDisruptionSeconds(locator, allDisruptionEventsIntervals)
+		disruptionDuration, disruptionMessages, connectionType :=
+			monitorapi.BackendDisruptionSeconds(locator, allDisruptionEventsIntervals)
 		ret.BackendDisruptions[aggregatedDisruptionName] = &BackendDisruption{
 			Name:               aggregatedDisruptionName,
 			BackendName:        disruptionBackend,
