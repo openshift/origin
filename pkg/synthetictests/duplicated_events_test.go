@@ -150,11 +150,11 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 		},
 		{
 			name:            "matches 22 with namespace e2e",
-			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`},
+			messages:        []string{`ns/random - reason/SomeEvent1 foo (22 times)`},
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/random - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
 			name:            "matches 22 with no namespace",
@@ -192,7 +192,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			evaluator.topology = test.topology
 
 			testName := "events should not repeat"
-			junits := evaluator.testDuplicatedEvents(testName, false, events, nil)
+			junits := evaluator.testDuplicatedEvents(testName, false, events, nil, false)
 			namespaces := getNamespacesForJUnits()
 			if len(junits) != len(namespaces) {
 				t.Fatalf("didn't get junits for all known namespaces, expect %d, got %d", len(namespaces), len(junits))
@@ -319,28 +319,15 @@ func TestKnownBugEvents(t *testing.T) {
 			evaluator.platform = test.platform
 			evaluator.topology = test.topology
 
-			testName := "events should not repeat"
-			junits := evaluator.testDuplicatedEvents(testName, false, events, nil)
-			namespaces := getNamespacesForJUnits()
-			expectedJunitCount := len(namespaces)
-			if test.match {
-				expectedJunitCount++
+			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
+			if len(junits) < 1 {
+				t.Fatal("didn't get junit for duplicated event")
 			}
-			if len(junits) != expectedJunitCount {
-				t.Fatalf("didn't get junits for all known namespaces, expect %d, got %d", expectedJunitCount, len(junits))
+			if test.match && !strings.Contains(junits[0].FailureOutput.Output, "1 events with known BZs") {
+				t.Fatalf("expected case to match, but it didn't: %s", test.name)
 			}
-
-			for _, junit := range junits {
-				if junit.Name == testName && junit.FailureOutput != nil {
-					if test.match && !strings.Contains(junit.FailureOutput.Output, "1 events with known BZs") {
-						t.Fatalf("expected case to match, but it didn't: %s", test.name)
-					}
-
-					if !test.match && strings.Contains(junit.FailureOutput.Output, "1 events with known BZs") {
-						t.Fatalf("expected case to not match, but it did: %s", test.name)
-					}
-					break
-				}
+			if !test.match && strings.Contains(junits[0].FailureOutput.Output, "1 events with known BZs") {
+				t.Fatalf("expected case to not match, but it did: %s", test.name)
 			}
 		})
 	}
@@ -411,21 +398,14 @@ func TestKnownBugEventsGroup(t *testing.T) {
 			evaluator.platform = test.platform
 			evaluator.topology = test.topology
 
-			testName := "events should not repeat"
-			junits := evaluator.testDuplicatedEvents(testName, false, events, nil)
-			namespaces := getNamespacesForJUnits()
-			if len(junits) != len(namespaces)+1 {
-				t.Fatalf("didn't get junits for all known namespaces, expect %d, got %d", len(namespaces)+1, len(junits))
+			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
+			if len(junits) < 1 {
+				t.Fatal("didn't get junit for duplicated event")
 			}
 
-			for _, junit := range junits {
-				if junit.Name == testName && junit.FailureOutput != nil {
-					if strings.Compare(junit.FailureOutput.Output, test.expectedMessage) != 0 {
-						t.Fatalf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junit.FailureOutput.Output)
-					}
-				}
+			if strings.Compare(junits[0].FailureOutput.Output, test.expectedMessage) != 0 {
+				t.Fatalf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junits[0].FailureOutput.Output)
 			}
-
 		})
 	}
 }

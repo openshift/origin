@@ -116,7 +116,7 @@ func testDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
-	return d.testDuplicatedEvents(testName, false, events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)), kubeClientConfig)
+	return d.testDuplicatedEvents(testName, false, events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)), kubeClientConfig, false)
 }
 
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
@@ -126,7 +126,7 @@ func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monit
 func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically in e2e namespaces"
 
-	return d.testDuplicatedEvents(testName, true, events.Filter(monitorapi.IsInE2ENamespace), kubeClientConfig)
+	return d.testDuplicatedEvents(testName, true, events.Filter(monitorapi.IsInE2ENamespace), kubeClientConfig, true)
 }
 
 // appendToFirstLine appends add to the end of the first line of s
@@ -150,20 +150,81 @@ func getNamespacesForJUnits() sets.String {
 	return namespaces
 }
 
+type eventResult struct {
+	failures []string
+	flakes   []string
+}
+
+func generateFailureOutput(failures []string, flakes []string) string {
+	var output string
+	if len(failures) > 0 {
+		output = fmt.Sprintf("%d events happened too frequently\n\n%v", len(failures), strings.Join(failures, "\n"))
+	}
+	if len(flakes) > 0 {
+		if output != "" {
+			output += "\n\n"
+		}
+		output += fmt.Sprintf("%d events with known BZs\n\n%v", len(flakes), strings.Join(flakes, "\n"))
+	}
+	return output
+}
+
+func generateJUnitTestCasesCoreNamespaces(testName string, nsResults map[string]*eventResult) []*junitapi.JUnitTestCase {
+	var tests []*junitapi.JUnitTestCase
+	namespaces := getNamespacesForJUnits()
+	for namespace := range namespaces {
+		jUnitName := getJUnitName(testName, namespace)
+		if result, ok := nsResults[namespace]; ok {
+			output := generateFailureOutput(result.failures, result.flakes)
+			tests = append(tests, &junitapi.JUnitTestCase{
+				Name: jUnitName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: output,
+				},
+			})
+			// Add a success for flakes
+			if len(result.failures) == 0 && len(result.flakes) > 0 {
+				tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
+			}
+		} else {
+			tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
+		}
+	}
+	return tests
+}
+
+func generateJUnitTestCasesE2ENamespaces(testName string, nsResults map[string]*eventResult) []*junitapi.JUnitTestCase {
+	var tests []*junitapi.JUnitTestCase
+	if result, ok := nsResults[""]; ok {
+		if len(result.failures) > 0 || len(result.flakes) > 0 {
+			output := generateFailureOutput(result.failures, result.flakes)
+			tests = append(tests, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: output,
+				},
+			})
+		}
+		if len(result.failures) == 0 {
+			// Add success for flake
+			tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+		}
+	}
+	if len(tests) == 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+	}
+	return tests
+}
+
 // we want to identify events based on the monitor because it is (currently) our only spot that tracks events over time
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
+func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config, isE2E bool) []*junitapi.JUnitTestCase {
 
 	type pathologicalEvents struct {
 		count        int    // max number of times the message occurred
 		eventMessage string // holds original message so you can compare with d.knownRepeatedEventsBugs
-	}
-
-	type eventResult struct {
-		failures []string
-		flakes   []string
 	}
 
 	displayToCount := map[string]*pathologicalEvents{}
@@ -234,37 +295,12 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		}
 	}
 
-	// failures during a run always fail the test suite
 	var tests []*junitapi.JUnitTestCase
-	namespaces := getNamespacesForJUnits()
-	for namespace := range namespaces {
-		jUnitName := getJUnitName(testName, namespace)
-		if result, ok := nsResults[namespace]; ok {
-			var output string
-			if len(result.failures) > 0 {
-				output = fmt.Sprintf("%d events happened too frequently\n\n%v", len(result.failures), strings.Join(result.failures, "\n"))
-			}
-			if len(result.flakes) > 0 {
-				if output != "" {
-					output += "\n\n"
-				}
-				output += fmt.Sprintf("%d events with known BZs\n\n%v", len(result.flakes), strings.Join(result.flakes, "\n"))
-			}
-			tests = append(tests, &junitapi.JUnitTestCase{
-				Name: jUnitName,
-				FailureOutput: &junitapi.FailureOutput{
-					Output: output,
-				},
-			})
-			// Add a success for flakes
-			if len(result.failures) == 0 && len(result.flakes) > 0 {
-				tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
-			}
-		} else {
-			tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
-		}
+	if isE2E {
+		tests = generateJUnitTestCasesE2ENamespaces(testName, nsResults)
+	} else {
+		tests = generateJUnitTestCasesCoreNamespaces(testName, nsResults)
 	}
-
 	return tests
 }
 
