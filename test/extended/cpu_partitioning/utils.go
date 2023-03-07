@@ -4,6 +4,7 @@ import (
 	"context"
 
 	o "github.com/onsi/gomega"
+	t "github.com/onsi/gomega/types"
 
 	v1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -18,6 +19,9 @@ const (
 	namespaceAnnotationKey   = "workload.openshift.io/allowed"
 	workloadAnnotations      = "target.workload.openshift.io/management"
 	workloadAnnotationsRegex = "resources.workload.openshift.io/.*"
+
+	expectedMessage    = "expected to"
+	notExpectedMessage = "expected not to"
 )
 
 var (
@@ -26,11 +30,23 @@ var (
 )
 
 func skipNonCPUPartitionedCluster(oc *exutil.CLI) {
+	if getCpuPartitionedStatus(oc) != v1.CPUPartitioningAllNodes {
+		e2eskipper.Skipf("Tests are only valid for clusters with CPUPartitioning enabled.")
+	}
+}
+
+func getCpuPartitionedStatus(oc *exutil.CLI) v1.CPUPartitioningMode {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
 		"cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
+	return infra.Status.CPUPartitioning
+}
 
-	if infra.Status.CPUPartitioning != v1.CPUPartitioningAllNodes {
-		e2eskipper.Skipf("Tests are only valid for clusters with CPUPartitioning enabled.")
+// adjustMatcherAndMessageForCluster will adjust the logic for the matcher depending on CPU partitioned state of the cluster
+// and returns a helper message to use for logging.
+func adjustMatcherAndMessageForCluster(isClusterCPUPartitioned bool, matcher t.GomegaMatcher) (t.GomegaMatcher, string) {
+	if !isClusterCPUPartitioned {
+		return o.Not(matcher), notExpectedMessage
 	}
+	return matcher, expectedMessage
 }

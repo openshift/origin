@@ -9,25 +9,28 @@ import (
 
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	psapi "k8s.io/pod-security-admission/api"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
+	ocpv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-var _ = g.Describe("[sig-node] CPU Partitioned cluster workloads", func() {
+var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc  = exutil.NewCLIWithoutNamespace("cpu-partitioning").AsAdmin()
-		ctx = context.Background()
+		oc                      = exutil.NewCLIWithoutNamespace("cpu-partitioning").AsAdmin()
+		ctx                     = context.Background()
+		isClusterCPUPartitioned = false
 	)
 
 	g.BeforeEach(func() {
-		skipNonCPUPartitionedCluster(oc)
+		isClusterCPUPartitioned = getCpuPartitionedStatus(oc) == ocpv1.CPUPartitioningAllNodes
 	})
 
 	g.Context("in annotated namespaces", func() {
@@ -42,7 +45,7 @@ var _ = g.Describe("[sig-node] CPU Partitioned cluster workloads", func() {
 			o.Expect(cleanup(oc, namespace)).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should be modified", func() {
+		g.It("should be modified if CPUPartitioningMode = AllNodes", func() {
 
 			e := createNamespace(oc, namespace, namespaceAnnotation)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating namespace %s", namespace)
@@ -50,23 +53,37 @@ var _ = g.Describe("[sig-node] CPU Partitioned cluster workloads", func() {
 			e = createDeployment(oc, name, namespace, deploymentLabels, deploymentPodAnnotation)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating pinned deployment")
 
+			_, e = exutil.WaitForPods(
+				oc.KubeClient().CoreV1().Pods(namespace),
+				labels.SelectorFromSet(deploymentLabels),
+				exutil.CheckPodIsRunning, 1, time.Minute*3,
+			)
+			o.Expect(e).ToNot(o.HaveOccurred(), "error waiting for pod")
+
 			pods, err := oc.KubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 				LabelSelector: "app=workload-pinned",
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			matcher := o.And(
+				o.HaveKey(workloadAnnotations),
+				o.HaveKey(o.MatchRegexp(workloadAnnotationsRegex)),
+			)
+
+			matcher, messageFormat := adjustMatcherAndMessageForCluster(isClusterCPUPartitioned, matcher)
+
 			for _, pod := range pods.Items {
+
 				o.Expect(pod.Annotations).To(
-					o.And(
-						o.HaveKey(workloadAnnotations),
-						o.HaveKey(o.MatchRegexp(workloadAnnotationsRegex)),
-					), "pod (%s/%s) does not contain correct annotations", pod.Namespace, pod.Name)
+					matcher, "pod (%s/%s) %s annotations", pod.Namespace, pod.Name, messageFormat)
 
 				for _, container := range pod.Spec.Containers {
 					_, ok := container.Resources.Limits[resourceLabel]
-					o.Expect(ok).To(o.BeTrue())
+					o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
+						"limits resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
 					_, ok = container.Resources.Requests[resourceLabel]
-					o.Expect(ok).To(o.BeTrue())
+					o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
+						"requests resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
 				}
 			}
 		})
@@ -84,33 +101,43 @@ var _ = g.Describe("[sig-node] CPU Partitioned cluster workloads", func() {
 			o.Expect(cleanup(oc, namespace)).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should not be modified", func() {
+		g.It("should not be allowed if CPUPartitioningMode = AllNodes", func() {
 
 			e := createNamespace(oc, namespace, nil)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating namespace %s", namespace)
 
-			e = createDeployment(oc, name, namespace, deploymentLabels, nil)
+			e = createDeployment(oc, name, namespace, deploymentLabels, deploymentPodAnnotation)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating pinned deployment")
 
-			pods, err := oc.KubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-				LabelSelector: "app=workload",
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
+			d, e := oc.KubeClient().AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+			o.Expect(e).ToNot(o.HaveOccurred(), "error getting deployment")
 
-			for _, pod := range pods.Items {
-				o.Expect(pod.Annotations).NotTo(
-					o.And(
-						o.HaveKey(workloadAnnotations),
-						o.HaveKey(o.MatchRegexp(workloadAnnotationsRegex)),
-					), "pod (%s/%s) does not contain correct annotations", pod.Namespace, pod.Name)
-
-				for _, container := range pod.Spec.Containers {
-					_, ok := container.Resources.Limits[resourceLabel]
-					o.Expect(ok).To(o.BeFalse())
-					_, ok = container.Resources.Requests[resourceLabel]
-					o.Expect(ok).To(o.BeFalse())
+			switch {
+			case !isClusterCPUPartitioned:
+				_, e = exutil.WaitForPods(
+					oc.KubeClient().CoreV1().Pods(namespace),
+					labels.SelectorFromSet(deploymentLabels),
+					exutil.CheckPodIsRunning, 1, time.Minute*3,
+				)
+				o.Expect(e).ToNot(o.HaveOccurred(), "error waiting for pod")
+			default:
+				failureMessage := ""
+				foundError := false
+				for _, condition := range d.Status.Conditions {
+					if condition.Reason == "FailedCreate" {
+						failureMessage = condition.Message
+						foundError = true
+						break
+					}
 				}
+				o.Expect(foundError).To(o.BeTrue(), "expected the deployment to fail in cpu partitioned cluster")
+				o.Expect(failureMessage).To(
+					o.ContainSubstring(
+						"is forbidden: autoscaling.openshift.io/ManagementCPUsOverride the pod namespace \"%s\" does not allow the workload type",
+						namespace,
+					))
 			}
+
 		})
 	})
 })
@@ -126,14 +153,23 @@ func createNamespace(oc *exutil.CLI, name string, annotations map[string]string)
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Annotations: annotations,
+			Labels: map[string]string{
+				psapi.AuditLevelLabel:   string(psapi.LevelRestricted),
+				psapi.EnforceLevelLabel: string(psapi.LevelRestricted),
+				psapi.WarnLevelLabel:    string(psapi.LevelRestricted),
+			},
 		},
 	}
 	_, err := oc.KubeClient().CoreV1().
 		Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
-	return err
+	if err != nil {
+		return err
+	}
+	return exutil.WaitForServiceAccountWithSecret(oc.AdminKubeClient().CoreV1().ServiceAccounts(name), "builder")
 }
 
 func createDeployment(oc *exutil.CLI, name, namespace string, depLabels map[string]string, podAnnotations map[string]string) error {
+	zero := int64(0)
 	deployment := &appv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -150,7 +186,13 @@ func createDeployment(oc *exutil.CLI, name, namespace string, depLabels map[stri
 					Annotations: podAnnotations,
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: "builder",
+					TerminationGracePeriodSeconds: &zero,
+					ServiceAccountName:            "builder",
+					SecurityContext: &corev1.PodSecurityContext{
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:  "busy-work",
@@ -176,14 +218,5 @@ func createDeployment(oc *exutil.CLI, name, namespace string, depLabels map[stri
 	_, err := oc.KubeClient().AppsV1().
 		Deployments(namespace).
 		Create(context.Background(), deployment, metav1.CreateOptions{})
-	if err != nil {
-		return err
-	}
-
-	_, err = exutil.WaitForPods(
-		oc.KubeClient().CoreV1().Pods(namespace),
-		labels.SelectorFromSet(depLabels),
-		exutil.CheckPodIsRunning, 1, time.Minute*2,
-	)
 	return err
 }
