@@ -7,12 +7,15 @@ import (
 	"time"
 
 	nadtypes "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
+
 	corev1 "k8s.io/api/core/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	podframework "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -21,8 +24,23 @@ import (
 var _ = g.Describe("[sig-network][Feature:vlan]", func() {
 	oc := exutil.NewCLI("vlan")
 	f := oc.KubeFramework()
-	for _, pluginType := range []string{"vlan", "ipvlan", "macvlan"} {
-		vlanNadConfig := `{
+
+	var podName1 string
+	var podName2 string
+	var podName3 string
+	var vlan1 string
+	var vlan2 string
+	var otherVlan string
+	var ip1 string
+	var ip2 string
+	var otherIp string
+	var bridge string
+	var namespace string
+	var vlanNadConfig string
+
+	g.BeforeEach(func() {
+		namespace = f.Namespace.Name
+		vlanNadConfig = `{
 		"cniVersion":"0.4.0","name":"%s",
 		"plugins":[
 			{ 
@@ -35,26 +53,48 @@ var _ = g.Describe("[sig-network][Feature:vlan]", func() {
 			}]
 		}`
 
+		podName1 = fmt.Sprintf("pod1-%s", utilrand.String(4))
+		podName2 = fmt.Sprintf("pod2-%s", utilrand.String(4))
+		podName3 = fmt.Sprintf("pod3-%s", utilrand.String(4))
+
+		vlan1 = fmt.Sprintf("vlan01-%s", utilrand.String(4))
+		vlan2 = fmt.Sprintf("vlan02-%s", utilrand.String(4))
+		otherVlan = fmt.Sprintf("vlan03-%s", utilrand.String(4))
+
+		bridge = fmt.Sprintf("br0-%s", utilrand.String(4))
+
+		g.By("creating bridge network attachment definition")
+		err := createNetworkAttachmentDefinition(
+			oc.AdminConfig(),
+			namespace,
+			bridge,
+			fmt.Sprintf(`{"cniVersion":"0.4.0","name":"%s","plugins":[{ "type": "bridge", "bridge": "%s"}]}`, bridge, bridge),
+		)
+		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unable to create bridge network-attachment-definition"))
+	})
+
+	g.AfterEach(func() {
+		for _, pod := range []string{podName1, podName2, podName3} {
+			_ = f.ClientSet.CoreV1().Pods(namespace).Delete(context.TODO(), pod, metav1.DeleteOptions{})
+		}
+
+		c, err := nadclient.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, nad := range []string{vlan1, vlan2, otherVlan, bridge} {
+			err = c.K8sCniCncfIoV1().NetworkAttachmentDefinitions(namespace).Delete(context.TODO(), nad, metav1.DeleteOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+	})
+
+	for _, pluginType := range []string{"vlan", "ipvlan", "macvlan"} {
 		g.It(fmt.Sprintf("should create pingable pods with %s interface on an in-container master [apigroup:k8s.cni.cncf.io]", pluginType), func() {
-			namespace := f.Namespace.Name
-			podName1, podName2, podName3 := "pod1", "pod2", "pod3"
-			vlan1, vlan2, otherVlan := "vlan01", "vlan02", "vlan03"
-			ip1, ip2, otherIp := "10.10.0.2", "10.10.0.3", "10.10.0.4"
-			bridge := "br0"
 			vlanId, otherVlanId := "73", "37"
+			ip1, ip2, otherIp = "10.10.0.2", "10.10.0.3", "10.10.0.4"
 			bridgeAnnotation := fmt.Sprintf("%s/%s@%s", namespace, bridge, bridge)
 
-			g.By("creating bridge network attachment definition")
-			err := createNetworkAttachmentDefinition(
-				oc.AdminConfig(),
-				namespace,
-				bridge,
-				fmt.Sprintf(`{"cniVersion":"0.4.0","name":"%s","plugins":[{ "type": "bridge", "bridge": "%s"}]}`, bridge, bridge),
-			)
-			o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unable to create bridge network-attachment-definition"))
-
 			g.By("creating a vlan network attachment definition")
-			err = createNetworkAttachmentDefinition(
+			err := createNetworkAttachmentDefinition(
 				oc.AdminConfig(),
 				namespace,
 				vlan1,
@@ -89,7 +129,7 @@ var _ = g.Describe("[sig-network][Feature:vlan]", func() {
 			networkStatusString, ok := pod.Annotations["k8s.v1.cni.cncf.io/network-status"]
 			o.Expect(ok).To(o.BeTrue())
 			o.Expect(networkStatusString).ToNot(o.BeNil())
-			networkStatuses := []nadtypes.NetworkStatus{}
+			var networkStatuses []nadtypes.NetworkStatus
 			o.Expect(json.Unmarshal([]byte(networkStatusString), &networkStatuses)).ToNot(o.HaveOccurred())
 			o.Expect(networkStatuses).To(o.HaveLen(3))
 			o.Expect(networkStatuses[2].Interface).To(o.Equal(vlan1))
