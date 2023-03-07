@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		if infra.Status.PlatformStatus.Type != configv1.OpenStackPlatformType {
+		if !isPlatformExternal(infra.Status.PlatformStatus.Type) {
 			g.Skip("Platform does not use external cloud provider")
 		}
 
@@ -65,3 +65,15 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 		o.Expect(workerkubelet).To(o.ContainSubstring("cloud-provider=external"))
 	})
 })
+
+// isPlatformExternal returns true when the platform has an in-tree provider,
+// but the platform is expected to use the external provider.
+func isPlatformExternal(platformType configv1.PlatformType) bool {
+	switch platformType {
+	case configv1.OpenStackPlatformType,
+		configv1.VSpherePlatformType:
+		return true
+	default:
+		return false
+	}
+}
