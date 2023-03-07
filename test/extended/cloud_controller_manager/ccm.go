@@ -70,7 +70,8 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 // but the platform is expected to use the external provider.
 func isPlatformExternal(platformType configv1.PlatformType) bool {
 	switch platformType {
-	case configv1.OpenStackPlatformType,
+	case configv1.AWSPlatformType,
+		configv1.OpenStackPlatformType,
 		configv1.VSpherePlatformType:
 		return true
 	default:
