@@ -19,6 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
@@ -30,6 +31,13 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("project-api")
 	ctx := context.Background()
+
+	g.Describe("patching mutable project annotations", func() {
+		g.It("should succeed", func() {
+			_, err := oc.ProjectClient().ProjectV1().Projects().Patch(ctx, oc.Namespace(), types.MergePatchType, []byte(`{"metadata":{"annotations":{"openshift.io/display-name":"foobar"}}}`), metav1.PatchOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+		})
+	})
 
 	g.Describe("TestProjectIsNamespace", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io]"), func() {

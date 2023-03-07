@@ -817,6 +817,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:ProjectAPI]  TestUnprivilegedNewProject [apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:ProjectAPI]  patching mutable project annotations should succeed": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:ProjectAPI][Serial]  TestUnprivilegedNewProjectDenied [apigroup:authorization.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-auth][Feature:RoleBindingRestrictions] RoleBindingRestrictions should be functional Create a RBAC rolebinding when subject is not already bound and is not permitted by any RBR should fail [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
