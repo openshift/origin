@@ -98,10 +98,6 @@ var (
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(immediate binding\)\] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies`,
 			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(immediate binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
-			// Skip openstack-specific storage tests in preparation for in-tree cinder provisioner removal
-			// coming with k8s 1.26. This will have to be reverted once 1.26 rebase is effective.
-			// https://issues.redhat.com/browse/OCPBUGS-5029
-			`\[sig-storage\].*\[Driver: cinder\]`,
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {},
