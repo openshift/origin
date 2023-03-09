@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/pointer"
 )
@@ -35,6 +36,7 @@ import (
 const masterMachineLabelSelector = "machine.openshift.io/cluster-api-machine-role" + "=" + "master"
 const machineDeletionHookName = "EtcdQuorumOperator"
 const machineDeletionHookOwner = "clusteroperator/etcd"
+const masterNodeRoleLabel = "node-role.kubernetes.io/master"
 
 type TestingT interface {
 	Logf(format string, args ...interface{})
@@ -184,41 +186,31 @@ func recoverClusterToInitialStateIfNeeded(ctx context.Context, t TestingT, machi
 }
 
 func DeleteSingleMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (string, error) {
-	waitPollInterval := 15 * time.Second
-	waitPollTimeout := 5 * time.Minute
-	t.Logf("Waiting up to %s to delete a machine", waitPollTimeout.String())
-
 	machineToDelete := ""
-	err := wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
-		machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
-		if err != nil {
-			return isTransientAPIError(t, err)
+	// list master machines
+	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+	if err != nil {
+		return "", fmt.Errorf("error listing master machines: '%w'", err)
+	}
+	// Machine names are suffixed with an index number (e.g "ci-op-xlbdrkvl-6a467-qcbkh-master-0")
+	// so we sort to pick the lowest index, e.g master-0 in this example
+	machineNames := []string{}
+	for _, m := range machineList.Items {
+		machineNames = append(machineNames, m.Name)
+	}
+	sort.Strings(machineNames)
+	machineToDelete = machineNames[0]
+
+	t.Logf("attempting to delete machine '%q'", machineToDelete)
+	if err := machineClient.Delete(ctx, machineToDelete, metav1.DeleteOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			t.Logf("machine '%q' was listed but not found or already deleted", machineToDelete)
+			return "", nil
 		}
-
-		// Machine names are suffixed with an index number (e.g "ci-op-xlbdrkvl-6a467-qcbkh-master-0")
-		// so we sort to pick the lowest index, e.g master-0 in this example
-		machineNames := []string{}
-		for _, m := range machineList.Items {
-			machineNames = append(machineNames, m.Name)
-		}
-		sort.Strings(machineNames)
-		machineToDelete = machineNames[0]
-		t.Logf("attempting to delete machine %q", machineToDelete)
-
-		if err := machineClient.Delete(ctx, machineToDelete, metav1.DeleteOptions{}); err != nil {
-			// The machine we just listed should be present but if not, error out
-			if apierrors.IsNotFound(err) {
-				t.Logf("machine %q was listed but not found or already deleted", machineToDelete)
-				return false, fmt.Errorf("machine %q was listed but not found or already deleted", machineToDelete)
-			}
-			return isTransientAPIError(t, err)
-		}
-		t.Logf("successfully deleted machine %q", machineToDelete)
-
-		return true, nil
-	})
-
-	return machineToDelete, err
+		return "", err
+	}
+	t.Logf("successfully deleted machine '%q'", machineToDelete)
+	return machineToDelete, nil
 }
 
 // IsCPMSActive returns true if the current platform's has an active CPMS
@@ -246,7 +238,7 @@ func IsCPMSActive(ctx context.Context, t TestingT, cpmsClient machinev1client.Co
 
 // EnsureReadyReplicasOnCPMS checks if status.readyReplicas on the cluster CPMS is n
 // this effectively counts the number of control-plane machines with the provider state as running
-func EnsureReadyReplicasOnCPMS(ctx context.Context, t TestingT, expectedReplicaCount int, cpmsClient machinev1client.ControlPlaneMachineSetInterface) error {
+func EnsureReadyReplicasOnCPMS(ctx context.Context, t TestingT, expectedReplicaCount int, cpmsClient machinev1client.ControlPlaneMachineSetInterface, nodeClient v1.NodeInterface) error {
 	waitPollInterval := 5 * time.Second
 	waitPollTimeout := 18 * time.Minute
 	t.Logf("Waiting up to %s for the CPMS to have status.readyReplicas = %v", waitPollTimeout.String(), expectedReplicaCount)
@@ -261,11 +253,53 @@ func EnsureReadyReplicasOnCPMS(ctx context.Context, t TestingT, expectedReplicaC
 			t.Logf("expected %d ready replicas on CPMS, got: %v,", expectedReplicaCount, cpms.Status.ReadyReplicas)
 			return false, nil
 		}
-
 		t.Logf("CPMS has reached the desired number of ready replicas: %v,", cpms.Status.ReadyReplicas)
+
+		err = EnsureReadyMasterNodes(ctx, expectedReplicaCount, nodeClient)
+		if err != nil {
+			t.Logf("expected number of master nodes is not ready yet: '%w'", err)
+			return false, nil
+		}
 
 		return true, nil
 	})
+}
+
+// EnsureReadyMasterNodes checks if the current master nodes matches the expected number of master nodes,
+// and that all master nodes' are Ready
+func EnsureReadyMasterNodes(ctx context.Context, expectedReplicaCount int, nodeClient v1.NodeInterface) error {
+	masterNodes, err := nodeClient.List(ctx, metav1.ListOptions{LabelSelector: masterNodeRoleLabel})
+	if err != nil {
+		return fmt.Errorf("failed to list master nodes:'%w'", err)
+	}
+
+	if len(masterNodes.Items) != expectedReplicaCount {
+		return fmt.Errorf("expected number of master nodes is '%d', but got '%d' instead", expectedReplicaCount, len(masterNodes.Items))
+	}
+
+	for _, node := range masterNodes.Items {
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady && condition.Status != corev1.ConditionTrue {
+				return fmt.Errorf("master node '%v' is not ready", node)
+			}
+		}
+	}
+
+	return nil
+}
+
+// EnsureCPMSReplicasConverged returns error if the number of expected master machines not equals the number of actual master machines
+// otherwise it returns nil
+func EnsureCPMSReplicasConverged(ctx context.Context, cpmsClient machinev1client.ControlPlaneMachineSetInterface) error {
+	cpms, err := cpmsClient.Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get controlPlaneMachineSet object: '%w'", err)
+	}
+
+	if *cpms.Spec.Replicas != cpms.Status.ReadyReplicas {
+		return fmt.Errorf("CPMS replicas failed to converge, expected status.readyReplicas '%d' to be equal to spec.replicas '%v'", cpms.Status.ReadyReplicas, cpms.Spec.Replicas)
+	}
+	return nil
 }
 
 // EnsureVotingMembersCount counts the number of voting etcd members, it doesn't evaluate health conditions or any other attributes (i.e. name) of individual members
@@ -383,7 +417,7 @@ func MachineNameToEtcdMemberName(ctx context.Context, kubeClient kubernetes.Inte
 		return "", err
 	}
 
-	masterNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
+	masterNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: masterNodeRoleLabel})
 	if err != nil {
 		return "", err
 	}
