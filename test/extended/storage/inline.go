@@ -10,13 +10,10 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -39,7 +36,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 		beforeEach = func(oc *exutil.CLI) {
 			// TODO: remove this after the shared resource driver is GA
-			if !isTechPreviewNoUpgrade(oc) {
+			if !exutil.IsTechPreviewNoUpgrade(oc) {
 				g.Skip("this test is only expected to work with TechPreviewNoUpgrade clusters")
 			}
 			exutil.PreTestDump()
@@ -236,19 +233,6 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 		})
 	})
 })
-
-// isTechPreviewNoUpgrade checks if a cluster is a TechPreviewNoUpgrade cluster
-func isTechPreviewNoUpgrade(oc *exutil.CLI) bool {
-	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return false
-		}
-		e2e.Failf("could not retrieve feature-gate: %v", err)
-	}
-
-	return featureGate.Spec.FeatureSet == configv1.TechPreviewNoUpgrade
-}
 
 // setCSIEphemeralVolumeProfile sets the security.openshift.io/csi-ephemeral-volume-profile label to the provided
 // value on the csi.sharedresource.openshift.io CSIDriver object.

@@ -2047,6 +2047,19 @@ func SkipIfExternalControlplaneTopology(oc *CLI, reason string) {
 	}
 }
 
+// IsTechPreviewNoUpgrade checks if a cluster is a TechPreviewNoUpgrade cluster
+func IsTechPreviewNoUpgrade(oc *CLI) bool {
+	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return false
+		}
+		e2e.Failf("could not retrieve feature-gate: %v", err)
+	}
+
+	return featureGate.Spec.FeatureSet == configv1.TechPreviewNoUpgrade
+}
+
 // DoesApiResourceExist searches the list of ApiResources and returns "true" if a given
 // apiResourceName Exists. Valid search strings are for example "cloudprivateipconfigs" or "machines".
 func DoesApiResourceExist(config *rest.Config, apiResourceName, groupVersionName string) (bool, error) {

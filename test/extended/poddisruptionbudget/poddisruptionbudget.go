@@ -10,7 +10,6 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -22,8 +21,6 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	configv1 "github.com/openshift/api/config/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -55,7 +52,7 @@ var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 
 		g.JustBeforeEach(func() {
 			//TODO remove this check once PDBUnhealthyPodEvictionPolicy is graduated to beta and enabled by default
-			if !isTechPreviewNoUpgrade(oc) {
+			if !exutil.IsTechPreviewNoUpgrade(oc) {
 				g.Skip("the test is not expected to work within Tech Preview disabled clusters")
 			}
 		})
@@ -302,17 +299,4 @@ func waitForPDB(policyClient policyv1clientset.PolicyV1Interface, objMeta metav1
 		return nil, err
 	}
 	return event.Object.(*policyv1.PodDisruptionBudget), nil
-}
-
-// isTechPreviewNoUpgrade checks if a cluster is a TechPreviewNoUpgrade cluster
-func isTechPreviewNoUpgrade(oc *exutil.CLI) bool {
-	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return false
-		}
-		e2e.Failf("could not retrieve feature-gate: %v", err)
-	}
-
-	return featureGate.Spec.FeatureSet == configv1.TechPreviewNoUpgrade
 }

@@ -1,7 +1,6 @@
 package builds
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -10,11 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
-
-	configv1 "github.com/openshift/api/config/v1"
 
 	deploymentutil "github.com/openshift/origin/test/extended/deployments"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -163,7 +158,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 
 		g.JustBeforeEach(func() {
 			//TODO remove this check once https://github.com/openshift/cluster-storage-operator/pull/335 and https://github.com/openshift/openshift-controller-manager/pull/250 have merged
-			if !isTechPreviewNoUpgrade(oc) {
+			if !exutil.IsTechPreviewNoUpgrade(oc) {
 				g.Skip("the test is not expected to work within Tech Preview disabled clusters")
 			}
 			// create the secret to share in a new namespace
@@ -330,16 +325,3 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 		})
 	})
 })
-
-// isTechPreviewNoUpgrade checks if a cluster is a TechPreviewNoUpgrade cluster
-func isTechPreviewNoUpgrade(oc *exutil.CLI) bool {
-	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return false
-		}
-		e2e.Failf("could not retrieve feature-gate: %v", err)
-	}
-
-	return featureGate.Spec.FeatureSet == configv1.TechPreviewNoUpgrade
-}
