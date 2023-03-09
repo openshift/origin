@@ -144,9 +144,7 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval"] = "8"
 		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold"] = "3"
 		s.Annotations["service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"] = "2"
-		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient, however, it
-		// is testing against the `/healthz` path by default, switch to the `/readyz` path
-		s.Annotations[fmt.Sprintf("service.beta.kubernetes.io/port_%d_health-probe_request-path", s.Spec.Ports[0].Port)] = "/readyz"
+		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
 		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
 		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
 	})
