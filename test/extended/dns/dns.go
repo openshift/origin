@@ -391,6 +391,23 @@ func ipsForEndpointSlice(es *discoveryv1.EndpointSlice) []string {
 	return ips.List()
 }
 
+// validateLocalDNSPodPreference confirms DNS queries prefer the local DNS Pod. It fails if a DNS Pod other than the
+// local DNS pod responds to the DNS query.
+func validateLocalDNSPodPreference(queryPodExec *exutil.PodExecutor, localDNSPodName string, extraDigArgs ...string) {
+	// This queries for the hostname of the server responding to the DNS request enabled by the chaos plugin.
+	// More information: https://coredns.io/plugins/chaos/
+	hostnameDig := strings.Join(append(append([]string{"dig", "+short", "+noall", "+answer"}, extraDigArgs...), "CH", "TXT", "hostname.bind"), " ")
+	const attempts = 10
+
+	By(fmt.Sprintf("running this command %d times: %s", attempts, hostnameDig))
+	for i := 1; i <= attempts; i++ {
+		digOut, err := queryPodExec.Exec(hostnameDig)
+		dnsPodFound := strings.Trim(digOut, `"`)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(dnsPodFound).To(o.Equal(localDNSPodName), "expected DNS chaos query to always use the local DNS pod %q, but received %q", localDNSPodName, dnsPodFound)
+	}
+}
+
 var _ = Describe("[sig-network-edge] DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 	oc := exutil.NewCLI("dns-dualstack")
@@ -589,24 +606,16 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 		isLocalReadyPod := func(pod kapiv1.Pod) bool {
 			return exutil.CheckPodIsReady(pod) && pod.Spec.NodeName == queryPod.Spec.NodeName
 		}
-		localDnsPodsNames, err := exutil.WaitForPods(f.ClientSet.CoreV1().Pods("openshift-dns"), dnsPodLabel, isLocalReadyPod, 1, 1*time.Minute)
+		localDnsPodNames, err := exutil.WaitForPods(f.ClientSet.CoreV1().Pods("openshift-dns"), dnsPodLabel, isLocalReadyPod, 1, 1*time.Minute)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(localDnsPodsNames).To(o.HaveLen(1))
-		localDnsPodsName := localDnsPodsNames[0]
-		e2e.Logf("Local DNS Pod: %q", localDnsPodsName)
+		o.Expect(localDnsPodNames).To(o.HaveLen(1))
+		localDnsPodName := localDnsPodNames[0]
+		e2e.Logf("Local DNS Pod: %q", localDnsPodName)
 
-		// This queries for the hostname of the server responding to the DNS request enabled by the chaos plugin.
-		// More information: https://coredns.io/plugins/chaos/
-		hostnameDig := "dig +short +notcp +noall +answer CH TXT hostname.bind"
-		attempts := 10
+		By("validating UDP local DNS Pod Preference")
+		validateLocalDNSPodPreference(queryPodExec, localDnsPodName)
 
-		By(fmt.Sprintf("running this command %d times: %s", attempts, hostnameDig))
-		for i := 1; i <= attempts; i++ {
-			digOut, err := queryPodExec.Exec(hostnameDig)
-			dnsPodFound := strings.Trim(digOut, `"`)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(dnsPodFound).To(o.Equal(localDnsPodsName), "expected DNS chaos query to always use the local DNS pod %q, but received %q", localDnsPodsName, dnsPodFound)
-		}
-
+		By("validating TCP local DNS Pod Preference")
+		validateLocalDNSPodPreference(queryPodExec, localDnsPodName, "+tcp")
 	})
 })
