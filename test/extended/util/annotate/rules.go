@@ -26,7 +26,8 @@ var (
 		"[Disabled:Unimplemented]": {},
 		// tests that rely on special configuration that we do not yet support
 		"[Disabled:SpecialConfig]": {
-			`\[Feature:Audit\]`, // Needs special configuration
+			`\[Feature:Audit\]`,      // Needs special configuration
+			`\[Feature:ImageQuota\]`, // Quota isn't turned on by default, we should do that and then reenable these tests
 		},
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
@@ -72,6 +73,7 @@ var (
 		},
 		// tests that must be run without competition
 		"[Serial]": {
+			`\[Disruptive\]`,
 			`\[sig-network\]\[Feature:EgressIP\]`,
 		},
 		// tests that can't be run in parallel with a copy of itself
