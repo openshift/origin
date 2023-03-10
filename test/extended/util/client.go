@@ -79,23 +79,27 @@ import (
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // clients.
 type CLI struct {
-	execPath                string
-	verb                    string
-	configPath              string
-	adminConfigPath         string
+	execPath        string
+	verb            string
+	configPath      string
+	adminConfigPath string
+
+	// directory with static manifests, each file is expected to be a single manifest
+	// manifest files can be stored under directory tree
 	staticConfigManifestDir string
-	token                   string
-	username                string
-	globalArgs              []string
-	commandArgs             []string
-	finalArgs               []string
-	namespacesToDelete      []string
-	stdin                   *bytes.Buffer
-	stdout                  io.Writer
-	stderr                  io.Writer
-	verbose                 bool
-	withoutNamespace        bool
-	kubeFramework           *framework.Framework
+
+	token              string
+	username           string
+	globalArgs         []string
+	commandArgs        []string
+	finalArgs          []string
+	namespacesToDelete []string
+	stdin              *bytes.Buffer
+	stdout             io.Writer
+	stderr             io.Writer
+	verbose            bool
+	withoutNamespace   bool
+	kubeFramework      *framework.Framework
 
 	// read from a static manifest directory (set through STATIC_CONFIG_MANIFEST_DIR env)
 	configObjects     []runtime.Object

@@ -1393,6 +1393,8 @@ func KubeConfigPath() string {
 }
 
 // StaticConfigManifestDir returns the value of STATIC_CONFIG_MANIFEST_DIR environment variable
+// It points to a directory with static manifests, each file is expected to be a single manifest.
+// Manifest files can be stored under directory tree.
 func StaticConfigManifestDir() string {
 	return os.Getenv("STATIC_CONFIG_MANIFEST_DIR")
 }
