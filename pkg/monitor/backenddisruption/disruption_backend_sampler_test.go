@@ -144,7 +144,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 				cancel()
 			}
 
-			if err := backend.checkConnection(ctx); (err != nil) != tt.wantErr {
+			if _, err := backend.checkConnection(ctx); (err != nil) != tt.wantErr {
 				t.Errorf("checkConnection() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
