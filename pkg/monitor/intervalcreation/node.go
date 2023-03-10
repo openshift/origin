@@ -225,7 +225,7 @@ func extractProbeInterval(probeCheck, probeTypeCheck string, outputRegex *regexp
 				Message: monitorapi.ReasonedMessage(reason, message),
 			},
 			From: failureTime,
-			To:   failureTime,
+			To:   failureTime.Add(time.Second),
 		},
 	}
 }
