@@ -391,6 +391,7 @@ func TestConfigClientShimWatchRequest(t *testing.T) {
 			// verify the watch events
 			ticker := time.NewTicker(500 * time.Millisecond)
 			size := len(test.expectedWatchEvents)
+			eventsSize := len(resultChan.ResultChan())
 			eventCounter := 0
 			for i := 0; i < size; i++ {
 				select {
@@ -404,8 +405,11 @@ func TestConfigClientShimWatchRequest(t *testing.T) {
 					t.Errorf("failed waiting for watch event")
 				}
 			}
-			if eventCounter != size {
-				t.Errorf("Expected %v watch events, got %v instead", eventCounter, size)
+			if eventCounter < size {
+				t.Errorf("Expected %v watch events, got %v instead", size, eventCounter)
+			}
+			if eventsSize > size {
+				t.Errorf("Expected %v watch events, got %v instead", size, eventsSize)
 			}
 		})
 	}
@@ -442,12 +446,15 @@ func TestConfigClientShimList(t *testing.T) {
 	}
 
 	var staticObj *configv1.Infrastructure
+	realObjFound := false
 
 	for _, item := range listItems.Items {
 		if item.Name == "staticObject" {
 			obj := item
 			staticObj = &obj
-			break
+		}
+		if item.Name == "realObject" {
+			realObjFound = true
 		}
 	}
 
@@ -457,6 +464,10 @@ func TestConfigClientShimList(t *testing.T) {
 
 	if staticObj.Labels["static"] == "false" {
 		t.Fatalf("Expected static object, not real object")
+	}
+
+	if !realObjFound {
+		t.Fatalf("Unable to find a real object in the list")
 	}
 }
 
