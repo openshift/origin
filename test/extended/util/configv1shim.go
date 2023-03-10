@@ -12,18 +12,75 @@ import (
 	configv1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1alpha1 "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1alpha1"
 
-	"k8s.io/klog/v2"
+	openapi_v2 "github.com/google/gnostic/openapiv2"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/openapi"
 	"k8s.io/client-go/rest"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 )
+
+var (
+	configGroup        = "config.openshift.io"
+	configVersion      = "v1"
+	configGroupVersion = "config.openshift.io/v1"
+)
+
+func configAPIGroup() *metav1.APIGroup {
+	return &metav1.APIGroup{
+		Name: configGroup,
+		Versions: []metav1.GroupVersionForDiscovery{
+			{
+				GroupVersion: configGroupVersion,
+				Version:      configVersion,
+			},
+		},
+		PreferredVersion: metav1.GroupVersionForDiscovery{
+			GroupVersion: configGroupVersion,
+			Version:      configVersion,
+		},
+		// ServerAddressByClientCIDRs is empty
+	}
+}
+
+func configGroupVersionForDiscovery() metav1.GroupVersionForDiscovery {
+	return metav1.GroupVersionForDiscovery{
+		GroupVersion: configGroupVersion,
+		Version:      configVersion,
+	}
+}
+
+func mergeResources(aList, bList []metav1.APIResource) []metav1.APIResource {
+	knownKinds := make(map[string]struct{})
+	for _, item := range aList {
+		knownKinds[item.Kind] = struct{}{}
+	}
+	resources := append([]metav1.APIResource{}, bList...)
+	for _, item := range bList {
+		if _, exists := knownKinds[item.Kind]; exists {
+			continue
+		}
+		resources = append(resources, item)
+	}
+	return resources
+}
+
+func newAPIResourceList(groupVersion string, aList, bList []metav1.APIResource) *metav1.APIResourceList {
+	return &metav1.APIResourceList{
+		GroupVersion: groupVersion,
+		APIResources: mergeResources(aList, bList),
+	}
+}
 
 // ConfigClientShim makes sure whenever there's a static
 // manifest present for a config v1 kind, fake client is used
@@ -35,8 +92,164 @@ type ConfigClientShim struct {
 }
 
 func (c *ConfigClientShim) Discovery() discovery.DiscoveryInterface {
-	return c.configClient.Discovery()
+	return &ConfigV1DiscoveryClientShim{
+		configClient: c.configClient,
+		fakeClient:   c.fakeClient,
+	}
 }
+
+type ConfigV1DiscoveryClientShim struct {
+	configClient configv1client.Interface
+	fakeClient   *fakeconfigv1client.Clientset
+}
+
+func (c *ConfigV1DiscoveryClientShim) ServerGroups() (*metav1.APIGroupList, error) {
+	groups, err := c.configClient.Discovery().ServerGroups()
+	if err != nil {
+		return groups, err
+	}
+	hasConfigGroup := false
+	for i, group := range groups.Groups {
+		if group.Name == configGroup {
+			hasConfigGroup = true
+			hasV1Version := false
+			for _, version := range group.Versions {
+				if version.Version == configVersion {
+					hasV1Version = true
+					break
+				}
+			}
+			if !hasV1Version {
+				groups.Groups[i].Versions = append(groups.Groups[i].Versions, configGroupVersionForDiscovery())
+			}
+			break
+		}
+	}
+	if !hasConfigGroup {
+		groups.Groups = append(groups.Groups, *configAPIGroup())
+	}
+	return groups, nil
+}
+
+func (c *ConfigV1DiscoveryClientShim) ServerResourcesForGroupVersion(groupVersion string) (*metav1.APIResourceList, error) {
+	if groupVersion != configGroupVersion {
+		return c.configClient.Discovery().ServerResourcesForGroupVersion(groupVersion)
+	}
+	fakeList, err := c.fakeClient.Discovery().ServerResourcesForGroupVersion(groupVersion)
+	if err != nil {
+		return nil, err
+	}
+	realList, err := c.configClient.Discovery().ServerResourcesForGroupVersion(groupVersion)
+	if err == nil {
+		return newAPIResourceList(groupVersion, fakeList.APIResources, realList.APIResources), nil
+	}
+	if errors.IsNotFound(err) {
+		return newAPIResourceList(groupVersion, []metav1.APIResource{}, fakeList.APIResources), nil
+	}
+	return realList, err
+}
+
+func (c *ConfigV1DiscoveryClientShim) ServerGroupsAndResources() ([]*metav1.APIGroup, []*metav1.APIResourceList, error) {
+	groups, resources, err := c.configClient.Discovery().ServerGroupsAndResources()
+	if err != nil {
+		return groups, resources, err
+	}
+	if groups != nil {
+		hasConfigGroup := false
+		for i, group := range groups {
+			if group.Name == configGroup {
+				hasConfigGroup = true
+				hasV1Version := false
+				for _, version := range group.Versions {
+					if version.Version == configVersion {
+						hasV1Version = true
+						break
+					}
+				}
+				if !hasV1Version {
+					groups[i].Versions = append(groups[i].Versions, configGroupVersionForDiscovery())
+				}
+				break
+			}
+		}
+		if !hasConfigGroup {
+			groups = append(groups, configAPIGroup())
+		}
+	}
+
+	if resources != nil {
+		fakeList, err := c.fakeClient.Discovery().ServerResourcesForGroupVersion(configGroupVersion)
+		if err != nil {
+			return nil, nil, err
+		}
+		hasConfigGroup := false
+		for i, resource := range resources {
+			if resource.GroupVersion == configGroupVersion {
+				hasConfigGroup = true
+				resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
+			}
+		}
+		if !hasConfigGroup {
+			resources = append(resources, newAPIResourceList(configGroupVersion, []metav1.APIResource{}, fakeList.APIResources))
+		}
+	}
+
+	return groups, resources, nil
+}
+
+func (c *ConfigV1DiscoveryClientShim) ServerPreferredResources() ([]*metav1.APIResourceList, error) {
+	resources, err := c.configClient.Discovery().ServerPreferredResources()
+	if err != nil {
+		return nil, err
+	}
+
+	fakeList, err := c.fakeClient.Discovery().ServerResourcesForGroupVersion(configGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	hasConfigGroup := false
+	for i, resource := range resources {
+		if resource.GroupVersion == configGroupVersion {
+			hasConfigGroup = true
+			resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
+		}
+	}
+
+	if !hasConfigGroup {
+		resources = append(resources, newAPIResourceList(configGroupVersion, []metav1.APIResource{}, fakeList.APIResources))
+	}
+
+	return resources, nil
+}
+
+func (c *ConfigV1DiscoveryClientShim) ServerPreferredNamespacedResources() ([]*metav1.APIResourceList, error) {
+	return c.configClient.Discovery().ServerPreferredNamespacedResources()
+}
+
+func (c *ConfigV1DiscoveryClientShim) ServerVersion() (*version.Info, error) {
+	return c.configClient.Discovery().ServerVersion()
+}
+
+func (c *ConfigV1DiscoveryClientShim) OpenAPISchema() (*openapi_v2.Document, error) {
+	// TODO(jchaloup): once needed implement this method as well
+	panic(fmt.Errorf("APIServer not implemented"))
+}
+
+func (c *ConfigV1DiscoveryClientShim) OpenAPIV3() openapi.Client {
+	return c.configClient.Discovery().OpenAPIV3()
+}
+
+func (c *ConfigV1DiscoveryClientShim) WithLegacy() discovery.DiscoveryInterface {
+	return c.configClient.Discovery().WithLegacy()
+}
+
+func (c *ConfigV1DiscoveryClientShim) RESTClient() restclient.Interface {
+	return c.configClient.Discovery().RESTClient()
+}
+
+var _ discovery.DiscoveryInterface = &ConfigV1DiscoveryClientShim{}
+
 func (c *ConfigClientShim) ConfigV1() configv1.ConfigV1Interface {
 	return &ConfigV1ClientShim{
 		configv1:           c.configClient.ConfigV1(),
