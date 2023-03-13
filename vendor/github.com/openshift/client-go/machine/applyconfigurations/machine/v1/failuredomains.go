@@ -9,11 +9,10 @@ import (
 // FailureDomainsApplyConfiguration represents an declarative configuration of the FailureDomains type for use
 // with apply.
 type FailureDomainsApplyConfiguration struct {
-	Platform  *v1.PlatformType                            `json:"platform,omitempty"`
-	AWS       *[]AWSFailureDomainApplyConfiguration       `json:"aws,omitempty"`
-	Azure     *[]AzureFailureDomainApplyConfiguration     `json:"azure,omitempty"`
-	GCP       *[]GCPFailureDomainApplyConfiguration       `json:"gcp,omitempty"`
-	OpenStack *[]OpenStackFailureDomainApplyConfiguration `json:"openstack,omitempty"`
+	Platform *v1.PlatformType                        `json:"platform,omitempty"`
+	AWS      *[]AWSFailureDomainApplyConfiguration   `json:"aws,omitempty"`
+	Azure    *[]AzureFailureDomainApplyConfiguration `json:"azure,omitempty"`
+	GCP      *[]GCPFailureDomainApplyConfiguration   `json:"gcp,omitempty"`
 }
 
 // FailureDomainsApplyConfiguration constructs an declarative configuration of the FailureDomains type for use with
@@ -86,26 +85,6 @@ func (b *FailureDomainsApplyConfiguration) WithGCP(values ...*GCPFailureDomainAp
 			panic("nil value passed to WithGCP")
 		}
 		*b.GCP = append(*b.GCP, *values[i])
-	}
-	return b
-}
-
-func (b *FailureDomainsApplyConfiguration) ensureOpenStackFailureDomainApplyConfigurationExists() {
-	if b.OpenStack == nil {
-		b.OpenStack = &[]OpenStackFailureDomainApplyConfiguration{}
-	}
-}
-
-// WithOpenStack adds the given value to the OpenStack field in the declarative configuration
-// and returns the receiver, so that objects can be build by chaining "With" function invocations.
-// If called multiple times, values provided by each call will be appended to the OpenStack field.
-func (b *FailureDomainsApplyConfiguration) WithOpenStack(values ...*OpenStackFailureDomainApplyConfiguration) *FailureDomainsApplyConfiguration {
-	b.ensureOpenStackFailureDomainApplyConfigurationExists()
-	for i := range values {
-		if values[i] == nil {
-			panic("nil value passed to WithOpenStack")
-		}
-		*b.OpenStack = append(*b.OpenStack, *values[i])
 	}
 	return b
 }
