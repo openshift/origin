@@ -49389,6 +49389,13 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isPodLog(eventInterval) {
+        if (eventInterval.locator.includes("src/podLog")) {
+            return true
+        }
+        return false
+    }
+
     function isInterestingOrPathological(eventInterval) {
         if (eventInterval.message.includes("pathological/true") || (eventInterval.message.includes("interesting/true"))) {
             return true
@@ -49512,6 +49519,17 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 		    return [item.locator, ` + "`" + ` (interesting event)` + "`" + `, "InterestingEvent"];
         }
 	}
+
+    function podLogs(item) {
+        if (item.level == "Warning") {
+            return [item.locator, ` + "`" + ` (pod log)` + "`" + `, "PodLogWarning"];
+        }
+        if (item.level == "Error") {
+            return [item.locator, ` + "`" + ` (pod log)` + "`" + `, "PodLogError"];
+        }
+        return [item.locator, ` + "`" + ` (pod log)` + "`" + `, "PodLogInfo"];
+    }
+
 
     const reReason = new RegExp("(^| )reason/([^ ]+)")
     function podStateValue(item) {
@@ -49711,6 +49729,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
 
+        timelineGroups.push({group: "pod-logs", data: []})
+        createTimelineData(podLogs, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPodLog, regex)
+
         timelineGroups.push({group: "alerts", data: []})
         createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert, regex)
         // leaving this for posterity so future me (or someone else) can try it, but I think ordering by name makes the
@@ -49780,7 +49801,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'Passed', 'Skipped', 'Flaked', 'Failed',  // tests
                 'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  'StartupProbeFailed', // pods
                 'CIClusterDisruption', 'Disruption', // disruption
-                'Degraded', 'Upgradeable', 'False', 'Unknown'])
+                'Degraded', 'Upgradeable', 'False', 'Unknown',
+                'PodLogInfo', 'PodLogWarning', 'PodLogError'])
             .range([
                 '#6E6E6E', '#0000ff', '#d0312d', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
@@ -49789,7 +49811,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 '#3cb043', '#ceba76', '#ffa500', '#d0312d', // tests
                 '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', '#d0312d', '#d0312d', '#c90076', // pods
                 '#96cbff', '#d0312d', // disruption
-                '#b65049', '#32b8b6', '#ffffff', '#bbbbbb']);
+                '#b65049', '#32b8b6', '#ffffff', '#bbbbbb',
+                '#96cbff', '#fada5e', '#d0312d']);
         myChart.
         data(timelineGroups).
         useUtc(true).

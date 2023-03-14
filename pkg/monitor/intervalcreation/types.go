@@ -54,11 +54,17 @@ func InsertIntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, st
 	}
 
 	allErrors := []error{}
-	nodeEvents, err := IntervalsFromNodeLogs(ctx, kubeClient, from, to)
+	nodeIntervals, err := IntervalsFromNodeLogs(ctx, kubeClient, from, to)
 	if err != nil {
 		allErrors = append(allErrors, err)
 	}
-	ret = append(ret, nodeEvents...)
+	ret = append(ret, nodeIntervals...)
+
+	podLogIntervals, err := IntervalsFromPodLogs(kubeClient, from, to)
+	if err != nil {
+		allErrors = append(allErrors, err)
+	}
+	ret = append(ret, podLogIntervals...)
 
 	auditLogSummary, auditEvents, err := IntervalsFromAuditLogs(ctx, kubeClient, from, to)
 	if err != nil {
