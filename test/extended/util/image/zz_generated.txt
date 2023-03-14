@@ -37,7 +37,7 @@ registry.k8s.io/e2e-test-images/volume/gluster:1.3 quay.io/openshift/community-e
 registry.k8s.io/e2e-test-images/volume/iscsi:2.3 quay.io/openshift/community-e2e-images:e2e-37-registry-k8s-io-e2e-test-images-volume-iscsi-2-3-wtCo3NHhjL4GevQt
 registry.k8s.io/e2e-test-images/volume/nfs:1.3 quay.io/openshift/community-e2e-images:e2e-36-registry-k8s-io-e2e-test-images-volume-nfs-1-3-nwYqCusKEqAgWvkm
 registry.k8s.io/e2e-test-images/volume/rbd:1.0.4 quay.io/openshift/community-e2e-images:e2e-39-registry-k8s-io-e2e-test-images-volume-rbd-1-0-4-mZQDr4JyDAzYcjHN
-registry.k8s.io/etcd:3.5.4-0 quay.io/openshift/community-e2e-images:e2e-11-registry-k8s-io-etcd-3-5-4-0-PkN1v7zdSbd2jljF
+registry.k8s.io/etcd:3.5.6-0 quay.io/openshift/community-e2e-images:e2e-11-registry-k8s-io-etcd-3-5-6-0-rsE3xcngsfK8bAgc
 registry.k8s.io/prometheus-dummy-exporter:v0.1.0 quay.io/openshift/community-e2e-images:e2e-30-registry-k8s-io-prometheus-dummy-exporter-v0-1-0-s9DS-3Tz09DbD2-F
 registry.k8s.io/prometheus-to-sd:v0.5.0 quay.io/openshift/community-e2e-images:e2e-31-registry-k8s-io-prometheus-to-sd-v0-5-0-pFHWFsrpuKdIBhGP
 registry.k8s.io/sd-dummy-exporter:v0.2.0 quay.io/openshift/community-e2e-images:e2e-35-registry-k8s-io-sd-dummy-exporter-v0-2-0-fpU0VWSPQiVtdS2s
