@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	v1 "github.com/openshift/api/config/v1"
+	corev1 "k8s.io/api/core/v1"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -17,18 +19,35 @@ import (
 const (
 	// allowedResourceGrowth is the multiplier we'll allow before failing the test. (currently 40%)
 	allowedResourceGrowth = 1.4
+	ovnNamespace          = "openshift-ovn-kubernetes"
 )
+
+// dont dump info more than 1 time per run
+var debugOVNExecuted bool
 
 func testNoExcessiveSecretGrowthDuringUpgrade() []*junitapi.JUnitTestCase {
 	const testName = "[sig-trt] Secret count should not have grown significantly during upgrade"
-	return comparePostUpgradeResourceCountFromMetrics(testName, "secrets")
+	tests := comparePostUpgradeResourceCountFromMetrics(testName, "secretes")
+	for _, test := range tests {
+		if test.FailureOutput != nil && !debugOVNExecuted {
+			debugOVN()
+			debugOVNExecuted = true
+		}
+	}
+	return tests
 
 }
 
 func testNoExcessiveConfigMapGrowthDuringUpgrade() []*junitapi.JUnitTestCase {
 	const testName = "[sig-trt] ConfigMap count should not have grown significantly during upgrade"
-	return comparePostUpgradeResourceCountFromMetrics(testName, "configmaps")
-
+	tests := comparePostUpgradeResourceCountFromMetrics(testName, "configmaps")
+	for _, test := range tests {
+		if test.FailureOutput != nil && !debugOVNExecuted {
+			debugOVN()
+			debugOVNExecuted = true
+		}
+	}
+	return tests
 }
 
 // comparePostUpgradeResourceCountFromMetrics tests that some counts for certain resources we're most interested
@@ -155,4 +174,174 @@ func getAndCheckClusterVersion(testName string, oc *exutil.CLI) (*v1.ClusterVers
 	}
 
 	return cv, nil
+}
+
+func debugOVN() {
+	e2e.Logf("Dumping all relevant OVN information")
+	oc := exutil.NewCLI(ovnNamespace)
+	oc.SetNamespace(ovnNamespace)
+	reachabilityCheck(oc)
+	dumpMaster(oc)
+	dumpNode(oc)
+	ovnTrace()
+	ovsTrace()
+
+}
+
+// if master is set, only get masters, otherwise get only ovnkube node pods
+func getOVNPods(oc *exutil.CLI, master bool) ([]corev1.Pod, error) {
+	pods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-ovn-kubernetes").List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	key := "node"
+	if master {
+		key = "master"
+	}
+	var nodePods []corev1.Pod
+	for _, pod := range pods.Items {
+		if strings.Contains(pod.Name, key) {
+			nodePods = append(nodePods, pod)
+		}
+	}
+
+	return nodePods, nil
+}
+
+func executeCmdsOnPods(oc *exutil.CLI, commands [][]string, pods []corev1.Pod, master bool) {
+	for _, pod := range pods {
+		e2e.Logf("Dumping Information for node: %s, pod: %s", pod.Spec.NodeName, pod.Name)
+		for _, cmd := range commands {
+			rCmd := []string{pod.Name, "-c", "ovnkube-node", "--"}
+			if master {
+				rCmd = []string{pod.Name, "-c", "nbdb", "--"}
+			}
+			rCmd = append(rCmd, cmd...)
+			output, err := oc.AsAdmin().Run("exec").Args(rCmd...).Output()
+			e2e.Logf("Node Output from command: %#v, error: %s, output: %s", cmd, err, output)
+		}
+	}
+}
+
+// get every node and dump all flows, groups, interfaces, conntrack, etc
+func dumpNode(oc *exutil.CLI) {
+	e2e.Logf("Dumping OVN node information...")
+	pods, err := getOVNPods(oc, false)
+	if err != nil {
+		e2e.Logf("Failed to execute dump node: %v", err)
+		return
+	}
+
+	commands := [][]string{
+		{"ovs-ofctl", "dump-flows", "br-int"},
+		{"ovs-ofctl", "dump-groups", "br-int"},
+		{"ovs-vsctl", "list", "interface"},
+		{"ovs-ofctl", "show", "br-int"},
+		{"ovs-vsctl", "show"},
+		{"ovs-ofctl", "dump-flows", "br-ex"},
+		{"ovs-ofctl", "show", "br-ex"},
+		{"conntrack", "-L"},
+	}
+
+	executeCmdsOnPods(oc, commands, pods, false)
+
+}
+
+// dump OVN information
+func dumpMaster(oc *exutil.CLI) {
+	e2e.Logf("Dumping OVN master information...")
+	pods, err := getOVNPods(oc, true)
+	if err != nil {
+		e2e.Logf("Failed to execute dump master: %v", err)
+		return
+	}
+
+	commands := [][]string{
+		{"ovn-nbctl", "--no-leader-only", "show"},
+		{"ovn-nbctl", "--no-leader-only", "list", "load_balancer"},
+		{"ovn-nbctl", "--no-leader-only", "list", "logical_switch"},
+		{"ovn-nbctl", "--no-leader-only", "list", "logical_router"},
+		{"ovn-sbctl", "--no-leader-only", "lflow-list"},
+	}
+
+	executeCmdsOnPods(oc, commands, pods, true)
+}
+
+func reachabilityCheck(oc *exutil.CLI) {
+	e2e.Logf("Reachability check running...")
+	pods, err := getOVNPods(oc, false)
+	if err != nil {
+		e2e.Logf("Failed to get pods for reachability check: %v", err)
+		return
+	}
+
+	// get a kapi endpoint and curl from each worker node
+	eps, err := oc.AdminKubeClient().DiscoveryV1().EndpointSlices("default").Get(context.TODO(), "kubernetes", metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("Failed to get endpoint slices for kubernetes service: %v", err)
+	}
+
+	// get first endpoint
+	var endpoint string
+	for _, ep := range eps.Endpoints {
+		if len(ep.Addresses) > 0 {
+			endpoint = ep.Addresses[0]
+			break
+		}
+	}
+
+	if len(endpoint) == 0 {
+		e2e.Logf("Failed to find endpoint for kubernetes service: %#v", eps.Endpoints)
+		return
+	}
+
+	var k8sSvcIP string
+	svc, err := oc.AdminKubeClient().CoreV1().Services("default").Get(context.TODO(), "kubernetes", metav1.GetOptions{})
+	if err != nil {
+		e2e.Logf("Failed to find service for kubernetes")
+	} else {
+		k8sSvcIP = svc.Spec.ClusterIP
+	}
+
+	reachabilityEndpointStatus := "PASS"
+	reachabilityServiceStatus := "PASS"
+	// curl the endpoint directly, then if that works try the service
+	for _, pod := range pods {
+		output, err := oc.AsAdmin().Run("exec").Args(pod.Name, "-c", "ovnkube-node", "--", "curl",
+			"--max-time", "2", "-k", fmt.Sprintf("https://%s:6443", endpoint)).Output()
+		if err != nil || !strings.Contains(output, "Forbidden") {
+			e2e.Logf("Reachability check failed to endpoint on pod/node %s/%s. Error: %v, Output: %s",
+				pod.Name, pod.Spec.NodeName, err, output)
+			reachabilityEndpointStatus = "FAIL"
+			// skip checking service if we cant get to endpoint
+			reachabilityServiceStatus = "FAIL"
+			continue
+		}
+
+		// curl service
+		if len(k8sSvcIP) > 0 {
+			output, err := oc.AsAdmin().Run("exec").Args(pod.Name, "-c", "ovnkube-node", "--", "curl",
+				"--max-time", "2", "-k", fmt.Sprintf("https://%s:443", k8sSvcIP)).Output()
+			if err != nil || !strings.Contains(output, "Forbidden") {
+				e2e.Logf("Reachability check failed to service on pod/node %s/%s. Error: %v, Output: %s",
+					pod.Name, pod.Spec.NodeName, err, output)
+				reachabilityServiceStatus = "FAIL"
+			}
+		}
+	}
+
+	e2e.Logf("Reachability check completed with endpoint/service status: %s/%s", reachabilityEndpointStatus, reachabilityServiceStatus)
+}
+
+// trace ovs access to kapi service
+func ovsTrace() {
+	// TODO
+	return
+}
+
+// ovn-trace to kapi service from pod
+func ovnTrace() {
+	// TODO
+	return
 }
