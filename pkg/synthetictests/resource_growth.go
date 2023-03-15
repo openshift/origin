@@ -5,6 +5,7 @@ import (
 	"fmt"
 	v1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
+	"regexp"
 	"strings"
 	"time"
 
@@ -180,6 +181,7 @@ func debugOVN() {
 	e2e.Logf("Dumping all relevant OVN information")
 	oc := exutil.NewCLI(ovnNamespace)
 	oc.SetNamespace(ovnNamespace)
+	debugConntrack(oc)
 	reachabilityCheck(oc)
 	dumpMaster(oc)
 	dumpNode(oc)
@@ -222,6 +224,61 @@ func executeCmdsOnPods(oc *exutil.CLI, commands [][]string, pods []corev1.Pod, m
 			e2e.Logf("Node Output from command: %#v, error: %s, output: %s", cmd, err, output)
 		}
 	}
+}
+
+func debugConntrack(oc *exutil.CLI) {
+	var unrepliedFound bool
+	var sourcePodIP string
+	var sourcePort string
+	e2e.Logf("TROZET: Debugging conntrack")
+	re := regexp.MustCompile(`ESTABLISHED src=([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+).*?dport=([0-9]+)`)
+
+	pods, err := getOVNPods(oc, false)
+	if err != nil {
+		e2e.Logf("Failed to get pods for debug conntrack: %v", err)
+		return
+	}
+
+LOOP:
+	for _, pod := range pods {
+		e2e.Logf("Dumping Conntrack Information for node: %s, pod: %s", pod.Spec.NodeName, pod.Name)
+		cmd := []string{pod.Name, "-c", "ovnkube-node", "--", "conntrack", "-L"}
+		output, err := oc.AsAdmin().Run("exec").Args(cmd...).Output()
+		e2e.Logf("Node Output from command: %#v, error: %s, output: %s", cmd, err, output)
+		for _, line := range strings.Split(output, `\n`) {
+			// look for conntrack entry of interest
+			if strings.Contains(line, "UNREPLIED") && strings.Contains(line, "ESTABLISHED") &&
+				strings.Contains(line, "dport=443") && strings.Contains(line, "dst=172.30.0.1") {
+				e2e.Logf("TROZET: unreplied conntrack connection found to kapi: %s", line)
+				unrepliedFound = true
+				// find source port and ip
+				match := re.FindStringSubmatch(line)
+				sourcePodIP = match[1]
+				sourcePort = match[2]
+				break LOOP
+			}
+		}
+	}
+
+	if unrepliedFound {
+		if len(sourcePodIP) == 0 || len(sourcePort) == 0 {
+			e2e.Logf("Failed to regex pod ip and/or port, pod ip: %s, port: %s", sourcePodIP, sourcePort)
+			return
+		}
+
+		// cycle through pods and look tcpdump for this traffic for debugging
+		for _, pod := range pods {
+			cmd := []string{pod.Name, "-c", "ovnkube-node", "--", "timeout", "30", "tcdump", "-i", "any", "-nneev",
+				"host", sourcePodIP, "and", "port", sourcePort}
+			output, _ := oc.AsAdmin().Run("exec").Args(cmd...).Output()
+			e2e.Logf("TCPDUMP for node: %s, pod: %s, port:ip: %s:%s - %s",
+				pod.Spec.NodeName, pod.Name, sourcePodIP, sourcePort, output)
+		}
+	} else {
+		e2e.Logf("No unreplied entries found")
+	}
+
+	e2e.Logf("TROZET: end debugging conntrack")
 }
 
 // get every node and dump all flows, groups, interfaces, conntrack, etc
