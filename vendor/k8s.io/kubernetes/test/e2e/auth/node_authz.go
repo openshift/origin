@@ -56,6 +56,9 @@ var _ = SIGDescribe("[Feature:NodeAuthorizer]", func() {
 		nodeName = nodeList.Items[0].Name
 		asUser = nodeNamePrefix + nodeName
 		saName := "default"
+
+		framework.ExpectNoError(framework.WaitForDefaultServiceAccountInNamespace(f.ClientSet, ns))
+
 		sa, err := f.ClientSet.CoreV1().ServiceAccounts(ns).Get(context.TODO(), saName, metav1.GetOptions{})
 		framework.ExpectNotEqual(len(sa.Secrets), 0)
 		framework.ExpectNoError(err, "failed to retrieve service account (%s:%s)", ns, saName)

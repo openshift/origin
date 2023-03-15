@@ -52,6 +52,8 @@ var _ = SIGDescribe("[Feature:NodeAuthenticator]", func() {
 		nodeIPs := e2enode.GetAddressesByTypeAndFamily(&nodes.Items[0], v1.NodeInternalIP, family)
 		framework.ExpectNotEqual(len(nodeIPs), 0)
 
+		framework.ExpectNoError(framework.WaitForDefaultServiceAccountInNamespace(f.ClientSet, ns))
+
 		// make sure ServiceAccount admission controller is enabled, so secret generation on SA creation works
 		saName := "default"
 		sa, err := f.ClientSet.CoreV1().ServiceAccounts(ns).Get(context.TODO(), saName, metav1.GetOptions{})
