@@ -36,10 +36,6 @@ func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*j
 				Output: fmt.Sprintf("%d kube-apiserver reports a non-graceful termination.  Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%v", len(failures), strings.Join(failures, "\n")),
 			},
 		})
-
-		// while waiting for https://bugzilla.redhat.com/show_bug.cgi?id=1928946 mark as flake
-		tests[0].FailureOutput.Output = "Marked flake while fix for https://bugzilla.redhat.com/show_bug.cgi?id=1928946 is identified:\n\n" + tests[0].FailureOutput.Output
-		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	}
 
 	if len(tests) == 0 {
