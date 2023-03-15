@@ -21,12 +21,14 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
+
 	v1qos "k8s.io/kubernetes/pkg/apis/core/v1/helper/qos"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/state"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager/bitmask"
+	"k8s.io/kubernetes/pkg/kubelet/managed"
 )
 
 const (
@@ -65,24 +67,24 @@ func (e SMTAlignmentError) Type() string {
 //
 // The static policy maintains the following sets of logical CPUs:
 //
-// - SHARED: Burstable, BestEffort, and non-integral Guaranteed containers
-//   run here. Initially this contains all CPU IDs on the system. As
-//   exclusive allocations are created and destroyed, this CPU set shrinks
-//   and grows, accordingly. This is stored in the state as the default
-//   CPU set.
+//   - SHARED: Burstable, BestEffort, and non-integral Guaranteed containers
+//     run here. Initially this contains all CPU IDs on the system. As
+//     exclusive allocations are created and destroyed, this CPU set shrinks
+//     and grows, accordingly. This is stored in the state as the default
+//     CPU set.
 //
-// - RESERVED: A subset of the shared pool which is not exclusively
-//   allocatable. The membership of this pool is static for the lifetime of
-//   the Kubelet. The size of the reserved pool is
-//   ceil(systemreserved.cpu + kubereserved.cpu).
-//   Reserved CPUs are taken topologically starting with lowest-indexed
-//   physical core, as reported by cAdvisor.
+//   - RESERVED: A subset of the shared pool which is not exclusively
+//     allocatable. The membership of this pool is static for the lifetime of
+//     the Kubelet. The size of the reserved pool is
+//     ceil(systemreserved.cpu + kubereserved.cpu).
+//     Reserved CPUs are taken topologically starting with lowest-indexed
+//     physical core, as reported by cAdvisor.
 //
-// - ASSIGNABLE: Equal to SHARED - RESERVED. Exclusive CPUs are allocated
-//   from this pool.
+//   - ASSIGNABLE: Equal to SHARED - RESERVED. Exclusive CPUs are allocated
+//     from this pool.
 //
-// - EXCLUSIVE ALLOCATIONS: CPU sets assigned exclusively to one container.
-//   These are stored as explicit assignments in the state.
+//   - EXCLUSIVE ALLOCATIONS: CPU sets assigned exclusively to one container.
+//     These are stored as explicit assignments in the state.
 //
 // When an exclusive allocation is made, the static policy also updates the
 // default cpuset in the state abstraction. The CPU manager's periodic
@@ -173,6 +175,10 @@ func (p *staticPolicy) validateState(s state.State) error {
 		// state is empty initialize
 		allCPUs := p.topology.CPUDetails.CPUs()
 		s.SetDefaultCPUSet(allCPUs)
+		if managed.IsEnabled() {
+			defaultCpus := s.GetDefaultCPUSet().Difference(p.reserved)
+			s.SetDefaultCPUSet(defaultCpus)
+		}
 		return nil
 	}
 
@@ -219,8 +225,13 @@ func (p *staticPolicy) validateState(s state.State) error {
 	return nil
 }
 
-// GetAllocatableCPUs returns the set of unassigned CPUs minus the reserved set.
+// GetAllocatableCPUs returns the total set of CPUs available for allocation.
 func (p *staticPolicy) GetAllocatableCPUs(s state.State) cpuset.CPUSet {
+	return p.topology.CPUDetails.CPUs().Difference(p.reserved)
+}
+
+// GetAvailableCPUs returns the set of unassigned CPUs minus the reserved set.
+func (p *staticPolicy) GetAvailableCPUs(s state.State) cpuset.CPUSet {
 	return s.GetDefaultCPUSet().Difference(p.reserved)
 }
 
@@ -320,7 +331,7 @@ func (p *staticPolicy) RemoveContainer(s state.State, podUID string, containerNa
 func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int, numaAffinity bitmask.BitMask, reusableCPUs cpuset.CPUSet) (cpuset.CPUSet, error) {
 	klog.InfoS("AllocateCPUs", "numCPUs", numCPUs, "socket", numaAffinity)
 
-	allocatableCPUs := p.GetAllocatableCPUs(s).Union(reusableCPUs)
+	allocatableCPUs := p.GetAvailableCPUs(s).Union(reusableCPUs)
 
 	// If there are aligned CPUs in numaAffinity, attempt to take those first.
 	result := cpuset.NewCPUSet()
@@ -441,7 +452,7 @@ func (p *staticPolicy) GetTopologyHints(s state.State, pod *v1.Pod, container *v
 	}
 
 	// Get a list of available CPUs.
-	available := p.GetAllocatableCPUs(s)
+	available := p.GetAvailableCPUs(s)
 
 	// Get a list of reusable CPUs (e.g. CPUs reused from initContainers).
 	// It should be an empty CPUSet for a newly created pod.
@@ -496,7 +507,7 @@ func (p *staticPolicy) GetPodTopologyHints(s state.State, pod *v1.Pod) map[strin
 	}
 
 	// Get a list of available CPUs.
-	available := p.GetAllocatableCPUs(s)
+	available := p.GetAvailableCPUs(s)
 
 	// Get a list of reusable CPUs (e.g. CPUs reused from initContainers).
 	// It should be an empty CPUSet for a newly created pod.

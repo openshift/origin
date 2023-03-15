@@ -114,7 +114,8 @@ func (s *storageLeases) UpdateLease(ip string) error {
 
 // RemoveLease removes the lease on a master IP in storage
 func (s *storageLeases) RemoveLease(ip string) error {
-	return s.storage.Delete(apirequest.NewDefaultContext(), s.baseKey+"/"+ip, &corev1.Endpoints{}, nil, rest.ValidateAllObjectFunc, nil)
+	key := path.Join(s.baseKey, ip)
+	return s.storage.Delete(apirequest.NewDefaultContext(), key, &corev1.Endpoints{}, nil, rest.ValidateAllObjectFunc, nil)
 }
 
 // NewLeases creates a new etcd-based Leases implementation.
@@ -246,9 +247,9 @@ func (r *leaseEndpointReconciler) doReconcile(serviceName string, endpointPorts 
 // format ReconcileEndpoints expects when the controller is using leases.
 //
 // Return values:
-// * formatCorrect is true if exactly one subset is found.
-// * ipsCorrect when the addresses in the endpoints match the expected addresses list
-// * portsCorrect is true when endpoint ports exactly match provided ports.
+//   - formatCorrect is true if exactly one subset is found.
+//   - ipsCorrect when the addresses in the endpoints match the expected addresses list
+//   - portsCorrect is true when endpoint ports exactly match provided ports.
 //     portsCorrect is only evaluated when reconcilePorts is set to true.
 func checkEndpointSubsetFormatWithLease(e *corev1.Endpoints, expectedIPs []string, ports []corev1.EndpointPort, reconcilePorts bool) (formatCorrect bool, ipsCorrect bool, portsCorrect bool) {
 	if len(e.Subsets) != 1 {
