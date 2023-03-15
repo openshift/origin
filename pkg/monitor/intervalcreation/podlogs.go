@@ -94,6 +94,15 @@ func buildLogGatherers() []PodLogIntervalGenerator {
 			},
 			lineParser: etcdLogParser,
 		},
+		{
+			namespace: "openshift-etcd",
+			selector:  "app=etcd",
+			container: "etcd",
+			subStrings: []SubStringLevel{
+				{"dropped internal Raft message since sending buffer is full", monitorapi.Warning},
+			},
+			lineParser: etcdLogParser,
+		},
 	}
 }
 
