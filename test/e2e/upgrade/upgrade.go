@@ -13,16 +13,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
-	"github.com/openshift/origin/test/e2e/upgrade/adminack"
-	"github.com/openshift/origin/test/e2e/upgrade/alert"
-	"github.com/openshift/origin/test/e2e/upgrade/dns"
-	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
-	"github.com/openshift/origin/test/e2e/upgrade/service"
-	"github.com/openshift/origin/test/extended/prometheus"
-	"github.com/openshift/origin/test/extended/util/disruption"
-	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
-	"github.com/openshift/origin/test/extended/util/operator"
 	"github.com/pborman/uuid"
 	v1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
@@ -40,6 +30,17 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	"k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/e2e/upgrades/node"
+
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/openshift/origin/test/e2e/upgrade/adminack"
+	"github.com/openshift/origin/test/e2e/upgrade/alert"
+	"github.com/openshift/origin/test/e2e/upgrade/dns"
+	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
+	"github.com/openshift/origin/test/e2e/upgrade/service"
+	"github.com/openshift/origin/test/extended/prometheus"
+	"github.com/openshift/origin/test/extended/util/disruption"
+	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
+	"github.com/openshift/origin/test/extended/util/operator"
 )
 
 // NoTests is an empty list of tests
@@ -140,6 +141,14 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 	f := framework.NewDefaultFramework("cluster-upgrade")
 	f.SkipNamespaceCreation = true
 
+	g.It("Cluster should be upgradeable before beginning upgrade [Early][Suite:upgrade]", func() {
+		config, err := framework.LoadConfig()
+		framework.ExpectNoError(err)
+		client := configv1client.NewForConfigOrDie(config)
+		err = checkUpgradeability(client)
+		framework.ExpectNoError(err)
+	})
+
 	g.It("Cluster should remain functional during upgrade [Disruptive]", func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
@@ -157,10 +166,20 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 			upgradeTests,
 			func() {
 				for i := 1; i < len(upgCtx.Versions); i++ {
-					framework.ExpectNoError(clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]), fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
+					framework.ExpectNoError(
+						clusterUpgrade(f, client, dynamicClient, config, upgCtx.Versions[i]),
+						fmt.Sprintf("during upgrade to %s", upgCtx.Versions[i].NodeImage))
 				}
 			},
 		)
+	})
+
+	g.It("Cluster should be upgradeable after finishing upgrade [Late][Suite:upgrade]", func() {
+		config, err := framework.LoadConfig()
+		framework.ExpectNoError(err)
+		client := configv1client.NewForConfigOrDie(config)
+		err = checkUpgradeability(client)
+		framework.ExpectNoError(err)
 	})
 })
 
@@ -180,6 +199,41 @@ func latestCompleted(history []configv1.UpdateHistory) (*configv1.Update, bool) 
 	return nil, false
 }
 
+func checkUpgradeability(c configv1client.Interface) error {
+	cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if cv.Spec.DesiredUpdate != nil {
+		if cv.Status.ObservedGeneration != cv.Generation {
+			return fmt.Errorf("cluster may be in the process of upgrading")
+		}
+		if len(cv.Status.History) > 0 && cv.Status.History[0].State != configv1.CompletedUpdate {
+			return fmt.Errorf("cluster is still being upgraded: %s", versionString(*cv.Spec.DesiredUpdate))
+		}
+	}
+	if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil && c.Status == configv1.ConditionTrue {
+		return fmt.Errorf("cluster is reporting a degraded condition: %v", c.Message)
+	}
+	if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil && c.Status == configv1.ConditionTrue {
+		return fmt.Errorf("cluster is reporting a failing condition: %v", c.Message)
+	}
+	if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c == nil || c.Status != configv1.ConditionFalse {
+		return fmt.Errorf("cluster must be reporting a progressing=false condition: %#v", c)
+	}
+	if c := findCondition(cv.Status.Conditions, configv1.OperatorAvailable); c == nil || c.Status != configv1.ConditionTrue {
+		return fmt.Errorf("cluster must be reporting an available=true condition: %#v", c)
+	}
+
+	_, ok := latestCompleted(cv.Status.History)
+	if !ok {
+		return fmt.Errorf("cluster has not rolled out a version yet")
+	}
+
+	return nil
+}
+
 func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrades.UpgradeContext, error) {
 	if upgradeImage == "[pause]" {
 		return &upgrades.UpgradeContext{
@@ -190,37 +244,16 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 		}, nil
 	}
 
+	if err := checkUpgradeability(c); err != nil {
+		return nil, err
+	}
+
 	cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	if cv.Spec.DesiredUpdate != nil {
-		if cv.Status.ObservedGeneration != cv.Generation {
-			return nil, fmt.Errorf("cluster may be in the process of upgrading, cannot start a test")
-		}
-		if len(cv.Status.History) > 0 && cv.Status.History[0].State != configv1.CompletedUpdate {
-			return nil, fmt.Errorf("cluster is already being upgraded, cannot start a test: %s", versionString(*cv.Spec.DesiredUpdate))
-		}
-	}
-	if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil && c.Status == configv1.ConditionTrue {
-		return nil, fmt.Errorf("cluster is reporting a degraded condition, cannot continue: %v", c.Message)
-	}
-	if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil && c.Status == configv1.ConditionTrue {
-		return nil, fmt.Errorf("cluster is reporting a failing condition, cannot continue: %v", c.Message)
-	}
-	if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c == nil || c.Status != configv1.ConditionFalse {
-		return nil, fmt.Errorf("cluster must be reporting a progressing=false condition, cannot continue: %#v", c)
-	}
-	if c := findCondition(cv.Status.Conditions, configv1.OperatorAvailable); c == nil || c.Status != configv1.ConditionTrue {
-		return nil, fmt.Errorf("cluster must be reporting an available=true condition, cannot continue: %#v", c)
-	}
-
-	current, ok := latestCompleted(cv.Status.History)
-	if !ok {
-		return nil, fmt.Errorf("cluster has not rolled out a version yet, must wait until that is complete")
-	}
-
+	current, _ := latestCompleted(cv.Status.History)
 	curVer, err := version.ParseSemantic(current.Version)
 	if err != nil {
 		return nil, err
