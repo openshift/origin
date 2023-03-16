@@ -46,8 +46,10 @@ import (
 )
 
 const (
-	unknownVolumePlugin           string = "UnknownVolumePlugin"
-	unknownAttachableVolumePlugin string = "UnknownAttachableVolumePlugin"
+	unknownVolumePlugin                  string = "UnknownVolumePlugin"
+	unknownAttachableVolumePlugin        string = "UnknownAttachableVolumePlugin"
+	DetachOperationName                  string = "volume_detach"
+	VerifyControllerAttachedVolumeOpName string = "verify_controller_attached_volume"
 )
 
 // InTreeToCSITranslator contains methods required to check migratable status
@@ -491,9 +493,9 @@ func (og *operationGenerator) GenerateDetachVolumeFunc(
 	}
 
 	return volumetypes.GeneratedOperations{
-		OperationName:     "volume_detach",
+		OperationName:     DetachOperationName,
 		OperationFunc:     detachVolumeFunc,
-		CompleteFunc:      util.OperationCompleteHook(util.GetFullQualifiedPluginNameForVolume(pluginName, volumeToDetach.VolumeSpec), "volume_detach"),
+		CompleteFunc:      util.OperationCompleteHook(util.GetFullQualifiedPluginNameForVolume(pluginName, volumeToDetach.VolumeSpec), DetachOperationName),
 		EventRecorderFunc: nil, // nil because we do not want to generate event on error
 	}, nil
 }
@@ -965,6 +967,12 @@ func (og *operationGenerator) GenerateUnmountDeviceFunc(
 		}
 		// The device is still in use elsewhere. Caller will log and retry.
 		if deviceOpened {
+			// Mark the device as uncertain, so MountDevice is called for new pods.
+			markDeviceUncertainErr := actualStateOfWorld.MarkDeviceAsUncertain(deviceToDetach.VolumeName, deviceToDetach.DevicePath, deviceMountPath)
+			if markDeviceUncertainErr != nil {
+				// There is nothing else we can do. Hope that UnmountDevice will be re-tried shortly.
+				klog.Errorf(deviceToDetach.GenerateErrorDetailed("UnmountDevice.MarkDeviceAsUncertain failed", markDeviceUncertainErr).Error())
+			}
 			eventErr, detailedErr := deviceToDetach.GenerateError(
 				"UnmountDevice failed",
 				goerrors.New("the device is in use when it was no longer expected to be in use"))
@@ -1471,6 +1479,20 @@ func (og *operationGenerator) GenerateVerifyControllerAttachedVolumeFunc(
 		return volumetypes.GeneratedOperations{}, volumeToMount.GenerateErrorDetailed("VerifyControllerAttachedVolume.FindPluginBySpec failed", err)
 	}
 
+	// For attachable volume types, lets check if volume is attached by reading from node lister.
+	// This would avoid exponential back-off and creation of goroutine unnecessarily. We still
+	// verify status of attached volume by directly reading from API server later on.This is necessarily
+	// to ensure any race conditions because of cached state in the informer.
+	if volumeToMount.PluginIsAttachable {
+		cachedAttachedVolumes, _ := og.volumePluginMgr.Host.GetAttachedVolumesFromNodeStatus()
+		if cachedAttachedVolumes != nil {
+			_, volumeFound := cachedAttachedVolumes[volumeToMount.VolumeName]
+			if !volumeFound {
+				return volumetypes.GeneratedOperations{}, NewMountPreConditionFailedError(fmt.Sprintf("volume %s is not yet in node's status", volumeToMount.VolumeName))
+			}
+		}
+	}
+
 	verifyControllerAttachedVolumeFunc := func() volumetypes.OperationContext {
 		migrated := getMigratedStatusBySpec(volumeToMount.VolumeSpec)
 		if !volumeToMount.PluginIsAttachable {
@@ -1536,7 +1558,7 @@ func (og *operationGenerator) GenerateVerifyControllerAttachedVolumeFunc(
 	}
 
 	return volumetypes.GeneratedOperations{
-		OperationName:     "verify_controller_attached_volume",
+		OperationName:     VerifyControllerAttachedVolumeOpName,
 		OperationFunc:     verifyControllerAttachedVolumeFunc,
 		CompleteFunc:      util.OperationCompleteHook(util.GetFullQualifiedPluginNameForVolume(volumePlugin.GetPluginName(), volumeToMount.VolumeSpec), "verify_controller_attached_volume"),
 		EventRecorderFunc: nil, // nil because we do not want to generate event on error

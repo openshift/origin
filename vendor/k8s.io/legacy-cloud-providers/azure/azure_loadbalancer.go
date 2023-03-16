@@ -334,7 +334,7 @@ func (az *Cloud) cleanBackendpoolForPrimarySLB(primarySLB *network.LoadBalancer,
 			},
 		}
 		// decouple the backendPool from the node
-		err := az.VMSet.EnsureBackendPoolDeleted(service, lbBackendPoolID, vmSetName, backendpoolToBeDeleted)
+		err := az.VMSet.EnsureBackendPoolDeleted(service, lbBackendPoolID, vmSetName, backendpoolToBeDeleted, true)
 		if err != nil {
 			return nil, err
 		}
@@ -1074,15 +1074,6 @@ func (az *Cloud) findFrontendIPConfigOfService(
 	return nil, false, nil
 }
 
-func nodeNameInNodes(nodeName string, nodes []*v1.Node) bool {
-	for _, node := range nodes {
-		if strings.EqualFold(nodeName, node.Name) {
-			return true
-		}
-	}
-	return false
-}
-
 // reconcileLoadBalancer ensures load balancer exists and the frontend ip config is setup.
 // This also reconciles the Service's Ports  with the LoadBalancer config.
 // This entails adding rules/probes for expected Ports and removing stale rules/ports.
@@ -1133,12 +1124,14 @@ func (az *Cloud) reconcileLoadBalancer(clusterName string, service *v1.Service, 
 						if err != nil && !errors.Is(err, cloudprovider.InstanceNotFound) {
 							return nil, err
 						}
-
-						// If a node is not supposed to be included in the LB, it
-						// would not be in the `nodes` slice. We need to check the nodes that
-						// have been added to the LB's backendpool, find the unwanted ones and
-						// delete them from the pool.
-						if !nodeNameInNodes(nodeName, nodes) {
+						// If the node appears in the local cache of nodes to exclude,
+						// delete it from the load balancer backend pool.
+						shouldExcludeLoadBalancer, err := az.ShouldNodeExcludedFromLoadBalancer(nodeName)
+						if err != nil {
+							klog.Errorf("ShouldNodeExcludedFromLoadBalancer(%s) failed with error: %v", nodeName, err)
+							return nil, err
+						}
+						if shouldExcludeLoadBalancer {
 							klog.V(2).Infof("reconcileLoadBalancer for service (%s)(%t): lb backendpool - found unwanted node %s, decouple it from the LB", serviceName, wantLb, nodeName)
 							// construct a backendPool that only contains the IP config of the node to be deleted
 							backendIPConfigurationsToBeDeleted = append(backendIPConfigurationsToBeDeleted, network.InterfaceIPConfiguration{ID: to.StringPtr(ipConfID)})
@@ -1155,7 +1148,7 @@ func (az *Cloud) reconcileLoadBalancer(clusterName string, service *v1.Service, 
 						}
 						vmSetName := az.mapLoadBalancerNameToVMSet(lbName, clusterName)
 						// decouple the backendPool from the node
-						err = az.VMSet.EnsureBackendPoolDeleted(service, lbBackendPoolID, vmSetName, backendpoolToBeDeleted)
+						err = az.VMSet.EnsureBackendPoolDeleted(service, lbBackendPoolID, vmSetName, backendpoolToBeDeleted, false)
 						if err != nil {
 							return nil, err
 						}
@@ -1439,21 +1432,36 @@ func (az *Cloud) reconcileLoadBalancer(clusterName string, service *v1.Service, 
 					// do nothing for availability set
 					lb.BackendAddressPools = nil
 				}
-				err := az.VMSet.EnsureBackendPoolDeleted(service, lbBackendPoolID, vmSetName, lb.BackendAddressPools)
+				err := az.VMSet.EnsureBackendPoolDeleted(service, lbBackendPoolID, vmSetName, lb.BackendAddressPools, true)
 				if err != nil {
 					klog.Errorf("EnsureBackendPoolDeleted(%s) for service %s failed: %v", lbBackendPoolID, serviceName, err)
 					return nil, err
 				}
 				klog.V(10).Infof("EnsureBackendPoolDeleted(%s) for service %s: end", lbBackendPoolID, serviceName)
 
-				// Remove the LB.
-				klog.V(10).Infof("reconcileLoadBalancer: az.DeleteLB(%q): start", lbName)
-				err = az.DeleteLB(service, lbName)
+				existingLBs, err := az.ListLB(service)
 				if err != nil {
-					klog.V(2).Infof("reconcileLoadBalancer for service(%s) abort backoff: lb(%s) - deleting; no remaining frontendIPConfigurations", serviceName, lbName)
+					klog.Errorf("reconcileLoadBalancer: failed to list load balancer for service %q: %s", serviceName, err.Error())
 					return nil, err
 				}
-				klog.V(10).Infof("az.DeleteLB(%q): end", lbName)
+
+				foundLB := false
+				for _, existingLB := range existingLBs {
+					if strings.EqualFold(lbName, to.String(existingLB.Name)) {
+						foundLB = true
+						break
+					}
+				}
+				// Remove the LB if it exists.
+				if foundLB {
+					klog.V(10).Infof("reconcileLoadBalancer: az.DeleteLB(%q): start", lbName)
+					err = az.DeleteLB(service, lbName)
+					if err != nil {
+						klog.V(2).Infof("reconcileLoadBalancer for service(%s) abort backoff: lb(%s) - deleting; no remaining frontendIPConfigurations", serviceName, lbName)
+						return nil, err
+					}
+					klog.V(10).Infof("az.DeleteLB(%q): end", lbName)
+				}
 			}
 		} else {
 			klog.V(2).Infof("reconcileLoadBalancer: reconcileLoadBalancer for service(%s): lb(%s) - updating", serviceName, lbName)
@@ -1642,7 +1650,9 @@ func (az *Cloud) reconcileLoadBalancerRule(
 			if probeProtocol == "" {
 				probeProtocol = string(network.ProbeProtocolHTTP)
 			}
-			if requestPath == "" {
+
+			needRequestPath := strings.EqualFold(probeProtocol, string(network.ProbeProtocolHTTP)) || strings.EqualFold(probeProtocol, string(network.ProbeProtocolHTTPS))
+			if requestPath == "" && needRequestPath {
 				requestPath = podPresencePath
 			}
 
@@ -2129,15 +2139,13 @@ func shouldReleaseExistingOwnedPublicIP(existingPip *network.PublicIPAddress, lb
 
 //  ensurePIPTagged ensures the public IP of the service is tagged as configured
 func (az *Cloud) ensurePIPTagged(service *v1.Service, pip *network.PublicIPAddress) bool {
-	changed := false
 	configTags := parseTags(az.Tags)
 	annotationTags := make(map[string]*string)
 	if _, ok := service.Annotations[ServiceAnnotationAzurePIPTags]; ok {
 		annotationTags = parseTags(service.Annotations[ServiceAnnotationAzurePIPTags])
 	}
-	for k, v := range annotationTags {
-		configTags[k] = v
-	}
+	configTags, _ = reconcileTags(configTags, annotationTags)
+
 	// include the cluster name and service names tags when comparing
 	var clusterName, serviceNames *string
 	if v, ok := pip.Tags[clusterNameKey]; ok {
@@ -2152,12 +2160,10 @@ func (az *Cloud) ensurePIPTagged(service *v1.Service, pip *network.PublicIPAddre
 	if serviceNames != nil {
 		configTags[serviceTagKey] = serviceNames
 	}
-	for k, v := range configTags {
-		if vv, ok := pip.Tags[k]; !ok || !strings.EqualFold(to.String(v), to.String(vv)) {
-			pip.Tags[k] = v
-			changed = true
-		}
-	}
+
+	tags, changed := reconcileTags(pip.Tags, configTags)
+	pip.Tags = tags
+
 	return changed
 }
 
@@ -2718,7 +2724,6 @@ func unbindServiceFromPIP(pip *network.PublicIPAddress, serviceName string) erro
 
 // ensureLoadBalancerTagged ensures every load balancer in the resource group is tagged as configured
 func (az *Cloud) ensureLoadBalancerTagged(lb *network.LoadBalancer) bool {
-	changed := false
 	if az.Tags == "" {
 		return false
 	}
@@ -2726,18 +2731,15 @@ func (az *Cloud) ensureLoadBalancerTagged(lb *network.LoadBalancer) bool {
 	if lb.Tags == nil {
 		lb.Tags = make(map[string]*string)
 	}
-	for k, v := range tags {
-		if vv, ok := lb.Tags[k]; !ok || !strings.EqualFold(to.String(v), to.String(vv)) {
-			lb.Tags[k] = v
-			changed = true
-		}
-	}
+
+	tags, changed := reconcileTags(lb.Tags, tags)
+	lb.Tags = tags
+
 	return changed
 }
 
 // ensureSecurityGroupTagged ensures the security group is tagged as configured
 func (az *Cloud) ensureSecurityGroupTagged(sg *network.SecurityGroup) bool {
-	changed := false
 	if az.Tags == "" {
 		return false
 	}
@@ -2745,11 +2747,9 @@ func (az *Cloud) ensureSecurityGroupTagged(sg *network.SecurityGroup) bool {
 	if sg.Tags == nil {
 		sg.Tags = make(map[string]*string)
 	}
-	for k, v := range tags {
-		if vv, ok := sg.Tags[k]; !ok || !strings.EqualFold(to.String(v), to.String(vv)) {
-			sg.Tags[k] = v
-			changed = true
-		}
-	}
+
+	tags, changed := reconcileTags(sg.Tags, tags)
+	sg.Tags = tags
+
 	return changed
 }

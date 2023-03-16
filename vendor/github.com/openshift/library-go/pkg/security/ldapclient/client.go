@@ -13,6 +13,11 @@ import (
 
 // NewLDAPClientConfig returns a new LDAP client config
 func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (Config, error) {
+	return NewLDAPClientConfigWithTLSConnectionVerification(URL, bindDN, bindPassword, CA, insecure, nil)
+}
+
+// NewLDAPClientConfig returns a new LDAP client config
+func NewLDAPClientConfigWithTLSConnectionVerification(URL, bindDN, bindPassword, CA string, insecure bool, verifyFn func(tls.ConnectionState) error) (Config, error) {
 	url, err := ldaputil.ParseURL(URL)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing URL: %v", err)
@@ -26,6 +31,8 @@ func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (C
 		}
 		tlsConfig.RootCAs = roots
 	}
+
+	tlsConfig.VerifyConnection = verifyFn
 
 	return &ldapClientConfig{
 		scheme:       url.Scheme,

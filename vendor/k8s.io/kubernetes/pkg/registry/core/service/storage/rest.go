@@ -208,6 +208,9 @@ func (rs *REST) Create(ctx context.Context, obj runtime.Object, createValidation
 		}
 	}()
 
+	// OpenShift 4.8 and 4.9 only - BZ 2045576
+	warnDualStackIPFamilyPolicy(ctx, service)
+
 	// try set ip families (for missing ip families)
 	// we do it here, since we want this to be visible
 	// even when dryRun == true
@@ -462,6 +465,9 @@ func (rs *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObj
 
 	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts, dryrun.IsDryRun(options.DryRun))
 	defer nodePortOp.Finish()
+
+	// OpenShift 4.8 and 4.9 only - BZ 2045576
+	warnDualStackIPFamilyPolicy(ctx, service)
 
 	// try set ip families (for missing ip families)
 	if err := rs.tryDefaultValidateServiceClusterIPFields(oldService, service); err != nil {
