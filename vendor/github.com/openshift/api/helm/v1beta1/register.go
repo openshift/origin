@@ -32,6 +32,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
 		&HelmChartRepository{},
 		&HelmChartRepositoryList{},
+		&ProjectHelmChartRepository{},
+		&ProjectHelmChartRepositoryList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
