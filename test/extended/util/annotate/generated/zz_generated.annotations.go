@@ -3083,6 +3083,16 @@ var Annotations = map[string]string{
 
 	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow pi_stress to run successfully with the round robin algorithm": " [Serial]",
 
+	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster infrastructure should be configured correctly": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster platform workloads should be annotated correctly for DaemonSets": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster platform workloads should be annotated correctly for Deployments": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads in annotated namespaces should be modified if CPUPartitioningMode = AllNodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads in non-annotated namespaces should not be allowed if CPUPartitioningMode = AllNodes": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-operator] OLM should be installed with catalogsources at version v1alpha1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
