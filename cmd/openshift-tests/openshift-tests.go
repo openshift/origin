@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/nodedetails"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -55,6 +56,8 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
+
+	logrus.SetLevel(logrus.InfoLevel)
 
 	rand.Seed(time.Now().UTC().UnixNano())
 

@@ -6,13 +6,17 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -100,6 +104,49 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 	return m, nil
 }
 
+var removeNTimes = regexp.MustCompile(`\s+\(\d+ times\)`)
+var removeHmsg = regexp.MustCompile(`\s+(hmsg/[0-9a-f]+)`)
+
+// markMissedPathologicalEvents goes through the list of events looking for all events marked
+// as "pathological/true" (this implies the event was previously unknown and happened > 20 times).
+// For each of those events, this function looks for previous occurrences of that event (with
+// times < 20) and marks them as "pathological/true" so that all occurences of that event will
+// show in the spyglass chart.
+func markMissedPathologicalEvents(events monitorapi.Intervals) {
+	// Get the list of events already marked (abbreviated as "am") as pathological/true (this implies times > 20).
+	amPathoEvents := map[string]string{}
+
+	for _, pathologicalEvent := range events {
+		if !strings.Contains(pathologicalEvent.Message, duplicateevents.PathologicalMark) {
+			// We only are interested in those EventIntervals with pathological/true
+			continue
+		}
+		if strings.Contains(pathologicalEvent.Message, duplicateevents.InterestingMark) {
+			// If this message is known, we don't need to process it because we already
+			// created an interval when it came in initially.
+			continue
+		}
+
+		// Events marked as pathological/true have the mark and "n times" number on the message
+		// and the locator ends with hmsg/xxxxxxxxxx.
+		// Events that are to be marked don't have the pathological/true mark and don't have the hmsg (message hash).
+		msgWithoutTimes := removeNTimes.ReplaceAllString(pathologicalEvent.Message, "")
+		locWithoutHmsg := removeHmsg.ReplaceAllString(pathologicalEvent.Locator, "")
+		amPathoEvents[msgWithoutTimes+locWithoutHmsg] = pathologicalEvent.Locator
+	}
+	logrus.Infof("Number of pathological keys: %d", len(amPathoEvents))
+
+	for i, scannedEvent := range events {
+		msgWithPathoMark := fmt.Sprintf("%s %s", duplicateevents.PathologicalMark, removeNTimes.ReplaceAllString(scannedEvent.Message, ""))
+		if pLocator, ok := amPathoEvents[msgWithPathoMark+scannedEvent.Locator]; ok {
+			// This is a match, so update the event with the pathological/true mark and locator that contains the hmsg (message hash).
+			events[i].Message = fmt.Sprintf("%s %s", duplicateevents.PathologicalMark, scannedEvent.Message)
+			events[i].Locator = pLocator
+			logrus.Infof("Found a times match: Locator=%s Message=%s", events[i].Locator, events[i].Message)
+		}
+	}
+}
+
 // End mutates the method receiver so you shouldn't call it multiple times.
 func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config, artifactDir string) error {
 	if o.monitor == nil {
@@ -116,6 +163,9 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 	var err error
 	fromTime, endTime := time.Time{}, time.Time{}
 	events := o.monitor.Intervals(fromTime, endTime)
+
+	markMissedPathologicalEvents(events)
+
 	// this happens before calculation because events collected here could be used to drive later calculations
 	o.auditLogSummary, events, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, events, o.recordedResources, fromTime, endTime)
 	if err != nil {
