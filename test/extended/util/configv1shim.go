@@ -65,7 +65,7 @@ func mergeResources(aList, bList []metav1.APIResource) []metav1.APIResource {
 	for _, item := range aList {
 		knownKinds[item.Kind] = struct{}{}
 	}
-	resources := append([]metav1.APIResource{}, bList...)
+	resources := append([]metav1.APIResource{}, aList...)
 	for _, item := range bList {
 		if _, exists := knownKinds[item.Kind]; exists {
 			continue
@@ -93,14 +93,16 @@ type ConfigClientShim struct {
 
 func (c *ConfigClientShim) Discovery() discovery.DiscoveryInterface {
 	return &ConfigV1DiscoveryClientShim{
-		configClient: c.configClient,
-		fakeClient:   c.fakeClient,
+		configClient:     c.configClient,
+		fakeClient:       c.fakeClient,
+		hasConfigV1Kinds: len(c.v1Kinds) > 0,
 	}
 }
 
 type ConfigV1DiscoveryClientShim struct {
-	configClient configv1client.Interface
-	fakeClient   *fakeconfigv1client.Clientset
+	configClient     configv1client.Interface
+	fakeClient       *fakeconfigv1client.Clientset
+	hasConfigV1Kinds bool
 }
 
 func (c *ConfigV1DiscoveryClientShim) ServerGroups() (*metav1.APIGroupList, error) {
@@ -119,20 +121,20 @@ func (c *ConfigV1DiscoveryClientShim) ServerGroups() (*metav1.APIGroupList, erro
 					break
 				}
 			}
-			if !hasV1Version {
+			if c.hasConfigV1Kinds && !hasV1Version {
 				groups.Groups[i].Versions = append(groups.Groups[i].Versions, configGroupVersionForDiscovery())
 			}
 			break
 		}
 	}
-	if !hasConfigGroup {
+	if c.hasConfigV1Kinds && !hasConfigGroup {
 		groups.Groups = append(groups.Groups, *configAPIGroup())
 	}
 	return groups, nil
 }
 
 func (c *ConfigV1DiscoveryClientShim) ServerResourcesForGroupVersion(groupVersion string) (*metav1.APIResourceList, error) {
-	if groupVersion != configGroupVersion {
+	if !c.hasConfigV1Kinds || groupVersion != configGroupVersion {
 		return c.configClient.Discovery().ServerResourcesForGroupVersion(groupVersion)
 	}
 	fakeList, err := c.fakeClient.Discovery().ServerResourcesForGroupVersion(groupVersion)
@@ -166,13 +168,13 @@ func (c *ConfigV1DiscoveryClientShim) ServerGroupsAndResources() ([]*metav1.APIG
 						break
 					}
 				}
-				if !hasV1Version {
+				if c.hasConfigV1Kinds && !hasV1Version {
 					groups[i].Versions = append(groups[i].Versions, configGroupVersionForDiscovery())
 				}
 				break
 			}
 		}
-		if !hasConfigGroup {
+		if c.hasConfigV1Kinds && !hasConfigGroup {
 			groups = append(groups, configAPIGroup())
 		}
 	}
@@ -186,10 +188,12 @@ func (c *ConfigV1DiscoveryClientShim) ServerGroupsAndResources() ([]*metav1.APIG
 		for i, resource := range resources {
 			if resource.GroupVersion == configGroupVersion {
 				hasConfigGroup = true
-				resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
+				if c.hasConfigV1Kinds {
+					resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
+				}
 			}
 		}
-		if !hasConfigGroup {
+		if c.hasConfigV1Kinds && !hasConfigGroup {
 			resources = append(resources, newAPIResourceList(configGroupVersion, []metav1.APIResource{}, fakeList.APIResources))
 		}
 	}
@@ -212,11 +216,13 @@ func (c *ConfigV1DiscoveryClientShim) ServerPreferredResources() ([]*metav1.APIR
 	for i, resource := range resources {
 		if resource.GroupVersion == configGroupVersion {
 			hasConfigGroup = true
-			resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
+			if c.hasConfigV1Kinds {
+				resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
+			}
 		}
 	}
 
-	if !hasConfigGroup {
+	if c.hasConfigV1Kinds && !hasConfigGroup {
 		resources = append(resources, newAPIResourceList(configGroupVersion, []metav1.APIResource{}, fakeList.APIResources))
 	}
 
@@ -237,15 +243,18 @@ func (c *ConfigV1DiscoveryClientShim) OpenAPISchema() (*openapi_v2.Document, err
 }
 
 func (c *ConfigV1DiscoveryClientShim) OpenAPIV3() openapi.Client {
-	return c.configClient.Discovery().OpenAPIV3()
+	// TODO(jchaloup): once needed implement this method as well
+	panic(fmt.Errorf("APIServer not implemented"))
 }
 
 func (c *ConfigV1DiscoveryClientShim) WithLegacy() discovery.DiscoveryInterface {
-	return c.configClient.Discovery().WithLegacy()
+	// TODO(jchaloup): once needed implement this method as well
+	panic(fmt.Errorf("APIServer not implemented"))
 }
 
 func (c *ConfigV1DiscoveryClientShim) RESTClient() restclient.Interface {
-	return c.configClient.Discovery().RESTClient()
+	// TODO(jchaloup): once needed implement this method as well
+	panic(fmt.Errorf("APIServer not implemented"))
 }
 
 var _ discovery.DiscoveryInterface = &ConfigV1DiscoveryClientShim{}
@@ -563,7 +572,6 @@ func (c *ConfigV1InfrastructuresClientShim) Watch(ctx context.Context, opts meta
 	// static manifests do not produce any watch event besides create
 	// If the object exists, no need to generate the ADDED watch event
 
-	// INFO: field selectors will not work
 	staticObjList, err := c.fakeConfigV1InfrastructuresClient.List(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -664,35 +672,35 @@ type ConfigV1NetworksClientShim struct {
 
 var _ configv1.NetworkInterface = &ConfigV1NetworksClientShim{}
 
-func (c *ConfigV1NetworksClientShim) Create(ctx context.Context, infrastructure *apiconfigv1.Network, opts metav1.CreateOptions) (*apiconfigv1.Network, error) {
-	_, err := c.fakeConfigV1NetworksClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+func (c *ConfigV1NetworksClientShim) Create(ctx context.Context, network *apiconfigv1.Network, opts metav1.CreateOptions) (*apiconfigv1.Network, error) {
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, network.Name, metav1.GetOptions{})
 	if err == nil {
 		return nil, &OperationNotPermitted{Action: "create"}
 	}
 	if apierrors.IsNotFound(err) {
-		return c.configV1NetworksClient.Create(ctx, infrastructure, opts)
+		return c.configV1NetworksClient.Create(ctx, network, opts)
 	}
 	return nil, err
 }
 
-func (c *ConfigV1NetworksClientShim) Update(ctx context.Context, infrastructure *apiconfigv1.Network, opts metav1.UpdateOptions) (*apiconfigv1.Network, error) {
-	_, err := c.fakeConfigV1NetworksClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+func (c *ConfigV1NetworksClientShim) Update(ctx context.Context, network *apiconfigv1.Network, opts metav1.UpdateOptions) (*apiconfigv1.Network, error) {
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, network.Name, metav1.GetOptions{})
 	if err == nil {
 		return nil, &OperationNotPermitted{Action: "update"}
 	}
 	if apierrors.IsNotFound(err) {
-		return c.configV1NetworksClient.Update(ctx, infrastructure, opts)
+		return c.configV1NetworksClient.Update(ctx, network, opts)
 	}
 	return nil, err
 }
 
-func (c *ConfigV1NetworksClientShim) UpdateStatus(ctx context.Context, infrastructure *apiconfigv1.Network, opts metav1.UpdateOptions) (*apiconfigv1.Network, error) {
-	_, err := c.fakeConfigV1NetworksClient.Get(ctx, infrastructure.Name, metav1.GetOptions{})
+func (c *ConfigV1NetworksClientShim) UpdateStatus(ctx context.Context, network *apiconfigv1.Network, opts metav1.UpdateOptions) (*apiconfigv1.Network, error) {
+	_, err := c.fakeConfigV1NetworksClient.Get(ctx, network.Name, metav1.GetOptions{})
 	if err == nil {
 		return nil, &OperationNotPermitted{Action: "updatestatus"}
 	}
 	if apierrors.IsNotFound(err) {
-		return c.configV1NetworksClient.UpdateStatus(ctx, infrastructure, opts)
+		return c.configV1NetworksClient.UpdateStatus(ctx, network, opts)
 	}
 	return nil, err
 }
@@ -795,7 +803,6 @@ func (c *ConfigV1NetworksClientShim) Watch(ctx context.Context, opts metav1.List
 	// static manifests do not produce any watch event besides create
 	// If the object exists, no need to generate the ADDED watch event
 
-	// INFO: field selectors will not work
 	staticObjList, err := c.fakeConfigV1NetworksClient.List(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -994,6 +1001,41 @@ func (e OperationNotPermitted) Error() string {
 	return fmt.Sprintf("operation %q not permitted", e.Action)
 }
 
+func configV1InfrastructureAPIResources() []metav1.APIResource {
+	return []metav1.APIResource{metav1.APIResource{
+		Name:         "infrastructures",
+		SingularName: "infrastructure",
+		Namespaced:   false,
+		Kind:         "Infrastructure",
+		Verbs: []string{
+			"get", "list", "watch", // only read-only requests permitted
+		},
+	},
+		metav1.APIResource{
+			Name:         "infrastructures/status",
+			SingularName: "",
+			Namespaced:   false,
+			Kind:         "Infrastructure",
+			Verbs: []string{
+				"get", // only read-only requests permitted
+			},
+		},
+	}
+}
+
+func configV1NetworkAPIResources() []metav1.APIResource {
+	return []metav1.APIResource{metav1.APIResource{
+		Name:         "networks",
+		SingularName: "network",
+		Namespaced:   false,
+		Kind:         "Network",
+		Verbs: []string{
+			"get", "list", "watch", // only read-only requests permitted
+		},
+	},
+	}
+}
+
 func NewConfigClientShim(
 	configClient configv1client.Interface,
 	objects []runtime.Object,
@@ -1013,6 +1055,22 @@ func NewConfigClientShim(
 		}
 		v1Kinds[objectKind.Kind] = true
 	}
+
+	apiResourceList := &metav1.APIResourceList{
+		GroupVersion: configGroupVersion,
+		APIResources: []metav1.APIResource{},
+	}
+
+	for kind := range v1Kinds {
+		switch kind {
+		case "Infrastructure":
+			apiResourceList.APIResources = append(apiResourceList.APIResources, configV1InfrastructureAPIResources()...)
+		case "Network":
+			apiResourceList.APIResources = append(apiResourceList.APIResources, configV1NetworkAPIResources()...)
+		}
+	}
+
+	fakeClient.Fake.Resources = []*metav1.APIResourceList{apiResourceList}
 
 	return &ConfigClientShim{
 		configClient: configClient,

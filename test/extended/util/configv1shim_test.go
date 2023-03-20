@@ -3,6 +3,8 @@ package util
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	applyconfigv1 "github.com/openshift/client-go/config/applyconfigurations/config/v1"
 	fakeconfigv1client "github.com/openshift/client-go/config/clientset/versioned/fake"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,7 +58,7 @@ func createNetworkObject(name string) *configv1.Network {
 	return &configv1.Network{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "config.openshift.io/v1",
-			Kind:       "Infrastructure",
+			Kind:       "Network",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
@@ -391,7 +394,6 @@ func TestConfigClientShimWatchRequest(t *testing.T) {
 			// verify the watch events
 			ticker := time.NewTicker(500 * time.Millisecond)
 			size := len(test.expectedWatchEvents)
-			eventsSize := len(resultChan.ResultChan())
 			eventCounter := 0
 			for i := 0; i < size; i++ {
 				select {
@@ -405,11 +407,15 @@ func TestConfigClientShimWatchRequest(t *testing.T) {
 					t.Errorf("failed waiting for watch event")
 				}
 			}
+
 			if eventCounter < size {
 				t.Errorf("Expected %v watch events, got %v instead", size, eventCounter)
 			}
-			if eventsSize > size {
-				t.Errorf("Expected %v watch events, got %v instead", size, eventsSize)
+
+			select {
+			case <-resultChan.ResultChan():
+				t.Errorf("Expected no additional watch event")
+			case <-ticker.C:
 			}
 		})
 	}
@@ -577,4 +583,429 @@ func TestConfigClientShimListNetworkFieldSelector(t *testing.T) {
 			}
 		})
 	}
+}
+
+// the fake discovery's list of resources can not be constructed from
+// populated objects. They need to be hand crafted.
+// defaultFakeDiscoveryResources creates a default set of resources
+// that are considered as real resources wherever a fake clientset is
+// used instead of the real one.
+func defaultFakeDiscoveryResources() []*metav1.APIResourceList {
+	return []*metav1.APIResourceList{
+		{
+			GroupVersion: "operator.openshift.io/v1",
+			APIResources: []metav1.APIResource{
+				{
+					Name:         "kubestorageversionmigrators",
+					SingularName: "kubestorageversionmigrator",
+					Namespaced:   false,
+					Kind:         "KubeStorageVersionMigrator",
+					Verbs: []string{
+						"delete", "deletecollection", "get", "list", "patch", "create", "update", "watch",
+					},
+				},
+				{
+					Name:         "kubestorageversionmigrators/status",
+					SingularName: "",
+					Namespaced:   false,
+					Kind:         "KubeStorageVersionMigrator",
+					Verbs: []string{
+						"get", "patch", "update",
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestConfigClientShimDiscoveryServerGroups(t *testing.T) {
+	tests := []struct {
+		name               string
+		hasConfigV1Version bool
+		objects            []runtime.Object
+		fakeResources      []*metav1.APIResourceList
+	}{
+		{
+			name:               "no config v1 found with default kinds",
+			hasConfigV1Version: false,
+			fakeResources:      defaultFakeDiscoveryResources(),
+		},
+		{
+			name:               "config v1 found with default kinds",
+			hasConfigV1Version: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticObject"),
+			},
+			fakeResources: defaultFakeDiscoveryResources(),
+		},
+		{
+			name:               "config v1 already exists",
+			hasConfigV1Version: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticObject"),
+			},
+			fakeResources: []*metav1.APIResourceList{
+				{
+					GroupVersion: "config.openshift.io/v1",
+					APIResources: configV1InfrastructureAPIResources(),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			configClient := fakeconfigv1client.NewSimpleClientset()
+
+			client := NewConfigClientShim(
+				configClient,
+				test.objects,
+			)
+
+			configClient.Fake.Resources = test.fakeResources
+
+			groupList, err := client.Discovery().ServerGroups()
+			if err != nil {
+				t.Fatalf("Expected no error for a Discovery().ServerGroups() request, got %q instead", err)
+			}
+
+			hasConfigV1Version := false
+			for _, group := range groupList.Groups {
+				if group.Name != configGroup {
+					continue
+				}
+				for _, version := range group.Versions {
+					if version.Version == configVersion {
+						// duplicated
+						if hasConfigV1Version {
+							t.Fatalf("config v1 version duplicated")
+						}
+						hasConfigV1Version = true
+					}
+				}
+			}
+
+			if test.hasConfigV1Version && !hasConfigV1Version {
+				t.Fatalf("Expected config v1 version to exists, got non-existing")
+			}
+			if !test.hasConfigV1Version && hasConfigV1Version {
+				t.Fatalf("Expected no config v1 version to exists, got existing")
+			}
+		})
+	}
+
+}
+
+func TestConfigClientShimDiscoveryServerResourcesForGroupVersion(t *testing.T) {
+	tests := []struct {
+		name               string
+		hasConfigV1Version bool
+		expectedResources  []string
+		objects            []runtime.Object
+		fakeResources      []*metav1.APIResourceList
+	}{
+		{
+			name:               "no config v1 found with default kinds",
+			hasConfigV1Version: false,
+			fakeResources:      defaultFakeDiscoveryResources(),
+		},
+		{
+			name:               "config v1 found with infrastructure kind with default kinds",
+			hasConfigV1Version: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticObject"),
+			},
+			expectedResources: []string{"config.openshift.io/v1/infrastructures", "config.openshift.io/v1/infrastructures/status"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:               "config v1 found with network kind with default kinds",
+			hasConfigV1Version: true,
+			objects: []runtime.Object{
+				createNetworkObject("staticObject"),
+			},
+			expectedResources: []string{"config.openshift.io/v1/networks"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:               "config v1 found with infrastructure and network kind with default kinds",
+			hasConfigV1Version: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticObject"),
+				createNetworkObject("staticObject"),
+			},
+			expectedResources: []string{"config.openshift.io/v1/infrastructures", "config.openshift.io/v1/infrastructures/status", "config.openshift.io/v1/networks"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			configClient := fakeconfigv1client.NewSimpleClientset()
+
+			client := NewConfigClientShim(
+				configClient,
+				test.objects,
+			)
+
+			configClient.Fake.Resources = test.fakeResources
+
+			resourceList, err := client.Discovery().ServerResourcesForGroupVersion(configGroupVersion)
+			if !test.hasConfigV1Version {
+				if err == nil {
+					t.Fatalf("Expected error for a Discovery().ServerGroups() request")
+				} else if !errors.IsNotFound(err) {
+					t.Fatalf("Expected not found error for config.openshift.io/v1 for a Discovery().ServerGroups() request, got %v instead", err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("Expected no error for a Discovery().ServerGroups() request, got %v instead", err)
+			}
+
+			hasConfigV1Version := false
+			if resourceList.GroupVersion == configGroupVersion {
+				hasConfigV1Version = true
+			}
+
+			if test.hasConfigV1Version && !hasConfigV1Version {
+				t.Fatalf("Expected config v1 version to exists, got non-existing")
+			}
+			if !test.hasConfigV1Version && hasConfigV1Version {
+				t.Fatalf("Expected no config v1 version to exists, got existing")
+			}
+
+			resources := []string{}
+			for _, resource := range resourceList.APIResources {
+				resources = append(resources, fmt.Sprintf("%v/%v", resourceList.GroupVersion, resource.Name))
+			}
+
+			sort.Strings(test.expectedResources)
+			sort.Strings(resources)
+
+			diff := cmp.Diff(test.expectedResources, resources)
+			if diff != "" {
+				t.Errorf("test '%s' failed. Results are not deep equal. mismatch (-want +got):\n%s", test.name, diff)
+			}
+
+		})
+	}
+
+}
+
+func TestConfigClientShimDiscoveryServerGroupsAndResources(t *testing.T) {
+	tests := []struct {
+		name              string
+		hasConfigV1Group  bool
+		expectedResources []string
+		objects           []runtime.Object
+		fakeResources     []*metav1.APIResourceList
+	}{
+		{
+			name:              "no config v1 found with default kinds",
+			hasConfigV1Group:  false,
+			expectedResources: []string{"operator.openshift.io/v1/kubestorageversionmigrators", "operator.openshift.io/v1/kubestorageversionmigrators/status"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:             "config v1 found with infrastructure kinds",
+			hasConfigV1Group: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticObject"),
+			},
+			expectedResources: []string{"operator.openshift.io/v1/kubestorageversionmigrators", "operator.openshift.io/v1/kubestorageversionmigrators/status", "config.openshift.io/v1/infrastructures", "config.openshift.io/v1/infrastructures/status"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:             "config v1 found with network kinds",
+			hasConfigV1Group: true,
+			objects: []runtime.Object{
+				createNetworkObject("staticObject"),
+			},
+			expectedResources: []string{"operator.openshift.io/v1/kubestorageversionmigrators", "operator.openshift.io/v1/kubestorageversionmigrators/status", "config.openshift.io/v1/networks"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:             "config v1 found with infrastructure and network kinds",
+			hasConfigV1Group: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticInfrastructureObject"),
+				createNetworkObject("staticNetworkObject"),
+			},
+			expectedResources: []string{"operator.openshift.io/v1/kubestorageversionmigrators", "operator.openshift.io/v1/kubestorageversionmigrators/status", "config.openshift.io/v1/infrastructures", "config.openshift.io/v1/infrastructures/status", "config.openshift.io/v1/networks"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:             "config v1 already exists",
+			hasConfigV1Group: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticObject"),
+			},
+			expectedResources: []string{"config.openshift.io/v1/infrastructures", "config.openshift.io/v1/infrastructures/status"},
+			fakeResources: []*metav1.APIResourceList{
+				{
+					GroupVersion: "config.openshift.io/v1",
+					APIResources: configV1InfrastructureAPIResources(),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			configClient := fakeconfigv1client.NewSimpleClientset()
+
+			configClient.Fake.Resources = test.fakeResources
+
+			client := NewConfigClientShim(
+				configClient,
+				test.objects,
+			)
+
+			groups, resourceList, err := client.Discovery().ServerGroupsAndResources()
+			if err != nil {
+				t.Fatalf("Expected no error for a Discovery().ServerGroupsAndResources() request, got %q instead", err)
+			}
+
+			hasConfigV1Version := false
+			for _, group := range groups {
+				if group.Name != configGroup {
+					continue
+				}
+				for _, version := range group.Versions {
+					if version.Version == configVersion {
+						// duplicated
+						if hasConfigV1Version {
+							t.Fatalf("config v1 version duplicated")
+						}
+						hasConfigV1Version = true
+					}
+				}
+			}
+
+			if test.hasConfigV1Group && !hasConfigV1Version {
+				t.Fatalf("Expected config v1 version to exists, got non-existing")
+			}
+			if !test.hasConfigV1Group && hasConfigV1Version {
+				t.Fatalf("Expected no config v1 version to exists, got existing")
+			}
+
+			resources := []string{}
+			for _, item := range resourceList {
+				for _, resource := range item.APIResources {
+					resources = append(resources, fmt.Sprintf("%v/%v", item.GroupVersion, resource.Name))
+				}
+			}
+
+			sort.Strings(test.expectedResources)
+			sort.Strings(resources)
+
+			diff := cmp.Diff(test.expectedResources, resources)
+			if diff != "" {
+				t.Errorf("test '%s' failed. Results are not deep equal. mismatch (-want +got):\n%s", test.name, diff)
+			}
+		})
+	}
+
+}
+
+func TestConfigClientShimDiscoveryServerPreferredResources(t *testing.T) {
+	// Note: FakeDiscovery's ServerPreferredResources returns nil, nil
+	// Thus, there's currently no way to simulated the real client side.
+	tests := []struct {
+		name              string
+		hasConfigV1Group  bool
+		expectedResources []string
+		objects           []runtime.Object
+		fakeResources     []*metav1.APIResourceList
+	}{
+		{
+			name:              "no config v1 found with default kinds",
+			hasConfigV1Group:  false,
+			expectedResources: []string{},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:             "config v1 found with infrastructure kinds",
+			hasConfigV1Group: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticObject"),
+			},
+			expectedResources: []string{"config.openshift.io/v1/infrastructures", "config.openshift.io/v1/infrastructures/status"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:             "config v1 found with network kinds",
+			hasConfigV1Group: true,
+			objects: []runtime.Object{
+				createNetworkObject("staticObject"),
+			},
+			expectedResources: []string{"config.openshift.io/v1/networks"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+		{
+			name:             "config v1 found with infrastructure and network kinds",
+			hasConfigV1Group: true,
+			objects: []runtime.Object{
+				createInfrastructureObject("staticInfrastructureObject"),
+				createNetworkObject("staticNetworkObject"),
+			},
+			expectedResources: []string{"config.openshift.io/v1/infrastructures", "config.openshift.io/v1/infrastructures/status", "config.openshift.io/v1/networks"},
+			fakeResources:     defaultFakeDiscoveryResources(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			configClient := fakeconfigv1client.NewSimpleClientset()
+
+			configClient.Fake.Resources = test.fakeResources
+
+			client := NewConfigClientShim(
+				configClient,
+				test.objects,
+			)
+
+			resourceList, err := client.Discovery().ServerPreferredResources()
+			if err != nil {
+				t.Fatalf("Expected no error for a Discovery().ServerGroupsAndResources() request, got %q instead", err)
+			}
+
+			hasConfigV1Version := false
+			for _, item := range resourceList {
+				if item.GroupVersion != configGroupVersion {
+					continue
+				}
+				// duplicated
+				if hasConfigV1Version {
+					t.Fatalf("config v1 version duplicated")
+				}
+				hasConfigV1Version = true
+			}
+
+			if test.hasConfigV1Group && !hasConfigV1Version {
+				t.Fatalf("Expected config v1 version to exists, got non-existing")
+			}
+			if !test.hasConfigV1Group && hasConfigV1Version {
+				t.Fatalf("Expected no config v1 version to exists, got existing")
+			}
+
+			resources := []string{}
+			for _, item := range resourceList {
+				for _, resource := range item.APIResources {
+					resources = append(resources, fmt.Sprintf("%v/%v", item.GroupVersion, resource.Name))
+				}
+			}
+
+			sort.Strings(test.expectedResources)
+			sort.Strings(resources)
+
+			diff := cmp.Diff(test.expectedResources, resources)
+			if diff != "" {
+				t.Errorf("test '%s' failed. Results are not deep equal. mismatch (-want +got):\n%s", test.name, diff)
+			}
+		})
+	}
+
 }
