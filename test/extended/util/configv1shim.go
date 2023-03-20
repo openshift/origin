@@ -1002,7 +1002,7 @@ func (e OperationNotPermitted) Error() string {
 }
 
 func configV1InfrastructureAPIResources() []metav1.APIResource {
-	return []metav1.APIResource{metav1.APIResource{
+	return []metav1.APIResource{{
 		Name:         "infrastructures",
 		SingularName: "infrastructure",
 		Namespaced:   false,
@@ -1011,7 +1011,7 @@ func configV1InfrastructureAPIResources() []metav1.APIResource {
 			"get", "list", "watch", // only read-only requests permitted
 		},
 	},
-		metav1.APIResource{
+		{
 			Name:         "infrastructures/status",
 			SingularName: "",
 			Namespaced:   false,
@@ -1024,7 +1024,7 @@ func configV1InfrastructureAPIResources() []metav1.APIResource {
 }
 
 func configV1NetworkAPIResources() []metav1.APIResource {
-	return []metav1.APIResource{metav1.APIResource{
+	return []metav1.APIResource{{
 		Name:         "networks",
 		SingularName: "network",
 		Namespaced:   false,
