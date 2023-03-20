@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -10,65 +11,91 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func Test_recordAddOrUpdateEvent(t *testing.T) {
+// readTestFiles takes a filename of a kubeconfig file and events json file and returns
+// raw events and a kubernetes.Clientset.  This is mostly used for interactive debugging.
+// Get the kubeconfig by creating a file using the output of the KAAS tool or cluster-bot.
+// NOTE: You can possible get panics due to timeout of KAAS kube configs.
+// Get the json file for all events from artifacts/gather-extra.  Or by using using
+// "oc -n aNamespace get event" after setting KUBECONFIG.
+func readTestFiles(kubeconfig, jsonFile string) (corev1.EventList, *kubernetes.Clientset, error) {
 
-	type KubeEventsItems struct {
-		Items []corev1.Event `json:"items"`
+	_, err := os.Stat(kubeconfig)
+	if errors.Is(err, os.ErrNotExist) {
+		fmt.Println("File does not exist:", kubeconfig)
+		return corev1.EventList{}, nil, err
 	}
-
-	// Get the kubeconfig by creating a file using the output of the KAAS tool or cluster-bot.
-	// You can possible get panics due to timeout of KAAS kube configs.
-	// Get the json file for all events from artifacts/gather-extra.  Or by using using
-	// "oc -n aNamespace get event" after setting KUBECONFIG.
-	kubeconfig := "/tmp/k.txt"
-	jsonFile := "/tmp/kube_events.json"
+	_, err = os.Stat(jsonFile)
+	if errors.Is(err, os.ErrNotExist) {
+		fmt.Println("File does not exist:", jsonFile)
+		return corev1.EventList{}, nil, err
+	}
 
 	file, err := os.Open(jsonFile)
 	if err != nil {
 		fmt.Println("Error opening jsonFile:", err)
-		return
+		return corev1.EventList{}, nil, err
 	}
 	defer file.Close()
 
-	var kubeEvents KubeEventsItems
+	var kubeEvents corev1.EventList
 	if err := json.NewDecoder(file).Decode(&kubeEvents); err != nil {
-		fmt.Println("Error reading jsonFile:", err)
+		fmt.Println("Error reading jsonFile")
+		return corev1.EventList{}, nil, err
 	}
 
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		fmt.Println("Unable to setup *rest.Config:", err)
+		return kubeEvents, nil, err
 	}
-	client, err := kubernetes.NewForConfig(config)
+	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		fmt.Println("Unable to setup kube client:", err)
+		return kubeEvents, nil, err
 	}
 
-	smallKubeEvents := KubeEventsItems{
+	return kubeEvents, clientSet, nil
+}
+
+func Test_recordAddOrUpdateEvent(t *testing.T) {
+
+	// If we have files, we can use this to do a local debugging.
+	// Without files, we use the single event tests.
+	kubeEvents, clientSet, _ := readTestFiles("/tmp/test/k.txt", "/tmp/test/kube_events.json")
+	smallKubeEvents := corev1.EventList{
 		Items: []corev1.Event{
 			{
-				Count:   2,
-				Reason:  "NodeHasNoDiskPressure",
-				Message: "sample message",
+				Count:         2,
+				Reason:        "NodeHasNoDiskPressure",
+				Message:       "sample message",
+				LastTimestamp: metav1.Now(),
 			},
 		},
 	}
+	if len(kubeEvents.Items) == 0 {
+		kubeEvents.Items = append(kubeEvents.Items, smallKubeEvents.Items...)
+	}
+
 	type args struct {
 		ctx                    context.Context
-		m                      Recorder
+		m                      *Monitor
 		client                 kubernetes.Interface
 		reMatchFirstQuote      *regexp.Regexp
 		significantlyBeforeNow time.Time
-		kubeEventList          KubeEventsItems
+		kubeEventList          corev1.EventList
 	}
+
+	now := time.Now()
 
 	tests := []struct {
 		name string
 		args args
+		want int
 		skip bool
 	}{
 		{
@@ -78,17 +105,18 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				m:                      NewMonitorWithInterval(time.Second),
 				client:                 nil,
 				reMatchFirstQuote:      regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`),
-				significantlyBeforeNow: time.Now().UTC().Add(-15 * time.Minute),
+				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
 				kubeEventList:          smallKubeEvents,
 			},
+			want: 1,
 		},
 		{
 			name: "Multiple Event (from file) test",
-			skip: true, // skip in case we don't have a file
+			skip: true, // skip since we use this only for interactive debugging
 			args: args{
 				ctx:               context.TODO(),
 				m:                 NewMonitorWithInterval(time.Second),
-				client:            client,
+				client:            clientSet,
 				reMatchFirstQuote: regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`),
 
 				// Use the timestamp of the first corev1.Event
@@ -104,6 +132,10 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, event := range tt.args.kubeEventList.Items {
 				recordAddOrUpdateEvent(tt.args.ctx, tt.args.m, tt.args.client, tt.args.reMatchFirstQuote, tt.args.significantlyBeforeNow, &event)
+				len := len(tt.args.m.Intervals(now.Add(-10*time.Minute), now.Add(10*time.Minute)))
+				if len != tt.want {
+					t.Errorf("Wrong number of EventIntervals; got: %d expected: %d", len, tt.want)
+				}
 			}
 		})
 	}
