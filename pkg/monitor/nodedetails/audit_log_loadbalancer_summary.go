@@ -64,7 +64,7 @@ func (s *LoadBalancerCheckSummary) AddSummary(rhs *LoadBalancerCheckSummary) {
 }
 
 func (s *PerNodeLoadBalancerCheckSummary) Add(auditEvent *auditv1.Event, auditEventInfo auditEventInfo) {
-	info, isDuringTermination := auditEvent.Annotations["openshift.io/during-termination"]
+	info, isDuringTermination := auditEvent.Annotations["apiserver.k8s.io/shutdown"]
 	if !isDuringTermination {
 		return
 	}
@@ -72,10 +72,8 @@ func (s *PerNodeLoadBalancerCheckSummary) Add(auditEvent *auditv1.Event, auditEv
 	if strings.Contains(info, "loopback=true") {
 		return
 	}
-	veryLateInfo, isVeryLate := auditEvent.Annotations["openshift.io/during-graceful"]
-	if strings.Contains(veryLateInfo, "loopback=true") {
-		return
-	}
+	isVeryLate := strings.Contains(info, "late=true")
+
 	isNode := false
 	for _, group := range auditEvent.User.Groups {
 		if group == "system:nodes" {
