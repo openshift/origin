@@ -104,13 +104,10 @@ func testServerAvailability(
 		}
 
 		// https://issues.redhat.com/browse/TRT-889 temporarily flake all disruption for azure
-		if jobType.Platform == "azure" {
-			return []*junitapi.JUnitTestCase{test, {
-				Name: testName,
-			}}
-		}
-
-		return []*junitapi.JUnitTestCase{test}
+		// https://issues.redhat.com/browse/TRT-910 temporarily flake ALL disruption in 4.13
+		return []*junitapi.JUnitTestCase{test, {
+			Name: testName,
+		}}
 	} else {
 		successTest.SystemOut = resultsStr
 		return []*junitapi.JUnitTestCase{successTest}
