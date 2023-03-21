@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rt-tests
+  namespace: ci-realtime-testbed
+spec:
+  hostPID: true
+  hostIPC: true
+  hostNetwork: true
+  volumes:
+  - name: host
+    hostPath:
+      path: /sys/kernel/debug
+      type: Directory
+  containers:
+    - name: rt-tests
+      image: image-registry.openshift-image-registry.svc:5000/openshift/tests
+      command:
+        - "sh"
+        - "-c"
+        - "sleep 999999"
+      resources: {}
+      securityContext:
+        privileged: true
+      volumeMounts:
+      - mountPath: /sys/kernel/debug
+        name: host
+  serviceAccount: rt-tests
+  serviceAccountName: rt-tests
+  terminationGracePeriodSeconds: 30

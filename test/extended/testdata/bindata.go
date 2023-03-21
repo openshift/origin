@@ -336,6 +336,8 @@
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
+// test/extended/testdata/kernel/rt-tests-environment.yaml
+// test/extended/testdata/kernel/rt-tests-pod.yaml
 // test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt
 // test/extended/testdata/ldap/groupsync/ad/blacklist_openshift.txt
 // test/extended/testdata/ldap/groupsync/ad/ldapgroupuids.txt
@@ -41824,6 +41826,104 @@ func testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson() (*asset, error) 
 	return a, nil
 }
 
+var _testExtendedTestdataKernelRtTestsEnvironmentYaml = []byte(`kind: Project
+apiVersion: project.openshift.io/v1
+metadata:
+  name: ci-realtime-testbed
+  labels:
+    kubernetes.io/metadata.name: rt-tests
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+  annotations:
+    workload.openshift.io/allowed: management
+    openshift.io/node-selector: "node-role.kubernetes.io/worker="
+spec: {}
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rt-tests
+  namespace: ci-realtime-testbed
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:scc:privileged
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+  - kind: ServiceAccount
+    name: rt-tests
+    namespace: ci-realtime-testbed`)
+
+func testExtendedTestdataKernelRtTestsEnvironmentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataKernelRtTestsEnvironmentYaml, nil
+}
+
+func testExtendedTestdataKernelRtTestsEnvironmentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataKernelRtTestsEnvironmentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/kernel/rt-tests-environment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataKernelRtTestsPodYaml = []byte(`apiVersion: v1
+kind: Pod
+metadata:
+  name: rt-tests
+  namespace: ci-realtime-testbed
+spec:
+  hostPID: true
+  hostIPC: true
+  hostNetwork: true
+  volumes:
+  - name: host
+    hostPath:
+      path: /sys/kernel/debug
+      type: Directory
+  containers:
+    - name: rt-tests
+      image: image-registry.openshift-image-registry.svc:5000/openshift/tests
+      command:
+        - "sh"
+        - "-c"
+        - "sleep 999999"
+      resources: {}
+      securityContext:
+        privileged: true
+      volumeMounts:
+      - mountPath: /sys/kernel/debug
+        name: host
+  serviceAccount: rt-tests
+  serviceAccountName: rt-tests
+  terminationGracePeriodSeconds: 30`)
+
+func testExtendedTestdataKernelRtTestsPodYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataKernelRtTestsPodYaml, nil
+}
+
+func testExtendedTestdataKernelRtTestsPodYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataKernelRtTestsPodYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/kernel/rt-tests-pod.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt = []byte(`group1
 group3
 `)
@@ -50239,6 +50339,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl":                                         testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm":                                   testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json":                                        testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
+	"test/extended/testdata/kernel/rt-tests-environment.yaml":                                                testExtendedTestdataKernelRtTestsEnvironmentYaml,
+	"test/extended/testdata/kernel/rt-tests-pod.yaml":                                                        testExtendedTestdataKernelRtTestsPodYaml,
 	"test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt":                                            testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt,
 	"test/extended/testdata/ldap/groupsync/ad/blacklist_openshift.txt":                                       testExtendedTestdataLdapGroupsyncAdBlacklist_openshiftTxt,
 	"test/extended/testdata/ldap/groupsync/ad/ldapgroupuids.txt":                                             testExtendedTestdataLdapGroupsyncAdLdapgroupuidsTxt,
@@ -50937,6 +51039,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						}},
 						"perl.json": {testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson, map[string]*bintree{}},
 					}},
+				}},
+				"kernel": {nil, map[string]*bintree{
+					"rt-tests-environment.yaml": {testExtendedTestdataKernelRtTestsEnvironmentYaml, map[string]*bintree{}},
+					"rt-tests-pod.yaml":         {testExtendedTestdataKernelRtTestsPodYaml, map[string]*bintree{}},
 				}},
 				"ldap": {nil, map[string]*bintree{
 					"groupsync": {nil, map[string]*bintree{

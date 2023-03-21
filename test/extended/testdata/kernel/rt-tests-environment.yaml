@@ -1,0 +1,36 @@
+kind: Project
+apiVersion: project.openshift.io/v1
+metadata:
+  name: ci-realtime-testbed
+  labels:
+    kubernetes.io/metadata.name: rt-tests
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+  annotations:
+    workload.openshift.io/allowed: management
+    openshift.io/node-selector: "node-role.kubernetes.io/worker="
+spec: {}
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rt-tests
+  namespace: ci-realtime-testbed
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:openshift:scc:privileged
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+  - kind: ServiceAccount
+    name: rt-tests
+    namespace: ci-realtime-testbed
