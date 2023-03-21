@@ -14,13 +14,14 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] custom build with buildah", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                 = exutil.NewCLIWithPodSecurityLevel("custom-build", admissionapi.LevelBaseline)
-		customBuildAdd     = exutil.FixturePath("testdata", "builds", "custom-build")
-		customBuildFixture = exutil.FixturePath("testdata", "builds", "test-custom-build.yaml")
+		oc                     = exutil.NewCLIWithPodSecurityLevel("custom-build", admissionapi.LevelBaseline)
+		customBuildAdd         = exutil.FixturePath("testdata", "builds", "custom-build")
+		customBuildFixture     = exutil.FixturePath("testdata", "builds", "test-custom-build.yaml")
+		customConfigMapAdd     = exutil.FixturePath("testdata", "builds", "custom-configmap")
+		customConfigMapFixture = exutil.FixturePath("testdata", "builds", "test-custom-configmap.yaml")
 	)
 
 	g.Context("", func() {
-
 		g.BeforeEach(func() {
 			exutil.PreTestDump()
 		})
@@ -49,6 +50,19 @@ var _ = g.Describe("[sig-builds][Feature:Builds] custom build with buildah", fun
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
 
+			g.It("should complete build with custom configmap builder image [apigroup:build.openshift.io]", func() {
+				g.By("create custom configmap builder image")
+				err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=custom-configmap-builder-image").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, _ := exutil.StartBuildAndWait(oc, "custom-configmap-builder-image", fmt.Sprintf("--from-dir=%s", customConfigMapAdd))
+				br.AssertSuccess()
+				g.By("start custom configmap build and build should complete")
+				err = oc.AsAdmin().Run("create").Args("-f", customConfigMapFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, err = exutil.StartBuildAndWait(oc, "sample-custom-configmap")
+				br.AssertSuccess()
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
 		})
 	})
 })

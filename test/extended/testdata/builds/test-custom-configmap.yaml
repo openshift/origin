@@ -1,0 +1,44 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: sample-custom-configmap
+- kind: ConfigMap
+  apiVersion: v1
+  metadata:
+    name: custom-configmap
+  data:
+    Dockerfile: |
+      FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+      RUN echo config-map-Dockerfile | tee /tmp/built
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: sample-custom-configmap
+    labels:
+      name: sample-custom-configmap
+    annotations:
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    source:
+      type: None
+      configMaps:
+      - configMap:
+          name: custom-configmap
+        destinationDir: /tmp/input
+    strategy:
+      type: Custom
+      customStrategy:
+        env:
+          - name: "BUILD_LOGLEVEL"
+            value: "2"
+        forcePull: true
+        from:
+          kind: ImageStreamTag
+          name: custom-configmap-builder-image:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: sample-custom-configmap:latest
