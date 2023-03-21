@@ -110,6 +110,11 @@ func (c *ConfigV1DiscoveryClientShim) ServerGroups() (*metav1.APIGroupList, erro
 	if err != nil {
 		return groups, err
 	}
+
+	if !c.hasConfigV1Kinds {
+		return groups, nil
+	}
+
 	hasConfigGroup := false
 	for i, group := range groups.Groups {
 		if group.Name == configGroup {
@@ -121,13 +126,13 @@ func (c *ConfigV1DiscoveryClientShim) ServerGroups() (*metav1.APIGroupList, erro
 					break
 				}
 			}
-			if c.hasConfigV1Kinds && !hasV1Version {
+			if !hasV1Version {
 				groups.Groups[i].Versions = append(groups.Groups[i].Versions, configGroupVersionForDiscovery())
 			}
 			break
 		}
 	}
-	if c.hasConfigV1Kinds && !hasConfigGroup {
+	if !hasConfigGroup {
 		groups.Groups = append(groups.Groups, *configAPIGroup())
 	}
 	return groups, nil
@@ -156,7 +161,8 @@ func (c *ConfigV1DiscoveryClientShim) ServerGroupsAndResources() ([]*metav1.APIG
 	if err != nil {
 		return groups, resources, err
 	}
-	if groups != nil {
+
+	if c.hasConfigV1Kinds && groups != nil {
 		hasConfigGroup := false
 		for i, group := range groups {
 			if group.Name == configGroup {
@@ -168,18 +174,18 @@ func (c *ConfigV1DiscoveryClientShim) ServerGroupsAndResources() ([]*metav1.APIG
 						break
 					}
 				}
-				if c.hasConfigV1Kinds && !hasV1Version {
+				if !hasV1Version {
 					groups[i].Versions = append(groups[i].Versions, configGroupVersionForDiscovery())
 				}
 				break
 			}
 		}
-		if c.hasConfigV1Kinds && !hasConfigGroup {
+		if !hasConfigGroup {
 			groups = append(groups, configAPIGroup())
 		}
 	}
 
-	if resources != nil {
+	if c.hasConfigV1Kinds && resources != nil {
 		fakeList, err := c.fakeClient.Discovery().ServerResourcesForGroupVersion(configGroupVersion)
 		if err != nil {
 			return nil, nil, err
@@ -188,12 +194,10 @@ func (c *ConfigV1DiscoveryClientShim) ServerGroupsAndResources() ([]*metav1.APIG
 		for i, resource := range resources {
 			if resource.GroupVersion == configGroupVersion {
 				hasConfigGroup = true
-				if c.hasConfigV1Kinds {
-					resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
-				}
+				resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
 			}
 		}
-		if c.hasConfigV1Kinds && !hasConfigGroup {
+		if !hasConfigGroup {
 			resources = append(resources, newAPIResourceList(configGroupVersion, []metav1.APIResource{}, fakeList.APIResources))
 		}
 	}
@@ -207,6 +211,10 @@ func (c *ConfigV1DiscoveryClientShim) ServerPreferredResources() ([]*metav1.APIR
 		return nil, err
 	}
 
+	if !c.hasConfigV1Kinds {
+		return resources, nil
+	}
+
 	fakeList, err := c.fakeClient.Discovery().ServerResourcesForGroupVersion(configGroupVersion)
 	if err != nil {
 		return nil, err
@@ -216,13 +224,11 @@ func (c *ConfigV1DiscoveryClientShim) ServerPreferredResources() ([]*metav1.APIR
 	for i, resource := range resources {
 		if resource.GroupVersion == configGroupVersion {
 			hasConfigGroup = true
-			if c.hasConfigV1Kinds {
-				resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
-			}
+			resources[i].APIResources = mergeResources(fakeList.APIResources, resources[i].APIResources)
 		}
 	}
 
-	if c.hasConfigV1Kinds && !hasConfigGroup {
+	if !hasConfigGroup {
 		resources = append(resources, newAPIResourceList(configGroupVersion, []metav1.APIResource{}, fakeList.APIResources))
 	}
 
