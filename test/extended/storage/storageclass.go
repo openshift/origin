@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -22,6 +23,7 @@ import (
 
 const (
 	defaultScAnnotationKey = "storageclass.kubernetes.io/is-default-class"
+	inTreeScPrefix         = "kubernetes.io/"
 	sleepInterval          = 10
 	maxRetries             = 10
 )
@@ -114,6 +116,10 @@ func FindDefaultStorageClass(oc *exutil.CLI) *storagev1.StorageClass {
 		e2e.Failf("could not list storage classes: %v", err)
 	}
 	for _, sc := range scList.Items {
+		if strings.HasPrefix(sc.Provisioner, inTreeScPrefix) {
+			e2e.Logf("ignoring in-tree storage class %s", sc.Name)
+			continue
+		}
 		if sc.Annotations[defaultScAnnotationKey] == "true" {
 			return &sc
 		}
