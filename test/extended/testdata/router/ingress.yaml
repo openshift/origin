@@ -91,7 +91,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.32
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -109,7 +109,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: k8s.gcr.io/e2e-test-images/agnhost:2.32
+      image: k8s.gcr.io/e2e-test-images/agnhost:2.39
       args: ["netexec"]
       ports:
       - containerPort: 8080

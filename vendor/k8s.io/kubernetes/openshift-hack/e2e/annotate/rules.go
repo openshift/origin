@@ -109,6 +109,12 @@ var (
 			`Netpol \[LinuxOnly\] NetworkPolicy between server and client using UDP should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
 			// Bug https://bugzilla.redhat.com/show_bug.cgi?id=1989180
 			`\[sig-storage\] Multi-AZ Cluster Volumes should schedule pods in the same zones as statically provisioned PVs`,
+
+			// https://bugzilla.redhat.com/show_bug.cgi?id=2034958
+			`\[sig-network\] Conntrack should be able to preserve UDP traffic when initial unready endpoints get ready`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-3979
+			`\[sig-network\] Services should not be able to connect to terminating and unready endpoints if PublishNotReadyAddresses is false`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {

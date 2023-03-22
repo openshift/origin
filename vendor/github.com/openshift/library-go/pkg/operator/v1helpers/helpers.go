@@ -382,3 +382,42 @@ func InjectObservedProxyIntoContainers(podSpec *corev1.PodSpec, containerNames [
 
 	return nil
 }
+
+func InjectTrustedCAIntoContainers(podSpec *corev1.PodSpec, configMapName string, containerNames []string) error {
+	podSpec.Volumes = append(podSpec.Volumes, corev1.Volume{
+		Name: "non-standard-root-system-trust-ca-bundle",
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: configMapName,
+				},
+				Items: []corev1.KeyToPath{
+					{Key: "ca-bundle.crt", Path: "tls-ca-bundle.pem"},
+				},
+			},
+		},
+	})
+
+	for _, containerName := range containerNames {
+		for i := range podSpec.InitContainers {
+			if podSpec.InitContainers[i].Name == containerName {
+				podSpec.InitContainers[i].VolumeMounts = append(podSpec.InitContainers[i].VolumeMounts, corev1.VolumeMount{
+					Name:      "non-standard-root-system-trust-ca-bundle",
+					MountPath: "/etc/pki/ca-trust/extracted/pem",
+					ReadOnly:  true,
+				})
+			}
+		}
+		for i := range podSpec.Containers {
+			if podSpec.Containers[i].Name == containerName {
+				podSpec.Containers[i].VolumeMounts = append(podSpec.Containers[i].VolumeMounts, corev1.VolumeMount{
+					Name:      "non-standard-root-system-trust-ca-bundle",
+					MountPath: "/etc/pki/ca-trust/extracted/pem",
+					ReadOnly:  true,
+				})
+			}
+		}
+	}
+
+	return nil
+}

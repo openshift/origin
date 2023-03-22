@@ -204,7 +204,7 @@ const (
 
 func initImageConfigs(list RegistryList) (map[int]Config, map[int]Config) {
 	configs := map[int]Config{}
-	configs[Agnhost] = Config{list.PromoterE2eRegistry, "agnhost", "2.32"}
+	configs[Agnhost] = Config{list.PromoterE2eRegistry, "agnhost", "2.39"}
 	configs[AgnhostPrivate] = Config{list.PrivateRegistry, "agnhost", "2.6"}
 	configs[AuthenticatedAlpine] = Config{list.GcAuthenticatedRegistry, "alpine", "3.7"}
 	configs[AuthenticatedWindowsNanoServer] = Config{list.GcAuthenticatedRegistry, "windows-nanoserver", "v1"}
@@ -214,7 +214,7 @@ func initImageConfigs(list RegistryList) (map[int]Config, map[int]Config) {
 	configs[CheckMetadataConcealment] = Config{list.PromoterE2eRegistry, "metadata-concealment", "1.6"}
 	configs[CudaVectorAdd] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "1.0"}
 	configs[CudaVectorAdd2] = Config{list.PromoterE2eRegistry, "cuda-vector-add", "2.2"}
-	configs[DebianIptables] = Config{list.BuildImageRegistry, "debian-iptables", "buster-v1.6.5"}
+	configs[DebianIptables] = Config{list.BuildImageRegistry, "debian-iptables", "buster-v1.6.7"}
 	configs[EchoServer] = Config{list.PromoterE2eRegistry, "echoserver", "2.3"}
 	configs[Etcd] = Config{list.GcEtcdRegistry, "etcd", "3.4.13-0"}
 	configs[GlusterDynamicProvisioner] = Config{list.PromoterE2eRegistry, "glusterdynamic-provisioner", "v1.0"}
