@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/riskanalysis"
+	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -152,11 +153,19 @@ func runChaosmonkey(
 			fname := filepath.Join(framework.TestContext.ReportDir, fmt.Sprintf("junit_%s_%s.xml", packageName, timeSuffix))
 			f, err := os.Create(fname)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: Failed to write file %v: %v\n", fname, err)
+				fmt.Fprintf(os.Stderr, "error: Failed to create file %v: %v\n", fname, err)
 				return
 			}
 			defer f.Close()
-			xml.NewEncoder(f).Encode(testSuite)
+			out, err := xml.Marshal(testSuite)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: Failed to marshal junit: %v\n", err)
+				return
+			}
+			_, err = f.Write(test.StripANSI(out))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error: Failed to write file %v: %v\n", fname, err)
+			}
 
 			if err := riskanalysis.WriteJobRunTestFailureSummary(framework.TestContext.ReportDir, timeSuffix, testSuite); err != nil {
 				fmt.Fprintf(os.Stderr, "error: Failed to write file %v: %v\n", fname, err)
