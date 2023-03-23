@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"regexp"
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	v1 "k8s.io/api/core/v1"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/apis/audit"
 	"k8s.io/client-go/rest"
@@ -67,8 +69,7 @@ type BackendSampler struct {
 
 	// initHTTPClient ensures we only create the http client once
 	initHTTPClient sync.Once
-	// httpClient is used to connect to the host+path
-	httpClient *http.Client
+	rt             http.RoundTripper
 	// httpClientErr is the error (if we got one) from initHTTPClient.  This easier than retrying if we fail and probably
 	//	good enough for CI
 	httpClientErr error
@@ -247,73 +248,64 @@ func (b *BackendSampler) wrapWithAuth(rt http.RoundTripper) (http.RoundTripper, 
 	return transport.NewBearerAuthWithRefreshRoundTripper(b.bearerToken, b.bearerTokenFile, rt)
 }
 
-func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
+func (b *BackendSampler) setTransport() {
 	timeoutForEntireRequest := b.getTimeout()
 	timeoutForPartOfRequest := timeoutForEntireRequest / 2 // this is less so that we can see failures for individual portions of the request
 
-	b.initHTTPClient.Do(func() {
-		var httpTransport *http.Transport
-		switch b.GetConnectionType() {
-		case monitorapi.NewConnectionType:
-			httpTransport = &http.Transport{
-				Dial: (&net.Dialer{
-					Timeout:   timeoutForPartOfRequest,
-					KeepAlive: -1, // this looks unnecessary to me, but it was set in other code.
-				}).Dial,
-				TLSClientConfig:       b.getTLSConfig(),
-				DisableKeepAlives:     true, // this prevents connections from being reused
-				TLSHandshakeTimeout:   timeoutForPartOfRequest,
-				IdleConnTimeout:       timeoutForPartOfRequest,
-				ResponseHeaderTimeout: timeoutForPartOfRequest,
-				ExpectContinueTimeout: timeoutForPartOfRequest,
-				Proxy:                 http.ProxyFromEnvironment,
-			}
-
-		case monitorapi.ReusedConnectionType:
-			httpTransport = &http.Transport{
-				Dial: (&net.Dialer{
-					Timeout: timeoutForPartOfRequest,
-				}).Dial,
-				TLSClientConfig:       b.getTLSConfig(),
-				TLSHandshakeTimeout:   timeoutForPartOfRequest,
-				IdleConnTimeout:       timeoutForPartOfRequest,
-				ResponseHeaderTimeout: timeoutForPartOfRequest,
-				ExpectContinueTimeout: timeoutForPartOfRequest,
-				Proxy:                 http.ProxyFromEnvironment,
-			}
-
-		default:
-			b.httpClient = nil
-			b.httpClientErr = fmt.Errorf("unrecognized connection type")
-			return
+	var httpTransport *http.Transport
+	switch b.GetConnectionType() {
+	case monitorapi.NewConnectionType:
+		httpTransport = &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   timeoutForPartOfRequest,
+				KeepAlive: -1, // this looks unnecessary to me, but it was set in other code.
+			}).Dial,
+			TLSClientConfig:       b.getTLSConfig(),
+			DisableKeepAlives:     true, // this prevents connections from being reused
+			TLSHandshakeTimeout:   timeoutForPartOfRequest,
+			IdleConnTimeout:       timeoutForPartOfRequest,
+			ResponseHeaderTimeout: timeoutForPartOfRequest,
+			ExpectContinueTimeout: timeoutForPartOfRequest,
+			Proxy:                 http.ProxyFromEnvironment,
 		}
 
-		var err error
-		rt := http.RoundTripper(httpTransport)
-		rt, err = b.wrapWithAuth(rt)
-		if err != nil {
-			b.httpClient = nil
-			b.httpClientErr = err
-			return
-		}
-		if len(b.userAgent) > 0 {
-			rt = transport.NewUserAgentRoundTripper(b.userAgent, rt)
+	case monitorapi.ReusedConnectionType:
+		httpTransport = &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: timeoutForPartOfRequest,
+			}).Dial,
+			TLSClientConfig:       b.getTLSConfig(),
+			TLSHandshakeTimeout:   timeoutForPartOfRequest,
+			IdleConnTimeout:       timeoutForPartOfRequest,
+			ResponseHeaderTimeout: timeoutForPartOfRequest,
+			ExpectContinueTimeout: timeoutForPartOfRequest,
+			Proxy:                 http.ProxyFromEnvironment,
 		}
 
-		b.httpClient = &http.Client{
-			Transport: rt,
-			Timeout:   timeoutForEntireRequest,
-		}
-		b.httpClientErr = nil
-	})
+	default:
+		b.httpClientErr = fmt.Errorf("unrecognized connection type")
+		return
+	}
 
-	return b.httpClient, b.httpClientErr
+	rt := http.RoundTripper(httpTransport)
+	rt, b.httpClientErr = b.wrapWithAuth(rt)
+	if b.httpClientErr == nil {
+		b.rt = rt
+	}
+}
+
+type RoundTripperFunc func(req *http.Request) (*http.Response, error)
+
+func (r RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return r(req)
 }
 
 func (b *BackendSampler) checkConnection(ctx context.Context) (string, error) {
-	httpClient, err := b.GetHTTPClient()
-	if err != nil {
-		return "", err
+	b.initHTTPClient.Do(func() {
+		b.setTransport()
+	})
+	if b.httpClientErr != nil {
+		return "", b.httpClientErr
 	}
 
 	url, err := b.GetURL()
@@ -333,7 +325,30 @@ func (b *BackendSampler) checkConnection(ctx context.Context) (string, error) {
 	uid := uuid.New().String()
 	req.Header.Set(audit.HeaderAuditID, uid)
 
-	resp, getErr := httpClient.Do(req)
+	var reused bool
+	trace := &httptrace.ClientTrace{
+		GotConn: func(ci httptrace.GotConnInfo) {
+			if ci.Reused {
+				reused = true
+			}
+		},
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+	rt := RoundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		agent := req.Header.Get("User-Agent")
+		if len(agent) != 0 {
+			return b.rt.RoundTrip(req)
+		}
+		req = utilnet.CloneRequest(req)
+		req.Header.Set("User-Agent", fmt.Sprintf("%s/reusing-connection=%t", b.userAgent, reused))
+		return b.rt.RoundTrip(req)
+	})
+
+	client := &http.Client{
+		Transport: rt,
+		Timeout:   b.getTimeout() / 2, // this is less so that we can see failures for individual portions of the request
+	}
+	resp, getErr := client.Do(req)
 	if requestContext.Err() == context.Canceled {
 		// this isn't an error, we were simply cancelled
 		return uid, nil
