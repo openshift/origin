@@ -91,15 +91,9 @@ func buildLogGatherers() []PodLogIntervalGenerator {
 			container: "etcd",
 			subStrings: []SubStringLevel{
 				{"slow fdatasync", monitorapi.Warning},
-			},
-			lineParser: etcdLogParser,
-		},
-		{
-			namespace: "openshift-etcd",
-			selector:  "app=etcd",
-			container: "etcd",
-			subStrings: []SubStringLevel{
 				{"dropped internal Raft message since sending buffer is full", monitorapi.Warning},
+				{"waiting for ReadIndex response took too long, retrying", monitorapi.Warning},
+				{"apply request took too long", monitorapi.Warning},
 			},
 			lineParser: etcdLogParser,
 		},
