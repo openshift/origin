@@ -580,7 +580,9 @@ func (c *CLI) RESTMapper() meta.RESTMapper {
 func (c *CLI) setupStaticConfigsFromManifests() {
 	if len(c.staticConfigManifestDir) > 0 {
 		err, objects := collectConfigManifestsFromDir(c.staticConfigManifestDir)
-		o.Expect(err).ToNot(o.HaveOccurred())
+		if err != nil {
+			panic(err)
+		}
 		c.configObjects = objects
 	}
 }
