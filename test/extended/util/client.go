@@ -116,10 +116,11 @@ type resourceRef struct {
 // framework. It can be called inside of a Ginkgo .It() function.
 func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
 	cli := &CLI{
-		kubeFramework:   kubeFramework,
-		username:        "admin",
-		execPath:        "oc",
-		adminConfigPath: KubeConfigPath(),
+		kubeFramework:           kubeFramework,
+		username:                "admin",
+		execPath:                "oc",
+		adminConfigPath:         KubeConfigPath(),
+		staticConfigManifestDir: StaticConfigManifestDir(),
 	}
 	// Called only once (assumed the objects will never get modified)
 	// TODO: run in every BeforeEach
