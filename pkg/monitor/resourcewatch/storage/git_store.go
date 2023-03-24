@@ -220,6 +220,11 @@ func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
 	output, err := osCommand.CombinedOutput()
 	if err != nil {
 		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
+		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
+		// so simply remove the lock file.
+		if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
+			klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+		}
 		return err
 	}
 
@@ -237,6 +242,11 @@ func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 	output, err := osCommand.CombinedOutput()
 	if err != nil {
 		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
+		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
+		// so simply remove the lock file.
+		if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
+			klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+		}
 		return err
 	}
 
@@ -254,6 +264,11 @@ func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
 	output, err := osCommand.CombinedOutput()
 	if err != nil {
 		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
+		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
+		// so simply remove the lock file.
+		if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
+			klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+		}
 		return err
 	}
 
