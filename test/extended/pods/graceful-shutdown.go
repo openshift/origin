@@ -27,7 +27,7 @@ import (
 const (
 	successPodName     = "success-grace-period-pod"
 	errorPodName       = "error-grace-period-pod"
-	namespace          = "openshift-graceful-shutdown-testbed"
+	namespace          = "graceful-shutdown-testbed"
 	serviceAccountName = "graceful-shutdown"
 	hostPath           = "/var/graceful-shutdown"
 )
@@ -36,7 +36,6 @@ var (
 	testPodLabel = map[string]string{"graceful-restart-helper": ""}
 )
 
-// Helper script to catch SIGTERM and force a wait period
 const (
 	busyScript = `
 #!/bin/bash
@@ -73,65 +72,67 @@ ls /host/$hostPath
 `
 )
 
-var _ = Describe("[sig-node][Disruptive][Suite:openshift/pods/graceful-shutdown]", Ordered, func() {
+var _ = Describe("[sig-node][Disruptive][Feature:KubeletGracefulShutdown]", func() {
 
 	var (
-		oc   = exutil.NewCLIWithoutNamespace("pod").SetNamespace(namespace)
-		node *corev1.Node
+		oc           = exutil.NewCLIWithoutNamespace("pod").AsAdmin()
+		node         *corev1.Node
+		successPod   *corev1.Pod
+		errorPod     *corev1.Pod
+		outputString string
 	)
 
-	BeforeAll(func() {
+	It("Kubelet with graceful shutdown configuration should respect pods termination grace period", func() {
 		ctx := context.Background()
 
 		createTestBed(ctx, oc)
 
-		nodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker="})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(nodes.Items).NotTo(HaveLen(0))
-		node = &nodes.Items[0]
-
-		// Currently hard coded values
-		// TODO: Add dynamic support for current existing kubelet config.
-		// renderedConfigName := node.Labels["machineconfiguration.openshift.io/currentConfig"]
-		successPod := gracefulPodSpec(successPodName, node.Name, time.Minute*2)
-		errorPod := gracefulPodSpec(errorPodName, node.Name, time.Minute*10)
-
-		// Create two test pods
-		_, err = oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Create(ctx, successPod, metav1.CreateOptions{})
-		if !apierrors.IsAlreadyExists(err) {
+		By("getting first worker node", func() {
+			nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker="})
 			Expect(err).NotTo(HaveOccurred())
-		}
+			Expect(nodes.Items).NotTo(HaveLen(0))
+			node = &nodes.Items[0]
+		})
 
-		_, err = oc.AsAdmin().KubeClient().CoreV1().Pods(namespace).Create(ctx, errorPod, metav1.CreateOptions{})
-		if !apierrors.IsAlreadyExists(err) {
-			Expect(err).NotTo(HaveOccurred())
-		}
+		By("creating two pods with in range and out of range of grace periods", func() {
+			// Currently hard coded values
+			// TODO: Add dynamic support for current existing kubelet config.
+			// TODO: Maybe read rendered config ex: renderedConfigName := node.Labels["machineconfiguration.openshift.io/currentConfig"]
+			successPod = gracefulPodSpec(successPodName, node.Name, time.Minute*2)
+			errorPod = gracefulPodSpec(errorPodName, node.Name, time.Minute*10)
+			// Create two test pods
+			_, err := oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, successPod, metav1.CreateOptions{})
+			if !apierrors.IsAlreadyExists(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
 
-		// Wait for pods to be running
-		_, err = exutil.WaitForPods(
-			oc.AdminKubeClient().CoreV1().Pods(namespace),
-			labels.SelectorFromSet(testPodLabel),
-			exutil.CheckPodIsRunning, 2, time.Second*60)
-		Expect(err).NotTo(HaveOccurred(), "unable to wait for pods")
+			_, err = oc.KubeClient().CoreV1().Pods(namespace).Create(ctx, errorPod, metav1.CreateOptions{})
+			if !apierrors.IsAlreadyExists(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			// Wait for pods to be running
+			_, err = exutil.WaitForPods(
+				oc.KubeClient().CoreV1().Pods(namespace),
+				labels.SelectorFromSet(testPodLabel),
+				exutil.CheckPodIsRunning, 2, time.Second*60)
+			Expect(err).NotTo(HaveOccurred(), "unable to wait for pods")
+		})
 
-		// Reboot node
-		err = triggerReboot(oc, node.Name)
-		if !apierrors.IsAlreadyExists(err) {
-			Expect(err).NotTo(HaveOccurred())
-		}
-	})
-
-	Describe("Kubelet with graceful shutdown configuration", Ordered, func() {
-		var outputString = ""
-
-		BeforeAll(func() {
+		By("triggering node reboot", func() {
+			// Reboot node
+			err := triggerReboot(oc, node.Name)
+			if !apierrors.IsAlreadyExists(err) {
+				Expect(err).NotTo(HaveOccurred())
+			}
 			// Wait for node to be rebooted before examining with debug pod
-			err := waitForNode(oc, node.Name)
+			err = waitForNode(oc, node.Name)
 			Expect(err).NotTo(HaveOccurred(), "unable to watch node for status ready")
+		})
 
+		By("creating debug pod to gather files on the node", func() {
 			// We only need to query the node once and `ls` the desired directory.
 			// We can then determine the correct behavior by which file was written.
-			err = wait.Poll(time.Second, time.Second*60, func() (done bool, err error) {
+			err := wait.Poll(time.Second, time.Second*60, func() (done bool, err error) {
 				outputString, err = debugPod(oc, node.Name)
 				// If output contains the below errors, retry
 				if err != nil && strings.Contains(outputString, "unable to create the debug pod") {
@@ -139,24 +140,15 @@ var _ = Describe("[sig-node][Disruptive][Suite:openshift/pods/graceful-shutdown]
 				}
 				return true, err
 			})
-
 			Expect(err).NotTo(HaveOccurred(), "was not able to ls directory %s", hostPath)
 		})
 
-		Context("pod with grace period under kubelet range", func() {
-			It("should have it's grace period respected", func() {
-				Expect(outputString).To(ContainSubstring("%s", successPodName))
-			})
-		})
+		Expect(outputString).To(ContainSubstring("%s", successPodName))
 
-		Context("pod with grace period over kubelet range", func() {
-			It("should be force terminated", func() {
-				Expect(outputString).NotTo(ContainSubstring("%s", errorPodName))
-			})
-		})
+		Expect(outputString).NotTo(ContainSubstring("%s", errorPodName))
 	})
 
-	AfterAll(func() {
+	AfterEach(func() {
 		deleteTestBed(context.Background(), oc)
 	})
 })
@@ -368,6 +360,10 @@ func createTestBed(ctx context.Context, oc *exutil.CLI) {
 	Expect(err).NotTo(HaveOccurred())
 	err = callRBAC(ctx, oc, true)
 	Expect(err).NotTo(HaveOccurred())
+	err = exutil.WaitForServiceAccountWithSecret(
+		oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace),
+		serviceAccountName)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func deleteTestBed(ctx context.Context, oc *exutil.CLI) {
@@ -382,7 +378,7 @@ func deleteTestBed(ctx context.Context, oc *exutil.CLI) {
 func callRBAC(ctx context.Context, oc *exutil.CLI, create bool) error {
 	obj := &authv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "default-priv",
+			Name:      serviceAccountName,
 			Namespace: namespace,
 		},
 		RoleRef: corev1.ObjectReference{
@@ -392,7 +388,7 @@ func callRBAC(ctx context.Context, oc *exutil.CLI, create bool) error {
 		Subjects: []corev1.ObjectReference{
 			{
 				Kind:      rbacv1.ServiceAccountKind,
-				Name:      "default",
+				Name:      serviceAccountName,
 				Namespace: namespace,
 			},
 		},

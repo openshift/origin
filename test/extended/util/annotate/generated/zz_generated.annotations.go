@@ -3079,9 +3079,7 @@ var Annotations = map[string]string{
 
 	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-node][Disruptive][Suite:openshift/pods/graceful-shutdown] Kubelet with graceful shutdown with grace period out of range should force terminate pod": " [Serial]",
-
-	"[sig-node][Disruptive][Suite:openshift/pods/graceful-shutdown] Kubelet with graceful shutdown with grace period with in range should respect a pods graceful termination": " [Serial]",
+	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
 	"[sig-node][Late] should not have pod creation failures due to systemd timeouts": " [Suite:openshift/conformance/parallel]",
 
