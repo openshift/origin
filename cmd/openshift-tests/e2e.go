@@ -138,7 +138,8 @@ var staticSuites = testSuites{
 		TestSuite: ginkgo.TestSuite{
 			Name: "openshift/disruptive",
 			Description: templates.LongDesc(`
-		The disruptive test suite.
+		The disruptive test suite.  Disruptive tests interrupt the cluster function such as by stopping/restarting the control plane or 
+		changing the global cluster configuration in a way that can affect other tests.
 		`),
 			Matches: func(name string) bool {
 				if isDisabled(name) {
