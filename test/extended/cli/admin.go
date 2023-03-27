@@ -15,6 +15,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/test/extended/testdata"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -526,6 +527,13 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(out).To(o.MatchRegexp(`default/busybox\W+653\.4KiB\W+1\W+1`))
 
 		oc.Run("delete").Args("-f", stableBusyboxPath).Execute()
+	})
+
+	g.It("release extract image-references", func() {
+		expected := string(testdata.MustAsset("test/extended/testdata/cli/test-release-image-references.json"))
+		out, err := oc.Run("adm", "release", "extract").Args("--file", "image-references", "quay.io/openshift-release-dev/ocp-release:4.13.0-rc.0-x86_64").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.Equal(expected))
 	})
 
 	// TODO (soltysh): sync with Standa and figure out if we can get these

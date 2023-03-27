@@ -1431,6 +1431,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc adm policy [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc adm release extract image-references": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc adm role-reapers [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm role-selectors [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
