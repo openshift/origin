@@ -3,6 +3,7 @@ package networking
 import (
 	"context"
 	"fmt"
+	"net"
 
 	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -36,7 +37,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 	InOVNKubernetesContext(
 		func() {
 			g.It("should ensure egressfirewall is created", func() {
-				doEgressFwTest(egFwf, egFwoc, oVNKManifest)
+				doEgressFwTest(egFwf, egFwoc, oVNKManifest, true)
 			})
 		},
 	)
@@ -44,7 +45,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 	InOpenShiftSDNContext(
 		func() {
 			g.It("should ensure egressnetworkpolicy is created [apigroup:network.openshift.io]", func() {
-				doEgressFwTest(egFwf, egFwoc, openShiftSDNManifest)
+				doEgressFwTest(egFwf, egFwoc, openShiftSDNManifest, false)
 			})
 		},
 	)
@@ -80,7 +81,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 	})
 })
 
-func doEgressFwTest(f *e2e.Framework, oc *exutil.CLI, manifest string) error {
+func doEgressFwTest(f *e2e.Framework, oc *exutil.CLI, manifest string, nodeSelectorSupport bool) error {
 	g.By("creating test pod")
 	o.Expect(createTestEgressFw(f, egressFWTestPod)).To(o.Succeed())
 
@@ -97,14 +98,14 @@ func doEgressFwTest(f *e2e.Framework, oc *exutil.CLI, manifest string) error {
 	err := oc.AsAdmin().Run("create").Args("-f", egFwYaml).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred(), "created egress-firewall object")
 
-	o.Expect(sendEgressFwTraffic(f, oc, egressFWTestPod)).To(o.Succeed())
+	o.Expect(sendEgressFwTraffic(f, oc, egressFWTestPod, nodeSelectorSupport)).To(o.Succeed())
 
 	g.By("deleting test pod")
 	deleteTestEgressFw(f)
 	return err
 }
 
-func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string) error {
+func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string, nodeSelectorSupport bool) error {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 
@@ -132,6 +133,28 @@ func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string) error {
 	g.By("sending traffic that does not match allow dns rule")
 	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "http://www.google.com:80").Output()
 	expectError(err)
+
+	if nodeSelectorSupport {
+		// Access to control plane nodes should work
+		g.By("sending traffic to control plane nodes should work")
+		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.TODO(),
+			metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/control-plane"})
+		expectNoError(err)
+		for _, node := range nodes.Items {
+			var nodeIP string
+			for _, ip := range node.Status.Addresses {
+				if ip.Type == kapiv1.NodeInternalIP && len(ip.Address) > 0 {
+					nodeIP = ip.Address
+					break
+				}
+			}
+			e2e.ExpectNotEqual(len(nodeIP), 0)
+			hostPort := net.JoinHostPort(nodeIP, "6443")
+			url := fmt.Sprintf("https://%s", hostPort)
+			_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "-k", url).Output()
+			expectNoError(err)
+		}
+	}
 	return nil
 }
 
