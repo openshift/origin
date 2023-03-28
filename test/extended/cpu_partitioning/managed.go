@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	ocpv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -109,9 +110,6 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			e = createDeployment(oc, name, namespace, deploymentLabels, deploymentPodAnnotation)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating pinned deployment")
 
-			d, e := oc.KubeClient().AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
-			o.Expect(e).ToNot(o.HaveOccurred(), "error getting deployment")
-
 			switch {
 			case !isClusterCPUPartitioned:
 				_, e = exutil.WaitForPods(
@@ -122,15 +120,22 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 				o.Expect(e).ToNot(o.HaveOccurred(), "error waiting for pod")
 			default:
 				failureMessage := ""
-				foundError := false
-				for _, condition := range d.Status.Conditions {
-					if condition.Reason == "FailedCreate" {
-						failureMessage = condition.Message
-						foundError = true
-						break
+				// Sometimes querying a deployment can be faster than it takes to update the status of that deployment,
+				// we poll here to avoid that scenario.
+				err := wait.Poll(3*time.Second, time.Second*30, func() (bool, error) {
+					d, e := oc.KubeClient().AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+					if e != nil {
+						return false, e
 					}
-				}
-				o.Expect(foundError).To(o.BeTrue(), "expected the deployment to fail in cpu partitioned cluster")
+					for _, condition := range d.Status.Conditions {
+						if condition.Reason == "FailedCreate" {
+							failureMessage = condition.Message
+							return true, nil
+						}
+					}
+					return false, nil
+				})
+				o.Expect(err).ToNot(o.HaveOccurred(), "error getting deployment")
 				o.Expect(failureMessage).To(
 					o.ContainSubstring(
 						"is forbidden: autoscaling.openshift.io/ManagementCPUsOverride the pod namespace \"%s\" does not allow the workload type",
