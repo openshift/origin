@@ -23,10 +23,10 @@ func DisruptionEndedMessage(locator string, connectionType monitorapi.BackendCon
 	}
 }
 
-// dnsLookupRegex is a specific error we often see when sampling for disruption, which indicates a DNS
+// DnsLookupRegex is a specific error we often see when sampling for disruption, which indicates a DNS
 // problem in the cluster running openshift-tests, not real disruption in the cluster under test.
 // Used to downgrade to a warning instead of an error, and omitted from final disruption numbers and testing.
-var dnsLookupRegex = regexp.MustCompile(`dial tcp: lookup.*: i/o timeout`)
+var DnsLookupRegex = regexp.MustCompile(`dial tcp: lookup.*: i/o timeout`)
 
 const (
 	DisruptionBeganEventReason              = "DisruptionBegan"
@@ -37,7 +37,7 @@ const (
 // DisruptionBegan examines the error received, attempts to determine if it looks like real disruption to the cluster under test,
 // or other problems possibly on the system running the tests/monitor, and returns an appropriate user message, event reason, and monitoring level.
 func DisruptionBegan(locator string, connectionType monitorapi.BackendConnectionType, err error) (string, string, monitorapi.EventLevel) {
-	if dnsLookupRegex.MatchString(err.Error()) {
+	if DnsLookupRegex.MatchString(err.Error()) {
 		switch connectionType {
 		case monitorapi.NewConnectionType:
 			return fmt.Sprintf("reason/%s DNS lookup timeouts began for %s GET requests over new connections: %v (likely a problem in cluster running tests, not the cluster under test)",

@@ -80,6 +80,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testErrImagePullUnrecognizedSignatureFormat(events)...)
 	tests = append(tests, testEtcdShouldNotLogSlowFdataSyncs(events)...)
 	tests = append(tests, testEtcdShouldNotLogDroppedRaftMessages(events)...)
+	tests = append(tests, testDNSOverlapDisruption(events)...)
 	return tests
 }
 
@@ -153,6 +154,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testEtcdShouldNotLogSlowFdataSyncs(events)...)
 	tests = append(tests, testEtcdShouldNotLogDroppedRaftMessages(events)...)
 	tests = append(tests, testMasterNodesUpdated(events)...)
+	tests = append(tests, testDNSOverlapDisruption(events)...)
 	return tests
 }
 
