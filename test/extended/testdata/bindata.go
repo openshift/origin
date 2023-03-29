@@ -50029,20 +50029,23 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     <div id="search" class="form-group">
         <form>
             <div class="form-row" id="positive-selection-header-row">
+                <div class="form-group col-md-2" id="not-column">
+                    <label for="not_1">Not</label>
+                </div>
                 <div class="form-group col-md-2" id="regex-column">
-                    <label for="filterInput_1">General RegExp</label>
+                    <label for="filterInput">General RegExp</label>
                 </div>
                 <div class="form-group col-md-2" id="lodash-column">
-                    <label for="lodash_1"><a href="https://www.geeksforgeeks.org/lodash-_-matches-method/" target="_blank">Lodash Match String</a></label>
+                    <label for="lodash"><a href="https://www.geeksforgeeks.org/lodash-_-matches-method/">Lodash Match String</a></label>
                 </div>
                 <div class="form-group col-md-2" id="namespace-column">
-                    <label for="namespace_1">Namespace</label>
+                    <label for="namespace">Namespace</label>
                 </div>
                 <div class="form-group col-md-2" id="category-column">
-                    <label for="category_1">Category</label>
+                    <label for="category">Category</label>
                 </div>
             </div>
-            <small class="positive-filter-form form-text text-muted">If any input matches an event it will be displayed. If all inputs are empty it will show all events.</small>
+            <small class="positive-filter-form form-text text-muted">For each line, if all inputs match an event it will be displayed.  If any line matches, an event will displayed.  Nots are evaluated last.  Without any filter, everything is displayed.</small>
         </form>
     </div>
 </div>
@@ -50080,6 +50083,9 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     }, 250);
 
 
+    notInputTemplate = ` + "`" + `
+                    <input class="positive-selection-fields form-control form-control-sm" type="checkbox" id="not_INPUT_NUMBER">
+` + "`" + `
     regexInputTemplate = ` + "`" + `
                     <input class="positive-selection-fields form-control form-control-sm" type="text" id="filterInput_INPUT_NUMBER">
 ` + "`" + `
@@ -50107,8 +50113,10 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
                     </select>
 ` + "`" + `
 
-    numPositiveSelectors = 5
+
+    numPositiveSelectors = 10
     for (i = 0; i < numPositiveSelectors; i++){
+        $( "#not-column" ).append(notInputTemplate.replaceAll("INPUT_NUMBER", i))
         $( "#regex-column" ).append(regexInputTemplate.replaceAll("INPUT_NUMBER", i))
         $( "#lodash-column" ).append(lodashInputTemplate.replaceAll("INPUT_NUMBER", i))
         $( "#namespace-column" ).append(namespaceInputTemplate.replaceAll("INPUT_NUMBER", i))
@@ -50505,21 +50513,36 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
         var isSet = false
         var positiveSelectionRows = new Map();
+        var negativeSelectionRows = new Map();
         for (let i = 0; i < numPositiveSelectors; i++){
+            var not = $("#not_"+i).is(":checked")
             var category = $("#category_"+i).val()
             var lodash = $("#lodash_"+i).val()
             var ns = $("#namespace_"+i).val()
             var regexStr = $("#filterInput_"+i).val()
             var currIsSet = (regexStr.length != 0 || lodash.length != 0 ||  ns.length != 0 || category.length != 0)
-            positiveSelectionRows.set(i,
-                {
-                    isSet: currIsSet,
-                    lodash: lodash,
-                    regexStr: regexStr,
-                    regex: new RegExp(regexStr),
-                    namespace: ns,
-                    category: category
-                })
+            console.log("value of not " + not)
+            if (not){
+                negativeSelectionRows.set(i,
+                    {
+                        isSet: currIsSet,
+                        lodash: lodash,
+                        regexStr: regexStr,
+                        regex: new RegExp(regexStr),
+                        namespace: ns,
+                        category: category
+                    })
+            } else{
+                positiveSelectionRows.set(i,
+                    {
+                        isSet: currIsSet,
+                        lodash: lodash,
+                        regexStr: regexStr,
+                        regex: new RegExp(regexStr),
+                        namespace: ns,
+                        category: category
+                    })
+            }
 
             if (currIsSet) {
                 isSet = true
@@ -50548,23 +50571,39 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
                         matchCategory = positiveSelectionRow.category.length == 0 || eventInterval.categories[positiveSelectionRow.category]
                         matchLodash = true
                         if (positiveSelectionRow.lodash.length > 0){
-                            var matchLodash;
-                            matchLodash = false
-                            try {
-                                var parsedLodash;
-                                var lodashMatches;
-                                parsedLodash = JSON.parse(positiveSelectionRow.lodash);
-                                lodashMatches = _.filter([eventInterval], _.matches(parsedLodash));
-                                matchLodash = (lodashMatches.length > 0)
-                            } catch(e) {
-                                // whatever you want to do with the error handling to inform user its not valid
-                                // like change the input's outline to red
-                            }
+                            lodashMatches = _.filter([eventInterval], _.matches(JSON.parse(positiveSelectionRow.lodash)));
+                            matchLodash = (lodashMatches.length > 0)
                         }
-                        match = matchRegex && matchLodash && matchNS && matchCategory
+                        matchesPositive = matchRegex && matchLodash && matchNS && matchCategory
 
-                        if (match) {
-                            eventMatches = true;
+                        if (matchesPositive) {
+                            console.log("matched positive " + negativeSelectionRows.size)
+                            var exclude = false
+                            for (let [key, negativeSelectionRow] of negativeSelectionRows) {
+                                if (negativeSelectionRow.isSet){
+                                    console.log("checking negative")
+                                    matchRegex = negativeSelectionRow.regexStr.length == 0 || negativeSelectionRow.regex.test(eventInterval.locator)
+                                    matchNS = negativeSelectionRow.namespace.length == 0 || eventInterval.locatorObj.ns && eventInterval.locatorObj.ns.includes(negativeSelectionRow.namespace)
+                                    matchCategory = negativeSelectionRow.category.length == 0 || eventInterval.categories[negativeSelectionRow.category]
+                                    matchLodash = true
+                                    if (negativeSelectionRow.lodash.length > 0){
+                                        lodashMatches = _.filter([eventInterval], _.matches(JSON.parse(negativeSelectionRow.lodash)));
+                                        matchLodash = (lodashMatches.length > 0)
+                                    }
+                                    matchesNegative = matchRegex && matchLodash && matchNS && matchCategory
+
+                                    if (matchesNegative) {
+                                        exclude = true
+                                        break
+                                    }
+                                }
+                            }
+
+                            if (exclude) {
+                            } else{
+                                eventMatches = true;
+                                break
+                            }
                         }
                     }
                 }
