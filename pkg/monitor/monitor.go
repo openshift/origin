@@ -187,6 +187,13 @@ func (m *Monitor) Record(conditions ...monitorapi.Condition) {
 	}
 }
 
+// AddIntervals provides a mechanism to directly inject eventIntervals
+func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.EventInterval) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	m.events = append(m.events, eventIntervals...)
+}
+
 // StartInterval inserts a record at time t with the provided condition and returns an opaque
 // locator to the interval. The caller may close the sample at any point by invoking EndInterval().
 func (m *Monitor) StartInterval(t time.Time, condition monitorapi.Condition) int {

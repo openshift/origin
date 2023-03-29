@@ -5,6 +5,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
+
 	"github.com/openshift/origin/pkg/monitor/nodedetails"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -65,6 +67,12 @@ func InsertIntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, st
 		allErrors = append(allErrors, err)
 	}
 	ret = append(ret, podLogIntervals...)
+
+	apiserverAvailabilityIntervals, err := apiserveravailability.APIServerAvailabilityIntervalsFromCluster(kubeClient, from, to)
+	if err != nil {
+		allErrors = append(allErrors, err)
+	}
+	ret = append(ret, apiserverAvailabilityIntervals...)
 
 	auditLogSummary, auditEvents, err := IntervalsFromAuditLogs(ctx, kubeClient, from, to)
 	if err != nil {

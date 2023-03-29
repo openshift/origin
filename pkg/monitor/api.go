@@ -8,6 +8,7 @@ import (
 	"time"
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +18,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 )
 
 func GetMonitorRESTConfig() (*rest.Config, error) {
@@ -47,6 +49,13 @@ func Start(ctx context.Context, restConfig *rest.Config, additionalEventInterval
 			return nil, err
 		}
 	}
+
+	// read the state of the cluster apiserver client access issues *before* any test (like upgrade) begins
+	intervals, err := apiserveravailability.APIServerAvailabilityIntervalsFromCluster(client, time.Time{}, time.Time{})
+	if err != nil {
+		klog.Errorf("error reading initial apiserver availability: %v", err)
+	}
+	m.AddIntervals(intervals...)
 
 	startPodMonitoring(ctx, m, client)
 	startNodeMonitoring(ctx, m, client)
