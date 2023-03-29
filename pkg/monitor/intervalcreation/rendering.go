@@ -79,9 +79,6 @@ func (r eventIntervalRenderer) writeEventData(artifactDir, filenameBase string, 
 }
 
 func BelongsInEverything(eventInterval monitorapi.EventInterval) bool {
-	if IsPodLifecycle(eventInterval) { // there are just too many
-		return false
-	}
 	return true
 }
 
