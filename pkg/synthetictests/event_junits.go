@@ -38,6 +38,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, TestAllAPIBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, TestAllIngressBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, TestExternalBackendsForDisruption(events, duration, jobType)...)
+	tests = append(tests, TestAPIServerIPTablesAccessDisruption(events)...)
 
 	tests = append(tests, testMultipleSingleSecondDisruptions(events)...)
 	tests = append(tests, testStableSystemOperatorStateTransitions(events)...)
@@ -128,6 +129,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, TestExternalBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, testMultipleSingleSecondDisruptions(events)...)
 	tests = append(tests, testNoDNSLookupErrorsInDisruptionSamplers(events)...)
+	tests = append(tests, TestAPIServerIPTablesAccessDisruption(events)...)
 
 	tests = append(tests, testNoExcessiveSecretGrowthDuringUpgrade()...)
 	tests = append(tests, testNoExcessiveConfigMapGrowthDuringUpgrade()...)

@@ -7,10 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
-	"k8s.io/klog/v2"
-
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +18,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 )
 
 func GetMonitorRESTConfig() (*rest.Config, error) {

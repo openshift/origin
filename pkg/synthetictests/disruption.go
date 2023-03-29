@@ -117,6 +117,48 @@ func testServerAvailability(
 	}
 }
 
+func TestAPIServerIPTablesAccessDisruption(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[bz-kube-apiserver] kube-apiserver should be accessible by clients using internal load balancer without iptables issues"
+	namespacesToCount := map[string]int{}
+	messages := []string{}
+	for _, event := range events {
+		reason := monitorapi.ReasonFrom(event.Message)
+		if !strings.Contains(reason, "iptables-operation-not-permitted") {
+			continue
+		}
+		ns := monitorapi.NamespaceFromLocator(event.Locator)
+		namespacesToCount[ns] = namespacesToCount[ns] + 1
+		messages = append(messages, event.String())
+	}
+
+	var tests []*junitapi.JUnitTestCase
+	successTest := &junitapi.JUnitTestCase{
+		Name: testName,
+	}
+	if len(messages) > 0 {
+		failureOutput := ""
+		for _, ns := range sets.StringKeySet(namespacesToCount).List() {
+			failureOutput += fmt.Sprintf("namespace/%v has %d instances of 'write: operation not permitted'\n", ns, namespacesToCount[ns])
+		}
+		failureOutput += "\n\n"
+		failureOutput += strings.Join(messages, "\n")
+
+		failureTest := &junitapi.JUnitTestCase{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: failureOutput,
+			},
+		}
+		tests = append(tests, failureTest)
+		tests = append(tests, successTest) // ensures we only flake, no fail.  so far.
+
+	} else {
+		tests = append(tests, successTest) // ensures we have success when appropriate
+	}
+	return tests
+
+}
+
 func TestAllAPIBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, jobType *platformidentification.JobType) []*junitapi.JUnitTestCase {
 	disruptLocators := sets.String{}
 	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)

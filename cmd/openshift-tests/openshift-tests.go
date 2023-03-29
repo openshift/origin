@@ -13,24 +13,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
-
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
-	"github.com/sirupsen/logrus"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	utilflag "k8s.io/component-base/cli/flag"
-	"k8s.io/component-base/logs"
-	"k8s.io/klog/v2"
-	"k8s.io/kubectl/pkg/util/templates"
-
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
+	"github.com/openshift/origin/pkg/monitor/nodedetails"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
@@ -40,6 +28,14 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/util/templates"
 )
 
 func main() {
