@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
+
 	"github.com/openshift/origin/pkg/monitor/nodedetails"
 	"github.com/sirupsen/logrus"
 
@@ -147,6 +149,7 @@ func newMonitorCommand() *cobra.Command {
 	}
 	cmd.AddCommand(
 		nodedetails.AuditLogSummaryCommand(),
+		apiserveravailability.LogSummaryCommand(),
 	)
 	return cmd
 }
