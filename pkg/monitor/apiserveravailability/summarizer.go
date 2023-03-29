@@ -30,7 +30,7 @@ func timeFromPodLogTime(line string) time.Time {
 }
 
 func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator, line string) {
-	if strings.Contains(line, "write: operation not permitted") {
+	if strings.Contains(line, "due to client-side throttling") {
 		timeOfLog := timeFromPodLogTime(line)
 		// TODO collapse all in the same second into a single interval
 		event := monitorapi.EventInterval{
