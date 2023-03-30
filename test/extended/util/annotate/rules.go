@@ -85,7 +85,7 @@ var (
 			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes`,
 
 			// https://issues.redhat.com/browse/WRKLDS-665
-			`\[sig-scheduling\] SchedulerPreemption \[Serial\] validates pod disruption condition is added to the preempted pod`,
+			// `\[sig-scheduling\] SchedulerPreemption \[Serial\] validates pod disruption condition is added to the preempted pod`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
