@@ -42898,6 +42898,11 @@ spec:
   - type: Allow
     to:
       cidrSelector: 8.8.8.8/32
+  - type: Allow
+    to:
+      nodeSelector:
+        matchLabels:
+          node-role.kubernetes.io/control-plane: ''
   - type: Deny
     to:
       cidrSelector: 0.0.0.0/0
