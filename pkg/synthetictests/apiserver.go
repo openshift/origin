@@ -45,3 +45,30 @@ func testOauthApiserverProbeErrorConnectionRefused(events monitorapi.Intervals) 
 	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiiness probe due to connection refused"
 	return makeProbeTest(testName, events, duplicateevents.ProbeErrorConnectionRefusedRegExpStr, "openshift-oauth-apiserver", duplicateevents.DuplicateEventThreshold)
 }
+
+func testKubeApiServerShouldNotLogRetryUnaryFailedMessages(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-api-machinery] kube-apiserver pod logs do not log retry unary failed messages"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "retrying of unary invoker failed") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("kube-apiserver pod logs retry unary failed messages"+
+				"%d times.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+	// TODO: marked flaky until we have monitored it for consistency
+	return []*junitapi.JUnitTestCase{failure, success}
+}

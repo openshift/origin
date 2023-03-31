@@ -83,6 +83,34 @@ func etcdLogParser(locator, line string, level monitorapi.EventLevel, logger log
 	}, nil
 }
 
+type kubeApiServerLogLine struct {
+	Level     string    `json:"level"`
+	Timestamp time.Time `json:"ts"`
+	Msg       string    `json:"msg"`
+}
+
+// kubeApiServerLogParser handles kube-apiserver logs, which seems to be a mix of json formated and non-formated lines. For now
+// we are only interested in json formated lines like:
+//
+// {"level":"warn","ts":"2023-03-30T01:38:49.660Z","logger":"etcd-client","caller":"v3/retry_interceptor.go:62","msg":"retrying of unary invoker failed","target":"etcd-endpoints://0xc004b32380/10.0.0.6:2379","attempt":0,"error":"rpc error: code = DeadlineExceeded desc = context deadline exceeded"}
+func kubeApiServerLogParser(locator, line string, level monitorapi.EventLevel, logger logrus.FieldLogger) (*monitorapi.EventInterval, error) {
+	parsedLine := kubeApiServerLogLine{}
+	err := json.Unmarshal([]byte(line), &parsedLine)
+	if err != nil {
+		// expected
+		return nil, nil
+	}
+	return &monitorapi.EventInterval{
+		Condition: monitorapi.Condition{
+			Level:   level,
+			Locator: locator,
+			Message: parsedLine.Msg,
+		},
+		From: parsedLine.Timestamp,
+		To:   parsedLine.Timestamp.Add(1 * time.Second),
+	}, nil
+}
+
 func buildLogGatherers() []PodLogIntervalGenerator {
 	return []PodLogIntervalGenerator{
 		{
@@ -96,6 +124,15 @@ func buildLogGatherers() []PodLogIntervalGenerator {
 				{"apply request took too long", monitorapi.Warning},
 			},
 			lineParser: etcdLogParser,
+		},
+		{
+			namespace: "openshift-kube-apiserver",
+			selector:  "app=openshift-kube-apiserver",
+			container: "kube-apiserver",
+			subStrings: []SubStringLevel{
+				{"retrying of unary invoker failed", monitorapi.Warning},
+			},
+			lineParser: kubeApiServerLogParser,
 		},
 	}
 }

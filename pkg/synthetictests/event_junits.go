@@ -78,6 +78,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testErrImagePullUnrecognizedSignatureFormat(events)...)
 	tests = append(tests, testEtcdShouldNotLogSlowFdataSyncs(events)...)
 	tests = append(tests, testEtcdShouldNotLogDroppedRaftMessages(events)...)
+	tests = append(tests, testKubeApiServerShouldNotLogRetryUnaryFailedMessages(events)...)
 	return tests
 }
 
@@ -148,6 +149,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testErrImagePullUnrecognizedSignatureFormat(events)...)
 	tests = append(tests, testEtcdShouldNotLogSlowFdataSyncs(events)...)
 	tests = append(tests, testEtcdShouldNotLogDroppedRaftMessages(events)...)
+	tests = append(tests, testKubeApiServerShouldNotLogRetryUnaryFailedMessages(events)...)
 	return tests
 }
 
