@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -14,6 +15,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/onsi/ginkgo/v2"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -159,6 +162,12 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 	if err != nil {
 		return err
 	}
+
+	// this ensures the tests are always run in random order to avoid
+	// any intra-tests dependencies
+	suiteConfig, _ := ginkgo.GinkgoConfiguration()
+	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
+	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
 	discoveryClient, err := getDiscoveryClient()
 	if err != nil {
