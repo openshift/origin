@@ -72,10 +72,17 @@ func newTestCaseFromGinkgoSpec(spec types.TestSpec) (*testCase, error) {
 }
 
 type testCase struct {
-	name      string
-	spec      types.TestSpec
-	locations []types.CodeLocation
-	apigroups []string
+	// name is the fully labeled test name as reported by openshift-tests
+	// this is being used for placing tests in buckets, as well as filtering
+	// them out based suite being currently executed
+	name string
+	// rawName is the name as reported by external binary
+	rawName string
+	// binaryName is the name of the external binary
+	binaryName string
+	spec       types.TestSpec
+	locations  []types.CodeLocation
+	apigroups  []string
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string
