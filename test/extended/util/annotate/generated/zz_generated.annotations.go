@@ -887,6 +887,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:SecurityContextConstraints]  TestPodUpdateSCCEnforcement with service account": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:SecurityContextConstraints]  Websocket requests to pods/exec are subject to security.openshift.io/SCCExecRestrictions": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:UserAPI] groups should work [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:UserAPI] users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
