@@ -63,6 +63,10 @@ func (r eventIntervalRenderer) writeEventData(artifactDir, filenameBase string, 
 
 	}
 	e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
+	// choosing to intercept here because it should be temporary until TRT transitions to a new mechanism to display these intervals.
+	if !strings.Contains(r.name, "spyglass") {
+		e2eChartTemplate = testdata.MustAsset("e2echart/non-spyglass-e2e-chart-template.html")
+	}
 	e2eChartTitle := fmt.Sprintf("Intervals - %s%s", r.name, timeSuffix)
 	e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_TITLE_GOES_HERE"), []byte(e2eChartTitle))
 	e2eChartHTML = bytes.ReplaceAll(e2eChartHTML, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
@@ -75,9 +79,6 @@ func (r eventIntervalRenderer) writeEventData(artifactDir, filenameBase string, 
 }
 
 func BelongsInEverything(eventInterval monitorapi.EventInterval) bool {
-	if IsPodLifecycle(eventInterval) { // there are just too many
-		return false
-	}
 	return true
 }
 
