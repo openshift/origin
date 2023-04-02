@@ -43,7 +43,7 @@ const (
 	egressUpdateTimeout = 180
 )
 
-var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.io]", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel(namespacePrefix, admissionapi.LevelPrivileged)
 	portAllocator := NewPortAllocator(egressIPTargetHostPortMin, egressIPTargetHostPortMax)
 

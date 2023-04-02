@@ -24,7 +24,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-http-echo-server.yaml")
