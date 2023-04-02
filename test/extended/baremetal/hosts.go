@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None/AWS/Azure/GCP platforms [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None/AWS/Azure/GCP platforms", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphe
 	})
 })
 
-var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("baremetal")
@@ -147,7 +147,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 
 // This block must be used for the serial tests. Any eventual extra worker deployed will be
 // automatically deleted during the AfterEach
-var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should [apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platform should", func() {
 	defer g.GinkgoRecover()
 
 	var (

@@ -233,7 +233,7 @@ func (test resourceAccessReviewTest) run() {
 	failMessage := ""
 	var err error
 
-	g.By("resourceAccessReviewTest - "+test.description+" [apigroup:config.openshift.io]", func() {
+	g.By("resourceAccessReviewTest - "+test.description, func() {
 		// keep trying the test until you get a success or you timeout.  Every time you have a failure, set the fail message
 		// so that if you never have a success, we can call t.Errorf with a reasonable message
 		// exiting the poll with `failMessage=""` indicates success.
@@ -314,7 +314,7 @@ func (test localResourceAccessReviewTest) run() {
 	failMessage := ""
 	var err error
 
-	g.By("localResourceAccessReviewTest - "+test.description+" [apigroup:authorization.openshift.io][apigroup:config.openshift.io]", func() {
+	g.By("localResourceAccessReviewTest - "+test.description+" [apigroup:authorization.openshift.io]", func() {
 		// keep trying the test until you get a success or you timeout.  Every time you have a failure, set the fail message
 		// so that if you never have a success, we can call t.Errorf with a reasonable message
 		// exiting the poll with `failMessage=""` indicates success.

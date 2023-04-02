@@ -203,7 +203,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		oc = exutil.NewCLIWithoutNamespace("prometheus")
 	)
 
-	g.It("shouldn't report any unexpected alerts in firing or pending state [apigroup:config.openshift.io]", func() {
+	g.It("shouldn't report any unexpected alerts in firing or pending state", func() {
 		// we only consider samples since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds()
 		alerts.CheckAlerts(alerts.AllowedAlertsDuringConformance, oc.AdminConfig(), oc.NewPrometheusClient(context.TODO()), oc.AdminConfigClient(), testDuration, nil)

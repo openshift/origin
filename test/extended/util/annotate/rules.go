@@ -68,7 +68,7 @@ var (
 			`\[sig-network-edge\]\[Feature:Idling\] Unidling \[apigroup:apps.openshift.io\]\[apigroup:route.openshift.io\] should work with TCP \(while idling\)`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
-			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:config.openshift.io\] \[internal-targets\]`,
+			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:operator.openshift.io\] \[internal-targets\]`,
 
 			// https://issues.redhat.com/browse/OCPBUGS-967
 			`\[sig-network\] IngressClass \[Feature:Ingress\] should prevent Ingress creation if more than 1 IngressClass marked as default`,
@@ -273,10 +273,10 @@ var (
 			`\[sig-instrumentation\]\[Late\] Alerts shouldn't report any alerts in firing or pending state apart from Watchdog and AlertmanagerReceiversNotConfigured and have no gaps in Watchdog firing`,
 			`\[sig-instrumentation\]\[sig-builds\]\[Feature:Builds\] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics`,
 			`\[sig-network-edge\]\[Conformance\]\[Area:Networking\]\[Feature:Router\] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\] The HAProxy router should enable openshift-monitoring to pull metrics`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\] The HAProxy router should expose a health check on the metrics port`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\] The HAProxy router should expose prometheus metrics for a route`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\] The HAProxy router should expose the profiling endpoints`,
+			`\[sig-network\]\[Feature:Router\] The HAProxy router should enable openshift-monitoring to pull metrics`,
+			`\[sig-network\]\[Feature:Router\] The HAProxy router should expose a health check on the metrics port`,
+			`\[sig-network\]\[Feature:Router\] The HAProxy router should expose prometheus metrics for a route`,
+			`\[sig-network\]\[Feature:Router\] The HAProxy router should expose the profiling endpoints`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] The HAProxy router should override the route host for overridden domains with a custom value`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] The HAProxy router should override the route host with a custom value`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\] The HAProxy router should respond with 503 to unrecognized hosts`,
@@ -284,7 +284,7 @@ var (
 			`\[sig-network\]\[Feature:Router\]\[apigroup:image.openshift.io\] The HAProxy router should serve a route that points to two services and respect weights`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\] The HAProxy router should serve routes that were created from an ingress`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] The HAProxy router should serve the correct routes when scoped to a single namespace and label set`,
-			`\[sig-network\]\[Feature:Router\]\[apigroup:config.openshift.io\]\[apigroup:operator.openshift.io\] The HAProxy router should set Forwarded headers appropriately`,
+			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\] The HAProxy router should set Forwarded headers appropriately`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\]\[apigroup:operator.openshift.io\] The HAProxy router should support reencrypt to services backed by a serving certificate automatically`,
 			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
 			`\[sig-node\] Managed cluster should report ready nodes the entire duration of the test run`,

@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ghodss/yaml"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -1390,6 +1392,13 @@ func KubeConfigPath() string {
 	return os.Getenv("KUBECONFIG")
 }
 
+// StaticConfigManifestDir returns the value of STATIC_CONFIG_MANIFEST_DIR environment variable
+// It points to a directory with static manifests, each file is expected to be a single manifest.
+// Manifest files can be stored under directory tree.
+func StaticConfigManifestDir() string {
+	return os.Getenv("STATIC_CONFIG_MANIFEST_DIR")
+}
+
 // ArtifactDirPath returns the value of ARTIFACT_DIR environment variable
 func ArtifactDirPath() string {
 	path := os.Getenv("ARTIFACT_DIR")
@@ -2087,4 +2096,70 @@ func DoesApiResourceExist(config *rest.Config, apiResourceName, groupVersionName
 
 func groupName(groupVersionName string) string {
 	return strings.Split(groupVersionName, "/")[0]
+}
+
+type staticObject struct {
+	APIVersion, Kind, Namespace, Name string
+}
+
+func collectConfigManifestsFromDir(configManifestsDir string) (error, []runtime.Object) {
+	objects := []runtime.Object{}
+	knownObjects := make(map[staticObject]string)
+
+	err := filepath.Walk(configManifestsDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		object := &metav1.TypeMeta{}
+		err = yaml.Unmarshal(body, &object)
+		if err != nil {
+			return err
+		}
+
+		if object.APIVersion == "config.openshift.io/v1" {
+			switch object.Kind {
+			case "Infrastructure":
+				config := &configv1.Infrastructure{}
+				err = yaml.Unmarshal(body, &config)
+				if err != nil {
+					return err
+				}
+				key := staticObject{APIVersion: object.APIVersion, Kind: object.Kind, Namespace: config.Namespace, Name: config.Name}
+				if objPath, exists := knownObjects[key]; exists {
+					return fmt.Errorf("object %v duplicated under %v", path, objPath)
+				}
+				objects = append(objects, config)
+				knownObjects[key] = path
+			case "Network":
+				config := &configv1.Network{}
+				err = yaml.Unmarshal(body, &config)
+				if err != nil {
+					return err
+				}
+				key := staticObject{APIVersion: object.APIVersion, Kind: object.Kind, Namespace: config.Namespace, Name: config.Name}
+				if objPath, exists := knownObjects[key]; exists {
+					return fmt.Errorf("object %v duplicated under %v", path, objPath)
+				}
+				objects = append(objects, config)
+				knownObjects[key] = path
+			default:
+				return fmt.Errorf("unknown 'config.openshift.io/v1' kind: %v", object.Kind)
+			}
+		} else {
+			return fmt.Errorf("unknown apiversion: %v", object.APIVersion)
+		}
+
+		return nil
+	})
+
+	return err, objects
 }

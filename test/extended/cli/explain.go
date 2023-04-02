@@ -569,7 +569,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		})
 	}
 
-	g.It("should contain proper spec+status for CRDs [apigroup:config.openshift.io]", func() {
+	g.It("should contain proper spec+status for CRDs", func() {
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 		crdTypesTest := getCrdTypes(oc)
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)

@@ -13,6 +13,7 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-ldap/ldap/v3 v3.4.3
 	github.com/golang/protobuf v1.5.2
+	github.com/google/gnostic v0.5.7-v3refs
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.1.2
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.3.0
@@ -138,7 +139,6 @@ require (
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/cadvisor v0.46.0 // indirect
 	github.com/google/cel-go v0.12.6 // indirect
-	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect

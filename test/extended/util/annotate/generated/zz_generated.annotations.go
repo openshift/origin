@@ -7,19 +7,19 @@ import (
 )
 
 var Annotations = map[string]string{
-	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-ext.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"lb-int.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost-recovery.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig \"localhost.kubeconfig\" should be present on all masters and work": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[Conformance][sig-sno][Serial] Cluster should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/serial/minimal]",
 
 	"[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP] test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial][apigroup:config.openshift.io]": " [Suite:openshift/conformance/serial]",
+	"[sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-api-machinery] API priority and fairness should ensure that requests can be classified by adding FlowSchema and PriorityLevelConfiguration": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -283,7 +283,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests": " [Suite:openshift/conformance/parallel]",
 
@@ -621,7 +621,7 @@ var Annotations = map[string]string{
 
 	"[sig-apps][Feature:OpenShiftControllerManager] TestTriggers_manual [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch] Cluster topology single node tests [apigroup:config.openshift.io] Verify that OpenShift components deploy one replica in SingleReplica topology mode": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch] Cluster topology single node tests Verify that OpenShift components deploy one replica in SingleReplica topology mode": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] ClusterOperators [apigroup:config.openshift.io] should define at least one namespace in their lists of related objects": " [Suite:openshift/conformance/parallel]",
 
@@ -641,13 +641,13 @@ var Annotations = map[string]string{
 
 	"[sig-arch] Managed cluster should have operators on the cluster version [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive][apigroup:config.openshift.io]": " [Serial]",
 
 	"[sig-arch] Managed cluster should set requests but not limits": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch] [Conformance] FIPS TestFIPS [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-arch] [Conformance] FIPS TestFIPS": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[sig-arch] [Conformance] sysctl pod should not start for sysctl not on whitelist kernel.msgmax": " [Suite:openshift/conformance/parallel/minimal]",
 
@@ -663,7 +663,7 @@ var Annotations = map[string]string{
 
 	"[sig-arch] [Conformance] sysctl whitelists net.ipv4.tcp_syncookies": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Early] CRDs for openshift.io should have a status in the CRD schema": " [Suite:openshift/conformance/parallel]",
 
@@ -677,9 +677,9 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": " [Serial]",
 
-	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][Late] operators should not create watch channels very often [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][Late] operators should not create watch channels very often [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth] Certificates API [Privileged:ClusterAdmin] should support CSR API operations [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -725,7 +725,7 @@ var Annotations = map[string]string{
 
 	"[sig-auth] [Feature:NodeAuthorizer] Getting an existing secret should exit with the Forbidden error": " [Skipped:ibmroks] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-auth][Feature:Authentication]  TestFrontProxy should succeed [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:Authentication]  TestFrontProxy should succeed": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": " [Serial]",
 
@@ -737,13 +737,13 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:LDAP][Serial] ldap group sync can sync groups from ldap [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient [apigroup:config.openshift.io][apigroup:oauth.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] ClientSecretWithPlus should create oauthclient [apigroup:oauth.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OAuthServer] OAuth Authenticator accepts sha256 access tokens [apigroup:user.openshift.io][apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OAuthServer] OAuth server [apigroup:auth.openshift.io] should use http1.1 only to prevent http2 connection reuse": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics [apigroup:config.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the authorize URL": " [Suite:openshift/conformance/parallel]",
 
@@ -771,7 +771,7 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that expire shortly works as expected when using a token authorization flow [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] well-known endpoint should be reachable [apigroup:config.openshift.io][apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] well-known endpoint should be reachable [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleBindingEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1285,9 +1285,9 @@ var Annotations = map[string]string{
 
 	"[sig-ci] [Early] prow job name should match cluster version [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-ci] [Early] prow job name should match network type [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-ci] [Early] prow job name should match network type": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-ci] [Early] prow job name should match platform type [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-ci] [Early] prow job name should match platform type": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets": " [Skipped:Proxy] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -1417,13 +1417,13 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc adm images [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm must-gather runs successfully [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-cli] oc adm must-gather runs successfully for audit logs [apigroup:config.openshift.io][apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm must-gather runs successfully with options [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm must-gather runs successfully with options": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm must-gather when looking at the audit logs [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm must-gather runs successfully": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-cli] oc adm must-gather when looking at the audit logs [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1541,7 +1541,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc explain should contain proper fields description for user.openshift.io [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper spec+status for CRDs [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc explain should contain proper spec+status for CRDs": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc explain should contain spec+status for apps.openshift.io [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1603,47 +1603,47 @@ var Annotations = map[string]string{
 
 	"[sig-cli] templates process [apigroup:apps.openshift.io][apigroup:template.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/authentication.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/builds.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/config.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/deployments.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/describer.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/describer.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/edit.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/edit.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/env.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/env.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/framework-test.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/framework-test.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/get.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/get.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/image-lookup.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/image-lookup.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/images.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/images.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/printer.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-image.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-image.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-liveness-probe.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-liveness-probe.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildhook.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildhook.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildsecret.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/setbuildsecret.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/triggers.sh [apigroup:image.openshift.io]": "",
 
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh [apigroup:image.openshift.io][apigroup:config.openshift.io]": "",
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/volumes.sh [apigroup:image.openshift.io]": "",
 
 	"[sig-cli][Slow] can use rsync to upload files to pods [apigroup:template.openshift.io] copy by strategy should copy files with the rsync strategy": "",
 
@@ -1665,11 +1665,11 @@ var Annotations = map[string]string{
 
 	"[sig-cli][Slow] can use rsync to upload files to pods [apigroup:template.openshift.io] using a watch should watch for changes and rsync them": "",
 
-	"[sig-cloud-provider][Feature:OpenShiftCloudControllerManager][Late] Deploy an external cloud provider [apigroup:config.openshift.io][apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cloud-provider][Feature:OpenShiftCloudControllerManager][Late] Deploy an external cloud provider [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-cluster-lifecycle] CSRs from machines that are not recognized by the cloud provider are not approved": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint [apigroup:config.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-cluster-lifecycle] Pods cannot access the /config/master API endpoint": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-cluster-lifecycle] TestAdminAck should succeed [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1827,7 +1827,7 @@ var Annotations = map[string]string{
 
 	"[sig-etcd] etcd cluster has the same number of master nodes and voting members from the endpoints configmap [Early][apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-etcd] etcd leader changes are not excessive [Late][apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-etcd] etcd leader changes are not excessive [Late]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-etcd] etcd record the start revision of the etcd-operator [Early]": " [Suite:openshift/conformance/parallel]",
 
@@ -1835,7 +1835,7 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss [apigroup:machine.openshift.io][apigroup:operator.openshift.io]": " [Serial]",
 
-	"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling] etcd [apigroup:config.openshift.io] is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "",
+	"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling] etcd is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "",
 
 	"[sig-imageregistry] Image registry [apigroup:route.openshift.io] should redirect on blob pull [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1933,19 +1933,19 @@ var Annotations = map[string]string{
 
 	"[sig-imageregistry][Serial] Image signature workflow can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
-	"[sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] have baremetalhost resources": " [Suite:openshift/conformance/parallel]",
+	"[sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] have hostfirmwaresetting resources": " [Suite:openshift/conformance/parallel]",
+	"[sig-installer][Feature:baremetal] Baremetal platform should have hostfirmwaresetting resources": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] have preprovisioning images for workers": " [Suite:openshift/conformance/parallel]",
+	"[sig-installer][Feature:baremetal] Baremetal platform should have preprovisioning images for workers": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-installer][Feature:baremetal] Baremetal platform should [apigroup:config.openshift.io] not allow updating BootMacAddress": " [Suite:openshift/conformance/parallel]",
+	"[sig-installer][Feature:baremetal] Baremetal platform should not allow updating BootMacAddress": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None/AWS/Azure/GCP platforms [apigroup:config.openshift.io] have a metal3 deployment": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-installer][Feature:baremetal][Serial] Baremetal platform should [apigroup:config.openshift.io] skip inspection when disabled by annotation": " [Suite:openshift/conformance/serial]",
+	"[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphere/None/AWS/Azure/GCP platforms have a metal3 deployment": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-installer][Feature:baremetal][Serial] Baremetal platform should ensure [apigroup:config.openshift.io] cluster baremetal operator and metal3 deployment return back healthy after they are deleted": " [Suite:openshift/conformance/serial]",
+
+	"[sig-installer][Feature:baremetal][Serial] Baremetal platform should skip inspection when disabled by annotation": " [Suite:openshift/conformance/serial]",
 
 	"[sig-instrumentation] Events API should delete a collection of events [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
@@ -1999,7 +1999,7 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][Late] Alerts shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][Late] Alerts shouldn't report any unexpected alerts in firing or pending state [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-instrumentation][Late] Alerts shouldn't report any unexpected alerts in firing or pending state": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have a runbook_url annotation if the alert is critical": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
@@ -2007,7 +2007,7 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have description and summary annotations": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:config.openshift.io][apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -2015,11 +2015,11 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge] DNS should answer queries using the local DNS endpoint": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it [apigroup:config.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should be able to connect to a service that is idled because a GET on the route will unidle it": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests [apigroup:config.openshift.io][apigroup:route.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router] The HAProxy router should pass the gRPC interoperability tests [apigroup:route.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io] The HAProxy router should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
+	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io] The HAProxy router should pass the h2spec conformance tests [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
 	"[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io] The HAProxy router should pass the http2 tests [apigroup:image.openshift.io][apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel/minimal]",
 
@@ -2617,23 +2617,23 @@ var Annotations = map[string]string{
 
 	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:EgressFirewall] egressFirewall should have no impact outside its namespace [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:EgressFirewall] egressFirewall should have no impact outside its namespace": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:EgressFirewall] when using openshift ovn-kubernetes should ensure egressfirewall is created": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:EgressFirewall] when using openshift-sdn should ensure egressnetworkpolicy is created [apigroup:network.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": " [Serial] [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": " [Serial] [Suite:openshift/conformance/serial]",
 
-	"[sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
 
-	"[sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]": " [Serial] [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]": " [Serial] [Suite:openshift/conformance/serial]",
 
-	"[sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
 
-	"[sig-network][Feature:EgressIP][apigroup:config.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should keep the assigned EgressIPs when being rescheduled to another node": " [Serial] [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should keep the assigned EgressIPs when being rescheduled to another node": " [Serial] [Suite:openshift/conformance/serial]",
 
-	"[sig-network][Feature:EgressIP][apigroup:config.openshift.io] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": " [Disabled:Broken] [Serial]",
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [internal-targets] EgressIP pods should query hostNetwork pods with the local node's SNAT": " [Disabled:Broken] [Serial]",
 
 	"[sig-network][Feature:EgressRouterCNI] should ensure ipv4 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -2643,21 +2643,21 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Network Policy Audit logging] when using openshift ovn-kubernetes should ensure acl logs are created and correct [apigroup:project.openshift.io][apigroup:network.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should enable openshift-monitoring to pull metrics": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router] The HAProxy router should enable openshift-monitoring to pull metrics": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose a health check on the metrics port": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router] The HAProxy router should expose a health check on the metrics port": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose prometheus metrics for a route [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router] The HAProxy router should expose prometheus metrics for a route [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:config.openshift.io] The HAProxy router should expose the profiling endpoints": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-network][Feature:Router][apigroup:config.openshift.io][apigroup:operator.openshift.io] The HAProxy router should set Forwarded headers appropriately": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router] The HAProxy router should expose the profiling endpoints": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:image.openshift.io] The HAProxy router should serve a route that points to two services and respect weights": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:operator.openshift.io] The HAProxy router should respond with 503 to unrecognized hosts": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:operator.openshift.io] The HAProxy router should serve routes that were created from an ingress [apigroup:route.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:Router][apigroup:operator.openshift.io] The HAProxy router should set Forwarded headers appropriately": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing conflicting status": " [Suite:openshift/conformance/parallel]",
 
@@ -3113,7 +3113,7 @@ var Annotations = map[string]string{
 
 	"[sig-operator] OLM should be installed with subscriptions at version v1alpha1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 

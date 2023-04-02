@@ -31,7 +31,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 	ctx := context.Background()
 
 	g.Describe("ClientSecretWithPlus", func() {
-		g.It(fmt.Sprintf("should create oauthclient [apigroup:config.openshift.io][apigroup:oauth.openshift.io][apigroup:user.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should create oauthclient [apigroup:oauth.openshift.io][apigroup:user.openshift.io]"), func() {
 			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
