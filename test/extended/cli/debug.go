@@ -48,22 +48,22 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		var out string
 		out, err = oc.Run("debug").Args("dc/local-busybox1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Starting pod/local-busybox1-debug, command was: /usr/bin/bash\n"))
+		o.Expect(out).To(o.MatchRegexp("Starting pod/local-busybox1-debug.*, command was: /usr/bin/bash\n"))
 
 		g.By("should print the overridden imagestream-based container entrypoint/command")
 		out, err = oc.Run("debug").Args("dc/local-busybox2").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Starting pod/local-busybox2-debug, command was: foo bar baz qux\n"))
+		o.Expect(out).To(o.MatchRegexp("Starting pod/local-busybox2-debug.*, command was: foo bar baz qux\n"))
 
 		g.By("should print the container image-based container entrypoint/command")
 		out, err = oc.Run("debug").Args("dc/busybox1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Starting pod/busybox1-debug ...\n"))
+		o.Expect(out).To(o.MatchRegexp("Starting pod/busybox1-debug.* ...\n"))
 
 		g.By("should print the overridden container image-based container entrypoint/command")
 		out, err = oc.Run("debug").Args("dc/busybox2").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Starting pod/busybox2-debug, command was: foo bar baz qux\n"))
+		o.Expect(out).To(o.MatchRegexp("Starting pod/busybox2-debug.*, command was: foo bar baz qux\n"))
 	})
 
 	g.It("dissect deployment config debug [apigroup:apps.openshift.io]", func() {
