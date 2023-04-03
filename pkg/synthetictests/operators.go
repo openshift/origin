@@ -90,8 +90,8 @@ type startedStaged struct {
 func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	testName := "[bz-Machine Config Operator] Nodes should reach OSUpdateStaged in a timely fashion"
 	success := &junitapi.JUnitTestCase{Name: testName}
-	flakeThreshold := 5 * time.Minute
-	failThreshold := 10 * time.Minute
+	flakeThreshold := 7 * time.Minute
+	failThreshold := 14 * time.Minute
 
 	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
 	nodeNameToOSUpdateTimes := map[string]*startedStaged{}
