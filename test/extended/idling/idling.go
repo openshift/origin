@@ -74,7 +74,7 @@ func tryEchoHTTP(svc *kapiv1.Service, execPod *kapiv1.Pod) error {
 	}
 
 	expected := "It is time to TCP."
-	cmd := fmt.Sprintf("curl --retry-max-time 120 --retry-connrefused --retry 20 --max-time 5 -s -g http://%s/echo?msg=%s",
+	cmd := fmt.Sprintf("curl --max-time 120 -v -g http://%s/echo?msg=%s",
 		net.JoinHostPort(rawIP, tcpPort),
 		url.QueryEscape(expected),
 	)
