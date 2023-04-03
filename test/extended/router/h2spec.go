@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	})
 
 	g.Describe("The HAProxy router", func() {
-		g.It("should pass the h2spec conformance tests [apigroup:config.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:operator.openshift.io]", func() {
+		g.It("should pass the h2spec conformance tests [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:operator.openshift.io]", func() {
 			isProxyJob, err := exutil.IsClusterProxyEnabled(oc)
 			o.Expect(err).NotTo(o.HaveOccurred(), "failed to get proxy configuration")
 			if isProxyJob {

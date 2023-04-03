@@ -79,10 +79,15 @@ import (
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // clients.
 type CLI struct {
-	execPath           string
-	verb               string
-	configPath         string
-	adminConfigPath    string
+	execPath        string
+	verb            string
+	configPath      string
+	adminConfigPath string
+
+	// directory with static manifests, each file is expected to be a single manifest
+	// manifest files can be stored under directory tree
+	staticConfigManifestDir string
+
 	token              string
 	username           string
 	globalArgs         []string
@@ -96,6 +101,8 @@ type CLI struct {
 	withoutNamespace   bool
 	kubeFramework      *framework.Framework
 
+	// read from a static manifest directory (set through STATIC_CONFIG_MANIFEST_DIR env)
+	configObjects     []runtime.Object
 	resourcesToDelete []resourceRef
 }
 
@@ -109,11 +116,15 @@ type resourceRef struct {
 // framework. It can be called inside of a Ginkgo .It() function.
 func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
 	cli := &CLI{
-		kubeFramework:   kubeFramework,
-		username:        "admin",
-		execPath:        "oc",
-		adminConfigPath: KubeConfigPath(),
+		kubeFramework:           kubeFramework,
+		username:                "admin",
+		execPath:                "oc",
+		adminConfigPath:         KubeConfigPath(),
+		staticConfigManifestDir: StaticConfigManifestDir(),
 	}
+	// Called only once (assumed the objects will never get modified)
+	// TODO: run in every BeforeEach
+	cli.setupStaticConfigsFromManifests()
 	return cli
 }
 
@@ -150,12 +161,16 @@ func NewCLIWithoutNamespace(project string) *CLI {
 			},
 			Timeouts: framework.NewTimeoutContextWithDefaults(),
 		},
-		username:         "admin",
-		execPath:         "oc",
-		adminConfigPath:  KubeConfigPath(),
-		withoutNamespace: true,
+		username:                "admin",
+		execPath:                "oc",
+		adminConfigPath:         KubeConfigPath(),
+		staticConfigManifestDir: StaticConfigManifestDir(),
+		withoutNamespace:        true,
 	}
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
+
+	// Called only once (assumed the objects will never get modified)
+	cli.setupStaticConfigsFromManifests()
 
 	// we can't use k8s initialization method to inject these into framework.NewFrameworkExtensions
 	// because we need to have an instance of CLI, so we're rely on the less optimal ginkgo.AfterEach
@@ -563,6 +578,16 @@ func (c *CLI) RESTMapper() meta.RESTMapper {
 	return ret
 }
 
+func (c *CLI) setupStaticConfigsFromManifests() {
+	if len(c.staticConfigManifestDir) > 0 {
+		err, objects := collectConfigManifestsFromDir(c.staticConfigManifestDir)
+		if err != nil {
+			panic(err)
+		}
+		c.configObjects = objects
+	}
+}
+
 func (c *CLI) AppsClient() appsv1client.Interface {
 	return appsv1client.NewForConfigOrDie(c.UserConfig())
 }
@@ -608,7 +633,10 @@ func (c *CLI) AdminBuildClient() buildv1client.Interface {
 }
 
 func (c *CLI) AdminConfigClient() configv1client.Interface {
-	return configv1client.NewForConfigOrDie(c.AdminConfig())
+	return NewConfigClientShim(
+		configv1client.NewForConfigOrDie(c.AdminConfig()),
+		c.configObjects,
+	)
 }
 
 func (c *CLI) AdminImageClient() imagev1client.Interface {

@@ -144,7 +144,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 	})
 
-	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients [apigroup:config.openshift.io]", func() {
+	g.It("API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

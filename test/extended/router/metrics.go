@@ -37,7 +37,7 @@ import (
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 )
 
-var _ = g.Describe("[sig-network][Feature:Router][apigroup:config.openshift.io]", func() {
+var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLIWithPodSecurityLevel("router-metrics", admissionapi.LevelBaseline)

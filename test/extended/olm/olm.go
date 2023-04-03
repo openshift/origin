@@ -86,7 +86,7 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 
 	// OCP-24061 - [bz 1685230] OLM operator should use imagePullPolicy: IfNotPresent
 	// author: bandrade@redhat.com
-	g.It("have imagePullPolicy:IfNotPresent on thier deployments [apigroup:config.openshift.io]", func() {
+	g.It("have imagePullPolicy:IfNotPresent on thier deployments", func() {
 		oc := oc.AsAdmin().WithoutNamespace()
 		namespace := "openshift-operator-lifecycle-manager"
 
@@ -142,7 +142,7 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 	// TODO: This test should be more generic and across components
 	// OCP-20981, [BZ 1626434]The olm/catalog binary should output the exact version info
 	// author: jiazha@redhat.com
-	g.It("OLM version should contain the source commit id [apigroup:config.openshift.io]", func() {
+	g.It("OLM version should contain the source commit id", func() {
 
 		oc := oc
 		namespace := "openshift-operator-lifecycle-manager"
