@@ -167,7 +167,11 @@ func runChaosmonkey(
 				fmt.Fprintf(os.Stderr, "error: Failed to write file %v: %v\n", fname, err)
 			}
 
-			if err := riskanalysis.WriteJobRunTestFailureSummary(framework.TestContext.ReportDir, timeSuffix, testSuite); err != nil {
+			// default for wasMasterNodeUpdated is empty string as that is what entries prior to adding this will have
+			// we don't currently need this field set for RiskAnalysis.  We could change this logic to either
+			// parse the events for the NodeUpdated interval or read the ClusterData.json from storage
+			// and pass it in if needed.
+			if err := riskanalysis.WriteJobRunTestFailureSummary(framework.TestContext.ReportDir, timeSuffix, testSuite, ""); err != nil {
 				fmt.Fprintf(os.Stderr, "error: Failed to write file %v: %v\n", fname, err)
 				return
 			}

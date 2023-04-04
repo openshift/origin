@@ -478,6 +478,8 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		}
 	}
 
+	// default is empty string as that is what entries prior to adding this will have
+	wasMasterNodeUpdated := ""
 	if events := opt.MonitorEventsOptions.GetEvents(); len(events) > 0 {
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
@@ -519,6 +521,8 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 				fmt.Fprintf(opt.ErrOut, "error: Failed to write monitor data: %v\n", err)
 			}
 		}
+
+		wasMasterNodeUpdated = monitor.WasMasterNodeUpdated(events)
 	}
 
 	// report the outcome of the test
@@ -533,7 +537,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 		}
 
-		if err := riskanalysis.WriteJobRunTestFailureSummary(opt.JUnitDir, timeSuffix, finalSuiteResults); err != nil {
+		if err := riskanalysis.WriteJobRunTestFailureSummary(opt.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated); err != nil {
 			fmt.Fprintf(opt.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
 	}

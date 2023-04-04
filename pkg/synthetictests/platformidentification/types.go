@@ -35,6 +35,7 @@ type ClusterData struct {
 	CloudRegion           string
 	CloudZone             string
 	ClusterVersionHistory []string
+	MasterNodesUpdated    string
 }
 
 const (
