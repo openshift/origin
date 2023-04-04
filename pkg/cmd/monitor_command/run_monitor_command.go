@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -25,9 +26,13 @@ type RunMonitorOptions struct {
 	ArtifactDir string
 
 	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
+
+	TimelineOptions TimelineOptions
 }
 
 func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOptions {
+	timelineOptions := NewTimelineOptions(ioStreams)
+
 	return &RunMonitorOptions{
 		Out:    ioStreams.Out,
 		ErrOut: ioStreams.ErrOut,
@@ -36,6 +41,8 @@ func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOpti
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring,
 		},
+
+		TimelineOptions: *timelineOptions,
 	}
 }
 
@@ -137,9 +144,36 @@ func (opt *RunMonitorOptions) Run() error {
 			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
 			return err
 		}
-		err := monitor.WriteEventsForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix)
-		if err != nil {
+
+		if err := monitor.WriteEventsForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix); err != nil {
 			fmt.Printf("Failed to write event data, err: %v\n", err)
+			return err
+		}
+		if err := monitor.WriteTrackedResourcesForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix); err != nil {
+			fmt.Printf("Failed to write resource data, err: %v\n", err)
+			return err
+		}
+		// we know these names because the methods above use known file locations
+		eventJSONFilename := filepath.Join(eventDir, fmt.Sprintf("e2e-events%s.json", timeSuffix))
+		podResourceFilename := filepath.Join(eventDir, fmt.Sprintf("resource-pods%s.json", timeSuffix))
+
+		// override specifics for our use-case
+		t := opt.TimelineOptions
+		timelineOptions := &t
+		timelineOptions.MonitorEventFilename = eventJSONFilename
+		timelineOptions.PodResourceFilename = podResourceFilename
+		timelineOptions.TimelineType = "everything"
+		timelineOptions.OutputType = "html"
+		if err := t.Complete(); err != nil {
+			fmt.Printf("Failed to complete timeline options, err: %v\n", err)
+			return err
+		}
+		if err := t.Validate(); err != nil {
+			fmt.Printf("Failed to validate timeline options, err: %v\n", err)
+			return err
+		}
+		if err := t.ToTimeline().Run(); err != nil {
+			fmt.Printf("Failed to run timeline, err: %v\n", err)
 			return err
 		}
 	}
