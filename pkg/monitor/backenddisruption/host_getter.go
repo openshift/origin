@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,13 +57,9 @@ type routeHostGetter struct {
 	routeNamespace string
 	routeName      string
 
-	// initializeHost is used to ensure we only look up the route once instead of on every request
-	initializeHost sync.Once
+	hostGetterLock sync.Mutex
 	// host is the https://host:port part of the URL
-	host string
-	// hostErr is the error (if we got one) from initializeHost.  This easier than retrying if we fail and probably
-	// good enough for CI.
-	hostErr error
+	host atomic.Value
 }
 
 func NewRouteHostGetter(clientConfig *rest.Config, routeNamespace string, routeName string) HostGetter {
@@ -74,30 +71,30 @@ func NewRouteHostGetter(clientConfig *rest.Config, routeNamespace string, routeN
 }
 
 func (g *routeHostGetter) GetHost() (string, error) {
-	g.initializeHost.Do(func() {
-		client, err := routeclientset.NewForConfig(g.clientConfig)
-		if err != nil {
-			g.hostErr = err
-			return
+	existingHost := g.host.Load()
+	if existingHost != nil {
+		host := existingHost.(string)
+		if len(host) > 0 {
+			return host, nil
 		}
-		route, err := client.RouteV1().Routes(g.routeNamespace).Get(context.Background(), g.routeName, metav1.GetOptions{})
-		if err != nil {
-			g.hostErr = err
-			return
+	}
+	g.hostGetterLock.Lock()
+	defer g.hostGetterLock.Unlock()
+	client, err := routeclientset.NewForConfig(g.clientConfig)
+	if err != nil {
+		return "", err
+	}
+	route, err := client.RouteV1().Routes(g.routeNamespace).Get(context.Background(), g.routeName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	for _, ingress := range route.Status.Ingress {
+		if len(ingress.Host) > 0 {
+			host := fmt.Sprintf("https://%s", ingress.Host)
+			g.host.Store(host)
+			return host, nil
 		}
-		for _, ingress := range route.Status.Ingress {
-			if len(ingress.Host) > 0 {
-				g.host = fmt.Sprintf("https://%s", ingress.Host)
-				break
-			}
-		}
-	})
+	}
 
-	if g.hostErr != nil {
-		return "", g.hostErr
-	}
-	if len(g.host) == 0 {
-		return "", fmt.Errorf("missing URL")
-	}
-	return g.host, nil
+	return "", fmt.Errorf("missing in route")
 }
