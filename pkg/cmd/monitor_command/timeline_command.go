@@ -1,4 +1,4 @@
-package monitor_cmd
+package monitor_command
 
 import (
 	"archive/zip"

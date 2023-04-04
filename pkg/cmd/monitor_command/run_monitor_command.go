@@ -1,4 +1,4 @@
-package monitor
+package monitor_command
 
 import (
 	"context"
@@ -8,21 +8,63 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/kubectl/pkg/util/templates"
 )
 
-// Options is used to run a monitoring process against the provided server as
+// RunMonitorOptions is used to run a monitoring process against the provided server as
 // a command line interaction.
-type Options struct {
+type RunMonitorOptions struct {
 	Out, ErrOut io.Writer
 	ArtifactDir string
 
-	AdditionalEventIntervalRecorders []StartEventIntervalRecorderFunc
+	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
+}
+
+func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOptions {
+	return &RunMonitorOptions{
+		Out:    ioStreams.Out,
+		ErrOut: ioStreams.ErrOut,
+		AdditionalEventIntervalRecorders: []monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAllAPIMonitoring,
+			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
+		},
+	}
+}
+
+func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command {
+	monitorOpt := NewRunMonitorOptions(ioStreams)
+	cmd := &cobra.Command{
+		Use:   "run-monitor",
+		Short: "Continuously verify the cluster is functional",
+		Long: templates.LongDesc(`
+		Run a continuous verification process
+
+		`),
+
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return monitorOpt.Run()
+		},
+	}
+	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
+		"artifact-dir", monitorOpt.ArtifactDir,
+		"The directory where monitor events will be stored.")
+	return cmd
 }
 
 // Run starts monitoring the cluster by invoking Start, periodically printing the
 // events accumulated to Out. When the user hits CTRL+C or signals termination the
 // condition intervals (all non-instantaneous events) are reported to Out.
-func (opt *Options) Run() error {
+func (opt *RunMonitorOptions) Run() error {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 	abortCh := make(chan os.Signal, 2)
@@ -41,11 +83,11 @@ func (opt *Options) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	restConfig, err := GetMonitorRESTConfig()
+	restConfig, err := monitor.GetMonitorRESTConfig()
 	if err != nil {
 		return err
 	}
-	m, err := Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders)
+	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders)
 	if err != nil {
 		return err
 	}
@@ -95,7 +137,7 @@ func (opt *Options) Run() error {
 			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
 			return err
 		}
-		err := WriteEventsForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix)
+		err := monitor.WriteEventsForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix)
 		if err != nil {
 			fmt.Printf("Failed to write event data, err: %v\n", err)
 			return err
