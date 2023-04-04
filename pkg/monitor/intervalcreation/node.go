@@ -172,6 +172,7 @@ func IntervalsFromAuditLogs(ctx context.Context, kubeClient kubernetes.Interface
 // eventsFromKubeletLogs returns the produced intervals.  Any errors during this creation are logged, but
 // not returned because this is a best effort step
 func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Intervals {
+	nodeLocator := monitorapi.NodeLocator(nodeName)
 	ret := monitorapi.Intervals{}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(kubeletLog))
@@ -184,6 +185,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, kubeletNodeHttpClientConnectionLostError(currLine)...)
 		ret = append(ret, startupProbeError(currLine)...)
 		ret = append(ret, errParsingSignature(currLine)...)
+		ret = append(ret, failedToDeleteCGroupsPath(nodeLocator, currLine)...)
 	}
 
 	return ret
@@ -410,6 +412,26 @@ func statusHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 		containerRef := regexToContainerReference(logLine, statusRefRegex)
 		return containerRef.ToLocator()
 	})
+}
+
+func failedToDeleteCGroupsPath(nodeLocator, logLine string) monitorapi.Intervals {
+	if !strings.Contains(logLine, "Failed to delete cgroup paths") {
+		return nil
+	}
+
+	failureTime := kubeletLogTime(logLine)
+
+	return monitorapi.Intervals{
+		{
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: nodeLocator,
+				Message: monitorapi.ReasonedMessage("FailedToDeleteCGroupsPath", logLine),
+			},
+			From: failureTime,
+			To:   failureTime.Add(1 * time.Second),
+		},
+	}
 }
 
 var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
