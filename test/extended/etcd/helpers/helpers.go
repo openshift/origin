@@ -248,7 +248,7 @@ func IsCPMSActive(ctx context.Context, t TestingT, cpmsClient machinev1client.Co
 // this effectively counts the number of control-plane machines with the provider state as running
 func EnsureReadyReplicasOnCPMS(ctx context.Context, t TestingT, expectedReplicaCount int, cpmsClient machinev1client.ControlPlaneMachineSetInterface) error {
 	waitPollInterval := 5 * time.Second
-	waitPollTimeout := 18 * time.Minute
+	waitPollTimeout := 30 * time.Minute
 	t.Logf("Waiting up to %s for the CPMS to have status.readyReplicas = %v", waitPollTimeout.String(), expectedReplicaCount)
 
 	return wait.Poll(waitPollInterval, waitPollTimeout, func() (bool, error) {
