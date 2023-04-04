@@ -79,6 +79,33 @@ func testHttpConnectionLost(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 	return []*junitapi.JUnitTestCase{failure, success}
 }
 
+func testFailedToDeleteCGroupsPath(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] kubelet should be able to delete cgroups path"
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "reason/FailedToDeleteCGroupsPath") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+
+	if len(failures) == 0 {
+		success := &junitapi.JUnitTestCase{Name: testName}
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("kubelet logs contain %d failures to delete cgroups path.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+	// add success to flake the test because this fails very commonly.
+	success := &junitapi.JUnitTestCase{Name: testName}
+	return []*junitapi.JUnitTestCase{failure, success}
+}
+
 func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-api-machinery] kube-apiserver terminates within graceful termination period"
 
