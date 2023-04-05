@@ -310,7 +310,8 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 	return b.httpClient, b.httpClientErr
 }
 
-func (b *BackendSampler) checkConnection(ctx context.Context) (string, error) {
+// CheckConnnection returns the audit request UID and an error if there was one.
+func (b *BackendSampler) CheckConnection(ctx context.Context) (string, error) {
 	httpClient, err := b.GetHTTPClient()
 	if err != nil {
 		return "", err
@@ -487,7 +488,7 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 		// was actually 30s before.
 		currDisruptionSample := b.newSample(ctx)
 		go func() {
-			uid, sampleErr := b.backendSampler.checkConnection(ctx)
+			uid, sampleErr := b.backendSampler.CheckConnection(ctx)
 			currDisruptionSample.setSampleError(sampleErr)
 			if sampleErr != nil {
 				// We'd like to include these UUIDs in the backend-disruption.json file but this is

@@ -57,7 +57,7 @@ func StartAllIngressMonitoring(ctx context.Context, m monitor.Recorder, clusterC
 		// it has it by default. This is to catch possible future scenarios where we upgrade 4.11 no cap to 4.12 no cap.
 		if !cluster.KnowsCapability(clusterVersion, "Console") ||
 			cluster.HasCapability(clusterVersion, "Console") {
-			if err := createConsoleRouteAvailableWithNewConnections().StartEndpointMonitoring(ctx, m, nil); err != nil {
+			if err := CreateConsoleRouteAvailableWithNewConnections().StartEndpointMonitoring(ctx, m, nil); err != nil {
 				return err
 			}
 			if err := createConsoleRouteAvailableWithConnectionReuse().StartEndpointMonitoring(ctx, m, nil); err != nil {
@@ -110,7 +110,7 @@ func createOAuthRouteAvailableWithConnectionReuse() *backenddisruption.BackendSa
 		WithExpectedBody("ok")
 }
 
-func createConsoleRouteAvailableWithNewConnections() *backenddisruption.BackendSampler {
+func CreateConsoleRouteAvailableWithNewConnections() *backenddisruption.BackendSampler {
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	utilruntime.Must(err)
 	return backenddisruption.NewRouteBackend(
