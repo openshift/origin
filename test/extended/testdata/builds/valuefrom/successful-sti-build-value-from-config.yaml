@@ -11,7 +11,7 @@ spec:
     type: Git
     git:
       uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: 7.0/test/test-app
+    contextDir: 8.1/test/test-app
   strategy:
     type: Source
     sourceStrategy:
