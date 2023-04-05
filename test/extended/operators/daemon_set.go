@@ -36,12 +36,12 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 	// would be impacted by a bug and at best the new code would roll out that much faster in very large
 	// spot instance machine sets.
 	//
-	// Use 10% maxUnavailable in all other cases, most especially if you have ANY impact on user
-	// workloads. This limits the additional load placed on the cluster to a more reasonable degree
+	// Use 10% maxUnavailable or maxSurge in all other cases, most especially if you have ANY impact on
+	// user workloads. This limits the additional load placed on the cluster to a more reasonable degree
 	// during an upgrade as new pods start and then establish connections.
 	//
 	// Currently only applies to daemonsets that don't explicitly target the control plane.
-	g.It("should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent", func() {
+	g.It("should only include cluster daemonsets that have maxUnavailable or maxSurge update of 10 percent or maxUnavailable of 33 percent", func() {
 		// iterate over the references to find valid images
 		daemonSets, err := oc.KubeFramework().ClientSet.AppsV1().DaemonSets("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
@@ -87,8 +87,9 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 				invalidDaemonSets = append(invalidDaemonSets, violation)
 				debug = append(debug, violation)
 			case ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.StrVal != "10%" &&
-				ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.StrVal != "33%":
-				violation := fmt.Sprintf("expected daemonset %s to have maxUnavailable 10%% or 33%% (see comment) instead of %s", key, ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.String())
+				ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.StrVal != "33%" &&
+				ds.Spec.UpdateStrategy.RollingUpdate.MaxSurge.StrVal != "10%":
+				violation := fmt.Sprintf("expected daemonset %s to have maxUnavailable 10%% or 33%% (see comment) instead of %s, or maxSurge 10%% instead of %s", key, ds.Spec.UpdateStrategy.RollingUpdate.MaxUnavailable.String(), ds.Spec.UpdateStrategy.RollingUpdate.MaxSurge.String())
 				invalidDaemonSets = append(invalidDaemonSets, violation)
 				debug = append(debug, violation)
 			default:

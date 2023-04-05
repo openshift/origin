@@ -641,7 +641,7 @@ var Annotations = map[string]string{
 
 	"[sig-arch] Managed cluster should have operators on the cluster version [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable or maxSurge update of 10 percent or maxUnavailable of 33 percent": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch] Managed cluster should recover when operator-owned objects are deleted [Disruptive][apigroup:config.openshift.io]": " [Serial]",
 
