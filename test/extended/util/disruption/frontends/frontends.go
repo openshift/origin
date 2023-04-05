@@ -37,7 +37,7 @@ func NewOAuthRouteAvailableWithConnectionReuseTest() upgrades.Test {
 func NewConsoleRouteAvailableWithNewConnectionsTest() upgrades.Test {
 	return disruption.NewBackendDisruptionTest(
 		"[sig-network-edge] Console remains available via cluster ingress using new connections",
-		createConsoleRouteAvailableWithNewConnections(),
+		CreateConsoleRouteAvailableWithNewConnections(),
 	)
 }
 
