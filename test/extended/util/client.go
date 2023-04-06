@@ -88,18 +88,19 @@ type CLI struct {
 	// manifest files can be stored under directory tree
 	staticConfigManifestDir string
 
-	token              string
-	username           string
-	globalArgs         []string
-	commandArgs        []string
-	finalArgs          []string
-	namespacesToDelete []string
-	stdin              *bytes.Buffer
-	stdout             io.Writer
-	stderr             io.Writer
-	verbose            bool
-	withoutNamespace   bool
-	kubeFramework      *framework.Framework
+	token                string
+	username             string
+	globalArgs           []string
+	commandArgs          []string
+	finalArgs            []string
+	namespacesToDelete   []string
+	stdin                *bytes.Buffer
+	stdout               io.Writer
+	stderr               io.Writer
+	verbose              bool
+	withoutNamespace     bool
+	withManagedNamespace bool
+	kubeFramework        *framework.Framework
 
 	// read from a static manifest directory (set through STATIC_CONFIG_MANIFEST_DIR env)
 	configObjects     []runtime.Object
@@ -259,6 +260,12 @@ func (c *CLI) SetNamespace(ns string) *CLI {
 	return c
 }
 
+// SetManagedNamespace appends the managed workload partitioning annotations to namespace on creation
+func (c *CLI) SetManagedNamespace() *CLI {
+	c.withManagedNamespace = true
+	return c
+}
+
 // WithoutNamespace instructs the command should be invoked without adding --namespace parameter
 func (c CLI) WithoutNamespace() *CLI {
 	c.withoutNamespace = true
@@ -310,6 +317,9 @@ func (c *CLI) setupProject() string {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	err = c.setupNamespacePodSecurity(newNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = c.setupNamespaceManagedAnnotation(newNamespace)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Wait for SAs and default dockercfg Secret to be injected
@@ -413,6 +423,9 @@ func (c *CLI) setupNamespace() string {
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	err = c.setupNamespacePodSecurity(newNamespace)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = c.setupNamespaceManagedAnnotation(newNamespace)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
@@ -521,6 +534,21 @@ func (c *CLI) setupUserConfig(username string) (*rest.Config, error) {
 	userClientConfig.TLSClientConfig.CertData = csr.Status.Certificate
 	userClientConfig.TLSClientConfig.KeyData = privateKeyPem
 	return userClientConfig, nil
+}
+
+func (c *CLI) setupNamespaceManagedAnnotation(ns string) error {
+	if !c.withManagedNamespace {
+		return nil
+	}
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		ns, err := c.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), ns, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		ns.Annotations["workload.openshift.io/allowed"] = "management"
+		_, err = c.AdminKubeClient().CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})
+		return err
+	})
 }
 
 func (c *CLI) setupNamespacePodSecurity(ns string) error {
