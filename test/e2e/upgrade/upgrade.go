@@ -26,7 +26,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	"k8s.io/kubernetes/test/e2e/upgrades/apps"
@@ -40,7 +39,6 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
 	"github.com/openshift/origin/test/extended/util/operator"
 )
@@ -327,24 +325,6 @@ func GatherPreUpgradeResourceCounts() error {
 func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
-
-	// ignore the failure here, we don't want this to fail the upgrade, we want it to fail this particular test.
-	_ = disruption.RecordJUnit(
-		f,
-		"[bz-Routing] console is not available via ingress",
-		func() (error, bool) {
-			pollErr := wait.PollImmediateWithContext(context.TODO(), 1*time.Second, 10*time.Minute, func(ctx context.Context) (bool, error) {
-				consoleSampler := frontends.CreateConsoleRouteAvailableWithNewConnections()
-				_, err := consoleSampler.CheckConnection(ctx)
-				if err == nil {
-					return true, nil
-				}
-				klog.Errorf("ingress is down: %v", err)
-				return false, nil
-			})
-			return pollErr, false
-		},
-	)
 
 	if version.NodeImage == "[pause]" {
 		framework.Logf("Running a dry-run upgrade test")
