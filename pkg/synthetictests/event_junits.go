@@ -72,6 +72,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testNodeHasSufficientMemory(events)...)
 	tests = append(tests, testNodeHasSufficientPID(events)...)
 
+	tests = append(tests, testFailedToDeleteCGroupsPath(events)...)
 	tests = append(tests, testHttpConnectionLost(events)...)
 	tests = append(tests, testMarketplaceStartupProbeFailure(events)...)
 	tests = append(tests, testErrImagePullUnrecognizedSignatureFormat(events)...)
@@ -139,6 +140,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testNodeHasSufficientMemory(events)...)
 	tests = append(tests, testNodeHasSufficientPID(events)...)
 
+	tests = append(tests, testFailedToDeleteCGroupsPath(events)...)
 	tests = append(tests, testHttpConnectionLost(events)...)
 	tests = append(tests, testMarketplaceStartupProbeFailure(events)...)
 	tests = append(tests, testErrImagePullUnrecognizedSignatureFormat(events)...)
