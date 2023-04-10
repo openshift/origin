@@ -24,9 +24,43 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+type workingSet struct {
+	currentlyWorking sets.String
+	lock             sync.RWMutex
+}
+
+func (s *workingSet) isWorkingOn(key string) bool {
+	s.lock.RLock()
+	defer s.lock.RLock()
+	return s.currentlyWorking.Has(key)
+}
+
+func (s *workingSet) reserve(key string) {
+	s.lock.Lock()
+	defer s.lock.Lock()
+	s.currentlyWorking.Insert(key)
+}
+
+func (s *workingSet) release(key string) {
+	s.lock.Lock()
+	defer s.lock.Lock()
+	s.currentlyWorking.Delete(key)
+}
+
+func (s *workingSet) waitUntilAvailable(key string) error {
+	return wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+		if s.isWorkingOn(key) {
+			return false, nil
+		}
+		return true, nil
+	})
+}
+
 type GitStorage struct {
 	repo *git.Repository
 	path string
+
+	currentlyRecording workingSet
 
 	// Writing to Git repository must be synced otherwise Git will freak out
 	sync.Mutex
@@ -86,12 +120,19 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	}
 
 	if delete {
-		s.Lock()
-		defer s.Unlock()
+		// ignore error, we've already reported and we're not doing anything else.
+		_ = wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
+			// either the golang git library or git itself doesn't properly handle threading, so we have to lock here.
+			// take the lock inside the poll so that retries don't keep the lock for a long time.
+			s.Lock()
+			defer s.Unlock()
 
-		if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
-			klog.Error(err)
-		}
+			if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
+				klog.Error(err)
+				return false, nil
+			}
+			return true, nil
+		})
 		return
 	}
 	operation, err := s.write(filePath, content)
@@ -135,13 +176,39 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 
 func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
-	s.handle(gvr, nil, objUnstructured, false)
+
+	// serialize updates to individual files
+	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
+	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
+		klog.Error(err)
+		return
+	}
+	s.currentlyRecording.reserve(key)
+
+	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
+	go func() {
+		defer s.currentlyRecording.release(key)
+		s.handle(gvr, nil, objUnstructured, false)
+	}()
 }
 
 func (s *GitStorage) OnUpdate(gvr schema.GroupVersionResource, oldObj, obj interface{}) {
 	objUnstructured := obj.(*unstructured.Unstructured)
 	oldObjUnstructured := oldObj.(*unstructured.Unstructured)
-	s.handle(gvr, oldObjUnstructured, objUnstructured, false)
+
+	// serialize updates to individual files
+	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
+	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
+		klog.Error(err)
+		return
+	}
+	s.currentlyRecording.reserve(key)
+
+	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
+	go func() {
+		defer s.currentlyRecording.release(key)
+		s.handle(gvr, oldObjUnstructured, objUnstructured, false)
+	}()
 }
 
 func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) {
@@ -158,7 +225,20 @@ func (s *GitStorage) OnDelete(gvr schema.GroupVersionResource, obj interface{}) 
 			return
 		}
 	}
-	s.handle(gvr, nil, objUnstructured, true)
+
+	// serialize updates to individual files
+	key := fmt.Sprintf("%s/%s/%s/%s/%s", gvr.Group, gvr.Version, gvr.Resource, objUnstructured.GetNamespace(), objUnstructured.GetName())
+	if err := s.currentlyRecording.waitUntilAvailable(key); err != nil {
+		klog.Error(err)
+		return
+	}
+	s.currentlyRecording.reserve(key)
+
+	// start new go func to allow parallel processing where possible and to avoid blocking all progress on retries.
+	go func() {
+		defer s.currentlyRecording.release(key)
+		s.handle(gvr, nil, objUnstructured, true)
+	}()
 }
 
 // guessAtModifyingUsers tries to figure out who modified the resource
@@ -233,8 +313,10 @@ func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
 		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
 		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
 		// so simply remove the lock file.
-		if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-			klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
+			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
+				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+			}
 		}
 		return err
 	}
@@ -255,8 +337,10 @@ func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
 		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
 		// so simply remove the lock file.
-		if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-			klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
+			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
+				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+			}
 		}
 		return err
 	}
@@ -277,8 +361,10 @@ func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
 		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
 		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
 		// so simply remove the lock file.
-		if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-			klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
+			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
+				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+			}
 		}
 		return err
 	}
