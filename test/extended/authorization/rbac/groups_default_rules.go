@@ -248,6 +248,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 			testAllGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
 				rbacv1helpers.NewRule("get", "list", "watch", "delete").Groups(oauthGroup).Resources("useroauthaccesstokens").RuleOrDie(),
+				rbacv1helpers.NewRule("create").Groups(kAuthnGroup).Resources("selfsubjectreviews").RuleOrDie(),
 			}, namespaces.Items)
 		})
 
