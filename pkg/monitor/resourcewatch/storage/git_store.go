@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"k8s.io/kube-openapi/pkg/util/sets"
 
@@ -103,23 +106,31 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 		modifyingUser = err.Error()
 	}
 
-	// either the golang git library or git itself doesn't properly handle threading, so we have to lock here.
-	s.Lock()
-	defer s.Unlock()
+	// ignore error, we've already reported and we're not doing anything else.
+	_ = wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
+		// either the golang git library or git itself doesn't properly handle threading, so we have to lock here.
+		// take the lock inside the poll so that retries don't keep the lock for a long time.
+		s.Lock()
+		defer s.Unlock()
 
-	switch {
-	case operation == gitOpAdded:
-		if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
-			klog.Error(err)
-		}
-	case operation == gitOpModified:
-		if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
-			klog.Error(err)
-		}
-	default:
-		klog.Error("unhandled case")
+		switch {
+		case operation == gitOpAdded:
+			if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
+				klog.Error(err)
+				return false, nil
+			}
+		case operation == gitOpModified:
+			if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
+				klog.Error(err)
+				return false, nil
+			}
+		default:
+			klog.Error("unhandled case")
 
-	}
+			return true, nil
+		}
+		return true, nil
+	})
 }
 
 func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
