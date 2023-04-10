@@ -1591,6 +1591,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc service creates and deletes services": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc set image can set images for pods and deployments [apigroup:image.openshift.io][apigroup:apps.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc statefulset creates and deletes statefulsets": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc status can show correct status after switching between projects [apigroup:project.openshift.io][apigroup:image.openshift.io][Serial]": " [Suite:openshift/conformance/serial]",
@@ -1632,8 +1634,6 @@ var Annotations = map[string]string{
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh [apigroup:image.openshift.io]": "",
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh [apigroup:image.openshift.io]": "",
-
-	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-image.sh [apigroup:image.openshift.io]": "",
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-liveness-probe.sh [apigroup:image.openshift.io]": "",
 
