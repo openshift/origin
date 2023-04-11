@@ -150,6 +150,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testErrImagePullUnrecognizedSignatureFormat(events)...)
 	tests = append(tests, testEtcdShouldNotLogSlowFdataSyncs(events)...)
 	tests = append(tests, testEtcdShouldNotLogDroppedRaftMessages(events)...)
+	tests = append(tests, testMasterNodesUpdated(events)...)
 	return tests
 }
 
