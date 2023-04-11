@@ -1427,7 +1427,7 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm node-logs": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm node-logs": " [Disabled:Broken]",
 
 	"[sig-cli] oc adm policy [apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
