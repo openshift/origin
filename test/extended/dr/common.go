@@ -3,26 +3,36 @@ package dr
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os/exec"
 	"strings"
 	"text/tabwriter"
 	"time"
 
+	"github.com/openshift/origin/test/extended/util/image"
+	xssh "golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+
 	"k8s.io/client-go/dynamic"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 
-	"github.com/openshift/origin/test/e2e/upgrade"
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/test/e2e/upgrade"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/stretchr/objx"
 )
 
@@ -301,4 +311,235 @@ func checkSSH(node *corev1.Node) {
 
 func ssh(cmd string, node *corev1.Node) (*e2essh.Result, error) {
 	return e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
+}
+
+// InstallSSHKeyOnControlPlaneNodes will create a new private/public ssh keypair,
+// create a new secret for both in the openshift-etcd-operator namespace. Then it
+// will append the public key on the host core user authorized_keys file with a daemon set.
+func InstallSSHKeyOnControlPlaneNodes(oc *exutil.CLI) error {
+	const name = "dr-ssh"
+	const namespace = "openshift-etcd"
+
+	err := createPrivatePublicSSHKeySecret(oc, name, namespace)
+	if err != nil {
+		return err
+	}
+
+	err = createKeyInstallerDaemon(oc, name, namespace)
+	if err != nil {
+		return err
+	}
+
+	err = ensureControlPlaneSSHAccess(oc, name, namespace)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ensureControlPlaneSSHAccess will test that the private key generated and installed with installSSHKeyOnControlPlaneNodes
+// is working on all control plane nodes. This effectively polls until the pod executing ssh succeeds reaching all nodes.
+func ensureControlPlaneSSHAccess(oc *exutil.CLI, name string, namespace string) error {
+	const sshPath = "/tmp/ssh"
+	const containerName = "ssh-key-tester"
+
+	var cpNodeInternalIps []string
+	for _, node := range masterNodes(oc) {
+		framework.Logf("CP Node meta: %s, status: %s", node.ObjectMeta.String(), node.Status.String())
+		for _, address := range node.Status.Addresses {
+			if address.Type == corev1.NodeInternalIP {
+				cpNodeInternalIps = append(cpNodeInternalIps, address.Address)
+			}
+		}
+	}
+
+	framework.Logf("found internal IPs: %v", cpNodeInternalIps)
+
+	testScript := fmt.Sprintf(`
+		#!/bin/bash
+		CORE_SSH_BASE_DIR=$HOME/.ssh
+		SSH_MOUNT_DIR=%s
+		P_KEY=$SSH_MOUNT_DIR/privKey
+		# we can't change the permissions on the secret mount, thus we copy it to HOME
+		mkdir -p $CORE_SSH_BASE_DIR && chmod 700 $CORE_SSH_BASE_DIR
+		cp $P_KEY $CORE_SSH_BASE_DIR/id_rsa
+		P_KEY=$CORE_SSH_BASE_DIR/id_rsa
+		chmod 600 $P_KEY
+
+		ls -l $P_KEY
+		
+		NODE_IPS=( %s )
+		for i in "${NODE_IPS[@]}"; do
+		  echo "testing SSH to [$i]"
+		  until ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${i} exit
+		  do
+			echo "Waiting for ssh connection on ${i}"
+			sleep 5
+		  done 
+		  echo ""
+		  echo "SSH to [$i] was successful!"
+		done
+			`, sshPath, strings.Join(cpNodeInternalIps, " "))
+
+	podSpec := applycorev1.PodSpec().WithHostNetwork(true).WithRestartPolicy(corev1.RestartPolicyOnFailure)
+	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
+		*applycorev1.Container().
+			WithName(containerName).
+			WithSecurityContext(applycorev1.SecurityContext().WithPrivileged(true)).
+			WithImage(image.ShellImage()).
+			WithVolumeMounts(
+				applycorev1.VolumeMount().WithName("keys").WithMountPath(sshPath),
+			).
+			WithCommand("/bin/bash", "-c", testScript),
+	}
+	podSpec.NodeSelector = map[string]string{"node-role.kubernetes.io/master": ""}
+	podSpec.Tolerations = []applycorev1.TolerationApplyConfiguration{
+		*applycorev1.Toleration().WithKey("node-role.kubernetes.io/master").WithOperator(corev1.TolerationOpExists).WithEffect(corev1.TaintEffectNoSchedule),
+	}
+
+	podSpec.Volumes = []applycorev1.VolumeApplyConfiguration{
+		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName(name)),
+	}
+
+	pod := applycorev1.Pod(name, namespace).WithSpec(podSpec)
+
+	// this is solely to ensure idempotency, especially in case we run it multiple times locally
+	err := wait.Poll(5*time.Second, 5*time.Minute, func() (done bool, err error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		err = oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+		if err == nil || apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		framework.Logf("ssh pre-test pod deletion result [%v]", err)
+		return false, err
+	})
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, err = oc.AdminKubeClient().CoreV1().Pods(namespace).Apply(ctx, pod, metav1.ApplyOptions{FieldManager: name, Force: true})
+	if err != nil {
+		return err
+	}
+
+	framework.Logf("Waiting for ssh test pod to complete...")
+	err = wait.Poll(10*time.Second, 15*time.Minute, func() (done bool, err error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		getResult, err := oc.AdminKubeClient().CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Error while waiting for ssh test pod to complete: %v", err)
+			return false, nil
+		}
+		framework.Logf("ssh test pod has status [%v]", getResult.Status.Phase)
+		return getResult.Status.Phase == corev1.PodSucceeded, nil
+	})
+
+	return err
+}
+
+// createKeyInstallerDaemon will spawn a CP-only daemonset to add the publicKey created in
+// createPrivatePublicSSHKeySecret to the core ssh server on the host machine.
+func createKeyInstallerDaemon(oc *exutil.CLI, name string, namespace string) error {
+	const sshPath = "/home/core/.ssh"
+	labels := map[string]string{"name": "etcd-backup-server"}
+
+	installScript := fmt.Sprintf(`
+            #!/bin/bash
+
+            echo "installing public key on host"
+            FOLDER=%s
+            FILE_NAME="${FOLDER}/authorized_keys"
+            # not idempotent, will always append the key on pod restarts
+            mkdir -p $FOLDER && echo "$PUBLIC_KEY" >> $FILE_NAME && chmod 0400 $FILE_NAME && echo "installed public key successfully"
+			# need to chown for core, otherwise the user doesn't have access to the authorized_keys
+			chown 1000:1000 $FILE_NAME 
+
+			ls -l $FOLDER
+
+            # work around the DS restart policy by never exiting the container
+            sleep infinity`, sshPath)
+	podSpec := applycorev1.PodSpec()
+	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
+		*applycorev1.Container().
+			WithName("ssh-key-installer").
+			WithSecurityContext(applycorev1.SecurityContext().WithPrivileged(true)).
+			WithImage(image.ShellImage()).
+			WithVolumeMounts(
+				applycorev1.VolumeMount().WithName("ssh").WithMountPath(sshPath),
+			).
+			WithEnv(applycorev1.EnvVar().WithName("PUBLIC_KEY").
+				WithValueFrom(applycorev1.EnvVarSource().WithSecretKeyRef(applycorev1.SecretKeySelector().WithName(name).WithKey("pubKey"))),
+				// appending the time to ensure the DS updates if it already exists
+				applycorev1.EnvVar().WithName("TIME").WithValue(time.Now().String())).
+			WithCommand("/bin/bash", "-c", installScript),
+	}
+	podSpec.NodeSelector = map[string]string{"node-role.kubernetes.io/master": ""}
+	podSpec.Tolerations = []applycorev1.TolerationApplyConfiguration{
+		*applycorev1.Toleration().WithKey("node-role.kubernetes.io/master").WithOperator(corev1.TolerationOpExists).WithEffect(corev1.TaintEffectNoSchedule),
+	}
+
+	podSpec.Volumes = []applycorev1.VolumeApplyConfiguration{
+		*applycorev1.Volume().WithName("ssh").WithHostPath(applycorev1.HostPathVolumeSource().WithPath(sshPath)),
+		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName(name)),
+	}
+
+	ds := applyappsv1.DaemonSet(name, namespace).WithSpec(applyappsv1.DaemonSetSpec().WithTemplate(
+		applycorev1.PodTemplateSpec().WithName(name).WithSpec(podSpec).WithLabels(labels),
+	).WithSelector(applymetav1.LabelSelector().WithMatchLabels(labels)))
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, err := oc.AdminKubeClient().AppsV1().DaemonSets(namespace).Apply(ctx, ds, metav1.ApplyOptions{FieldManager: name})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// createPrivatePublicSSHKeySecret will create a new private and public key as a
+// secret with the given name in the given namespace
+func createPrivatePublicSSHKeySecret(oc *exutil.CLI, name string, namespace string) error {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4*1024)
+	if err != nil {
+		return fmt.Errorf("could not generate private key for CP nodes: %w", err)
+	}
+
+	if err := privateKey.Validate(); err != nil {
+		return fmt.Errorf("could not validate private key for CP nodes: %w", err)
+	}
+
+	der := x509.MarshalPKCS1PrivateKey(privateKey)
+	block := pem.Block{
+		Type:    "RSA PRIVATE KEY",
+		Headers: nil,
+		Bytes:   der,
+	}
+	pemBytes := pem.EncodeToMemory(&block)
+
+	publicKey, err := xssh.NewPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return fmt.Errorf("could not generate public key for CP nodes: %w", err)
+	}
+
+	pubKey := xssh.MarshalAuthorizedKey(publicKey)
+	framework.Logf("successfully created new public key: %s", string(pubKey))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	secret := applycorev1.Secret(name, namespace).WithData(map[string][]byte{
+		"privKey": pemBytes,
+		"pubKey":  pubKey,
+	})
+	_, err = oc.AdminKubeClient().CoreV1().Secrets(namespace).Apply(ctx, secret, metav1.ApplyOptions{FieldManager: name})
+	if err != nil {
+		return fmt.Errorf("could not save key secret for CP nodes: %w", err)
+	}
+	return nil
 }
