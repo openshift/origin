@@ -7,7 +7,7 @@ import (
 )
 
 func testMasterNodesUpdated(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-sippy] master nodes updated"
+	const testName = "[sig-coreos] master nodes updated"
 
 	// Only return a Junit if we detect that the master nodes were updated
 	// Used in sippy to differentiate between jobs where the master nodes update and do not (no junit in that case)

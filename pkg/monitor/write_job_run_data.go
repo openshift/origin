@@ -108,7 +108,12 @@ func WasMasterNodeUpdated(events monitorapi.Intervals) string {
 	nodeUpdates := events.Filter(monitorapi.NodeUpdate)
 
 	for _, i := range nodeUpdates {
-		if strings.Contains(i.Locator, "master") {
+		// "locator": "node/ip-10-0-240-32.us-west-1.compute.internal",
+		//            "message": "reason/NodeUpdate phase/Update config/rendered-master-757d729d8565a6f9f4e59913d4731db1 roles/control-plane,master reached desired config roles/control-plane,master",
+		// vs
+		// "locator": "node/ip-10-0-228-209.us-west-1.compute.internal",
+		//            "message": "reason/NodeUpdate phase/Update config/rendered-worker-722803a00bad408ee94572ab244ad3bc roles/worker reached desired config roles/worker",
+		if strings.Contains(i.Message, "master") {
 			return "Y"
 		}
 	}
