@@ -3,10 +3,9 @@ package etcd
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	testlibraryapi "github.com/openshift/library-go/test/library/apiserver"

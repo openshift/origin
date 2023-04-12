@@ -1835,6 +1835,8 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss [apigroup:machine.openshift.io][apigroup:operator.openshift.io]": " [Serial]",
 
+	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery] [Feature:EtcdRecovery] should install ssh keys on CP nodes": "",
+
 	"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling] etcd is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "",
 
 	"[sig-imageregistry] Image registry [apigroup:route.openshift.io] should redirect on blob pull [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
