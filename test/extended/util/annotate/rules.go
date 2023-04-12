@@ -86,7 +86,9 @@ var (
 		"[Slow]": {},
 		// tests that are known flaky
 		"[Flaky]": {
-			`openshift mongodb replication creating from a template`, // flaking on deployment
+			`openshift mongodb replication creating from a template`,                              // flaking on deployment
+			`\[sig-node\] Pods Extended Pod Container lifecycle evicted pods should be terminal`,  // OCPBUGS-11560
+			`\[sig-network\] Services should be rejected for evicted pods \(no endpoints exist\)`, // OCPBUGS-11629
 		},
 		// tests that must be run without competition
 		"[Serial]": {},
