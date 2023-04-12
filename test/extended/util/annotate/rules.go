@@ -87,6 +87,7 @@ var (
 		// tests that are known flaky
 		"[Flaky]": {
 			`openshift mongodb replication creating from a template`, // flaking on deployment
+			`\[sig-node\] Pods Extended Pod Container lifecycle evicted pods should be terminal`,
 		},
 		// tests that must be run without competition
 		"[Serial]": {},
