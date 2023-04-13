@@ -601,6 +601,7 @@ func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNod
          sudo chown -R core /home/core/backup
          ls -la /home/core/backup
 
+         export MANIFEST_DIR=/etc/kubernetes/manifests
          sudo /usr/local/bin/cluster-restore.sh /home/core/backup
 
 		 exit
