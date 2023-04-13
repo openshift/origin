@@ -1694,13 +1694,13 @@ func CheckForBuildEvent(client corev1client.CoreV1Interface, build *buildv1.Buil
 	o.ExpectWithOffset(1, expectedEvent.Message).To(o.Equal(fmt.Sprintf(message, build.Namespace, build.Name)))
 }
 
-type podExecutor struct {
+type PodExecutor struct {
 	client  *CLI
 	podName string
 }
 
 // NewPodExecutor returns an executor capable of running commands in a Pod.
-func NewPodExecutor(oc *CLI, name, image string) (*podExecutor, error) {
+func NewPodExecutor(oc *CLI, name, image string) (*PodExecutor, error) {
 	out, err := oc.Run("run").Args(name, "--labels", "name="+name, "--image", image, "--restart", "Never", "--command", "--", "/bin/bash", "-c", "sleep infinity").Output()
 	if err != nil {
 		return nil, fmt.Errorf("error: %v\n(%s)", err, out)
@@ -1709,13 +1709,13 @@ func NewPodExecutor(oc *CLI, name, image string) (*podExecutor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &podExecutor{client: oc, podName: name}, nil
+	return &PodExecutor{client: oc, podName: name}, nil
 }
 
 // Exec executes a single command or a bash script in the running pod. It returns the
 // command output and error if the command finished with non-zero status code or the
 // command took longer then 3 minutes to run.
-func (r *podExecutor) Exec(script string) (string, error) {
+func (r *PodExecutor) Exec(script string) (string, error) {
 	var out string
 	waitErr := wait.PollImmediate(1*time.Second, 3*time.Minute, func() (bool, error) {
 		var err error
@@ -1725,7 +1725,7 @@ func (r *podExecutor) Exec(script string) (string, error) {
 	return out, waitErr
 }
 
-func (r *podExecutor) CopyFromHost(local, remote string) error {
+func (r *PodExecutor) CopyFromHost(local, remote string) error {
 	_, err := r.client.Run("cp").Args(local, fmt.Sprintf("%s:%s", r.podName, remote)).Output()
 	return err
 }
