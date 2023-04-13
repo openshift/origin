@@ -114,6 +114,9 @@ var (
 			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/jenkinspipeline").RuleOrDie(),
 			rbacv1helpers.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/source").RuleOrDie(),
 
+			// See https://github.com/kubernetes/kubernetes/pull/116274
+			rbacv1helpers.NewRule("create").Groups(kAuthnGroup).Resources("selfsubjectreviews").RuleOrDie(),
+
 			rbacv1helpers.NewRule("get").Groups(userGroup, legacyUserGroup).Resources("users").Names("~").RuleOrDie(),
 			rbacv1helpers.NewRule("list").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list").Groups(authzGroup, legacyAuthzGroup).Resources("clusterroles").RuleOrDie(),
@@ -248,7 +251,6 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 			testAllGroupRules(ruleResolver, "system:authenticated:oauth", []rbacv1.PolicyRule{
 				rbacv1helpers.NewRule("create").Groups(projectGroup, legacyProjectGroup).Resources("projectrequests").RuleOrDie(),
 				rbacv1helpers.NewRule("get", "list", "watch", "delete").Groups(oauthGroup).Resources("useroauthaccesstokens").RuleOrDie(),
-				rbacv1helpers.NewRule("create").Groups(kAuthnGroup).Resources("selfsubjectreviews").RuleOrDie(),
 			}, namespaces.Items)
 		})
 
