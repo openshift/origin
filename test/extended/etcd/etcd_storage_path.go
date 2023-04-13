@@ -323,10 +323,50 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		// TODO: When rebase has started, fixup etcd storage data that has been modified
 		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.27 release.
 
+		// see https://github.com/kubernetes/kubernetes/pull/114492
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta2", "flowschemas")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "fs-1"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+			ExpectedEtcdPath: "/registry/flowschemas/fs-1",
+			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta3", "FlowSchema"),
+		}
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta2", "prioritylevelconfigurations")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "conf3"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf3",
+			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta3", "PriorityLevelConfiguration"),
+		}
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "flowschemas")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "fs-2"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+			ExpectedEtcdPath: "/registry/flowschemas/fs-2",
+		}
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "prioritylevelconfigurations")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "conf4"}, "spec": {"type": "Limited", "limited": {"nominalConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf4",
+		}
+
+		// see https://github.com/kubernetes/kubernetes/pull/114358
+		etcdStorageData[gvr("autoscaling", "v1", "horizontalpodautoscalers")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "hpa2"}, "spec": {"maxReplicas": 3, "scaleTargetRef": {"kind": "something", "name": "cross"}}}`,
+			ExpectedEtcdPath: "/registry/horizontalpodautoscalers/" + oc.Namespace() + "/hpa2",
+			ExpectedGVK:      gvkP("autoscaling", "v2", "HorizontalPodAutoscaler"),
+		}
+		etcdStorageData[gvr("autoscaling", "v2", "horizontalpodautoscalers")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "hpa4"}, "spec": {"maxReplicas": 3, "scaleTargetRef": {"kind": "something", "name": "cross"}}}`,
+			ExpectedEtcdPath: "/registry/horizontalpodautoscalers/" + oc.Namespace() + "/hpa4",
+		}
+
+		// see https://github.com/kubernetes/kubernetes/pull/115193
+		etcdStorageData[gvr("policy", "v1", "poddisruptionbudgets")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "pdbv1"}, "spec": {"selector": {"matchLabels": {"anokkey": "anokvalue"}}}}`,
+			ExpectedEtcdPath: "/registry/poddisruptionbudgets/" + oc.Namespace() + "/pdbv1",
+		}
+
 		// Removed etcd data.
 		// TODO: When rebase has started, remove etcd storage data that has been removed
 		//       from k8s.io/kubernetes/test/integration/etcd/data.go in the 1.27 release.
-		removeStorageData(t, etcdStorageData)
+		removeStorageData(t, etcdStorageData,
+			// see https://github.com/kubernetes/kubernetes/pull/116523
+			gvr("storage.k8s.io", "v1beta1", "csistoragecapacities"),
+		)
 	}
 
 	// we use a different default path prefix for kube resources
