@@ -86,6 +86,9 @@ var (
 
 			// https://issues.redhat.com/browse/WRKLDS-665
 			`\[sig-scheduling\] SchedulerPreemption \[Serial\] validates pod disruption condition is added to the preempted pod`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-11652
+			`\[sig-cli\] oc adm node-logs`,
 		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {
