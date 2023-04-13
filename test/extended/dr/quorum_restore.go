@@ -42,7 +42,7 @@ var disruptionTests []upgrades.Test = []upgrades.Test{
 	&apps.DaemonSetUpgradeTest{},
 }
 
-var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
+var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive][Disabled:Broken]", func() {
 	defer g.GinkgoRecover()
 
 	f := framework.NewDefaultFramework("disaster-recovery")

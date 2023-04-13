@@ -23,7 +23,8 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption"
 )
 
-var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive]", func() {
+// Disabled / Obsolete: rewritten in recovery.go due to issues with ssh access
+var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Disruptive][Disabled:Broken]", func() {
 	defer g.GinkgoRecover()
 
 	f := framework.NewDefaultFramework("backup-restore")
