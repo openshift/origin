@@ -1,9 +1,12 @@
 package dr
 
 import (
+	"time"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -40,9 +43,20 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// TODO(thomas): that's not all the validation from the old test
-		waitForReadyEtcdPods(oc.AdminKubeClient(), len(masters))
+		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
 		waitForOperatorsToSettle()
 
 		// TODO(thomas): wrap in disruption testing
 	})
 })
+
+func waitForReadyEtcdStaticPods(client kubernetes.Interface, masterCount int) {
+	g.By("Waiting for all etcd static pods to become ready")
+	waitForPodsTolerateClientTimeout(
+		client.CoreV1().Pods("openshift-etcd"),
+		exutil.ParseLabelsOrDie("app=etcd"),
+		exutil.CheckPodIsRunning,
+		masterCount,
+		40*time.Minute,
+	)
+}

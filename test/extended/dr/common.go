@@ -601,8 +601,23 @@ func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNod
          sudo chown -R core /home/core/backup
          ls -la /home/core/backup
 
-         export MANIFEST_DIR=/etc/kubernetes/manifests
-         sudo /usr/local/bin/cluster-restore.sh /home/core/backup
+         # TODO(thomas): why not use cluster-restore.sh directly? 
+         # the script was designed to create a single recovery etcd instance. Replacing a single node would
+         # create two etcd clusters, which causes some major disruptions after the operation finishes.
+         # Thus below we are manually doing a simple restore with snapshot restore directly. 
+         # This will delete the etcd data dir and the etcd static pod.
+
+         sudo source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd.env
+         sudo source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd-common-tools
+         
+         sudo dl_etcdctl
+
+         SNAPSHOT_FILE=$(ls -vd "/home/core/backup/snapshot*.db | tail -1) || true
+         sudo rm /etc/kubernetes/manifests/etcd-pod.yaml
+         sudo rm -rf /var/lib/etcd
+         sudo etcdctl restore snapshot ${SNAPSHOT_FILE} --data-dir=/var/lib/etcd
+         
+         # from here on out, the member should come back through the static pod installer in CEO
 
 		 exit
 		EOF
