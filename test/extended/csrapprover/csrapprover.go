@@ -68,9 +68,9 @@ var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 		internalAPI.Path = "/config/master"
 
 		// we should not be able to reach the endpoint
-		curlOutput, err := pod.Exec(fmt.Sprintf("curl -k %s", internalAPI.String()))
+		curlOutput, err := pod.Exec(fmt.Sprintf("curl --connect-timeout 5 -k %s", internalAPI.String()))
 		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(curlOutput).To(o.ContainSubstring("Connection refused"))
+		o.Expect(curlOutput).To(o.Or(o.ContainSubstring("Connection refused"), o.ContainSubstring("Connection timed out")))
 	})
 
 	g.It("CSRs from machines that are not recognized by the cloud provider are not approved", func() {
