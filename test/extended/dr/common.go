@@ -552,7 +552,7 @@ func runClusterBackupScript(oc *exutil.CLI, backupNode *corev1.Node) error {
 		 sudo /usr/local/bin/cluster-backup.sh --force /home/core/backup
 		 sudo chown -R core /home/core/backup
 		 exit
-		EOF
+EOF
         `, sshKeyDance, internalIp)
 
 	podSpec := applycorev1.PodSpec().WithHostNetwork(true).WithRestartPolicy(corev1.RestartPolicyOnFailure)
@@ -599,28 +599,31 @@ func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNod
          sudo rm -rf /home/core/backup
          scp -o StrictHostKeyChecking=no -r core@%s:/home/core/backup .
          sudo chown -R core /home/core/backup
-         ls -la /home/core/backup
+         SNAPSHOT=\$(ls -vd /home/core/backup/snapshot*.db | tail -1)
+         mv \$SNAPSHOT /home/core/backup/snapshot.db
 
          # TODO(thomas): why not use cluster-restore.sh directly? 
          # the script was designed to create a single recovery etcd instance. Replacing a single node would
          # create two etcd clusters, which causes some major disruptions after the operation finishes.
          # Thus below we are manually doing a simple restore with snapshot restore directly. 
          # This will delete the etcd data dir and the etcd static pod.
+         sudo -s -- <<EOF
+            ls -la /etc/kubernetes/manifests/
+            mv /etc/kubernetes/manifests/etcd-pod.yaml /tmp/etcd.pod.yaml
+            # TODO(thomas): wait for containers to stop?
 
-         sudo source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd.env
-         sudo source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd-common-tools
-         
-         sudo dl_etcdctl
-
-         SNAPSHOT_FILE=$(ls -vd "/home/core/backup/snapshot*.db | tail -1) || true
-         sudo rm /etc/kubernetes/manifests/etcd-pod.yaml
-         sudo rm -rf /var/lib/etcd
-         sudo etcdctl restore snapshot ${SNAPSHOT_FILE} --data-dir=/var/lib/etcd
-         
-         # from here on out, the member should come back through the static pod installer in CEO
-
+            source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd.env
+            source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd-common-tools
+            dl_etcdctl
+            rm -rf /var/lib/etcd
+            mkdir -p /var/lib/etcd 
+            etcdctl snapshot restore /home/core/backup/snapshot.db --data-dir=/var/lib/etcd
+            # from here on out, the member should come back through the static pod installer in CEO
+            # we need to trigger a revision rollout for it with:
+            mv /tmp/etcd.pod.yaml /etc/kubernetes/manifests
+EOF
 		 exit
-		EOF
+EOF
         `, sshKeyDance, restoreInternalIp, backupInternalIp)
 
 	podSpec := applycorev1.PodSpec().WithHostNetwork(true).WithRestartPolicy(corev1.RestartPolicyOnFailure)
