@@ -104,8 +104,25 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 	return ret
 }
 
+func WasMasterNodeUpdated(events monitorapi.Intervals) string {
+	nodeUpdates := events.Filter(monitorapi.NodeUpdate)
+
+	for _, i := range nodeUpdates {
+		// "locator": "node/ip-10-0-240-32.us-west-1.compute.internal",
+		//            "message": "reason/NodeUpdate phase/Update config/rendered-master-757d729d8565a6f9f4e59913d4731db1 roles/control-plane,master reached desired config roles/control-plane,master",
+		// vs
+		// "locator": "node/ip-10-0-228-209.us-west-1.compute.internal",
+		//            "message": "reason/NodeUpdate phase/Update config/rendered-worker-722803a00bad408ee94572ab244ad3bc roles/worker reached desired config roles/worker",
+		if strings.Contains(i.Message, "master") {
+			return "Y"
+		}
+	}
+
+	return "N"
+}
+
 func WriteClusterData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
-	return writeClusterData(filepath.Join(artifactDir, fmt.Sprintf("cluster-data%s.json", timeSuffix)), CollectClusterData())
+	return writeClusterData(filepath.Join(artifactDir, fmt.Sprintf("cluster-data%s.json", timeSuffix)), CollectClusterData(WasMasterNodeUpdated(events)))
 }
 
 func writeClusterData(filename string, clusterData platformidentification.ClusterData) error {
@@ -116,7 +133,7 @@ func writeClusterData(filename string, clusterData platformidentification.Cluste
 	return ioutil.WriteFile(filename, jsonContent, 0644)
 }
 
-func CollectClusterData() platformidentification.ClusterData {
+func CollectClusterData(masterNodeUpdated string) platformidentification.ClusterData {
 	clusterData := platformidentification.ClusterData{}
 	var errs *[]error
 	restConfig, err := GetMonitorRESTConfig()
@@ -133,5 +150,7 @@ func CollectClusterData() platformidentification.ClusterData {
 		e2e.Logf("Ignoring cluster data due to previous errors: %v", clusterData)
 		return platformidentification.ClusterData{}
 	}
+
+	clusterData.MasterNodesUpdated = masterNodeUpdated
 	return clusterData
 }
