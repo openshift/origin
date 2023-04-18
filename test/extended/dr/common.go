@@ -619,8 +619,7 @@ func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNod
             mkdir -p /var/lib/etcd 
             etcdctl snapshot restore /home/core/backup/snapshot.db --data-dir=/var/lib/etcd
             # from here on out, the member should come back through the static pod installer in CEO
-            # we need to trigger a revision rollout for it with:
-            mv /tmp/etcd.pod.yaml /etc/kubernetes/manifests
+
 EOF
 		 exit
 EOF

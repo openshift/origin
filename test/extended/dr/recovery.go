@@ -45,6 +45,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 		err = runClusterRestoreScript(oc, recoveryNode, backupNode)
 		o.Expect(err).ToNot(o.HaveOccurred())
+		
+		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
 
 		// TODO(thomas): that's not all the validation from the old test
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
