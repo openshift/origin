@@ -34,7 +34,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 	g.AfterEach(func() {
 		// enable the quorum check again for any other tests that come after
-		data := fmt.Sprintf(`{"spec": {}`)
+		data := fmt.Sprintf(`{"spec": {}}`)
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
