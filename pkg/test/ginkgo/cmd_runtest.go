@@ -148,6 +148,9 @@ func (opt *TestOptions) Run(args []string) error {
 	default:
 		return fmt.Errorf("unrecognized test case outcome: %#v", summary)
 	}
+	for _, reportEntry := range summary.ReportEntries {
+		fmt.Fprintf(opt.ErrOut, "metric %s %s\n", reportEntry.Name, reportEntry.Value.AsJSON)
+	}
 	return nil
 }
 

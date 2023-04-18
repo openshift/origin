@@ -70,6 +70,7 @@ func mutateTestCaseWithResults(test *testCase, testRunResult *testRunResultHandl
 	test.duration = duration
 
 	test.testOutputBytes = testRunResult.testOutputBytes
+	test.testMetrics = testRunResult.testMetrics
 
 	switch testRunResult.testState {
 	case TestFlaked:
@@ -138,6 +139,7 @@ type testRunResult struct {
 	end             time.Time
 	testState       TestState
 	testOutputBytes []byte
+	testMetrics     TestMetrics
 }
 
 func (r testRunResult) duration() time.Duration {
@@ -277,8 +279,9 @@ func recordTestResultInMonitor(testRunResult *testRunResultHandle, monitorRecord
 // RunTestInNewProcess runs a test case in a different process and returns a result
 func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase) *testRunResult {
 	ret := &testRunResult{
-		name:      test.name,
-		testState: TestUnknown,
+		name:        test.name,
+		testState:   TestUnknown,
+		testMetrics: make(TestMetrics),
 	}
 
 	// if the test was already marked as skipped, skip it.
@@ -302,6 +305,14 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 	ret.testOutputBytes = testOutputBytes
 	if err == nil {
 		ret.testState = TestSucceeded
+
+		// Extract metrics if last line starts with "metric "
+		testOutputLines := strings.Split(strings.Trim(string((ret.testOutputBytes)), "/n"), "/n")
+		lastTestOutputLine := testOutputLines[len(testOutputLines)-1]
+		if metricString, found := strings.CutPrefix(lastTestOutputLine, "metric "); found {
+			tokens := strings.SplitN(metricString, " ", 3)
+			ret.testMetrics[tokens[1]] = tokens[2]
+		}
 		return ret
 	}
 

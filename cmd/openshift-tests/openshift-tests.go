@@ -547,4 +547,5 @@ func bindTestOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
 	flags.IntVar(&opt.Parallelism, "max-parallel-tests", opt.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
+	flags.StringVar(&opt.TestMetricFile, "test-metric-file", opt.TestMetricFile, "The file to save test metrics to.")
 }

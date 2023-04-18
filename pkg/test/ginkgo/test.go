@@ -27,6 +27,7 @@ type testCase struct {
 	end             time.Time
 	duration        time.Duration
 	testOutputBytes []byte
+	testMetrics     TestMetrics
 
 	flake    bool
 	failed   bool
