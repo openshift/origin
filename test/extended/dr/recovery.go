@@ -1,11 +1,15 @@
 package dr
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -18,8 +22,20 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 	oc := exutil.NewCLIWithoutNamespace("recovery")
 
-	g.BeforeEach(func() {
+	g.BeforeAll(func() {
 		err := InstallSSHKeyOnControlPlaneNodes(oc)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// ensure the CEO can still act with 2 nodes
+		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)
+		_, err = oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+	})
+
+	g.AfterAll(func() {
+		// enable the quorum check again for any other tests that come after
+		data := fmt.Sprintf(`{"spec": {}`)
+		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
@@ -45,7 +61,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 		err = runClusterRestoreScript(oc, recoveryNode, backupNode)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		
+
 		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
 
 		// TODO(thomas): that's not all the validation from the old test
