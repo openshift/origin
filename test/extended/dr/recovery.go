@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 	oc := exutil.NewCLIWithoutNamespace("recovery")
 
-	g.BeforeAll(func() {
+	g.BeforeEach(func() {
 		err := InstallSSHKeyOnControlPlaneNodes(oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.AfterAll(func() {
+	g.AfterEach(func() {
 		// enable the quorum check again for any other tests that come after
 		data := fmt.Sprintf(`{"spec": {}`)
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
