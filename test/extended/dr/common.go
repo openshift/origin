@@ -369,7 +369,7 @@ func ensureControlPlaneSSHAccess(oc *exutil.CLI, name string, namespace string) 
 
 	var cpNodeInternalIps []string
 	for _, node := range masterNodes(oc) {
-		framework.Logf("CP Node meta: %s, addresses: %v", node.ObjectMeta.String(), node.Status.Addresses)
+		framework.Logf("CP Node: %s, addresses: %v", node.ObjectMeta.Name, node.Status.Addresses)
 		for _, address := range node.Status.Addresses {
 			if address.Type == corev1.NodeInternalIP {
 				cpNodeInternalIps = append(cpNodeInternalIps, address.Address)
@@ -691,4 +691,48 @@ func runPodAndWaitForSuccess(oc *exutil.CLI, pod *applycorev1.PodApplyConfigurat
 	// TODO(thomas): on failure it would be great to get the last logs out of the pod
 
 	return err
+}
+
+func removeMemberOfNode(oc *exutil.CLI, node *corev1.Node) error {
+	etcdEndpointsConfigMap, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-etcd").Get(context.Background(), "etcd-endpoints", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	memberIp := internalIP(node)
+	for memberIdentifier, votingMemberIP := range etcdEndpointsConfigMap.Data {
+		if votingMemberIP == memberIp {
+			framework.Logf("found node with IP %s, has identifier [%v]. Removing from cluster...", memberIp, memberIdentifier)
+			removeMember(oc, memberIdentifier)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("removeMemberOfNode could not find any member with IP %s in current endpoint configmap: [%v]",
+		memberIp, etcdEndpointsConfigMap.Data)
+}
+
+func removeMember(oc *exutil.CLI, memberID string) {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	var healthyEtcdPod string
+	for _, node := range nodes.Items {
+		nodeReady := true
+		for _, t := range node.Spec.Taints {
+			if t.Key == "node.kubernetes.io/unreachable" {
+				nodeReady = false
+				break
+			}
+		}
+		if nodeReady {
+			healthyEtcdPod = "etcd-" + node.Name
+			break
+		}
+	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	member, err := oc.AsAdmin().Run("exec").Args("-n", "openshift-etcd", healthyEtcdPod, "-c", "etcdctl", "etcdctl", "member", "remove", memberID).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(member).To(o.ContainSubstring("removed from cluster"))
 }

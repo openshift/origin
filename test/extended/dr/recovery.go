@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
-	g.It("[Feature:EtcdRecovery][Disruptive] Cluster should recover from backup of another node", func() {
+	g.It("[Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node", func() {
 		masters := masterNodes(oc)
 		// Need one node to back up from and another to restore to
 		o.Expect(len(masters)).To(o.BeNumerically(">=", 2))
@@ -37,6 +37,10 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		framework.Logf("Selecting node %q as the recovery host", recoveryNode.Name)
 
 		err := runClusterBackupScript(oc, backupNode)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// remove the etcd recovery member before we're starting to restore
+		err = removeMemberOfNode(oc, recoveryNode)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		err = runClusterRestoreScript(oc, recoveryNode, backupNode)

@@ -277,31 +277,6 @@ func getEtcdMemberToRemove(oc *exutil.CLI, unhealthyNodeName string) string {
 	return ""
 }
 
-func removeMember(oc *exutil.CLI, memberID string) {
-	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	var healthyEtcdPod string
-	for _, node := range nodes.Items {
-		nodeReady := true
-		for _, t := range node.Spec.Taints {
-			if t.Key == "node.kubernetes.io/unreachable" {
-				nodeReady = false
-				break
-			}
-		}
-		if nodeReady {
-			healthyEtcdPod = "etcd-" + node.Name
-			break
-		}
-	}
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	member, err := oc.AsAdmin().Run("exec").Args("-n", "openshift-etcd", healthyEtcdPod, "-c", "etcdctl", "etcdctl", "member", "remove", memberID).Output()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	o.Expect(member).To(o.ContainSubstring("removed from cluster"))
-}
-
 func deleteMachineCheckForRole(role string) {
 	config, err := framework.LoadConfig()
 	o.Expect(err).NotTo(o.HaveOccurred())
