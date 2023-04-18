@@ -551,10 +551,11 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		fmt.Fprintf(opt.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
 	}
 
-	if len(opt.TestMetricFile) > 0 {
-		if err := WriteTestMetrics(opt.TestMetricFile, tests); err != nil {
-			return fmt.Errorf("failed to write tests metrics file: %v", err)
-		}
+	if err := WriteTestMetrics(opt.TestMetricFile, tests); err != nil {
+		return fmt.Errorf("failed to write tests metrics file: %v", err)
+	}
+	if err := WriteSyntheticTestMetrics(opt.TestMetricFile, syntheticTestResults); err != nil {
+		return fmt.Errorf("failed to write synthetic tests metrics file: %v", err)
 	}
 
 	if syntheticFailure {

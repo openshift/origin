@@ -2,6 +2,7 @@ package synthetictests
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,6 +93,9 @@ func testServerAvailability(
 	successTest := &junitapi.JUnitTestCase{
 		Name:     testName,
 		Duration: jobRunDuration.Seconds(),
+		TestMetrics: map[string]string{
+			backendName: strconv.FormatFloat(observedDisruption.Seconds(), 'f', -1, 64),
+		},
 	}
 	if observedDisruption > roundedAllowedDisruption {
 		test := &junitapi.JUnitTestCase{
@@ -101,6 +105,9 @@ func testServerAvailability(
 				Output: resultsStr,
 			},
 			SystemOut: strings.Join(disruptionMsgs, "\n"),
+			TestMetrics: map[string]string{
+				backendName: strconv.FormatFloat(observedDisruption.Seconds(), 'f', -1, 64),
+			},
 		}
 		return []*junitapi.JUnitTestCase{test}
 	} else {

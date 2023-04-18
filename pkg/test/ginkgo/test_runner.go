@@ -309,9 +309,11 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 		// Extract metrics if last line starts with "metric "
 		testOutputLines := strings.Split(strings.Trim(string((ret.testOutputBytes)), "/n"), "/n")
 		lastTestOutputLine := testOutputLines[len(testOutputLines)-1]
-		if metricString, found := strings.CutPrefix(lastTestOutputLine, "metric "); found {
-			tokens := strings.SplitN(metricString, " ", 3)
-			ret.testMetrics[tokens[1]] = tokens[2]
+		if strings.HasPrefix(lastTestOutputLine, "metric ") {
+			if _, metricString, found := strings.Cut(lastTestOutputLine, " "); found {
+				tokens := strings.SplitN(metricString, " ", 3)
+				ret.testMetrics[tokens[1]] = tokens[2]
+			}
 		}
 		return ret
 	}

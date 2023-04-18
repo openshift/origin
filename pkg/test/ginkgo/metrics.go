@@ -4,17 +4,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 type TestMetrics map[string]string
 
-func WriteTestMetrics(outputFile string, tests []*testCase) error {
-	testMetrics := make(TestMetrics)
-	for _, test := range tests {
-		for k, v := range test.testMetrics {
-			testMetrics[k] = v
-		}
-	}
+func writeTestMetrics(outputFile string, testMetrics TestMetrics) error {
 	lines := make([]string, 0)
 	for k, v := range testMetrics {
 		lines = append(lines, fmt.Sprintf("%s %s", k, v))
@@ -27,4 +23,24 @@ func WriteTestMetrics(outputFile string, tests []*testCase) error {
 	defer f.Close()
 	fmt.Fprint(f, strings.Join(lines, "\n")+"\n")
 	return nil
+}
+
+func WriteTestMetrics(outputFile string, tests []*testCase) error {
+	testMetrics := make(TestMetrics)
+	for _, test := range tests {
+		for k, v := range test.testMetrics {
+			testMetrics[k] = v
+		}
+	}
+	return writeTestMetrics(outputFile, testMetrics)
+}
+
+func WriteSyntheticTestMetrics(outputFile string, tests []*junitapi.JUnitTestCase) error {
+	testMetrics := make(TestMetrics)
+	for _, test := range tests {
+		for k, v := range test.TestMetrics {
+			testMetrics[k] = v
+		}
+	}
+	return writeTestMetrics(outputFile, testMetrics)
 }

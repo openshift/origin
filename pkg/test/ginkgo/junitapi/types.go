@@ -77,6 +77,9 @@ type JUnitTestCase struct {
 
 	// SystemErr is output written to stderr during the execution of this test case
 	SystemErr string `xml:"system-err,omitempty"`
+
+	// TestMetrics allows storing custom metrics exposed during the execution of this test case
+	TestMetrics map[string]string `xml:"-"`
 }
 
 // SkipMessage holds a message explaining why a test was skipped
