@@ -11,6 +11,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -30,6 +31,7 @@ const (
 	namespace          = "graceful-shutdown-testbed"
 	serviceAccountName = "graceful-shutdown"
 	hostPath           = "/var/graceful-shutdown"
+	nodeReadyTimeout   = 15 * time.Minute
 )
 
 var (
@@ -125,8 +127,8 @@ var _ = Describe("[sig-node][Disruptive][Feature:KubeletGracefulShutdown]", func
 				Expect(err).NotTo(HaveOccurred())
 			}
 			// Wait for node to be rebooted before examining with debug pod
-			err = waitForNode(oc, node.Name)
-			Expect(err).NotTo(HaveOccurred(), "unable to watch node for status ready")
+			isReadyBeforeTimeout := e2enode.WaitForNodeToBeReady(oc.KubeFramework().ClientSet, node.Name, nodeReadyTimeout)
+			Expect(isReadyBeforeTimeout).To(BeTrue(), "node was not ready before timeout %s", nodeReadyTimeout)
 		})
 
 		By("creating debug pod to gather files on the node", func() {
@@ -155,30 +157,6 @@ var _ = Describe("[sig-node][Disruptive][Feature:KubeletGracefulShutdown]", func
 
 func filePathForPod(podName string) string {
 	return fmt.Sprintf("%s/completed-%s", hostPath, podName)
-}
-
-// Wait for the node to come back up after reboot before attempting to validate results
-func waitForNode(oc *exutil.CLI, name string) error {
-	pollingInterval := time.Second
-	timeout := time.Minute * 10
-	err := wait.Poll(pollingInterval, timeout, func() (bool, error) {
-		node, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-
-		if len(node.Spec.Taints) != 0 {
-			return false, nil
-		}
-
-		for _, condition := range node.Status.Conditions {
-			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
-				return true, nil
-			}
-		}
-		return false, nil
-	})
-	return err
 }
 
 func debugPod(oc *exutil.CLI, nodeName string) (output string, err error) {
