@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -426,6 +427,13 @@ func transportWithSystemRoots(issuer string, clientConfig *restclient.Config) (h
 	// note that both transports are "safe" to use (in the sense that they have valid TLS configurations)
 	// thus the fallback case is not an "unsafe" operation
 	_, err = systemRootsRT.RoundTrip(req)
+	// In go 1.20 and upwards versions, x509 errors in the switch statement
+	// are wrapped in tls.CertificateVerificationError.
+	var cerr *tls.CertificateVerificationError
+	if errors.As(err, &cerr) {
+		err = cerr.Unwrap()
+	}
+
 	switch err.(type) {
 	case nil:
 		// no error meaning the system roots work with the OAuth server
