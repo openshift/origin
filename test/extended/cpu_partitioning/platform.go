@@ -36,6 +36,12 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 	})
 
 	g.It("should be configured correctly", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if *controlPlaneTopology == ocpv1.ExternalTopologyMode {
+			g.Skip("Clusters with external control plane topology do not support MachineConfigs")
+		}
 
 		mcMatcher := o.And(
 			o.ContainSubstring("01-master-cpu-partitioning"),
