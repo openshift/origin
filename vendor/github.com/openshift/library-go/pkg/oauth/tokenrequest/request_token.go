@@ -1,4 +1,4 @@
-package tokencmd
+package tokenrequest
 
 import (
 	"crypto/tls"
@@ -21,6 +21,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
+	"github.com/openshift/library-go/pkg/oauth/tokenrequest/challengehandlers"
 )
 
 const (
@@ -43,29 +44,14 @@ const (
 
 	// token fakes the missing osin.TOKEN const
 	token osincli.AuthorizeRequestType = "token"
-)
 
-// ChallengeHandler handles responses to WWW-Authenticate challenges.
-type ChallengeHandler interface {
-	// CanHandle returns true if the handler recognizes a challenge it thinks it can handle.
-	CanHandle(headers http.Header) bool
-	// HandleChallenge lets the handler attempt to handle a challenge.
-	// It is only invoked if CanHandle() returned true for the given headers.
-	// Returns response headers and true if the challenge is successfully handled.
-	// Returns false if the challenge was not handled, and an optional error in error cases.
-	HandleChallenge(requestURL string, headers http.Header) (http.Header, bool, error)
-	// CompleteChallenge is invoked with the headers from a successful server response
-	// received after having handled one or more challenges.
-	// Returns an error if the handler does not consider the challenge/response interaction complete.
-	CompleteChallenge(requestURL string, headers http.Header) error
-	// Release gives the handler a chance to release any resources held during a challenge/response sequence.
-	// It is always invoked, even in cases where no challenges were received or handled.
-	Release() error
-}
+	// BasicAuthNoUsernameMessage will differentiate unauthorized errors from basic login with no username
+	BasicAuthNoUsernameMessage = "BasicChallengeNoUsername"
+)
 
 type RequestTokenOptions struct {
 	ClientConfig *restclient.Config
-	Handler      ChallengeHandler
+	Handler      challengehandlers.ChallengeHandler
 	OsinConfig   *osincli.ClientConfig
 	Issuer       string
 	TokenFlow    bool
@@ -73,32 +59,21 @@ type RequestTokenOptions struct {
 
 // RequestToken uses the cmd arguments to locate an openshift oauth server and attempts to authenticate via an
 // OAuth code flow and challenge handling.  It returns the access token if it gets one or an error if it does not.
-func RequestToken(clientCfg *restclient.Config, reader io.Reader, defaultUsername string, defaultPassword string) (string, error) {
-	return NewRequestTokenOptions(clientCfg, reader, defaultUsername, defaultPassword, false).RequestToken()
+func RequestToken(clientCfg *restclient.Config, challengeHandlers ...challengehandlers.ChallengeHandler) (string, error) {
+	return NewRequestTokenOptions(clientCfg, false, challengeHandlers...).RequestToken()
 }
 
-func NewRequestTokenOptions(clientCfg *restclient.Config, reader io.Reader, defaultUsername string, defaultPassword string, tokenFlow bool) *RequestTokenOptions {
-	// priority ordered list of challenge handlers
-	// the SPNEGO ones must come before basic auth
-	var handlers []ChallengeHandler
+func NewRequestTokenOptions(
+	clientCfg *restclient.Config,
+	tokenFlow bool,
+	challengeHandlers ...challengehandlers.ChallengeHandler,
+) *RequestTokenOptions {
 
-	if GSSAPIEnabled() {
-		klog.V(6).Info("GSSAPI Enabled")
-		handlers = append(handlers, NewNegotiateChallengeHandler(NewGSSAPINegotiator(defaultUsername)))
-	}
-
-	if SSPIEnabled() {
-		klog.V(6).Info("SSPI Enabled")
-		handlers = append(handlers, NewNegotiateChallengeHandler(NewSSPINegotiator(defaultUsername, defaultPassword, clientCfg.Host, reader)))
-	}
-
-	handlers = append(handlers, &BasicChallengeHandler{Host: clientCfg.Host, Reader: reader, Username: defaultUsername, Password: defaultPassword})
-
-	var handler ChallengeHandler
-	if len(handlers) == 1 {
-		handler = handlers[0]
+	var handler challengehandlers.ChallengeHandler
+	if len(challengeHandlers) == 1 {
+		handler = challengeHandlers[0]
 	} else {
-		handler = NewMultiHandler(handlers...)
+		handler = challengehandlers.NewMultiHandler(challengeHandlers...)
 	}
 
 	return &RequestTokenOptions{
@@ -225,13 +200,23 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusUnauthorized {
-			if resp.Header.Get("WWW-Authenticate") != "" {
+			if len(resp.Header.Get("WWW-Authenticate")) > 0 {
 				if !o.Handler.CanHandle(resp.Header) {
 					return "", apierrs.NewUnauthorized("unhandled challenge")
 				}
 				// Handle the challenge
 				newRequestHeaders, shouldRetry, err := o.Handler.HandleChallenge(requestURL, resp.Header)
 				if err != nil {
+					if _, ok := err.(*challengehandlers.BasicAuthNoUsernameError); ok {
+						tokenPromptErr := apierrs.NewUnauthorized(BasicAuthNoUsernameMessage)
+						klog.V(2).Infof("%v", err)
+						tokenPromptErr.ErrStatus.Details = &metav1.StatusDetails{
+							Causes: []metav1.StatusCause{
+								{Message: fmt.Sprintf("You must obtain an API token by visiting %s/request", o.OsinConfig.TokenUrl)},
+							},
+						}
+						return "", tokenPromptErr
+					}
 					return "", err
 				}
 				if !shouldRetry {
@@ -397,39 +382,58 @@ func request(rt http.RoundTripper, requestURL string, requestHeaders http.Header
 	return rt.RoundTrip(req)
 }
 
+// transportWithSystemRoots tries to retrieve the serving certificate from the
+// issuer, validates it against the system roots and if the validation passes,
+// returns transport using just system roots, otherwise it returns a transport
+// that uses the CA from kubeconfig
 func transportWithSystemRoots(issuer string, clientConfig *restclient.Config) (http.RoundTripper, error) {
-	// copy the config so we can freely mutate it
-	configWithSystemRoots := restclient.CopyConfig(clientConfig)
-
-	// explicitly unset CA cert information
-	// this will make the transport use the system roots or OS specific verification
-	// this is required to have reasonable behavior on windows (cannot get system roots)
-	// in general there is no good with to say "I want system roots plus this CA bundle"
-	// so we just try system roots first before using the kubeconfig CA bundle
-	configWithSystemRoots.CAFile = ""
-	configWithSystemRoots.CAData = nil
-
-	systemRootsRT, err := restclient.TransportFor(configWithSystemRoots)
+	issuerURL, err := url.Parse(issuer)
 	if err != nil {
 		return nil, err
 	}
 
-	// build a request to probe the OAuth server CA
-	req, err := http.NewRequest(http.MethodHead, issuer, nil)
+	port := issuerURL.Port()
+	if len(port) == 0 {
+		port = "443"
+	}
+	// perform the retrieval with insecure transport, otherwise oauth-server
+	// logs remote tls error which is confusing during troubleshooting
+	client := http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{
+				Certificates:       []tls.Certificate{},
+				InsecureSkipVerify: true,
+				ServerName:         issuerURL.Hostname(),
+			},
+		},
+	}
+	resp, err := client.Head(issuer)
 	if err != nil {
 		return nil, err
 	}
+	resp.Body.Close()
 
-	// see if get a certificate error when using the system roots
-	// we perform the check using this transport (instead of the kubeconfig based one)
-	// because it is most likely to work with a route (which is what the OAuth server uses in 4.0+)
-	// note that both transports are "safe" to use (in the sense that they have valid TLS configurations)
-	// thus the fallback case is not an "unsafe" operation
-	_, err = systemRootsRT.RoundTrip(req)
+	_, err = verifyServerCertChain(issuerURL.Hostname(), resp.TLS.PeerCertificates)
 	switch err.(type) {
 	case nil:
+		// copy the config so we can freely mutate it
+		configWithSystemRoots := restclient.CopyConfig(clientConfig)
+
+		// explicitly unset CA cert information
+		// this will make the transport use the system roots or OS specific verification
+		// this is required to have reasonable behavior on windows (cannot get system roots)
+		// in general there is no good with to say "I want system roots plus this CA bundle"
+		// so we just try system roots first before using the kubeconfig CA bundle
+		configWithSystemRoots.CAFile = ""
+		configWithSystemRoots.CAData = nil
+
 		// no error meaning the system roots work with the OAuth server
 		klog.V(4).Info("using system roots as no error was encountered")
+		systemRootsRT, err := restclient.TransportFor(configWithSystemRoots)
+		if err != nil {
+			return nil, err
+		}
 		return systemRootsRT, nil
 	case x509.UnknownAuthorityError, x509.HostnameError, x509.CertificateInvalidError, x509.SystemRootsError,
 		tls.RecordHeaderError, *net.OpError:
@@ -448,4 +452,22 @@ func transportWithSystemRoots(issuer string, clientConfig *restclient.Config) (h
 		klog.V(4).Infof("unexpected error during system roots probe: %v", err)
 		return nil, err
 	}
+}
+
+// verifyCertChain uses the system trust bundle in order to perform validation
+// of a certificate chain
+func verifyServerCertChain(dnsName string, chain []*x509.Certificate) ([][]*x509.Certificate, error) {
+	if len(chain) == 0 {
+		return nil, fmt.Errorf("the server presented an empty certificate chain")
+	}
+	intermediates := x509.NewCertPool()
+
+	for _, c := range chain[1:] {
+		intermediates.AddCert(c)
+	}
+
+	return chain[0].Verify(x509.VerifyOptions{
+		Intermediates: intermediates,
+		DNSName:       dnsName,
+	})
 }
