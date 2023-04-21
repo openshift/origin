@@ -53189,7 +53189,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         <form>
             <div class="form-row" id="positive-selection-header-row">
                 <div class="form-group col-md-2" id="not-column">
-                    <label for="not_1">Not</label>
+                    <label for="not_1" style="display: flex; justify-content: center; align-items: center; margin-bottom:10px;">Not</label>
                 </div>
                 <div class="form-group col-md-2" id="regex-column">
                     <label for="filterInput">General RegExp</label>
@@ -53243,7 +53243,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
 
     notInputTemplate = ` + "`" + `
-                    <input class="positive-selection-fields form-control form-control-sm" type="checkbox" id="not_INPUT_NUMBER">
+                    <input class="positive-selection-fields form-control form-control-sm" type="checkbox" id="not_INPUT_NUMBER" style="margin-top: 16px; margin-bottom: 18px;">
 ` + "`" + `
     regexInputTemplate = ` + "`" + `
                     <input class="positive-selection-fields form-control form-control-sm" type="text" id="filterInput_INPUT_NUMBER">
