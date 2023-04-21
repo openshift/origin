@@ -267,7 +267,16 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 					(name == "storage" && vmxPattern.MatchString(message)) ||
 					// storage attempts to contact vsphere to determine if it can be ugpraded.  If the storage operator cannot reach vsphere to determine
 					// whether the upgrade is safe or not, it is appropriate to be upgradeable=Unknown
-					(name == "storage" && status == "Unknown" && strings.Contains(message, "Failed to connect to vSphere"))) {
+					(name == "storage" && status == "Unknown" && strings.Contains(message, "Failed to connect to vSphere")) ||
+					// cloud-credential's default behavior is to set upgradeable=False [1] when the cluster is in Manual credentialsMode [2][3] as set
+					// on the cloudcredential config CR.
+					// User is expected to set an "cloudcredential.openshift.io/upgradeable-to" annotation on the cloud-credential config CR
+					// once permissions have been manually adjusted to meet the expectations of the release being upgraded to [4].
+					// [1] https://github.com/openshift/cloud-credential-operator/pull/286
+					// [2] https://github.com/openshift/api/blob/1b2161d23365fb5918167b2ba73e90ff80ca1805/operator/v1/types_cloudcredential.go#L67
+					// [3] https://github.com/openshift/cloud-credential-operator/blob/44aef7f1f9eba684755df4be0338cf09ac9e15b6/pkg/operator/utils/utils.go#L333-L337
+					// [4] https://docs.openshift.com/container-platform/4.12/authentication/managing_cloud_provider_credentials/cco-mode-sts.html#manually-maintained-credentials-upgrade_sts-mode-upgrading
+					(name == "cloud-credential" && reason == "MissingUpgradeableAnnotation")) {
 					continue
 				}
 				badConditions = append(badConditions, configv1.ClusterOperatorStatusCondition{
