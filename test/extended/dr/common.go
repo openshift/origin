@@ -19,13 +19,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	"k8s.io/client-go/dynamic"
-	"k8s.io/kubernetes/test/e2e/framework"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2essh "k8s.io/kubernetes/test/e2e/framework/ssh"
 
@@ -39,6 +40,19 @@ import (
 const (
 	operatorWait      = 15 * time.Minute
 	defaultSSHTimeout = 5 * time.Minute
+
+	sshPath = "/tmp/ssh"
+	// sshKeyDance is necessary because permissions on a secret mount can't be changed and ssh is very strict about this
+	sshKeyDance = `
+		CORE_SSH_BASE_DIR=$HOME/.ssh
+		SSH_MOUNT_DIR=` + sshPath + `
+		P_KEY=$SSH_MOUNT_DIR/privKey
+		# we can't change the permissions on the secret mount, thus we copy it to HOME
+		mkdir -p $CORE_SSH_BASE_DIR && chmod 700 $CORE_SSH_BASE_DIR
+		cp $P_KEY $CORE_SSH_BASE_DIR/id_rsa
+		P_KEY=$CORE_SSH_BASE_DIR/id_rsa
+		chmod 600 $P_KEY
+`
 )
 
 func runCommandAndRetry(command string) string {
@@ -90,6 +104,16 @@ func clusterNodes(oc *exutil.CLI) (masters, workers []*corev1.Node) {
 		}
 	}
 	return
+}
+
+func internalIP(restoreNode *corev1.Node) string {
+	internalIp := restoreNode.Name
+	for _, address := range restoreNode.Status.Addresses {
+		if address.Type == corev1.NodeInternalIP {
+			internalIp = address.Address
+		}
+	}
+	return internalIp
 }
 
 func waitForMastersToUpdate(oc *exutil.CLI, mcps dynamic.NamespaceableResourceInterface) {
@@ -341,12 +365,11 @@ func InstallSSHKeyOnControlPlaneNodes(oc *exutil.CLI) error {
 // ensureControlPlaneSSHAccess will test that the private key generated and installed with installSSHKeyOnControlPlaneNodes
 // is working on all control plane nodes. This effectively polls until the pod executing ssh succeeds reaching all nodes.
 func ensureControlPlaneSSHAccess(oc *exutil.CLI, name string, namespace string) error {
-	const sshPath = "/tmp/ssh"
 	const containerName = "ssh-key-tester"
 
 	var cpNodeInternalIps []string
 	for _, node := range masterNodes(oc) {
-		framework.Logf("CP Node meta: %s, status: %s", node.ObjectMeta.String(), node.Status.String())
+		framework.Logf("CP Node: %s, addresses: %v", node.ObjectMeta.Name, node.Status.Addresses)
 		for _, address := range node.Status.Addresses {
 			if address.Type == corev1.NodeInternalIP {
 				cpNodeInternalIps = append(cpNodeInternalIps, address.Address)
@@ -358,16 +381,9 @@ func ensureControlPlaneSSHAccess(oc *exutil.CLI, name string, namespace string) 
 
 	testScript := fmt.Sprintf(`
 		#!/bin/bash
-		CORE_SSH_BASE_DIR=$HOME/.ssh
-		SSH_MOUNT_DIR=%s
-		P_KEY=$SSH_MOUNT_DIR/privKey
-		# we can't change the permissions on the secret mount, thus we copy it to HOME
-		mkdir -p $CORE_SSH_BASE_DIR && chmod 700 $CORE_SSH_BASE_DIR
-		cp $P_KEY $CORE_SSH_BASE_DIR/id_rsa
-		P_KEY=$CORE_SSH_BASE_DIR/id_rsa
-		chmod 600 $P_KEY
 
-		ls -l $P_KEY
+		# ssh key dance
+		%s
 		
 		NODE_IPS=( %s )
 		for i in "${NODE_IPS[@]}"; do
@@ -380,7 +396,7 @@ func ensureControlPlaneSSHAccess(oc *exutil.CLI, name string, namespace string) 
 		  echo ""
 		  echo "SSH to [$i] was successful!"
 		done
-			`, sshPath, strings.Join(cpNodeInternalIps, " "))
+			`, sshKeyDance, strings.Join(cpNodeInternalIps, " "))
 
 	podSpec := applycorev1.PodSpec().WithHostNetwork(true).WithRestartPolicy(corev1.RestartPolicyOnFailure)
 	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
@@ -403,45 +419,7 @@ func ensureControlPlaneSSHAccess(oc *exutil.CLI, name string, namespace string) 
 	}
 
 	pod := applycorev1.Pod(name, namespace).WithSpec(podSpec)
-
-	// this is solely to ensure idempotency, especially in case we run it multiple times locally
-	err := wait.Poll(5*time.Second, 5*time.Minute, func() (done bool, err error) {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		err = oc.AdminKubeClient().CoreV1().Pods(namespace).Delete(ctx, name, metav1.DeleteOptions{})
-		if err == nil || apierrors.IsNotFound(err) {
-			return true, nil
-		}
-		framework.Logf("ssh pre-test pod deletion result [%v]", err)
-		return false, err
-	})
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	_, err = oc.AdminKubeClient().CoreV1().Pods(namespace).Apply(ctx, pod, metav1.ApplyOptions{FieldManager: name, Force: true})
-	if err != nil {
-		return err
-	}
-
-	framework.Logf("Waiting for ssh test pod to complete...")
-	err = wait.Poll(10*time.Second, 15*time.Minute, func() (done bool, err error) {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		getResult, err := oc.AdminKubeClient().CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			framework.Logf("Error while waiting for ssh test pod to complete: %v", err)
-			return false, nil
-		}
-		framework.Logf("ssh test pod has status [%v]", getResult.Status.Phase)
-		return getResult.Status.Phase == corev1.PodSucceeded, nil
-	})
-
-	return err
+	return runPodAndWaitForSuccess(oc, pod)
 }
 
 // createKeyInstallerDaemon will spawn a CP-only daemonset to add the publicKey created in
@@ -455,11 +433,17 @@ func createKeyInstallerDaemon(oc *exutil.CLI, name string, namespace string) err
 
             echo "installing public key on host"
             FOLDER=%s
-            FILE_NAME="${FOLDER}/authorized_keys"
-            # not idempotent, will always append the key on pod restarts
-            mkdir -p $FOLDER && echo "$PUBLIC_KEY" >> $FILE_NAME && chmod 0400 $FILE_NAME && echo "installed public key successfully"
-			# need to chown for core, otherwise the user doesn't have access to the authorized_keys
-			chown 1000:1000 $FILE_NAME 
+            mkdir -p $FOLDER 
+
+            PUB_FILE_NAME="${FOLDER}/authorized_keys"
+			PRIV_FILE_NAME="${FOLDER}/id_rsa"
+
+            # not idempotent, will always append the key on pod restarts - but ssh can deal with it
+            echo "$PUBLIC_KEY" >> $PUB_FILE_NAME && chmod 0400 $PUB_FILE_NAME && echo "installed public key successfully"
+            # this will also void all previously valid private keys (if any exists there)
+			echo "$PRIVATE_KEY" > $PRIV_FILE_NAME && chmod 0600 $PRIV_FILE_NAME && echo "installed private key successfully"
+			# need to chown for core (uid 1000), otherwise the user doesn't have access to the keys
+			chown -R 1000:1000 $FOLDER 
 
 			ls -l $FOLDER
 
@@ -474,8 +458,9 @@ func createKeyInstallerDaemon(oc *exutil.CLI, name string, namespace string) err
 			WithVolumeMounts(
 				applycorev1.VolumeMount().WithName("ssh").WithMountPath(sshPath),
 			).
-			WithEnv(applycorev1.EnvVar().WithName("PUBLIC_KEY").
-				WithValueFrom(applycorev1.EnvVarSource().WithSecretKeyRef(applycorev1.SecretKeySelector().WithName(name).WithKey("pubKey"))),
+			WithEnv(
+				applycorev1.EnvVar().WithName("PRIVATE_KEY").WithValueFrom(applycorev1.EnvVarSource().WithSecretKeyRef(applycorev1.SecretKeySelector().WithName(name).WithKey("privKey"))),
+				applycorev1.EnvVar().WithName("PUBLIC_KEY").WithValueFrom(applycorev1.EnvVarSource().WithSecretKeyRef(applycorev1.SecretKeySelector().WithName(name).WithKey("pubKey"))),
 				// appending the time to ensure the DS updates if it already exists
 				applycorev1.EnvVar().WithName("TIME").WithValue(time.Now().String())).
 			WithCommand("/bin/bash", "-c", installScript),
@@ -492,7 +477,8 @@ func createKeyInstallerDaemon(oc *exutil.CLI, name string, namespace string) err
 
 	ds := applyappsv1.DaemonSet(name, namespace).WithSpec(applyappsv1.DaemonSetSpec().WithTemplate(
 		applycorev1.PodTemplateSpec().WithName(name).WithSpec(podSpec).WithLabels(labels),
-	).WithSelector(applymetav1.LabelSelector().WithMatchLabels(labels)))
+	).WithSelector(applymetav1.LabelSelector().WithMatchLabels(labels)).
+		WithUpdateStrategy(applyappsv1.DaemonSetUpdateStrategy().WithRollingUpdate(applyappsv1.RollingUpdateDaemonSet().WithMaxUnavailable(intstr.FromInt(3)))))
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	_, err := oc.AdminKubeClient().AppsV1().DaemonSets(namespace).Apply(ctx, ds, metav1.ApplyOptions{FieldManager: name})
@@ -542,4 +528,210 @@ func createPrivatePublicSSHKeySecret(oc *exutil.CLI, name string, namespace stri
 		return fmt.Errorf("could not save key secret for CP nodes: %w", err)
 	}
 	return nil
+}
+
+// runClusterBackupScript will create a new pod to run on the backupNode and call the cluster-backup.sh script.
+// This will get triggered through a CRD in CEO over the next couple of iterations.
+func runClusterBackupScript(oc *exutil.CLI, backupNode *corev1.Node) error {
+	const name = "etcd-backup-pod"
+	const namespace = "openshift-etcd"
+	framework.Logf("running backup script on node: %v", backupNode.Name)
+
+	internalIp := internalIP(backupNode)
+
+	backupScript := fmt.Sprintf(`
+		#!/bin/bash
+        set -exuo pipefail
+		
+		# ssh key dance
+		%s
+
+        TARGET_NODE_NAME=%s
+ 		ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${TARGET_NODE_NAME} << EOF
+		 sudo rm -rf /home/core/backup
+		 sudo /usr/local/bin/cluster-backup.sh --force /home/core/backup
+		 sudo chown -R core /home/core/backup
+		 exit
+EOF
+        `, sshKeyDance, internalIp)
+
+	podSpec := applycorev1.PodSpec().WithHostNetwork(true).WithRestartPolicy(corev1.RestartPolicyOnFailure)
+	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
+		*applycorev1.Container().
+			WithName("cluster-backup").
+			WithSecurityContext(applycorev1.SecurityContext().WithPrivileged(true)).
+			WithImage(image.ShellImage()).
+			WithVolumeMounts(
+				applycorev1.VolumeMount().WithName("keys").WithMountPath(sshPath),
+			).
+			WithCommand("/bin/bash", "-c", backupScript),
+	}
+	podSpec.NodeSelector = map[string]string{"kubernetes.io/hostname": backupNode.Labels["kubernetes.io/hostname"]}
+	podSpec.Tolerations = []applycorev1.TolerationApplyConfiguration{
+		*applycorev1.Toleration().WithKey("node-role.kubernetes.io/master").WithOperator(corev1.TolerationOpExists).WithEffect(corev1.TaintEffectNoSchedule),
+	}
+
+	podSpec.Volumes = []applycorev1.VolumeApplyConfiguration{
+		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName("dr-ssh")),
+	}
+
+	pod := applycorev1.Pod(name, namespace).WithSpec(podSpec)
+	return runPodAndWaitForSuccess(oc, pod)
+}
+
+func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node) error {
+	const name = "etcd-restore-pod"
+	const namespace = "openshift-etcd"
+	framework.Logf("running restore script on node: %v", restoreNode.Name)
+
+	backupInternalIp := internalIP(backupNode)
+	restoreInternalIp := internalIP(restoreNode)
+
+	restoreScript := fmt.Sprintf(`
+		#!/bin/bash
+        set -exuo pipefail
+		
+		# ssh key dance
+		%s
+
+        TARGET_NODE_NAME=%s 
+        ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${TARGET_NODE_NAME} << EOF
+         sudo rm -rf /home/core/backup
+         scp -o StrictHostKeyChecking=no -r core@%s:/home/core/backup .
+         sudo chown -R core /home/core/backup
+         SNAPSHOT=\$(ls -vd /home/core/backup/snapshot*.db | tail -1)
+         mv \$SNAPSHOT /home/core/backup/snapshot.db
+
+         # TODO(thomas): why not use cluster-restore.sh directly? 
+         # the script was designed to create a single recovery etcd instance. Replacing a single node would
+         # create two etcd clusters, which causes some major disruptions after the operation finishes.
+         # Thus below we are manually doing a simple restore with snapshot restore directly. 
+         # This will delete the etcd data dir and the etcd static pod.
+         sudo -s -- <<EOF
+            ls -la /etc/kubernetes/manifests/
+            mv /etc/kubernetes/manifests/etcd-pod.yaml /tmp/etcd.pod.yaml
+            # TODO(thomas): wait for containers to stop?
+
+            source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd.env
+            source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd-common-tools
+            dl_etcdctl
+            rm -rf /var/lib/etcd
+            mkdir -p /var/lib/etcd 
+            etcdctl snapshot restore /home/core/backup/snapshot.db --data-dir=/var/lib/etcd
+            # from here on out, the member should come back through the static pod installer in CEO
+
+EOF
+		 exit
+EOF
+        `, sshKeyDance, restoreInternalIp, backupInternalIp)
+
+	podSpec := applycorev1.PodSpec().WithHostNetwork(true).WithRestartPolicy(corev1.RestartPolicyOnFailure)
+	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
+		*applycorev1.Container().
+			WithName("cluster-restore").
+			WithSecurityContext(applycorev1.SecurityContext().WithPrivileged(true)).
+			WithImage(image.ShellImage()).
+			WithVolumeMounts(
+				applycorev1.VolumeMount().WithName("keys").WithMountPath(sshPath),
+			).
+			WithCommand("/bin/bash", "-c", restoreScript),
+	}
+	podSpec.NodeSelector = map[string]string{"kubernetes.io/hostname": restoreNode.Labels["kubernetes.io/hostname"]}
+	podSpec.Tolerations = []applycorev1.TolerationApplyConfiguration{
+		*applycorev1.Toleration().WithKey("node-role.kubernetes.io/master").WithOperator(corev1.TolerationOpExists).WithEffect(corev1.TaintEffectNoSchedule),
+	}
+
+	podSpec.Volumes = []applycorev1.VolumeApplyConfiguration{
+		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName("dr-ssh")),
+	}
+
+	pod := applycorev1.Pod(name, namespace).WithSpec(podSpec)
+	return runPodAndWaitForSuccess(oc, pod)
+}
+
+func runPodAndWaitForSuccess(oc *exutil.CLI, pod *applycorev1.PodApplyConfiguration) error {
+	// this is solely to ensure idempotency, especially in case we run it multiple times locally
+	err := wait.Poll(5*time.Second, 5*time.Minute, func() (done bool, err error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		err = oc.AdminKubeClient().CoreV1().Pods(*pod.Namespace).Delete(ctx, *pod.Name, metav1.DeleteOptions{})
+		if err == nil || apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		framework.Logf("pod deletion result [%v]", err)
+		return false, err
+	})
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, err = oc.AdminKubeClient().CoreV1().Pods(*pod.Namespace).Apply(ctx, pod, metav1.ApplyOptions{FieldManager: *pod.Name, Force: true})
+	if err != nil {
+		return err
+	}
+
+	framework.Logf("Waiting for %s to complete...", *pod.Name)
+	err = wait.Poll(10*time.Second, 15*time.Minute, func() (done bool, err error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		getResult, err := oc.AdminKubeClient().CoreV1().Pods(*pod.Namespace).Get(ctx, *pod.Name, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Error while waiting for %s to complete: %v", *pod.Name, err)
+			return false, nil
+		}
+		framework.Logf("%s has status [%v]", *pod.Name, getResult.Status.Phase)
+		return getResult.Status.Phase == corev1.PodSucceeded, nil
+	})
+
+	// TODO(thomas): on failure it would be great to get the last logs out of the pod
+
+	return err
+}
+
+func removeMemberOfNode(oc *exutil.CLI, node *corev1.Node) error {
+	etcdEndpointsConfigMap, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-etcd").Get(context.Background(), "etcd-endpoints", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	memberIp := internalIP(node)
+	for memberIdentifier, votingMemberIP := range etcdEndpointsConfigMap.Data {
+		if votingMemberIP == memberIp {
+			framework.Logf("found node with IP %s, has identifier [%v]. Removing from cluster...", memberIp, memberIdentifier)
+			removeMember(oc, memberIdentifier)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("removeMemberOfNode could not find any member with IP %s in current endpoint configmap: [%v]",
+		memberIp, etcdEndpointsConfigMap.Data)
+}
+
+func removeMember(oc *exutil.CLI, memberID string) {
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master="})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	var healthyEtcdPod string
+	for _, node := range nodes.Items {
+		nodeReady := true
+		for _, t := range node.Spec.Taints {
+			if t.Key == "node.kubernetes.io/unreachable" {
+				nodeReady = false
+				break
+			}
+		}
+		if nodeReady {
+			healthyEtcdPod = "etcd-" + node.Name
+			break
+		}
+	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	member, err := oc.AsAdmin().Run("exec").Args("-n", "openshift-etcd", healthyEtcdPod, "-c", "etcdctl", "etcdctl", "member", "remove", memberID).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(member).To(o.ContainSubstring("removed from cluster"))
 }

@@ -1831,11 +1831,11 @@ var Annotations = map[string]string{
 
 	"[sig-etcd] etcd record the start revision of the etcd-operator [Early]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should recover from a backup taken on one node and recovered on another [apigroup:operator.openshift.io]": " [Serial]",
+	"[sig-etcd][Feature:DisasterRecovery][Disruptive][Disabled:Broken] [Feature:EtcdRecovery] Cluster should recover from a backup taken on one node and recovered on another [apigroup:operator.openshift.io]": " [Serial]",
 
-	"[sig-etcd][Feature:DisasterRecovery][Disruptive] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss [apigroup:machine.openshift.io][apigroup:operator.openshift.io]": " [Serial]",
+	"[sig-etcd][Feature:DisasterRecovery][Disruptive][Disabled:Broken] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss [apigroup:machine.openshift.io][apigroup:operator.openshift.io]": " [Serial]",
 
-	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery] [Feature:EtcdRecovery] should install ssh keys on CP nodes": "",
+	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery] [Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node": " [Serial]",
 
 	"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling] etcd is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "",
 
