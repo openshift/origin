@@ -353,3 +353,28 @@ func testNoDNSLookupErrorsInDisruptionSamplers(events monitorapi.Intervals) []*j
 		},
 	}
 }
+
+func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-network] ovs-vswitchd should not log any unreasonably long poll intervals to system journal"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "Unreasonably long") && strings.Contains(event.Message, "ovs-vswitchd") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("Found %d instances of ovs-vswitchd logging an unreasonably long poll interval:\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+	return []*junitapi.JUnitTestCase{failure}
+}
