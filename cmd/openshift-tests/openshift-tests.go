@@ -15,19 +15,13 @@ import (
 
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
-	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
+	"github.com/openshift/origin/pkg/cmd/monitor_command"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/cluster"
-	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -72,21 +66,23 @@ func main() {
 		`),
 	}
 
+	ioStreams := genericclioptions.IOStreams{
+		In:     os.Stdin,
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
+
 	root.AddCommand(
 		newRunCommand(),
 		newRunUpgradeCommand(),
 		newImagesCommand(),
 		newRunTestCommand(),
 		newDevCommand(),
-		newRunMonitorCommand(),
-		newMonitorCommand(),
+		monitor_command.NewRunMonitorCommand(ioStreams),
+		monitor_command.NewMonitorCommand(),
 		newTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
-		monitor_cmd.NewTimelineCommand(genericclioptions.IOStreams{
-			In:     os.Stdin,
-			Out:    os.Stdout,
-			ErrOut: os.Stderr,
-		}),
+		monitor_command.NewTimelineCommand(ioStreams),
 	)
 
 	f := flag.CommandLine.Lookup("v")
@@ -106,48 +102,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func newRunMonitorCommand() *cobra.Command {
-	monitorOpt := &monitor.Options{
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
-		AdditionalEventIntervalRecorders: []monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAllAPIMonitoring,
-			frontends.StartAllIngressMonitoring,
-			externalservice.StartExternalServiceMonitoring,
-		},
-	}
-	cmd := &cobra.Command{
-		Use:   "run-monitor",
-		Short: "Continuously verify the cluster is functional",
-		Long: templates.LongDesc(`
-		Run a continuous verification process
-
-		`),
-
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return monitorOpt.Run()
-		},
-	}
-	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
-		"artifact-dir", monitorOpt.ArtifactDir,
-		"The directory where monitor events will be stored.")
-	return cmd
-}
-
-func newMonitorCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "monitor",
-		SilenceErrors: true,
-	}
-	cmd.AddCommand(
-		nodedetails.AuditLogSummaryCommand(),
-		apiserveravailability.LogSummaryCommand(),
-	)
-	return cmd
 }
 
 const sippyDefaultURL = "https://sippy.dptools.openshift.org/api/jobs/runs/risk_analysis"
