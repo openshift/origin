@@ -14,12 +14,12 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func() {
+var _ = g.Describe("[sig-builds][Feature:Builds] docker build with a quota", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		buildFixture = exutil.FixturePath("testdata", "builds", "test-s2i-build-quota.json")
-		oc           = exutil.NewCLIWithPodSecurityLevel("s2i-build-quota", api.LevelPrivileged)
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build-quota.json")
+		oc           = exutil.NewCLIWithPodSecurityLevel("docker-build-quota", api.LevelPrivileged)
 	)
 
 	g.Context("", func() {
@@ -36,15 +36,15 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func()
 		})
 
 		g.Describe("Building from a template", func() {
-			g.It("should create an s2i build with a quota and run it [apigroup:build.openshift.io]", func() {
+			g.It("should create a docker build with a quota and run it [apigroup:build.openshift.io]", func() {
 				g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
 				err := oc.Run("create").Args("-f", buildFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a test build")
-				br, err := exutil.StartBuildAndWait(oc, "s2i-build-quota", "--from-dir", exutil.FixturePath("testdata", "builds", "build-quota"))
+				br, err := exutil.StartBuildAndWait(oc, "docker-build-quota", "--from-dir", exutil.FixturePath("testdata", "builds", "build-quota"))
 				o.Expect(err).NotTo(o.HaveOccurred())
-				br.AssertSuccess()
+				br.AssertFailure()
 				g.By("checking status of the test build")
 				o.Expect(br.Build.Status.StartTimestamp).NotTo(o.BeNil(), "Build start timestamp should be set")
 				o.Expect(br.Build.Status.CompletionTimestamp).NotTo(o.BeNil(), "Build completion timestamp should be set")
@@ -63,6 +63,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func()
 				// 998 is ((((((((1003 - 2) * 9999) / 262142) + 1) - 1) * 262142) / 9999) + 2) (cgroups v2, one round trip)
 				// 972 is ((((((((998 - 2) * 9999) / 262142) + 1) - 1) * 262142) / 9999) + 2) (cgroups v2, two round trips)
 				o.Expect(buildLog).To(o.Or(o.ContainSubstring("SHARES=1003"), o.ContainSubstring("SHARES=998"), o.ContainSubstring("SHARES=972")))
+
 				testScheme := runtime.NewScheme()
 				utilruntime.Must(buildv1.Install(testScheme))
 
@@ -71,7 +72,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func()
 				o.Expect(events).NotTo(o.BeNil(), "Build event list should not be nil")
 
 				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, BuildStartedEventReason, BuildStartedEventMessage)
-				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, BuildCompletedEventReason, BuildCompletedEventMessage)
 			})
 		})
 	})

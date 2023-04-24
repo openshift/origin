@@ -2,10 +2,10 @@
   "kind": "BuildConfig",
   "apiVersion": "build.openshift.io/v1",
   "metadata": {
-    "name": "s2i-build-quota",
+    "name": "docker-build-quota",
     "creationTimestamp": null,
     "labels": {
-      "name": "s2i-build-quota"
+      "name": "docker-build-quota"
     }
   },
   "spec": {
@@ -16,17 +16,12 @@
       }
     },
     "source": {
-      "binary": {
-        "asFile": ""
-      }
+      "type": "binary",
+      "binary": {}
     },
     "strategy": {
-      "type": "Source",
-      "sourceStrategy": {
-        "from": {
-          "kind": "DockerImage",
-          "name": "quay.io/redhat-developer/test-build-simples2i:1.2"
-        },
+      "type": "Docker",
+      "dockerStrategy": {
         "env": [
           {
             "name": "BUILD_LOGLEVEL",

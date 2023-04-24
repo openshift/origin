@@ -126,6 +126,7 @@
 // test/extended/testdata/builds/test-custom-build.yaml
 // test/extended/testdata/builds/test-docker-app/Dockerfile
 // test/extended/testdata/builds/test-docker-build-pullsecret.json
+// test/extended/testdata/builds/test-docker-build-quota.json
 // test/extended/testdata/builds/test-docker-build.json
 // test/extended/testdata/builds/test-docker-no-outputname.json
 // test/extended/testdata/builds/test-env-build.json
@@ -17695,10 +17696,12 @@ sleep 10
 unifiedMount=$(awk '{if ($3 == "cgroup2") {print $2; exit}}' /proc/self/mounts)
 echo "cgroupv2 mount point is ${unifiedMount}"
 unifiedName=$(awk -F: '/^0:/ {if ($1 == "0") {print $3; exit}}' /proc/self/cgroup)
-echo "unified cgroup name is ${unifiedName}"
 if test -e /"$unifiedMount"/"$unifiedName"/cgroup.controllers ; then
   unifiedControllers=$(cat /"$unifiedMount"/"$unifiedName"/cgroup.controllers)
+else
+  unifiedName=
 fi
+echo "unified cgroup name is ${unifiedName}"
 echo "cgroupv2 controllers are ${unifiedControllers}"
 
 cgroupv1Val=$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) || true
@@ -17729,22 +17732,31 @@ if [ "$cgroupv2Val" != "" ]; then
   echo MEMORYSWAP=$(($cgroup2Val + $MEMORY))
 fi
 
-if [ -e /sys/fs/cgroup/cpuacct,cpu ]; then
-	quota=$(cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us)
-	echo QUOTA= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_quota_us
-	echo SHARES= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.shares
-	echo PERIOD= && cat /sys/fs/cgroup/cpuacct,cpu/cpu.cfs_period_us
+if [ -e /sys/fs/cgroup/cpu/cpu.cfs_quota_us ]; then
+  quota=$(cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us)
+  echo cpu.cfs_quota_us=${quota}
+  period=$(cat /sys/fs/cgroup/cpu/cpu.cfs_period_us)
+  echo cpu.cfs_period_us=${period}
+  shares=$(cat /sys/fs/cgroup/cpu/cpu.shares)
+  echo cpu.shares=${shares}
 else
-	quota=$(cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us)
-	echo QUOTA= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us
-	echo SHARES= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.shares
-	echo PERIOD= && cat /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us
+  cpumax=$(cat /"$unifiedMount"/"$unifiedName"/cpu.max)
+  echo cpu.max=${cpumax}
+  quota=${cpumax%% *}
+  quota=${quota/max/-1}
+  period=${cpumax##* }
+  weight=$(cat /"$unifiedMount"/"$unifiedName"/cpu.weight)
+  echo cpu.weight=${weight}
+  shares=$(expr  \( \( \( $weight - 1 \) \* 262142 \) / 9999 \) + 2)
 fi
+echo QUOTA=${quota}
+echo PERIOD=${period}
+echo SHARES=${shares}
 
 if [ "${quota}" = "-1" ]; then
-	cat /proc/self/cgroup
-	cat /proc/self/mountinfo
-	findmnt
+  cat /proc/self/cgroup
+  cat /proc/self/mountinfo
+  findmnt
 fi
 `)
 
@@ -17763,15 +17775,15 @@ func testExtendedTestdataBuildsBuildQuotaS2iBinAssemble() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildQuotaDockerfile = []byte(`FROM image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+var _testExtendedTestdataBuildsBuildQuotaDockerfile = []byte(`FROM registry.redhat.io/ubi8/ubi
 USER root
 
 ADD .s2i/bin/assemble .
-RUN ./assemble
+# test fixtures are always recreated with mode 0o640, so we have to chmod +x here
+RUN chmod +x ./assemble && ./assemble
 
 # exit 1 causes the docker build to fail which causes docker to show the output # of all commands like 'assemble' above.
 RUN exit 1
-
 `)
 
 func testExtendedTestdataBuildsBuildQuotaDockerfileBytes() ([]byte, error) {
@@ -20736,6 +20748,57 @@ func testExtendedTestdataBuildsTestDockerBuildPullsecretJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsTestDockerBuildQuotaJson = []byte(`{
+  "kind": "BuildConfig",
+  "apiVersion": "build.openshift.io/v1",
+  "metadata": {
+    "name": "docker-build-quota",
+    "creationTimestamp": null,
+    "labels": {
+      "name": "docker-build-quota"
+    }
+  },
+  "spec": {
+    "resources": {
+      "limits": {
+        "cpu": "980m",
+        "memory": "400Mi"
+      }
+    },
+    "source": {
+      "type": "binary",
+      "binary": {}
+    },
+    "strategy": {
+      "type": "Docker",
+      "dockerStrategy": {
+        "env": [
+          {
+            "name": "BUILD_LOGLEVEL",
+            "value": "6"
+          }
+        ]
+      }
+    }
+  }
+}
+`)
+
+func testExtendedTestdataBuildsTestDockerBuildQuotaJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestDockerBuildQuotaJson, nil
+}
+
+func testExtendedTestdataBuildsTestDockerBuildQuotaJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestDockerBuildQuotaJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-docker-build-quota.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
   "kind":"BuildConfig",
   "apiVersion":"build.openshift.io/v1",
@@ -21510,7 +21573,7 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
   "spec": {
     "resources": {
       "limits": {
-        "cpu": "400m",
+        "cpu": "980m",
         "memory": "400Mi"
       }
     },
@@ -54114,6 +54177,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-custom-build.yaml":                                                   testExtendedTestdataBuildsTestCustomBuildYaml,
 	"test/extended/testdata/builds/test-docker-app/Dockerfile":                                               testExtendedTestdataBuildsTestDockerAppDockerfile,
 	"test/extended/testdata/builds/test-docker-build-pullsecret.json":                                        testExtendedTestdataBuildsTestDockerBuildPullsecretJson,
+	"test/extended/testdata/builds/test-docker-build-quota.json":                                             testExtendedTestdataBuildsTestDockerBuildQuotaJson,
 	"test/extended/testdata/builds/test-docker-build.json":                                                   testExtendedTestdataBuildsTestDockerBuildJson,
 	"test/extended/testdata/builds/test-docker-no-outputname.json":                                           testExtendedTestdataBuildsTestDockerNoOutputnameJson,
 	"test/extended/testdata/builds/test-env-build.json":                                                      testExtendedTestdataBuildsTestEnvBuildJson,
@@ -54710,6 +54774,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"Dockerfile": {testExtendedTestdataBuildsTestDockerAppDockerfile, map[string]*bintree{}},
 					}},
 					"test-docker-build-pullsecret.json":      {testExtendedTestdataBuildsTestDockerBuildPullsecretJson, map[string]*bintree{}},
+					"test-docker-build-quota.json":           {testExtendedTestdataBuildsTestDockerBuildQuotaJson, map[string]*bintree{}},
 					"test-docker-build.json":                 {testExtendedTestdataBuildsTestDockerBuildJson, map[string]*bintree{}},
 					"test-docker-no-outputname.json":         {testExtendedTestdataBuildsTestDockerNoOutputnameJson, map[string]*bintree{}},
 					"test-env-build.json":                    {testExtendedTestdataBuildsTestEnvBuildJson, map[string]*bintree{}},
