@@ -138,9 +138,18 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			}
 			newEvents := eventsFromKubeletLogs(nodeName, nodeLogs)
 
+			ovsVswitchdLogs, err := nodedetails.GetNodeLog(ctx, kubeClient, nodeName, "ovs-vswitchd")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting node ovs-vswitchd logs from %s: %s", nodeName, err.Error())
+				errCh <- err
+				return
+			}
+			newOVSEvents := eventsFromOVSVswitchdLogs(nodeName, ovsVswitchdLogs)
+
 			lock.Lock()
 			defer lock.Unlock()
 			ret = append(ret, newEvents...)
+			ret = append(ret, newOVSEvents...)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -192,6 +201,46 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 	return ret
 }
 
+// eventsFromOVSVswitchdLogs returns the produced intervals.  Any errors during this creation are logged, but
+// not returned because this is a best effort step
+func eventsFromOVSVswitchdLogs(nodeName string, ovsLogs []byte) monitorapi.Intervals {
+	nodeLocator := monitorapi.NodeLocator(nodeName)
+	ret := monitorapi.Intervals{}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(ovsLogs))
+	for scanner.Scan() {
+		currLine := scanner.Text()
+		ret = append(ret, unreasonablyLongPollInterval(currLine, nodeLocator)...)
+	}
+
+	return ret
+}
+
+// unreasonablyLongPollInterval searches for a failure associated with https://issues.redhat.com/browse/OCPBUGS-11591
+//
+// Apr 12 11:53:51.395838 ci-op-xs3rnrtc-2d4c7-4mhm7-worker-b-dwc7w ovs-vswitchd[1124]:
+//
+//	ovs|00002|timeval(urcu4)|WARN|Unreasonably long 109127ms poll interval (0ms user, 0ms system)
+func unreasonablyLongPollInterval(logLine, nodeLocator string) monitorapi.Intervals {
+	if !strings.Contains(logLine, "Unreasonably long") {
+		return nil
+	}
+
+	failureTime := systemdJournalLogTime(logLine)
+	message := logLine[strings.Index(logLine, "ovs-vswitchd"):]
+	return monitorapi.Intervals{
+		{
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Warning,
+				Locator: nodeLocator,
+				Message: message,
+			},
+			From: failureTime,
+			To:   failureTime,
+		},
+	}
+}
+
 type kubeletLogLineEventCreator func(logLine string) monitorapi.Intervals
 
 var lineToEvents = []kubeletLogLineEventCreator{}
@@ -217,7 +266,7 @@ func readinessFailure(logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := kubeletLogTime(logLine)
+	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
 			Condition: monitorapi.Condition{
@@ -248,7 +297,7 @@ func readinessError(logLine string) monitorapi.Intervals {
 	message, _ = strconv.Unquote(`"` + message + `"`)
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := kubeletLogTime(logLine)
+	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
 			Condition: monitorapi.Condition{
@@ -274,7 +323,7 @@ func errParsingSignature(logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := errImagePullToContainerReference(logLine)
-	failureTime := kubeletLogTime(logLine)
+	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
 			Condition: monitorapi.Condition{
@@ -319,7 +368,7 @@ func startupProbeError(logLine string) monitorapi.Intervals {
 	}
 
 	containerRef := probeProblemToContainerReference(logLine)
-	failureTime := kubeletLogTime(logLine)
+	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
 			Condition: monitorapi.Condition{
@@ -420,7 +469,7 @@ func failedToDeleteCGroupsPath(nodeLocator, logLine string) monitorapi.Intervals
 		return nil
 	}
 
-	failureTime := kubeletLogTime(logLine)
+	failureTime := systemdJournalLogTime(logLine)
 
 	return monitorapi.Intervals{
 		{
@@ -490,7 +539,7 @@ func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason strin
 		message = unquotedMessage
 	}
 
-	failureTime := kubeletLogTime(logLine)
+	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
 			Condition: monitorapi.Condition{
@@ -506,9 +555,9 @@ func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason strin
 
 var kubeletTimeRegex = regexp.MustCompile(`^(?P<MONTH>\S+)\s(?P<DAY>\S+)\s(?P<TIME>\S+)`)
 
-// kubeletLogTime returns Now if there is trouble reading the time.  This will stack the event intervals without
+// systemdJournalLogTime returns Now if there is trouble reading the time.  This will stack the event intervals without
 // parsable times at the end of the run, which will be more clearly visible as a problem than not reporting them.
-func kubeletLogTime(logLine string) time.Time {
+func systemdJournalLogTime(logLine string) time.Time {
 	kubeletTimeRegex.MatchString(logLine)
 	if !kubeletTimeRegex.MatchString(logLine) {
 		return time.Now()
