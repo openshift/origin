@@ -384,10 +384,9 @@ func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals)
 		},
 	}
 
-	// If less than 5s, we'll let this flake, any more and we hard fail.
-	if maxDur <= 5*time.Second {
-		return []*junitapi.JUnitTestCase{failure, success}
-	}
+	// TODO: use maxDir to determine flake/fail here once we can see how common it is and at what thresholds.
 
-	return []*junitapi.JUnitTestCase{failure}
+	// I've seen these as high as 9s in jobs that nothing else failed in, leaving as just a flake
+	// for now.
+	return []*junitapi.JUnitTestCase{failure, success}
 }
