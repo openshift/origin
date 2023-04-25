@@ -43,6 +43,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).ToNot(o.HaveOccurred())
 		machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
+		nodeClient := oc.KubeClient().CoreV1().Nodes()
 		cpmsClient := machineClientSet.MachineV1().ControlPlaneMachineSets("openshift-machine-api")
 		kubeClient := oc.KubeClient()
 
@@ -75,7 +76,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 			// step 2: wait until the CPMSO scales-up by creating a new machine
 			// We need to check the cpms' status.readyReplicas because the phase of one machine will always be Deleting
 			// so we can't use EnsureMasterMachinesAndCount() since that counts for machines that aren't pending deletion
-			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 4, cpmsClient)
+			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 4, cpmsClient, nodeClient)
 			err = errors.Wrap(err, "scale-up: timed out waiting for CPMS to show 4 ready replicas")
 			o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -86,7 +87,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 			// successfully
 
 			// step 3: wait for automatic scale-down as the replica count goes back down to 3
-			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 3, cpmsClient)
+			err = scalingtestinglibrary.EnsureReadyReplicasOnCPMS(ctx, g.GinkgoT(), 3, cpmsClient, nodeClient)
 			err = errors.Wrap(err, "scale-down: timed out waiting for CPMS to show 3 ready replicas")
 			o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -106,6 +107,9 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 			g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
 			err = testlibraryapi.WaitForAPIServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc.KubeClient().CoreV1().Pods("openshift-kube-apiserver"))
 			err = errors.Wrap(err, "scale-up: timed out waiting for APIServer pods to stabilize on the same revision")
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			err = scalingtestinglibrary.EnsureCPMSReplicasConverged(ctx, cpmsClient)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			return
