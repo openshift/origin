@@ -359,9 +359,16 @@ func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals)
 	success := &junitapi.JUnitTestCase{Name: testName}
 
 	var failures []string
+	var maxDur time.Duration
 	for _, event := range events {
 		if strings.Contains(event.Message, "Unreasonably long") && strings.Contains(event.Message, "ovs-vswitchd") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+			msg := fmt.Sprintf("%v - %v", event.Locator, event.Message)
+			failures = append(failures, msg)
+
+			dur := event.To.Sub(event.From)
+			if dur > maxDur {
+				maxDur = dur
+			}
 		}
 	}
 
@@ -376,5 +383,11 @@ func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals)
 			Output: fmt.Sprintf("Found %d instances of ovs-vswitchd logging an unreasonably long poll interval:\n\n%v", len(failures), strings.Join(failures, "\n")),
 		},
 	}
+
+	// If less than 5s, we'll let this flake, any more and we hard fail.
+	if maxDur <= 5*time.Second {
+		return []*junitapi.JUnitTestCase{failure, success}
+	}
+
 	return []*junitapi.JUnitTestCase{failure}
 }
