@@ -219,14 +219,28 @@ func eventsFromOVSVswitchdLogs(nodeName string, ovsLogs []byte) monitorapi.Inter
 // unreasonablyLongPollInterval searches for a failure associated with https://issues.redhat.com/browse/OCPBUGS-11591
 //
 // Apr 12 11:53:51.395838 ci-op-xs3rnrtc-2d4c7-4mhm7-worker-b-dwc7w ovs-vswitchd[1124]:
-//
-//	ovs|00002|timeval(urcu4)|WARN|Unreasonably long 109127ms poll interval (0ms user, 0ms system)
+// ovs|00002|timeval(urcu4)|WARN|Unreasonably long 109127ms poll interval (0ms user, 0ms system)
 func unreasonablyLongPollInterval(logLine, nodeLocator string) monitorapi.Intervals {
 	if !strings.Contains(logLine, "Unreasonably long") {
 		return nil
 	}
 
-	failureTime := systemdJournalLogTime(logLine)
+	toTime := systemdJournalLogTime(logLine)
+
+	// Extract the number of millis and use it for the interval, starting from the point we logged
+	// and looking backwards.
+	fromTime := toTime
+	match := unreasonablyLongPollIntervalRE.FindStringSubmatch(logLine)
+	if match == nil {
+		fmt.Fprintf(os.Stderr, "Failure extracting milliseconds from log line we should have been able to parse: %s\n", logLine)
+	} else {
+		millis, err := strconv.Atoi(match[1])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error converting extracted millis to int for %s\n", match[1])
+		}
+		fromTime = toTime.Add(-time.Millisecond * time.Duration(millis))
+	}
+
 	message := logLine[strings.Index(logLine, "ovs-vswitchd"):]
 	return monitorapi.Intervals{
 		{
@@ -235,11 +249,13 @@ func unreasonablyLongPollInterval(logLine, nodeLocator string) monitorapi.Interv
 				Locator: nodeLocator,
 				Message: message,
 			},
-			From: failureTime,
-			To:   failureTime,
+			From: fromTime,
+			To:   toTime,
 		},
 	}
 }
+
+var unreasonablyLongPollIntervalRE = regexp.MustCompile(`Unreasonably long (\d+)ms poll interval`)
 
 type kubeletLogLineEventCreator func(logLine string) monitorapi.Intervals
 
