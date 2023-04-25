@@ -186,6 +186,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, startupProbeError(currLine)...)
 		ret = append(ret, errParsingSignature(currLine)...)
 		ret = append(ret, failedToDeleteCGroupsPath(nodeLocator, currLine)...)
+		ret = append(ret, anonymousCertConnectionError(nodeLocator, currLine)...)
 	}
 
 	return ret
@@ -427,6 +428,26 @@ func failedToDeleteCGroupsPath(nodeLocator, logLine string) monitorapi.Intervals
 				Level:   monitorapi.Error,
 				Locator: nodeLocator,
 				Message: monitorapi.ReasonedMessage("FailedToDeleteCGroupsPath", logLine),
+			},
+			From: failureTime,
+			To:   failureTime.Add(1 * time.Second),
+		},
+	}
+}
+
+func anonymousCertConnectionError(nodeLocator, logLine string) monitorapi.Intervals {
+	if !strings.Contains(logLine, "User \"system:anonymous\"") {
+		return nil
+	}
+
+	failureTime := kubeletLogTime(logLine)
+
+	return monitorapi.Intervals{
+		{
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: nodeLocator,
+				Message: monitorapi.ReasonedMessage("FailedToAuthenticateWithOpenShiftUser", logLine),
 			},
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
