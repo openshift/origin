@@ -38,21 +38,30 @@ func (opt *Options) Run() error {
 
 	resultFiles, err := filepath.Glob(fmt.Sprintf("%s/%s*.json", opt.JUnitDir, testFailureSummaryFilePrefix))
 	if err != nil {
-		return err
+		fmt.Fprintf(opt.Out, "Error scanning for test failure summary files: %v", err)
+		return nil
 	}
 	fmt.Fprintf(opt.Out, "Found files: %v\n", resultFiles)
+
+	// we didn't find any files to process. log but don't return an error as  step may not have produced those files
+	if len(resultFiles) == 0 {
+		fmt.Fprintf(opt.Out, "Missing : %s file(s), exiting\n", testFailureSummaryFilePrefix)
+		return nil
+	}
 
 	prowJobRuns := []*ProwJobRun{}
 	// Read each result file into a ProwJobRun struct:
 	for _, rf := range resultFiles {
 		data, err := os.ReadFile(rf)
 		if err != nil {
-			return err
+			fmt.Fprintf(opt.Out, "Error reading test failure summary file: %s - %v", rf, err)
+			return nil
 		}
 		jobRun := &ProwJobRun{}
 		err = json.Unmarshal(data, jobRun)
 		if err != nil {
-			return errors.Wrapf(err, "error unmarshalling ProwJob json")
+			fmt.Fprintf(opt.Out, "Error unmarshalling ProwJob json for: %s - %v", rf, err)
+			return nil
 		}
 		prowJobRuns = append(prowJobRuns, jobRun)
 	}
@@ -66,8 +75,9 @@ func (opt *Options) Run() error {
 			continue
 		}
 		if pjr.ProwJob.Name != finalProwJobRun.ProwJob.Name {
-			return fmt.Errorf("mismatched job names found in %s files, %s != %s",
+			fmt.Fprintf(opt.Out, "Mismatched job names found in %s files, %s != %s",
 				testFailureSummaryFilePrefix, finalProwJobRun.ProwJob.Name, pjr.ProwJob.Name)
+			return nil
 		}
 		finalProwJobRun.Tests = append(finalProwJobRun.Tests, pjr.Tests...)
 		finalProwJobRun.TestCount += pjr.TestCount
@@ -75,12 +85,14 @@ func (opt *Options) Run() error {
 
 	inputBytes, err := json.Marshal(finalProwJobRun)
 	if err != nil {
-		return errors.Wrap(err, "error marshalling results")
+		fmt.Fprintf(opt.Out, "Error marshalling results: %v", err)
+		return nil
 	}
 
 	req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
 	if err != nil {
-		return errors.Wrap(err, "error creating GET request during risk analysis")
+		fmt.Fprintf(opt.Out, "Error creating GET request during risk analysis: %v", err)
+		return nil
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
@@ -107,20 +119,23 @@ func (opt *Options) Run() error {
 		time.Sleep(time.Duration(i*30) * time.Second)
 	}
 	if !clientDoSuccess {
-		return errors.Wrap(err, "unable to obtain risk analysis from sippy after retries")
+		fmt.Fprintf(opt.Out, "Unable to obtain risk analysis from sippy after retries: %v", err)
+		return nil
 	}
 	defer resp.Body.Close()
 
 	riskAnalysisBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "error reading risk analysis request body from sippy")
+		fmt.Fprintf(opt.Out, "Error reading risk analysis request body from sippy: %v", err)
+		return nil
 	}
 	fmt.Println("response Body:", string(riskAnalysisBytes))
 
 	outputFile := filepath.Join(opt.JUnitDir, "risk-analysis.json")
 	err = ioutil.WriteFile(outputFile, riskAnalysisBytes, 0644)
 	if err != nil {
-		return errors.Wrap(err, "error writing risk analysis json artifact")
+		fmt.Fprintf(opt.Out, "Error writing risk analysis json artifact: %v", err)
+		return nil
 	}
 	fmt.Fprintf(opt.Out, "Successfully wrote: %s\n", outputFile)
 
@@ -130,7 +145,8 @@ func (opt *Options) Run() error {
 	html = bytes.ReplaceAll(html, []byte("TEST_RISK_ANALYSIS_JSON_GOES_HERE"), riskAnalysisBytes)
 	path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s.html", "test-risk-analysis"))
 	if err := ioutil.WriteFile(path, html, 0644); err != nil {
-		return err
+		fmt.Fprintf(opt.Out, "Error writing output file: %v", err)
+		return nil
 	}
 
 	return nil
