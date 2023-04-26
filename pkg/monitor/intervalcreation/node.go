@@ -505,7 +505,7 @@ func anonymousCertConnectionError(nodeLocator, logLine string) monitorapi.Interv
 		return nil
 	}
 
-	failureTime := kubeletLogTime(logLine)
+	failureTime := systemdJournalLogTime(logLine)
 
 	return monitorapi.Intervals{
 		{
