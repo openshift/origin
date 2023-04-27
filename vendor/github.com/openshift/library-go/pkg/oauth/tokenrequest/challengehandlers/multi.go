@@ -1,4 +1,4 @@
-package tokencmd
+package challengehandlers
 
 import (
 	"net/http"
@@ -102,4 +102,8 @@ func (h *MultiHandler) Release() error {
 		}
 	}
 	return utilerrors.NewAggregate(errs)
+}
+
+func (h *MultiHandler) Handlers() []ChallengeHandler {
+	return h.allHandlers
 }

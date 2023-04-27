@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"path"
 	"time"
 
@@ -30,11 +31,12 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/library-go/pkg/oauth/tokenrequest"
+	"github.com/openshift/library-go/pkg/oauth/tokenrequest/challengehandlers"
 
 	"github.com/openshift/origin/test/extended/testdata"
 	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/oauthserver/tokencmd"
 )
 
 const (
@@ -65,7 +67,7 @@ var (
 	volumesDefaultMode int32 = 420
 )
 
-type NewRequestTokenOptionsFunc func(username, password string) *tokencmd.RequestTokenOptions
+type NewRequestTokenOptionsFunc func(username, password string) *tokenrequest.RequestTokenOptions
 
 // DeployOAuthServer - deployes an instance of an OpenShift OAuth server
 // very simplified for now
@@ -188,7 +190,7 @@ func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMap
 	})
 	e2e.Logf("Created: %v %v/%v", oauthClient.Kind, oauthClient.Namespace, oauthClient.Name)
 
-	newRequestTokenOptionFunc := func(username, password string) *tokencmd.RequestTokenOptions {
+	newRequestTokenOptionFunc := func(username, password string) *tokenrequest.RequestTokenOptions {
 		return newRequestTokenOptions(restclient.AnonymousClientConfig(oc.AdminConfig()), routeURL, oc.Namespace(), username, password)
 	}
 
@@ -491,8 +493,8 @@ func determineImageFromRelease(oc *exutil.CLI) (string, error) {
 	return util.DetermineImageFromRelease(oc, "oauth-server")
 }
 
-func newRequestTokenOptions(config *restclient.Config, oauthServerURL, oauthClientName, username, password string) *tokencmd.RequestTokenOptions {
-	options := tokencmd.NewRequestTokenOptions(config, nil, username, password, false)
+func newRequestTokenOptions(config *restclient.Config, oauthServerURL, oauthClientName, username, password string) *tokenrequest.RequestTokenOptions {
+	options := tokenrequest.NewRequestTokenOptions(config, false, challengehandlers.NewBasicChallengeHandler(config.Host, os.Stdin, os.Stdout, nil, username, password))
 	// supply the info the client would otherwise ask from .well-known/oauth-authorization-server
 	oauthClientConfig := &osincli.ClientConfig{
 		ClientId:     oauthClientName,
