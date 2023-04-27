@@ -1,22 +1,41 @@
 package operators
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/stretchr/objx"
 
+	authv1 "github.com/openshift/api/authorization/v1"
+	configv1 "github.com/openshift/api/config/v1"
+	projv1 "github.com/openshift/api/project/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	"k8s.io/utils/strings/slices"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	"github.com/openshift/origin/test/extended/util/prometheus"
+)
+
+const (
+	namespace          = "e2e-machines-testbed"
+	serviceAccountName = "e2e-machines"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
@@ -100,4 +119,285 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 		err := prometheus.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
+
+	g.It("should verify that nodes have no unexpected reboots [Late]", func() {
+		ctx := context.Background()
+
+		// This test is applicable for SNO installations only
+		configClient, err := configv1client.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infrastructure.Status.ControlPlaneTopology != configv1.SingleReplicaTopologyMode {
+			return
+		}
+
+		createTestBed(ctx, oc)
+		defer deleteTestBed(ctx, oc)
+
+		// List all nodes
+		nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(nodes.Items).NotTo(o.HaveLen(0))
+
+		expected := make(map[string]int)
+		actual := make(map[string]int)
+		errs := make([]error, 0)
+
+		// Find a number of rendered-* machineconfigs for masters and workers
+		// Each rendered config adds expected reboot
+		expectedReboots := map[string]int{
+			"worker": 0,
+			"master": 0,
+		}
+		dynamicClient, err := dynamic.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		machineConfigGroupVersionResource := schema.GroupVersionResource{
+			Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs",
+		}
+		mcList, err := dynamicClient.Resource(machineConfigGroupVersionResource).List(ctx, metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for i := range mcList.Items {
+			mcName := mcList.Items[i].GetName()
+			for prefix := range expectedReboots {
+				if strings.HasPrefix(mcName, fmt.Sprintf("rendered-%s-", prefix)) {
+					expectedReboots[prefix] += 1
+				}
+			}
+		}
+
+		// List nodes, set actual and expected number of reboots
+		for _, node := range nodes.Items {
+			// Examine only the nodes which are available at the start of the test
+			if !slices.Contains(staticNodeNames, node.Name) {
+				continue
+			}
+			expectedRebootsForNodeRole := expectedReboots[getNodeRole(&node)]
+			o.Expect(expectedReboots).To(o.HaveKey(expectedRebootsForNodeRole))
+			expected[node.Name] = expectedRebootsForNodeRole
+			nodeReboots, err := getNumberOfBootsForNode(oc.KubeClient(), node.Name, 0)
+			if err != nil {
+				errs = append(errs, err)
+			}
+			actual[node.Name] = nodeReboots
+		}
+		// Use gomega's WithTransform to compare actual to expected - and check that errs is empty
+		var emptyErrors = func(a interface{}) (interface{}, error) {
+			if len(errs) > 0 {
+				return a, fmt.Errorf("errors found: %v", errs)
+			}
+			return a, nil
+		}
+		o.Expect(actual).To(o.WithTransform(emptyErrors, o.Equal(expected)))
+	})
 })
+
+// getNodeRole reads node labels and returns either "worker" or "master"
+func getNodeRole(node *corev1.Node) string {
+	if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
+		return "worker"
+	}
+	if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+		return "master"
+	}
+	return "worker"
+}
+
+func getNumberOfBootsForNode(kubeClient kubernetes.Interface, nodeName string, attempt int) (int, error) {
+
+	// Run up to 10 attempts
+	if attempt > 9 {
+		return 0, fmt.Errorf("giving up after 10 attempts")
+	}
+
+	// Run journalctl to collect a list of boots
+	command := "exec chroot /host journalctl --list-boots"
+	isTrue := true
+	zero := int64(0)
+	ctx := context.Background()
+	name := fmt.Sprintf("list-boots-%s-%d", nodeName, attempt)
+	pod, err := kubeClient.CoreV1().Pods(namespace).Create(context.Background(), &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: corev1.PodSpec{
+			Tolerations: []corev1.Toleration{
+				{
+					Effect:   "NoSchedule",
+					Key:      "node-role.kubernetes.io/master",
+					Operator: corev1.TolerationOpExists,
+				},
+			},
+			HostPID:            true,
+			RestartPolicy:      corev1.RestartPolicyNever,
+			NodeName:           nodeName,
+			ServiceAccountName: serviceAccountName,
+			Volumes: []corev1.Volume{
+				{
+					Name: "host",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "/",
+						},
+					},
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name: "list-boots",
+					SecurityContext: &corev1.SecurityContext{
+						RunAsUser:  &zero,
+						Privileged: &isTrue,
+					},
+					Image: image.ShellImage(),
+					Command: []string{
+						command,
+					},
+					TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							MountPath: "/host",
+							Name:      "host",
+						},
+					},
+				},
+			},
+		},
+	}, metav1.CreateOptions{})
+	if apierrors.IsAlreadyExists(err) {
+		return getNumberOfBootsForNode(kubeClient, nodeName, attempt+1)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to create pod %s: %v", name, err)
+	}
+
+	podName := pod.Name
+
+	// Wait for pod to run
+	err = wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
+		podGet, getErr := kubeClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
+		if getErr != nil {
+			return false, getErr
+		}
+		switch podGet.Status.Phase {
+		case corev1.PodSucceeded:
+			return true, nil
+		case corev1.PodFailed:
+			return true, fmt.Errorf("journalctl command in pod %s failed. Pod status: %#v", name, podGet.Status)
+		default:
+			return false, nil
+		}
+	})
+	if err != nil {
+		return 0, fmt.Errorf("pod %s failed to complete: %v", name, err)
+	}
+
+	// Fetch pod logs
+	linesInPodLogs := -1
+	podLogOpts := corev1.PodLogOptions{}
+	req := kubeClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
+	podLogs, err := req.Stream(ctx)
+	if err != nil {
+		return linesInPodLogs, fmt.Errorf("failed to open stream to read %s pod logs: %v", name, err)
+	}
+	defer podLogs.Close()
+
+	// Count number of boots
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return 0, fmt.Errorf("failed to copy information from podLogs to buf: %v", err)
+	}
+	linesInPodLogs = strings.Count(buf.String(), "\n") - 1
+	if linesInPodLogs < 1 {
+		return 0, fmt.Errorf("failed to fetch boot list from %s pod logs: %v", name, buf)
+	}
+	return linesInPodLogs, nil
+}
+
+func createTestBed(ctx context.Context, oc *exutil.CLI) {
+	err := callProject(ctx, oc, true)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = callServiceAccount(ctx, oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = callRBAC(ctx, oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	err = exutil.WaitForServiceAccountWithSecret(
+		oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace),
+		serviceAccountName)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+func deleteTestBed(ctx context.Context, oc *exutil.CLI) {
+	err := callProject(ctx, oc, false)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+func callRBAC(ctx context.Context, oc *exutil.CLI) error {
+	obj := &authv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceAccountName,
+			Namespace: namespace,
+		},
+		RoleRef: corev1.ObjectReference{
+			Kind: "ClusterRole",
+			Name: "system:openshift:scc:privileged",
+		},
+		Subjects: []corev1.ObjectReference{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      serviceAccountName,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	client := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace)
+	_, err := client.Create(ctx, obj, metav1.CreateOptions{})
+	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
+
+func callServiceAccount(ctx context.Context, oc *exutil.CLI) error {
+	obj := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceAccountName,
+			Namespace: namespace,
+		},
+	}
+
+	client := oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace)
+	_, err := client.Create(ctx, obj, metav1.CreateOptions{})
+	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
+
+func callProject(ctx context.Context, oc *exutil.CLI, create bool) error {
+	obj := &projv1.Project{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+			Labels: map[string]string{
+				"pod-security.kubernetes.io/audit":   "privileged",
+				"pod-security.kubernetes.io/enforce": "privileged",
+				"pod-security.kubernetes.io/warn":    "privileged",
+			},
+		},
+	}
+
+	client := oc.AsAdmin().ProjectClient().ProjectV1().Projects()
+	var err error
+	if create {
+		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
+	} else {
+		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
+	}
+
+	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
