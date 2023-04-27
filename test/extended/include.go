@@ -26,6 +26,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/crdvalidation"
 	_ "github.com/openshift/origin/test/extended/csrapprover"
 	_ "github.com/openshift/origin/test/extended/deployments"
+	_ "github.com/openshift/origin/test/extended/devices"
 	_ "github.com/openshift/origin/test/extended/dns"
 	_ "github.com/openshift/origin/test/extended/dr"
 	_ "github.com/openshift/origin/test/extended/etcd"

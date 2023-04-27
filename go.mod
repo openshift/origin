@@ -58,6 +58,7 @@ require (
 	k8s.io/kube-aggregator v0.28.2
 	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9
 	k8s.io/kubectl v0.28.2
+	k8s.io/kubelet v0.28.2
 	k8s.io/kubernetes v1.28.2
 	k8s.io/legacy-cloud-providers v0.28.2
 	k8s.io/pod-security-admission v0.28.2
@@ -272,7 +273,6 @@ require (
 	k8s.io/dynamic-resource-allocation v0.0.0 // indirect
 	k8s.io/kms v0.28.2 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
-	k8s.io/kubelet v0.24.0 // indirect
 	k8s.io/metrics v0.0.0 // indirect
 	k8s.io/mount-utils v0.0.0 // indirect
 	k8s.io/sample-apiserver v0.0.0 // indirect
