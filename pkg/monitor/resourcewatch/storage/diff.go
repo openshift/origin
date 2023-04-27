@@ -8,12 +8,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/managedfields"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/endpoints/handlers/fieldmanager"
 	"sigs.k8s.io/structured-merge-diff/v4/typed"
 )
 
-var typeConverter fieldmanager.TypeConverter = fieldmanager.DeducedTypeConverter{}
+var typeConverter managedfields.TypeConverter = managedfields.NewDeducedTypeConverter()
 
 func modifiedFields(oldRuntimeObject, newRuntimeObject *unstructured.Unstructured) (*typed.Comparison, error) {
 	oldObject, err := typeConverter.ObjectToTyped(oldRuntimeObject)
@@ -36,7 +36,7 @@ func modifiedFields(oldRuntimeObject, newRuntimeObject *unstructured.Unstructure
 func whichUsersOwnModifiedFields(obj *unstructured.Unstructured, comparison typed.Comparison) ([]string, error) {
 	users := sets.NewString()
 
-	managers, err := fieldmanager.DecodeManagedFields(obj.GetManagedFields())
+	managers, err := managedfields.DecodeManagedFields(obj.GetManagedFields())
 	if err != nil {
 		return nil, err
 	}
