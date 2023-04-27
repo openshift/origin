@@ -3177,7 +3177,7 @@ var Annotations = map[string]string{
 
 	"[sig-scheduling] SchedulerPreemption [Serial] validates lower priority pod preemption by critical pod [Conformance]": " [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",
 
-	"[sig-scheduling] SchedulerPreemption [Serial] validates pod disruption condition is added to the preempted pod": " [Disabled:Broken] [Suite:k8s]",
+	"[sig-scheduling] SchedulerPreemption [Serial] validates pod disruption condition is added to the preempted pod": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-scheduling] SchedulerPriorities [Serial] Pod should be preferably scheduled to nodes pod can tolerate": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
