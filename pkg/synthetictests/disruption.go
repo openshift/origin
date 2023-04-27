@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/sirupsen/logrus"
-
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -308,5 +307,53 @@ func isOneSecondEvent(eventInterval monitorapi.EventInterval) bool {
 		return false
 	default:
 		return true
+	}
+}
+
+func testDNSOverlapDisruption(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-network] Disruption should not overlap with DNS problems in cluster running tests"
+	failures := []string{}
+	dnsIntervals := []monitorapi.EventInterval{}
+	disruptionIntervals := []monitorapi.EventInterval{}
+	for _, event := range events {
+		// DNS outage
+		if reason := monitorapi.ReasonFrom(event.Message); strings.HasPrefix(reason, "DisruptionSamplerOutageBegan") {
+			dnsIntervals = append(dnsIntervals, event)
+		}
+		// real disruption
+		if reason := monitorapi.ReasonFrom(event.Message); strings.HasPrefix(reason, "DisruptionBegan") {
+			disruptionIntervals = append(disruptionIntervals, event)
+		}
+	}
+	errorCount := 0
+	for _, r := range disruptionIntervals {
+		for _, d := range dnsIntervals {
+			if (r.From.Before(d.To) && d.From.Before(r.To)) || (r.To.Add(10*time.Second).After(d.From) && d.To.Add(10*time.Second).After(r.From)) {
+				errorCount = errorCount + 1
+			}
+		}
+	}
+	if errorCount > 0 {
+		failures = append(failures, fmt.Sprintf("Overlap or interval within 10 seconds occured %d times.", errorCount))
+	}
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{
+			{Name: testName},
+		}
+	}
+
+	output := "These failures imply disruption overlapped, or occurred in very close proximity to DNS problems in the cluster running tests.\n" + strings.Join(failures, "\n")
+
+	return []*junitapi.JUnitTestCase{
+		{
+			Name: testName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: output,
+			},
+			SystemOut: strings.Join(failures, "\n"),
+		},
+		{
+			Name: testName,
+		},
 	}
 }
