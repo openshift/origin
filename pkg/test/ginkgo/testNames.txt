@@ -248,7 +248,7 @@
 "[sig-arch] Managed cluster should ensure platform components have system-* priority class associated [Suite:openshift/conformance/parallel]"
 "[sig-arch] Managed cluster should ensure pods use downstream images from our release image with proper ImagePullPolicy [Suite:openshift/conformance/parallel]"
 "[sig-arch] Managed cluster should have operators on the cluster version [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]"
-"[sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable update of 10 or 33 percent [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]"
+"[sig-arch] Managed cluster should only include cluster daemonsets that have maxUnavailable or maxSurge update of 10 percent or maxUnavailable of 33 percent [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]"
 "[sig-arch] Managed cluster should set requests but not limits [Suite:openshift/conformance/parallel]"
 "[sig-arch] [Conformance] FIPS TestFIPS [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel/minimal]"
 "[sig-arch] [Conformance] sysctl pod should not start for sysctl not on whitelist kernel.msgmax [Suite:openshift/conformance/parallel/minimal]"
