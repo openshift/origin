@@ -353,3 +353,40 @@ func testNoDNSLookupErrorsInDisruptionSamplers(events monitorapi.Intervals) []*j
 		},
 	}
 }
+
+func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-network] ovs-vswitchd should not log any unreasonably long poll intervals to system journal"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	var maxDur time.Duration
+	for _, event := range events {
+		if strings.Contains(event.Message, "Unreasonably long") && strings.Contains(event.Message, "ovs-vswitchd") {
+			msg := fmt.Sprintf("%v - %v", event.Locator, event.Message)
+			failures = append(failures, msg)
+
+			dur := event.To.Sub(event.From)
+			if dur > maxDur {
+				maxDur = dur
+			}
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("Found %d instances of ovs-vswitchd logging an unreasonably long poll interval:\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+
+	// TODO: use maxDir to determine flake/fail here once we can see how common it is and at what thresholds.
+
+	// I've seen these as high as 9s in jobs that nothing else failed in, leaving as just a flake
+	// for now.
+	return []*junitapi.JUnitTestCase{failure, success}
+}

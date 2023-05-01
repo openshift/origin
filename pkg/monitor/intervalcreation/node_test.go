@@ -29,8 +29,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Locator: "ns/openshift-monitoring pod/prometheus-k8s-0 uid/a1947638-25c2-4fd8-b3c8-4dbaa666bc61 container/",
 					Message: "reason/HttpClientConnectionLost Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/namespaces/openshift-monitoring/pods/prometheus-k8s-0\": http2: client connection lost",
 				},
-				From: kubeletLogTime("Sep 27 08:59:59.857303"),
-				To:   kubeletLogTime("Sep 27 08:59:59.857303"),
+				From: systemdJournalLogTime("Sep 27 08:59:59.857303"),
+				To:   systemdJournalLogTime("Sep 27 08:59:59.857303"),
 			},
 		},
 		{
@@ -42,8 +42,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Locator: "ns/openshift-monitoring pod/prometheus-adapter-7m6srg4dfreoi uid/ container/",
 					Message: "reason/HttpClientConnectionLost unable to decode an event from the watch stream: http2: client connection lost",
 				},
-				From: kubeletLogTime("Sep 27 08:59:59.853216"),
-				To:   kubeletLogTime("Sep 27 08:59:59.853216"),
+				From: systemdJournalLogTime("Sep 27 08:59:59.853216"),
+				To:   systemdJournalLogTime("Sep 27 08:59:59.853216"),
 			},
 		},
 		{
@@ -55,8 +55,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Locator: "node/ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s",
 					Message: "reason/HttpClientConnectionLost error getting node \"ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s\": Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/nodes/ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s?timeout=10s\": http2: client connection lost",
 				},
-				From: kubeletLogTime("Sep 27 08:59:59.853216"),
-				To:   kubeletLogTime("Sep 27 08:59:59.853216"),
+				From: systemdJournalLogTime("Sep 27 08:59:59.853216"),
+				To:   systemdJournalLogTime("Sep 27 08:59:59.853216"),
 			},
 		},
 		{
@@ -68,8 +68,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Locator: "ns/openshift-authentication pod/oauth-openshift-77f7b95df5-r4xf7 uid/1af660b3-ac3a-4182-86eb-2f74725d8415 container/oauth-openshift",
 					Message: "reason/ReadinessFailed Get \"https://10.129.0.12:6443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
 				},
-				From: kubeletLogTime("Jul 05 17:47:52.807876"),
-				To:   kubeletLogTime("Jul 05 17:47:52.807876"),
+				From: systemdJournalLogTime("Jul 05 17:47:52.807876"),
+				To:   systemdJournalLogTime("Jul 05 17:47:52.807876"),
 			},
 		},
 		{
@@ -81,8 +81,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Locator: "ns/openshift-marketplace pod/redhat-operators-4jpg4 uid/0bac4741-a3bd-483c-b119-e97663d64024 container/registry-server",
 					Message: "reason/ReadinessErrored rpc error: code = NotFound desc = container is not created or running: checking if PID of 645437acbb2ca429c04d5a2628924e2e10d44c681c824dddc7c82ffa30a936be is running failed: container process not found",
 				},
-				From: kubeletLogTime("Jul 05 17:43:12.908344"),
-				To:   kubeletLogTime("Jul 05 17:43:12.908344"),
+				From: systemdJournalLogTime("Jul 05 17:43:12.908344"),
+				To:   systemdJournalLogTime("Jul 05 17:43:12.908344"),
 			},
 		},
 		{
@@ -94,8 +94,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Locator: "ns/openshift-e2e-loki pod/loki-promtail-plm74 uid/59b26cbf-3421-407c-98ee-986b5a091ef4 container/oauth-proxy",
 					Message: "reason/ErrImagePull UnrecognizedSignatureFormat",
 				},
-				From: kubeletLogTime("Feb 01 05:37:45.731611"),
-				To:   kubeletLogTime("Feb 01 05:37:45.731611"),
+				From: systemdJournalLogTime("Feb 01 05:37:45.731611"),
+				To:   systemdJournalLogTime("Feb 01 05:37:45.731611"),
 			},
 		},
 	}
@@ -330,8 +330,8 @@ func Test_messageTime(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := kubeletLogTime(tt.args.logLine); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("kubeletLogTime() = %v, want %v", got, tt.want)
+			if got := systemdJournalLogTime(tt.args.logLine); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("systemdJournalLogTime() = %v, want %v", got, tt.want)
 			}
 		})
 	}
