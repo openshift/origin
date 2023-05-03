@@ -383,7 +383,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	}
 	var upgradeDurationLimits = map[limitLocator]float64{
 		{configv1.AWSPlatformType, OVN}:       85,
-		{configv1.AWSPlatformType, SDN}:       130,
+		{configv1.AWSPlatformType, SDN}:       95,
 		{configv1.AzurePlatformType, OVN}:     100,
 		{configv1.AzurePlatformType, SDN}:     100,
 		{configv1.GCPPlatformType, OVN}:       90,
@@ -410,9 +410,12 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		// to be 30 minutes longer. https://issues.redhat.com/browse/OCPBUGS-13059
 		upgradeDurationLimit = 130 * time.Minute
 	case platformType.Architecture == platformidentification.ArchitecturePPC64le:
-		// ppc appears to take just over 75 minutes, let's lock it into that value so we don't
+		// ppc appears to take just over 75 minutes, let's lock it into that value, so we don't
 		// get worse.
 		upgradeDurationLimit = 80 * time.Minute
+	case infra.Status.InfrastructureTopology == configv1.SingleReplicaTopologyMode:
+		// single node takes a lot less since there's one node
+		upgradeDurationLimit = 65 * time.Minute
 	default:
 		locator := limitLocator{infra.Status.PlatformStatus.Type, network.Status.NetworkType}
 
