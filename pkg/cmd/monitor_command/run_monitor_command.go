@@ -23,8 +23,9 @@ import (
 // RunMonitorOptions is used to run a monitoring process against the provided server as
 // a command line interaction.
 type RunMonitorOptions struct {
-	Out, ErrOut io.Writer
-	ArtifactDir string
+	Out, ErrOut       io.Writer
+	ArtifactDir       string
+	APIDisruptionOnly bool
 
 	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
 
@@ -37,11 +38,6 @@ func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOpti
 	return &RunMonitorOptions{
 		Out:    ioStreams.Out,
 		ErrOut: ioStreams.ErrOut,
-		AdditionalEventIntervalRecorders: []monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAllAPIMonitoring,
-			frontends.StartAllIngressMonitoring,
-			externalservice.StartExternalServiceMonitoring,
-		},
 
 		TimelineOptions: *timelineOptions,
 	}
@@ -66,6 +62,7 @@ func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command 
 	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
 		"artifact-dir", monitorOpt.ArtifactDir,
 		"The directory where monitor events will be stored.")
+	cmd.Flags().BoolVar(&monitorOpt.APIDisruptionOnly, "api-disruption-only", monitorOpt.APIDisruptionOnly, "Run api disruption monitoring only")
 	return cmd
 }
 
@@ -95,7 +92,15 @@ func (opt *RunMonitorOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders)
+	additionalEventIntervalRecorders := []monitor.StartEventIntervalRecorderFunc{
+		controlplane.StartAllAPIMonitoring,
+	}
+	if !opt.APIDisruptionOnly {
+		additionalEventIntervalRecorders = append(additionalEventIntervalRecorders,
+			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring)
+	}
+	m, err := monitor.Start(ctx, restConfig, additionalEventIntervalRecorders)
 	if err != nil {
 		return err
 	}
@@ -157,9 +162,11 @@ func (opt *RunMonitorOptions) Run() error {
 			logrus.WithError(err).Warn("unable to upload intervals to loki")
 		}
 
-		if err := monitor.WriteTrackedResourcesForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
-			fmt.Printf("Failed to write resource data, err: %v\n", err)
-			return err
+		if !opt.APIDisruptionOnly {
+			if err := monitor.WriteTrackedResourcesForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
+				fmt.Printf("Failed to write resource data, err: %v\n", err)
+				return err
+			}
 		}
 		// we know these names because the methods above use known file locations
 		eventJSONFilename := filepath.Join(eventDir, fmt.Sprintf("e2e-events%s.json", timeSuffix))
