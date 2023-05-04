@@ -90,6 +90,7 @@ func main() {
 	pflag.CommandLine = pflag.NewFlagSet("empty", pflag.ExitOnError)
 	flag.CommandLine = flag.NewFlagSet("empty", flag.ExitOnError)
 	exutil.InitStandardFlags()
+	root.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 
 	if err := func() error {
 		defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
