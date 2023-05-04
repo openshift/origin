@@ -329,7 +329,7 @@ func (b *ControllerBuilder) Run(ctx context.Context, config *unstructured.Unstru
 	leaderConfig := rest.CopyConfig(protoConfig)
 	leaderConfig.Timeout = b.leaderElection.RenewDeadline.Duration
 
-	leaderElection, err := leaderelectionconverter.ToLeaderElectionWithConfigmapLease(leaderConfig, *b.leaderElection, b.componentName, b.instanceIdentity)
+	leaderElection, err := leaderelectionconverter.ToLeaderElectionWithLease(leaderConfig, *b.leaderElection, b.componentName, b.instanceIdentity)
 	if err != nil {
 		return err
 	}

@@ -12,9 +12,10 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_CloudPrivateIPConfig = map[string]string{
-	"":       "CloudPrivateIPConfig performs an assignment of a private IP address to the primary NIC associated with cloud VMs. This is done by specifying the IP and Kubernetes node which the IP should be assigned to. This CRD is intended to be used by the network plugin which manages the cluster network. The spec side represents the desired state requested by the network plugin, and the status side represents the current state that this CRD's controller has executed. No users will have permission to modify it, and if a cluster-admin decides to edit it for some reason, their changes will be overwritten the next time the network plugin reconciles the object. Note: the CR's name must specify the requested private IP address (can be IPv4 or IPv6).\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
-	"spec":   "spec is the definition of the desired private IP request.",
-	"status": "status is the observed status of the desired private IP request. Read-only.",
+	"":         "CloudPrivateIPConfig performs an assignment of a private IP address to the primary NIC associated with cloud VMs. This is done by specifying the IP and Kubernetes node which the IP should be assigned to. This CRD is intended to be used by the network plugin which manages the cluster network. The spec side represents the desired state requested by the network plugin, and the status side represents the current state that this CRD's controller has executed. No users will have permission to modify it, and if a cluster-admin decides to edit it for some reason, their changes will be overwritten the next time the network plugin reconciles the object. Note: the CR's name must specify the requested private IP address (can be IPv4 or IPv6).\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec is the definition of the desired private IP request.",
+	"status":   "status is the observed status of the desired private IP request. Read-only.",
 }
 
 func (CloudPrivateIPConfig) SwaggerDoc() map[string]string {
@@ -22,8 +23,9 @@ func (CloudPrivateIPConfig) SwaggerDoc() map[string]string {
 }
 
 var map_CloudPrivateIPConfigList = map[string]string{
-	"":      "Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer). CloudPrivateIPConfigList is the list of CloudPrivateIPConfigList.",
-	"items": "List of CloudPrivateIPConfig.",
+	"":         "Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer). CloudPrivateIPConfigList is the list of CloudPrivateIPConfigList.",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "List of CloudPrivateIPConfig.",
 }
 
 func (CloudPrivateIPConfigList) SwaggerDoc() map[string]string {

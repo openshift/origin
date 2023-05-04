@@ -682,6 +682,22 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                        loadBalancer:
+                          default:
+                            type: OpenShiftManagedDefault
+                          description: loadBalancer defines how the load balancer used by the cluster is configured.
+                          properties:
+                            type:
+                              default: OpenShiftManagedDefault
+                              description: type defines the type of load balancer used by the cluster on OpenStack platform which can be a user-managed or openshift-managed load balancer that is to be used for the OpenShift API and Ingress endpoints. When set to OpenShiftManagedDefault the static pods in charge of API and Ingress traffic load-balancing defined in the machine config operator will be deployed. When set to UserManaged these static pods will not be deployed and it is expected that the load balancer is configured out of band by the deployer. When omitted, this means no opinion and the platform is left to choose a reasonable default. The default value is OpenShiftManagedDefault.
+                              enum:
+                                - OpenShiftManagedDefault
+                                - UserManaged
+                              type: string
+                              x-kubernetes-validations:
+                                - message: type is immutable once set
+                                  rule: oldSelf == '' || self == oldSelf
+                          type: object
                         nodeDNSIP:
                           description: nodeDNSIP is the IP address for the internal DNS used by the nodes. Unlike the one managed by the DNS operator, `NodeDNSIP` provides name resolution for the nodes themselves. There is no DNS-as-a-service for OpenStack deployments. In order to minimize necessary changes to the datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames to the nodes in the cluster.
                           type: string

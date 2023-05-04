@@ -25,7 +25,10 @@ import (
 // +kubebuilder:resource:path=cloudprivateipconfigs,scope=Cluster
 // +openshift:compatibility-gen:level=1
 type CloudPrivateIPConfig struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// spec is the definition of the desired private IP request.
 	// +kubebuilder:validation:Required
@@ -78,6 +81,9 @@ const (
 // +openshift:compatibility-gen:level=1
 type CloudPrivateIPConfigList struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// List of CloudPrivateIPConfig.

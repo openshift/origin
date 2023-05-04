@@ -22,9 +22,10 @@ func (ConnectionConfig) SwaggerDoc() map[string]string {
 }
 
 var map_HelmChartRepository = map[string]string{
-	"":       "HelmChartRepository holds cluster-wide configuration for proxied Helm chart repository\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
-	"spec":   "spec holds user settable values for configuration",
-	"status": "Observed status of the repository within the cluster..",
+	"":         "HelmChartRepository holds cluster-wide configuration for proxied Helm chart repository\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec holds user settable values for configuration",
+	"status":   "Observed status of the repository within the cluster..",
 }
 
 func (HelmChartRepository) SwaggerDoc() map[string]string {
@@ -32,7 +33,8 @@ func (HelmChartRepository) SwaggerDoc() map[string]string {
 }
 
 var map_HelmChartRepositoryList = map[string]string{
-	"": "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (HelmChartRepositoryList) SwaggerDoc() map[string]string {
@@ -71,9 +73,10 @@ func (ConnectionConfigNamespaceScoped) SwaggerDoc() map[string]string {
 }
 
 var map_ProjectHelmChartRepository = map[string]string{
-	"":       "ProjectHelmChartRepository holds namespace-wide configuration for proxied Helm chart repository\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
-	"spec":   "spec holds user settable values for configuration",
-	"status": "Observed status of the repository within the namespace..",
+	"":         "ProjectHelmChartRepository holds namespace-wide configuration for proxied Helm chart repository\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec holds user settable values for configuration",
+	"status":   "Observed status of the repository within the namespace..",
 }
 
 func (ProjectHelmChartRepository) SwaggerDoc() map[string]string {
@@ -81,7 +84,8 @@ func (ProjectHelmChartRepository) SwaggerDoc() map[string]string {
 }
 
 var map_ProjectHelmChartRepositoryList = map[string]string{
-	"": "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ProjectHelmChartRepositoryList) SwaggerDoc() map[string]string {

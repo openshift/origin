@@ -32,9 +32,11 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +k8s:openapi-gen=true
 // +openshift:compatibility-gen:level=4
 // +kubebuilder:subresource:status
-//
 type SharedConfigMap struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the specification of the desired shared configmap
@@ -49,14 +51,17 @@ type SharedConfigMap struct {
 
 // SharedConfigMapList contains a list of SharedConfigMap objects.
 //
-//
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 // These capabilities should not be used by applications needing long term support.
 // +openshift:compatibility-gen:level=4
 type SharedConfigMapList struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []SharedConfigMap `json:"items"`
+
+	Items []SharedConfigMap `json:"items"`
 }
 
 // SharedConfigMapReference contains information about which ConfigMap to share

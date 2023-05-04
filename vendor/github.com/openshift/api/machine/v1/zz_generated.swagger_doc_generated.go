@@ -13,6 +13,7 @@ package v1
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_AlibabaCloudMachineProviderConfig = map[string]string{
 	"":                  "AlibabaCloudMachineProviderConfig is the Schema for the alibabacloudmachineproviderconfig API Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata":          "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 	"instanceType":      "The instance type of the instance.",
 	"vpcId":             "The ID of the vpc",
 	"regionId":          "The ID of the region in which to create the instance. You can call the DescribeRegions operation to query the most recent region list.",
@@ -36,7 +37,8 @@ func (AlibabaCloudMachineProviderConfig) SwaggerDoc() map[string]string {
 }
 
 var map_AlibabaCloudMachineProviderConfigList = map[string]string{
-	"": "AlibabaCloudMachineProviderConfigList contains a list of AlibabaCloudMachineProviderConfig Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "AlibabaCloudMachineProviderConfigList contains a list of AlibabaCloudMachineProviderConfig Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (AlibabaCloudMachineProviderConfigList) SwaggerDoc() map[string]string {
@@ -45,6 +47,7 @@ func (AlibabaCloudMachineProviderConfigList) SwaggerDoc() map[string]string {
 
 var map_AlibabaCloudMachineProviderStatus = map[string]string{
 	"":              "AlibabaCloudMachineProviderStatus is the Schema for the alibabacloudmachineproviderconfig API Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata":      "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 	"instanceId":    "InstanceID is the instance ID of the machine created in alibabacloud",
 	"instanceState": "InstanceState is the state of the alibabacloud instance for this machine",
 	"conditions":    "Conditions is a set of conditions associated with the Machine to indicate errors or other status",
@@ -165,7 +168,8 @@ func (AzureFailureDomain) SwaggerDoc() map[string]string {
 }
 
 var map_ControlPlaneMachineSet = map[string]string{
-	"": "ControlPlaneMachineSet ensures that a specified number of control plane machine replicas are running at any given time. Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ControlPlaneMachineSet ensures that a specified number of control plane machine replicas are running at any given time. Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ControlPlaneMachineSet) SwaggerDoc() map[string]string {
@@ -173,7 +177,8 @@ func (ControlPlaneMachineSet) SwaggerDoc() map[string]string {
 }
 
 var map_ControlPlaneMachineSetList = map[string]string{
-	"": "ControlPlaneMachineSetList contains a list of ControlPlaneMachineSet Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ControlPlaneMachineSetList contains a list of ControlPlaneMachineSet Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ControlPlaneMachineSetList) SwaggerDoc() map[string]string {
@@ -280,6 +285,7 @@ func (NutanixCategory) SwaggerDoc() map[string]string {
 
 var map_NutanixMachineProviderConfig = map[string]string{
 	"":                  "NutanixMachineProviderConfig is the Schema for the nutanixmachineproviderconfigs API Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata":          "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 	"cluster":           "cluster is to identify the cluster (the Prism Element under management of the Prism Central), in which the Machine's VM will be created. The cluster identifier (uuid or name) can be obtained from the Prism Central console or using the prism_central API.",
 	"image":             "image is to identify the rhcos image uploaded to the Prism Central (PC) The image identifier (uuid or name) can be obtained from the Prism Central console or using the prism_central API.",
 	"subnets":           "subnets holds a list of identifiers (one or more) of the cluster's network subnets for the Machine's VM to connect to. The subnet identifiers (uuid or name) can be obtained from the Prism Central console or using the prism_central API.",
@@ -319,6 +325,16 @@ func (NutanixResourceIdentifier) SwaggerDoc() map[string]string {
 	return map_NutanixResourceIdentifier
 }
 
+var map_LoadBalancerReference = map[string]string{
+	"":     "LoadBalancerReference is a reference to a load balancer on IBM Cloud virtual private cloud(VPC).",
+	"name": "name of the LoadBalancer in IBM Cloud VPC. The name should be between 1 and 63 characters long and may consist of lowercase alphanumeric characters and hyphens only. The value must not end with a hyphen. It is a reference to existing LoadBalancer created by openshift installer component.",
+	"type": "type of the LoadBalancer service supported by IBM Cloud VPC. Currently, only Application LoadBalancer is supported. More details about Application LoadBalancer https://cloud.ibm.com/docs/vpc?topic=vpc-load-balancers-about&interface=ui Supported values are Application.",
+}
+
+func (LoadBalancerReference) SwaggerDoc() map[string]string {
+	return map_LoadBalancerReference
+}
+
 var map_PowerVSMachineProviderConfig = map[string]string{
 	"":                  "PowerVSMachineProviderConfig is the type that will be embedded in a Machine.Spec.ProviderSpec field for a PowerVS virtual machine. It is used by the PowerVS machine actuator to create a single Machine.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
 	"userDataSecret":    "userDataSecret contains a local reference to a secret that contains the UserData to apply to the instance.",
@@ -331,6 +347,7 @@ var map_PowerVSMachineProviderConfig = map[string]string{
 	"processorType":     "processorType is the VM instance processor type. It must be set to one of the following values: Dedicated, Capped or Shared. Dedicated: resources are allocated for a specific client, The hypervisor makes a 1:1 binding of a partition’s processor to a physical processor core. Shared: Shared among other clients. Capped: Shared, but resources do not expand beyond those that are requested, the amount of CPU time is Capped to the value specified for the entitlement. if the processorType is selected as Dedicated, then processors value cannot be fractional. When omitted, this means that the user has no opinion and the platform is left to choose a reasonable default, which is subject to change over time. The current default is Shared.",
 	"processors":        "processors is the number of virtual processors in a virtual machine. when the processorType is selected as Dedicated the processors value cannot be fractional. maximum value for the Processors depends on the selected SystemType. when SystemType is set to e880 or e980 maximum Processors value is 143. when SystemType is set to s922 maximum Processors value is 15. minimum value for Processors depends on the selected ProcessorType. when ProcessorType is set as Shared or Capped, The minimum processors is 0.5. when ProcessorType is set as Dedicated, The minimum processors is 1. When omitted, this means that the user has no opinion and the platform is left to choose a reasonable default, which is subject to change over time. The default is set based on the selected ProcessorType. when ProcessorType selected as Dedicated, the default is set to 1. when ProcessorType selected as Shared or Capped, the default is set to 0.5.",
 	"memoryGiB":         "memoryGiB is the size of a virtual machine's memory, in GiB. maximum value for the MemoryGiB depends on the selected SystemType. when SystemType is set to e880 maximum MemoryGiB value is 7463 GiB. when SystemType is set to e980 maximum MemoryGiB value is 15307 GiB. when SystemType is set to s922 maximum MemoryGiB value is 942 GiB. The minimum memory is 32 GiB. When omitted, this means the user has no opinion and the platform is left to choose a reasonable default, which is subject to change over time. The current default is 32.",
+	"loadBalancers":     "loadBalancers is the set of load balancers to which the new control plane instance should be added once it is created.",
 }
 
 func (PowerVSMachineProviderConfig) SwaggerDoc() map[string]string {

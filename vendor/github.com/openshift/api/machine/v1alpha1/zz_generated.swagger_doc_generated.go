@@ -61,6 +61,7 @@ func (NetworkParam) SwaggerDoc() map[string]string {
 
 var map_OpenstackProviderSpec = map[string]string{
 	"":                 "OpenstackProviderSpec is the type that will be embedded in a Machine.Spec.ProviderSpec field for an OpenStack Instance. It is used by the Openstack machine actuator to create a single machine instance. Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata":         "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 	"cloudsSecret":     "The name of the secret containing the openstack credentials",
 	"cloudName":        "The name of the cloud to use from the clouds secret",
 	"flavor":           "The flavor reference for the flavor for your server instance.",
