@@ -12,7 +12,8 @@ package v1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_Config = map[string]string{
-	"": "Config is the configuration object for a registry instance managed by the registry operator\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "Config is the configuration object for a registry instance managed by the registry operator\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (Config) SwaggerDoc() map[string]string {
@@ -20,7 +21,8 @@ func (Config) SwaggerDoc() map[string]string {
 }
 
 var map_ConfigList = map[string]string{
-	"": "ConfigList is a slice of Config objects.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ConfigList is a slice of Config objects.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConfigList) SwaggerDoc() map[string]string {
@@ -258,7 +260,8 @@ func (S3TrustedCASource) SwaggerDoc() map[string]string {
 }
 
 var map_ImagePruner = map[string]string{
-	"": "ImagePruner is the configuration object for an image registry pruner managed by the registry operator.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ImagePruner is the configuration object for an image registry pruner managed by the registry operator.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ImagePruner) SwaggerDoc() map[string]string {
@@ -266,7 +269,8 @@ func (ImagePruner) SwaggerDoc() map[string]string {
 }
 
 var map_ImagePrunerList = map[string]string{
-	"": "ImagePrunerList is a slice of ImagePruner objects.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ImagePrunerList is a slice of ImagePruner objects.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ImagePrunerList) SwaggerDoc() map[string]string {
