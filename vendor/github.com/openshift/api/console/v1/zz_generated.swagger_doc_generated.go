@@ -31,7 +31,8 @@ func (CLIDownloadLink) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleCLIDownload = map[string]string{
-	"": "ConsoleCLIDownload is an extension for configuring openshift web console command line interface (CLI) downloads.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "ConsoleCLIDownload is an extension for configuring openshift web console command line interface (CLI) downloads.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleCLIDownload) SwaggerDoc() map[string]string {
@@ -39,7 +40,8 @@ func (ConsoleCLIDownload) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleCLIDownloadList = map[string]string{
-	"": "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleCLIDownloadList) SwaggerDoc() map[string]string {
@@ -58,7 +60,8 @@ func (ConsoleCLIDownloadSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleExternalLogLink = map[string]string{
-	"": "ConsoleExternalLogLink is an extension for customizing OpenShift web console log links.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "ConsoleExternalLogLink is an extension for customizing OpenShift web console log links.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleExternalLogLink) SwaggerDoc() map[string]string {
@@ -66,7 +69,8 @@ func (ConsoleExternalLogLink) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleExternalLogLinkList = map[string]string{
-	"": "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleExternalLogLinkList) SwaggerDoc() map[string]string {
@@ -95,7 +99,8 @@ func (ApplicationMenuSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleLink = map[string]string{
-	"": "ConsoleLink is an extension for customizing OpenShift web console links.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "ConsoleLink is an extension for customizing OpenShift web console links.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleLink) SwaggerDoc() map[string]string {
@@ -103,7 +108,8 @@ func (ConsoleLink) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleLinkList = map[string]string{
-	"": "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleLinkList) SwaggerDoc() map[string]string {
@@ -132,7 +138,8 @@ func (NamespaceDashboardSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleNotification = map[string]string{
-	"": "ConsoleNotification is the extension for configuring openshift web console notifications.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "ConsoleNotification is the extension for configuring openshift web console notifications.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleNotification) SwaggerDoc() map[string]string {
@@ -140,7 +147,8 @@ func (ConsoleNotification) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleNotificationList = map[string]string{
-	"": "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleNotificationList) SwaggerDoc() map[string]string {
@@ -161,7 +169,8 @@ func (ConsoleNotificationSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ConsolePlugin = map[string]string{
-	"": "ConsolePlugin is an extension for customizing OpenShift web console by dynamically loading code from another service running on the cluster.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "ConsolePlugin is an extension for customizing OpenShift web console by dynamically loading code from another service running on the cluster.\n\nCompatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsolePlugin) SwaggerDoc() map[string]string {
@@ -188,7 +197,8 @@ func (ConsolePluginI18n) SwaggerDoc() map[string]string {
 }
 
 var map_ConsolePluginList = map[string]string{
-	"": "Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsolePluginList) SwaggerDoc() map[string]string {
@@ -253,7 +263,8 @@ func (ConsolePluginSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleQuickStart = map[string]string{
-	"": "ConsoleQuickStart is an extension for guiding user through various workflows in the OpenShift web console.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "ConsoleQuickStart is an extension for guiding user through various workflows in the OpenShift web console.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleQuickStart) SwaggerDoc() map[string]string {
@@ -261,7 +272,8 @@ func (ConsoleQuickStart) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleQuickStartList = map[string]string{
-	"": "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleQuickStartList) SwaggerDoc() map[string]string {
@@ -320,7 +332,8 @@ func (ConsoleQuickStartTaskSummary) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleYAMLSample = map[string]string{
-	"": "ConsoleYAMLSample is an extension for customizing OpenShift web console YAML samples.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "ConsoleYAMLSample is an extension for customizing OpenShift web console YAML samples.\n\nCompatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleYAMLSample) SwaggerDoc() map[string]string {
@@ -328,7 +341,8 @@ func (ConsoleYAMLSample) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleYAMLSampleList = map[string]string{
-	"": "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (ConsoleYAMLSampleList) SwaggerDoc() map[string]string {

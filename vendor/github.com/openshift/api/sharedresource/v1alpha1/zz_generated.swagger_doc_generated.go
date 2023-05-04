@@ -12,9 +12,10 @@ package v1alpha1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_SharedConfigMap = map[string]string{
-	"":       "SharedConfigMap allows a ConfigMap to be shared across namespaces. Pods can mount the shared ConfigMap by adding a CSI volume to the pod specification using the \"csi.sharedresource.openshift.io\" CSI driver and a reference to the SharedConfigMap in the volume attributes:\n\nspec:\n volumes:\n - name: shared-configmap\n   csi:\n     driver: csi.sharedresource.openshift.io\n     volumeAttributes:\n       sharedConfigMap: my-share\n\nFor the mount to be successful, the pod's service account must be granted permission to 'use' the named SharedConfigMap object within its namespace with an appropriate Role and RoleBinding. For compactness, here are example `oc` invocations for creating such Role and RoleBinding objects.\n\n `oc create role shared-resource-my-share --verb=use --resource=sharedconfigmaps.sharedresource.openshift.io --resource-name=my-share`\n `oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default`\n\nShared resource objects, in this case ConfigMaps, have default permissions of list, get, and watch for system authenticated users.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support.",
-	"spec":   "spec is the specification of the desired shared configmap",
-	"status": "status is the observed status of the shared configmap",
+	"":         "SharedConfigMap allows a ConfigMap to be shared across namespaces. Pods can mount the shared ConfigMap by adding a CSI volume to the pod specification using the \"csi.sharedresource.openshift.io\" CSI driver and a reference to the SharedConfigMap in the volume attributes:\n\nspec:\n volumes:\n - name: shared-configmap\n   csi:\n     driver: csi.sharedresource.openshift.io\n     volumeAttributes:\n       sharedConfigMap: my-share\n\nFor the mount to be successful, the pod's service account must be granted permission to 'use' the named SharedConfigMap object within its namespace with an appropriate Role and RoleBinding. For compactness, here are example `oc` invocations for creating such Role and RoleBinding objects.\n\n `oc create role shared-resource-my-share --verb=use --resource=sharedconfigmaps.sharedresource.openshift.io --resource-name=my-share`\n `oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default`\n\nShared resource objects, in this case ConfigMaps, have default permissions of list, get, and watch for system authenticated users.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec is the specification of the desired shared configmap",
+	"status":   "status is the observed status of the shared configmap",
 }
 
 func (SharedConfigMap) SwaggerDoc() map[string]string {
@@ -22,7 +23,8 @@ func (SharedConfigMap) SwaggerDoc() map[string]string {
 }
 
 var map_SharedConfigMapList = map[string]string{
-	"": "SharedConfigMapList contains a list of SharedConfigMap objects.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support.",
+	"":         "SharedConfigMapList contains a list of SharedConfigMap objects.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (SharedConfigMapList) SwaggerDoc() map[string]string {
@@ -59,9 +61,10 @@ func (SharedConfigMapStatus) SwaggerDoc() map[string]string {
 }
 
 var map_SharedSecret = map[string]string{
-	"":       "SharedSecret allows a Secret to be shared across namespaces. Pods can mount the shared Secret by adding a CSI volume to the pod specification using the \"csi.sharedresource.openshift.io\" CSI driver and a reference to the SharedSecret in the volume attributes:\n\nspec:\n volumes:\n - name: shared-secret\n   csi:\n     driver: csi.sharedresource.openshift.io\n     volumeAttributes:\n       sharedSecret: my-share\n\nFor the mount to be successful, the pod's service account must be granted permission to 'use' the named SharedSecret object within its namespace with an appropriate Role and RoleBinding. For compactness, here are example `oc` invocations for creating such Role and RoleBinding objects.\n\n `oc create role shared-resource-my-share --verb=use --resource=sharedsecrets.sharedresource.openshift.io --resource-name=my-share`\n `oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default`\n\nShared resource objects, in this case Secrets, have default permissions of list, get, and watch for system authenticated users.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support.",
-	"spec":   "spec is the specification of the desired shared secret",
-	"status": "status is the observed status of the shared secret",
+	"":         "SharedSecret allows a Secret to be shared across namespaces. Pods can mount the shared Secret by adding a CSI volume to the pod specification using the \"csi.sharedresource.openshift.io\" CSI driver and a reference to the SharedSecret in the volume attributes:\n\nspec:\n volumes:\n - name: shared-secret\n   csi:\n     driver: csi.sharedresource.openshift.io\n     volumeAttributes:\n       sharedSecret: my-share\n\nFor the mount to be successful, the pod's service account must be granted permission to 'use' the named SharedSecret object within its namespace with an appropriate Role and RoleBinding. For compactness, here are example `oc` invocations for creating such Role and RoleBinding objects.\n\n `oc create role shared-resource-my-share --verb=use --resource=sharedsecrets.sharedresource.openshift.io --resource-name=my-share`\n `oc create rolebinding shared-resource-my-share --role=shared-resource-my-share --serviceaccount=my-namespace:default`\n\nShared resource objects, in this case Secrets, have default permissions of list, get, and watch for system authenticated users.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec is the specification of the desired shared secret",
+	"status":   "status is the observed status of the shared secret",
 }
 
 func (SharedSecret) SwaggerDoc() map[string]string {
@@ -69,7 +72,8 @@ func (SharedSecret) SwaggerDoc() map[string]string {
 }
 
 var map_SharedSecretList = map[string]string{
-	"": "SharedSecretList contains a list of SharedSecret objects.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support.",
+	"":         "SharedSecretList contains a list of SharedSecret objects.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (SharedSecretList) SwaggerDoc() map[string]string {

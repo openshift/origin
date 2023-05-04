@@ -38,9 +38,10 @@ func (OutageEntry) SwaggerDoc() map[string]string {
 }
 
 var map_PodNetworkConnectivityCheck = map[string]string{
-	"":       "PodNetworkConnectivityCheck\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"spec":   "Spec defines the source and target of the connectivity check",
-	"status": "Status contains the observed status of the connectivity check",
+	"":         "PodNetworkConnectivityCheck\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "Spec defines the source and target of the connectivity check",
+	"status":   "Status contains the observed status of the connectivity check",
 }
 
 func (PodNetworkConnectivityCheck) SwaggerDoc() map[string]string {
@@ -61,8 +62,9 @@ func (PodNetworkConnectivityCheckCondition) SwaggerDoc() map[string]string {
 }
 
 var map_PodNetworkConnectivityCheckList = map[string]string{
-	"":      "PodNetworkConnectivityCheckList is a collection of PodNetworkConnectivityCheck\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"items": "Items contains the items",
+	"":         "PodNetworkConnectivityCheckList is a collection of PodNetworkConnectivityCheck\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "Items contains the items",
 }
 
 func (PodNetworkConnectivityCheckList) SwaggerDoc() map[string]string {

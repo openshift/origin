@@ -368,6 +368,7 @@ func (GCPKMSKeyReference) SwaggerDoc() map[string]string {
 
 var map_GCPMachineProviderSpec = map[string]string{
 	"":                       "GCPMachineProviderSpec is the type that will be embedded in a Machine.Spec.ProviderSpec field for an GCP virtual machine. It is used by the GCP machine actuator to create a single Machine. Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata":               "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 	"userDataSecret":         "UserDataSecret contains a local reference to a secret that contains the UserData to apply to the instance",
 	"credentialsSecret":      "CredentialsSecret is a reference to the secret with GCP credentials.",
 	"canIPForward":           "CanIPForward Allows this instance to send and receive packets with non-matching destination or source IPs. This is required if you plan to use this instance to forward routes.",
@@ -482,7 +483,8 @@ func (LifecycleHooks) SwaggerDoc() map[string]string {
 }
 
 var map_Machine = map[string]string{
-	"": "Machine is the Schema for the machines API Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "Machine is the Schema for the machines API Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (Machine) SwaggerDoc() map[string]string {
@@ -490,7 +492,8 @@ func (Machine) SwaggerDoc() map[string]string {
 }
 
 var map_MachineList = map[string]string{
-	"": "MachineList contains a list of Machine Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "MachineList contains a list of Machine Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (MachineList) SwaggerDoc() map[string]string {
@@ -528,9 +531,10 @@ func (MachineStatus) SwaggerDoc() map[string]string {
 }
 
 var map_MachineHealthCheck = map[string]string{
-	"":       "MachineHealthCheck is the Schema for the machinehealthchecks API Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
-	"spec":   "Specification of machine health check policy",
-	"status": "Most recently observed status of MachineHealthCheck resource",
+	"":         "MachineHealthCheck is the Schema for the machinehealthchecks API Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "Specification of machine health check policy",
+	"status":   "Most recently observed status of MachineHealthCheck resource",
 }
 
 func (MachineHealthCheck) SwaggerDoc() map[string]string {
@@ -538,7 +542,8 @@ func (MachineHealthCheck) SwaggerDoc() map[string]string {
 }
 
 var map_MachineHealthCheckList = map[string]string{
-	"": "MachineHealthCheckList contains a list of MachineHealthCheck Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "MachineHealthCheckList contains a list of MachineHealthCheck Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (MachineHealthCheckList) SwaggerDoc() map[string]string {
@@ -580,7 +585,8 @@ func (UnhealthyCondition) SwaggerDoc() map[string]string {
 }
 
 var map_MachineSet = map[string]string{
-	"": "MachineSet ensures that a specified number of machines replicas are running at any given time. Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "MachineSet ensures that a specified number of machines replicas are running at any given time. Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (MachineSet) SwaggerDoc() map[string]string {
@@ -588,7 +594,8 @@ func (MachineSet) SwaggerDoc() map[string]string {
 }
 
 var map_MachineSetList = map[string]string{
-	"": "MachineSetList contains a list of MachineSet Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"":         "MachineSetList contains a list of MachineSet Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 }
 
 func (MachineSetList) SwaggerDoc() map[string]string {
