@@ -359,10 +359,40 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 
 	kubeClient := kubernetes.NewForConfigOrDie(config)
 
-	// this is very long.  We should update the clusteroperator junit to give us a duration.
-	maximumDuration := 150 * time.Minute
-	baseDurationToSoftFailure := 75 * time.Minute
-	durationToSoftFailure := baseDurationToSoftFailure
+	const (
+		OVN = "OVNKubernetes"
+		SDN = "OpenShiftSDN"
+	)
+
+	// Maximum duration is our maximum polling interval for upgrades
+	var maximumDuration = 150 * time.Minute
+
+	// defaultUpgradeLimit is the default for platforms not listed below.
+	var defaultUpgradeLimit = 100.0 * time.Minute
+
+	// The durations below were calculated from the P99 gathered from sippy's record of upgrade
+	// durations[1]. We are only considering the tuple of platform and network type, not upgrade
+	// type.  Micro upgrades are volatile because you may only get 1 or 2 components, or you may
+	// get them all. The worst case of a micro upgrade is where all components get updated including
+	// OS, which would be the same as a minor upgrade, so we use the minor threshold for all values.
+	//
+	// [1] https://raw.githubusercontent.com/openshift/sippy/f546164c18db9a4a930cc64f43bcdcd35509e767/scripts/sql/test-duration-stats.sql
+	type limitLocator struct {
+		Platform configv1.PlatformType
+		Network  string
+	}
+	var upgradeDurationLimits = map[limitLocator]float64{
+		{configv1.AWSPlatformType, OVN}:       85,
+		{configv1.AWSPlatformType, SDN}:       95,
+		{configv1.AzurePlatformType, OVN}:     100,
+		{configv1.AzurePlatformType, SDN}:     100,
+		{configv1.GCPPlatformType, OVN}:       90,
+		{configv1.GCPPlatformType, SDN}:       75,
+		{configv1.BareMetalPlatformType, OVN}: 80,
+		{configv1.BareMetalPlatformType, SDN}: 70,
+		{configv1.VSpherePlatformType, OVN}:   95,
+		{configv1.VSpherePlatformType, SDN}:   70,
+	}
 
 	infra, err := c.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	framework.ExpectNoError(err)
@@ -371,32 +401,29 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	platformType, err := platformidentification.GetJobType(context.TODO(), config)
 	framework.ExpectNoError(err)
 
+	// Default upgrade duration limit is our limit for configurations other than those
+	// listed below.
+	upgradeDurationLimit := defaultUpgradeLimit
 	switch {
-	case infra.Status.PlatformStatus.Type == configv1.AWSPlatformType:
-		// due to https://bugzilla.redhat.com/show_bug.cgi?id=1943804 upgrades take ~12 extra minutes on AWS
-		// and see commit d69db34a816f3ce8a9ab567621d145c5cd2d257f which notes that some AWS upgrades can
-		// take close to 105 minutes total (75 is base duration, so adding 30 more if it's AWS)
-		durationToSoftFailure = baseDurationToSoftFailure + (30 * time.Minute)
-
-	case network.Status.NetworkType == "OVNKubernetes":
-		// if the cluster is on AWS we've already bumped the timeout enough, but if not we need to check if
-		// the CNI is OVN and increase our timeout for that
-		// For now, deploying with OVN is expected to take longer. on average, ~15m longer
-		// some extra context to this increase which links to a jira showing which operators take longer:
-		// compared to OpenShiftSDN:
-		//   https://bugzilla.redhat.com/show_bug.cgi?id=1942164
-		durationToSoftFailure = baseDurationToSoftFailure + (15 * time.Minute)
-
 	case platformType.Architecture == platformidentification.ArchitectureS390:
-		// s390 appears to take nearly 100 minutes to upgrade. Not sure why, but let's keep it from getting worse and provide meaningful
-		// test results.
-		durationToSoftFailure = 100 * time.Minute
-
+		// s390 historically takes slightly under 100 minutes to upgrade. In 4.14, this regressed
+		// to be 30 minutes longer. https://issues.redhat.com/browse/OCPBUGS-13059
+		upgradeDurationLimit = 130 * time.Minute
 	case platformType.Architecture == platformidentification.ArchitecturePPC64le:
-		// ppc appears to take just over 75 minutes. Not sure why, but let's keep it from getting worse and provide meaningful
-		// test results.
-		durationToSoftFailure = 80 * time.Minute
+		// ppc appears to take just over 75 minutes, let's lock it into that value, so we don't
+		// get worse.
+		upgradeDurationLimit = 80 * time.Minute
+	case infra.Status.InfrastructureTopology == configv1.SingleReplicaTopologyMode:
+		// single node takes a lot less since there's one node
+		upgradeDurationLimit = 65 * time.Minute
+	default:
+		locator := limitLocator{infra.Status.PlatformStatus.Type, network.Status.NetworkType}
+
+		if limit, ok := upgradeDurationLimits[locator]; ok {
+			upgradeDurationLimit = time.Duration(limit) * time.Minute
+		}
 	}
+	framework.Logf("Upgrade time limit set as %0.2f", upgradeDurationLimit.Minutes())
 
 	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
 	recordClusterEvent(kubeClient, uid, "Upgrade", "UpgradeStarted", fmt.Sprintf("version/%s image/%s", version.Version.String(), version.NodeImage), false)
@@ -409,11 +436,11 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 	case upgradeAbortAtRandom:
 		abortAt = int(rand.Int31n(100) + 1)
 		maximumDuration *= 2
-		durationToSoftFailure *= 2
+		upgradeDurationLimit *= 2
 		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded (picked randomly)", abortAt)
 	default:
 		maximumDuration *= 2
-		durationToSoftFailure *= 2
+		upgradeDurationLimit *= 2
 		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded", upgradeAbortAt)
 	}
 
@@ -569,10 +596,10 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			// record whether the cluster was fast or slow upgrading.  Don't fail the test, we still want signal on the actual tests themselves.
 			upgradeEnded := time.Now()
 			upgradeDuration := upgradeEnded.Sub(upgradeStarted)
-			testCaseName := fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in %0.2f minutes", durationToSoftFailure.Minutes())
+			testCaseName := fmt.Sprintf("[sig-cluster-lifecycle] cluster upgrade should complete in a reasonable time")
 			failure := ""
-			if upgradeDuration > durationToSoftFailure {
-				failure = fmt.Sprintf("%s to %s took too long: %0.2f minutes", action, versionString(desired), upgradeDuration.Minutes())
+			if upgradeDuration > upgradeDurationLimit {
+				failure = fmt.Sprintf("%s to %s took too long: %0.2f minutes (for this platform/network, it should be less than %0.2f minutes)", action, versionString(desired), upgradeDuration.Minutes(), upgradeDurationLimit.Minutes())
 			}
 			disruption.RecordJUnitResult(f, testCaseName, upgradeDuration, failure)
 
