@@ -10,8 +10,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const (
@@ -28,12 +26,6 @@ var (
 	namespaceAnnotation     = map[string]string{namespaceAnnotationKey: "management"}
 	deploymentPodAnnotation = map[string]string{workloadAnnotations: `{"effect": "PreferredDuringScheduling"}`}
 )
-
-func skipNonCPUPartitionedCluster(oc *exutil.CLI) {
-	if getCpuPartitionedStatus(oc) != v1.CPUPartitioningAllNodes {
-		e2eskipper.Skipf("Tests are only valid for clusters with CPUPartitioning enabled.")
-	}
-}
 
 func getCpuPartitionedStatus(oc *exutil.CLI) v1.CPUPartitioningMode {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
