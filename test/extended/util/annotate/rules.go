@@ -56,6 +56,12 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-11652
 			`\[sig-cli\] oc adm node-logs`,
 		},
+		// tests that need to be temporarily disabled while the rebase is in progress.
+		"[Disabled:RebaseInProgress]": {
+			// https://issues.redhat.com/browse/OCPBUGS-13392
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce updated policy`,
+		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
 		// tests too slow to be part of conformance
