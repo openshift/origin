@@ -110,7 +110,7 @@ func crashloopingContainerCheck(podFilters ...PodFilter) {
 			continue
 		}
 		if _, ok := ns[pod.Namespace]; !ok {
-			e2edebug.DumpAllNamespaceInfo(c, pod.Namespace)
+			e2edebug.DumpAllNamespaceInfo(context.TODO(), c, pod.Namespace)
 			ns[pod.Namespace] = struct{}{}
 		}
 		status, _ := json.MarshalIndent(pod.Status, "", "  ")
@@ -131,7 +131,7 @@ func crashloopingContainerCheck(podFilters ...PodFilter) {
 			continue
 		}
 		if _, ok := ns[pod.Namespace]; !ok {
-			e2edebug.DumpAllNamespaceInfo(c, pod.Namespace)
+			e2edebug.DumpAllNamespaceInfo(context.TODO(), c, pod.Namespace)
 			ns[pod.Namespace] = struct{}{}
 		}
 

@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-node] supplemental groups", func() {
 
 			// wait for the pod to run, so we can inspect it.
 			g.By("waiting for the pod to become running")
-			err = e2epod.WaitForPodNameRunningInNamespace(supClient, submittedPod.Name, projectName)
+			err = e2epod.WaitForPodNameRunningInNamespace(context.TODO(), supClient, submittedPod.Name, projectName)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			out, stderr, err := oc.Run("exec").Args(supplementalGroupsPod, "--as", supSubject, "--", "/usr/bin/id", "-G").Outputs()

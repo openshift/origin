@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 
 		ns = oc.Namespace()
 		cli := e2epod.PodClientNS(oc.KubeFramework(), oc.Namespace())
-		pod := cli.Create(cliPodWithPullSecret(oc, heredoc.Docf(`
+		pod := cli.Create(context.TODO(), cliPodWithPullSecret(oc, heredoc.Docf(`
 			set -x
 
 			# create a scratch image with fixed date
@@ -113,7 +113,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 			tar cvzf /tmp/layer.tar.gz -C /tmp/test/ .
 			oc image append --insecure --from=%[2]s/%[1]s/test:busybox1 --to %[2]s/%[1]s/test:busybox2 /tmp/layer.tar.gz
 		`, ns, registry, image.ShellImage())))
-		cli.WaitForSuccess(pod.Name, podStartupTimeout)
+		cli.WaitForSuccess(context.TODO(), pod.Name, podStartupTimeout)
 
 		// verify that the shell image matches our check - if the shell image changes, we'll need to look up a different image
 		o.Expect(image.ShellImage()).To(o.HaveSuffix("/openshift/tools:latest"))

@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial]", func() {
 
 		networksTemplate := `[
 			  {
-				"name": "macvlan1-nad",		
+				"name": "macvlan1-nad",
 				"ips": ["%s"]
 			  }
 			]`
@@ -63,14 +63,14 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial]", func() {
 		podAListenAddress := formatHostAndPort(addrs.A.IP, 8889)
 		podCListenAddress := formatHostAndPort(addrs.C.IP, 8889)
 
-		nodes, err := e2enode.GetReadySchedulableNodes(f.ClientSet)
+		nodes, err := e2enode.GetReadySchedulableNodes(context.TODO(), f.ClientSet)
 		o.Expect(err).To(o.Succeed())
 		o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0))
 		scheduledNode := nodes.Items[0]
 
 		g.By("launching pods with an annotation to use the net-attach-def on node " + scheduledNode.Name)
 
-		frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podGenerateName, func(pod *v1.Pod) {
+		frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podGenerateName, func(pod *v1.Pod) {
 			pod.Spec.NodeName = scheduledNode.Name
 			pod.Spec.Containers[0].Args = []string{"net", "--serve", podAListenAddress}
 			pod.ObjectMeta.Labels = map[string]string{"pod": "a"}
@@ -78,14 +78,14 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial]", func() {
 				"k8s.v1.cni.cncf.io/networks": fmt.Sprintf(networksTemplate, addrs.A.String())}
 		})
 
-		testPodB := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+		testPodB := frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podName, func(pod *v1.Pod) {
 			pod.Spec.NodeName = scheduledNode.Name
 			pod.ObjectMeta.Labels = map[string]string{"pod": "b"}
 			pod.ObjectMeta.Annotations = map[string]string{
 				"k8s.v1.cni.cncf.io/networks": fmt.Sprintf(networksTemplate, addrs.B.String())}
 		})
 
-		frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+		frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podName, func(pod *v1.Pod) {
 			pod.Spec.NodeName = scheduledNode.Name
 			pod.Spec.Containers[0].Args = []string{"net", "--serve", podCListenAddress}
 			pod.ObjectMeta.Labels = map[string]string{"pod": "c"}

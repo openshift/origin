@@ -36,8 +36,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:Audit] Basic audit", func() {
 				}},
 			},
 		}
-		e2epod.NewPodClient(f).CreateSync(pod)
-		e2epod.NewPodClient(f).DeleteSync(pod.Name, metav1.DeleteOptions{}, e2epod.DefaultPodDeletionTimeout)
+		ctx := context.Background()
+		e2epod.NewPodClient(f).CreateSync(ctx, pod)
+		e2epod.NewPodClient(f).DeleteSync(ctx, pod.Name, metav1.DeleteOptions{}, e2epod.DefaultPodDeletionTimeout)
 
 		// Create, Read, Delete secret
 		secret := &apiv1.Secret{
@@ -48,7 +49,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:Audit] Basic audit", func() {
 				"top-secret": []byte("foo-bar"),
 			},
 		}
-		ctx := context.Background()
 		_, err := f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Create(ctx, secret, metav1.CreateOptions{})
 		framework.ExpectNoError(err, "failed to create audit-secret")
 		_, err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Get(ctx, secret.Name, metav1.GetOptions{})

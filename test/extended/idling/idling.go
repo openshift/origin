@@ -256,7 +256,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			execPod := e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			execPod := e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, "execpod", nil)
 			err = tryEchoHTTP(svc, execPod)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -282,7 +282,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			execPod := e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			execPod := e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, "execpod", nil)
 			o.Consistently(func() error { return tryEchoHTTP(svc, execPod) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
 
 			g.By("Waiting until we have endpoints")
@@ -315,7 +315,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 			var execPods [numExecPods]*kapiv1.Pod
 			for i := range execPods {
-				execPods[i] = e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, fmt.Sprintf("execpod-%d", i+1), nil)
+				execPods[i] = e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, fmt.Sprintf("execpod-%d", i+1), nil)
 			}
 
 			errors := make([]error, connectionsToStart)
@@ -368,7 +368,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			execPod := e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			execPod := e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, "execpod", nil)
 			err = tryEchoUDP(svc, execPod)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -402,7 +402,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 
 			var execPods [numExecPods]*kapiv1.Pod
 			for i := range execPods {
-				execPods[i] = e2epod.CreateExecPodOrFail(framework.ClientSet, framework.Namespace.Name, fmt.Sprintf("execpod-%d", i+1), nil)
+				execPods[i] = e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, fmt.Sprintf("execpod-%d", i+1), nil)
 			}
 
 			errors := make([]error, connectionsToStart)

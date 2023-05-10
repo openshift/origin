@@ -223,7 +223,7 @@ func verifyAuditLogs(out string, ns []string, ips []string, ipv6 bool) (bool, bo
 
 func waitForACLLoggingPod(f *e2e.Framework, namespace string, podName string) (string, error) {
 	var podIP string
-	err := e2epod.WaitForPodCondition(f.ClientSet, namespace, podName, "running", podStartTimeout, func(pod *kapiv1.Pod) (bool, error) {
+	err := e2epod.WaitForPodCondition(context.TODO(), f.ClientSet, namespace, podName, "running", podStartTimeout, func(pod *kapiv1.Pod) (bool, error) {
 		podIP = pod.Status.PodIP
 		return (podIP != "" && pod.Status.Phase != kapiv1.PodPending), nil
 	})

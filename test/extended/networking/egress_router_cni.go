@@ -75,7 +75,7 @@ func doEgressRouterCNI(manifest string, oc *exutil.CLI, matchString string) erro
 
 	g.By("getting a pod from deployment in running state")
 	o.Eventually(func() error {
-		podList, err = e2edeployment.GetPodsForDeployment(f.ClientSet, deployment)
+		podList, err = e2edeployment.GetPodsForDeployment(context.TODO(), f.ClientSet, deployment)
 		return err
 	}, timeOut, interval).Should(o.Succeed())
 

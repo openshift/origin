@@ -218,7 +218,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 })
 
 func dumpRouterHeadersLogs(oc *exutil.CLI, name string) {
-	log, _ := pod.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "router-headers", "router")
+	log, _ := pod.GetPodLogs(context.TODO(), oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "router-headers", "router")
 	e2e.Logf("Weighted Router test %s logs:\n %s", name, log)
 }
 
