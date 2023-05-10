@@ -1835,7 +1835,9 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][Feature:DisasterRecovery][Disruptive][Disabled:Broken] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss [apigroup:machine.openshift.io][apigroup:operator.openshift.io]": " [Serial]",
 
-	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery] [Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node": " [Serial]",
+	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:2h] [Feature:EtcdRecovery][Disruptive] Recover with snapshot with two unhealthy nodes and lost quorum": " [Serial]",
+
+	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:30m] [Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node": " [Serial]",
 
 	"[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling] etcd is able to vertically scale up and down with a single node [Timeout:60m][apigroup:machine.openshift.io]": "",
 

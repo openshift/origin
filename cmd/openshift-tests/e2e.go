@@ -465,8 +465,8 @@ var staticSuites = testSuites{
 				return strings.Contains(name, "[Suite:openshift/etcd/recovery") || strings.Contains(name, "[Feature:EtcdRecovery]") || isStandardEarlyOrLateTest(name)
 			},
 			// etcd's restore test can take a while for apiserver rollouts to stabilize
-			TestTimeout:         60 * time.Minute,
-			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+			TestTimeout:         120 * time.Minute,
+			SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemEventInvariants),
 		},
 		PreSuite: suiteWithProviderPreSuite,
 	},

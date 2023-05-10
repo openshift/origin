@@ -280,7 +280,7 @@ func waitForAPIServer(client kubernetes.Interface, node *corev1.Node) {
 
 // Recovery 13
 func waitForReadyEtcdPods(client kubernetes.Interface, masterCount int) {
-	g.By("Waiting for all etcd pods to become ready")
+	g.By(fmt.Sprintf("Waiting for all %d etcd pods to become ready", masterCount))
 	waitForPodsTolerateClientTimeout(
 		client.CoreV1().Pods("openshift-etcd"),
 		exutil.ParseLabelsOrDie("k8s-app=etcd"),
@@ -291,7 +291,7 @@ func waitForReadyEtcdPods(client kubernetes.Interface, masterCount int) {
 }
 
 func waitForPodsTolerateClientTimeout(c corev1client.PodInterface, label labels.Selector, predicate func(corev1.Pod) bool, count int, timeout time.Duration) {
-	err := wait.Poll(10*time.Second, timeout, func() (bool, error) {
+	err := wait.Poll(60*time.Second, timeout, func() (bool, error) {
 		p, e := exutil.GetPodNamesByFilter(c, label, predicate)
 		if e != nil {
 			framework.Logf("Saw an error waiting for etcd pods to become available: %v", e)
