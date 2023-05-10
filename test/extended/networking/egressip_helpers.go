@@ -1101,7 +1101,7 @@ func createProberPod(oc *exutil.CLI, proberPodNamespace, proberPodName string) *
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
-	return frameworkpod.CreateExecPodOrFail(clientset, proberPodNamespace, proberPodName, func(pod *corev1.Pod) {})
+	return frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, proberPodName, func(pod *corev1.Pod) {})
 }
 
 // destroyProberPod destroys the given proberPod.
@@ -1567,7 +1567,7 @@ func probeForClientIPs(oc *exutil.CLI, proberPodNamespace, proberPodName, url, t
 
 	clientIpSet := make(map[string]struct{})
 
-	proberPod := frameworkpod.CreateExecPodOrFail(clientset, proberPodNamespace, probePodName, func(pod *corev1.Pod) {
+	proberPod := frameworkpod.CreateExecPodOrFail(context.TODO(), clientset, proberPodNamespace, probePodName, func(pod *corev1.Pod) {
 		// pod.ObjectMeta.Annotations = annotation
 	})
 	request := fmt.Sprintf("http://%s/dial?host=%s&port=%d&request=/clientip", url, targetIP, targetPort)

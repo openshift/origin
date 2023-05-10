@@ -30,8 +30,7 @@ func (t *MetricsAvailableAfterUpgradeTest) DisplayName() string {
 	return "[sig-instrumentation] Prometheus metrics should be available after an upgrade"
 }
 
-func (t *MetricsAvailableAfterUpgradeTest) Setup(f *e2e.Framework) {
-	ctx := context.Background()
+func (t *MetricsAvailableAfterUpgradeTest) Setup(ctx context.Context, f *e2e.Framework) {
 	oc := exutil.NewCLIWithFramework(f)
 
 	g.By("getting the prometheus_build_info metric before the upgrade")
@@ -43,8 +42,7 @@ func (t *MetricsAvailableAfterUpgradeTest) Setup(f *e2e.Framework) {
 	t.executionTimestamp = preUpgradeResponse.Data.Result[0].Timestamp.Time()
 }
 
-func (t *MetricsAvailableAfterUpgradeTest) Test(f *e2e.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
-	ctx := context.Background()
+func (t *MetricsAvailableAfterUpgradeTest) Test(ctx context.Context, f *e2e.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	<-done
 
 	oc := exutil.NewCLIWithFramework(f)
@@ -57,7 +55,7 @@ func (t *MetricsAvailableAfterUpgradeTest) Test(f *e2e.Framework, done <-chan st
 	o.Expect(postUpgradeResponse.Data.Result).NotTo(o.BeEmpty())
 }
 
-func (t MetricsAvailableAfterUpgradeTest) Teardown(f *e2e.Framework) {
+func (t MetricsAvailableAfterUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) {
 	return
 }
 

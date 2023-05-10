@@ -423,6 +423,6 @@ func parseStats(stats string, backendSubstr string, statsField int) ([]string, e
 }
 
 func dumpWeightedRouterLogs(oc *exutil.CLI, name string) {
-	log, _ := pod.GetPodLogs(oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "weighted-router", "router")
+	log, _ := pod.GetPodLogs(context.TODO(), oc.AdminKubeClient(), oc.KubeFramework().Namespace.Name, "weighted-router", "router")
 	e2e.Logf("Weighted Router test %s logs:\n %s", name, log)
 }

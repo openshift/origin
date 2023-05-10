@@ -191,7 +191,7 @@ func createWebserverLBService(client k8sclient.Interface, namespace, serviceName
 
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration) error {
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
-	execPod := pod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+	execPod := pod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
 		pod.Spec.NodeName = nodeName
 	})
 	defer func() {
@@ -363,7 +363,7 @@ func setNamespaceExternalGateway(f *e2e.Framework, gatewayIP string) {
 // findAppropriateNodes tries to find a source and destination for a type of node connectivity
 // test (same node, or different node).
 func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *corev1.Node, error) {
-	nodes, err := e2enode.GetReadySchedulableNodes(f.ClientSet)
+	nodes, err := e2enode.GetReadySchedulableNodes(context.TODO(), f.ClientSet)
 	if err != nil {
 		e2e.Logf("Unable to get schedulable nodes due to %v", err)
 		return nil, nil, err

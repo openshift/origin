@@ -1,6 +1,7 @@
 package pods
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -49,6 +50,6 @@ var _ = g.Describe("[sig-node]", func() {
 			"unsupported.do-not-use.openshift.io/override-liveness-grace-period-seconds": strconv.Itoa(gracePeriodOverride),
 		}
 		// 10s delay + 10s period + 5s grace period = 25s < 30s << pod-level timeout 500
-		node.RunLivenessTest(f, pod, 1, time.Second*30)
+		node.RunLivenessTest(context.TODO(), f, pod, 1, time.Second*30)
 	})
 })

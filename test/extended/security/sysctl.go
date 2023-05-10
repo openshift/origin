@@ -18,6 +18,7 @@ import (
 
 var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("sysctl", admissionapi.LevelPrivileged)
+	ctx := context.Background()
 	g.DescribeTable("whitelists", func(sysctl, value, path, defaultSysctlValue string) {
 		f := oc.KubeFramework()
 		var preexistingPod *v1.Pod
@@ -25,7 +26,7 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 		var nodeOutputBeforeSysctlAplied, previousPodSysctlValue string
 
 		g.By("creating a preexisting pod to validate sysctl are not applied on it and on the node", func() {
-			preexistingPod = frameworkpod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *v1.Pod) {
+			preexistingPod = frameworkpod.CreateExecPodOrFail(ctx, f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *v1.Pod) {
 				pod.Spec.Volumes = []v1.Volume{
 					{Name: "sysvolume", VolumeSource: v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: "/proc"}}},
 				}
@@ -37,13 +38,13 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 			o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl value")
 
 			// Retrieve created pod so we can use the same NodeName
-			preexistingPod, err = f.ClientSet.CoreV1().Pods(preexistingPod.Namespace).Get(context.TODO(), preexistingPod.Name, metav1.GetOptions{})
+			preexistingPod, err = f.ClientSet.CoreV1().Pods(preexistingPod.Namespace).Get(ctx, preexistingPod.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred(), "unable get running pod")
 			o.Expect(preexistingPod.Spec.NodeName).NotTo(o.BeEmpty(), "expected scheduled pod but found empty Spec.NodeName")
 		})
 
 		g.By("creating a pod with a sysctl", func() {
-			tuningTestPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *v1.Pod) {
+			tuningTestPod := frameworkpod.CreateExecPodOrFail(ctx, f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *v1.Pod) {
 				pod.Spec.SecurityContext.Sysctls = []v1.Sysctl{{Name: sysctl, Value: value}}
 				pod.Spec.NodeName = preexistingPod.Spec.NodeName
 			})
@@ -66,7 +67,7 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 		})
 
 		g.By("checking that sysctls of new pods are not affected", func() {
-			nextPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *v1.Pod) {
+			nextPod := frameworkpod.CreateExecPodOrFail(ctx, f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *v1.Pod) {
 				pod.Spec.NodeName = preexistingPod.Spec.NodeName
 			})
 			podOutput, err := oc.AsAdmin().Run("exec").Args(nextPod.Name, "--", "cat", path).Output()
@@ -85,10 +86,10 @@ var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
 		f := oc.KubeFramework()
 		podDefinition := frameworkpod.NewAgnhostPod(f.Namespace.Name, "sysctl-pod", nil, nil, nil)
 		podDefinition.Spec.SecurityContext.Sysctls = []v1.Sysctl{{Name: sysctl, Value: value}}
-		execPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.TODO(), podDefinition, metav1.CreateOptions{})
+		execPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(ctx, podDefinition, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "error creating pod")
 		err = wait.PollImmediate(2*time.Second, 1*time.Minute, func() (bool, error) {
-			retrievedPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
+			retrievedPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(ctx, execPod.Name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}

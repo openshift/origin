@@ -27,7 +27,7 @@ func (UpgradeTest) DisplayName() string {
 }
 
 // Setup creates artifacts to be used by Test
-func (t *UpgradeTest) Setup(f *framework.Framework) {
+func (t *UpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 	g.By("Setting up admin ack test")
 	oc := exutil.NewCLIWithFramework(f)
 	t.oc = oc
@@ -41,8 +41,8 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 // test first verifies that Upgradeable condition is false for correct reason and with correct message. It then
 // modifies the admin-acks configmap to ack the necessary admin-ack gate and then waits for the Upgradeable
 // condition to change to true.
-func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
-	ctx, cancel := context.WithCancel(context.Background())
+func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
 		<-done
@@ -54,6 +54,6 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 }
 
 // Teardown cleans up any remaining objects.
-func (t *UpgradeTest) Teardown(f *framework.Framework) {
+func (t *UpgradeTest) Teardown(ctx context.Context, f *framework.Framework) {
 	// rely on the namespace deletion to clean up everything
 }

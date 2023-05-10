@@ -4,6 +4,7 @@ package disruption
 // and it should probably be relocated.
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -93,7 +94,7 @@ func Run(f *framework.Framework, description, testname string, adapter TestData,
 	reporterConfig.NoColor = true
 	g.SetReporterConfig(reporterConfig)
 
-	cm := chaosmonkey.New(func() {
+	cm := chaosmonkey.New(func(ctx context.Context) {
 		start := time.Now()
 		defer finalizeTest(start, testname, testname, testSuite, f)
 		defer g.GinkgoRecover()
@@ -177,7 +178,7 @@ func runChaosmonkey(
 			}
 		}
 	}()
-	cm.Do()
+	cm.Do(context.Background())
 }
 
 type chaosMonkeyAdapter struct {
@@ -190,7 +191,7 @@ type chaosMonkeyAdapter struct {
 	framework       *framework.Framework
 }
 
-func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
+func (cma *chaosMonkeyAdapter) Test(ctx context.Context, sem *chaosmonkey.Semaphore) {
 	start := time.Now()
 	var once sync.Once
 	ready := func() {
@@ -210,11 +211,11 @@ func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
 		cma.testSuiteReport.TestCases = append(cma.testSuiteReport.TestCases, testResult)
 		return
 	}
-	cma.framework.BeforeEach()
-	cma.test.Setup(cma.framework)
-	defer cma.test.Teardown(cma.framework)
+	cma.framework.BeforeEach(ctx)
+	cma.test.Setup(ctx, cma.framework)
+	defer cma.test.Teardown(ctx, cma.framework)
 	ready()
-	cma.test.Test(cma.framework, sem.StopCh, cma.UpgradeType)
+	cma.test.Test(ctx, cma.framework, sem.StopCh, cma.UpgradeType)
 }
 
 func finalizeTest(start time.Time, testName, className string, ts *junitapi.JUnitTestSuite, f *framework.Framework) {
@@ -332,7 +333,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 				ClientQPS:   20,
 				ClientBurst: 50,
 			},
-			Timeouts: framework.NewTimeoutContextWithDefaults(),
+			Timeouts: framework.NewTimeoutContext(),
 			// This is similar to https://github.com/kubernetes/kubernetes/blob/f33ca2306548719e5116b53fccfc278bffb809a8/test/e2e/upgrades/upgrade_suite.go#L106,
 			// where centrally all upgrade tests are being instantiated.
 			NamespacePodSecurityEnforceLevel: admissionapi.LevelPrivileged,

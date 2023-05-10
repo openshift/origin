@@ -93,7 +93,7 @@ func (UpgradeTest) DisplayName() string {
 }
 
 // Setup creates artifacts to be used by Test
-func (t *UpgradeTest) Setup(f *framework.Framework) {
+func (t *UpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 	g.By("Setting up upgrade delete test")
 	oc := exutil.NewCLIWithFramework(f)
 	t.oc = oc
@@ -105,7 +105,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 // Test fails if any of the resources specified above in 'deletes' and 'unstructuredDeletes'
 // exist on the upgraded cluster.
-func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	if len(deletes) == 0 && len(unstructuredDeletes) == 0 {
 		framework.Logf("No object deletions in this release to verify")
 		return
@@ -121,35 +121,35 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		kind := strings.ToLower(r.kind)
 		switch kind {
 		case "configmap":
-			_, err = t.oc.AdminKubeClient().CoreV1().ConfigMaps(r.namespace).Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().CoreV1().ConfigMaps(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 		case "namespace":
-			_, err = t.oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, r.name, metav1.GetOptions{})
 		case "service":
-			_, err = t.oc.AdminKubeClient().CoreV1().Services(r.namespace).Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().CoreV1().Services(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 		case "serviceaccount":
-			_, err = t.oc.AdminKubeClient().CoreV1().ServiceAccounts(r.namespace).Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().CoreV1().ServiceAccounts(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 		case "customobjectdefinition":
 			crdClient := apiextensionsclientset.NewForConfigOrDie(t.oc.AdminConfig())
-			_, err = crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = crdClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, r.name, metav1.GetOptions{})
 		case "apiservice":
 			apiClient := apiregistrationsclientset.NewForConfigOrDie(t.oc.AdminConfig())
-			_, err = apiClient.ApiregistrationV1().APIServices().Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = apiClient.ApiregistrationV1().APIServices().Get(ctx, r.name, metav1.GetOptions{})
 		case "deployment":
-			_, err = t.oc.AdminKubeClient().AppsV1().Deployments(r.namespace).Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().AppsV1().Deployments(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 		case "daemonset":
-			_, err = t.oc.AdminKubeClient().AppsV1().DaemonSets(r.namespace).Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().AppsV1().DaemonSets(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 		case "job":
-			_, err = t.oc.AdminKubeClient().BatchV1().Jobs(r.namespace).Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().BatchV1().Jobs(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 		case "clusterrolebinding":
-			_, err = t.oc.AdminKubeClient().RbacV1().ClusterRoleBindings().Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().RbacV1().ClusterRoleBindings().Get(ctx, r.name, metav1.GetOptions{})
 		case "clusterrole":
-			_, err = t.oc.AdminKubeClient().RbacV1().ClusterRoles().Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().RbacV1().ClusterRoles().Get(ctx, r.name, metav1.GetOptions{})
 		case "rolebinding":
-			_, err = t.oc.AdminKubeClient().RbacV1().RoleBindings(r.namespace).Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().RbacV1().RoleBindings(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 		case "role":
-			_, err = t.oc.AdminKubeClient().RbacV1().Roles(r.namespace).Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminKubeClient().RbacV1().Roles(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 		case "securitycontextconstraints":
-			_, err = t.oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Get(context.Background(), r.name, metav1.GetOptions{})
+			_, err = t.oc.AdminSecurityClient().SecurityV1().SecurityContextConstraints().Get(ctx, r.name, metav1.GetOptions{})
 		default:
 			framework.Failf("Unrecognized object kind %s", kind)
 		}
@@ -170,7 +170,7 @@ func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade
 		} else {
 			dynClient = dynamicClient.Resource(gvr).Namespace(u.namespace)
 		}
-		_, err := dynClient.Get(context.Background(), u.name, metav1.GetOptions{})
+		_, err := dynClient.Get(ctx, u.name, metav1.GetOptions{})
 		check(u.String(), err)
 		framework.Logf("Object %s deletion verified", u)
 	}
@@ -186,6 +186,6 @@ func check(obj string, err error) {
 }
 
 // Teardown cleans up any remaining objects.
-func (t *UpgradeTest) Teardown(f *framework.Framework) {
+func (t *UpgradeTest) Teardown(ctx context.Context, f *framework.Framework) {
 	// rely on the namespace deletion to clean up everything
 }

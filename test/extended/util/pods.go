@@ -75,7 +75,7 @@ func RemovePodsWithPrefixes(oc *CLI, prefixes ...string) error {
 // The security context of this pod complies to the "restricted" profile.
 // If necessary this can be overriden in tweaks.
 func CreateExecPodOrFail(client kubernetes.Interface, ns, name string, tweak ...func(*v1.Pod)) *v1.Pod {
-	return podframework.CreateExecPodOrFail(client, ns, name, func(pod *v1.Pod) {
+	return podframework.CreateExecPodOrFail(context.TODO(), client, ns, name, func(pod *v1.Pod) {
 		pod.Name = name
 		pod.GenerateName = ""
 		pod.Spec.Containers[0].Image = image.ShellImage()
