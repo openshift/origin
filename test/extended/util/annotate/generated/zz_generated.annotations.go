@@ -745,6 +745,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:OAuthServer] OAuthClientWithRedirectURIs must validate request URIs according to oauth-client definition": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the authorize URL": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the grant URL": " [Suite:openshift/conformance/parallel]",
