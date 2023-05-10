@@ -161,33 +161,33 @@ func TestExtractSuiteName(t *testing.T) {
 		fail         bool
 	}{
 		{
-			name: "basic",
-			testLine: "ok  	package/name 0.160s",
+			name:         "basic",
+			testLine:     "ok  	package/name 0.160s",
 			expectedName: "package/name",
 		},
 		{
-			name: "go 1.5.1",
-			testLine: "ok  	package/name	0.160s",
+			name:         "go 1.5.1",
+			testLine:     "ok  	package/name	0.160s",
 			expectedName: "package/name",
 		},
 		{
-			name: "numeric",
-			testLine: "ok  	1234 0.160s",
+			name:         "numeric",
+			testLine:     "ok  	1234 0.160s",
 			expectedName: "1234",
 		},
 		{
-			name: "url",
-			testLine: "ok  	github.com/maintainer/repository/package/file 0.160s",
+			name:         "url",
+			testLine:     "ok  	github.com/maintainer/repository/package/file 0.160s",
 			expectedName: "github.com/maintainer/repository/package/file",
 		},
 		{
-			name: "with coverage",
-			testLine: `ok  	package/name 0.400s  coverage: 10.0% of statements`,
+			name:         "with coverage",
+			testLine:     `ok  	package/name 0.400s  coverage: 10.0% of statements`,
 			expectedName: "package/name",
 		},
 		{
-			name: "failed print",
-			testLine: `some other textok  	package/name 0.400s  coverage: 10.0% of statements`,
+			name:         "failed print",
+			testLine:     `some other textok  	package/name 0.400s  coverage: 10.0% of statements`,
 			expectedName: "package/name",
 			fail:         true,
 		},
@@ -219,8 +219,8 @@ func TestSuiteProperties(t *testing.T) {
 			expectedProperties: map[string]string{coveragePropertyName: "10.0"},
 		},
 		{
-			name: "with package declaration",
-			testLine: `ok  	package/name 0.400s  coverage: 10.0% of statements`,
+			name:               "with package declaration",
+			testLine:           `ok  	package/name 0.400s  coverage: 10.0% of statements`,
 			expectedProperties: map[string]string{coveragePropertyName: "10.0"},
 		},
 		{
