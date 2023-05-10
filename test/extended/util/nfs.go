@@ -36,7 +36,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 		ServerPorts:   []int{2049},
 		ServerVolumes: map[string]string{"": "/exports"},
 	}
-	pod, ip := volume.CreateStorageServer(oc.AsAdmin().KubeFramework().ClientSet, config)
+	pod, ip := volume.CreateStorageServer(context.TODO(), oc.AsAdmin().KubeFramework().ClientSet, config)
 	e2e.Logf("Waiting for pod running")
 	err = wait.PollImmediate(5*time.Second, 1*time.Minute, func() (bool, error) {
 		phase, err := oc.AsAdmin().Run("get").Args("pods", pod.Name, "--template", "{{.status.phase}}").Output()

@@ -23,7 +23,7 @@ func DetermineImageFromRelease(oc *CLI, imageTagName string) (string, error) {
 		return "", fmt.Errorf("cannot determine release image from ClusterVersion resource")
 	}
 	podClient := e2epod.PodClientNS(oc.KubeFramework(), oc.Namespace())
-	podClient.CreateSync(&corev1.Pod{
+	podClient.CreateSync(context.TODO(), &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "extract-release-imagerefs"},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{

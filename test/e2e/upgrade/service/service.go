@@ -129,9 +129,10 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 
 	ns := f.Namespace
 	cs := f.ClientSet
+	ctx := context.Background()
 
 	ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
-	tcpService, err := jig.CreateTCPService(func(s *v1.Service) {
+	tcpService, err := jig.CreateTCPService(ctx, func(s *v1.Service) {
 		s.Spec.Type = v1.ServiceTypeLoadBalancer
 		// ServiceExternalTrafficPolicyTypeCluster performs during disruption, Local does not
 		s.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeCluster
@@ -149,7 +150,7 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
 	})
 	framework.ExpectNoError(err)
-	tcpService, err = jig.WaitForLoadBalancer(service.GetServiceLoadBalancerCreationTimeout(cs))
+	tcpService, err = jig.WaitForLoadBalancer(ctx, service.GetServiceLoadBalancerCreationTimeout(ctx, cs))
 	framework.ExpectNoError(err)
 
 	// Get info to hit it with
@@ -157,7 +158,7 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 	svcPort := int(tcpService.Spec.Ports[0].Port)
 
 	ginkgo.By("creating RC to be part of service " + serviceName)
-	rc, err := jig.Run(func(rc *v1.ReplicationController) {
+	rc, err := jig.Run(ctx, func(rc *v1.ReplicationController) {
 		// ensure the pod waits long enough during update for the LB to see the newly ready pod, which
 		// must be longer than the worst load balancer above (GCP at 32s)
 		rc.Spec.MinReadySeconds = 33
@@ -179,7 +180,7 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 
 	if shouldTestPDBs() {
 		ginkgo.By("creating a PodDisruptionBudget to cover the ReplicationController")
-		_, err = jig.CreatePDB(rc)
+		_, err = jig.CreatePDB(ctx, rc)
 		framework.ExpectNoError(err)
 	}
 
@@ -198,28 +199,28 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 }
 
 // Test runs a connectivity check to the service.
-func (t *serviceLoadBalancerUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+func (t *serviceLoadBalancerUpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	if t.unsupportedPlatform {
 		return
 	}
 
-	t.backendDisruptionTest.Test(f, done, upgrade)
+	t.backendDisruptionTest.Test(ctx, f, done, upgrade)
 
 	// verify finalizer behavior
 	defer func() {
 		ginkgo.By("Check that service can be deleted with finalizer")
-		service.WaitForServiceDeletedWithFinalizer(t.jig.Client, t.tcpService.Namespace, t.tcpService.Name)
+		service.WaitForServiceDeletedWithFinalizer(ctx, t.jig.Client, t.tcpService.Namespace, t.tcpService.Name)
 	}()
 	ginkgo.By("Check that finalizer is present on loadBalancer type service")
-	service.WaitForServiceUpdatedWithFinalizer(t.jig.Client, t.tcpService.Namespace, t.tcpService.Name, true)
+	service.WaitForServiceUpdatedWithFinalizer(ctx, t.jig.Client, t.tcpService.Namespace, t.tcpService.Name, true)
 }
 
-func (t *serviceLoadBalancerUpgradeTest) Teardown(f *framework.Framework) {
-	t.backendDisruptionTest.Teardown(f)
+func (t *serviceLoadBalancerUpgradeTest) Teardown(ctx context.Context, f *framework.Framework) {
+	t.backendDisruptionTest.Teardown(ctx, f)
 }
 
-func (t *serviceLoadBalancerUpgradeTest) Setup(f *framework.Framework) {
-	t.backendDisruptionTest.Setup(f)
+func (t *serviceLoadBalancerUpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
+	t.backendDisruptionTest.Setup(ctx, f)
 }
 
 // TestReachableHTTPWithMinSuccessCount tests that the given host serves HTTP on the given port for a minimum of successCount number of

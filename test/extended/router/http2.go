@@ -209,7 +209,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Waiting for http2 pod to be running")
-			e2e.ExpectNoError(e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), "http2", oc.KubeFramework().Namespace.Name))
+			e2e.ExpectNoError(e2epod.WaitForPodRunningInNamespaceSlow(context.TODO(), oc.KubeClient(), "http2", oc.KubeFramework().Namespace.Name))
 
 			// certificate start and end time are very
 			// lenient to avoid any clock drift between

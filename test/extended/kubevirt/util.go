@@ -101,7 +101,7 @@ func checkConnectivityToHostWithCLI(f *e2e.Framework, oc *exutil.CLI, nodeName s
 	namespace := f.Namespace.Name
 
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
-	execPod := pod.CreateExecPodOrFail(f.ClientSet, namespace, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+	execPod := pod.CreateExecPodOrFail(context.TODO(), f.ClientSet, namespace, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
 		pod.Spec.NodeName = nodeName
 		pod.Spec.HostNetwork = hostNetwork
 	})
@@ -163,7 +163,7 @@ func platformType(configClient configv1client.Interface) (configv1.PlatformType,
 
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration, hostNetwork bool) error {
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
-	execPod := pod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+	execPod := pod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
 		pod.Spec.NodeName = nodeName
 		pod.Spec.HostNetwork = hostNetwork
 	})
@@ -209,7 +209,7 @@ func getKubeVirtPodFromGuestNode(framework *e2e.Framework, node v1.Node) (*corev
 func getSchedulableInfraNode(framework *e2e.Framework, serverInfraNode string) (string, error) {
 
 	// find an infra node to schedule the client on
-	nodes, err := e2enode.GetReadySchedulableNodes(framework.ClientSet)
+	nodes, err := e2enode.GetReadySchedulableNodes(context.TODO(), framework.ClientSet)
 	if err != nil {
 		e2e.Logf("Unable to get schedulable nodes due to %v", err)
 		return "", err
@@ -243,7 +243,7 @@ func checkKubeVirtGuestClusterPodNetworkNodePortConnectivity(serverFramework, cl
 }
 
 func checkKubeVirtInfraClusterConnectivity(serverFramework, clientFramework *e2e.Framework, oc *exutil.CLI, serviceType v1.ServiceType) error {
-	serverGuestNode, err := e2enode.GetRandomReadySchedulableNode(serverFramework.ClientSet)
+	serverGuestNode, err := e2enode.GetRandomReadySchedulableNode(context.TODO(), serverFramework.ClientSet)
 	Expect(err).NotTo(HaveOccurred())
 
 	serverVMPod, err := getKubeVirtPodFromGuestNode(clientFramework, *serverGuestNode)
@@ -280,7 +280,7 @@ func checkKubeVirtInfraClusterNodePortConnectivity(serverFramework, clientFramew
 }
 
 func checkKubeVirtGuestClusterConnectivity(serverFramework, clientFramework *e2e.Framework, hostNetwork bool, serviceType v1.ServiceType) error {
-	nodes, err := e2enode.GetBoundedReadySchedulableNodes(serverFramework.ClientSet, 2)
+	nodes, err := e2enode.GetBoundedReadySchedulableNodes(context.TODO(), serverFramework.ClientSet, 2)
 	if err != nil {
 		return err
 	}

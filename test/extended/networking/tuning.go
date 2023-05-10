@@ -86,8 +86,8 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 
 		podDefinition := e2epod.NewAgnhostPod(namespace, podName, nil, nil, nil)
 		podDefinition.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, tuningNADName)}
-		pod := e2epod.NewPodClient(f).Create(podDefinition)
-		err = e2epod.WaitForPodCondition(f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
+		pod := e2epod.NewPodClient(f).Create(context.TODO(), podDefinition)
+		err = e2epod.WaitForPodCondition(context.TODO(), f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
 			if pod.Status.Phase == kapiv1.PodPending {
 				return true, nil
 			}
@@ -107,7 +107,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 	g.It("pod sysctls should not affect node [apigroup:k8s.cni.cncf.io]", func() {
 		namespace := f.Namespace.Name
 		g.By("creating a preexisting pod to check host sysctl")
-		nodePod := e2epod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "nodeaccess-pod-", func(pod *kapiv1.Pod) {
+		nodePod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "nodeaccess-pod-", func(pod *kapiv1.Pod) {
 			pod.Spec.Volumes = []kapiv1.Volume{
 				{Name: "sysvolume", VolumeSource: kapiv1.VolumeSource{HostPath: &kapiv1.HostPathVolumeSource{Path: "/sys/class/net"}}},
 				{Name: "procvolume", VolumeSource: kapiv1.VolumeSource{HostPath: &kapiv1.HostPathVolumeSource{Path: "/proc"}}},
@@ -167,7 +167,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		err := createNAD(oc.AdminConfig(), namespace, baseNAD)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to create network-attachment-definition")
 
-		previousPod := e2epod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "previous-pod-", func(pod *kapiv1.Pod) {
+		previousPod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "previous-pod-", func(pod *kapiv1.Pod) {
 			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, baseNAD)}
 		})
 		testNodeName := getPodNodeName(f.ClientSet, previousPod.Namespace, previousPod.Name)
@@ -197,7 +197,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		err := createNAD(oc.AdminConfig(), namespace, baseNAD)
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to create network-attachment-definition")
 
-		previousPod := e2epod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *kapiv1.Pod) {
+		previousPod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *kapiv1.Pod) {
 			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, baseNAD)}
 		})
 		testNodeName := getPodNodeName(f.ClientSet, previousPod.Namespace, previousPod.Name)
@@ -220,7 +220,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred(), "unable to check sysctl value")
 		o.Expect(podOutputBeforeSysctlAplied).Should(o.Equal(podOutputAfterSysctlAplied))
 
-		nextPod := e2epod.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *kapiv1.Pod) {
+		nextPod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "sysctl-pod-", func(pod *kapiv1.Pod) {
 			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, baseNAD)}
 			pod.Spec.NodeName = testNodeName
 		})
@@ -253,8 +253,8 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 
 			podDefinition := e2epod.NewAgnhostPod(namespace, podName, nil, nil, nil)
 			podDefinition.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s/%s", namespace, tuningNADName)}
-			pod := e2epod.NewPodClient(f).Create(podDefinition)
-			err = e2epod.WaitForPodCondition(f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
+			pod := e2epod.NewPodClient(f).Create(context.TODO(), podDefinition)
+			err = e2epod.WaitForPodCondition(context.TODO(), f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
 				if pod.Status.Phase == kapiv1.PodPending {
 					return true, nil
 				}
@@ -270,7 +270,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 
 			updateAllowlistConfig(updatedSysctls, f.ClientSet)
 
-			err = e2epod.WaitForPodCondition(f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
+			err = e2epod.WaitForPodCondition(context.TODO(), f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
 				if pod.Status.Phase == kapiv1.PodRunning {
 					return true, nil
 				}

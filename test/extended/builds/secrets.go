@@ -1,6 +1,7 @@
 package builds
 
 import (
+	"context"
 	"path/filepath"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -75,7 +76,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 
 				g.By("verifying the build sources were available during build and secrets were not present in the output image")
 				pod := exutil.GetPodForContainer(corev1.Container{Name: "test", Image: image})
-				e2eoutput.TestContainerOutput(oc.KubeFramework(), "test-build-secret-source", pod, 0, []string{
+				e2eoutput.TestContainerOutput(context.TODO(), oc.KubeFramework(), "test-build-secret-source", pod, 0, []string{
 					"testsecret/secret1=secret1",
 					"testsecret/secret2=secret2",
 					"testsecret/secret3=secret3",
@@ -106,7 +107,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use build secrets", f
 
 				g.By("verifying the build sources are present in container output")
 				pod := exutil.GetPodForContainer(corev1.Container{Name: "test", Image: image})
-				e2eoutput.TestContainerOutput(oc.KubeFramework(), "test-build-secret-docker", pod, 0, []string{
+				e2eoutput.TestContainerOutput(context.TODO(), oc.KubeFramework(), "test-build-secret-docker", pod, 0, []string{
 					"secret1=secret1",
 					"relative-secret2=secret2",
 					"foo=bar",

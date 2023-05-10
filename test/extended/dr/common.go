@@ -280,7 +280,7 @@ func execOnNodeWithOutputOrFail(node *corev1.Node, cmd string) *e2essh.Result {
 	var out *e2essh.Result
 	var err error
 	waitErr := wait.PollImmediate(5*time.Second, defaultSSHTimeout, func() (bool, error) {
-		out, err = e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
+		out, err = e2essh.IssueSSHCommandWithResult(context.TODO(), cmd, e2e.TestContext.Provider, node)
 		// IssueSSHCommandWithResult logs output
 		if err != nil {
 			e2e.Logf("Failed to exec cmd [%s] on node %s: %v", cmd, node.Name, err)
@@ -313,7 +313,7 @@ func checkSSH(node *corev1.Node) {
 }
 
 func ssh(cmd string, node *corev1.Node) (*e2essh.Result, error) {
-	return e2essh.IssueSSHCommandWithResult(cmd, e2e.TestContext.Provider, node)
+	return e2essh.IssueSSHCommandWithResult(context.TODO(), cmd, e2e.TestContext.Provider, node)
 }
 
 func waitForReadyEtcdStaticPods(client kubernetes.Interface, masterCount int) {
@@ -773,7 +773,7 @@ func runOVNRepairCommands(oc *exutil.CLI, restoreNode *corev1.Node, nonRecoveryN
 
 		numPods := len(pods)
 
-		err = e2epod.DeletePodsWithGracePeriod(oc.AdminKubeClient(), pods, 0)
+		err = e2epod.DeletePodsWithGracePeriod(context.TODO(), oc.AdminKubeClient(), pods, 0)
 		if err != nil {
 			framework.Logf("error while attempting to delete OVN pods: %v", err)
 			return false, nil
@@ -816,12 +816,12 @@ func runOVNRepairCommands(oc *exutil.CLI, restoreNode *corev1.Node, nonRecoveryN
 }
 
 func getAllOvnPods(oc *exutil.CLI) ([]corev1.Pod, error) {
-	ovnKubeMasters, err := e2epod.GetPods(oc.AdminKubeClient(), "openshift-ovn-kubernetes", map[string]string{"app": "ovnkube-master"})
+	ovnKubeMasters, err := e2epod.GetPods(context.TODO(), oc.AdminKubeClient(), "openshift-ovn-kubernetes", map[string]string{"app": "ovnkube-master"})
 	if err != nil {
 		return nil, err
 	}
 
-	ovnNodes, err := e2epod.GetPods(oc.AdminKubeClient(), "openshift-ovn-kubernetes", map[string]string{"app": "ovnkube-node"})
+	ovnNodes, err := e2epod.GetPods(context.TODO(), oc.AdminKubeClient(), "openshift-ovn-kubernetes", map[string]string{"app": "ovnkube-node"})
 	if err != nil {
 		return nil, err
 	}
@@ -836,12 +836,12 @@ func runPodAndWaitForSuccess(oc *exutil.CLI, pod *applycorev1.PodApplyConfigurat
 	}
 
 	framework.Logf("Waiting for %s to complete...", *pod.Name)
-	return e2epod.WaitForPodSuccessInNamespaceTimeout(oc.AdminKubeClient(), *pod.Name, *pod.Namespace, 15*time.Minute)
+	return e2epod.WaitForPodSuccessInNamespaceTimeout(context.TODO(), oc.AdminKubeClient(), *pod.Name, *pod.Namespace, 15*time.Minute)
 }
 
 func runPod(oc *exutil.CLI, pod *applycorev1.PodApplyConfiguration) error {
 	err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
-		err := e2epod.DeletePodWithGracePeriodByName(oc.AdminKubeClient(), *pod.Name, *pod.Namespace, 0)
+		err := e2epod.DeletePodWithGracePeriodByName(context.TODO(), oc.AdminKubeClient(), *pod.Name, *pod.Namespace, 0)
 		if err != nil {
 			framework.Logf("error while attempting to delete pod %s: %v", *pod.Name, err)
 			return false, nil
@@ -885,7 +885,7 @@ func removeMemberOfNode(oc *exutil.CLI, node *corev1.Node) error {
 }
 
 func removeMember(oc *exutil.CLI, memberID string) {
-	pods, err := e2epod.GetPods(oc.AdminKubeClient(), "openshift-etcd", map[string]string{"app": "etcd"})
+	pods, err := e2epod.GetPods(context.TODO(), oc.AdminKubeClient(), "openshift-etcd", map[string]string{"app": "etcd"})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	for _, pod := range pods {

@@ -79,7 +79,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 		// mysqlLayers := isi.Status.Images[1].Image.DockerImageLayers
 		// mysqlLen := len(mysqlLayers)
 
-		pod := cli.Create(cliPodWithPullSecret(oc, heredoc.Docf(`
+		pod := cli.Create(context.TODO(), cliPodWithPullSecret(oc, heredoc.Docf(`
 			set -x
 
 			# command exits if directory doesn't exist
@@ -103,6 +103,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageExtract] Image extract", fu
 			oc image extract --insecure %[2]s/%[1]s/1:tools --file=/etc/shadow
 			[ -f /tmp/test3/shadow ]
 		`, ns, registry)))
-		cli.WaitForSuccess(pod.Name, podStartupTimeout)
+		cli.WaitForSuccess(context.TODO(), pod.Name, podStartupTimeout)
 	})
 })

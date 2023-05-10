@@ -27,15 +27,14 @@ func (t *ImagePullsAreFast) DisplayName() string {
 	return "[sig-node][Late] Image pulls are fast"
 }
 
-func (t *ImagePullsAreFast) Setup(_ *framework.Framework) {
+func (t *ImagePullsAreFast) Setup(_ context.Context, _ *framework.Framework) {
 	if t.threshold.Seconds() == 0 {
 		t.threshold = 2 * time.Minute
 	}
 	return
 }
 
-func (t *ImagePullsAreFast) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
-	ctx := context.Background()
+func (t *ImagePullsAreFast) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	<-done
 
 	g.By(fmt.Sprintf("verifying that pull durations do not exceed %s", t.threshold))
@@ -66,7 +65,7 @@ count_over_time((
 	result.Flakef("PullImage operations over %s for %s seconds", t.threshold, series.Value)
 }
 
-func (t ImagePullsAreFast) Teardown(_ *framework.Framework) {
+func (t ImagePullsAreFast) Teardown(_ context.Context, _ *framework.Framework) {
 	return
 }
 

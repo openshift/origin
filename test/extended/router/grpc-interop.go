@@ -168,7 +168,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Waiting for grpc-interop pod to be running")
-			e2e.ExpectNoError(e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), "grpc-interop", oc.Namespace()), "grpc-interop backend server pod not running")
+			e2e.ExpectNoError(e2epod.WaitForPodRunningInNamespaceSlow(context.TODO(), oc.KubeClient(), "grpc-interop", oc.Namespace()), "grpc-interop backend server pod not running")
 
 			// certificate start and end time are very
 			// lenient to avoid any clock drift between

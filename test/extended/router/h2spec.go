@@ -389,8 +389,8 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 			_, err = oc.AdminKubeClient().CoreV1().Pods(ns).Create(context.Background(), h2specPod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(oc.KubeClient(), "h2spec-haproxy", oc.KubeFramework().Namespace.Name))
-			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(oc.KubeClient(), "h2spec", oc.KubeFramework().Namespace.Name))
+			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), oc.KubeClient(), "h2spec-haproxy", oc.KubeFramework().Namespace.Name))
+			e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), oc.KubeClient(), "h2spec", oc.KubeFramework().Namespace.Name))
 
 			shardFQDN := oc.Namespace() + "." + defaultDomain
 
