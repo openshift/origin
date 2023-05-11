@@ -241,6 +241,10 @@ var KnownEventsBugs = []KnownProblem{
 	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
 	//	message: "ns/openshift-cluster-csi-drivers pod/aws-ebs-csi-driver-controller-66469455cd-2thfv node/ip-10-0-161-38.us-east-2.compute.internal - reason/BackOff Back-off restarting failed container",
 	//},
+	{
+		Regexp: regexp.MustCompile(`reason/ErrorReconcilingNode.*annotation not found for node.*macAddress annotation not found for node`),
+		BZ:     "https://issues.redhat.com/browse/OCPBUGS-13400",
+	},
 }
 
 // IsRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
