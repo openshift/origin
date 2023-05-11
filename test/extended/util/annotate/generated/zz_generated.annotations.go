@@ -701,12 +701,6 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Early] Managed cluster should [apigroup:config.openshift.io] start all core operators": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][Feature:ClusterUpgrade] Cluster should be upgradeable after finishing upgrade [Late][Suite:upgrade]": "",
-
-	"[sig-arch][Feature:ClusterUpgrade] Cluster should be upgradeable before beginning upgrade [Early][Suite:upgrade]": "",
-
-	"[sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": " [Serial]",
-
 	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Late] operators should not create watch channels very often [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
@@ -1715,8 +1709,6 @@ var Annotations = map[string]string{
 
 	"[sig-cluster-lifecycle] TestAdminAck should succeed [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cluster-lifecycle][Feature:DisasterRecovery][Disruptive] [Feature:NodeRecovery] Cluster should survive master and worker failure and recover with machine health checks [apigroup:machine.openshift.io]": " [Serial]",
-
 	"[sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources [apigroup:machine.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines [apigroup:machine.openshift.io]": " [Serial]",
@@ -1872,10 +1864,6 @@ var Annotations = map[string]string{
 	"[sig-etcd] etcd leader changes are not excessive [Late]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-etcd] etcd record the start revision of the etcd-operator [Early]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-etcd][Feature:DisasterRecovery][Disruptive][Disabled:Broken] [Feature:EtcdRecovery] Cluster should recover from a backup taken on one node and recovered on another [apigroup:operator.openshift.io]": " [Serial]",
-
-	"[sig-etcd][Feature:DisasterRecovery][Disruptive][Disabled:Broken] [Feature:EtcdRecovery] Cluster should restore itself after quorum loss [apigroup:machine.openshift.io][apigroup:operator.openshift.io]": " [Serial]",
 
 	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:2h] [Feature:EtcdRecovery][Disruptive] Recover with snapshot with two unhealthy nodes and lost quorum": " [Serial]",
 
