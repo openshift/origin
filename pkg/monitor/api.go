@@ -10,6 +10,7 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitor/shutdown"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,6 +61,7 @@ func Start(ctx context.Context, restConfig *rest.Config, additionalEventInterval
 	startPodMonitoring(ctx, m, client)
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)
+	shutdown.StartMonitoringGracefulShutdownEvents(ctx, m, client)
 
 	// add interval creation at the same point where we add the monitors
 	startClusterOperatorMonitoring(ctx, m, configClient)
