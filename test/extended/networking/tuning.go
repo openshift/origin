@@ -276,6 +276,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 				}
 				return false, nil
 			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 
