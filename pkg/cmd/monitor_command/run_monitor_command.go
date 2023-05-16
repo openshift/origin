@@ -149,6 +149,7 @@ func (opt *RunMonitorOptions) Run() error {
 			fmt.Printf("Failed to write event data, err: %v\n", err)
 			return err
 		}
+		// TODO: upload events to loki
 		if err := monitor.WriteTrackedResourcesForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix); err != nil {
 			fmt.Printf("Failed to write resource data, err: %v\n", err)
 			return err
