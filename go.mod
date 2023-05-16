@@ -38,7 +38,6 @@ require (
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/objx v0.5.0
 	github.com/stretchr/testify v1.8.1
-	go.etcd.io/etcd/api/v3 v3.5.7
 	go.etcd.io/etcd/client/pkg/v3 v3.5.7
 	go.etcd.io/etcd/client/v3 v3.5.7
 	golang.org/x/crypto v0.1.0
@@ -219,6 +218,7 @@ require (
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
+	go.etcd.io/etcd/api/v3 v3.5.7 // indirect
 	go.etcd.io/etcd/client/v2 v2.305.7 // indirect
 	go.etcd.io/etcd/pkg/v3 v3.5.7 // indirect
 	go.etcd.io/etcd/raft/v3 v3.5.7 // indirect
