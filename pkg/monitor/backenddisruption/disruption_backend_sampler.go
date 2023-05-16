@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"sync"
 	"time"
@@ -45,6 +46,7 @@ type BackendSampler struct {
 	path string
 
 	hostGetter HostGetter
+	ipGetter   HostGetter
 
 	// bearerToken is the token to be used when contacting a server. Authorization : Bearer XXXXXX
 	bearerToken string
@@ -95,6 +97,7 @@ func NewSimpleBackend(host, disruptionBackendName, path string, connectionType m
 		path:                  path,
 		hostGetter:            NewSimpleHostGetter(host),
 	}
+	ret.ipGetter = NewIPResolvingHostGetter(ret.hostGetter)
 
 	return ret
 }
@@ -109,6 +112,7 @@ func NewBackend(hostGetter HostGetter, disruptionBackendName, path string, conne
 		path:                  path,
 		hostGetter:            hostGetter,
 	}
+	ret.ipGetter = NewIPResolvingHostGetter(ret.hostGetter)
 
 	return ret
 }
@@ -135,19 +139,23 @@ func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path 
 		bearerToken:           kubeTransportConfig.BearerToken,
 		bearerTokenFile:       kubeTransportConfig.BearerTokenFile,
 	}
+	ret.ipGetter = NewIPResolvingHostGetter(ret.hostGetter)
 
 	return ret, nil
 }
 
 // NewRouteBackend constructs a BackendSampler suitable for use against a routes.route.openshift.io
 func NewRouteBackend(clientConfig *rest.Config, namespace, name, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
-	return &BackendSampler{
+	ret := &BackendSampler{
 		connectionType:        connectionType,
 		locator:               monitorapi.LocateRouteForDisruptionCheck(namespace, name, disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
 		hostGetter:            NewRouteHostGetter(clientConfig, namespace, name),
 	}
+	ret.ipGetter = NewIPResolvingHostGetter(ret.hostGetter)
+
+	return ret
 }
 
 // WithBearerTokenAuth sets bearer tokens to use
@@ -217,7 +225,7 @@ func (b *BackendSampler) getTimeout() time.Duration {
 }
 
 func (b *BackendSampler) GetURL() (string, error) {
-	host, err := b.hostGetter.GetHost()
+	host, err := b.ipGetter.GetHost()
 	if err != nil {
 		return "", err
 	}
@@ -251,8 +259,31 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 	timeoutForEntireRequest := b.getTimeout()
 	timeoutForPartOfRequest := timeoutForEntireRequest / 2 // this is less so that we can see failures for individual portions of the request
 
+	destinationURL, err := b.hostGetter.GetHost()
+	if err != nil {
+		return nil, err
+	}
+	if len(destinationURL) == 0 {
+		return nil, fmt.Errorf("missing URL")
+	}
+
+	hostURL, err := url.Parse(destinationURL)
+	if err != nil {
+		return nil, err
+	}
+	hostname, _, err := net.SplitHostPort(hostURL.Host)
+	if err != nil {
+		return nil, err
+	}
+
 	b.initHTTPClient.Do(func() {
 		var httpTransport *http.Transport
+
+		tlsConfig := b.getTLSConfig()
+		if !tlsConfig.InsecureSkipVerify {
+			tlsConfig.ServerName = hostname
+		}
+
 		switch b.GetConnectionType() {
 		case monitorapi.NewConnectionType:
 			httpTransport = &http.Transport{
@@ -260,7 +291,7 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 					Timeout:   timeoutForPartOfRequest,
 					KeepAlive: -1, // this looks unnecessary to me, but it was set in other code.
 				}).Dial,
-				TLSClientConfig:       b.getTLSConfig(),
+				TLSClientConfig:       tlsConfig,
 				DisableKeepAlives:     true, // this prevents connections from being reused
 				TLSHandshakeTimeout:   timeoutForPartOfRequest,
 				IdleConnTimeout:       timeoutForPartOfRequest,
@@ -274,7 +305,7 @@ func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 				Dial: (&net.Dialer{
 					Timeout: timeoutForPartOfRequest,
 				}).Dial,
-				TLSClientConfig:       b.getTLSConfig(),
+				TLSClientConfig:       tlsConfig,
 				TLSHandshakeTimeout:   timeoutForPartOfRequest,
 				IdleConnTimeout:       timeoutForPartOfRequest,
 				ResponseHeaderTimeout: timeoutForPartOfRequest,

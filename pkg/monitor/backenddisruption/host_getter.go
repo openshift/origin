@@ -3,6 +3,8 @@ package backenddisruption
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
 	"sync"
 	"sync/atomic"
 
@@ -13,6 +15,55 @@ import (
 
 type HostGetter interface {
 	GetHost() (string, error)
+}
+
+type IPResolvingHostGetter struct {
+	lock     sync.Mutex
+	delegate HostGetter
+	ip       atomic.Pointer[string]
+}
+
+func NewIPResolvingHostGetter(delegate HostGetter) *IPResolvingHostGetter {
+	return &IPResolvingHostGetter{
+		delegate: delegate,
+	}
+}
+
+func (g *IPResolvingHostGetter) GetHost() (string, error) {
+	curr := g.ip.Load()
+	if curr != nil {
+		return *curr, nil
+	}
+	delegateHost, err := g.delegate.GetHost()
+	if err != nil {
+		return "", err
+	}
+
+	hostURL, err := url.Parse(delegateHost)
+	if err != nil {
+		return "", err
+	}
+	hostname, port, err := net.SplitHostPort(hostURL.Host)
+	if err != nil {
+		return "", err
+	}
+
+	g.lock.Lock()
+	defer g.lock.Unlock()
+
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve IP for %v: %w", hostname, err)
+	}
+	if len(ips) == 0 {
+		return "", fmt.Errorf("no IPs found for %v", hostname)
+	}
+
+	hostURL.Host = net.JoinHostPort(ips[0].String(), port)
+	ret := hostURL.String()
+	g.ip.Store(&ret)
+
+	return ret, nil
 }
 
 type SimpleHostGetter struct {
