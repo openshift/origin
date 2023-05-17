@@ -413,7 +413,9 @@
 // test/extended/testdata/mixed-api-versions.yaml
 // test/extended/testdata/multi-namespace-pipeline.yaml
 // test/extended/testdata/multi-namespace-template.yaml
+// test/extended/testdata/multinetpolicy/deny-ingress-pod-a.yml
 // test/extended/testdata/net-attach-defs/bridge-nad.yml
+// test/extended/testdata/net-attach-defs/macvlan-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml
@@ -48602,6 +48604,36 @@ func testExtendedTestdataMultiNamespaceTemplateYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataMultinetpolicyDenyIngressPodAYml = []byte(`apiVersion: k8s.cni.cncf.io/v1beta1
+kind: MultiNetworkPolicy
+metadata:
+  generateName: deny-ingress-pod-a
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: macvlan1-nad
+spec:
+  podSelector:
+    matchLabels:
+      pod: a
+  policyTypes:
+    - Ingress
+  ingress: []
+`)
+
+func testExtendedTestdataMultinetpolicyDenyIngressPodAYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataMultinetpolicyDenyIngressPodAYml, nil
+}
+
+func testExtendedTestdataMultinetpolicyDenyIngressPodAYml() (*asset, error) {
+	bytes, err := testExtendedTestdataMultinetpolicyDenyIngressPodAYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/multinetpolicy/deny-ingress-pod-a.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataNetAttachDefsBridgeNadYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
@@ -48632,6 +48664,38 @@ func testExtendedTestdataNetAttachDefsBridgeNadYml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/bridge-nad.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNetAttachDefsMacvlanNadYml = []byte(`apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: macvlan1-nad
+spec:   
+  config: '{
+            "cniVersion": "0.3.1",
+            "name": "macvlan1-nad",
+            "plugins": [
+                {
+                    "type": "macvlan",
+                    "capabilities": { "ips": true },
+                    "mode": "bridge",
+                    "ipam": { "type": "static" }
+                }]
+        }'`)
+
+func testExtendedTestdataNetAttachDefsMacvlanNadYmlBytes() ([]byte, error) {
+	return _testExtendedTestdataNetAttachDefsMacvlanNadYml, nil
+}
+
+func testExtendedTestdataNetAttachDefsMacvlanNadYml() (*asset, error) {
+	bytes, err := testExtendedTestdataNetAttachDefsMacvlanNadYmlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/net-attach-defs/macvlan-nad.yml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -54498,7 +54562,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/mixed-api-versions.yaml":                                                         testExtendedTestdataMixedApiVersionsYaml,
 	"test/extended/testdata/multi-namespace-pipeline.yaml":                                                   testExtendedTestdataMultiNamespacePipelineYaml,
 	"test/extended/testdata/multi-namespace-template.yaml":                                                   testExtendedTestdataMultiNamespaceTemplateYaml,
+	"test/extended/testdata/multinetpolicy/deny-ingress-pod-a.yml":                                           testExtendedTestdataMultinetpolicyDenyIngressPodAYml,
 	"test/extended/testdata/net-attach-defs/bridge-nad.yml":                                                  testExtendedTestdataNetAttachDefsBridgeNadYml,
+	"test/extended/testdata/net-attach-defs/macvlan-nad.yml":                                                 testExtendedTestdataNetAttachDefsMacvlanNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-nad.yml":                                             testExtendedTestdataNetAttachDefsWhereaboutsNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml":                                      testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml":                                     testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml,
@@ -55224,8 +55290,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"mixed-api-versions.yaml":       {testExtendedTestdataMixedApiVersionsYaml, map[string]*bintree{}},
 				"multi-namespace-pipeline.yaml": {testExtendedTestdataMultiNamespacePipelineYaml, map[string]*bintree{}},
 				"multi-namespace-template.yaml": {testExtendedTestdataMultiNamespaceTemplateYaml, map[string]*bintree{}},
+				"multinetpolicy": {nil, map[string]*bintree{
+					"deny-ingress-pod-a.yml": {testExtendedTestdataMultinetpolicyDenyIngressPodAYml, map[string]*bintree{}},
+				}},
 				"net-attach-defs": {nil, map[string]*bintree{
 					"bridge-nad.yml":              {testExtendedTestdataNetAttachDefsBridgeNadYml, map[string]*bintree{}},
+					"macvlan-nad.yml":             {testExtendedTestdataNetAttachDefsMacvlanNadYml, map[string]*bintree{}},
 					"whereabouts-nad.yml":         {testExtendedTestdataNetAttachDefsWhereaboutsNadYml, map[string]*bintree{}},
 					"whereabouts-race-awake.yml":  {testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml, map[string]*bintree{}},
 					"whereabouts-race-sleepy.yml": {testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, map[string]*bintree{}},
