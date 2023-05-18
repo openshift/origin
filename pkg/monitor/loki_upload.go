@@ -28,6 +28,7 @@ func pushBatch(client *http.Client, bearerToken string, lokiData LokiData) error
 	}
 	jsonData, err := json.Marshal(lokiData)
 	if err != nil {
+
 		logrus.WithError(err).Error("error marshalling loki data")
 		return err
 	}
@@ -115,6 +116,12 @@ func UploadIntervalsToLoki(clientID, clientSecret string, intervals monitorapi.I
 		for _, lp := range locatorParts {
 			parts := strings.Split(lp, "/")
 			tag, val := parts[0], parts[1]
+			if strings.TrimSpace(tag) == "" {
+				// Have seen this fail on: WARN[0002] unable to process locator tag: May 12 11:10:00.000 I /machine-config reason/OperatorVersionChanged clusteroperator/machine-config-operator version changed from [{operator 4.14.0-0.nightly-2023-05-03-163151}] to [{operator 4.14.0-0.nightly-2023-05-12-121801}]
+				// Would be interesting to track down where this is coming from
+				logrus.Warnf("unable to process locator tag: %+v", i)
+				continue
+			}
 
 			// TODO: Unclear if we should massage data here to match existing loki entries and open the door
 			// to efficient searches by namespace/node (which will require the intervals processing code
