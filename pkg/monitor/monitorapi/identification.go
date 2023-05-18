@@ -60,13 +60,8 @@ func NodeFromLocator(locator string) (string, bool) {
 	return parts[0], true
 }
 
-func OperatorLocator(testName string) string {
-	return fmt.Sprintf("clusteroperator/%v", testName)
-}
-
-func IsOperator(locator string) bool {
-	_, ret := OperatorFromLocator(locator)
-	return ret
+func OperatorLocator(operatorName string) string {
+	return fmt.Sprintf("clusteroperator/%v", operatorName)
 }
 
 func OperatorFromLocator(locator string) (string, bool) {
