@@ -1,0 +1,16 @@
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: macvlan1-nad
+spec:   
+  config: '{
+            "cniVersion": "0.3.1",
+            "name": "macvlan1-nad",
+            "plugins": [
+                {
+                    "type": "macvlan",
+                    "capabilities": { "ips": true },
+                    "mode": "bridge",
+                    "ipam": { "type": "static" }
+                }]
+        }'
