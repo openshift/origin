@@ -10,17 +10,22 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/retry"
 )
 
 const (
 	batchSize = 500
 )
 
+var batchCtr int
+
 func pushBatch(client *http.Client, bearerToken string, lokiData LokiData) error {
-	logrus.Infof("pushing batch of %d intervals", len(lokiData.Streams[0].Values))
+	batchCtr++
 	url := "https://logging-loki-openshift-operators-redhat.apps.cr.j7t7.p1.openshiftapps.com/api/logs/v1/openshift-trt/loki/api/v1/push"
 	headers := map[string]string{
 		"Content-Type":  "application/json",
@@ -43,35 +48,49 @@ func pushBatch(client *http.Client, bearerToken string, lokiData LokiData) error
 		req.Header.Set(key, value)
 	}
 
-	response, err := client.Do(req)
-	if err != nil {
-		logrus.WithError(err).Error("error making HTTP request")
-		return err
-	}
-	defer response.Body.Close()
+	return retry.OnError(
+		wait.Backoff{
+			Duration: 2 * time.Second,
+			Steps:    5,
+			Factor:   5.0,
+			Jitter:   0.1,
+		},
+		func(err error) bool {
+			// re-try on any error
+			logrus.WithError(err).Warningf("error occurred on batch %d, re-trying", batchCtr)
+			return true
+		},
+		func() error {
+			logrus.Infof("pushing batch %d of %d intervals", batchCtr,
+				len(lokiData.Streams[0].Values))
+			response, err := client.Do(req)
+			if err != nil {
+				logrus.WithError(err).Error("error making HTTP request")
+				return err
+			}
+			defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		logrus.WithError(err).Error("error reading response body")
-		return err
-	}
+			body, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				logrus.WithError(err).Error("error reading response body")
+				return err
+			}
 
-	status := response.StatusCode
-	if len(body) > 0 {
-		logrus.Infof("request body: %s", body)
-	}
-	if status >= 200 && status < 300 {
-		logrus.WithField("status", status).
-			Infof("%d log entries pushed to loki", len(lokiData.Streams[0].Values))
-	} else {
-		logrus.WithField("status", status).
-			Errorf("%d log entries failed to push to loki", len(lokiData.Streams[0].Values))
-		return fmt.Errorf("logs push to loki failed with http status %d", status)
-	}
+			status := response.StatusCode
+			if len(body) > 0 {
+				logrus.Infof("request body: %s", body)
+			}
+			if status >= 200 && status < 300 {
+				logrus.WithField("status", status).
+					Infof("%d log entries pushed to loki", len(lokiData.Streams[0].Values))
+			} else {
+				logrus.WithField("status", status).
+					Errorf("%d log entries failed to push to loki", len(lokiData.Streams[0].Values))
+				return fmt.Errorf("logs push to loki failed with http status %d", status)
+			}
 
-	// TODO: error handling and retries based on status code?
-
-	return nil
+			return nil
+		})
 }
 
 func UploadIntervalsToLoki(clientID, clientSecret string, intervals monitorapi.Intervals) error {
