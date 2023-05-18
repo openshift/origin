@@ -177,6 +177,11 @@ func disableMultiNetworkPolicy(oc *exutil.CLI) {
 func isMultinetNetworkPolicyEnabled(oc *exutil.CLI) bool {
 	c := oc.AdminOperatorClient().OperatorV1().Networks()
 	config := getCluserNetwork(c)
+
+	if config.Spec.UseMultiNetworkPolicy == nil {
+		return false
+	}
+
 	return *config.Spec.UseMultiNetworkPolicy
 }
 
