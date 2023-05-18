@@ -55,10 +55,17 @@ func pushBatch(client *http.Client, bearerToken string, lokiData LokiData) error
 		return err
 	}
 
-	logrus.WithField("status", response.Status).
-		Infof("%d log entries pushed to loki\n", len(lokiData.Streams[0].Values))
+	status := response.StatusCode
 	if len(body) > 0 {
 		logrus.Infof("request body: %s", body)
+	}
+	if status >= 200 && status < 300 {
+		logrus.WithField("status", status).
+			Infof("%d log entries pushed to loki", len(lokiData.Streams[0].Values))
+	} else {
+		logrus.WithField("status", status).
+			Errorf("%d log entries failed to push to loki", len(lokiData.Streams[0].Values))
+		return fmt.Errorf("logs push to loki failed with http status %d", status)
 	}
 
 	// TODO: error handling and retries based on status code?
