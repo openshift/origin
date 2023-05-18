@@ -24,7 +24,7 @@ aliases:
   - dmage # Image Registry
   - dtantsur # Metal Platform
   - dulek # Kuryr Networking
-  - hexfusion # etcd
+  - hasbro17 # etcd
   - ingvagabund # Workloads
   - jaypoulz # Multi Arch
   - jcantrill # Cluster Logging
