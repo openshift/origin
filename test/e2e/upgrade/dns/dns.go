@@ -32,7 +32,7 @@ func (UpgradeTest) DisplayName() string {
 }
 
 // Setup creates a DaemonSet to verify DNS availability during and after upgrade
-func (t *UpgradeTest) Setup(f *framework.Framework) {
+func (t *UpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 	ginkgo.By("Setting up upgrade DNS availability test")
 
 	ginkgo.By("Getting DNS Service Cluster IP")
@@ -45,7 +45,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 	ginkgo.By("Waiting for DaemonSet pods to become ready")
 	err := wait.Poll(framework.Poll, framework.PodStartTimeout, func() (bool, error) {
-		return e2edaemonset.CheckRunningOnAllNodes(f, ds)
+		return e2edaemonset.CheckRunningOnAllNodes(ctx, f, ds)
 	})
 	framework.ExpectNoError(err)
 
@@ -53,7 +53,7 @@ func (t *UpgradeTest) Setup(f *framework.Framework) {
 
 // Test checks for logs from DNS availability test a minute after upgrade finishes
 // to cover during and after upgrade phase, and verifies the results.
-func (t *UpgradeTest) Test(f *framework.Framework, done <-chan struct{}, _ upgrades.UpgradeType) {
+func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, _ upgrades.UpgradeType) {
 	ginkgo.By("Validating DNS results during upgrade")
 	t.validateDNSResults(f)
 
@@ -156,6 +156,6 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 // Teardown cleans up any objects that are created that
 // aren't already cleaned up by the framework.
-func (t *UpgradeTest) Teardown(_ *framework.Framework) {
+func (t *UpgradeTest) Teardown(_ context.Context, _ *framework.Framework) {
 	// rely on the namespace deletion to clean up everything
 }

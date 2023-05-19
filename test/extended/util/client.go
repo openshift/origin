@@ -160,7 +160,7 @@ func NewCLIWithoutNamespace(project string) *CLI {
 				ClientQPS:   20,
 				ClientBurst: 50,
 			},
-			Timeouts: framework.NewTimeoutContextWithDefaults(),
+			Timeouts: framework.NewTimeoutContext(),
 		},
 		username:                "admin",
 		execPath:                "oc",
@@ -197,7 +197,7 @@ func NewHypershiftManagementCLI(project string) *CLI {
 				ClientQPS:   20,
 				ClientBurst: 50,
 			},
-			Timeouts: framework.NewTimeoutContextWithDefaults(),
+			Timeouts: framework.NewTimeoutContext(),
 		},
 		username:         "admin",
 		execPath:         "oc",
@@ -580,7 +580,7 @@ func (c *CLI) setupNamespacePodSecurity(ns string) error {
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
 	if len(c.Namespace()) > 0 && g.CurrentSpecReport().Failed() && framework.TestContext.DumpLogsOnFailure {
-		e2edebug.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
+		e2edebug.DumpAllNamespaceInfo(context.TODO(), c.kubeFramework.ClientSet, c.Namespace())
 	}
 
 	if len(c.configPath) > 0 {

@@ -12,9 +12,10 @@ package v1alpha1
 
 // AUTO-GENERATED FUNCTIONS START HERE
 var map_AlertRelabelConfig = map[string]string{
-	"":       "AlertRelabelConfig defines a set of relabel configs for alerts.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"spec":   "spec describes the desired state of this AlertRelabelConfig object.",
-	"status": "status describes the current state of this AlertRelabelConfig object.",
+	"":         "AlertRelabelConfig defines a set of relabel configs for alerts.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec describes the desired state of this AlertRelabelConfig object.",
+	"status":   "status describes the current state of this AlertRelabelConfig object.",
 }
 
 func (AlertRelabelConfig) SwaggerDoc() map[string]string {
@@ -22,8 +23,9 @@ func (AlertRelabelConfig) SwaggerDoc() map[string]string {
 }
 
 var map_AlertRelabelConfigList = map[string]string{
-	"":      "AlertRelabelConfigList is a list of AlertRelabelConfigs.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"items": "items is a list of AlertRelabelConfigs.",
+	"":         "AlertRelabelConfigList is a list of AlertRelabelConfigs.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "items is a list of AlertRelabelConfigs.",
 }
 
 func (AlertRelabelConfigList) SwaggerDoc() map[string]string {
@@ -49,9 +51,10 @@ func (AlertRelabelConfigStatus) SwaggerDoc() map[string]string {
 }
 
 var map_AlertingRule = map[string]string{
-	"":       "AlertingRule represents a set of user-defined Prometheus rule groups containing alerting rules.  This resource is the supported method for cluster admins to create alerts based on metrics recorded by the platform monitoring stack in OpenShift, i.e. the Prometheus instance deployed to the openshift-monitoring namespace.  You might use this to create custom alerting rules not shipped with OpenShift based on metrics from components such as the node_exporter, which provides machine-level metrics such as CPU usage, or kube-state-metrics, which provides metrics on Kubernetes usage.\n\nThe API is mostly compatible with the upstream PrometheusRule type from the prometheus-operator.  The primary difference being that recording rules are not allowed here -- only alerting rules.  For each AlertingRule resource created, a corresponding PrometheusRule will be created in the openshift-monitoring namespace.  OpenShift requires admins to use the AlertingRule resource rather than the upstream type in order to allow better OpenShift specific defaulting and validation, while not modifying the upstream APIs directly.\n\nYou can find upstream API documentation for PrometheusRule resources here:\n\nhttps://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"spec":   "spec describes the desired state of this AlertingRule object.",
-	"status": "status describes the current state of this AlertOverrides object.",
+	"":         "AlertingRule represents a set of user-defined Prometheus rule groups containing alerting rules.  This resource is the supported method for cluster admins to create alerts based on metrics recorded by the platform monitoring stack in OpenShift, i.e. the Prometheus instance deployed to the openshift-monitoring namespace.  You might use this to create custom alerting rules not shipped with OpenShift based on metrics from components such as the node_exporter, which provides machine-level metrics such as CPU usage, or kube-state-metrics, which provides metrics on Kubernetes usage.\n\nThe API is mostly compatible with the upstream PrometheusRule type from the prometheus-operator.  The primary difference being that recording rules are not allowed here -- only alerting rules.  For each AlertingRule resource created, a corresponding PrometheusRule will be created in the openshift-monitoring namespace.  OpenShift requires admins to use the AlertingRule resource rather than the upstream type in order to allow better OpenShift specific defaulting and validation, while not modifying the upstream APIs directly.\n\nYou can find upstream API documentation for PrometheusRule resources here:\n\nhttps://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"spec":     "spec describes the desired state of this AlertingRule object.",
+	"status":   "status describes the current state of this AlertOverrides object.",
 }
 
 func (AlertingRule) SwaggerDoc() map[string]string {
@@ -59,8 +62,9 @@ func (AlertingRule) SwaggerDoc() map[string]string {
 }
 
 var map_AlertingRuleList = map[string]string{
-	"":      "AlertingRuleList is a list of AlertingRule objects.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
-	"items": "items is a list of AlertingRule objects.",
+	"":         "AlertingRuleList is a list of AlertingRule objects.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
+	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
+	"items":    "items is a list of AlertingRule objects.",
 }
 
 func (AlertingRuleList) SwaggerDoc() map[string]string {

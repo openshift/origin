@@ -1631,7 +1631,7 @@ func LaunchWebserverPod(client k8sclient.Interface, namespace, podName, nodeName
 	podClient := client.CoreV1().Pods(namespace)
 	_, err := podClient.Create(context.Background(), pod, metav1.CreateOptions{})
 	e2e.ExpectNoError(err)
-	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(client, podName, namespace))
+	e2e.ExpectNoError(e2epod.WaitForPodNameRunningInNamespace(context.TODO(), client, podName, namespace))
 	createdPod, err := podClient.Get(context.Background(), podName, metav1.GetOptions{})
 	e2e.ExpectNoError(err)
 	ip = net.JoinHostPort(createdPod.Status.PodIP, strconv.Itoa(port))

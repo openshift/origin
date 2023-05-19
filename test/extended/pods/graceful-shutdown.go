@@ -127,7 +127,7 @@ var _ = Describe("[sig-node][Disruptive][Feature:KubeletGracefulShutdown]", func
 				Expect(err).NotTo(HaveOccurred())
 			}
 			// Wait for node to be rebooted before examining with debug pod
-			isReadyBeforeTimeout := e2enode.WaitForNodeToBeReady(oc.KubeFramework().ClientSet, node.Name, nodeReadyTimeout)
+			isReadyBeforeTimeout := e2enode.WaitForNodeToBeReady(ctx, oc.KubeFramework().ClientSet, node.Name, nodeReadyTimeout)
 			Expect(isReadyBeforeTimeout).To(BeTrue(), "node was not ready before timeout %s", nodeReadyTimeout)
 		})
 

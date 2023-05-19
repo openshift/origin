@@ -1,6 +1,8 @@
 package images
 
 import (
+	"context"
+
 	"github.com/MakeNowJust/heredoc"
 	g "github.com/onsi/ginkgo/v2"
 
@@ -27,7 +29,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 	g.It("should display information about images [apigroup:image.openshift.io]", func() {
 		ns = oc.Namespace()
 		cli := e2epod.PodClientNS(oc.KubeFramework(), ns)
-		pod := cli.Create(cliPodWithPullSecret(oc, heredoc.Docf(`
+		pod := cli.Create(context.TODO(), cliPodWithPullSecret(oc, heredoc.Docf(`
 			set -x
 
 			# display info about an image on quay.io
@@ -36,6 +38,6 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 			# display info about an image in json format
 			oc image info quay.io/coreos/etcd:latest -o json
 		`)))
-		cli.WaitForSuccess(pod.Name, podStartupTimeout)
+		cli.WaitForSuccess(context.TODO(), pod.Name, podStartupTimeout)
 	})
 })

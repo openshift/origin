@@ -98,7 +98,7 @@ COPY --from=%[2]s /bin/ping /test/
 		e2e.Logf("Build logs:\n%s", result)
 
 		c := e2epod.PodClientNS(oc.KubeFramework(), oc.Namespace())
-		pod = c.Create(&corev1.Pod{
+		pod = c.Create(context.TODO(), &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
@@ -118,7 +118,7 @@ COPY --from=%[2]s /bin/ping /test/
 				},
 			},
 		})
-		c.WaitForSuccess(pod.Name, e2e.PodStartTimeout)
+		c.WaitForSuccess(context.TODO(), pod.Name, e2e.PodStartTimeout)
 		data, err := oc.Run("logs").Args("-f", "test", "-c", "run").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		m, err := oc.Run("logs").Args("-f", "test", "-c", "check").Output()

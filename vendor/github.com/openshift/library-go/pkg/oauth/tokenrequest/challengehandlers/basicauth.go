@@ -26,7 +26,7 @@ func NewBasicAuthNoUsernameError() error {
 }
 
 func NewBasicChallengeHandler(
-	host string,
+	host, consoleURL string,
 	reader io.Reader,
 	writer io.Writer,
 	passwordPrompter PasswordPrompter,
@@ -34,6 +34,7 @@ func NewBasicChallengeHandler(
 ) *BasicChallengeHandler {
 	return &BasicChallengeHandler{
 		Host:             host,
+		WebConsoleURL:    consoleURL,
 		Reader:           reader,
 		Writer:           writer,
 		passwordPrompter: passwordPrompter,
@@ -47,6 +48,9 @@ func NewBasicChallengeHandler(
 type BasicChallengeHandler struct {
 	// Host is the server being authenticated to. Used only for displaying messages when prompting for username/password
 	Host string
+
+	// WebConsoleURL is an optional URL to a web interface where the user might go if they prefer login from the browser instead
+	WebConsoleURL string
 
 	// Reader is used to prompt for username/password. If nil, no prompting is done
 	Reader io.Reader
@@ -105,6 +109,10 @@ func (c *BasicChallengeHandler) HandleChallenge(requestURL string, headers http.
 		w := c.Writer
 		if w == nil {
 			w = os.Stdout
+		}
+
+		if len(c.WebConsoleURL) > 0 {
+			fmt.Fprintf(w, "Console URL: %s\n", c.WebConsoleURL)
 		}
 
 		if _, realm := basicRealm(headers); len(realm) > 0 {

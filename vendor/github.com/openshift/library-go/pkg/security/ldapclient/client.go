@@ -162,3 +162,22 @@ func (l *ldapClientConfig) Host() string {
 func (l *ldapClientConfig) String() string {
 	return fmt.Sprintf("{Scheme: %v Host: %v BindDN: %v len(BbindPassword): %v Insecure: %v}", l.scheme, l.host, l.bindDN, len(l.bindPassword), l.insecure)
 }
+
+// ConnectMaybeBind returns an ldap.Client with an active connection. It attempts
+// to bind if bind credentials were provided and would fail if the bind fails.
+//
+// The caller is responsible for closing the connection.
+func ConnectMaybeBind(clientConfig Config) (ldap.Client, error) {
+	connection, err := clientConfig.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("could not connect to the LDAP server: %v", err)
+	}
+
+	if bindDN, bindPassword := clientConfig.GetBindCredentials(); len(bindDN) > 0 {
+		if err := connection.Bind(bindDN, bindPassword); err != nil {
+			return nil, fmt.Errorf("could not bind to the LDAP server: %v", err)
+		}
+	}
+
+	return connection, nil
+}

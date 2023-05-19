@@ -124,14 +124,14 @@ func (t *backendDisruptionTest) DisplayName() string {
 
 // Setup looks up the host of the route specified by the backendSampler and updates
 // the backendSampler with the route's host.
-func (t *backendDisruptionTest) Setup(f *framework.Framework) {
+func (t *backendDisruptionTest) Setup(ctx context.Context, f *framework.Framework) {
 	if t.preSetup != nil {
 		framework.ExpectNoError(t.preSetup(f, t.backend))
 	}
 }
 
 // Test runs a connectivity check to a route.
-func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+func (t *backendDisruptionTest) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
@@ -142,7 +142,7 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 	start := time.Now()
 	ginkgo.By(fmt.Sprintf("continuously hitting backend: %s", t.backend.GetLocator()))
 
-	endpointMonitoringContext, endpointMonitoringCancel := context.WithCancel(context.Background())
+	endpointMonitoringContext, endpointMonitoringCancel := context.WithCancel(ctx)
 	defer endpointMonitoringCancel() // final backstop on closure
 	m := monitor.NewMonitorWithInterval(1 * time.Second)
 	disruptionErrCh := make(chan error, 1)
@@ -199,7 +199,7 @@ func (t *backendDisruptionTest) Test(f *framework.Framework, done <-chan struct{
 }
 
 // Teardown cleans up any remaining resources.
-func (t *backendDisruptionTest) Teardown(f *framework.Framework) {
+func (t *backendDisruptionTest) Teardown(ctx context.Context, f *framework.Framework) {
 	if t.postTearDown != nil {
 		framework.ExpectNoError(t.postTearDown(f))
 	}

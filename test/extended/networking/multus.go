@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"context"
 	"fmt"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -38,7 +39,7 @@ var _ = g.Describe("[sig-network][Feature:Multus]", func() {
 		annotation := map[string]string{
 			"k8s.v1.cni.cncf.io/networks": "bridge-nad",
 		}
-		testPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+		testPod := frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podName, func(pod *v1.Pod) {
 			pod.ObjectMeta.Annotations = annotation
 		})
 

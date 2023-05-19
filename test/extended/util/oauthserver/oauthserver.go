@@ -494,7 +494,8 @@ func determineImageFromRelease(oc *exutil.CLI) (string, error) {
 }
 
 func newRequestTokenOptions(config *restclient.Config, oauthServerURL, oauthClientName, username, password string) *tokenrequest.RequestTokenOptions {
-	options := tokenrequest.NewRequestTokenOptions(config, false, challengehandlers.NewBasicChallengeHandler(config.Host, os.Stdin, os.Stdout, nil, username, password))
+
+	options := tokenrequest.NewRequestTokenOptions(config, false, challengehandlers.NewBasicChallengeHandler(config.Host, "", os.Stdin, os.Stdout, nil, username, password))
 	// supply the info the client would otherwise ask from .well-known/oauth-authorization-server
 	oauthClientConfig := &osincli.ClientConfig{
 		ClientId:     oauthClientName,

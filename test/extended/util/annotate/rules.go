@@ -25,35 +25,17 @@ var (
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {},
 		// tests that rely on special configuration that we do not yet support
-		"[Disabled:SpecialConfig]": {},
+		"[Disabled:SpecialConfig]": {
+			`\[Feature:Audit\]`, // Needs special configuration
+		},
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
 		"[Disabled:Broken]": {
 			`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig
 			`should answer endpoint and wildcard queries for the cluster`, // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
 
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1988272
-			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
-			`\[sig-network\] Networking should provider Internet connection for containers using DNS`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1908645
-			`\[sig-network\] Networking Granular Checks: Services should function for service endpoints using hostNetwork`,
-			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service\(hostNetwork\)`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1952460
-			`\[sig-network\] Firewall rule control plane should not expose well-known ports`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1952457
-			`\[sig-node\] crictl should be able to run crictl on the node`,
-
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1945091
 			`\[Feature:GenericEphemeralVolume\]`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1953478
-			`\[sig-storage\] Dynamic Provisioning Invalid AWS KMS key should report an error and create no PV`,
-
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1957894
-			`\[sig-node\] Container Runtime blackbox test when running a container with a new image should be able to pull from private registry with secret`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1996128
 			`\[sig-network\] \[Feature:IPv6DualStack\] should have ipv4 and ipv6 node podCIDRs`,
@@ -71,28 +53,17 @@ var (
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mysql\]\[Slow\] openshift mysql image Creating from a template should instantiate the template`,
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mariadb\]\[Slow\] openshift mariadb image Creating from a template should instantiate the template`,
 
-			// https://github.com/openshift/kubernetes/pull/1465
-			`\[sig-node\] Security Context when if the container's primary UID belongs to some groups in the image \[LinuxOnly\] should add pod.Spec.SecurityContext.SupplementalGroups to them \[LinuxOnly\] in resultant supplementary groups for the container processes`,
-
-			// https://issues.redhat.com/browse/OCPBUGS-7125
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes`,
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes`,
-
 			// https://issues.redhat.com/browse/OCPBUGS-11652
 			`\[sig-cli\] oc adm node-logs`,
 		},
-		// tests that may work, but we don't support them
-		"[Disabled:Unsupported]": {
-			// Skip vSphere-specific storage tests. The standard in-tree storage tests for vSphere
-			// (prefixed with `In-tree Volumes [Driver: vsphere]`) are enough for testing this plugin.
-			// https://bugzilla.redhat.com/show_bug.cgi?id=2019115
-			`\[sig-storage\].*\[Feature:vsphere\]`,
-			// Also, our CI doesn't support topology, so disable those tests
-			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies`,
-			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(delayed binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
-			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(immediate binding\)\] topology should fail to schedule a pod which has topologies that conflict with AllowedTopologies`,
-			`\[sig-storage\] In-tree Volumes \[Driver: vsphere\] \[Testpattern: Dynamic PV \(immediate binding\)\] topology should provision a volume and schedule a pod with AllowedTopologies`,
+		// tests that need to be temporarily disabled while the rebase is in progress.
+		"[Disabled:RebaseInProgress]": {
+			// https://issues.redhat.com/browse/OCPBUGS-13392
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
+			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce updated policy`,
 		},
+		// tests that may work, but we don't support them
+		"[Disabled:Unsupported]": {},
 		// tests too slow to be part of conformance
 		"[Slow]": {},
 		// tests that are known flaky
@@ -107,48 +78,17 @@ var (
 		"[Serial:Self]": {
 			`\[sig-network\] HostPort validates that there is no conflict between pods with same hostPort but different hostIP and protocol`,
 		},
-		"[Skipped:azure]": {},
-		"[Skipped:ovirt]": {},
-		"[Skipped:gce]":   {},
-
 		// These tests are skipped when openshift-tests needs to use a proxy to reach the
 		// cluster -- either because the test won't work while proxied, or because the test
 		// itself is testing a functionality using it's own proxy.
 		"[Skipped:Proxy]": {
-			// These tests setup their own proxy, which won't work when we need to access the
-			// cluster through a proxy.
-			`\[sig-cli\] Kubectl client Simple pod should support exec through an HTTP proxy`,
-			`\[sig-cli\] Kubectl client Simple pod should support exec through kubectl proxy`,
-
-			// Kube currently uses the x/net/websockets pkg, which doesn't work with proxies.
-			// See: https://github.com/kubernetes/kubernetes/pull/103595
-			`\[sig-node\] Pods should support retrieving logs from the container over websockets`,
-			`\[sig-cli\] Kubectl Port forwarding With a server listening on localhost should support forwarding over websockets`,
-			`\[sig-cli\] Kubectl Port forwarding With a server listening on 0.0.0.0 should support forwarding over websockets`,
-			`\[sig-node\] Pods should support remote command execution over websockets`,
-
 			// These tests are flacky and require internet access
 			// See https://bugzilla.redhat.com/show_bug.cgi?id=2019375
 			`\[sig-builds\]\[Feature:Builds\] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service`,
 			`\[sig-builds\]\[Feature:Builds\] oc new-app should succeed with a --name of 58 characters`,
-			`\[sig-network\] DNS should resolve DNS of partial qualified names for services`,
 			`\[sig-arch\] Only known images used by tests`,
-			`\[sig-network\] DNS should provide DNS for the cluster`,
-			// This test does not work when using in-proxy cluster, see https://bugzilla.redhat.com/show_bug.cgi?id=2084560
-			`\[sig-network\] Networking should provide Internet connection for containers`,
 		},
-		"[Skipped:SingleReplicaTopology]": {
-			`\[sig-apps\] Daemon set \[Serial\] should rollback without unnecessary restarts \[Conformance\]`,
-			`\[sig-node\] NoExecuteTaintManager Single Pod \[Serial\] doesn't evict pod with tolerations from tainted nodes`,
-			`\[sig-node\] NoExecuteTaintManager Single Pod \[Serial\] eventually evict pod with finite tolerations from tainted nodes`,
-			`\[sig-node\] NoExecuteTaintManager Single Pod \[Serial\] evicts pods from tainted nodes`,
-			`\[sig-node\] NoExecuteTaintManager Single Pod \[Serial\] removing taint cancels eviction \[Disruptive\] \[Conformance\]`,
-			`\[sig-node\] NoExecuteTaintManager Multiple Pods \[Serial\] evicts pods with minTolerationSeconds \[Disruptive\] \[Conformance\]`,
-			`\[sig-node\] NoExecuteTaintManager Multiple Pods \[Serial\] only evicts pods without tolerations from tainted nodes`,
-			`\[sig-cli\] Kubectl client Kubectl taint \[Serial\] should remove all the taints with the same key off a node`,
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on different nodes`,
-			`\[sig-network\] LoadBalancers should be able to preserve UDP traffic when server pod cycles for a LoadBalancer service on the same nodes`,
-		},
+		"[Skipped:SingleReplicaTopology]": {},
 
 		"[Feature:Networking-IPv4]": {
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key`,
@@ -177,7 +117,6 @@ var (
 			`\[sig-devex\]\[Feature:Templates\] templateinstance readiness test should report failed soon after an annotated objects has failed`,
 			`\[sig-devex\]\[Feature:Templates\] templateinstance readiness test should report ready soon after all annotated objects are ready`,
 			`\[sig-operator\] an end user can use OLM can subscribe to the operator`,
-			`\[sig-network\] Networking should provide Internet connection for containers`,
 			`\[sig-imageregistry\]\[Serial\] Image signature workflow can push a signed image to openshift registry and verify it`,
 
 			// Need to access non-cached images like ruby and mongodb
@@ -280,23 +219,9 @@ var (
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] The HAProxy router should serve the correct routes when scoped to a single namespace and label set`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:operator.openshift.io\] The HAProxy router should set Forwarded headers appropriately`,
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\]\[apigroup:operator.openshift.io\] The HAProxy router should support reencrypt to services backed by a serving certificate automatically`,
-			`\[sig-network\] Networking should provide Internet connection for containers \[Feature:Networking-IPv6\]`,
 			`\[sig-node\] Managed cluster should report ready nodes the entire duration of the test run`,
 			`\[sig-storage\]\[Late\] Metrics should report short attach times`,
 			`\[sig-storage\]\[Late\] Metrics should report short mount times`,
-		},
-
-		// tests that don't pass under openshift-sdn NetworkPolicy mode are specified
-		// in the rules file in openshift/kubernetes, not here.
-
-		// tests that don't pass under openshift-sdn multitenant mode
-		"[Skipped:Network/OpenShiftSDN/Multitenant]": {
-			`\[Feature:NetworkPolicy\]`, // not compatible with multitenant mode
-		},
-		// tests that don't pass under OVN Kubernetes
-		"[Skipped:Network/OVNKubernetes]": {
-			// ovn-kubernetes does not support named ports
-			`NetworkPolicy.*named port`,
 		},
 		"[Skipped:ibmroks]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
@@ -305,39 +230,12 @@ var (
 			`GlusterFS`,
 			`GlusterDynamicProvisioner`,
 
-			// Nodes in ROKS have access to secrets in the cluster to handle encryption
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825013 - ROKS: worker nodes have access to secrets in the cluster
-			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting a non-existent configmap should exit with the Forbidden error, not a NotFound error`,
-			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting a non-existent secret should exit with the Forbidden error, not a NotFound error`,
-			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting a secret for a workload the node has access to should succeed`,
-			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting an existing configmap should exit with the Forbidden error`,
-			`\[sig-auth\] \[Feature:NodeAuthorizer\] Getting an existing secret should exit with the Forbidden error`,
-
-			// Access to node external address is blocked from pods within a ROKS cluster by Calico
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825016 - e2e: NodeAuthenticator tests use both external and internal addresses for node
-			`\[sig-auth\] \[Feature:NodeAuthenticator\] The kubelet's main port 10250 should reject requests with no credentials`,
-			`\[sig-auth\] \[Feature:NodeAuthenticator\] The kubelet can delegate ServiceAccount tokens to the API server`,
-
-			// Calico is allowing the request to timeout instead of returning 'REFUSED'
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825021 - ROKS: calico SDN results in a request timeout when accessing services with no endpoints
-			`\[sig-network\] Services should be rejected when no endpoints exist`,
-
-			// Mode returned by RHEL7 worker contains an extra character not expected by the test: dgtrwx vs dtrwx
-			// https://bugzilla.redhat.com/show_bug.cgi?id=1825024 - e2e: Failing test - HostPath should give a volume the correct mode
-			`\[sig-storage\] HostPath should give a volume the correct mode`,
-
 			// Currently ibm-master-proxy-static and imbcloud-block-storage-plugin tolerate all taints
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825027
 			`\[Feature:Platform\] Managed cluster should ensure control plane operators do not make themselves unevictable`,
 		},
 		// Tests which can't be run/don't make sense to run against a cluster with all optional capabilities disabled
 		"[Skipped:NoOptionalCapabilities]": {
-			// Requires CSISnapshot capability
-			`\[Feature:VolumeSnapshotDataSource\]`,
-			// Requires Storage capability
-			`\[Driver: aws\]`,
-			`\[Feature:StorageProvider\]`,
-
 			// This test requires a valid console url which doesn't exist when the optional console capability is disabled.
 			`\[sig-cli\] oc basics can show correct whoami result with console`,
 		},

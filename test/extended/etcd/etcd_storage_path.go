@@ -280,28 +280,30 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 
 	removeStorageData(t, etcdStorageData,
 		// disabled alpha versions
+		gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicybindings"),
+		gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicies"),
+		gvr("certificates.k8s.io", "v1alpha1", "clustertrustbundles"),
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
-		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
 		gvr("networking.k8s.io", "v1alpha1", "clustercidrs"),
-		gvr("resource.k8s.io", "v1alpha1", "resourceclasses"),
-		gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicybindings"),
-		gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicies"),
-		gvr("resource.k8s.io", "v1alpha1", "resourceclaimtemplates"),
-		gvr("resource.k8s.io", "v1alpha1", "resourceclaims"),
-		gvr("resource.k8s.io", "v1alpha1", "podschedulings"),
+		gvr("networking.k8s.io", "v1alpha1", "ipaddresses"),
+		gvr("resource.k8s.io", "v1alpha2", "resourceclasses"),
+		gvr("resource.k8s.io", "v1alpha2", "resourceclaimtemplates"),
+		gvr("resource.k8s.io", "v1alpha2", "resourceclaims"),
+		gvr("resource.k8s.io", "v1alpha2", "podschedulingcontexts"),
+		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
 		// disabled deprecated versions
 		gvr("autoscaling", "v2beta1", "horizontalpodautoscalers"),
+		gvr("autoscaling", "v2beta2", "horizontalpodautoscalers"),
 		gvr("batch", "v1beta1", "cronjobs"),
 		gvr("discovery.k8s.io", "v1beta1", "endpointslices"),
 		gvr("events.k8s.io", "v1beta1", "events"),
-		gvr("node.k8s.io", "v1beta1", "runtimeclasses"),
-		gvr("policy", "v1beta1", "poddisruptionbudgets"),
-		gvr("policy", "v1beta1", "podsecuritypolicies"),
-		gvr("autoscaling", "v2beta2", "horizontalpodautoscalers"),
 		gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "flowschemas"),
 		gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "prioritylevelconfigurations"),
+		gvr("node.k8s.io", "v1beta1", "runtimeclasses"),
+		gvr("policy", "v1beta1", "poddisruptionbudgets"),
+		gvr("storage.k8s.io", "v1beta1", "csistoragecapacities"),
 	)
 
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
@@ -323,50 +325,10 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		// TODO: When rebase has started, fixup etcd storage data that has been modified
 		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.27 release.
 
-		// see https://github.com/kubernetes/kubernetes/pull/114492
-		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta2", "flowschemas")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "fs-1"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
-			ExpectedEtcdPath: "/registry/flowschemas/fs-1",
-			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta3", "FlowSchema"),
-		}
-		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta2", "prioritylevelconfigurations")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "conf3"}, "spec": {"type": "Limited", "limited": {"assuredConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
-			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf3",
-			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta3", "PriorityLevelConfiguration"),
-		}
-		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "flowschemas")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "fs-2"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
-			ExpectedEtcdPath: "/registry/flowschemas/fs-2",
-		}
-		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "prioritylevelconfigurations")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "conf4"}, "spec": {"type": "Limited", "limited": {"nominalConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
-			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf4",
-		}
-
-		// see https://github.com/kubernetes/kubernetes/pull/114358
-		etcdStorageData[gvr("autoscaling", "v1", "horizontalpodautoscalers")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "hpa2"}, "spec": {"maxReplicas": 3, "scaleTargetRef": {"kind": "something", "name": "cross"}}}`,
-			ExpectedEtcdPath: "/registry/horizontalpodautoscalers/" + oc.Namespace() + "/hpa2",
-			ExpectedGVK:      gvkP("autoscaling", "v2", "HorizontalPodAutoscaler"),
-		}
-		etcdStorageData[gvr("autoscaling", "v2", "horizontalpodautoscalers")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "hpa4"}, "spec": {"maxReplicas": 3, "scaleTargetRef": {"kind": "something", "name": "cross"}}}`,
-			ExpectedEtcdPath: "/registry/horizontalpodautoscalers/" + oc.Namespace() + "/hpa4",
-		}
-
-		// see https://github.com/kubernetes/kubernetes/pull/115193
-		etcdStorageData[gvr("policy", "v1", "poddisruptionbudgets")] = etcddata.StorageData{
-			Stub:             `{"metadata": {"name": "pdbv1"}, "spec": {"selector": {"matchLabels": {"anokkey": "anokvalue"}}}}`,
-			ExpectedEtcdPath: "/registry/poddisruptionbudgets/" + oc.Namespace() + "/pdbv1",
-		}
-
 		// Removed etcd data.
 		// TODO: When rebase has started, remove etcd storage data that has been removed
 		//       from k8s.io/kubernetes/test/integration/etcd/data.go in the 1.27 release.
-		removeStorageData(t, etcdStorageData,
-			// see https://github.com/kubernetes/kubernetes/pull/116523
-			gvr("storage.k8s.io", "v1beta1", "csistoragecapacities"),
-		)
+		removeStorageData(t, etcdStorageData)
 	}
 
 	// we use a different default path prefix for kube resources

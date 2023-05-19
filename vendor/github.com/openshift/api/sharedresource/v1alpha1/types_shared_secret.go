@@ -33,7 +33,10 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +kubebuilder:subresource:status
 //
 type SharedSecret struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the specification of the desired shared secret
@@ -53,8 +56,12 @@ type SharedSecret struct {
 // +openshift:compatibility-gen:level=4
 type SharedSecretList struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []SharedSecret `json:"items"`
+
+	Items []SharedSecret `json:"items"`
 }
 
 // SharedSecretReference contains information about which Secret to share

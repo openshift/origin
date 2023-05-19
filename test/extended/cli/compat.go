@@ -43,14 +43,14 @@ var _ = g.Describe("[sig-cli] oc", func() {
 		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		pod := cli.Create(newShellPod(heredoc.Docf(`
+		pod := cli.Create(context.TODO(), newShellPod(heredoc.Docf(`
 			set -x
 
 			# verify we can make API calls
 			oc get secrets
 			oc whoami
 		`)))
-		cli.WaitForSuccess(pod.Name, 5*time.Minute)
+		cli.WaitForSuccess(context.TODO(), pod.Name, 5*time.Minute)
 	})
 
 	g.It("can get list of nodes", func() {

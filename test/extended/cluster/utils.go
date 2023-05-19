@@ -90,7 +90,7 @@ func SyncPods(c kclientset.Interface, ns string, selectors map[string]string, ti
 
 	err = wait.Poll(2*time.Second, timeout,
 		func() (bool, error) {
-			podList, err := pod.WaitForPodsWithLabel(c, ns, label)
+			podList, err := pod.WaitForPodsWithLabel(context.TODO(), c, ns, label)
 			if err != nil {
 				framework.Failf("Failed getting pods: %v", err)
 				return false, nil // Ignore this error (nil) and try again in "Poll" time

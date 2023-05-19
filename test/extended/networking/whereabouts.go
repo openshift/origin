@@ -42,13 +42,13 @@ var _ = g.Describe("[sig-network][Feature:Whereabouts]", func() {
 			"k8s.v1.cni.cncf.io/networks": "wa-conf",
 		}
 		// First three pods should come up without issue.
-		testPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+		testPod := frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podName, func(pod *v1.Pod) {
 			pod.ObjectMeta.Annotations = annotation
 		})
-		testPod2 := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+		testPod2 := frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podName, func(pod *v1.Pod) {
 			pod.ObjectMeta.Annotations = annotation
 		})
-		testPod3 := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+		testPod3 := frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podName, func(pod *v1.Pod) {
 			pod.ObjectMeta.Annotations = annotation
 		})
 		// Fourth pod should not come up.
@@ -136,7 +136,7 @@ var _ = g.Describe("[sig-network][Feature:Whereabouts]", func() {
 		annotation := map[string]string{
 			"k8s.v1.cni.cncf.io/networks": "wa-sleepy-conf",
 		}
-		sleepyPod := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+		sleepyPod := frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podName, func(pod *v1.Pod) {
 			pod.ObjectMeta.Annotations = annotation
 			pod.ObjectMeta.Name = "sleepy-pod"
 		})
@@ -144,7 +144,7 @@ var _ = g.Describe("[sig-network][Feature:Whereabouts]", func() {
 		annotation = map[string]string{
 			"k8s.v1.cni.cncf.io/networks": "wa-awake-conf",
 		}
-		awakePod := frameworkpod.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *v1.Pod) {
+		awakePod := frameworkpod.CreateExecPodOrFail(context.TODO(), f.ClientSet, ns, podName, func(pod *v1.Pod) {
 			pod.ObjectMeta.Annotations = annotation
 			pod.ObjectMeta.Name = "awake-pod"
 		})
