@@ -236,7 +236,8 @@ func newUploadIntervalsCommand() *cobra.Command {
 				logrus.WithError(err).Fatal("error loading intervals file")
 			}
 			logrus.Infof("loaded %d intervals", len(intervals))
-			err = monitor.UploadIntervalsToLoki(os.Getenv("LOKI_SSO_CLIENT_ID"), os.Getenv("LOKI_SSO_CLIENT_SECRET"), intervals)
+
+			err = monitor.UploadIntervalsToLoki(intervals)
 			if err != nil {
 				logrus.WithError(err).Fatal("error uploading intervals to loki")
 			}

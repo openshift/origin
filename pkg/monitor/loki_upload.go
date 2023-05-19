@@ -93,7 +93,26 @@ func pushBatch(client *http.Client, bearerToken string, lokiData LokiData) error
 		})
 }
 
-func UploadIntervalsToLoki(clientID, clientSecret string, intervals monitorapi.Intervals) error {
+func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
+
+	// Ensure we have appropriate env vars defined, if not exit with an error.
+	clientID, defined := os.LookupEnv("LOKI_SSO_CLIENT_ID")
+	if !defined {
+		return fmt.Errorf("LOKI_SSO_CLIENT_ID env var is not defined")
+	}
+	clientSecret, defined := os.LookupEnv("LOKI_SSO_CLIENT_SECRET")
+	if !defined {
+		return fmt.Errorf("LOKI_SSO_CLIENT_SECRET env var is not defined")
+	}
+	jobName, defined := os.LookupEnv("JOB_NAME")
+	if !defined {
+		return fmt.Errorf("JOB_NAME env var is not defined")
+	}
+	buildID, defined := os.LookupEnv("BUILD_ID")
+	if !defined {
+		return fmt.Errorf("BUILD_ID env var is not defined")
+	}
+
 	bearerToken, err := obtainSSOBearerToken(clientID, clientSecret, intervals)
 	if err != nil {
 		return err
@@ -107,8 +126,12 @@ func UploadIntervalsToLoki(clientID, clientSecret string, intervals monitorapi.I
 	// part of which is we lose out on resilient retries in the event the ingesters are overloaded.
 
 	values := make([][]interface{}, 0)
-	// TODO: Replace, this is exported in scripts not globally defined: export OPENSHIFT_INSTALL_INVOKER="openshift-internal-ci/${JOB_NAME}/${BUILD_ID}"
-	invoker := os.Getenv("OPENSHIFT_INSTALL_INVOKER")
+	// TODO: Replace, this is exported in scripts not globally defined
+	// : export OPENSHIFT_INSTALL_INVOKER="openshift-internal-ci/${JOB_NAME}/${BUILD_ID}"
+
+	// This format matches the labels used for the cluster logs in loki, and we want this
+	// to be labelled the same.
+	invoker := fmt.Sprintf("openshift-internal-ci/%s/%s", jobName, buildID)
 	if invoker == "" {
 		return fmt.Errorf("OPENSHIFT_INSTALL_INVOKER is needed for the invoker loki label")
 	}
@@ -118,7 +141,6 @@ func UploadIntervalsToLoki(clientID, clientSecret string, intervals monitorapi.I
 	}
 
 	for _, i := range intervals {
-		//logLine := LogEntry{Entry: i.Message}
 		logLine := map[string]string{
 			"_entry": i.Message,
 		}
@@ -137,7 +159,7 @@ func UploadIntervalsToLoki(clientID, clientSecret string, intervals monitorapi.I
 			tag, val := parts[0], parts[1]
 			if strings.TrimSpace(tag) == "" {
 				// Have seen this fail on: WARN[0002] unable to process locator tag: May 12 11:10:00.000 I /machine-config reason/OperatorVersionChanged clusteroperator/machine-config-operator version changed from [{operator 4.14.0-0.nightly-2023-05-03-163151}] to [{operator 4.14.0-0.nightly-2023-05-12-121801}]
-				// Would be interesting to track down where this is coming from
+				// Would be interesting to track down where this is coming from. Should be identification.go OperatorLocator, but this is impossible.
 				logrus.Warnf("unable to process locator tag: %+v", i)
 				continue
 			}
