@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +23,7 @@ import (
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	svc "k8s.io/kubernetes/test/e2e/framework/service"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
@@ -64,7 +64,7 @@ func launchWebserverNodePortService(client k8sclient.Interface, namespace, servi
 
 }
 
-func launchWebserverLoadBalancerService(client k8sclient.Interface, namespace, serviceName string, nodeName string, externalIPs []string) int32 {
+func launchWebserverLoadBalancerService(client k8sclient.Interface, namespace, serviceName string, nodeName string) (int32, []v1.LoadBalancerIngress) {
 	labelSelector := make(map[string]string)
 	labelSelector["name"] = "web"
 	createPodForService(client, namespace, serviceName, nodeName, labelSelector)
@@ -82,8 +82,7 @@ func launchWebserverLoadBalancerService(client k8sclient.Interface, namespace, s
 					Port:     int32(servicePort),
 				},
 			},
-			Selector:    labelSelector,
-			ExternalIPs: externalIPs,
+			Selector: labelSelector,
 		},
 	}
 	serviceClient := client.CoreV1().Services(namespace)
@@ -93,7 +92,11 @@ func launchWebserverLoadBalancerService(client k8sclient.Interface, namespace, s
 	service, err = serviceClient.Get(context.Background(), serviceName, metav1.GetOptions{})
 	expectNoError(err)
 
-	return int32(servicePort)
+	jig := svc.NewTestJig(client, namespace, serviceName)
+	service, err = jig.WaitForLoadBalancer(context.Background(), 1*time.Minute)
+	expectNoError(err)
+
+	return int32(servicePort), service.Status.LoadBalancer.Ingress
 
 }
 
@@ -263,16 +266,11 @@ func checkKubeVirtInfraClusterConnectivity(serverFramework, clientFramework *e2e
 		serviceAddr = net.JoinHostPort(serverGuestNodeIP, strconv.Itoa(int(serverGuestNodePort)))
 	}
 	if serviceType == v1.ServiceTypeLoadBalancer {
-		hostUrl, err := url.Parse(serverFramework.ClientConfig().Host)
-		if err != nil {
-			return err
-		}
-		externalIP := hostUrl.Host
-		serverLBPort := launchWebserverLoadBalancerService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverGuestNode.Name, []string{externalIP})
-		serviceAddr = net.JoinHostPort(externalIP, strconv.Itoa(int(serverLBPort)))
+		serverLBPort, externalIP := launchWebserverLoadBalancerService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverGuestNode.Name)
+		serviceAddr = net.JoinHostPort(externalIP[0].IP, strconv.Itoa(int(serverLBPort)))
 	}
 
-	return checkConnectivityToHostWithCLI(clientFramework, oc, infraClientNode, "service-wget", serviceAddr, 10*time.Second, false)
+	return checkConnectivityToHostWithCLI(clientFramework, oc, infraClientNode, "service-wget", serviceAddr, 30*time.Second, false)
 }
 
 func checkKubeVirtInfraClusterNodePortConnectivity(serverFramework, clientFramework *e2e.Framework, oc *exutil.CLI) error {
@@ -302,9 +300,8 @@ func checkKubeVirtGuestClusterConnectivity(serverFramework, clientFramework *e2e
 		serviceAddr = exutil.LaunchWebserverPod(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name)
 	}
 	if serviceType == v1.ServiceTypeLoadBalancer {
-		externalIP := strings.TrimLeft(strings.Split(serverFramework.ClientConfig().Host, ":")[1], "/")
-		serverLBPort := launchWebserverLoadBalancerService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name, []string{externalIP})
-		serviceAddr = net.JoinHostPort(externalIP, strconv.Itoa(int(serverLBPort)))
+		serverLBPort, externalIP := launchWebserverLoadBalancerService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name)
+		serviceAddr = net.JoinHostPort(externalIP[0].IP, strconv.Itoa(int(serverLBPort)))
 
 	}
 	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", serviceAddr, 10*time.Second, hostNetwork)
@@ -317,6 +314,14 @@ func checkKubeVirtGuestClusterPodNetworkConnectivity(serverFramework, clientFram
 
 func checkKubeVirtGuestClusterHostNetworkConnectivity(serverFramework, clientFramework *e2e.Framework) error {
 	return checkKubeVirtGuestClusterConnectivity(serverFramework, clientFramework, true, v1.ServiceTypeClusterIP)
+}
+
+func checkKubeVirtInfraClusterLoadBalancerConnectivity(serverFramework, clientFramework *e2e.Framework, oc *exutil.CLI) error {
+	return checkKubeVirtInfraClusterConnectivity(serverFramework, clientFramework, oc, v1.ServiceTypeLoadBalancer)
+}
+
+func checkKubeVirtGuestClusterLoadBalancerConnectivity(serverFramework, clientFramework *e2e.Framework) error {
+	return checkKubeVirtGuestClusterConnectivity(serverFramework, clientFramework, false, v1.ServiceTypeLoadBalancer)
 }
 
 func InKubeVirtClusterContext(oc *exutil.CLI, body func()) {
@@ -333,6 +338,23 @@ func InKubeVirtClusterContext(oc *exutil.CLI, body func()) {
 			body()
 		},
 	)
+}
+
+func setMgmtFramework(mgmtFramework *e2e.Framework) *exutil.CLI {
+	_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
+	Expect(err).NotTo(HaveOccurred())
+
+	oc := exutil.NewHypershiftManagementCLI(hcpNamespace).AsAdmin()
+
+	mgmtClientSet := oc.KubeClient()
+	mgmtFramework.Namespace = &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: hcpNamespace,
+		},
+	}
+	mgmtFramework.ClientSet = mgmtClientSet
+
+	return oc
 }
 
 func expectNoError(err error, explain ...interface{}) {
