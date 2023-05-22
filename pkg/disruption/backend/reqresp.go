@@ -24,8 +24,12 @@ type RequestResponse struct {
 }
 
 func (rr RequestResponse) String() string {
-	return fmt.Sprintf("audit-id=%s conn-reused=%s status-code=%s protocol=%s roundtrip=%s retry-after=%s",
+	s := fmt.Sprintf("audit-id=%s conn-reused=%s status-code=%s protocol=%s roundtrip=%s retry-after=%s",
 		rr.GetAuditID(), rr.ConnectionReused(), rr.StatusCode(), rr.Protocol(), rr.RoundTripDuration.Round(time.Millisecond), rr.RetryAfter())
+	if rr.ShutdownResponse != nil {
+		s = fmt.Sprintf("%s %s", s, rr.ShutdownResponse.String())
+	}
+	return s
 }
 
 func (rr RequestResponse) Fields() map[string]interface{} {
@@ -36,6 +40,11 @@ func (rr RequestResponse) Fields() map[string]interface{} {
 	fields["protocol"] = rr.Protocol()
 	fields["roundtrip"] = rr.RoundTripDuration.Round(time.Millisecond)
 	fields["retry-after"] = rr.RetryAfter()
+	if rr.ShutdownResponse != nil {
+		for k, v := range rr.ShutdownResponse.Fields() {
+			fields[k] = v
+		}
+	}
 
 	return fields
 }
@@ -102,4 +111,8 @@ func IsRetryAfter(resp *http.Response) (string, bool) {
 	}
 
 	return "", false
+}
+
+func (rr RequestResponse) ShutdownInProgress() bool {
+	return rr.ShutdownResponse != nil && rr.ShutdownResponse.ShutdownInProgress == true
 }

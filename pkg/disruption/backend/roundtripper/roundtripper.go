@@ -18,17 +18,20 @@ import (
 func WrapClient(client *http.Client, timeout time.Duration, userAgent string) backend.Client {
 	// This is the preferred order:
 	//   - WithTimeout will set a timeout within which the entire chain should finish
+	//   - WithShutdownResponseHeaderExtractor opts in for shutdown response header
 	//   - WithAuditID attaches an audit ID to the request header
 	//   - WithUserAgent sets the user agent
 	//   - WithGotConnTrace sets the connection trace
 	//   - http.Client.Do executes
 	//   - WithRoundTripLatencyTracking measures the latency of http.Client
 	//   - WithResponseBodyReader reads off the response body
+	//   - WithShutdownResponseHeaderExtractor parses the shutdown response header
 	c := WithRoundTripLatencyTracking(client)
 	c = WithResponseBodyReader(c)
 	c = WithGotConnTrace(c)
 	c = WithUserAgent(c, userAgent)
 	c = WithAuditID(c)
+	c = WithShutdownResponseHeaderExtractor(c)
 	c = WithTimeout(c, timeout)
 
 	return c
