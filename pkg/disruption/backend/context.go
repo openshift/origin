@@ -48,6 +48,13 @@ type RequestContextAssociatedData struct {
 	// ResponseBodyReadErr is set if any error occurs while reading the
 	// body of the response, or while closing the underlying stream.
 	ResponseBodyReadErr error
+
+	// ShutdownResponse holds the result of parsing the 'X-OpenShift-Disruption'
+	// response header, it will be nil if ShutdownResponseHeaderParseErr is set.
+	ShutdownResponse *ShutdownResponse
+	// ShutdownResponseHeaderParseErr is set if there was an error parsing the
+	// 'X-OpenShift-Disruption' response header
+	ShutdownResponseHeaderParseErr error
 }
 
 // GotConnInfo similar to net/http GotConnInfo without the connection object

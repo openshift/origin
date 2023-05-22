@@ -43,7 +43,7 @@ func (l logger) log(s backend.SampleResult) {
 	_, retry := rr.IsRetryAfter()
 	// we will log it only when it has interesting data,
 	// an error, a retry after, or shutdown window in progress
-	if !(l.logAll || (err != nil || retry)) {
+	if !(l.logAll || (err != nil || rr.ShutdownInProgress() || retry)) {
 		return
 	}
 

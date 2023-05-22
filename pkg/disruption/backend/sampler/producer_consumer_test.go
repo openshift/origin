@@ -72,6 +72,10 @@ func TestProducer(t *testing.T) {
 		t.Errorf("expected remote address to be set")
 	}
 
+	if got := reqRespInfoGot.ShutdownResponse; got == nil {
+		t.Errorf("expected ShutdownResponse to be set")
+	}
+
 	info, err = producer.Produce(context.TODO(), 2)
 	if err != nil {
 		t.Errorf("expected no error, but got: %v", err)
