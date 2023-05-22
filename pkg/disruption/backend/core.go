@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -54,4 +55,17 @@ type Monitor interface {
 type WantEventRecorderAndMonitor interface {
 	SetEventRecorder(events.EventRecorder)
 	SetMonitor(monitor Monitor)
+}
+
+// HostNameDecoder is responsible for decoding the
+// APIServerIdentity into the human readable hostname.
+type HostNameDecoder interface {
+	Decode(string) string
+}
+
+// HostNameDecoderWithRunner is a HostNameDecoder and also have a Run method
+// that runs asynchronously in order to get the host name(s) from the cluster.
+type HostNameDecoderWithRunner interface {
+	HostNameDecoder
+	Run(stop context.Context) (done context.Context)
 }

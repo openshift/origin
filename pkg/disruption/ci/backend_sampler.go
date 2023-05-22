@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/disruption/sampler"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/events"
@@ -21,6 +22,7 @@ type BackendSampler struct {
 
 	wantEventRecorderAndMonitor []backend.WantEventRecorderAndMonitor
 	baseURL                     string
+	hostNameDecoder             backend.HostNameDecoderWithRunner
 	lock                        sync.Mutex
 	cancel                      context.CancelFunc
 }
@@ -79,10 +81,22 @@ func (bs *BackendSampler) RunEndpointMonitoring(ctx context.Context, m backenddi
 		s.SetEventRecorder(eventRecorder)
 	}
 
+	var hostNameDecoderStopped context.Context
+	if bs.hostNameDecoder != nil {
+		hostNameDecoderStopped = bs.hostNameDecoder.Run(ctx)
+	}
+
+	framework.Logf("DisruptionTest: starting sampler name=%s", bs.Name())
 	samplerStopped := bs.SampleRunner.Run(ctx)
 
 	<-ctx.Done()
+
+	framework.Logf("DisruptionTest: stop context canceled, waiting for Run to return name=%s", bs.Name())
 	<-samplerStopped.Done()
+	framework.Logf("DisruptionTest: Run has completed name=%s", bs.Name())
+	if hostNameDecoderStopped != nil {
+		<-hostNameDecoderStopped.Done()
+	}
 
 	return nil
 }
