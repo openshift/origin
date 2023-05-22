@@ -177,7 +177,19 @@
         return false
     }
 
+    function isGracefulShutdownActivity(eventInterval) {
+        if (eventInterval.locator.includes("disruption/graceful-shutdown")) {
+            return true
+        }
+
+        return false
+    }
+
     function isEndpointConnectivity(eventInterval) {
+        if (eventInterval.locator.includes("disruption/graceful-shutdown")) {
+            // exclude kube-apiserver shutdown window timeline from here
+            return false
+        }
         if (!eventInterval.message.includes("reason/DisruptionBegan") && !eventInterval.message.includes("reason/DisruptionSamplerOutageBegan")){
             return false
         }
@@ -313,6 +325,16 @@
         return [item.locator, "", "AlertCritical"]
     }
 
+    function apiserverDisruptionValue(item) {
+        // TODO: isolate DNS error into CIClusterDisruption
+        return [item.locator, "", "Disruption"]
+    }
+
+    function apiserverShutdownValue(item) {
+        // TODO: isolate DNS error into CIClusterDisruption
+        return [item.locator, "", "GracefulShutdownDisruption"]
+    }
+
     function disruptionValue(item) {
         // We classify these disruption samples with this message if it thinks
         // it looks like a problem in the CI cluster running the tests, not the cluster under test.
@@ -442,6 +464,9 @@
 
         timelineGroups.push({group: "endpoint-availability", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
+
+        timelineGroups.push({group: "apiserver-shutdown", data: []})
+        createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
