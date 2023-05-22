@@ -34,6 +34,7 @@ func newCIHandler(monitor backend.Monitor, eventRecorder events.EventRecorder, l
 }
 
 var _ intervalHandler = &ciHandler{}
+var _ backend.WantEventRecorderAndMonitor = &ciHandler{}
 
 // ciHandler records the availability and unavailability interval in CI
 type ciHandler struct {
@@ -43,6 +44,16 @@ type ciHandler struct {
 	connType      monitorapi.BackendConnectionType
 
 	openIntervalID int
+}
+
+// SetEventRecorder sets the event recorder
+func (m *ciHandler) SetEventRecorder(recorder events.EventRecorder) {
+	m.eventRecorder = recorder
+}
+
+// SetMonitor sets the interval recorder provided by the monitor API
+func (m *ciHandler) SetMonitor(monitor backend.Monitor) {
+	m.monitor = monitor
 }
 
 // UnavailableStarted records an unavailable disruption interval in CI

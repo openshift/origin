@@ -11,27 +11,6 @@ import (
 	"k8s.io/client-go/tools/events"
 )
 
-// NewShutdownIntervalTracker returns a SampleCollector that does the following:
-//
-//   - it goes through each sample result, and constructs shutdown interval(s)
-//     from the 'X-Openshift-Disruption' response header, and then
-//
-//   - it records each shutdown interval in CI
-//
-//     delegate: the next SampleCollector in the chain to be invoked
-//     monitor: Monitor API to start and end an interval in CI
-//     eventRecorder: to create events associated with the intervals
-//     locator: the CI locator assigned to this disruption test
-//     name: name of the disruption test
-func NewShutdownIntervalTracker(delegate backendsampler.SampleCollector, monitor backend.Monitor,
-	eventRecorder events.EventRecorder, locator, name string) *shutdownIntervalTracker {
-	return &shutdownIntervalTracker{
-		delegate:  delegate,
-		handler:   newCIShutdownIntervalHandler(monitor, eventRecorder, locator, name),
-		intervals: make(map[string]*shutdownInterval),
-	}
-}
-
 // NewSharedShutdownIntervalTracker returns a SampleCollector
 // that does the following:
 //
@@ -52,8 +31,10 @@ func NewShutdownIntervalTracker(delegate backendsampler.SampleCollector, monitor
 // shutdown event of the kube-apiserver, and request(s) from different
 // backend sampler(s) will potentially hit the kube-apiserver
 // during a graceful shutdown window.
+// This function returns an instance of WantEventRecorderAndMonitor, the test
+// driver can use it to pass along the shared event recorder and monitor.
 func NewSharedShutdownIntervalTracker(delegate backendsampler.SampleCollector, monitor backend.Monitor,
-	eventRecorder events.EventRecorder, locator, name string) *sharedShutdownIntervalTracker {
+	eventRecorder events.EventRecorder, locator, name string) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitor) {
 	handler := newCIShutdownIntervalHandler(monitor, eventRecorder, locator, name)
 	return &sharedShutdownIntervalTracker{
 		shutdownIntervalTracker: &shutdownIntervalTracker{
@@ -61,7 +42,7 @@ func NewSharedShutdownIntervalTracker(delegate backendsampler.SampleCollector, m
 			handler:   handler,
 			intervals: make(map[string]*shutdownInterval),
 		},
-	}
+	}, handler
 }
 
 // allows a set of disruption test(s) to share the same shutdown

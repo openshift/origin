@@ -30,12 +30,12 @@ import (
 //
 //	unavailable[s2,s4] available[s5,s6] unavailable[s7] available[s8]
 func NewIntervalTracker(delegate backendsampler.SampleCollector, monitor backend.Monitor, eventRecorder events.EventRecorder,
-	locator, name string, connType monitorapi.BackendConnectionType) *intervalTracker {
+	locator, name string, connType monitorapi.BackendConnectionType) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitor) {
 	handler := newCIHandler(monitor, eventRecorder, locator, name, connType)
 	return &intervalTracker{
 		delegate: delegate,
 		handler:  handler,
-	}
+	}, handler
 }
 
 // intervalHandler is an internal interface that receives the calculated
