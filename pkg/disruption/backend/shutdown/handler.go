@@ -20,11 +20,24 @@ func newCIShutdownIntervalHandler(monitor backend.Monitor, eventRecorder events.
 	}
 }
 
+var _ shutdownIntervalHandler = &ciShutdownIntervalHandler{}
+var _ backend.WantEventRecorderAndMonitor = &ciShutdownIntervalHandler{}
+
 type ciShutdownIntervalHandler struct {
 	monitor       backend.Monitor
 	eventRecorder events.EventRecorder
 	locator, name string
 	connType      monitorapi.BackendConnectionType
+}
+
+// SetEventRecorder sets the event recorder
+func (m *ciShutdownIntervalHandler) SetEventRecorder(recorder events.EventRecorder) {
+	m.eventRecorder = recorder
+}
+
+// SetMonitor sets the interval recorder provided by the monitor API
+func (m *ciShutdownIntervalHandler) SetMonitor(monitor backend.Monitor) {
+	m.monitor = monitor
 }
 
 func (m *ciShutdownIntervalHandler) Handle(shutdown *shutdownInterval) {
