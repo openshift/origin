@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-cli] oc annotate", func() {
 		g.By("setting a new annotation")
 		out, err := oc.Run("annotate").Args("pod", "hello-openshift", "new-anno=hello").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift annotated"))
+		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift annotate"))
 
 		g.By("validating new annotation")
 		out, err = oc.Run("get").Args("pod", "hello-openshift", "--template", podAnnotationTemplate).Output()
@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-cli] oc annotate", func() {
 		g.By("removing the annotation")
 		out, err = oc.Run("annotate").Args("pod", "hello-openshift", "new-anno-").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift annotated"))
+		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift annotate"))
 
 		g.By("validating missing annotation")
 		out, err = oc.Run("get").Args("pod", "hello-openshift", "--template", podAnnotationTemplate).Output()
@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-cli] oc annotate", func() {
 		g.By("setting empty annotation")
 		out, err = oc.Run("annotate").Args("pod", "hello-openshift", `new-anno=`).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift annotated"))
+		o.Expect(out).To(o.ContainSubstring("pod/hello-openshift annotate"))
 
 		g.By("validating empty annotation")
 		out, err = oc.Run("get").Args("pod", "hello-openshift", "--template", podAnnotationTemplate).Output()
