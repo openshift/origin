@@ -14,8 +14,34 @@ import (
 	"github.com/openshift/origin/pkg/disruption/backend"
 )
 
+// Config holds the user specified parameters to make a new client
+type Config struct {
+	RT            http.RoundTripper
+	ClientTimeout time.Duration
+	UserAgent     string
+
+	// EnableShutdownResponseHeader indicates whether to include the shutdown
+	// response header extractor, this should be true only when the
+	// request(s) are being sent to the kube-apiserver.
+	EnableShutdownResponseHeader bool
+}
+
+// NewClient returns a new Client instance constructed
+// from the user specified configuration.
+func NewClient(c Config) (backend.Client, error) {
+	if c.RT == nil {
+		return nil, fmt.Errorf("must initialize a round tripper before setting up a client")
+	}
+
+	client := &http.Client{
+		Transport: c.RT,
+		Timeout:   c.ClientTimeout,
+	}
+	return WrapClient(client, c.ClientTimeout, c.UserAgent, c.EnableShutdownResponseHeader), nil
+}
+
 // WrapClient wraps the base http.Client object
-func WrapClient(client *http.Client, timeout time.Duration, userAgent string) backend.Client {
+func WrapClient(client *http.Client, timeout time.Duration, userAgent string, shutdownResponse bool) backend.Client {
 	// This is the preferred order:
 	//   - WithTimeout will set a timeout within which the entire chain should finish
 	//   - WithShutdownResponseHeaderExtractor opts in for shutdown response header
@@ -31,7 +57,9 @@ func WrapClient(client *http.Client, timeout time.Duration, userAgent string) ba
 	c = WithGotConnTrace(c)
 	c = WithUserAgent(c, userAgent)
 	c = WithAuditID(c)
-	c = WithShutdownResponseHeaderExtractor(c)
+	if shutdownResponse {
+		c = WithShutdownResponseHeaderExtractor(c)
+	}
 	c = WithTimeout(c, timeout)
 
 	return c

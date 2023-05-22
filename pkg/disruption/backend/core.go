@@ -7,6 +7,8 @@ import (
 
 	"github.com/openshift/origin/pkg/disruption/sampler"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
+	"k8s.io/client-go/tools/events"
 )
 
 // Client sends a given request to the server, and
@@ -45,4 +47,11 @@ func (s SampleResult) AggregateErr() error {
 type Monitor interface {
 	StartInterval(t time.Time, condition monitorapi.Condition) int
 	EndInterval(startedInterval int, t time.Time)
+}
+
+// WantEventRecorderAndMonitor allows the test driver to pass on
+// the shared event recorder and the monitor instance.
+type WantEventRecorderAndMonitor interface {
+	SetEventRecorder(events.EventRecorder)
+	SetMonitor(monitor Monitor)
 }
