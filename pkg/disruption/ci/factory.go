@@ -134,12 +134,20 @@ func (t TestType) Validate() error {
 // dependency is an internal interface that facilitates writing a
 // unit test for the factory.
 type dependency interface {
+	// NewTransport returns a new http.RoundTripper that is appropriate
+	// to send requests to the target server.
 	NewTransport(TestConfiguration) (http.RoundTripper, error)
+
+	// HostName returns the host name in order to connect to the target server.
 	HostName() string
+
+	// GetHostNameDecoder returns the appropriate HostNameDecoder instance.
+	GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error)
 }
 
 type testFactory struct {
 	sharedShutdownInterval backendsampler.SampleCollector
+	hostNameDecoder        backend.HostNameDecoderWithRunner
 	dependency             dependency
 }
 
@@ -151,11 +159,20 @@ func (b *testFactory) New(c TestConfiguration) (*BackendSampler, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if b.hostNameDecoder == nil {
+		var err error
+		b.hostNameDecoder, err = b.dependency.GetHostNameDecoder()
+		if err != nil {
+			return nil, err
+		}
+	}
 	client, err := roundtripper.NewClient(roundtripper.Config{
 		RT:                           rt,
 		ClientTimeout:                c.Timeout,
 		UserAgent:                    c.Name(),
 		EnableShutdownResponseHeader: c.EnableShutdownResponseHeader,
+		HostNameDecoder:              b.hostNameDecoder,
 	})
 	if err != nil {
 		return nil, err
@@ -188,6 +205,7 @@ func (b *testFactory) New(c TestConfiguration) (*BackendSampler, error) {
 		SampleRunner:                runner,
 		wantEventRecorderAndMonitor: setters,
 		baseURL:                     requestor.GetBaseURL(),
+		hostNameDecoder:             b.hostNameDecoder,
 	}
 	return backendSampler, nil
 }
@@ -215,3 +233,6 @@ func (r *restConfigDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 	return rt, nil
 }
 func (r *restConfigDependency) HostName() string { return r.config.Host }
+func (r *restConfigDependency) GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error) {
+	return NewAPIServerIdentityToHostNameDecoder(r.config)
+}

@@ -68,7 +68,8 @@ func TestWithShutdownResponseHeaderExtractor(t *testing.T) {
 			ts.StartTLS()
 			defer ts.Close()
 
-			client := WithShutdownResponseHeaderExtractor(ts.Client())
+			decoder := &fakeDecoder{}
+			client := WithShutdownResponseHeaderExtractor(ts.Client(), decoder)
 
 			scoped := &backend.RequestContextAssociatedData{}
 			ctx := backend.WithRequestContextAssociatedData(context.Background(), scoped)
@@ -84,6 +85,21 @@ func TestWithShutdownResponseHeaderExtractor(t *testing.T) {
 			if !reflect.DeepEqual(test.expected, scoped) {
 				t.Errorf("expected a match - diff: %s", cmp.Diff(test.expected, scoped))
 			}
+
+			if sr := test.expected.ShutdownResponse; sr != nil {
+				if sr.Hostname != decoder.encoded {
+					t.Errorf("expected the hostname to match, want:%s, got:%s", sr.Hostname, decoder.encoded)
+				}
+			}
 		})
 	}
+}
+
+type fakeDecoder struct {
+	encoded string
+}
+
+func (f *fakeDecoder) Decode(s string) string {
+	f.encoded = s
+	return s
 }

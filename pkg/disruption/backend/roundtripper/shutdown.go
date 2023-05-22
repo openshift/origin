@@ -16,7 +16,7 @@ import (
 // parsed data to the request context.
 //
 //	format: shutdown=%t shutdown-delay-duration=%s elapsed=%s host=%s
-func WithShutdownResponseHeaderExtractor(delegate backend.Client) backend.Client {
+func WithShutdownResponseHeaderExtractor(delegate backend.Client, decoder backend.HostNameDecoder) backend.Client {
 	return backend.ClientFunc(func(req *http.Request) (*http.Response, error) {
 		req.Header.Set("X-Openshift-If-Disruption", "true")
 
@@ -36,6 +36,9 @@ func WithShutdownResponseHeaderExtractor(delegate backend.Client) backend.Client
 		}
 
 		shutdown, err := parse(h)
+		if shutdown != nil && decoder != nil {
+			shutdown.Hostname = decoder.Decode(shutdown.Hostname)
+		}
 		scoped.ShutdownResponseHeaderParseErr = err
 		scoped.ShutdownResponse = shutdown
 		return resp, err

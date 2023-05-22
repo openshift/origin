@@ -87,6 +87,9 @@ func (d *testServerDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 	return transport, nil
 }
 func (d *testServerDependency) HostName() string { return d.server.URL }
+func (d *testServerDependency) GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error) {
+	return nil, nil
+}
 
 type fakeCollector struct {
 	t *testing.T
