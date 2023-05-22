@@ -27,7 +27,7 @@ func TestProducer(t *testing.T) {
 	transport.DisableKeepAlives = false
 
 	wantAgent := "test"
-	client := roundtripper.WrapClient(ts.Client(), 0, wantAgent, true)
+	client := roundtripper.WrapClient(ts.Client(), 0, wantAgent, true, nil)
 	var producer sampler.Producer
 	producer = NewSampleProducerConsumer(client, NewHostPathRequestor(ts.URL, "/echo"),
 		ResponseCheckerFunc(DefaultResponseChecker), nil)

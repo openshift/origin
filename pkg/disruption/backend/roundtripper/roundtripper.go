@@ -24,6 +24,10 @@ type Config struct {
 	// response header extractor, this should be true only when the
 	// request(s) are being sent to the kube-apiserver.
 	EnableShutdownResponseHeader bool
+
+	// HostNameDecoder, if specified, is used to decode the APIServerIdentity
+	// inside the shutdown response header into the actual human readable hostname.
+	HostNameDecoder backend.HostNameDecoder
 }
 
 // NewClient returns a new Client instance constructed
@@ -37,11 +41,11 @@ func NewClient(c Config) (backend.Client, error) {
 		Transport: c.RT,
 		Timeout:   c.ClientTimeout,
 	}
-	return WrapClient(client, c.ClientTimeout, c.UserAgent, c.EnableShutdownResponseHeader), nil
+	return WrapClient(client, c.ClientTimeout, c.UserAgent, c.EnableShutdownResponseHeader, c.HostNameDecoder), nil
 }
 
 // WrapClient wraps the base http.Client object
-func WrapClient(client *http.Client, timeout time.Duration, userAgent string, shutdownResponse bool) backend.Client {
+func WrapClient(client *http.Client, timeout time.Duration, userAgent string, shutdownResponse bool, decoder backend.HostNameDecoder) backend.Client {
 	// This is the preferred order:
 	//   - WithTimeout will set a timeout within which the entire chain should finish
 	//   - WithShutdownResponseHeaderExtractor opts in for shutdown response header
@@ -58,7 +62,7 @@ func WrapClient(client *http.Client, timeout time.Duration, userAgent string, sh
 	c = WithUserAgent(c, userAgent)
 	c = WithAuditID(c)
 	if shutdownResponse {
-		c = WithShutdownResponseHeaderExtractor(c)
+		c = WithShutdownResponseHeaderExtractor(c, decoder)
 	}
 	c = WithTimeout(c, timeout)
 
