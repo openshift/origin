@@ -13,19 +13,27 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authv1 "github.com/openshift/api/authorization/v1"
 	projv1 "github.com/openshift/api/project/v1"
+	"github.com/openshift/origin/pkg/cmd/monitor_command"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
-	namespace          = "openshift-e2e-disruption-monitor"
-	serviceAccountName = "disruption-monitor-sa"
+	namespace            = "openshift-e2e-disruption-monitor"
+	serviceAccountName   = "disruption-monitor-sa"
+	varLogPath           = "/var/log"
+	disruptionDataFolder = "disruption-data"
 )
+
+var disruptionDataPath = fmt.Sprintf("%s/%s", varLogPath, disruptionDataFolder)
 
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
@@ -41,11 +49,24 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		ctx := context.Background()
 		deleteTestBed(ctx, oc)
 
-		// Fetch e2e jsons from each node's /var/log/disruption-data
-		// oc adm node-logs vrutkovs-4-14-j8hdc-worker-c-6ct6d --path=disruption-data/monitor-events/ to list all e2e jsons
-		// Rename disruption events to include node name and disruption type (api-int / service)
-		// jq '.items[] | select(.locator? | match("^disruption\/"))' *.json | jq -s > disruption-only.json
-		// Append events as synthetic tests
+		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		var events monitorapi.Intervals
+		var errs []error
+		for _, node := range nodes.Items {
+			nodeEvents, err := fetchNodeInClusterEvents(oc, &node)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			framework.Logf("in-cluster monitors: found %d events for node %s", len(events), node.Name)
+			events = append(events, nodeEvents...)
+		}
+		if len(errs) > 0 {
+			framework.Logf("found errors fetching in-cluster data: %v", errs)
+		}
+		err = monitorserialization.EventsToFile(exutil.ArtifactPath(inClusterEventsFile), events)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
 
@@ -98,7 +119,6 @@ func callMasterDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIn
 		"app": "pod-monitor-master",
 	}
 	truePointer := true
-	disruptionDataPath := "/var/log/disruption-data"
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pod-monitor-masters",
@@ -189,7 +209,6 @@ func callWorkerDaemonset(ctx context.Context, oc *exutil.CLI, create bool) error
 		"app": "pod-monitor-worker",
 	}
 	truePointer := true
-	disruptionDataPath := "/var/log/disruption-data"
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pod-monitor-worker",
@@ -371,4 +390,65 @@ func callProject(ctx context.Context, oc *exutil.CLI, create bool) error {
 		return nil
 	}
 	return err
+}
+
+func fetchFileViaOC(oc *exutil.CLI, nodeName string, filePath string) (string, error) {
+	return oc.Run("adm", "node-logs").Args(nodeName, fmt.Sprintf("--path=%s", filePath)).Output()
+}
+
+func fetchNodeInClusterEvents(oc *exutil.CLI, node *corev1.Node) (monitorapi.Intervals, error) {
+	var events monitorapi.Intervals
+	var errs []error
+
+	// Fetch a list of e2e data files
+	basePath := fmt.Sprintf("/%s/%s", disruptionDataFolder, monitor_command.EventDir)
+	fileListOutput, err := fetchFileViaOC(oc, node.Name, basePath)
+	if err != nil {
+		return events, fmt.Errorf("failed to list files in disruption event folder on node %s: %v", node.Name, err)
+	}
+	fileList := strings.Split(strings.Trim(fileListOutput, "\n"), "\n")
+	for _, fileName := range fileList {
+		if len(fileName) == 0 {
+			continue
+		}
+		framework.Logf("Found events file %s on node %s", fileName, node.Name)
+		filePath := fmt.Sprintf("%s/%s", basePath, fileName)
+		fileEvents, err := fetchEventsFromFileOnNode(oc, filePath, node.Name)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		events = append(events, fileEvents...)
+	}
+
+	if len(errs) > 0 {
+		return events, fmt.Errorf("failed to process files on node %s: %v", node.Name, errs)
+	}
+
+	return events, nil
+}
+
+func fetchEventsFromFileOnNode(ctx context.Context, filePath string, nodeName string) (monitorapi.Intervals, error) {
+	var events monitorapi.Intervals
+	var err error
+
+	eventsJson, err := fetchFileViaOC(oc, nodeName, filePath)
+	if err != nil {
+		return events, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
+	}
+
+	allEvents, err := monitorserialization.EventsFromJSON([]byte(eventsJson))
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert file %s from node %s to intervals: %v", filePath, nodeName, err)
+	}
+	// Keep just disruption events and prefix with node name to ensure they are unique
+	for _, event := range allEvents {
+		if !strings.HasPrefix(event.Locator, "disruption/") {
+			continue
+		}
+		newEvent := event
+		newEvent.Locator = strings.ReplaceAll(event.Locator, "disruption/", fmt.Sprintf("disruption/%s/", nodeName))
+		events = append(events, newEvent)
+	}
+	framework.Logf("Fetched %d events from node %s", len(events), nodeName)
+	return events, err
 }
