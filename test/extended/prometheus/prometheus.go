@@ -67,6 +67,44 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"SystemMemoryExceedsReservation",
 	)
 
+	criticalAlertsMissingRunbookURLExceptions := sets.NewString(
+		// Repository: https://github.com/openshift/cluster-network-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14062
+		"OVNKubernetesNorthboundDatabaseClusterIDError",
+		"OVNKubernetesSouthboundDatabaseClusterIDError",
+		"OVNKubernetesNorthboundDatabaseLeaderError",
+		"OVNKubernetesSouthboundDatabaseLeaderError",
+		"OVNKubernetesNorthboundDatabaseMultipleLeadersError",
+		"OVNKubernetesSouthboundDatabaseMultipleLeadersError",
+		"OVNKubernetesNorthdInactive",
+
+		// Repository: https://github.com/openshift/cluster-kube-scheduler-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14052
+		"KubeSchedulerDown",
+
+		// Repository; https://github.com/openshift/cluster-storage-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14053
+		"MultipleDefaultStorageClasses",
+
+		// Repository: https://github.com/openshift/machine-api-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14055
+		"MachineAPIOperatorMetricsCollectionFailing",
+
+		// Repository: https://github.com/openshift/machine-config-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14056
+		"MCDRebootError",
+		"ExtremelyHighIndividualControlPlaneMemory",
+
+		// Repository: https://github.com/openshift/cluster-ingress-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14057
+		"HAProxyDown",
+
+		// Repository: https://github.com/openshift/cluster-version-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14246
+		"ClusterOperatorDown",
+		"ClusterVersionOperatorDown",
+	)
+
 	var alertingRules map[string][]promv1.AlertingRule
 	oc := exutil.NewCLIWithoutNamespace("prometheus")
 
@@ -151,6 +189,10 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have a runbook_url annotation if the alert is critical", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			if criticalAlertsMissingRunbookURLExceptions.Has(alert.Name) {
+				framework.Logf("Critical alerting rule %q is known to have missing runbook_url.", alert.Name)
+				return nil
+			}
 			violations := sets.NewString()
 			severity := string(alert.Labels["severity"])
 			runbook := string(alert.Annotations["runbook_url"])
@@ -159,13 +201,26 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 				violations.Insert(
 					fmt.Sprintf("WARNING: Alert %q is critical and has no 'runbook_url' annotation", alert.Name),
 				)
-			} else if runbook != "" {
-				// If there's a 'runbook_url' annotation, make sure it's a
-				// valid URL and that we can fetch the contents.
-				if err := helper.ValidateURL(runbook, 10*time.Second); err != nil {
+			}
+
+			return violations
+		})
+
+		if err != nil {
+			e2e.Failf(err.Error())
+		}
+	})
+
+	g.It("should link to an HTTP(S) location if the runbook_url annotation is defined", func() {
+		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			violations := sets.NewString()
+			runbook_url := string(alert.Annotations["runbook_url"])
+
+			if runbook_url != "" {
+				// If there's a 'runbook_url' annotation, make sure that it is a valid URL
+				if err := helper.ValidateURL(runbook_url); err != nil {
 					violations.Insert(
-						fmt.Sprintf("WARNING: Alert %q has an invalid 'runbook_url' annotation: %v",
-							alert.Name, err),
+						fmt.Sprintf("has an 'runbook_url' annotation which is not valid: %v", err),
 					)
 				}
 			}
@@ -174,8 +229,31 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		})
 
 		if err != nil {
-			// We are still gathering data on how many alerts need to
-			// be fixed, so this is marked as a flake for now.
+			e2e.Failf(err.Error())
+		}
+	})
+
+	g.It("should link to a valid URL if the runbook_url annotation is defined", func() {
+		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			violations := sets.NewString()
+			runbook_url := string(alert.Annotations["runbook_url"])
+
+			if runbook_url == "" {
+				return nil
+			}
+			// If there's a 'runbook_url' annotation, make sure that we can fetch the contents.
+			if err := helper.QueryURL(runbook_url, 10*time.Second); err != nil {
+				violations.Insert(
+					fmt.Sprintf("has a runbook URL which cannot be fetched: %v", err),
+				)
+			}
+
+			return violations
+		})
+
+		if err != nil {
+			// We can't fail the test because the runbook URLs might be temporarily unavailable.
+			// At least we can manually check the CI logs to identify buggy URLs.
 			testresult.Flakef(err.Error())
 		}
 	})
