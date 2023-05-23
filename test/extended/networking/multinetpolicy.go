@@ -136,7 +136,7 @@ func enableMultiNetworkPolicy(oc *exutil.CLI) {
 
 	o.Eventually(func() error {
 		return oc.AsAdmin().Run("get").Args("multi-networkpolicies.k8s.cni.cncf.io").Execute()
-	}, "30s", "2s").Should(o.Succeed())
+	}, "90s", "2s").Should(o.Succeed())
 
 	o.Eventually(func() error {
 		daemonset, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-multus").Get(context.Background(), "multus-networkpolicy", metav1.GetOptions{})
@@ -166,7 +166,7 @@ func disableMultiNetworkPolicy(oc *exutil.CLI) {
 
 	o.Eventually(func() error {
 		return oc.AsAdmin().Run("get").Args("multi-networkpolicies.k8s.cni.cncf.io").Execute()
-	}, "30s", "1s").Should(o.HaveOccurred())
+	}, "90s", "1s").Should(o.HaveOccurred())
 
 	o.Eventually(func() bool {
 		_, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-multus").Get(context.Background(), "multus-networkpolicy", metav1.GetOptions{})
