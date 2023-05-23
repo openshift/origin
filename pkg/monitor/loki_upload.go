@@ -268,12 +268,17 @@ func obtainSSOBearerToken(clientID, clientSecret string, intervals monitorapi.In
 		logrus.WithError(err).Error("error reading bearer token HTTP request body for bearer token")
 		return "", err
 	}
+	logrus.WithField("status", response.StatusCode).Info("obtained response to bearer token request")
 
 	var responseJSON map[string]interface{}
 	if err := json.Unmarshal(responseBody, &responseJSON); err != nil {
 		logrus.WithError(err).Error("error parsing bearer token HTTP request body as json")
-		fmt.Println("Error decoding response JSON:", err)
 		return "", err
+	}
+	if _, ok := responseJSON["access_token"]; !ok {
+		// TODO: careful we're not logging anything sensitive here
+		logrus.Errorf("no access token in response: %s", responseBody)
+		return "", fmt.Errorf("no access token in response")
 	}
 	bearerToken := responseJSON["access_token"].(string)
 	return bearerToken, nil
