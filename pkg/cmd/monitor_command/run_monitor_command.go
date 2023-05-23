@@ -32,6 +32,8 @@ type RunMonitorOptions struct {
 	TimelineOptions TimelineOptions
 }
 
+const EventDir = "monitor-events"
+
 func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOptions {
 	timelineOptions := NewTimelineOptions(ioStreams)
 
@@ -145,7 +147,7 @@ func (opt *RunMonitorOptions) Run() error {
 		recordedResources := m.CurrentResourceState()
 		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
-		eventDir := fmt.Sprintf("%s/monitor-events", opt.ArtifactDir)
+		eventDir := filepath.Join(opt.ArtifactDir, EventDir)
 		if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
 			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
 			return err

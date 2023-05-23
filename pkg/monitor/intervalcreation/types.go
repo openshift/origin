@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
-
 	"github.com/openshift/origin/pkg/monitor/nodedetails"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
