@@ -35,7 +35,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 
 	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
-	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
@@ -65,6 +64,44 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"MCDPivotError",
 		"MCDRebootError",
 		"SystemMemoryExceedsReservation",
+	)
+
+	criticalAlertsMissingRunbookURLExceptions := sets.NewString(
+		// Repository: https://github.com/openshift/cluster-network-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14062
+		"OVNKubernetesNorthboundDatabaseClusterIDError",
+		"OVNKubernetesSouthboundDatabaseClusterIDError",
+		"OVNKubernetesNorthboundDatabaseLeaderError",
+		"OVNKubernetesSouthboundDatabaseLeaderError",
+		"OVNKubernetesNorthboundDatabaseMultipleLeadersError",
+		"OVNKubernetesSouthboundDatabaseMultipleLeadersError",
+		"OVNKubernetesNorthdInactive",
+
+		// Repository: https://github.com/openshift/cluster-kube-scheduler-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14052
+		"KubeSchedulerDown",
+
+		// Repository; https://github.com/openshift/cluster-storage-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14053
+		"MultipleDefaultStorageClasses",
+
+		// Repository: https://github.com/openshift/machine-api-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14055
+		"MachineAPIOperatorMetricsCollectionFailing",
+
+		// Repository: https://github.com/openshift/machine-config-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14056
+		"MCDRebootError",
+		"ExtremelyHighIndividualControlPlaneMemory",
+
+		// Repository: https://github.com/openshift/cluster-ingress-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14057
+		"HAProxyDown",
+
+		// Repository: https://github.com/openshift/cluster-version-operator
+		// Issue: https://issues.redhat.com/browse/OCPBUGS-14246
+		"ClusterOperatorDown",
+		"ClusterVersionOperatorDown",
 	)
 
 	var alertingRules map[string][]promv1.AlertingRule
@@ -151,6 +188,10 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have a runbook_url annotation if the alert is critical", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			if criticalAlertsMissingRunbookURLExceptions.Has(alert.Name) {
+				framework.Logf("Critical alerting rule %q is known to have missing runbook_url.", alert.Name)
+				return nil
+			}
 			violations := sets.NewString()
 			severity := string(alert.Labels["severity"])
 			runbook := string(alert.Annotations["runbook_url"])
@@ -174,9 +215,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		})
 
 		if err != nil {
-			// We are still gathering data on how many alerts need to
-			// be fixed, so this is marked as a flake for now.
-			testresult.Flakef(err.Error())
+			e2e.Failf(err.Error())
 		}
 	})
 })
