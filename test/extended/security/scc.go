@@ -3,9 +3,10 @@ package security
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"strings"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
@@ -17,6 +18,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2ewebsocket "k8s.io/kubernetes/test/e2e/framework/websocket"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	securityv1 "github.com/openshift/api/security/v1"
@@ -54,6 +57,81 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 		RunTestPodUpdateSCCEnforcement(ctx, restrictedClient, oc.AdminKubeClient(), projectName, t)
 	})
+
+	g.It("Websocket requests to pods/exec are subject to security.openshift.io/SCCExecRestrictions", func() {
+		sa := createServiceAccount(ctx, oc, oc.Namespace())
+		createPodAdminRoleOrDie(ctx, oc, sa)
+		cfg := createClientConfigFromServiceAccount(oc, sa)
+		client, err := kubernetes.NewForConfig(cfg)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		pod, err := oc.AdminKubeClient().CoreV1().Pods(oc.Namespace()).Create(
+			ctx,
+			&corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{GenerateName: "super-"},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:    "first",
+							Image:   e2epod.GetDefaultTestImage(),
+							Command: e2epod.GenerateScriptCmd("sleep 3600"),
+						},
+					},
+					HostPID: true, // !
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		o.Expect(e2epod.WaitForPodRunningInNamespace(ctx, oc.AdminKubeClient(), pod)).To(o.Succeed())
+
+		request := client.CoreV1().RESTClient().Get().
+			Namespace(oc.Namespace()).
+			Name(pod.Name).
+			Resource("pods").
+			SubResource("exec").
+			Param("stdout", "true")
+
+		conn, err := e2ewebsocket.OpenWebSocketForURL(request.URL(), cfg, nil)
+		if err == nil {
+			conn.Close()
+			g.Fail("non-nil error expected")
+		}
+		o.Expect(err.Error()).To(o.HaveSuffix("bad status"))
+
+		// The underlying golang.org/x/net/websocket API can return a "bad status" error but
+		// does not expose the actual received status code or response body, so the test
+		// continues by demonstrating that authorizing the requester to use the privileged
+		// SCC allows an identical request to successfully complete the websocket
+		// handshake. This is also why a scheduleable pod is created and waited on.
+
+		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(
+			ctx, &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-sa-can-use-privileged-scc",
+				},
+				RoleRef: rbacv1.RoleRef{
+					Kind: "ClusterRole",
+					Name: "system:openshift:scc:privileged",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind: "ServiceAccount",
+						Name: sa.Name,
+					},
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		conn, err = e2ewebsocket.OpenWebSocketForURL(request.URL(), cfg, nil)
+		if err != nil {
+			g.Fail(fmt.Sprintf("unexpected error: %s", err.Error()))
+		}
+		conn.Close()
+	})
 })
 
 func RunTestPodUpdateSCCEnforcement(ctx context.Context, restrictedClient, clusterAdminKubeClientset kubernetes.Interface, namespace string, t g.GinkgoTInterface) {
@@ -80,17 +158,18 @@ func RunTestPodUpdateSCCEnforcement(ctx context.Context, restrictedClient, clust
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	result := &metav1.Status{}
-	err = haroldCorev1Rest.Post().
-		Resource("pods").
-		Namespace(namespace).
-		Name(actualPod.Name).
-		SubResource("exec").
-		Param("container", "first").
-		Do(ctx).
-		Into(result)
-	if !isForbiddenBySCCExecRestrictions(err) {
-		t.Fatalf("missing forbidden by SCCExecRestrictions: %v", err)
+	for _, verb := range []string{"GET", "POST"} {
+		err = haroldCorev1Rest.Verb(verb).
+			Resource("pods").
+			Namespace(namespace).
+			Name(actualPod.Name).
+			SubResource("exec").
+			Param("container", "first").
+			Do(ctx).
+			Error()
+		if !isForbiddenBySCCExecRestrictions(err) {
+			t.Errorf("missing forbidden by SCCExecRestrictions (verb %q): %v", verb, err)
+		}
 	}
 
 	// try to lie about the privileged nature
@@ -434,7 +513,7 @@ func runAsRootPSPSSR() *securityv1.PodSecurityPolicySelfSubjectReview {
 
 func createPodAdminRoleOrDie(ctx context.Context, oc *exutil.CLI, sa *corev1.ServiceAccount) {
 	framework.Logf("Creating role")
-	rule := rbacv1helpers.NewRule("create", "update").Groups("").Resources("pods", "pods/exec").RuleOrDie()
+	rule := rbacv1helpers.NewRule("create", "update", "get").Groups("").Resources("pods", "pods/exec").RuleOrDie()
 	_, err := oc.AdminKubeClient().RbacV1().Roles(sa.Namespace).Create(
 		ctx,
 		&rbacv1.Role{
@@ -510,7 +589,7 @@ func createPodSecurityPolicySelfSubjectReviewsRoleBindingOrDie(ctx context.Conte
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
-func createClientFromServiceAccount(oc *exutil.CLI, sa *corev1.ServiceAccount) (*kubernetes.Clientset, *securityv1client.SecurityV1Client) {
+func createClientConfigFromServiceAccount(oc *exutil.CLI, sa *corev1.ServiceAccount) *restclient.Config {
 	// create a new token request for the service account and use it to build a client for it
 	framework.Logf("Creating service account token")
 	bootstrapperToken, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(sa.Namespace).CreateToken(context.TODO(), sa.Name, &authenticationv1.TokenRequest{}, metav1.CreateOptions{})
@@ -519,5 +598,10 @@ func createClientFromServiceAccount(oc *exutil.CLI, sa *corev1.ServiceAccount) (
 	saClientConfig := restclient.AnonymousClientConfig(oc.AdminConfig())
 	saClientConfig.BearerToken = bootstrapperToken.Status.Token
 
+	return saClientConfig
+}
+
+func createClientFromServiceAccount(oc *exutil.CLI, sa *corev1.ServiceAccount) (*kubernetes.Clientset, *securityv1client.SecurityV1Client) {
+	saClientConfig := createClientConfigFromServiceAccount(oc, sa)
 	return kubernetes.NewForConfigOrDie(saClientConfig), securityv1client.NewForConfigOrDie(saClientConfig)
 }
