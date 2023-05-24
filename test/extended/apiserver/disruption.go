@@ -31,6 +31,8 @@ const (
 	serviceAccountName   = "disruption-monitor-sa"
 	varLogPath           = "/var/log"
 	disruptionDataFolder = "disruption-data"
+	disruptionTypeEnvVar = "DISRUPTION_TYPE_LABEL"
+	inClusterEventsFile  = "junit/AdditionalEvents__in_cluster_disruption.json"
 )
 
 var disruptionDataPath = fmt.Sprintf("%s/%s", varLogPath, disruptionDataFolder)
@@ -156,11 +158,23 @@ func callMasterDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIn
 									Name:  "KUBERNETES_SERVICE_PORT",
 									Value: "6443",
 								},
+								{
+									Name: "NODE_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "spec.nodeName",
+										},
+									},
+								},
 							},
 							Command: []string{
 								"openshift-tests",
 								"run-monitor",
 								"--api-disruption-only",
+								"--extra-locator",
+								"target=api-int",
+								"--extra-message",
+								"node=$(NODE_NAME)",
 								"--artifact-dir",
 								disruptionDataPath,
 							},
@@ -241,8 +255,22 @@ func callWorkerDaemonset(ctx context.Context, oc *exutil.CLI, create bool) error
 								"openshift-tests",
 								"run-monitor",
 								"--api-disruption-only",
+								"--extra-locator",
+								"target=service-network",
+								"--extra-message",
+								"node=$(NODE_NAME)",
 								"--artifact-dir",
 								disruptionDataPath,
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name: "NODE_NAME",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "spec.nodeName",
+										},
+									},
+								},
 							},
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: &truePointer,
@@ -427,28 +455,26 @@ func fetchNodeInClusterEvents(oc *exutil.CLI, node *corev1.Node) (monitorapi.Int
 	return events, nil
 }
 
-func fetchEventsFromFileOnNode(ctx context.Context, filePath string, nodeName string) (monitorapi.Intervals, error) {
-	var events monitorapi.Intervals
+func fetchEventsFromFileOnNode(oc *exutil.CLI, filePath string, nodeName string) (monitorapi.Intervals, error) {
+	var filteredEvents monitorapi.Intervals
 	var err error
 
 	eventsJson, err := fetchFileViaOC(oc, nodeName, filePath)
 	if err != nil {
-		return events, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
+		return filteredEvents, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
 	}
 
 	allEvents, err := monitorserialization.EventsFromJSON([]byte(eventsJson))
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert file %s from node %s to intervals: %v", filePath, nodeName, err)
 	}
-	// Keep just disruption events and prefix with node name to ensure they are unique
+	// Keep only disruption events
 	for _, event := range allEvents {
 		if !strings.HasPrefix(event.Locator, "disruption/") {
 			continue
 		}
-		newEvent := event
-		newEvent.Locator = strings.ReplaceAll(event.Locator, "disruption/", fmt.Sprintf("disruption/%s/", nodeName))
-		events = append(events, newEvent)
+		filteredEvents = append(filteredEvents, event)
 	}
-	framework.Logf("Fetched %d events from node %s", len(events), nodeName)
-	return events, err
+	framework.Logf("Fetched %d events from node %s", len(filteredEvents), nodeName)
+	return filteredEvents, err
 }

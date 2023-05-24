@@ -26,6 +26,8 @@ type RunMonitorOptions struct {
 	Out, ErrOut       io.Writer
 	ArtifactDir       string
 	APIDisruptionOnly bool
+	ExtraLocator      string
+	ExtraMessage      string
 
 	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
 
@@ -64,6 +66,12 @@ func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command 
 	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
 		"artifact-dir", monitorOpt.ArtifactDir,
 		"The directory where monitor events will be stored.")
+	cmd.Flags().StringVar(&monitorOpt.ExtraLocator,
+		"extra-locator", monitorOpt.ExtraLocator,
+		"Add custom label to disruption event locator")
+	cmd.Flags().StringVar(&monitorOpt.ExtraMessage,
+		"extra-message", monitorOpt.ExtraMessage,
+		"Add custom label to disruption event message")
 	cmd.Flags().BoolVar(&monitorOpt.APIDisruptionOnly, "api-disruption-only", monitorOpt.APIDisruptionOnly, "Run api disruption monitoring only")
 	return cmd
 }
@@ -144,6 +152,18 @@ func (opt *RunMonitorOptions) Run() error {
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
 		intervals := m.Intervals(time.Time{}, time.Time{})
+		if len(opt.ExtraLocator) > 0 {
+			fmt.Fprintf(opt.Out, "\nAppending %s to recorded event locator\n", opt.ExtraLocator)
+			for i, event := range intervals {
+				intervals[i].Locator = fmt.Sprintf("%s %s", event.Locator, opt.ExtraLocator)
+			}
+		}
+		if len(opt.ExtraMessage) > 0 {
+			fmt.Fprintf(opt.Out, "\nAppending %s to recorded event message\n", opt.ExtraMessage)
+			for i, event := range intervals {
+				intervals[i].Message = fmt.Sprintf("%s %s", event.Message, opt.ExtraMessage)
+			}
+		}
 		recordedResources := m.CurrentResourceState()
 		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
