@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_testRequiredInstallerResourcesMissing(t *testing.T) {
@@ -251,6 +253,151 @@ func Test_testErrorUpdatingEndpointSlices(t *testing.T) {
 				t.Errorf("Unknown test kind")
 			}
 
+		})
+	}
+}
+
+func Test_testErrorReconcilingNode(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		kind    string
+	}{
+		{
+			name:    "event count under threshold should pass",
+			message: "reason/ErrorReconcilingNode roles/worker [k8s.ovn.org/node-chassis-id annotation not found for node ip-10-0-194-138.us-west-1.compute.internal, macAddress annotation not found for node \"ip-10-0-194-138.us-west-1.compute.internal\" , k8s.ovn.org/l3-gateway-config annotation not found for node \"ip-10-0-194-138.us-west-1.compute.internal\"] (2 times)",
+			kind:    "pass",
+		},
+		{
+			name:    "event count over threshold should flake for vsphere",
+			message: "reason/ErrorReconcilingNode roles/worker [k8s.ovn.org/node-chassis-id annotation not found for node ci-op-6bwnrmql-92dbc-5q7zh-worker-0-vlbtl, macAddress annotation not found for node \"ci-op-6bwnrmql-92dbc-5q7zh-worker-0-vlbtl\" , k8s.ovn.org/l3-gateway-config annotation not found for node \"ci-op-6bwnrmql-92dbc-5q7zh-worker-0-vlbtl\"] (24 times)",
+			kind:    "flake",
+		},
+		{
+			name:    "event count over threshold should flake for aws",
+			message: "reason/ErrorReconcilingNode roles/worker [k8s.ovn.org/node-chassis-id annotation not found for node ip-10-0-136-47.us-east-2.compute.internal, macAddress annotation not found for node \"ip-10-0-136-47.us-east-2.compute.internal\" , k8s.ovn.org/l3-gateway-config annotation not found for node \"ip-10-0-136-47.us-east-2.compute.internal\"] (21 times)",
+			kind:    "flake",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Message: tt.message,
+					},
+					From: time.Unix(1, 0),
+					To:   time.Unix(1, 0),
+				},
+			}
+			junitTests := testErrorReconcilingNode(e)
+			switch tt.kind {
+			case "pass":
+				assert.Equal(t, 1, len(junitTests), "This should've been a single passing test")
+				assert.Nil(t, junitTests[0].FailureOutput, "This should've been a pass")
+			case "fail":
+				require.Equal(t, 1, len(junitTests), "This should've been a single failing test")
+				require.NotEqual(t, 0, len(junitTests[0].SystemOut), "This should've been a failure")
+			case "flake":
+				assert.Equal(t, 2, len(junitTests), "This should've been two tests as flake")
+			default:
+				require.Fail(t, "Unknown test kind")
+			}
+		})
+	}
+}
+
+func Test_testFailedScheduling(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		kind    string
+	}{
+		{
+			name:    "event count under threshold should pass",
+			message: "reason/FailedScheduling 0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 3 Preemption is not helpful for scheduling, 3 node(s) didn't match pod anti-affinity rules.. (2 times)",
+			kind:    "pass",
+		},
+		{
+			name:    "event count over threshold should flake for aws",
+			message: "reason/FailedScheduling 0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 3 Preemption is not helpful for scheduling, 3 node(s) didn't match pod anti-affinity rules.. (24 times)",
+			kind:    "flake",
+		},
+		{
+			name:    "event count over threshold should flake for gcp",
+			message: "reason/FailedScheduling 0/6 nodes are available: 1 node(s) were unschedulable, 2 node(s) didn't match pod anti-affinity rules, 3 node(s) didn't match Pod's node affinity/selector. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling.. (21 times)",
+			kind:    "flake",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Message: tt.message,
+					},
+					From: time.Unix(1, 0),
+					To:   time.Unix(1, 0),
+				},
+			}
+			junitTests := testFailedScheduling(e)
+			switch tt.kind {
+			case "pass":
+				assert.Equal(t, 1, len(junitTests), "This should've been a single passing test")
+				assert.Nil(t, junitTests[0].FailureOutput, "This should've been a pass")
+			case "fail":
+				require.Equal(t, 1, len(junitTests), "This should've been a single failing test")
+				require.NotEqual(t, 0, len(junitTests[0].SystemOut), "This should've been a failure")
+			case "flake":
+				assert.Equal(t, 2, len(junitTests), "This should've been two tests as flake")
+			default:
+				require.Fail(t, "Unknown test kind")
+			}
+		})
+	}
+}
+
+func Test_testOperatorStatusChanged(t *testing.T) {
+	tests := []struct {
+		name    string
+		message string
+		kind    string
+	}{
+		{
+			name:    "event count under threshold should pass",
+			message: "reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy\" to \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: No unhealthy members found\" (2 times)",
+			kind:    "pass",
+		},
+		{
+			name:    "event count over threshold should flake",
+			message: "reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy\" to \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: No unhealthy members found\" (24 times)",
+			kind:    "flake",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Message: tt.message,
+					},
+					From: time.Unix(1, 0),
+					To:   time.Unix(1, 0),
+				},
+			}
+			junitTests := testOperatorStatusChanged(e)
+			switch tt.kind {
+			case "pass":
+				assert.Equal(t, 1, len(junitTests), "This should've been a single passing test")
+				assert.Nil(t, junitTests[0].FailureOutput, "This should've been a pass")
+			case "fail":
+				require.Equal(t, 1, len(junitTests), "This should've been a single failing test")
+				require.NotEqual(t, 0, len(junitTests[0].SystemOut), "This should've been a failure")
+			case "flake":
+				assert.Equal(t, 2, len(junitTests), "This should've been two tests as flake")
+			default:
+				require.Fail(t, "Unknown test kind")
+			}
 		})
 	}
 }
