@@ -1387,9 +1387,13 @@ var Annotations = map[string]string{
 
 	"[sig-node] Managed cluster should report ready nodes the entire duration of the test run [Late][apigroup:monitoring.coreos.com]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-node] provision worker node daemon-set with delayed shutdown [Early]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node] should override timeoutGracePeriodSeconds when annotation is set": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-node] tear down worker node daemon-set with delayed shutdown [Late]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][Disruptive][Feature:KubeletGracefulShutdown] Kubelet with graceful shutdown configuration should respect pods termination grace period": " [Serial]",
 
