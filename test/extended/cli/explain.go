@@ -620,9 +620,12 @@ var _ = g.Describe("[sig-cli] oc explain networking types", func() {
 })
 
 func verifySpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource) error {
-	return verifyExplain(oc, crdClient, gvr,
-		`(?s)DESCRIPTION:.*FIELDS:.*spec.*<Object>.*[Ss]pec(ification)?.*status.*<Object>.*[Ss]tatus.*`,
-		gvr.Resource, fmt.Sprintf("--api-version=%s", gvr.GroupVersion()))
+	singularResourceName, _ := strings.CutSuffix(gvr.Resource, "s")
+	normalizedResourceName := fmt.Sprintf("(?i)%v(?-i)", singularResourceName)            // case insensitive
+	defaultSpecTypeName := fmt.Sprintf("(<%vSpec>|<Object>)", normalizedResourceName)     // <Object> was used before 1.27
+	defaultStatusTypeName := fmt.Sprintf("(<%vStatus>|<Object>)", normalizedResourceName) // <Object> was used before 1.27
+	pattern := fmt.Sprintf(`(?s)DESCRIPTION:.*FIELDS:.*spec.*%v.*[Ss]pec(ification)?.*status.*%v.*[Ss]tatus.*`, defaultSpecTypeName, defaultStatusTypeName)
+	return verifyExplain(oc, crdClient, gvr, pattern, gvr.Resource, fmt.Sprintf("--api-version=%s", gvr.GroupVersion()))
 }
 
 func verifyCRDSpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource) error {
