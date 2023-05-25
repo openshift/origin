@@ -115,7 +115,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/httpd-24-centos7:latest"
+              "name": "quay.io/centos7/httpd-24-centos7:latest"
             },
             "name": "2.4",
             "referencePolicy": {
@@ -195,7 +195,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "10.2"
+              "name": "10.5"
             },
             "name": "latest",
             "referencePolicy": {
@@ -209,31 +209,31 @@
               "openshift.io/display-name": "MariaDB 10.1",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "tags": "database,mariadb",
-              "version": "10.1"
+              "version": "10.3"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mariadb-101-centos7:latest"
+              "name": "quay.io/centos7/mariadb-103-centos7:latest"
             },
-            "name": "10.1",
+            "name": "10.3",
             "referencePolicy": {
               "type": "Local"
             }
           },
           {
             "annotations": {
-              "description": "Provides a MariaDB 10.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.2/README.md.",
+              "description": "Provides a MariaDB 10.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.2/README.md.",
               "iconClass": "icon-mariadb",
-              "openshift.io/display-name": "MariaDB 10.2",
+              "openshift.io/display-name": "MariaDB 10.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "tags": "database,mariadb",
-              "version": "10.2"
+              "version": "10.5"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mariadb-102-centos7:latest"
+              "name": "quay.io/centos7/mariadb-105-centos7:latest"
             },
-            "name": "10.2",
+            "name": "10.5",
             "referencePolicy": {
               "type": "Local"
             }
@@ -280,7 +280,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mongodb-26-centos7:latest"
+              "name": "quay.io/centos7/mongodb-26-centos7:latest"
             },
             "name": "2.7",
             "referencePolicy": {
@@ -298,7 +298,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mongodb-32-centos7:latest"
+              "name": "quay.io/centos7/mongodb-32-centos7:latest"
             },
             "name": "3.2",
             "referencePolicy": {
@@ -316,7 +316,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mongodb-34-centos7:latest"
+              "name": "quay.io/centos7/mongodb-34-centos7:latest"
             },
             "name": "3.4",
             "referencePolicy": {
@@ -347,7 +347,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.7"
+              "name": "8"
             },
             "name": "latest",
             "referencePolicy": {
@@ -356,36 +356,18 @@
           },
           {
             "annotations": {
-              "description": "Provides a MySQL 5.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "description": "Provides a MySQL 8 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
               "iconClass": "icon-mysql-database",
-              "openshift.io/display-name": "MySQL 5.6",
+              "openshift.io/display-name": "MySQL 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "tags": "hidden,mysql",
-              "version": "5.6"
+              "version": "8"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mysql-56-centos7:latest"
+              "name": "quay.io/centos7/mysql-80-centos7:latest"
             },
-            "name": "5.6",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Provides a MySQL 5.7 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
-              "iconClass": "icon-mysql-database",
-              "openshift.io/display-name": "MySQL 5.7",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "mysql",
-              "version": "5.7"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mysql-57-centos7:latest"
-            },
-            "name": "5.7",
+            "name": "8",
             "referencePolicy": {
               "type": "Local"
             }
@@ -417,7 +399,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/nginx-114-centos7:latest"
+              "name": "quay.io/centos7/nginx-114-centos7:latest"
             },
             "name": "1.14",
             "referencePolicy": {
@@ -437,7 +419,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/nginx-116-centos7:latest"
+              "name": "quay.io/centos7/nginx-116-centos7:latest"
             },
             "name": "1.16",
             "referencePolicy": {
@@ -508,7 +490,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/nodejs-10-centos7:latest"
+              "name": "quay.io/centos7/nodejs-10-centos7:latest"
             },
             "name": "10",
             "referencePolicy": {
@@ -527,7 +509,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/nodejs-12-centos7:latest"
+              "name": "quay.io/centos7/nodejs-12-centos7:latest"
             },
             "name": "12",
             "referencePolicy": {
@@ -657,7 +639,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/php-70-centos7:latest"
+              "name": "quay.io/centos7/php-70-centos7:latest"
             },
             "name": "7.0",
             "referencePolicy": {
@@ -677,7 +659,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/php-71-centos7:latest"
+              "name": "quay.io/centos7/php-71-centos7:latest"
             },
             "name": "7.1",
             "referencePolicy": {
@@ -726,7 +708,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/postgresql-95-centos7:latest"
+              "name": "quay.io/centos7/postgresql-95-centos7:latest"
             },
             "name": "9.5",
             "referencePolicy": {
@@ -744,7 +726,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/postgresql-96-centos7:latest"
+              "name": "quay.io/centos7/postgresql-96-centos7:latest"
             },
             "name": "9.6",
             "referencePolicy": {
@@ -797,7 +779,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/python-27-centos7:latest"
+              "name": "quay.io/centos7/python-27-centos7:latest"
             },
             "name": "2.7",
             "referencePolicy": {
@@ -817,7 +799,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/python-36-centos7:latest"
+              "name": "quay.io/centos7/python-36-centos7:latest"
             },
             "name": "3.6",
             "referencePolicy": {
@@ -866,7 +848,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/redis-5-centos7:latest"
+              "name": "quay.io/centos7/redis-5-centos7:latest"
             },
             "name": "5",
             "referencePolicy": {
