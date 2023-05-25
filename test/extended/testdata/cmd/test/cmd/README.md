@@ -145,7 +145,7 @@ succeed (its exit code is `0`). If that occurs, the function will return `0`. Ot
 
 In order to re-try a command until it succeeds, pass it to `os::cmd::try_until_success` like:
 ```sh
-$ os::cmd::try_until_success 'oc get imagestreamTags mysql:5.5'
+$ os::cmd::try_until_success 'oc get imagestreamTags mysql:8'
 ```
 
 #### `os::cmd::try_until_failure CMD [TIMEOUT INTERVAL]`
