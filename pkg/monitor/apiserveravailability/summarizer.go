@@ -28,16 +28,15 @@ func timeFromPodLogTime(line string) time.Time {
 	return time.Now()
 }
 
-func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator, line string) {
+func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator monitorapi.StructuredLocator, line string) {
 	if strings.Contains(line, "write: operation not permitted") {
 		timeOfLog := timeFromPodLogTime(line)
 		// TODO collapse all in the same second into a single interval
 		event := monitorapi.EventInterval{
-			Condition: monitorapi.Condition{
-				Level:   monitorapi.Warning,
-				Locator: locator,
-				Message: monitorapi.Message().Reason(monitorapi.IPTablesNotPermitted).Message(line),
-			},
+			Condition: monitorapi.Event(monitorapi.Warning).
+				Locator(locator).
+				Message(monitorapi.Message().Reason(monitorapi.IPTablesNotPermitted).StructuredMessage(line)).
+				Event(),
 			From: timeOfLog,
 			To:   timeOfLog.Add(1 * time.Second),
 		}

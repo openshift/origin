@@ -226,49 +226,55 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			case lastTerminated && oldContainerStatus.LastTerminationState.Terminated == nil:
 				// if we are transitioning to a terminated state
 				if containerStatus.LastTerminationState.Terminated.ExitCode != 0 {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Error,
-						Locator: monitorapi.LocatePodContainer(pod, containerName),
-						Message: monitorapi.Message().
-							Reason(monitorapi.ContainerReasonContainerExit).
-							WithAnnotation(monitorapi.AnnotationContainerExitCode, fmt.Sprintf("%d", containerStatus.LastTerminationState.Terminated.ExitCode)).
-							Cause(containerStatus.LastTerminationState.Terminated.Reason).
-							Message(containerStatus.LastTerminationState.Terminated.Message),
-					})
+					conditions = append(conditions,
+						monitorapi.Event(monitorapi.Error).
+							Locator(monitorapi.LocateContainerFromPod(pod, containerName).Structured()).
+							Message(monitorapi.Message().
+								Reason(monitorapi.ContainerReasonContainerExit).
+								WithAnnotation(monitorapi.AnnotationContainerExitCode, fmt.Sprintf("%d", containerStatus.LastTerminationState.Terminated.ExitCode)).
+								Cause(containerStatus.LastTerminationState.Terminated.Reason).
+								StructuredMessage(containerStatus.LastTerminationState.Terminated.Message),
+							).Event(),
+					)
 				} else {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: monitorapi.LocatePodContainer(pod, containerName),
-						Message: monitorapi.Message().
-							Reason(monitorapi.ContainerReasonContainerExit).
-							WithAnnotation(monitorapi.AnnotationContainerExitCode, "0").
-							Cause(containerStatus.LastTerminationState.Terminated.Reason).
-							Message(containerStatus.LastTerminationState.Terminated.Message),
-					})
+					conditions = append(conditions,
+						monitorapi.Event(monitorapi.Info).
+							Locator(monitorapi.LocateContainerFromPod(pod, containerName).Structured()).
+							Message(monitorapi.Message().
+								Reason(monitorapi.ContainerReasonContainerExit).
+								WithAnnotation(monitorapi.AnnotationContainerExitCode, "0").
+								Cause(containerStatus.LastTerminationState.Terminated.Reason).
+								StructuredMessage(containerStatus.LastTerminationState.Terminated.Message)).
+							Event(),
+					)
 				}
 
 			case currentTerminated && oldContainerStatus.State.Terminated == nil:
 				// if we are transitioning to a terminated state
 				if containerStatus.State.Terminated.ExitCode != 0 {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Error,
-						Locator: monitorapi.LocatePodContainer(pod, containerName),
-						Message: monitorapi.Message().
-							Reason(monitorapi.ContainerReasonContainerExit).
-							WithAnnotation(monitorapi.AnnotationContainerExitCode, fmt.Sprintf("%d", containerStatus.State.Terminated.ExitCode)).
-							Cause(containerStatus.State.Terminated.Reason).
-							Message(containerStatus.State.Terminated.Message),
-					})
+					conditions = append(conditions,
+						monitorapi.Event(monitorapi.Error).
+							Locator(monitorapi.LocateContainerFromPod(pod, containerName).Structured()).
+							Message(monitorapi.Message().
+								Reason(monitorapi.ContainerReasonContainerExit).
+								WithAnnotation(monitorapi.AnnotationContainerExitCode, fmt.Sprintf("%d", containerStatus.State.Terminated.ExitCode)).
+								Cause(containerStatus.State.Terminated.Reason).
+								StructuredMessage(containerStatus.State.Terminated.Message),
+							).
+							Event(),
+					)
 				} else {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: monitorapi.LocatePodContainer(pod, containerName),
-						Message: monitorapi.Message().
-							Reason(monitorapi.ContainerReasonContainerExit).
-							WithAnnotation(monitorapi.AnnotationContainerExitCode, "0").
-							Cause(containerStatus.State.Terminated.Reason).
-							Message(containerStatus.State.Terminated.Message),
-					})
+					conditions = append(conditions,
+						monitorapi.Event(monitorapi.Error).
+							Locator(monitorapi.LocateContainerFromPod(pod, containerName).Structured()).
+							Message(monitorapi.Message().
+								Reason(monitorapi.ContainerReasonContainerExit).
+								WithAnnotation(monitorapi.AnnotationContainerExitCode, "0").
+								Cause(containerStatus.State.Terminated.Reason).
+								StructuredMessage(containerStatus.State.Terminated.Message),
+							).
+							Event(),
+					)
 				}
 			}
 
@@ -615,11 +621,10 @@ func lastContainerTimeFromStatus(current *corev1.ContainerStatus) time.Time {
 
 func conditionsForTransitioningContainer(pod *corev1.Pod, current *corev1.ContainerStatus, reason monitorapi.IntervalReason, cause, message string) []monitorapi.Condition {
 	return []monitorapi.Condition{
-		{
-			Level:   monitorapi.Info,
-			Locator: monitorapi.LocatePodContainer(pod, current.Name),
-			Message: monitorapi.Message().Reason(reason).Cause(cause).Message(message),
-		},
+		monitorapi.Event(monitorapi.Info).
+			Locator(monitorapi.LocateContainerFromPod(pod, current.Name).Structured()).
+			Message(monitorapi.Message().Reason(reason).Cause(cause).StructuredMessage(message)).
+			Event(),
 	}
 }
 

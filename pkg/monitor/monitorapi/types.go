@@ -62,8 +62,111 @@ func EventLevelFromString(s string) (EventLevel, error) {
 type Condition struct {
 	Level EventLevel
 
-	Locator string
-	Message string
+	Locator           string
+	StructuredLocator StructuredLocator
+	Message           string
+	StructuredMessage StructuredMessage
+}
+
+type StructuredType string
+
+const (
+	StructuredTypePod             StructuredType = "Pod"
+	StructuredTypeContainer       StructuredType = "Container"
+	StructuredTypeNode            StructuredType = "Node"
+	StructuredTypeClusterOperator StructuredType = "ClusterOperator"
+	StructuredTypeOther           StructuredType = "Other"
+)
+
+type LocatorKey string
+
+const (
+	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
+	LocatorNamespaceKey       LocatorKey = "namespace"
+	LocatorNodeKey            LocatorKey = "node"
+	LocatorPodKey             LocatorKey = "pod"
+	LocatorUIDKey             LocatorKey = "uid"
+	LocatorMirrorUIDKey       LocatorKey = "mirror-uid"
+	LocatorContainerKey       LocatorKey = "container"
+	LocatorRouteKey           LocatorKey = "route"
+	LocatorDisruptionKey      LocatorKey = "disruption"
+	LocatorConnectionKey      LocatorKey = "connection"
+	LocatorE2ETestKey         LocatorKey = "e2e-test"
+	LocatorAlertKey           LocatorKey = "alert"
+)
+
+type StructuredLocator struct {
+	Type StructuredType
+
+	// annotations will include the Reason and Cause under their respective keys
+	LocatorKeys map[LocatorKey]string
+}
+
+type IntervalReason string
+
+const (
+	IPTablesNotPermitted IntervalReason = "iptables-operation-not-permitted"
+
+	DisruptionBeganEventReason              IntervalReason = "DisruptionBegan"
+	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
+	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
+
+	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
+
+	PodPendingReason               IntervalReason = "PodIsPending"
+	PodNotPendingReason            IntervalReason = "PodIsNotPending"
+	PodReasonCreated               IntervalReason = "Created"
+	PodReasonGracefulDeleteStarted IntervalReason = "GracefulDelete"
+	PodReasonForceDelete           IntervalReason = "ForceDelete"
+	PodReasonDeleted               IntervalReason = "Deleted"
+	PodReasonScheduled             IntervalReason = "Scheduled"
+
+	ContainerReasonContainerExit      IntervalReason = "ContainerExit"
+	ContainerReasonContainerStart     IntervalReason = "ContainerStart"
+	ContainerReasonContainerWait      IntervalReason = "ContainerWait"
+	ContainerReasonReadinessFailed    IntervalReason = "ReadinessFailed"
+	ContainerReasonReadinessErrored   IntervalReason = "ReadinessErrored"
+	ContainerReasonStartupProbeFailed IntervalReason = "StartupProbeFailed"
+	ContainerReasonReady              IntervalReason = "Ready"
+	ContainerReasonNotReady           IntervalReason = "NotReady"
+
+	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
+	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"
+
+	NodeUpdateReason   IntervalReason = "NodeUpdate"
+	NodeNotReadyReason IntervalReason = "NotReady"
+	NodeFailedLease    IntervalReason = "FailedToUpdateLease"
+)
+
+type AnnotationKey string
+
+const (
+	AnnotationReason            AnnotationKey = "reason"
+	AnnotationContainerExitCode AnnotationKey = "code"
+	AnnotationCause             AnnotationKey = "cause"
+	AnnotationNode              AnnotationKey = "node"
+	AnnotationConstructed       AnnotationKey = "constructed"
+	AnnotationPodPhase          AnnotationKey = "phase"
+	AnnotationIsStaticPod       AnnotationKey = "mirrored"
+	// TODO this looks wrong. seems like it ought to be set in the to/from
+	AnnotationDuration       AnnotationKey = "duration"
+	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
+)
+
+type ConstructionOwner string
+
+const (
+	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
+	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
+)
+
+type StructuredMessage struct {
+	Reason       IntervalReason
+	Cause        string
+	HumanMessage string
+
+	// annotations will include the Reason and Cause under their respective keys
+	Annotations map[AnnotationKey]string
 }
 
 type EventInterval struct {
@@ -82,6 +185,42 @@ func (i EventInterval) String() string {
 		return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Millisecond))+"ms", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 	}
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
+}
+
+func (i StructuredMessage) OldMessage() string {
+	keys := sets.NewString()
+	for k := range i.Annotations {
+		keys.Insert(string(k))
+	}
+
+	annotations := []string{}
+	for _, k := range keys.List() {
+		v := i.Annotations[AnnotationKey(k)]
+		annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
+	}
+	annotationString := strings.Join(annotations, " ")
+
+	if len(i.HumanMessage) == 0 {
+		return annotationString
+	}
+
+	return fmt.Sprintf("%v %v", annotationString, i.HumanMessage)
+}
+
+func (i StructuredLocator) OldLocator() string {
+	keys := sets.NewString()
+	for k := range i.LocatorKeys {
+		keys.Insert(string(k))
+	}
+
+	annotations := []string{}
+	for _, k := range keys.List() {
+		v := i.LocatorKeys[LocatorKey(k)]
+		annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
+	}
+	annotationString := strings.Join(annotations, " ")
+
+	return annotationString
 }
 
 type IntervalFilter func(i EventInterval) bool

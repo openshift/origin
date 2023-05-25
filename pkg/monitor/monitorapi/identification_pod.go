@@ -111,63 +111,6 @@ func PhaseFrom(message string) string {
 	return annotations[AnnotationPodPhase]
 }
 
-type IntervalReason string
-
-const (
-	IPTablesNotPermitted IntervalReason = "iptables-operation-not-permitted"
-
-	DisruptionBeganEventReason              IntervalReason = "DisruptionBegan"
-	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
-	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
-
-	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
-
-	PodPendingReason               IntervalReason = "PodIsPending"
-	PodNotPendingReason            IntervalReason = "PodIsNotPending"
-	PodReasonCreated               IntervalReason = "Created"
-	PodReasonGracefulDeleteStarted IntervalReason = "GracefulDelete"
-	PodReasonForceDelete           IntervalReason = "ForceDelete"
-	PodReasonDeleted               IntervalReason = "Deleted"
-	PodReasonScheduled             IntervalReason = "Scheduled"
-
-	ContainerReasonContainerExit      IntervalReason = "ContainerExit"
-	ContainerReasonContainerStart     IntervalReason = "ContainerStart"
-	ContainerReasonContainerWait      IntervalReason = "ContainerWait"
-	ContainerReasonReadinessFailed    IntervalReason = "ReadinessFailed"
-	ContainerReasonReadinessErrored   IntervalReason = "ReadinessErrored"
-	ContainerReasonStartupProbeFailed IntervalReason = "StartupProbeFailed"
-	ContainerReasonReady              IntervalReason = "Ready"
-	ContainerReasonNotReady           IntervalReason = "NotReady"
-
-	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
-	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"
-
-	NodeUpdateReason   IntervalReason = "NodeUpdate"
-	NodeNotReadyReason IntervalReason = "NotReady"
-)
-
-type AnnotationKey string
-
-const (
-	AnnotationReason            AnnotationKey = "reason"
-	AnnotationContainerExitCode AnnotationKey = "code"
-	AnnotationCause             AnnotationKey = "cause"
-	AnnotationNode              AnnotationKey = "node"
-	AnnotationConstructed       AnnotationKey = "constructed"
-	AnnotationPodPhase          AnnotationKey = "phase"
-	AnnotationIsStaticPod       AnnotationKey = "mirrored"
-	// TODO this looks wrong. seems like it ought to be set in the to/from
-	AnnotationDuration       AnnotationKey = "duration"
-	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
-)
-
-type ConstructionOwner string
-
-const (
-	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
-	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
-)
-
 const (
 	// PodIPReused means the same pod IP is in use by two pods at the same time.
 	PodIPReused = "ReusedPodIP"
