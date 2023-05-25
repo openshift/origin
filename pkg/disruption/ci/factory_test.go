@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,12 +16,27 @@ import (
 )
 
 func TestBackendSampler(t *testing.T) {
-	duration := time.Second
+	var since int64
+	ins := &instruction{}
 	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		elapsed := duration.Round(time.Second).String()
-		w.Header().Set("X-OpenShift-Disruption", fmt.Sprintf("shutdown=true shutdown-delay-duration=1m10s elapsed=%s host=foo", elapsed))
-		w.WriteHeader(http.StatusOK)
-		duration += time.Second
+		shutdown := false
+		elapsed := time.Duration(0)
+		code := http.StatusOK
+		switch ins.value() {
+		case 0:
+			// normal
+		case 1:
+			// disruption
+			code = http.StatusInternalServerError
+		case 2:
+			// shutdown
+			elapsed = time.Duration(atomic.AddInt64(&since, int64(time.Second)))
+			shutdown = true
+		}
+
+		w.Header().Set("X-OpenShift-Disruption",
+			fmt.Sprintf("shutdown=%t shutdown-delay-duration=10s elapsed=%s host=foo", shutdown, elapsed.Round(time.Second).String()))
+		w.WriteHeader(code)
 	}))
 	ts.EnableHTTP2 = true
 	ts.StartTLS()
@@ -32,12 +48,12 @@ func TestBackendSampler(t *testing.T) {
 		},
 	}
 
-	bs, err := factory.New(TestConfiguration{
-		TestType: TestType{
+	bs1, err := factory.New(TestConfiguration{
+		TestDescriptor: TestDescriptor{
 			TargetServer:     "test-server",
-			LoadBalancerType: ExternalLoadBalancerType,
+			LoadBalancerType: backend.ExternalLoadBalancerType,
 			ConnectionType:   monitorapi.ReusedConnectionType,
-			Protocol:         ProtocolHTTP2,
+			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/healthz",
 		Timeout:                      10 * time.Second,
@@ -48,23 +64,61 @@ func TestBackendSampler(t *testing.T) {
 		t.Fatalf("failed to build backend sampler: %v", err)
 	}
 
-	t.Logf("setters: %v", bs.wantEventRecorderAndMonitor)
+	bs2, err := factory.New(TestConfiguration{
+		TestDescriptor: TestDescriptor{
+			TargetServer:     "test-server",
+			LoadBalancerType: backend.ExternalLoadBalancerType,
+			ConnectionType:   monitorapi.NewConnectionType,
+			Protocol:         backend.ProtocolHTTP2,
+		},
+		Path:                         "/healthz",
+		Timeout:                      10 * time.Second,
+		SampleInterval:               time.Second,
+		EnableShutdownResponseHeader: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to build backend sampler: %v", err)
+	}
+
+	t.Logf("setters: %v", bs1.wantEventRecorderAndMonitor)
+	t.Logf("setters: %v", bs2.wantEventRecorderAndMonitor)
 
 	parent, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	monitorErrCh := make(chan error, 1)
+	monitorErrCh1, monitorErrCh2 := make(chan error, 1), make(chan error, 1)
 	go func() {
-		err := bs.RunEndpointMonitoring(parent, &fakeMonitor{}, &fakeRecorder{})
-		monitorErrCh <- err
+		err := bs1.RunEndpointMonitoring(parent, &fakeMonitor{}, &fakeRecorder{})
+		monitorErrCh1 <- err
 	}()
 	go func() {
-		<-time.After(10 * time.Second)
-		bs.Stop()
+		err := bs2.RunEndpointMonitoring(parent, &fakeMonitor{}, &fakeRecorder{})
+		monitorErrCh2 <- err
+	}()
+
+	stopCh := make(chan struct{})
+	go func() {
+		defer close(stopCh)
+		<-time.After(5 * time.Second)
+		ins.set(1)
+		<-time.After(5 * time.Second)
+		ins.set(2)
+		<-time.After(5 * time.Second)
+		ins.set(0)
+		<-time.After(15 * time.Second)
+	}()
+	go func() {
+		<-stopCh
+		bs1.Stop()
+	}()
+	go func() {
+		<-stopCh
+		bs2.Stop()
 	}()
 
 	t.Logf("waiting for monitor to be done")
-	<-monitorErrCh
+	<-monitorErrCh1
+	<-monitorErrCh2
 }
 
 type testServerDependency struct {
@@ -80,7 +134,7 @@ func (d *testServerDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 	if tc.ConnectionType == monitorapi.NewConnectionType {
 		transport.DisableKeepAlives = true
 	}
-	if tc.Protocol == ProtocolHTTP1 && d.server.EnableHTTP2 {
+	if tc.Protocol == backend.ProtocolHTTP1 && d.server.EnableHTTP2 {
 		return nil, fmt.Errorf("the server has http/2.0 enabled")
 	}
 
@@ -89,6 +143,17 @@ func (d *testServerDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 func (d *testServerDependency) HostName() string { return d.server.URL }
 func (d *testServerDependency) GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error) {
 	return nil, nil
+}
+
+type instruction struct {
+	val int64
+}
+
+func (i *instruction) value() int64 {
+	return atomic.LoadInt64(&i.val)
+}
+func (i *instruction) set(v int64) {
+	atomic.StoreInt64(&i.val, v)
 }
 
 type fakeCollector struct {
@@ -109,7 +174,8 @@ func (fakeMonitor) StartInterval(t time.Time, condition monitorapi.Condition) in
 func (fakeMonitor) EndInterval(startedInterval int, t time.Time)                  {}
 
 // EventRecorder knows how to record events on behalf of an EventSource.
-type fakeRecorder struct{}
+type fakeRecorder struct {
+}
 
 func (fakeRecorder) Eventf(regarding runtime.Object, related runtime.Object, eventtype, reason, action, note string, args ...interface{}) {
 }
