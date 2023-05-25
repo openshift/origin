@@ -3,6 +3,7 @@ package ci
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/openshift/origin/pkg/disruption/backend"
@@ -18,21 +19,6 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type ProtocolType string
-
-const (
-	ProtocolHTTP1 ProtocolType = "http1"
-	ProtocolHTTP2 ProtocolType = "http2"
-)
-
-type LoadBalancerType string
-
-const (
-	ExternalLoadBalancerType LoadBalancerType = "external-lb"
-	InternalLoadBalancerType LoadBalancerType = "internal-lb"
-	ServiceNetworkType       LoadBalancerType = "service-network"
-)
-
 type ServerNameType string
 
 const (
@@ -41,8 +27,8 @@ const (
 )
 
 const (
-	KubeAPIServerShutdownIntervalName    = "openshift-kube-apiserver-shutdown"
-	KubeAPIServerShutdownIntervalLocator = "disruption/graceful-shutdown server/kube-apiserver"
+	KubeAPIServerShutdownIntervalName    = "kube-apiserver-shutdown"
+	KubeAPIServerShutdownIntervalLocator = "shutdown/graceful server/kube-apiserver"
 )
 
 // Factory creates a new instance of a Disruption test from
@@ -63,7 +49,7 @@ func NewDisruptionTestFactory(config *rest.Config) Factory {
 
 // TestConfiguration allows a user to specify the disruption test parameters
 type TestConfiguration struct {
-	TestType
+	TestDescriptor
 
 	// Path is the request path that the backend sampler will exercise
 	Path string
@@ -87,15 +73,15 @@ type TestConfiguration struct {
 	EnableShutdownResponseHeader bool
 }
 
-// TestType defines the disruption test type, the user must
+// TestDescriptor defines the disruption test type, the user must
 // provide a complete specification for the desired test.
-type TestType struct {
+type TestDescriptor struct {
 	// TargetServer is the server that is is being tested
 	TargetServer ServerNameType
 
 	// LoadBalancerType is the type of load balancer through which the
 	// disruption test is hitting the target server.
-	LoadBalancerType LoadBalancerType
+	LoadBalancerType backend.LoadBalancerType
 
 	// ConnectionType specifies whether the underlying TCP connection(s) used
 	// by the requests should be new or reused.
@@ -103,19 +89,23 @@ type TestType struct {
 
 	// Protocol specifies the protocol used by the test,
 	// whether it is http/1x or http/2.0
-	Protocol ProtocolType
+	Protocol backend.ProtocolType
 }
 
-func (t TestType) Name() string {
+func (t TestDescriptor) Name() string {
 	return fmt.Sprintf("backend-sampler-%s-%s-%s-%s", t.TargetServer, t.Protocol, t.LoadBalancerType, t.ConnectionType)
 }
 
-func (t TestType) Locator() string {
+func (t TestDescriptor) DisruptionLocator() string {
 	return fmt.Sprintf("disruption/%s type/%s connection/%s protocol/%s server/%s",
 		t.Name(), t.LoadBalancerType, t.ConnectionType, t.Protocol, t.TargetServer)
 }
 
-func (t TestType) Validate() error {
+func (t TestDescriptor) ShutdownLocator() string {
+	return fmt.Sprintf("%s type/%s", KubeAPIServerShutdownIntervalLocator, t.LoadBalancerType)
+}
+
+func (t TestDescriptor) Validate() error {
 	if len(t.LoadBalancerType) == 0 {
 		return fmt.Errorf("LoadBalancerType must have a valid value")
 	}
@@ -130,6 +120,10 @@ func (t TestType) Validate() error {
 	}
 	return nil
 }
+func (t TestDescriptor) GetLoadBalancerType() backend.LoadBalancerType       { return t.LoadBalancerType }
+func (t TestDescriptor) GetProtocol() backend.ProtocolType                   { return t.Protocol }
+func (t TestDescriptor) GetConnectionType() monitorapi.BackendConnectionType { return t.ConnectionType }
+func (t TestDescriptor) GetTargetServerName() string                         { return string(t.TargetServer) }
 
 // dependency is an internal interface that facilitates writing a
 // unit test for the factory.
@@ -146,26 +140,32 @@ type dependency interface {
 }
 
 type testFactory struct {
+	dependency dependency
+
+	once                   sync.Once
+	err                    error
 	sharedShutdownInterval backendsampler.SampleCollector
+	wantMonitorAndRecorder backend.WantEventRecorderAndMonitor
 	hostNameDecoder        backend.HostNameDecoderWithRunner
-	dependency             dependency
 }
 
 func (b *testFactory) New(c TestConfiguration) (*BackendSampler, error) {
+	if b.err != nil {
+		return nil, b.err
+	}
 	if err := c.Validate(); err != nil {
 		return nil, err
 	}
+	b.once.Do(func() {
+		// we want all test instances using this factory to share
+		// a single apiserver shutdown interval tracker.
+		b.sharedShutdownInterval, b.wantMonitorAndRecorder = shutdown.NewSharedShutdownIntervalTracker(nil, c, nil, nil)
+		b.hostNameDecoder, b.err = b.dependency.GetHostNameDecoder()
+	})
+
 	rt, err := b.dependency.NewTransport(c)
 	if err != nil {
 		return nil, err
-	}
-
-	if b.hostNameDecoder == nil {
-		var err error
-		b.hostNameDecoder, err = b.dependency.GetHostNameDecoder()
-		if err != nil {
-			return nil, err
-		}
 	}
 	client, err := roundtripper.NewClient(roundtripper.Config{
 		RT:                           rt,
@@ -177,33 +177,18 @@ func (b *testFactory) New(c TestConfiguration) (*BackendSampler, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	requestor := backendsampler.NewHostPathRequestor(b.dependency.HostName(), c.Path)
 
-	setters := make([]backend.WantEventRecorderAndMonitor, 0)
-	var want backend.WantEventRecorderAndMonitor
-	// we want all test instances using this factory to share
-	// a single apiserver shutdown interval tracker.
-	if b.sharedShutdownInterval == nil {
-		locator := fmt.Sprintf("%s type/%s", KubeAPIServerShutdownIntervalLocator, c.LoadBalancerType)
-		// we don't have access to the monitor and event recorder yet
-		b.sharedShutdownInterval, want = shutdown.NewSharedShutdownIntervalTracker(nil, nil, nil, locator, KubeAPIServerShutdownIntervalName)
-		setters = append(setters, want)
-	}
-
-	var collector backendsampler.SampleCollector = b.sharedShutdownInterval
-	collector = logger.NewLogger(collector, c.Name(), c.ConnectionType)
-
 	// we don't have access to the monitor and event recorder yet
-	collector, want = disruption.NewIntervalTracker(collector, nil, nil, c.Locator(), c.Name(), c.ConnectionType)
-	setters = append(setters, want)
+	collector, want := disruption.NewIntervalTracker(b.sharedShutdownInterval, c, nil, nil)
+	collector = logger.NewLogger(collector, c)
 
 	pc := backendsampler.NewSampleProducerConsumer(client, requestor, backendsampler.ResponseCheckerFunc(backendsampler.DefaultResponseChecker), collector)
 	runner := sampler.NewWithProducerConsumer(c.SampleInterval, pc)
 	backendSampler := &BackendSampler{
 		TestConfiguration:           c,
 		SampleRunner:                runner,
-		wantEventRecorderAndMonitor: setters,
+		wantEventRecorderAndMonitor: []backend.WantEventRecorderAndMonitor{b.wantMonitorAndRecorder, want},
 		baseURL:                     requestor.GetBaseURL(),
 		hostNameDecoder:             b.hostNameDecoder,
 	}
@@ -222,7 +207,7 @@ func (r *restConfigDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 		reuseConnection = true
 	}
 	var useHTTP1 bool
-	if tc.Protocol == ProtocolHTTP1 {
+	if tc.Protocol == backend.ProtocolHTTP1 {
 		useHTTP1 = true
 	}
 

@@ -3,29 +3,25 @@ package logger
 import (
 	"github.com/openshift/origin/pkg/disruption/backend"
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
 	"github.com/sirupsen/logrus"
 )
 
 // NewLogger returns a new instance of SampleCollector that logs samples
-func NewLogger(delegate backendsampler.SampleCollector, name string, connType monitorapi.BackendConnectionType) *logger {
+func NewLogger(delegate backendsampler.SampleCollector, descriptor backend.TestDescriptor) *logger {
 	return &logger{
-		delegate: delegate,
-		name:     name,
-		connType: connType,
-		logAll:   false,
+		delegate:   delegate,
+		descriptor: descriptor,
+		logAll:     false,
 	}
 }
 
 type logger struct {
-	delegate backendsampler.SampleCollector
-	name     string
-	connType monitorapi.BackendConnectionType
-	logAll   bool
+	delegate   backendsampler.SampleCollector
+	descriptor backend.TestDescriptor
+	logAll     bool
 }
 
-func (l logger) Collect(s backend.SampleResult) {
+func (l *logger) Collect(s backend.SampleResult) {
 	// we receive sample in ordered sequence, 1, 2, ... n
 	if l.delegate != nil {
 		l.delegate.Collect(s)
@@ -33,7 +29,7 @@ func (l logger) Collect(s backend.SampleResult) {
 	l.log(s)
 }
 
-func (l logger) log(s backend.SampleResult) {
+func (l *logger) log(s backend.SampleResult) {
 	if s.Sample == nil {
 		return
 	}
@@ -48,16 +44,15 @@ func (l logger) log(s backend.SampleResult) {
 	}
 
 	entry := logrus.WithFields(logrus.Fields{
-		"backend": l.name,
-		"type":    l.connType,
+		"backend": l.descriptor.Name(),
 		"sample":  s.Sample.ID,
 	})
 	entry = entry.WithFields(s.Fields())
 
 	switch {
 	case err != nil:
-		entry.Errorf("failure: %v", err)
+		entry.WithError(err)
 	default:
-		entry.Infof("received a sample")
+		entry.Infof("interesting disruption sample")
 	}
 }

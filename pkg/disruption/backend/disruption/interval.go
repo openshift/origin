@@ -3,8 +3,6 @@ package disruption
 import (
 	"github.com/openshift/origin/pkg/disruption/backend"
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
 	"k8s.io/client-go/tools/events"
 )
 
@@ -29,9 +27,9 @@ import (
 // it will generate the following disruption intervals
 //
 //	unavailable[s2,s4] available[s5,s6] unavailable[s7] available[s8]
-func NewIntervalTracker(delegate backendsampler.SampleCollector, monitor backend.Monitor, eventRecorder events.EventRecorder,
-	locator, name string, connType monitorapi.BackendConnectionType) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitor) {
-	handler := newCIHandler(monitor, eventRecorder, locator, name, connType)
+func NewIntervalTracker(delegate backendsampler.SampleCollector, descriptor backend.TestDescriptor, monitor backend.Monitor,
+	eventRecorder events.EventRecorder) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitor) {
+	handler := newCIHandler(descriptor, monitor, eventRecorder)
 	return &intervalTracker{
 		delegate: delegate,
 		handler:  handler,
@@ -66,36 +64,36 @@ type intervalTracker struct {
 	previous backend.SampleResult
 }
 
-func (d *intervalTracker) Collect(bs backend.SampleResult) {
+func (t *intervalTracker) Collect(bs backend.SampleResult) {
 	// we receive sample in ordered sequence, 1, 2, ... n
-	if d.delegate != nil {
-		d.delegate.Collect(bs)
+	if t.delegate != nil {
+		t.delegate.Collect(bs)
 	}
-	d.collect(bs)
+	t.collect(bs)
 }
 
-func (d *intervalTracker) collect(bs backend.SampleResult) {
+func (t *intervalTracker) collect(bs backend.SampleResult) {
 	if bs.Sample == nil {
 		// no more sample arriving, do cleanup
-		if d.previous.Sample != nil {
-			d.handler.CloseInterval(d.previous)
+		if t.previous.Sample != nil {
+			t.handler.CloseInterval(t.previous)
 		}
 		return
 	}
 
 	current := bs
-	if d.previous.Sample == nil {
+	if t.previous.Sample == nil {
 		// this is the very first sample
 		if !current.Succeeded() {
-			d.handler.UnavailableStarted(current)
+			t.handler.UnavailableStarted(current)
 		}
-		d.previous = current
+		t.previous = current
 		return
 	}
 
 	// 2nd or consecutive sample(s)
-	previous := d.previous
-	d.previous = current
+	previous := t.previous
+	t.previous = current
 
 	if previous.Succeeded() && current.Succeeded() {
 		return
@@ -106,10 +104,10 @@ func (d *intervalTracker) collect(bs backend.SampleResult) {
 		}
 	}
 
-	d.handler.CloseInterval(current)
+	t.handler.CloseInterval(current)
 	if current.Succeeded() {
-		d.handler.AvailableStarted(current)
+		t.handler.AvailableStarted(current)
 		return
 	}
-	d.handler.UnavailableStarted(current)
+	t.handler.UnavailableStarted(current)
 }

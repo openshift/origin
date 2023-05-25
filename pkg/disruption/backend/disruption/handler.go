@@ -21,14 +21,11 @@ import (
 //	locator: the CI locator assigned to this disruption test
 //	name: name of the disruption test
 //	connType: user specified BackendConnectionType used in this test
-func newCIHandler(monitor backend.Monitor, eventRecorder events.EventRecorder, locator, name string,
-	connType monitorapi.BackendConnectionType) *ciHandler {
+func newCIHandler(descriptor backend.TestDescriptor, monitor backend.Monitor, eventRecorder events.EventRecorder) *ciHandler {
 	return &ciHandler{
+		descriptor:     descriptor,
 		monitor:        monitor,
 		eventRecorder:  eventRecorder,
-		locator:        locator,
-		name:           name,
-		connType:       connType,
 		openIntervalID: -1,
 	}
 }
@@ -38,63 +35,62 @@ var _ backend.WantEventRecorderAndMonitor = &ciHandler{}
 
 // ciHandler records the availability and unavailability interval in CI
 type ciHandler struct {
+	descriptor    backend.TestDescriptor
 	monitor       backend.Monitor
 	eventRecorder events.EventRecorder
-	locator, name string
-	connType      monitorapi.BackendConnectionType
 
 	openIntervalID int
 }
 
 // SetEventRecorder sets the event recorder
-func (m *ciHandler) SetEventRecorder(recorder events.EventRecorder) {
-	m.eventRecorder = recorder
+func (h *ciHandler) SetEventRecorder(recorder events.EventRecorder) {
+	h.eventRecorder = recorder
 }
 
 // SetMonitor sets the interval recorder provided by the monitor API
-func (m *ciHandler) SetMonitor(monitor backend.Monitor) {
-	m.monitor = monitor
+func (h *ciHandler) SetMonitor(monitor backend.Monitor) {
+	h.monitor = monitor
 }
 
 // UnavailableStarted records an unavailable disruption interval in CI
-func (m *ciHandler) UnavailableStarted(result backend.SampleResult) {
+func (h *ciHandler) UnavailableStarted(result backend.SampleResult) {
 	s := result.Sample
 	fields := fmt.Sprintf("sample-id=%d %s", s.ID, result.String())
-	message, eventReason, level := backenddisruption.DisruptionBegan(m.locator, m.connType, fmt.Errorf("%w - %s", result.AggregateErr(), fields))
+	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator(), h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", result.AggregateErr(), fields))
 
 	framework.Logf(message)
-	m.eventRecorder.Eventf(
-		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: m.name},
+	h.eventRecorder.Eventf(
+		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()},
 		nil, v1.EventTypeWarning, eventReason, "detected", message)
 
 	condition := monitorapi.Condition{
 		Level:   level,
-		Locator: m.locator,
+		Locator: h.descriptor.DisruptionLocator(),
 		Message: message,
 	}
-	m.openIntervalID = m.monitor.StartInterval(s.StartedAt, condition)
+	h.openIntervalID = h.monitor.StartInterval(s.StartedAt, condition)
 }
 
 // AvailableStarted records an available again interval in CI
-func (m *ciHandler) AvailableStarted(result backend.SampleResult) {
-	message := backenddisruption.DisruptionEndedMessage(m.locator, m.connType)
+func (h *ciHandler) AvailableStarted(result backend.SampleResult) {
+	message := backenddisruption.DisruptionEndedMessage(h.descriptor.DisruptionLocator(), h.descriptor.GetConnectionType())
 	framework.Logf(message)
 
-	m.eventRecorder.Eventf(
-		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: m.name}, nil,
+	h.eventRecorder.Eventf(
+		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()}, nil,
 		v1.EventTypeNormal, backenddisruption.DisruptionEndedEventReason, "detected", message)
 	condition := monitorapi.Condition{
 		Level:   monitorapi.Info,
-		Locator: m.locator,
+		Locator: h.descriptor.DisruptionLocator(),
 		Message: message,
 	}
-	m.openIntervalID = m.monitor.StartInterval(result.Sample.StartedAt, condition)
+	h.openIntervalID = h.monitor.StartInterval(result.Sample.StartedAt, condition)
 }
 
 // CloseInterval closes an open interval, if any.
-func (m *ciHandler) CloseInterval(result backend.SampleResult) {
-	if m.openIntervalID >= 0 {
-		m.monitor.EndInterval(m.openIntervalID, result.Sample.StartedAt)
+func (h *ciHandler) CloseInterval(result backend.SampleResult) {
+	if h.openIntervalID >= 0 {
+		h.monitor.EndInterval(h.openIntervalID, result.Sample.StartedAt)
 	}
-	m.openIntervalID = -1
+	h.openIntervalID = -1
 }
