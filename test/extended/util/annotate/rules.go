@@ -89,6 +89,8 @@ var (
 			`\[sig-builds\]\[Feature:Builds\] build can reference a cluster service with a build being created from new-build should be able to run a build that references a cluster service`,
 			`\[sig-builds\]\[Feature:Builds\] oc new-app should succeed with a --name of 58 characters`,
 			`\[sig-arch\] Only known images used by tests`,
+			// limitation of the golang.org/x/net/websocket package currently used within Kubernetes
+			`\[sig-auth\]\[Feature:SecurityContextConstraints\]  Websocket requests to pods/exec are subject to security.openshift.io/SCCExecRestrictions`,
 		},
 		"[Skipped:SingleReplicaTopology]": {},
 
