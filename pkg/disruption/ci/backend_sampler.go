@@ -48,7 +48,7 @@ func (bs *BackendSampler) GetDisruptionBackendName() string {
 }
 
 func (bs *BackendSampler) GetLocator() string {
-	return bs.Locator()
+	return bs.DisruptionLocator()
 }
 
 func (bs *BackendSampler) GetURL() (string, error) {

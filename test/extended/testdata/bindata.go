@@ -49457,7 +49457,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isGracefulShutdownActivity(eventInterval) {
-        if (eventInterval.locator.includes("disruption/graceful-shutdown")) {
+        if (eventInterval.locator.includes("shutdown/graceful")) {
             return true
         }
 
@@ -49465,10 +49465,6 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isEndpointConnectivity(eventInterval) {
-        if (eventInterval.locator.includes("disruption/graceful-shutdown")) {
-            // exclude kube-apiserver shutdown window timeline from here
-            return false
-        }
         if (!eventInterval.message.includes("reason/DisruptionBegan") && !eventInterval.message.includes("reason/DisruptionSamplerOutageBegan")){
             return false
         }
@@ -49611,7 +49607,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
     function apiserverShutdownValue(item) {
         // TODO: isolate DNS error into CIClusterDisruption
-        return [item.locator, "", "GracefulShutdownDisruption"]
+        return [item.locator, "", "GracefulShutdownInterval"]
     }
 
     function disruptionValue(item) {
@@ -49744,7 +49740,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups.push({group: "endpoint-availability", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
 
-        timelineGroups.push({group: "apiserver-shutdown", data: []})
+        timelineGroups.push({group: "shutdown-interval", data: []})
         createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})

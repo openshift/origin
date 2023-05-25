@@ -9,6 +9,7 @@ import (
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
 
 	"k8s.io/client-go/tools/events"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 // NewSharedShutdownIntervalTracker returns a SampleCollector
@@ -33,9 +34,9 @@ import (
 // during a graceful shutdown window.
 // This function returns an instance of WantEventRecorderAndMonitor, the test
 // driver can use it to pass along the shared event recorder and monitor.
-func NewSharedShutdownIntervalTracker(delegate backendsampler.SampleCollector, monitor backend.Monitor,
-	eventRecorder events.EventRecorder, locator, name string) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitor) {
-	handler := newCIShutdownIntervalHandler(monitor, eventRecorder, locator, name)
+func NewSharedShutdownIntervalTracker(delegate backendsampler.SampleCollector, descriptor backend.TestDescriptor,
+	monitor backend.Monitor, eventRecorder events.EventRecorder) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitor) {
+	handler := newCIShutdownIntervalHandler(descriptor, monitor, eventRecorder)
 	return &sharedShutdownIntervalTracker{
 		shutdownIntervalTracker: &shutdownIntervalTracker{
 			delegate:  delegate,
@@ -53,15 +54,15 @@ type sharedShutdownIntervalTracker struct {
 	*shutdownIntervalTracker
 }
 
-func (s *sharedShutdownIntervalTracker) Collect(bs backend.SampleResult) {
+func (st *sharedShutdownIntervalTracker) Collect(bs backend.SampleResult) {
 	// we receive sample in ordered sequence, 1, 2, ... n
-	if s.delegate != nil {
-		s.delegate.Collect(bs)
+	if st.delegate != nil {
+		st.delegate.Collect(bs)
 	}
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	s.collect(bs)
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	st.collect(bs)
 }
 
 // shutdownIntervalHandler receives shutdown interval(s) and handles them,
@@ -77,30 +78,27 @@ type shutdownIntervalTracker struct {
 	intervals map[string]*shutdownInterval
 }
 
-func (r *shutdownIntervalTracker) Collect(bs backend.SampleResult) {
+func (t *shutdownIntervalTracker) Collect(bs backend.SampleResult) {
 	// we receive sample in ordered sequence, 1, 2, ... n
-	if r.delegate != nil {
-		r.delegate.Collect(bs)
+	if t.delegate != nil {
+		t.delegate.Collect(bs)
 	}
-	r.collect(bs)
+	t.collect(bs)
 }
 
-func (r *shutdownIntervalTracker) close(bs backend.SampleResult, condFn func(*shutdownInterval) bool) {
-	for key, interval := range r.intervals {
-		delete(r.intervals, key)
+func (t *shutdownIntervalTracker) closeInterval(condFn func(*shutdownInterval) bool) {
+	for key, interval := range t.intervals {
 		if !condFn(interval) {
 			continue
 		}
-		if bs.Sample != nil {
-			interval.LastSampleSeenAt = bs.Sample.StartedAt
-		}
-		r.handler.Handle(interval)
+		delete(t.intervals, key)
+		t.handler.Handle(interval)
 	}
 }
 
-func (r *shutdownIntervalTracker) collect(bs backend.SampleResult) {
+func (t *shutdownIntervalTracker) collect(bs backend.SampleResult) {
 	if bs.Sample == nil {
-		r.close(bs, func(_ *shutdownInterval) bool {
+		t.closeInterval(func(_ *shutdownInterval) bool {
 			// no more samples, so close all open shutdown intervals
 			return true
 		})
@@ -109,60 +107,65 @@ func (r *shutdownIntervalTracker) collect(bs backend.SampleResult) {
 	sr := bs.ShutdownResponse
 	if sr == nil {
 		if bs.Sample.Err != nil {
-			for _, t := range r.intervals {
-				t.Failures = append(t.Failures, bs)
+			// we don't have any shutdown response header, so we can't
+			// correlate this sample to any particular host, for now we
+			// allocate this error to all open shutdown interval(s)
+			for _, t := range t.intervals {
+				t.UnknownHostFailures = append(t.UnknownHostFailures, bs)
 			}
 		}
 		return
 	}
 
 	if sr.ShutdownInProgress {
-		t, ok := r.intervals[sr.Hostname]
+		framework.Logf("DisruptionTest: shutdown response seen: %s", sr.String())
+	}
+
+	interval, ok := t.intervals[sr.Hostname]
+	switch {
+	case sr.ShutdownInProgress:
 		if !ok {
-			// we are seeing a new intervals in progress from this host
-			// this is when we open a new intervals handler
-			t = &shutdownInterval{
-				Host:              sr.Hostname,
-				DelayDuration:     sr.ShutdownDelayDuration,
-				FirstSampleSeenAt: bs.Sample.StartedAt,
+			// we are seeing a new shutdown interval in progress from
+			// this host, this is when we create a new interval.
+			from := bs.Sample.StartedAt.Add(-sr.Elapsed)
+			to := from.Add(sr.ShutdownDelayDuration + 15*time.Second)
+			interval = &shutdownInterval{
+				Host:          sr.Hostname,
+				DelayDuration: sr.ShutdownDelayDuration,
+				From:          from,
+				To:            to,
 			}
-			r.intervals[sr.Hostname] = t
+			t.intervals[sr.Hostname] = interval
+
+			framework.Logf("DisruptionTest: new shutdown interval seen: %s", interval.String())
 		}
-		// keep track of maximum elapsed seconds since the window started
+		// keep track of maximum elapsed seconds since the shutdown started
 		if bs.GotConnInfo != nil {
 			switch {
 			case bs.GotConnInfo.Reused:
-				if sr.Elapsed > t.MaxElapsedWithConnectionReuse {
-					t.MaxElapsedWithConnectionReuse = sr.Elapsed
+				if sr.Elapsed > interval.MaxElapsedWithConnectionReuse {
+					interval.MaxElapsedWithConnectionReuse = sr.Elapsed
 				}
 			default:
-				if sr.Elapsed > t.MaxElapsedWithNewConnection {
-					t.MaxElapsedWithNewConnection = sr.Elapsed
+				if sr.Elapsed > interval.MaxElapsedWithNewConnection {
+					interval.MaxElapsedWithNewConnection = sr.Elapsed
 				}
 			}
 		}
-		if bs.Sample.Err != nil {
-			t.Failures = append(t.Failures, bs)
-		} else {
-			t.Success = append(t.Success, bs)
+		if _, retry := bs.IsRetryAfter(); retry || bs.Sample.Err != nil {
+			interval.Failures = append(interval.Failures, bs)
 		}
-		return
+	case ok:
+		// we have a record of an interval in progress for this host, we close
+		// the interval since this host has restarted and call the handler.
+		t.handler.Handle(interval)
+		delete(t.intervals, sr.Hostname)
+	default:
+		t.closeInterval(func(s *shutdownInterval) bool {
+			// we close any shutdown interval that has elapsed
+			return bs.Sample.StartedAt.After(s.To)
+		})
 	}
-
-	t, ok := r.intervals[sr.Hostname]
-	if ok {
-		// we have a record of intervals in progress for this host
-		// we close the handler now since this host is come back
-		t.LastSampleSeenAt = bs.Sample.StartedAt
-		r.handler.Handle(t)
-		delete(r.intervals, sr.Hostname)
-		return
-	}
-	r.close(bs, func(s *shutdownInterval) bool {
-		// we keep a shutdown window open with some grace period, considering
-		// the possibility that a faulty load balancer can send late request
-		return bs.Sample.StartedAt.Sub(s.FirstSampleSeenAt) > s.DelayDuration+30*time.Second
-	})
 }
 
 // shutdownInterval holds contextual information related to a kube-apiserver
@@ -173,6 +176,16 @@ func (r *shutdownIntervalTracker) collect(bs backend.SampleResult) {
 type shutdownInterval struct {
 	// Host is the host of the apiserver process that is shutting down
 	Host string
+
+	// From is the calculated length of the shutdown interval, it is derived
+	// from the time at which the first request arrived at this apiserver
+	// instance while it was shutting down, this helps us define
+	// the shutdown interval.
+	From time.Time
+
+	// To is the end of the shutdown interval, it is computed as below:
+	//   From + DelayDuration + 15s
+	To time.Time
 
 	// DelayDuration is the value of the shutdown-delay-duration server run
 	// option, as advertised by the apiserver
@@ -200,26 +213,17 @@ type shutdownInterval struct {
 	// is shutting down.
 	MaxElapsedWithConnectionReuse time.Duration
 
-	// FirstSampleSeenAt is the time at which the first request arrived
-	// at this apiserver instance while it was shutting down, this helps
-	// us define the shutdown interval.
-	FirstSampleSeenAt time.Time
-
-	// LastSampleSeenAt is the time at which the last request arrived
-	// at this apiserver instance while it was shutting down, this helps
-	// us define the shutdown interval.
-	LastSampleSeenAt time.Time
-
 	// Failures is the list of request(s) that hit this apiserver (while it
 	// was shutting down) instance and failed.
 	Failures []backend.SampleResult
 
-	// Success is the list of request(s) that hit this apiserver (while it
-	// was shutting down) instance and succeeded.
-	Success []backend.SampleResult
+	// UnknownHostFailures is the list of request(s) that coincided with the
+	// given shutdown interval and returned error and the host name is not
+	// known, these failed samples are put into this bucket.
+	UnknownHostFailures []backend.SampleResult
 }
 
 func (s shutdownInterval) String() string {
-	return fmt.Sprintf("host=%s shutdown-delay-duration=%s max-elapsed-reuse=%s max-elapsed-new=%s failure=%d success=%d",
-		s.Host, s.DelayDuration.Round(time.Second), s.MaxElapsedWithConnectionReuse.Round(time.Second), s.MaxElapsedWithNewConnection.Round(time.Second), len(s.Failures), len(s.Success))
+	return fmt.Sprintf("host=%s shutdown-delay-duration=%s max-elapsed-reuse=%s max-elapsed-new=%s failure=%d",
+		s.Host, s.DelayDuration.Round(time.Second), s.MaxElapsedWithConnectionReuse.Round(time.Second), s.MaxElapsedWithNewConnection.Round(time.Second), len(s.Failures))
 }

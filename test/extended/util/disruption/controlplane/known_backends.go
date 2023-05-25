@@ -3,6 +3,7 @@ package controlplane
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/origin/pkg/disruption/backend"
 	"time"
 
 	disruptionci "github.com/openshift/origin/pkg/disruption/ci"
@@ -283,11 +284,11 @@ func createOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig *r
 
 func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory) (*disruptionci.BackendSampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
-		TestType: disruptionci.TestType{
+		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
-			LoadBalancerType: disruptionci.ExternalLoadBalancerType,
+			LoadBalancerType: backend.ExternalLoadBalancerType,
 			ConnectionType:   monitorapi.NewConnectionType,
-			Protocol:         disruptionci.ProtocolHTTP2,
+			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/api/v1/namespaces/default",
 		Timeout:                      10 * time.Second,
@@ -298,11 +299,11 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory
 
 func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory) (*disruptionci.BackendSampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
-		TestType: disruptionci.TestType{
+		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
-			LoadBalancerType: disruptionci.ExternalLoadBalancerType,
+			LoadBalancerType: backend.ExternalLoadBalancerType,
 			ConnectionType:   monitorapi.ReusedConnectionType,
-			Protocol:         disruptionci.ProtocolHTTP2,
+			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/api/v1/namespaces/default",
 		Timeout:                      10 * time.Second,
@@ -313,11 +314,11 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factor
 
 func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory) (*disruptionci.BackendSampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
-		TestType: disruptionci.TestType{
+		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
-			LoadBalancerType: disruptionci.ExternalLoadBalancerType,
+			LoadBalancerType: backend.ExternalLoadBalancerType,
 			ConnectionType:   monitorapi.NewConnectionType,
-			Protocol:         disruptionci.ProtocolHTTP1,
+			Protocol:         backend.ProtocolHTTP1,
 		},
 		Path:                         "/api/v1/namespaces/default",
 		Timeout:                      10 * time.Second,
@@ -328,11 +329,11 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory
 
 func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factory) (*disruptionci.BackendSampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
-		TestType: disruptionci.TestType{
+		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
-			LoadBalancerType: disruptionci.ExternalLoadBalancerType,
+			LoadBalancerType: backend.ExternalLoadBalancerType,
 			ConnectionType:   monitorapi.ReusedConnectionType,
-			Protocol:         disruptionci.ProtocolHTTP1,
+			Protocol:         backend.ProtocolHTTP1,
 		},
 		Path:                         "/api/v1/namespaces/default",
 		Timeout:                      10 * time.Second,
@@ -343,11 +344,11 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factor
 
 func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory) (*disruptionci.BackendSampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
-		TestType: disruptionci.TestType{
+		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.OpenShiftAPIServer,
-			LoadBalancerType: disruptionci.ExternalLoadBalancerType,
+			LoadBalancerType: backend.ExternalLoadBalancerType,
 			ConnectionType:   monitorapi.NewConnectionType,
-			Protocol:         disruptionci.ProtocolHTTP2,
+			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/apis/image.openshift.io/v1/namespaces/default/imagestreams",
 		Timeout:                      10 * time.Second,
@@ -358,11 +359,11 @@ func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Fa
 
 func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory) (*disruptionci.BackendSampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
-		TestType: disruptionci.TestType{
+		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.OpenShiftAPIServer,
-			LoadBalancerType: disruptionci.ExternalLoadBalancerType,
+			LoadBalancerType: backend.ExternalLoadBalancerType,
 			ConnectionType:   monitorapi.ReusedConnectionType,
-			Protocol:         disruptionci.ProtocolHTTP2,
+			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/apis/image.openshift.io/v1/namespaces/default/imagestreams",
 		Timeout:                      10 * time.Second,
