@@ -60,7 +60,7 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 		appResource("statefulsets"),
 		appResource("replicasets"),
 		resource("events.k8s.io", "v1", "events"),
-		resource("policy", "v1", "PodDisruptionBudget"),
+		resource("policy", "v1", "poddisruptionbudgets"),
 		coreResource("pods"),
 		coreResource("nodes"),
 		coreResource("replicationcontrollers"),
