@@ -5,7 +5,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
@@ -166,9 +165,10 @@ func NewIngressServicePodIntervalRenderer() ingressServicePodRendering {
 // showed those pods, router-default pods, node changes, and disruption.
 func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
 	errs := []error{}
-	disruptionReasons := sets.NewString(backenddisruption.DisruptionBeganEventReason,
-		backenddisruption.DisruptionEndedEventReason,
-		backenddisruption.DisruptionSamplerOutageBeganEventReason)
+	disruptionReasons := sets.New[monitorapi.IntervalReason](
+		monitorapi.DisruptionBeganEventReason,
+		monitorapi.DisruptionEndedEventReason,
+		monitorapi.DisruptionSamplerOutageBeganEventReason)
 	relevantNamespaces := sets.NewString("openshift-authentication", "openshift-console", "openshift-image-registry", "openshift-ingress", "openshift-ovn-kubernetes")
 	writer := NewNonSpyglassEventIntervalRenderer("image-reg-console-oauth",
 		func(eventInterval monitorapi.EventInterval) bool {

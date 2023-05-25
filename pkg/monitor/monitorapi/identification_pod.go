@@ -73,57 +73,168 @@ func (r ContainerReference) ToLocator() string {
 	return fmt.Sprintf("ns/%s pod/%s uid/%s container/%s", r.Pod.Namespace, r.Pod.Name, r.Pod.UID, r.ContainerName)
 }
 
-func AnnotationsFromMessage(message string) map[string]string {
+func AnnotationsFromMessage(message string) map[AnnotationKey]string {
 	tokens := strings.Split(message, " ")
-	annotations := map[string]string{}
+	annotations := map[AnnotationKey]string{}
 	for _, curr := range tokens {
 		if !strings.Contains(curr, "/") {
-			continue
+			return annotations
 		}
 		annotationTokens := strings.Split(curr, "/")
-		annotations[annotationTokens[0]] = annotationTokens[1]
+		annotations[AnnotationKey(annotationTokens[0])] = annotationTokens[1]
 	}
 	return annotations
 }
 
-func ReasonFrom(message string) string {
+func NonAnnotationMessage(message string) string {
+	tokens := strings.Split(message, " ")
+	for i, curr := range tokens {
+		if !strings.Contains(curr, "/") {
+			return strings.Join(tokens[i:], " ")
+		}
+	}
+	return ""
+}
+
+func ReasonFrom(message string) IntervalReason {
 	annotations := AnnotationsFromMessage(message)
-	return annotations["reason"]
+	return IntervalReason(annotations[AnnotationReason])
 }
 
 func PhaseFrom(message string) string {
 	annotations := AnnotationsFromMessage(message)
-	return annotations["phase"]
+	return annotations[AnnotationPodPhase]
 }
 
-func ReasonedMessage(reason string, message ...string) string {
-	return fmt.Sprintf("reason/%v %s", reason, strings.Join(message, "; "))
+type IntervalReason string
+
+const (
+	IPTablesNotPermitted IntervalReason = "iptables-operation-not-permitted"
+
+	DisruptionBeganEventReason              IntervalReason = "DisruptionBegan"
+	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
+	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
+
+	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
+
+	PodReasonCreated               IntervalReason = "Created"
+	PodReasonGracefulDeleteStarted IntervalReason = "GracefulDelete"
+	PodReasonForceDelete           IntervalReason = "ForceDelete"
+	PodReasonDeleted               IntervalReason = "Deleted"
+	PodReasonScheduled             IntervalReason = "Scheduled"
+
+	ContainerReasonContainerExit      IntervalReason = "ContainerExit"
+	ContainerReasonContainerStart     IntervalReason = "ContainerStart"
+	ContainerReasonContainerWait      IntervalReason = "ContainerWait"
+	ContainerReasonReadinessFailed    IntervalReason = "ReadinessFailed"
+	ContainerReasonReadinessErrored   IntervalReason = "ReadinessErrored"
+	ContainerReasonStartupProbeFailed IntervalReason = "StartupProbeFailed"
+	ContainerReasonReady              IntervalReason = "Ready"
+	ContainerReasonNotReady           IntervalReason = "NotReady"
+
+	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
+	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"
+)
+
+type AnnotationKey string
+
+const (
+	AnnotationReason            AnnotationKey = "reason"
+	AnnotationContainerExitCode AnnotationKey = "code"
+	AnnotationCause             AnnotationKey = "cause"
+	AnnotationNode              AnnotationKey = "node"
+	AnnotationConstructed       AnnotationKey = "constructed"
+	AnnotationPodPhase          AnnotationKey = "phase"
+	AnnotationIsStaticPod       AnnotationKey = "mirrored"
+	// TODO this looks wrong. seems like it ought to be set in the to/from
+	AnnotationDuration AnnotationKey = "duration"
+)
+
+type MessageBuilder struct {
+	annotations     map[AnnotationKey]string
+	originalMessage string
 }
 
-func ReasonedMessagef(reason, messageFormat string, a ...interface{}) string {
-	return ReasonedMessage(reason, fmt.Sprintf(messageFormat, a...))
+func Message() *MessageBuilder {
+	return &MessageBuilder{
+		annotations: map[AnnotationKey]string{},
+	}
+}
+
+func ExpandMessage(prevMessage string) *MessageBuilder {
+	prevAnnotations := AnnotationsFromMessage(prevMessage)
+	prevNonAnnotationMessage := NonAnnotationMessage(prevMessage)
+	return &MessageBuilder{
+		annotations:     prevAnnotations,
+		originalMessage: prevNonAnnotationMessage,
+	}
+}
+
+func (m *MessageBuilder) Reason(reason IntervalReason) *MessageBuilder {
+	return m.WithAnnotation(AnnotationReason, string(reason))
+}
+
+func (m *MessageBuilder) Cause(cause string) *MessageBuilder {
+	return m.WithAnnotation(AnnotationCause, cause)
+}
+
+func (m *MessageBuilder) Node(node string) *MessageBuilder {
+	return m.WithAnnotation(AnnotationNode, node)
+}
+
+func (m *MessageBuilder) Constructed() *MessageBuilder {
+	return m.WithAnnotation(AnnotationConstructed, "true")
+}
+
+func (m *MessageBuilder) WithAnnotation(name AnnotationKey, value string) *MessageBuilder {
+	m.annotations[name] = value
+	return m
+}
+
+func (m *MessageBuilder) WithAnnotations(annotations map[AnnotationKey]string) *MessageBuilder {
+	for k, v := range annotations {
+		m.annotations[k] = v
+	}
+	return m
+}
+
+func (m *MessageBuilder) NoDetails() string {
+	keys := sets.NewString()
+	for k := range m.annotations {
+		keys.Insert(string(k))
+	}
+
+	annotations := []string{}
+	for _, k := range keys.List() {
+		v := m.annotations[AnnotationKey(k)]
+		annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
+	}
+	annotationString := strings.Join(annotations, " ")
+	return m.appendPreviousMessage(annotationString)
+}
+
+func (m *MessageBuilder) Messagef(messageFormat string, args ...interface{}) string {
+	return m.Message(fmt.Sprintf(messageFormat, args...))
+}
+
+func (m *MessageBuilder) Message(message string) string {
+	if len(message) == 0 {
+		return m.NoDetails()
+	}
+	annotationString := m.NoDetails()
+	return m.appendPreviousMessage(fmt.Sprintf("%v %v", annotationString, message))
+}
+
+func (m *MessageBuilder) appendPreviousMessage(newMessage string) string {
+	if len(m.originalMessage) == 0 {
+		return newMessage
+	}
+	return fmt.Sprintf("%v %v", m.originalMessage, newMessage)
 }
 
 const (
 	// PodIPReused means the same pod IP is in use by two pods at the same time.
 	PodIPReused = "ReusedPodIP"
-
-	PodReasonCreated               = "Created"
-	PodReasonGracefulDeleteStarted = "GracefulDelete"
-	PodReasonDeleted               = "Deleted"
-	PodReasonScheduled             = "Scheduled"
-
-	ContainerReasonContainerExit      = "ContainerExit"
-	ContainerReasonContainerStart     = "ContainerStart"
-	ContainerReasonContainerWait      = "ContainerWait"
-	ContainerReasonReadinessFailed    = "ReadinessFailed"
-	ContainerReasonReadinessErrored   = "ReadinessErrored"
-	ContainerReasonStartupProbeFailed = "StartupProbeFailed"
-	ContainerReasonReady              = "Ready"
-	ContainerReasonNotReady           = "NotReady"
-
-	PodReasonDeletedBeforeScheduling = "DeletedBeforeScheduling"
-	PodReasonDeletedAfterCompletion  = "DeletedAfterCompletion"
 
 	ContainerErrImagePull                = "ErrImagePull"
 	ContainerUnrecognizedSignatureFormat = "UnrecognizedSignatureFormat"
@@ -135,7 +246,7 @@ var (
 	// Pods don't exist before create and don't exist after delete.
 	// Between those two states, each of these reasons can be ordered by time and used to create a contiguous view
 	// into the lifecycle of a pod.
-	PodLifecycleTransitionReasons = sets.NewString(
+	PodLifecycleTransitionReasons = sets.New[IntervalReason](
 		PodReasonCreated,
 		PodReasonScheduled,
 		PodReasonGracefulDeleteStarted,
@@ -145,7 +256,7 @@ var (
 	// ContainerLifecycleTransitionReasons are the reasons associated with non-overlapping container lifecycle states.
 	// The logical beginning and end are based on ContainerWait and ContainerExit.
 	// A container is logically identified by a Pod plus a container name.
-	ContainerLifecycleTransitionReasons = sets.NewString(
+	ContainerLifecycleTransitionReasons = sets.New[IntervalReason](
 		ContainerReasonContainerWait,
 		ContainerReasonContainerStart,
 		ContainerReasonContainerExit,
@@ -155,12 +266,12 @@ var (
 	// A container is logically identified by a Pod plus a container name.
 	// The logical beginning and end are based on ContainerStart and ContainerExit, with initial state of ready=false and final state of ready=false.
 	// Each of these reasons can be ordered by time and used to create a contiguous view into the lifecycle of a pod.
-	ContainerReadinessTransitionReasons = sets.NewString(
+	ContainerReadinessTransitionReasons = sets.New[IntervalReason](
 		ContainerReasonReady,
 		ContainerReasonNotReady,
 	)
 
-	KubeletReadinessCheckReasons = sets.NewString(
+	KubeletReadinessCheckReasons = sets.New[IntervalReason](
 		ContainerReasonReadinessFailed,
 		ContainerReasonReadinessErrored,
 		ContainerReasonStartupProbeFailed,

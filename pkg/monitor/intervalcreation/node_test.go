@@ -92,7 +92,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: "ns/openshift-e2e-loki pod/loki-promtail-plm74 uid/59b26cbf-3421-407c-98ee-986b5a091ef4 container/oauth-proxy",
-					Message: "reason/ErrImagePull UnrecognizedSignatureFormat",
+					Message: "cause/UnrecognizedSignatureFormat reason/ErrImagePull",
 				},
 				From: systemdJournalLogTime("Feb 01 05:37:45.731611"),
 				To:   systemdJournalLogTime("Feb 01 05:37:45.731611"),

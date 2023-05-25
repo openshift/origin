@@ -9,7 +9,6 @@ import (
 
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/duplicateevents"
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -324,7 +323,7 @@ func testNoDNSLookupErrorsInDisruptionSamplers(events monitorapi.Intervals) []*j
 
 	failures := []string{}
 	for _, event := range events {
-		if reason := monitorapi.ReasonFrom(event.Message); reason != backenddisruption.DisruptionSamplerOutageBeganEventReason {
+		if reason := monitorapi.ReasonFrom(event.Message); reason != monitorapi.DisruptionSamplerOutageBeganEventReason {
 			continue
 		}
 		failures = append(failures, event.From.Format(time.RFC3339)+" "+event.Message)

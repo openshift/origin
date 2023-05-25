@@ -3,14 +3,14 @@
         {
             "level": "Info",
             "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
-            "message": "constructed/true reason/Created ",
+            "message": "constructed/true reason/Created",
             "from": "2022-03-07T18:41:46Z",
             "to": "2022-03-07T18:41:46Z"
         },
         {
             "level": "Info",
             "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
-            "message": "constructed/true reason/Scheduled node/ip-10-0-141-9.us-west-2.compute.internal",
+            "message": "constructed/true node/ip-10-0-141-9.us-west-2.compute.internal reason/Scheduled",
             "from": "2022-03-07T18:41:46Z",
             "to": "2022-03-07T18:41:54Z"
         },
@@ -31,14 +31,14 @@
         {
             "level": "Info",
             "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
-            "message": "constructed/true reason/ContainerStart cause/ duration/6.00s",
+            "message": "cause/ constructed/true duration/6.00s reason/ContainerStart",
             "from": "2022-03-07T18:41:52Z",
             "to": "2022-03-07T18:41:54Z"
         },
         {
             "level": "Info",
             "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
-            "message": "constructed/true reason/Ready ",
+            "message": "constructed/true reason/Ready",
             "from": "2022-03-07T18:41:52Z",
             "to": "2022-03-07T18:41:54Z"
         }

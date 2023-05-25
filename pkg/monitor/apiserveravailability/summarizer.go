@@ -1,7 +1,6 @@
 package apiserveravailability
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -37,7 +36,7 @@ func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator, line string
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Warning,
 				Locator: locator,
-				Message: fmt.Sprintf("reason/iptables-operation-not-permitted %v", line),
+				Message: monitorapi.Message().Reason(monitorapi.IPTablesNotPermitted).Message(line),
 			},
 			From: timeOfLog,
 			To:   timeOfLog.Add(1 * time.Second),

@@ -189,24 +189,25 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 		if !strings.Contains(event.Locator, "ns/openshift-") {
 			continue
 		}
+		reason := monitorapi.ReasonFrom(event.Message)
+		code := monitorapi.AnnotationsFromMessage(event.Message)[monitorapi.AnnotationContainerExitCode]
 		switch {
 		// errors during container start should be highlighted because they are unexpected
-		case strings.Contains(event.Message, "reason/ContainerWait "):
-			// excluded https://bugzilla.redhat.com/show_bug.cgi?id=1933760
-			if strings.Contains(event.Message, "possible container status clear") || strings.Contains(event.Message, "cause/ContainerCreating ") {
+		case reason == monitorapi.ContainerReasonContainerWait:
+			if strings.Contains(event.Message, "cause/ContainerCreating ") {
 				continue
 			}
 			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
 
 		// workload containers should never exit non-zero during normal operations
-		case strings.Contains(event.Message, "reason/ContainerExit") && !strings.Contains(event.Message, "code/0"):
+		case reason == monitorapi.ContainerReasonContainerExit && code != "0":
 			containerExits[event.Locator] = append(containerExits[event.Locator], event.Message)
 		}
 	}
 
 	var excessiveExits []string
 	for locator, messages := range containerExits {
-		if len(messages) > 1 {
+		if len(messages) > 0 {
 			messageSet := sets.NewString(messages...)
 			excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
 		}

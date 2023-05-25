@@ -288,7 +288,7 @@ func readinessFailure(logLine string) monitorapi.Intervals {
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: containerRef.ToLocator(),
-				Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonReadinessFailed, message),
+				Message: monitorapi.Message().Reason(monitorapi.ContainerReasonReadinessFailed).Message(message),
 			},
 			From: failureTime,
 			To:   failureTime,
@@ -319,7 +319,7 @@ func readinessError(logLine string) monitorapi.Intervals {
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: containerRef.ToLocator(),
-				Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonReadinessErrored, message),
+				Message: monitorapi.Message().Reason(monitorapi.ContainerReasonReadinessErrored).Message(message),
 			},
 			From: failureTime,
 			To:   failureTime,
@@ -345,7 +345,7 @@ func errParsingSignature(logLine string) monitorapi.Intervals {
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: containerRef.ToLocator(),
-				Message: monitorapi.ReasonedMessage(monitorapi.ContainerErrImagePull, monitorapi.ContainerUnrecognizedSignatureFormat),
+				Message: monitorapi.Message().Reason(monitorapi.ContainerErrImagePull).Cause(monitorapi.ContainerUnrecognizedSignatureFormat).NoDetails(),
 			},
 			From: failureTime,
 			To:   failureTime,
@@ -390,7 +390,7 @@ func startupProbeError(logLine string) monitorapi.Intervals {
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: containerRef.ToLocator(),
-				Message: monitorapi.ReasonedMessage(monitorapi.ContainerReasonStartupProbeFailed, message),
+				Message: monitorapi.Message().Reason(monitorapi.ContainerReasonStartupProbeFailed).Message(message),
 			},
 			From: failureTime,
 			To:   failureTime,
@@ -492,7 +492,7 @@ func failedToDeleteCGroupsPath(nodeLocator, logLine string) monitorapi.Intervals
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Error,
 				Locator: nodeLocator,
-				Message: monitorapi.ReasonedMessage("FailedToDeleteCGroupsPath", logLine),
+				Message: monitorapi.Message().Reason("FailedToDeleteCGroupsPath").Message(logLine),
 			},
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
@@ -512,7 +512,7 @@ func anonymousCertConnectionError(nodeLocator, logLine string) monitorapi.Interv
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Error,
 				Locator: nodeLocator,
-				Message: monitorapi.ReasonedMessage("FailedToAuthenticateWithOpenShiftUser", logLine),
+				Message: monitorapi.Message().Reason("FailedToAuthenticateWithOpenShiftUser").Message(logLine),
 			},
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
@@ -532,7 +532,7 @@ func kubeletNodeHttpClientConnectionLostError(logLine string) monitorapi.Interva
 		return nil
 	}
 
-	return commonErrorInterval(logLine, statusOutputRegex, "HttpClientConnectionLost", func() string {
+	return commonErrorInterval(logLine, statusOutputRegex, monitorapi.HttpClientConnectionLost, func() string {
 		nodeRefRegex.MatchString(logLine)
 		if !nodeRefRegex.MatchString(logLine) {
 			return ""
@@ -542,7 +542,7 @@ func kubeletNodeHttpClientConnectionLostError(logLine string) monitorapi.Interva
 
 }
 
-func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason string, locator func() string) monitorapi.Intervals {
+func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason monitorapi.IntervalReason, locator func() string) monitorapi.Intervals {
 	messageExp.MatchString(logLine)
 	if !messageExp.MatchString(logLine) {
 		return nil
@@ -561,7 +561,7 @@ func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason strin
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: locator(),
-				Message: monitorapi.ReasonedMessage(reason, message),
+				Message: monitorapi.Message().Reason(reason).Message(message),
 			},
 			From: failureTime,
 			To:   failureTime,
