@@ -2057,6 +2057,20 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from guest cluster PodNetwork pod via LoadBalancer service across different guest nodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from guest hostNetwork pod via NodePort across different guest nodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from guest podNetwork pod via NodePort across different guest nodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from infra cluster pod via LoadBalancer service across different guest nodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from infra cluster pod via NodePort across different infra nodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow direct connections to pods from guest cluster pod in host network across different guest nodes": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow direct connections to pods from guest cluster pod in pod network across different guest nodes": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": " [Disabled:Broken]",

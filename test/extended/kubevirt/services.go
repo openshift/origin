@@ -3,9 +3,6 @@ package kubevirt
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -16,7 +13,6 @@ var _ = Describe("[sig-kubevirt] services", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("ns-global", admissionapi.LevelBaseline)
 
 	InKubeVirtClusterContext(oc, func() {
-
 		mgmtFramework := e2e.NewDefaultFramework("mgmt-framework")
 		mgmtFramework.SkipNamespaceCreation = true
 
@@ -24,6 +20,7 @@ var _ = Describe("[sig-kubevirt] services", func() {
 		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 
 		It("should allow connections to pods from infra cluster pod via NodePort across different infra nodes", func() {
+			oc = setMgmtFramework(mgmtFramework)
 			// This tests connectivity from the infra cluster's pod network to a NodePort
 			// within a nested KubeVirt Hypershift guest cluster.
 			//
@@ -32,19 +29,6 @@ var _ = Describe("[sig-kubevirt] services", func() {
 			//
 			// client pod (on infra cluster) -> guest node IP -> NodePort -> server pod (on guest cluster)
 			//
-			_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
-			Expect(err).NotTo(HaveOccurred())
-
-			oc = exutil.NewHypershiftManagementCLI(hcpNamespace).AsAdmin()
-
-			mgmtClientSet := oc.KubeClient()
-			mgmtFramework.Namespace = &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: hcpNamespace,
-				},
-			}
-			mgmtFramework.ClientSet = mgmtClientSet
-
 			Expect(checkKubeVirtInfraClusterNodePortConnectivity(f1, mgmtFramework, oc)).To(Succeed())
 		})
 
@@ -70,6 +54,20 @@ var _ = Describe("[sig-kubevirt] services", func() {
 			// Within a nested KubeVirt guest cluster, this tests the ability for different pods within the
 			// guest cluster to communicate each other, across different guest cluster nodes, via HostNetwork.
 			Expect(checkKubeVirtGuestClusterHostNetworkConnectivity(f1, f1)).To(Succeed())
+		})
+
+		It("should allow connections to pods from infra cluster pod via LoadBalancer service across different guest nodes", func() {
+			oc = setMgmtFramework(mgmtFramework)
+			// Within a nested KubeVirt guest cluster, this tests the ability for
+			// LoadBalancer services to route from pod network to pods across infra nodes.
+			// client pod (on infra cluster) -> guest node IP -> LoadBalancer Service -> server pod (on guest cluster)
+			Expect(checkKubeVirtInfraClusterLoadBalancerConnectivity(f1, mgmtFramework, oc)).To(Succeed())
+		})
+
+		It("should allow connections to pods from guest cluster PodNetwork pod via LoadBalancer service across different guest nodes", func() {
+			// Within a nested KubeVirt guest cluster, this tests the ability for
+			// LoadBalancer services to route from pod network to pods across guest nodes.
+			Expect(checkKubeVirtGuestClusterLoadBalancerConnectivity(f1, f1)).To(Succeed())
 		})
 	})
 
