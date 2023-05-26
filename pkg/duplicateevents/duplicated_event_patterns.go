@@ -107,6 +107,10 @@ var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 	regexp.MustCompile("ns/openshift-kube-controller-manager pod/kube-controller-manager-guard.*ProbeError Readiness probe error"),
 	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*ProbeError Readiness probe error"),
 
+	// StatefulSet controller is agressive on logging recreating the prometheus k8s pod
+	regexp.MustCompile("ns/openshift-monitoring statefulset/prometheus-k8s.*RecreatingFailedPod StatefulSet openshift-monitoring/prometheus-k8s is recreating failed"),
+	regexp.MustCompile("ns/openshift-monitoring statefulset/prometheus-k8s.*SuccessfulDelete delete Pod prometheus-k8s-0 in StatefulSet prometheus-k8s successful"),
+
 	// this is the less specific even sent by the kubelet when a probe was executed successfully but returned false
 	// we ignore this event because openshift has a patch in patch_prober that sends a more specific event about
 	// readiness failures in openshift-* namespaces.  We will catch the more specific ProbeError events.
