@@ -30484,8 +30484,8 @@ os::cmd::expect_failure 'oc get imageStreams nodejs'
 os::cmd::expect_failure 'oc get imageStreams postgresql'
 os::cmd::expect_failure 'oc get imageStreams mongodb'
 os::cmd::expect_failure 'oc get imageStreams wildfly'
-os::cmd::try_until_success 'oc get imagestreamTags mysql:5.6'
-os::cmd::try_until_success 'oc get imagestreamTags mysql:5.7'
+os::cmd::try_until_success 'oc get imagestreamTags mariadb:10.3'
+os::cmd::try_until_success 'oc get imagestreamTags mariadb:10.5'
 os::cmd::expect_success_and_text "oc get imagestreams mysql --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
 os::cmd::expect_success 'oc describe istag/mysql:latest'
 os::cmd::expect_success_and_text 'oc describe istag/mysql:latest' 'Environment:'
@@ -30510,100 +30510,100 @@ echo "imageStreams: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/import-image"
-# should follow the latest reference to 5.6 and update that, and leave latest unchanged
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.7'
+# should follow the latest reference to 10.3 and update that, and leave latest unchanged
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 2).from.name}}'" '10.5'
 # import existing tag (implicit latest)
-os::cmd::expect_success_and_text 'oc import-image mysql' 'sha256:'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 2).from.name}}'" '5.7'
+os::cmd::expect_success_and_text 'oc import-image mariadb' 'sha256:'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 2).from.name}}'" '10.5'
 # should prevent changing source
-os::cmd::expect_failure_and_text 'oc import-image mysql --from=quay.io/openshifttest/hello-openshift:openshift' "use the 'tag' command if you want to change the source"
-os::cmd::expect_success 'oc describe is/mysql'
+os::cmd::expect_failure_and_text 'oc import-image mariadb --from=quay.io/openshifttest/hello-openshift:openshift' "use the 'tag' command if you want to change the source"
+os::cmd::expect_success 'oc describe is/mariadb'
 # import existing tag (explicit)
-os::cmd::expect_success_and_text 'oc import-image mysql:5.6' "sha256:"
-os::cmd::expect_success_and_text 'oc import-image mysql:latest' "sha256:"
+os::cmd::expect_success_and_text 'oc import-image mariadb:10.3' "sha256:"
+os::cmd::expect_success_and_text 'oc import-image mariadb:latest' "sha256:"
 # import existing image stream creating new tag
-os::cmd::expect_success_and_text 'oc import-image mysql:external --from=quay.io/openshifttest/hello-openshift:openshift' "sha256:"
-os::cmd::expect_success_and_text "oc get istag/mysql:external --template='{{.tag.from.kind}}'" 'DockerImage'
-os::cmd::expect_success_and_text "oc get istag/mysql:external --template='{{.tag.from.name}}'" 'quay.io/openshifttest/hello-openshift:openshift'
+os::cmd::expect_success_and_text 'oc import-image mariadb:external --from=quay.io/openshifttest/hello-openshift:openshift' "sha256:"
+os::cmd::expect_success_and_text "oc get istag/mariadb:external --template='{{.tag.from.kind}}'" 'DockerImage'
+os::cmd::expect_success_and_text "oc get istag/mariadb:external --template='{{.tag.from.name}}'" 'quay.io/openshifttest/hello-openshift:openshift'
 # import creates new image stream with single tag
-os::cmd::expect_failure_and_text 'oc import-image mysql-new-single:latest --from=quay.io/openshifttest/hello-openshift:openshift' '\-\-confirm'
-os::cmd::expect_success_and_text 'oc import-image mysql-new-single:latest --from=quay.io/openshifttest/hello-openshift:openshift --confirm' 'sha256:'
-os::cmd::expect_success_and_text "oc get is/mysql-new-single --template='{{(len .spec.tags)}}'" '1'
-os::cmd::expect_success 'oc delete is/mysql-new-single'
+os::cmd::expect_failure_and_text 'oc import-image mariadb-new-single:latest --from=quay.io/openshifttest/hello-openshift:openshift' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mariadb-new-single:latest --from=quay.io/openshifttest/hello-openshift:openshift --confirm' 'sha256:'
+os::cmd::expect_success_and_text "oc get is/mariadb-new-single --template='{{(len .spec.tags)}}'" '1'
+os::cmd::expect_success 'oc delete is/mariadb-new-single'
 # import creates new image stream with all tags
-os::cmd::expect_failure_and_text 'oc import-image mysql-new-all --from=quay.io/openshifttest/hello-openshift --all' '\-\-confirm'
-os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=quay.io/openshifttest/hello-openshift --all --confirm --request-timeout=1m' 'sha256:'
-name=$(oc get istag/mysql-new-all:openshift --template='{{ .image.metadata.name }}')
+os::cmd::expect_failure_and_text 'oc import-image mariadb-new-all --from=quay.io/openshifttest/hello-openshift --all' '\-\-confirm'
+os::cmd::expect_success_and_text 'oc import-image mariadb-new-all --from=quay.io/openshifttest/hello-openshift --all --confirm --request-timeout=1m' 'sha256:'
+name=$(oc get istag/mariadb-new-all:openshift --template='{{ .image.metadata.name }}')
 echo "import-image: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/tag"
 # oc tag
-os::cmd::expect_success 'oc tag mysql:latest mysql:tag1 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 4).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag mariadb:latest mariadb:tag1 --alias'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 4).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success "oc tag mysql@${name} mysql:tag2 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success "oc tag mariadb@${name} mariadb:tag2 --alias"
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamImage'
 
-os::cmd::expect_success 'oc tag mysql:notfound mysql:tag3 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag mariadb:notfound mariadb:tag3 --alias'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success 'oc tag --source=imagestreamtag mysql:latest mysql:tag4 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 7).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag --source=imagestreamtag mariadb:latest mariadb:tag4 --alias'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 7).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success 'oc tag --source=istag mysql:latest mysql:tag5 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag --source=istag mariadb:latest mariadb:tag5 --alias'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success "oc tag --source=imagestreamimage mysql@${name} mysql:tag6 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 9).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success "oc tag --source=imagestreamimage mariadb@${name} mariadb:tag6 --alias"
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 9).from.kind}}'" 'ImageStreamImage'
 
-os::cmd::expect_success "oc tag --source=isimage mysql@${name} mysql:tag7 --alias"
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 10).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success "oc tag --source=isimage mariadb@${name} mariadb:tag7 --alias"
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 10).from.kind}}'" 'ImageStreamImage'
 
-os::cmd::expect_success 'oc tag --source=docker mysql:latest mysql:tag8 --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 11).from.kind}}'" 'DockerImage'
+os::cmd::expect_success 'oc tag --source=docker mariadb:latest mariadb:tag8 --alias'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 11).from.kind}}'" 'DockerImage'
 
-os::cmd::expect_success 'oc tag mysql:latest mysql:zzz mysql:yyy --alias'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 12).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 13).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag mariadb:latest mariadb:zzz mariadb:yyy --alias'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 12).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 13).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_failure_and_text 'oc tag mysql:latest tagtest:tag1 --alias' 'cannot set alias across'
+os::cmd::expect_failure_and_text 'oc tag mariadb:latest tagtest:tag1 --alias' 'cannot set alias across'
 
 # label image
-imgsha256=$(oc get istag/mysql:latest --template='{{ .image.metadata.name }}')
+imgsha256=$(oc get istag/mariadb:latest --template='{{ .image.metadata.name }}')
 os::cmd::expect_success "oc label image ${imgsha256} foo=bar || true"
 os::cmd::expect_success_and_text "oc get image ${imgsha256} --show-labels" 'foo=bar'
 
 # tag labeled image
-os::cmd::expect_success 'oc label is/mysql labelA=value'
-os::cmd::expect_success 'oc tag mysql:latest mysql:labeled'
-os::cmd::expect_success_and_text "oc get istag/mysql:labeled -o jsonpath='{.metadata.labels.labelA}'" 'value'
+os::cmd::expect_success 'oc label is/mariadb labelA=value'
+os::cmd::expect_success 'oc tag mariadb:latest mariadb:labeled'
+os::cmd::expect_success_and_text "oc get istag/mariadb:labeled -o jsonpath='{.metadata.labels.labelA}'" 'value'
 # test copying tags
 os::cmd::expect_success 'oc tag quay.io/openshift/origin-cli:4.6 newrepo:latest'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'DockerImage'
-os::cmd::try_until_success 'oc get istag/mysql:5.6'
+os::cmd::try_until_success 'oc get istag/mariadb:10.3'
 # default behavior is to copy the current image, but since this is an external image we preserve the dockerImageReference
-os::cmd::expect_success 'oc tag mysql:5.6 newrepo:latest'
+os::cmd::expect_success 'oc tag mariadb:10.3 newrepo:latest'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^registry.centos.org/centos/mysql-56-centos7@sha256:'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^quay.io/centos7/mariadb-103-centos7@sha256:'
 # when copying a tag that points to the internal registry, update the container image reference
 #os::cmd::expect_success "oc tag test:new newrepo:direct"
 #os::cmd::expect_success_and_text 'oc get istag/newrepo:direct -o jsonpath={.image.dockerImageReference}' "/$project/newrepo@sha256:"
 # test references
-os::cmd::expect_success 'oc tag mysql:5.6 reference:latest --reference'
+os::cmd::expect_success 'oc tag mariadb:10.3 reference:latest --reference'
 os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
 os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).reference}}'" 'true'
 # create a second project to test tagging across projects
 os::cmd::expect_success 'oc new-project test-cmd-images-2'
-os::cmd::expect_success "oc tag $project/mysql:5.6 newrepo:latest"
+os::cmd::expect_success "oc tag $project/mariadb:10.3 newrepo:latest"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'registry.centos.org/centos/mysql-56-centos7@sha256:'
+os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'quay.io/centos7/mariadb-103-centos7@sha256:'
 # tag across projects without specifying the source's project
-os::cmd::expect_success_and_text "oc tag newrepo:latest '${project}/mysql:tag1'" "mysql:tag1 set to"
+os::cmd::expect_success_and_text "oc tag newrepo:latest '${project}/mariadb:tag1'" "mariadb:tag1 set to"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).name}}'" "latest"
 # tagging an image with a DockerImageReference that points to the internal registry across namespaces updates the reference
 #os::cmd::expect_success "oc tag $project/test:new newrepo:direct"
@@ -30617,10 +30617,10 @@ os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.t
 #os::cmd::expect_success_and_text 'oc get istag/newrepo:indirect -o jsonpath={.image.dockerImageReference}' "/$project/test@sha256:"
 os::cmd::expect_success "oc project $project"
 # test scheduled and insecure tagging
-os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --scheduled'
+os::cmd::expect_success 'oc tag --source=docker mariadb:10.5 newrepo:latest --scheduled'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).importPolicy.scheduled}}'" 'true'
-os::cmd::expect_success_and_text "oc describe is/newrepo" 'updates automatically from registry mysql:5.7'
-os::cmd::expect_success 'oc tag --source=docker mysql:5.7 newrepo:latest --insecure'
+os::cmd::expect_success_and_text "oc describe is/newrepo" 'updates automatically from registry mariadb:10.5'
+os::cmd::expect_success 'oc tag --source=docker mariadb:10.5 newrepo:latest --insecure'
 os::cmd::expect_success_and_text "oc describe is/newrepo" 'will use insecure HTTPS or HTTP connections'
 os::cmd::expect_success_and_not_text "oc describe is/newrepo" 'updates automatically from'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).importPolicy.insecure}}'" 'true'
@@ -30628,11 +30628,11 @@ os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.t
 # test creating streams that don't exist
 os::cmd::expect_failure_and_text 'oc get imageStreams tagtest1' 'not found'
 os::cmd::expect_failure_and_text 'oc get imageStreams tagtest2' 'not found'
-os::cmd::expect_success 'oc tag mysql:latest tagtest1:latest tagtest2:latest'
+os::cmd::expect_success 'oc tag mariadb:latest tagtest1:latest tagtest2:latest'
 os::cmd::expect_success_and_text "oc get is/tagtest1 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
 os::cmd::expect_success_and_text "oc get is/tagtest2 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
 os::cmd::expect_success 'oc delete is/tagtest1 is/tagtest2'
-os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1' 'Tag tagtest:new1 set to mysql@sha256:'
+os::cmd::expect_success_and_text 'oc tag mariadb:latest tagtest:new1' 'Tag tagtest:new1 set to mariadb@sha256:'
 
 # test deleting a spec tag using oc tag
 os::cmd::expect_success 'oc create -f ${TEST_DATA}/test-stream.yaml'
@@ -31963,7 +31963,7 @@ os::cmd::expect_success 'oc new-project quota-images --as=deads  --as-group=syst
 os::cmd::expect_success 'oc create quota -n quota-images is-quota --hard openshift.io/imagestreams=1'
 os::cmd::try_until_success 'oc tag -n quota-images openshift/hello-openshift myis2:v2'
 os::cmd::expect_failure_and_text 'oc tag -n quota-images busybox mybox:v1' "exceeded quota"
-os::cmd::expect_failure_and_text 'oc import-image centos -n quota-images --from=registry.centos.org/centos:latest --confirm=true' "exceeded quota"
+os::cmd::expect_failure_and_text 'oc import-image centos -n quota-images --from=quay.io/centos7:latest --confirm=true' "exceeded quota"
 os::cmd::expect_success 'oc delete project quota-images'
 
 echo "imagestreams: ok"
@@ -34566,7 +34566,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/httpd-24-centos7:latest"
+              "name": "quay.io/centos7/httpd-24-centos7:latest"
             },
             "name": "2.4",
             "referencePolicy": {
@@ -34646,7 +34646,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "10.2"
+              "name": "10.5"
             },
             "name": "latest",
             "referencePolicy": {
@@ -34660,31 +34660,31 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
               "openshift.io/display-name": "MariaDB 10.1",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "tags": "database,mariadb",
-              "version": "10.1"
+              "version": "10.3"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mariadb-101-centos7:latest"
+              "name": "quay.io/centos7/mariadb-103-centos7:latest"
             },
-            "name": "10.1",
+            "name": "10.3",
             "referencePolicy": {
               "type": "Local"
             }
           },
           {
             "annotations": {
-              "description": "Provides a MariaDB 10.2 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.2/README.md.",
+              "description": "Provides a MariaDB 10.5 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/blob/master/10.2/README.md.",
               "iconClass": "icon-mariadb",
-              "openshift.io/display-name": "MariaDB 10.2",
+              "openshift.io/display-name": "MariaDB 10.5",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "tags": "database,mariadb",
-              "version": "10.2"
+              "version": "10.5"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mariadb-102-centos7:latest"
+              "name": "quay.io/centos7/mariadb-105-centos7:latest"
             },
-            "name": "10.2",
+            "name": "10.5",
             "referencePolicy": {
               "type": "Local"
             }
@@ -34731,7 +34731,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mongodb-26-centos7:latest"
+              "name": "quay.io/centos7/mongodb-26-centos7:latest"
             },
             "name": "2.7",
             "referencePolicy": {
@@ -34749,7 +34749,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mongodb-32-centos7:latest"
+              "name": "quay.io/centos7/mongodb-32-centos7:latest"
             },
             "name": "3.2",
             "referencePolicy": {
@@ -34767,7 +34767,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mongodb-34-centos7:latest"
+              "name": "quay.io/centos7/mongodb-34-centos7:latest"
             },
             "name": "3.4",
             "referencePolicy": {
@@ -34798,7 +34798,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "5.7"
+              "name": "8"
             },
             "name": "latest",
             "referencePolicy": {
@@ -34807,36 +34807,18 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
           },
           {
             "annotations": {
-              "description": "Provides a MySQL 5.6 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "description": "Provides a MySQL 8 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
               "iconClass": "icon-mysql-database",
-              "openshift.io/display-name": "MySQL 5.6",
+              "openshift.io/display-name": "MySQL 8",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "tags": "hidden,mysql",
-              "version": "5.6"
+              "version": "8"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mysql-56-centos7:latest"
+              "name": "quay.io/centos7/mysql-80-centos7:latest"
             },
-            "name": "5.6",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Provides a MySQL 5.7 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
-              "iconClass": "icon-mysql-database",
-              "openshift.io/display-name": "MySQL 5.7",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "mysql",
-              "version": "5.7"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/centos/mysql-57-centos7:latest"
-            },
-            "name": "5.7",
+            "name": "8",
             "referencePolicy": {
               "type": "Local"
             }
@@ -34868,7 +34850,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/nginx-114-centos7:latest"
+              "name": "quay.io/centos7/nginx-114-centos7:latest"
             },
             "name": "1.14",
             "referencePolicy": {
@@ -34888,7 +34870,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/nginx-116-centos7:latest"
+              "name": "quay.io/centos7/nginx-116-centos7:latest"
             },
             "name": "1.16",
             "referencePolicy": {
@@ -34959,7 +34941,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/nodejs-10-centos7:latest"
+              "name": "quay.io/centos7/nodejs-10-centos7:latest"
             },
             "name": "10",
             "referencePolicy": {
@@ -34978,7 +34960,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/nodejs-12-centos7:latest"
+              "name": "quay.io/centos7/nodejs-12-centos7:latest"
             },
             "name": "12",
             "referencePolicy": {
@@ -35108,7 +35090,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/php-70-centos7:latest"
+              "name": "quay.io/centos7/php-70-centos7:latest"
             },
             "name": "7.0",
             "referencePolicy": {
@@ -35128,7 +35110,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/php-71-centos7:latest"
+              "name": "quay.io/centos7/php-71-centos7:latest"
             },
             "name": "7.1",
             "referencePolicy": {
@@ -35177,7 +35159,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/postgresql-95-centos7:latest"
+              "name": "quay.io/centos7/postgresql-95-centos7:latest"
             },
             "name": "9.5",
             "referencePolicy": {
@@ -35195,7 +35177,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/postgresql-96-centos7:latest"
+              "name": "quay.io/centos7/postgresql-96-centos7:latest"
             },
             "name": "9.6",
             "referencePolicy": {
@@ -35248,7 +35230,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/python-27-centos7:latest"
+              "name": "quay.io/centos7/python-27-centos7:latest"
             },
             "name": "2.7",
             "referencePolicy": {
@@ -35268,7 +35250,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/python-36-centos7:latest"
+              "name": "quay.io/centos7/python-36-centos7:latest"
             },
             "name": "3.6",
             "referencePolicy": {
@@ -35317,7 +35299,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.centos.org/centos/redis-5-centos7:latest"
+              "name": "quay.io/centos7/redis-5-centos7:latest"
             },
             "name": "5",
             "referencePolicy": {
