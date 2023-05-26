@@ -224,8 +224,16 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(oc.Run("adm", "policy", "remove-scc-from-user").Args("privileged", "-z", "fake-sa").Execute()).To(o.Succeed())
 		o.Expect(oc.Run("adm", "policy", "remove-scc-from-group").Args("privileged", "fake-group").Execute()).To(o.Succeed())
 		out, err = oc.Run("get").Args("clusterrolebinding/system:openshift:scc:privileged", "-o", "yaml").Output()
-		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring(`clusterrolebindings.rbac.authorization.k8s.io "system:openshift:scc:privileged" not found`))
+		// there are two possible outcomes here:
+		if err == nil {
+			// 1. the binding exists, but it should not contain the removed entities
+			o.Expect(out).NotTo(o.ContainSubstring("fake-user"))
+			o.Expect(out).NotTo(o.ContainSubstring("fake-sa"))
+			o.Expect(out).NotTo(o.ContainSubstring("fake-group"))
+		} else {
+			// 2. the binding does not exists, if we removed all entities from the binding
+			o.Expect(out).To(o.ContainSubstring(`clusterrolebindings.rbac.authorization.k8s.io "system:openshift:scc:privileged" not found`))
+		}
 
 		// check pruning
 		o.Expect(oc.Run("adm", "policy", "add-scc-to-user").Args("privileged", "fake-user").Execute()).To(o.Succeed())

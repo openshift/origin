@@ -9,6 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
+
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,8 +27,7 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
-	"github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -34,19 +36,29 @@ const (
 )
 
 var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
-	f := framework.NewDefaultFramework("k8s-nettest")
+	f := framework.NewDefaultFramework("nettest")
 	// TODO(sur): verify if privileged is really necessary in a follow-up
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+	oc := exutil.NewCLIWithoutNamespace("nettest").AsAdmin()
 
 	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]", func() {
 		e2eskipper.SkipUnlessNodeCountIsAtLeast(2)
+
+		namespace := f.Namespace.Name
+		clientSet := f.ClientSet
 		clientConfig := f.ClientConfig()
 
+		// SCC privileged is needed for host networked pods
+		_, err := runOcWithRetry(oc.AsAdmin(), "adm", "policy", "add-scc-to-user", "privileged", fmt.Sprintf("system:serviceaccount:%s:default", namespace))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		one := int64(0)
+		runAsUser := int64(0)
+		privileged := true
 		ds := &appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "webserver",
-				Namespace: f.Namespace.Name,
+				Namespace: namespace,
 			},
 			Spec: appsv1.DaemonSetSpec{
 				Selector: &metav1.LabelSelector{
@@ -88,6 +100,8 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 									},
 								},
 								SecurityContext: &v1.SecurityContext{
+									Privileged: &privileged,
+									RunAsUser:  &runAsUser,
 									Capabilities: &v1.Capabilities{
 										Add: []v1.Capability{"NET_RAW"},
 									},
@@ -99,10 +113,10 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 			},
 		}
 		name := ds.Name
-		ds, err := f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Create(context.Background(), ds, metav1.CreateOptions{})
+		ds, err = clientSet.AppsV1().DaemonSets(namespace).Create(context.Background(), ds, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
-			ds, err = f.ClientSet.AppsV1().DaemonSets(f.Namespace.Name).Get(context.Background(), name, metav1.GetOptions{})
+			ds, err = clientSet.AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 			if err != nil {
 				framework.Logf("unable to retrieve daemonset: %v", err)
 				return false, nil
@@ -116,7 +130,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		framework.Logf("daemonset ready: %#v", ds.Status)
 
-		pods, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).List(context.Background(), metav1.ListOptions{LabelSelector: labels.Set(ds.Spec.Selector.MatchLabels).String()})
+		pods, err := clientSet.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: labels.Set(ds.Spec.Selector.MatchLabels).String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).To(o.Equal(int(ds.Status.NumberAvailable)), fmt.Sprintf("%#v", pods.Items))
 
@@ -142,7 +156,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
-							res, err := commandResult(f.ClientSet.CoreV1(), clientConfig, from.Namespace, from.Name, "webserver", []string{"/bin/sh", "-cex", strings.Join(command, " ")})
+							res, err := commandResult(clientSet.CoreV1(), clientConfig, from.Namespace, from.Name, "webserver", []string{"/bin/sh", "-cex", strings.Join(command, " ")})
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
