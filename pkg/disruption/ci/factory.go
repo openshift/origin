@@ -22,13 +22,8 @@ import (
 type ServerNameType string
 
 const (
-	KubeAPIServer      ServerNameType = "kube-apiserver"
-	OpenShiftAPIServer ServerNameType = "openshift-apiserver"
-)
-
-const (
-	KubeAPIServerShutdownIntervalName    = "kube-apiserver-shutdown"
-	KubeAPIServerShutdownIntervalLocator = "shutdown/graceful server/kube-apiserver"
+	KubeAPIServer      ServerNameType = "kube-api"
+	OpenShiftAPIServer ServerNameType = "openshift-api"
 )
 
 // Factory creates a new instance of a Disruption test from
@@ -93,16 +88,16 @@ type TestDescriptor struct {
 }
 
 func (t TestDescriptor) Name() string {
-	return fmt.Sprintf("backend-sampler-%s-%s-%s-%s", t.TargetServer, t.Protocol, t.LoadBalancerType, t.ConnectionType)
+	return fmt.Sprintf("%s-%s-%s-%s", t.TargetServer, t.Protocol, t.LoadBalancerType, t.ConnectionType)
 }
 
 func (t TestDescriptor) DisruptionLocator() string {
-	return fmt.Sprintf("disruption/%s type/%s connection/%s protocol/%s server/%s",
+	return fmt.Sprintf("disruption/%s load-balancer/%s connection/%s protocol/%s target/%s",
 		t.Name(), t.LoadBalancerType, t.ConnectionType, t.Protocol, t.TargetServer)
 }
 
 func (t TestDescriptor) ShutdownLocator() string {
-	return fmt.Sprintf("%s type/%s", KubeAPIServerShutdownIntervalLocator, t.LoadBalancerType)
+	return fmt.Sprintf("shutdown/graceful server/kube-apiserver load-balancer/%s", t.LoadBalancerType)
 }
 
 func (t TestDescriptor) Validate() error {
