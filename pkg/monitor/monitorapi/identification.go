@@ -130,6 +130,18 @@ func DisruptionConnectionTypeFrom(locatorParts map[string]string) string {
 	return locatorParts["connection"]
 }
 
+func DisruptionLoadBalancerTypeFrom(locatorParts map[string]string) string {
+	return locatorParts["load-balancer"]
+}
+
+func DisruptionProtocolFrom(locatorParts map[string]string) string {
+	return locatorParts["protocol"]
+}
+
+func DisruptionTargetAPIFrom(locatorParts map[string]string) string {
+	return locatorParts["target"]
+}
+
 func IsEventForLocator(locator string) EventIntervalMatchesFunc {
 	return func(eventInterval EventInterval) bool {
 		if eventInterval.Locator == locator {
