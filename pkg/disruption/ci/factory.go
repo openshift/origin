@@ -178,7 +178,7 @@ func (b *testFactory) New(c TestConfiguration) (*BackendSampler, error) {
 	collector, want := disruption.NewIntervalTracker(b.sharedShutdownInterval, c, nil, nil)
 	collector = logger.NewLogger(collector, c)
 
-	pc := backendsampler.NewSampleProducerConsumer(client, requestor, backendsampler.ResponseCheckerFunc(backendsampler.DefaultResponseChecker), collector)
+	pc := backendsampler.NewSampleProducerConsumer(client, requestor, backendsampler.NewResponseChecker(), collector)
 	runner := sampler.NewWithProducerConsumer(c.SampleInterval, pc)
 	backendSampler := &BackendSampler{
 		TestConfiguration:           c,

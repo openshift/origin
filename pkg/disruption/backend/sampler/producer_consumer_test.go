@@ -29,8 +29,7 @@ func TestProducer(t *testing.T) {
 	wantAgent := "test"
 	client := roundtripper.WrapClient(ts.Client(), 0, wantAgent, true, nil)
 	var producer sampler.Producer
-	producer = NewSampleProducerConsumer(client, NewHostPathRequestor(ts.URL, "/echo"),
-		ResponseCheckerFunc(DefaultResponseChecker), nil)
+	producer = NewSampleProducerConsumer(client, NewHostPathRequestor(ts.URL, "/echo"), NewResponseChecker(), nil)
 	info, err := producer.Produce(context.TODO(), 1)
 
 	if err != nil {

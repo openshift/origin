@@ -57,16 +57,9 @@ func (pc *producerConsumer) Produce(stop context.Context, sampleID uint64) (inte
 
 	resp, err := pc.client.Do(req)
 	if err != nil {
-		return rr, err
+		return rr, pc.checker.CheckError(err)
 	}
 	rr.Response = resp
-
-	if rr.ResponseBodyReadErr != nil {
-		// if we have failed to read the response body,
-		// the sample is deemed to have failed
-		return rr, fmt.Errorf("error while reading response body: %w", rr.ResponseBodyReadErr)
-	}
-
 	err = pc.checker.CheckResponse(rr)
 	return rr, err
 }

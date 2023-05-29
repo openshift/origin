@@ -35,11 +35,8 @@ func (s SampleResult) Error() string   { return s.Sample.Err.Error() }
 func (s SampleResult) Err() error      { return s.Sample.Err }
 func (s SampleResult) AggregateErr() error {
 	err := s.Sample.Err
-	if err != nil {
-		err = fmt.Errorf("sample error: %v", s.Sample.Err)
-	}
-	if s.DNSErr != nil {
-		err = fmt.Errorf("DNS error: %v - %v", s.DNSErr, err)
+	if s.ShutdownResponseHeaderParseErr != nil {
+		return fmt.Errorf("primary err: %v, shutdown response parse error: %v", err, s.ShutdownResponseHeaderParseErr)
 	}
 	return err
 }
