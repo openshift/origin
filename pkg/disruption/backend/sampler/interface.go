@@ -25,6 +25,15 @@ type Requestor interface {
 // The response body maybe empty depending on the kind of
 // request sent to the server.
 type ResponseChecker interface {
+	// CheckError checks the the given error for any known types
+	CheckError(error) error
+
+	// CheckResponse checks the given HTTP Response object and
+	// optionally the response body that has been successfully read.
+	// If it returns an error, the sample is deemed to have failed.
+	// The given http.Response object must not be nil
+	// The response body maybe empty depending on the kind of
+	// request sent to the server.
 	CheckResponse(backend.RequestResponse) error
 }
 
