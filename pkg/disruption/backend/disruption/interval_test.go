@@ -19,27 +19,89 @@ func TestDisruptionTracker(t *testing.T) {
 		intervals              []interval
 	}{
 		{
-			name: "no disruption, no handler expected",
+			name: "no samples",
+			samples: []backend.SampleResult{
+				{Sample: nil},
+			},
+		},
+		{
+			name: "one good sample, zero expected",
+			samples: []backend.SampleResult{
+				{Sample: &sampler.Sample{ID: 1}},
+			},
+			available: 1,
+			intervals: []interval{
+				{from: 1, to: 1},
+			},
+		},
+		{
+			name: "one good sample, with finalizer, zero expected",
+			samples: []backend.SampleResult{
+				{Sample: &sampler.Sample{ID: 1}},
+				{Sample: nil},
+			},
+			available: 1,
+			intervals: []interval{
+				{from: 1, to: 1},
+			},
+		},
+		{
+			name: "one bad sample, one unavailable window expected",
+			samples: []backend.SampleResult{
+				{Sample: &sampler.Sample{ID: 1, Err: fmt.Errorf("error")}},
+				{Sample: nil},
+			},
+			unavailable: 1,
+			intervals: []interval{
+				{from: 1, to: 1},
+			},
+		},
+		{
+			name: "one bad sample with no finalizer, no unavailable window expected",
+			samples: []backend.SampleResult{
+				{Sample: &sampler.Sample{ID: 1, Err: fmt.Errorf("error")}},
+			},
+		},
+		{
+			name: "multiple good samples only, no disruption, zero expected",
 			samples: []backend.SampleResult{
 				{Sample: &sampler.Sample{ID: 1}},
 				{Sample: &sampler.Sample{ID: 2}},
 				{Sample: &sampler.Sample{ID: 3}},
 				{Sample: &sampler.Sample{ID: 4}},
+				{Sample: nil},
+			},
+			available: 1,
+			intervals: []interval{
+				{from: 1, to: 1},
+			},
+		},
+		{
+			name: "multiple good samples with a finalizer, no disruption, zero expected",
+			samples: []backend.SampleResult{
+				{Sample: &sampler.Sample{ID: 1}},
+				{Sample: &sampler.Sample{ID: 2}},
+				{Sample: &sampler.Sample{ID: 3}},
+				{Sample: &sampler.Sample{ID: 4}},
+				{Sample: nil},
+			},
+			available: 1,
+			intervals: []interval{
+				{from: 1, to: 1},
 			},
 		},
 		{
 			name: "same failures, one handler expected",
 			samples: []backend.SampleResult{
-				{Sample: &sampler.Sample{ID: 1}},
+				{Sample: &sampler.Sample{ID: 1, Err: fmt.Errorf("error")}},
 				{Sample: &sampler.Sample{ID: 2, Err: fmt.Errorf("error")}},
 				{Sample: &sampler.Sample{ID: 3, Err: fmt.Errorf("error")}},
 				{Sample: &sampler.Sample{ID: 4, Err: fmt.Errorf("error")}},
-				{Sample: &sampler.Sample{ID: 5, Err: fmt.Errorf("error")}},
 				{Sample: nil},
 			},
 			unavailable: 1,
 			intervals: []interval{
-				{from: 2, to: 5},
+				{from: 1, to: 4},
 			},
 		},
 		{
@@ -56,8 +118,9 @@ func TestDisruptionTracker(t *testing.T) {
 				{Sample: nil},
 			},
 			unavailable: 2,
-			available:   2,
+			available:   3,
 			intervals: []interval{
+				{from: 1, to: 1},
 				{from: 2, to: 4},
 				{from: 4, to: 6},
 				{from: 6, to: 8},
@@ -68,19 +131,37 @@ func TestDisruptionTracker(t *testing.T) {
 			name: "unavailable, and then available with single error",
 			samples: []backend.SampleResult{
 				{Sample: &sampler.Sample{ID: 1}},
-				{Sample: &sampler.Sample{ID: 2, Err: fmt.Errorf("error 1")}},
-				{Sample: &sampler.Sample{ID: 3, Err: fmt.Errorf("error 2")}},
+				{Sample: &sampler.Sample{ID: 2, Err: fmt.Errorf("error 2")}},
+				{Sample: &sampler.Sample{ID: 3, Err: fmt.Errorf("error 3")}},
 				{Sample: &sampler.Sample{ID: 4}},
-				{Sample: &sampler.Sample{ID: 5, Err: fmt.Errorf("error")}},
+				{Sample: &sampler.Sample{ID: 5, Err: fmt.Errorf("error 5")}},
 				{Sample: nil},
 			},
 			unavailable: 3,
-			available:   1,
+			available:   2,
 			intervals: []interval{
+				{from: 1, to: 1},
 				{from: 2, to: 3},
 				{from: 3, to: 4},
 				{from: 4, to: 5},
 				{from: 5, to: 5},
+			},
+		},
+		{
+			name: "multiple samples with errors only",
+			samples: []backend.SampleResult{
+				{Sample: &sampler.Sample{ID: 1, Err: fmt.Errorf("error 1")}},
+				{Sample: &sampler.Sample{ID: 2, Err: fmt.Errorf("error 2")}},
+				{Sample: &sampler.Sample{ID: 3, Err: fmt.Errorf("error 3")}},
+				{Sample: &sampler.Sample{ID: 4, Err: fmt.Errorf("error 4")}},
+				{Sample: nil},
+			},
+			unavailable: 4,
+			intervals: []interval{
+				{from: 1, to: 2},
+				{from: 2, to: 3},
+				{from: 3, to: 4},
+				{from: 4, to: 4},
 			},
 		},
 	}
@@ -126,21 +207,11 @@ type fakeHandler struct {
 	err                    error
 }
 
-func (f *fakeHandler) UnavailableStarted(s backend.SampleResult) {
+func (f *fakeHandler) Unavailable(from, to *backend.SampleResult) {
 	f.unavailable++
-	f.intervals = append(f.intervals, interval{from: s.Sample.ID})
-	f.openIntervalID = len(f.intervals)
+	f.intervals = append(f.intervals, interval{from: from.Sample.ID, to: to.Sample.ID})
 }
-func (f *fakeHandler) AvailableStarted(s backend.SampleResult) {
+func (f *fakeHandler) Available(from, to *backend.SampleResult) {
 	f.available++
-	f.intervals = append(f.intervals, interval{from: s.Sample.ID})
-	f.openIntervalID = len(f.intervals)
-}
-func (f *fakeHandler) CloseInterval(s backend.SampleResult) {
-	if f.openIntervalID <= 0 {
-		f.t.Logf("no open interval")
-		return
-	}
-	f.intervals[f.openIntervalID-1].to = s.Sample.ID
-	f.openIntervalID = 0
+	f.intervals = append(f.intervals, interval{from: from.Sample.ID, to: to.Sample.ID})
 }
