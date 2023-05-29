@@ -60,9 +60,14 @@ func (h *ciHandler) SetMonitor(monitor backend.Monitor) {
 //	b) for a window with a single sample, from and to can refer
 //	   to the same sample in question.
 func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
-	fields := fmt.Sprintf("sample-id=%d %s", from.Sample.ID, from.String())
+	fs, ts := from.Sample, to.Sample
+	info := fmt.Sprintf("sample-id=%d %s", fs.ID, from.String())
+	if ts.ID-fs.ID > 1 {
+		// we have multiple failed samples with the same error
+		info = fmt.Sprintf("range=[%d-%d] %s", fs.ID, ts.ID, info)
+	}
 	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator(),
-		h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", from.AggregateErr(), fields))
+		h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", from.AggregateErr(), info))
 
 	framework.Logf(message)
 	h.eventRecorder.Eventf(
@@ -74,8 +79,10 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 		Locator: h.descriptor.DisruptionLocator(),
 		Message: message,
 	}
-	openIntervalID := h.monitor.StartInterval(from.Sample.StartedAt, condition)
-	h.monitor.EndInterval(openIntervalID, to.Sample.StartedAt)
+	openIntervalID := h.monitor.StartInterval(fs.StartedAt, condition)
+	// TODO: unlikely in the real world, if from == to for some reason,
+	//  then we are recording a zero second unavailable window.
+	h.monitor.EndInterval(openIntervalID, ts.StartedAt)
 }
 
 // Available is called when a disruption interval ends and we see
@@ -85,6 +92,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 //	b) for a window with a single sample, from and to can refer
 //	   to the same sample in question.
 func (h *ciHandler) Available(from, to *backend.SampleResult) {
+	fs, ts := from.Sample, to.Sample
 	message := backenddisruption.DisruptionEndedMessage(h.descriptor.DisruptionLocator(), h.descriptor.GetConnectionType())
 	framework.Logf(message)
 
@@ -96,6 +104,6 @@ func (h *ciHandler) Available(from, to *backend.SampleResult) {
 		Locator: h.descriptor.DisruptionLocator(),
 		Message: message,
 	}
-	openIntervalID := h.monitor.StartInterval(from.Sample.StartedAt, condition)
-	h.monitor.EndInterval(openIntervalID, to.Sample.StartedAt)
+	openIntervalID := h.monitor.StartInterval(fs.StartedAt, condition)
+	h.monitor.EndInterval(openIntervalID, ts.StartedAt)
 }
