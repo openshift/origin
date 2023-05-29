@@ -40,6 +40,7 @@ type ciHandler struct {
 	eventRecorder events.EventRecorder
 
 	openIntervalID int
+	last           backend.SampleResult
 }
 
 // SetEventRecorder sets the event recorder
@@ -52,11 +53,16 @@ func (h *ciHandler) SetMonitor(monitor backend.Monitor) {
 	h.monitor = monitor
 }
 
-// UnavailableStarted records an unavailable disruption interval in CI
-func (h *ciHandler) UnavailableStarted(result backend.SampleResult) {
-	s := result.Sample
-	fields := fmt.Sprintf("sample-id=%d %s", s.ID, result.String())
-	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator(), h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", result.AggregateErr(), fields))
+// Unavailable is called for a disruption interval when we see
+// a series of failed samples in this range [from ... to).
+//
+//	a) either from or to must not be nil
+//	b) for a window with a single sample, from and to can refer
+//	   to the same sample in question.
+func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
+	fields := fmt.Sprintf("sample-id=%d %s", from.Sample.ID, from.String())
+	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator(),
+		h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", from.AggregateErr(), fields))
 
 	framework.Logf(message)
 	h.eventRecorder.Eventf(
@@ -68,11 +74,17 @@ func (h *ciHandler) UnavailableStarted(result backend.SampleResult) {
 		Locator: h.descriptor.DisruptionLocator(),
 		Message: message,
 	}
-	h.openIntervalID = h.monitor.StartInterval(s.StartedAt, condition)
+	openIntervalID := h.monitor.StartInterval(from.Sample.StartedAt, condition)
+	h.monitor.EndInterval(openIntervalID, to.Sample.StartedAt)
 }
 
-// AvailableStarted records an available again interval in CI
-func (h *ciHandler) AvailableStarted(result backend.SampleResult) {
+// Available is called when a disruption interval ends and we see
+// a series of successful samples in this range [from ... to).
+//
+//	a) either from or to must not be nil
+//	b) for a window with a single sample, from and to can refer
+//	   to the same sample in question.
+func (h *ciHandler) Available(from, to *backend.SampleResult) {
 	message := backenddisruption.DisruptionEndedMessage(h.descriptor.DisruptionLocator(), h.descriptor.GetConnectionType())
 	framework.Logf(message)
 
@@ -84,13 +96,6 @@ func (h *ciHandler) AvailableStarted(result backend.SampleResult) {
 		Locator: h.descriptor.DisruptionLocator(),
 		Message: message,
 	}
-	h.openIntervalID = h.monitor.StartInterval(result.Sample.StartedAt, condition)
-}
-
-// CloseInterval closes an open interval, if any.
-func (h *ciHandler) CloseInterval(result backend.SampleResult) {
-	if h.openIntervalID >= 0 {
-		h.monitor.EndInterval(h.openIntervalID, result.Sample.StartedAt)
-	}
-	h.openIntervalID = -1
+	openIntervalID := h.monitor.StartInterval(from.Sample.StartedAt, condition)
+	h.monitor.EndInterval(openIntervalID, to.Sample.StartedAt)
 }
