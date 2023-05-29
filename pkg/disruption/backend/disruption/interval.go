@@ -37,31 +37,30 @@ func NewIntervalTracker(delegate backendsampler.SampleCollector, descriptor back
 }
 
 // intervalHandler is an internal interface that receives the calculated
-// disruption interval(s) and handle them. The caller must ensure that
-// no existing interval is left open while creating a new one.
-// The expected sequence is:
-//   - UnavailableStarted, CloseInterval, AvailableStarted, CloseInterval
-//   - UnavailableStarted, CloseInterval, UnavailableStarted, CloseInterval
-//
+// disruption interval(s) and handle them.
 // NOTE: This is intentionally not exported, it helps in writing unit tests
 type intervalHandler interface {
-	// UnavailableStarted is called when a disruption interval starts
-	// with the given sample that has failed.
-	UnavailableStarted(backend.SampleResult)
+	// Available is called when a disruption interval ends and we see
+	// a series of successful samples in this range [from ... to).
+	//  a) either from or to must not be nil
+	//  b) for a window with a single sample, from and to can refer
+	//     to the same sample in question.
+	Available(from, to *backend.SampleResult)
 
-	// AvailableStarted is called when a disruption interval ends
-	// with the given sample that has succeeded.
-	AvailableStarted(backend.SampleResult)
-
-	// CloseInterval should close the current open interval
-	CloseInterval(backend.SampleResult)
+	// Unavailable is called for a disruption interval when we see
+	// a series of failed samples in this range [from ... to).
+	//  a) either from or to must not be nil
+	//  b) for a window with a single sample, from and to can refer
+	//     to the same sample in question.
+	Unavailable(from, to *backend.SampleResult)
 }
 
 type intervalTracker struct {
 	delegate backendsampler.SampleCollector
 	handler  intervalHandler
 
-	previous backend.SampleResult
+	from     *backend.SampleResult
+	previous *backend.SampleResult
 }
 
 func (t *intervalTracker) Collect(bs backend.SampleResult) {
@@ -72,20 +71,31 @@ func (t *intervalTracker) Collect(bs backend.SampleResult) {
 	t.collect(bs)
 }
 
-func (t *intervalTracker) collect(bs backend.SampleResult) {
-	if bs.Sample == nil {
-		// no more sample arriving, do cleanup
-		if t.previous.Sample != nil {
-			t.handler.CloseInterval(t.previous)
+func (t *intervalTracker) collect(result backend.SampleResult) {
+	if result.Sample == nil {
+		if from := t.from; from != nil {
+			switch {
+			case from.Succeeded():
+				t.handler.Available(from, t.previous)
+			default:
+				t.handler.Unavailable(t.from, t.previous)
+			}
 		}
+		// no more sample arriving, do cleanup
 		return
 	}
 
-	current := bs
-	if t.previous.Sample == nil {
+	current := &result
+	if t.previous == nil {
 		// this is the very first sample
-		if !current.Succeeded() {
-			t.handler.UnavailableStarted(current)
+		switch {
+		case current.Succeeded():
+			// this will ensure we have a "zero"
+			t.handler.Available(current, current)
+		default:
+			// the very first sample failed, we will need to start
+			// an Unavailable window from this sample.
+			t.from = current
 		}
 		t.previous = current
 		return
@@ -94,20 +104,27 @@ func (t *intervalTracker) collect(bs backend.SampleResult) {
 	// 2nd or consecutive sample(s)
 	previous := t.previous
 	t.previous = current
-
-	if previous.Succeeded() && current.Succeeded() {
+	switch {
+	case previous.Succeeded() && current.Succeeded():
 		return
-	}
-	if !previous.Succeeded() && !current.Succeeded() {
+	case !previous.Succeeded() && !current.Succeeded():
 		if previous.Error() == current.Error() {
 			return
 		}
-	}
+		//  both previous and current failed, but with different errors
+		t.handler.Unavailable(t.from, current)
 
-	t.handler.CloseInterval(current)
-	if current.Succeeded() {
-		t.handler.AvailableStarted(current)
-		return
+	// if we are here, we have a transition
+	//  a) previous sample failed, current is a success
+	//  b) previous sample succeeded, current has failed
+	case current.Succeeded():
+		if t.from != nil {
+			t.handler.Unavailable(t.from, current)
+		}
+	default:
+		if t.from != nil {
+			t.handler.Available(t.from, current)
+		}
 	}
-	t.handler.UnavailableStarted(current)
+	t.from = current
 }
