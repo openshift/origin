@@ -7,6 +7,7 @@ import (
 
 	_ "k8s.io/kubernetes/openshift-hack/e2e"
 
+	_ "github.com/openshift/origin/test/e2e/upgrade"
 	_ "github.com/openshift/origin/test/extended/adminack"
 	_ "github.com/openshift/origin/test/extended/apiserver"
 	_ "github.com/openshift/origin/test/extended/authentication"
