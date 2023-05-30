@@ -58,26 +58,13 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 	// annotations.  Bugzillas have been filed, and are linked here.  These
 	// should be fixed one-by-one and removed from this list.
 	descriptionExceptions := sets.NewString(
-		// Repo: openshift/cluster-kube-apiserver-operator
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010349
-		"APIRemovedInNextEUSReleaseInUse",
-		"APIRemovedInNextReleaseInUse",
-		"ExtremelyHighIndividualControlPlaneCPU",
-		"HighOverallControlPlaneCPU",
-		"TechPreviewNoUpgrade",
-
-		// Repo: operator-framework/operator-marketplace
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010375
-		"CertifiedOperatorsCatalogError",
-		"CommunityOperatorsCatalogError",
-		"RedhatMarketplaceCatalogError",
-		"RedhatOperatorsCatalogError",
-
-		// Repo: operator-framework/operator-lifecycle-manager
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2010373
-		"CsvAbnormalFailedOver2Min",
-		"CsvAbnormalOver30Min",
-		"InstallPlanStepAppliedWithWarnings",
+		// Repo: openshift/machine-config-operator
+		// https://issues.redhat.com/browse/OCPBUGS-14185
+		"KubeletHealthState",
+		"MCCDrainError",
+		"MCDPivotError",
+		"MCDRebootError",
+		"SystemMemoryExceedsReservation",
 	)
 
 	var alertingRules map[string][]promv1.AlertingRule
@@ -158,9 +145,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		})
 
 		if err != nil {
-			// We are still gathering data on how many alerts need to
-			// be fixed, so this is marked as a flake for now.
-			testresult.Flakef(err.Error())
+			e2e.Failf(err.Error())
 		}
 	})
 
