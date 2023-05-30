@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -26,7 +27,7 @@ type RunMonitorOptions struct {
 	Out, ErrOut       io.Writer
 	ArtifactDir       string
 	APIDisruptionOnly bool
-	ExtraLocator      string
+	DisruptionPrefix  string
 	ExtraMessage      string
 
 	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
@@ -66,9 +67,9 @@ func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command 
 	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
 		"artifact-dir", monitorOpt.ArtifactDir,
 		"The directory where monitor events will be stored.")
-	cmd.Flags().StringVar(&monitorOpt.ExtraLocator,
-		"extra-locator", monitorOpt.ExtraLocator,
-		"Add custom label to disruption event locator")
+	cmd.Flags().StringVar(&monitorOpt.DisruptionPrefix,
+		"disruption-prefix", monitorOpt.DisruptionPrefix,
+		"Add custom prefix to the locator of disruption events")
 	cmd.Flags().StringVar(&monitorOpt.ExtraMessage,
 		"extra-message", monitorOpt.ExtraMessage,
 		"Add custom label to disruption event message")
@@ -152,10 +153,11 @@ func (opt *RunMonitorOptions) Run() error {
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
 		intervals := m.Intervals(time.Time{}, time.Time{})
-		if len(opt.ExtraLocator) > 0 {
-			fmt.Fprintf(opt.Out, "\nAppending %s to recorded event locator\n", opt.ExtraLocator)
+		if len(opt.DisruptionPrefix) > 0 {
+			fmt.Fprintf(opt.Out, "\nAppending %s to disruption signature in recorded event locator\n", opt.DisruptionPrefix)
 			for i, event := range intervals {
-				intervals[i].Locator = fmt.Sprintf("%s %s", event.Locator, opt.ExtraLocator)
+				intervals[i].Locator = strings.ReplaceAll(event.Locator, "disruption/", fmt.Sprintf("disruption/%s/", opt.DisruptionPrefix))
+				intervals[i].Message = strings.ReplaceAll(event.Message, "disruption/", fmt.Sprintf("disruption/%s/", opt.DisruptionPrefix))
 			}
 		}
 		if len(opt.ExtraMessage) > 0 {
