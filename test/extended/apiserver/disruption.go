@@ -95,18 +95,18 @@ func createTestBed(ctx context.Context, oc *exutil.CLI) {
 		oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace),
 		serviceAccountName)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	err = callMasterDaemonset(ctx, oc, true, apiIntHost)
+	err = callInternalLBDaemonset(ctx, oc, true, apiIntHost)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	err = callWorkerDaemonset(ctx, oc, true)
+	err = callServiceNetworkDaemonset(ctx, oc, true)
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func deleteTestBed(ctx context.Context, oc *exutil.CLI) {
 	// Stop daemonsets first so that test stop before serviceaccount is removed
 	// and permission issues from apiserver are not recorded as disruption
-	err := callMasterDaemonset(ctx, oc, false, "")
+	err := callInternalLBDaemonset(ctx, oc, false, "")
 	o.Expect(err).NotTo(o.HaveOccurred())
-	err = callWorkerDaemonset(ctx, oc, false)
+	err = callServiceNetworkDaemonset(ctx, oc, false)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	err = callRBACClusterAdmin(ctx, oc, false)
@@ -151,11 +151,11 @@ func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *apps
 	return err
 }
 
-func callMasterDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIntHost string) error {
+func callInternalLBDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIntHost string) error {
+	name := "pod-monitor-internal-lb"
 	labels := map[string]string{
-		"app": "pod-monitor-master",
+		"app": name,
 	}
-	name := "pod-monitor-masters"
 	truePointer := true
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -226,9 +226,6 @@ func callMasterDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIn
 						},
 					},
 					ServiceAccountName: serviceAccountName,
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
 					Tolerations: []corev1.Toleration{
 						{
 							Key:    "node-role.kubernetes.io/master",
@@ -243,14 +240,15 @@ func callMasterDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIn
 	return createDaemonset(ctx, oc, create, obj)
 }
 
-func callWorkerDaemonset(ctx context.Context, oc *exutil.CLI, create bool) error {
+func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create bool) error {
+	name := "pod-monitor-service-network"
 	labels := map[string]string{
-		"app": "pod-monitor-worker",
+		"app": name,
 	}
 	truePointer := true
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "pod-monitor-worker",
+			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -309,8 +307,11 @@ func callWorkerDaemonset(ctx context.Context, oc *exutil.CLI, create bool) error
 						},
 					},
 					ServiceAccountName: serviceAccountName,
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/worker": "",
+					Tolerations: []corev1.Toleration{
+						{
+							Key:    "node-role.kubernetes.io/master",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
 					},
 				},
 			},
