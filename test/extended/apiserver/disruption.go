@@ -1,9 +1,11 @@
 package apiserver
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -57,7 +59,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		var events monitorapi.Intervals
 		var errs []error
 		for _, node := range nodes.Items {
-			nodeEvents, err := fetchNodeInClusterEvents(oc, &node)
+			nodeEvents, err := fetchNodeInClusterEvents(ctx, oc, &node)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -432,17 +434,30 @@ func callProject(ctx context.Context, oc *exutil.CLI, create bool) error {
 	return err
 }
 
-func fetchFileViaOC(oc *exutil.CLI, nodeName string, filePath string) (string, error) {
-	return oc.Run("adm", "node-logs").Args(nodeName, fmt.Sprintf("--path=%s", filePath)).Output()
+func fetchFileViaOC(ctx context.Context, oc *exutil.CLI, nodeName string, filePath string) (string, error) {
+	args := []string{"adm", "node-logs", nodeName, fmt.Sprintf("--path=%s", filePath)}
+	cmd := exec.CommandContext(ctx, "oc", args...)
+	var outb, errb bytes.Buffer
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
+	framework.Logf("in-cluster monitors: running 'oc %v'", args)
+	if err := cmd.Run(); err != nil {
+		// exit early if errors has "404 page not found" - no events were logged
+		if strings.HasSuffix(errb.String(), "404 page not found\n") {
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to run oc %s on node %s: %v, stdout: %s, stderr: %s", args, nodeName, err, outb.String(), errb.String())
+	}
+	return outb.String(), nil
 }
 
-func fetchNodeInClusterEvents(oc *exutil.CLI, node *corev1.Node) (monitorapi.Intervals, error) {
+func fetchNodeInClusterEvents(ctx context.Context, oc *exutil.CLI, node *corev1.Node) (monitorapi.Intervals, error) {
 	var events monitorapi.Intervals
 	var errs []error
 
 	// Fetch a list of e2e data files
 	basePath := fmt.Sprintf("/%s/%s", disruptionDataFolder, monitor_command.EventDir)
-	fileListOutput, err := fetchFileViaOC(oc, node.Name, basePath)
+	fileListOutput, err := fetchFileViaOC(ctx, oc, node.Name, basePath)
 	if err != nil {
 		return events, fmt.Errorf("failed to list files in disruption event folder on node %s: %v", node.Name, err)
 	}
@@ -453,7 +468,7 @@ func fetchNodeInClusterEvents(oc *exutil.CLI, node *corev1.Node) (monitorapi.Int
 		}
 		framework.Logf("Found events file %s on node %s", fileName, node.Name)
 		filePath := fmt.Sprintf("%s/%s", basePath, fileName)
-		fileEvents, err := fetchEventsFromFileOnNode(oc, filePath, node.Name)
+		fileEvents, err := fetchEventsFromFileOnNode(ctx, oc, filePath, node.Name)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -467,11 +482,11 @@ func fetchNodeInClusterEvents(oc *exutil.CLI, node *corev1.Node) (monitorapi.Int
 	return events, nil
 }
 
-func fetchEventsFromFileOnNode(oc *exutil.CLI, filePath string, nodeName string) (monitorapi.Intervals, error) {
+func fetchEventsFromFileOnNode(ctx context.Context, oc *exutil.CLI, filePath string, nodeName string) (monitorapi.Intervals, error) {
 	var filteredEvents monitorapi.Intervals
 	var err error
 
-	eventsJson, err := fetchFileViaOC(oc, nodeName, filePath)
+	eventsJson, err := fetchFileViaOC(ctx, oc, nodeName, filePath)
 	if err != nil {
 		return filteredEvents, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
 	}
