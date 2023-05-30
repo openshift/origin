@@ -24,6 +24,9 @@ const (
 
 var batchCtr int
 
+// pushBatch sends logs to Loki in batches of 500 using raw HTTP requets. Attempts were made to vendor and use the
+// promtail library but this gets extremely complicated when you already vendor kube.
+// Includes a rudimentary retry mechanism.
 func pushBatch(client *http.Client, bearerToken string, lokiData LokiData) error {
 	batchCtr++
 	url := "https://logging-loki-openshift-operators-redhat.apps.cr.j7t7.p1.openshiftapps.com/api/logs/v1/openshift-trt/loki/api/v1/push"
@@ -93,6 +96,8 @@ func pushBatch(client *http.Client, bearerToken string, lokiData LokiData) error
 		})
 }
 
+// UploadIntervalsToLoki attempts to push the set of intervals from this portion of the job run up to Loki,
+// allowing for more efficient querying and searching in TRT tooling.
 func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 
 	// Ensure we have appropriate env vars defined, if not exit with an error.
@@ -126,9 +131,6 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 	// part of which is we lose out on resilient retries in the event the ingesters are overloaded.
 
 	values := make([][]interface{}, 0)
-	// TODO: Replace, this is exported in scripts not globally defined
-	// : export OPENSHIFT_INSTALL_INVOKER="openshift-internal-ci/${JOB_NAME}/${BUILD_ID}"
-
 	// This format matches the labels used for the cluster logs in loki, and we want this
 	// to be labelled the same.
 	invoker := fmt.Sprintf("openshift-internal-ci/%s/%s", jobName, buildID)
@@ -137,7 +139,9 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 	}
 	labels := map[string]string{
 		"invoker": invoker,
-		"src":     "origin-interval",
+		"type":    "origin-interval",
+		// TODO: in future, may group intrvals in origin rather than in the js itself, if we do,
+		// ensure this group gets carried over to this series.
 	}
 
 	for _, i := range intervals {
@@ -164,18 +168,16 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 				continue
 			}
 
-			// TODO: Unclear if we should massage data here to match existing loki entries and open the door
-			// to efficient searches by namespace/node (which will require the intervals processing code
-			// in sippy to change a little and no longer work with plain intervals files from gcs)...
-			/*
-				if tag == "ns" {
-					tag = "namespace"
-				}
-				if tag == "node" {
-					tag = "host"
-				}
-
-			*/
+			// WAARNING: opting for a potentially risky change here, I want namespace filtering to be available as a
+			// label in loki soon,	and thus I am translating some labels we used historically in origin intervals to
+			// match those we pull from pod logs in the cluster itself. This will require our intervals charts in sippy
+			// be able to parse this new name instead of the other. Ideally, we would go rename these fully in origin wherever used.
+			if tag == "ns" {
+				tag = "namespace"
+			}
+			if tag == "node" {
+				tag = "host"
+			}
 
 			logLine[tag] = val
 		}
@@ -192,7 +194,6 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 			strconv.FormatInt(i.From.UnixNano(), 10),
 			string(logLineJson),
 		})
-		//fmt.Printf("Added value: %v\n", values[len(values)-1])
 
 		if len(values) == batchSize {
 			ld := LokiData{
@@ -276,8 +277,7 @@ func obtainSSOBearerToken(clientID, clientSecret string, intervals monitorapi.In
 		return "", err
 	}
 	if _, ok := responseJSON["access_token"]; !ok {
-		// TODO: careful we're not logging anything sensitive here
-		logrus.Errorf("no access token in response: %s", responseBody)
+		logrus.Error("no access token in response")
 		return "", fmt.Errorf("no access token in response")
 	}
 	bearerToken := responseJSON["access_token"].(string)
