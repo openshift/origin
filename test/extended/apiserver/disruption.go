@@ -17,6 +17,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	authv1 "github.com/openshift/api/authorization/v1"
 	projv1 "github.com/openshift/api/project/v1"
@@ -116,14 +117,47 @@ func deleteTestBed(ctx context.Context, oc *exutil.CLI) {
 	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
+func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *appsv1.DaemonSet) error {
+	client := oc.AdminKubeClient().AppsV1().DaemonSets(namespace)
+	var err error
+	if create {
+		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
+		if apierrors.IsAlreadyExists(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+			ds, err := client.Get(context.Background(), obj.Name, metav1.GetOptions{})
+			if err != nil {
+				framework.Logf("error getting daemonsets %v", err)
+				return false, nil
+			}
+			return ds.Status.NumberReady > 0, nil
+		}); err != nil {
+			return fmt.Errorf("daemonset %s didn't roll out: %v", obj.Name, err)
+		}
+
+	} else {
+		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
+		if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
+			return nil
+		}
+	}
+
+	return err
+}
+
 func callMasterDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIntHost string) error {
 	labels := map[string]string{
 		"app": "pod-monitor-master",
 	}
+	name := "pod-monitor-masters"
 	truePointer := true
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "pod-monitor-masters",
+			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -204,18 +238,7 @@ func callMasterDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIn
 		},
 	}
 
-	client := oc.AdminKubeClient().AppsV1().DaemonSets(namespace)
-	var err error
-	if create {
-		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-	} else {
-		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
-	}
-
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
+	return createDaemonset(ctx, oc, create, obj)
 }
 
 func callWorkerDaemonset(ctx context.Context, oc *exutil.CLI, create bool) error {
@@ -292,18 +315,7 @@ func callWorkerDaemonset(ctx context.Context, oc *exutil.CLI, create bool) error
 		},
 	}
 
-	client := oc.AdminKubeClient().AppsV1().DaemonSets(namespace)
-	var err error
-	if create {
-		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-	} else {
-		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
-	}
-
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
+	return createDaemonset(ctx, oc, create, obj)
 }
 
 func callRBACClusterAdmin(ctx context.Context, oc *exutil.CLI, create bool) error {
