@@ -313,7 +313,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:Audit] Basic audit should audit API calls": " [Disabled:SpecialConfig]",
 
-	"[sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-api-machinery][Feature:ClusterResourceQuota] Cluster resource quota should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io][apigroup:monitoring.coreos.com][apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 

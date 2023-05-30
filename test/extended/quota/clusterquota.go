@@ -18,8 +18,12 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	quotav1 "github.com/openshift/api/quota/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
@@ -27,12 +31,14 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 	oc := exutil.NewCLI("crq")
 
 	g.Describe("Cluster resource quota", func() {
-		g.It(fmt.Sprintf("should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io]"), func() {
+		g.It(fmt.Sprintf("should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io][apigroup:monitoring.coreos.com][apigroup:template.openshift.io]"), func() {
 			t := g.GinkgoT(1)
 
 			clusterAdminKubeClient := oc.AdminKubeClient()
 			clusterAdminQuotaClient := oc.AdminQuotaClient()
 			clusterAdminImageClient := oc.AdminImageClient()
+			clusterAdminTemplateClient := oc.AdminTemplateClient()
+			clusterAdminDynamicClient := oc.AdminDynamicClient()
 
 			labelSelectorKey := "foo-" + oc.Namespace()
 			cq := &quotav1.ClusterResourceQuota{
@@ -43,8 +49,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 					},
 					Quota: corev1.ResourceQuotaSpec{
 						Hard: corev1.ResourceList{
-							corev1.ResourceConfigMaps:   resource.MustParse("2"),
-							"openshift.io/imagestreams": resource.MustParse("1"),
+							corev1.ResourceConfigMaps:                     resource.MustParse("2"),
+							"openshift.io/imagestreams":                   resource.MustParse("1"),
+							"count/templates.template.openshift.io":       resource.MustParse("1"),
+							"count/servicemonitors.monitoring.coreos.com": resource.MustParse("1"),
 						},
 					},
 				},
@@ -145,6 +153,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(secondProjectName).Create(context.Background(), configmap, metav1.CreateOptions{}); !apierrors.IsForbidden(err) {
+				framework.Logf("unexpected err during creation: %v", err)
 				list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas(secondProjectName).List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					t.Errorf("quota is %#v", list)
@@ -177,6 +186,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			}
 
 			if _, err := clusterAdminImageClient.ImageV1().ImageStreams(secondProjectName).Create(context.Background(), imagestream, metav1.CreateOptions{}); !apierrors.IsForbidden(err) {
+				framework.Logf("unexpected err during creation: %v", err)
 				list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas(secondProjectName).List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					t.Errorf("quota is %#v", list)
@@ -185,6 +195,75 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 				list2, err := clusterAdminImageClient.ImageV1().ImageStreams("").List(context.Background(), metav1.ListOptions{})
 				if err == nil {
 					t.Errorf("ImageStreams is %#v", list2)
+				}
+
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// test templates are counted correctly
+			template := &templatev1.Template{}
+			template.GenerateName = "test"
+			if _, err := clusterAdminTemplateClient.TemplateV1().Templates(firstProjectName).Create(context.Background(), template, metav1.CreateOptions{}); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
+				q := quota.Status.Total.Used["count/templates.template.openshift.io"]
+				if i, ok := q.AsInt64(); ok {
+					if i == 1 {
+						return nil
+					}
+					return fmt.Errorf("%d != 1", i)
+				}
+				return fmt.Errorf("quota=%+v AsInt64() failed", q)
+			}); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if _, err := clusterAdminTemplateClient.TemplateV1().Templates(secondProjectName).Create(context.Background(), template, metav1.CreateOptions{}); !apierrors.IsForbidden(err) {
+				framework.Logf("unexpected err during creation: %v", err)
+				list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas(secondProjectName).List(context.Background(), metav1.ListOptions{})
+				if err == nil {
+					t.Errorf("quota is %#v", list)
+				}
+
+				list2, err := clusterAdminTemplateClient.TemplateV1().Templates("").List(context.Background(), metav1.ListOptions{})
+				if err == nil {
+					t.Errorf("Templates is %#v", list2)
+				}
+
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// test that CRD resources are counted correctly
+			serviceMonitorGVR := schema.GroupVersionResource{Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"}
+			firstServiceMonitor := getTestServiceMonitor("test", firstProjectName)
+			secondServiceMonitor := getTestServiceMonitor("test", secondProjectName)
+			if _, err := clusterAdminDynamicClient.Resource(serviceMonitorGVR).Namespace(firstProjectName).Create(context.Background(), firstServiceMonitor, metav1.CreateOptions{}); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
+				q := quota.Status.Total.Used["count/servicemonitors.monitoring.coreos.com"]
+				if i, ok := q.AsInt64(); ok {
+					if i == 1 {
+						return nil
+					}
+					return fmt.Errorf("%d != 1", i)
+				}
+				return fmt.Errorf("quota=%+v AsInt64() failed", q)
+			}); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if _, err := clusterAdminDynamicClient.Resource(serviceMonitorGVR).Namespace(secondProjectName).Create(context.Background(), secondServiceMonitor, metav1.CreateOptions{}); !apierrors.IsForbidden(err) {
+				framework.Logf("unexpected err during creation: %v", err)
+				list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas(secondProjectName).List(context.Background(), metav1.ListOptions{})
+				if err == nil {
+					t.Errorf("quota is %#v", list)
+				}
+
+				list2, err := clusterAdminDynamicClient.Resource(serviceMonitorGVR).Namespace("").List(context.Background(), metav1.ListOptions{})
+				if err == nil {
+					t.Errorf("ServiceMonitors is %#v", list2)
 				}
 
 				t.Fatalf("unexpected error: %v", err)
@@ -245,4 +324,22 @@ func waitForQuotaStatus(clusterAdminClient quotaclient.Interface, name string, c
 		err = fmt.Errorf("%s: %s", err, pollErr)
 	}
 	return err
+}
+
+func getTestServiceMonitor(name, namespace string) *unstructured.Unstructured {
+	testServiceMonitor := fmt.Sprintf(`apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  generateName: %s-
+spec:
+  endpoints: []
+  namespaceSelector:
+    matchNames:
+      - %s
+  selector:
+    matchLabels:
+      foo: bar
+      app: %s
+`, name, namespace, name)
+	return resourceread.ReadUnstructuredOrDie([]byte(testServiceMonitor))
 }
