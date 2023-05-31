@@ -8,33 +8,45 @@ import (
 	"strings"
 	"time"
 
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
+
+	"k8s.io/apimachinery/pkg/util/errors"
+
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
+	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
 )
 
-type testCase struct {
-	name      string
-	spec      types.TestSpec
-	locations []types.CodeLocation
-	apigroups []string
+func testsForSuite() ([]*testCase, error) {
+	var tests []*testCase
+	var errs []error
 
-	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
-	testExclusion string
-	// specific timeout for the current test. When set, it overrides the current
-	// suite timeout
-	testTimeout time.Duration
+	// Don't build the tree multiple times, it results in multiple initing of tests
+	if !ginkgo.GetSuite().InPhaseBuildTree() {
+		ginkgo.GetSuite().BuildTree()
+	}
 
-	start           time.Time
-	end             time.Time
-	duration        time.Duration
-	testOutputBytes []byte
-
-	flake    bool
-	failed   bool
-	skipped  bool
-	success  bool
-	timedOut bool
-
-	previous *testCase
+	ginkgo.GetSuite().WalkTests(func(name string, spec types.TestSpec) {
+		// we need to ensure the default path always annotates both
+		// origin and k8s tests accordingly, since each of these
+		// currently have their own annotations which are not
+		// merged anywhere else but applied here
+		if append, ok := origingenerated.Annotations[name]; ok {
+			spec.AppendText(append)
+		}
+		if append, ok := k8sgenerated.Annotations[name]; ok {
+			spec.AppendText(append)
+		}
+		tc, err := newTestCaseFromGinkgoSpec(spec)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		tests = append(tests, tc)
+	})
+	if len(errs) > 0 {
+		return nil, errors.NewAggregate(errs)
+	}
+	return tests, nil
 }
 
 var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
@@ -65,6 +77,39 @@ func newTestCaseFromGinkgoSpec(spec types.TestSpec) (*testCase, error) {
 	}
 
 	return tc, nil
+}
+
+type testCase struct {
+	// name is the fully labeled test name as reported by openshift-tests
+	// this is being used for placing tests in buckets, as well as filtering
+	// them out based suite being currently executed
+	name string
+	// rawName is the name as reported by external binary
+	rawName string
+	// binaryName is the name of the external binary
+	binaryName string
+	spec       types.TestSpec
+	locations  []types.CodeLocation
+	apigroups  []string
+
+	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
+	testExclusion string
+	// specific timeout for the current test. When set, it overrides the current
+	// suite timeout
+	testTimeout time.Duration
+
+	start           time.Time
+	end             time.Time
+	duration        time.Duration
+	testOutputBytes []byte
+
+	flake    bool
+	failed   bool
+	skipped  bool
+	success  bool
+	timedOut bool
+
+	previous *testCase
 }
 
 func (t *testCase) Retry() *testCase {

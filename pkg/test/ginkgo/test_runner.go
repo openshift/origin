@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -12,8 +13,11 @@ import (
 	"syscall"
 	"time"
 
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	exutilcluster "github.com/openshift/origin/test/extended/util/cluster"
 )
 
 type testSuiteRunner interface {
@@ -191,12 +195,26 @@ func newCommandContext(env []string, timeout time.Duration) *commandContext {
 
 func (c *commandContext) commandString(test *testCase) string {
 	buf := &bytes.Buffer{}
-	for _, env := range c.env {
+	envs := updateEnvVars(c.env)
+	for _, env := range envs {
 		parts := strings.SplitN(env, "=", 2)
 		fmt.Fprintf(buf, "%s=%q ", parts[0], parts[1])
 	}
-	fmt.Fprintf(buf, "%s %s %q", os.Args[0], "run-test", test.name)
+	testBinary, testName := c.extractCommands(test)
+	fmt.Fprintf(buf, "%s %s %q", testBinary, "run-test", testName)
 	return buf.String()
+}
+
+func (c *commandContext) extractCommands(test *testCase) (string, string) {
+	testBinary := test.binaryName
+	if len(testBinary) == 0 {
+		testBinary = os.Args[0]
+	}
+	testName := test.rawName
+	if len(testName) == 0 {
+		testName = test.name
+	}
+	return testBinary, testName
 }
 
 func recordTestResultInLogWithoutOverlap(testRunResult *testRunResultHandle, testOutputLock *sync.Mutex, out io.Writer, includeSuccessfulOutput bool) {
@@ -288,8 +306,9 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 	}
 
 	ret.start = time.Now()
-	command := exec.Command(os.Args[0], "run-test", test.name)
-	command.Env = append(os.Environ(), c.env...)
+	testBinary, testName := c.extractCommands(test)
+	command := exec.Command(testBinary, "run-test", testName)
+	command.Env = append(os.Environ(), updateEnvVars(c.env)...)
 
 	timeout := c.timeout
 	if test.testTimeout != 0 {
@@ -332,6 +351,28 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 
 	ret.testState = TestFailed
 	return ret
+}
+
+func updateEnvVars(envs []string) []string {
+	result := []string{}
+	for _, env := range envs {
+		if !strings.HasPrefix(env, "TEST_PROVIDER") {
+			result = append(result, env)
+		}
+	}
+	// copied from provider.go
+	// TODO: add error handling, and maybe turn this into sharable helper?
+	clientConfig, _ := framework.LoadConfig(true)
+	clusterState, _ := exutilcluster.DiscoverClusterState(clientConfig)
+	config, _ := exutilcluster.LoadConfig(clusterState)
+	if len(config.ProviderName) == 0 {
+		config.ProviderName = "skeleton"
+	}
+	provider, _ := json.Marshal(config)
+	result = append(result, fmt.Sprintf("TEST_PROVIDER=%s", provider))
+	// TODO: do we need to inject KUBECONFIG?
+	// result = append(result, "KUBECONFIG=%s", )
+	return result
 }
 
 func runWithTimeout(ctx context.Context, c *exec.Cmd, timeout time.Duration) ([]byte, error) {
