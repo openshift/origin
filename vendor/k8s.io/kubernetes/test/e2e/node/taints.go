@@ -24,7 +24,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -156,6 +159,28 @@ const (
 	additionalWaitPerDeleteSeconds = 5
 )
 
+// dnsOperatorResource is the OpenShift DNS operator configuration resource.
+var dnsOperatorResource = schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "dnses"}
+
+// addDNSToleration adds a toleration for the "e2e-evict-taint-key" taint to the
+// DNS operator configuration for DNS pods.
+func addDNSToleration(ctx context.Context, dc dynamic.Interface) {
+	// Configure DNS pods to tolerate the taint that this
+	// test adds.  Evicting DNS pods causes noisy events;
+	// see <https://issues.redhat.com/browse/OCPBUGS-5943>.
+	const patch = `{"spec":{"nodePlacement":{"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Exists"},{"key":"kubernetes.io/e2e-evict-taint-key","operator":"Exists"}]}}}`
+	_, err := dc.Resource(dnsOperatorResource).Patch(ctx, "default", types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+	framework.ExpectNoError(err)
+}
+
+// removeDNSToleration removes the toleration for the "e2e-evict-taint-key"
+// taint from the DNS operator configuration.
+func removeDNSToleration(ctx context.Context, dc dynamic.Interface) {
+	const patch = `{"spec":{"nodePlacement":{"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Exists"}]}}}`
+	_, err := dc.Resource(dnsOperatorResource).Patch(ctx, "default", types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+	framework.ExpectNoError(err)
+}
+
 // Tests the behavior of NoExecuteTaintManager. Following scenarios are included:
 // - eviction of non-tolerating pods from a tainted node,
 // - lack of eviction of tolerating pods from a tainted node,
@@ -163,13 +188,18 @@ const (
 // - lack of eviction of short-tolerating pod after taint removal.
 var _ = SIGDescribe("NoExecuteTaintManager Single Pod [Serial]", func() {
 	var cs clientset.Interface
+	var dc dynamic.Interface
 	var ns string
 	f := framework.NewDefaultFramework("taint-single-pod")
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		cs = f.ClientSet
+		dc = f.DynamicClient
 		ns = f.Namespace.Name
+
+		ginkgo.DeferCleanup(removeDNSToleration, dc)
+		addDNSToleration(ctx, dc)
 
 		e2enode.WaitForTotalHealthy(ctx, cs, time.Minute)
 
@@ -372,13 +402,18 @@ var _ = SIGDescribe("NoExecuteTaintManager Single Pod [Serial]", func() {
 
 var _ = SIGDescribe("NoExecuteTaintManager Multiple Pods [Serial]", func() {
 	var cs clientset.Interface
+	var dc dynamic.Interface
 	var ns string
 	f := framework.NewDefaultFramework("taint-multiple-pods")
 	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelBaseline
 
 	ginkgo.BeforeEach(func(ctx context.Context) {
 		cs = f.ClientSet
+		dc = f.DynamicClient
 		ns = f.Namespace.Name
+
+		ginkgo.DeferCleanup(removeDNSToleration, dc)
+		addDNSToleration(ctx, dc)
 
 		e2enode.WaitForTotalHealthy(ctx, cs, time.Minute)
 

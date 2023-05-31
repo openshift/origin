@@ -1,0 +1,45 @@
+diff --no-dereference -N -r current/vendor/k8s.io/kubernetes/test/e2e/node/taints.go updated/vendor/k8s.io/kubernetes/test/e2e/node/taints.go
+27,28d26
+< 	"k8s.io/apimachinery/pkg/runtime/schema"
+< 	"k8s.io/apimachinery/pkg/types"
+30d27
+< 	"k8s.io/client-go/dynamic"
+162,183d158
+< // dnsOperatorResource is the OpenShift DNS operator configuration resource.
+< var dnsOperatorResource = schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: "dnses"}
+< 
+< // addDNSToleration adds a toleration for the "e2e-evict-taint-key" taint to the
+< // DNS operator configuration for DNS pods.
+< func addDNSToleration(ctx context.Context, dc dynamic.Interface, ns string) {
+< 	// Configure DNS pods to tolerate the taint that this
+< 	// test adds.  Evicting DNS pods causes noisy events;
+< 	// see <https://issues.redhat.com/browse/OCPBUGS-5943>.
+< 	const patch = `{"spec":{"nodePlacement":{"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Exists"},{"key":"kubernetes.io/e2e-evict-taint-key","operator":"Exists"}]}}}`
+< 	_, err := dc.Resource(dnsOperatorResource).Namespace(ns).Patch(ctx, "default", types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+< 	framework.ExpectNoError(err)
+< }
+< 
+< // removeDNSToleration removes the toleration for the "e2e-evict-taint-key"
+< // taint from the DNS operator configuration.
+< func removeDNSToleration(ctx context.Context, dc dynamic.Interface, ns string) {
+< 	const patch = `{"spec":{"nodePlacement":{"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Exists"}]}}}`
+< 	_, err := dc.Resource(dnsOperatorResource).Namespace(ns).Patch(ctx, "default", types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{})
+< 	framework.ExpectNoError(err)
+< }
+< 
+191d165
+< 	var dc dynamic.Interface
+198d171
+< 		dc = f.DynamicClient
+201,203d173
+< 		ginkgo.DeferCleanup(removeDNSToleration, dc, ns)
+< 		addDNSToleration(ctx, dc, ns)
+< 
+405d374
+< 	var dc dynamic.Interface
+412d380
+< 		dc = f.DynamicClient
+414,416d381
+< 
+< 		ginkgo.DeferCleanup(removeDNSToleration, dc, ns)
+< 		addDNSToleration(ctx, dc, ns)
