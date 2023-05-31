@@ -195,10 +195,10 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	})
 
 	g.It("shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster", func() {
-		if enabledErr, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
+		if enabled, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
 			e2e.Failf("could not determine if Telemetry is enabled: %v", err)
-		} else if enabledErr != nil {
-			e2eskipper.Skipf("Telemetry is disabled: %v", enabledErr)
+		} else {
+			e2eskipper.Skipf("Telemetry is disabled: %v", enabled)
 		}
 
 		// we only consider series sent since the beginning of the test
@@ -260,10 +260,10 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 	g.Describe("when installed on the cluster", func() {
 		g.It("should report telemetry [Late]", func() {
-			if enabledErr, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
+			if enabled, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
 				e2e.Failf("could not determine if Telemetry is enabled: %v", err)
-			} else if enabledErr != nil {
-				e2eskipper.Skipf("Telemetry is disabled: %v", enabledErr)
+			} else {
+				e2eskipper.Skipf("Telemetry is disabled: %v", enabled)
 			}
 
 			tests := map[string]bool{}
