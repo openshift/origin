@@ -156,7 +156,6 @@ func callInternalLBDaemonset(ctx context.Context, oc *exutil.CLI, create bool, a
 	labels := map[string]string{
 		"app": name,
 	}
-	truePointer := true
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -214,9 +213,6 @@ func callInternalLBDaemonset(ctx context.Context, oc *exutil.CLI, create bool, a
 								"--artifact-dir",
 								disruptionDataPath,
 							},
-							SecurityContext: &corev1.SecurityContext{
-								Privileged: &truePointer,
-							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "artifacts",
@@ -245,7 +241,6 @@ func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create boo
 	labels := map[string]string{
 		"app": name,
 	}
-	truePointer := true
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -294,9 +289,6 @@ func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create boo
 										},
 									},
 								},
-							},
-							SecurityContext: &corev1.SecurityContext{
-								Privileged: &truePointer,
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -362,7 +354,7 @@ func callRBACHostaccess(ctx context.Context, oc *exutil.CLI, create bool) error 
 		},
 		RoleRef: corev1.ObjectReference{
 			Kind: "ClusterRole",
-			Name: "system:openshift:scc:privileged",
+			Name: "system:openshift:scc:hostaccess",
 		},
 		Subjects: []corev1.ObjectReference{
 			{
