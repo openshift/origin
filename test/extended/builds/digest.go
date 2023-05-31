@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	manifestschema2 "github.com/docker/distribution/manifest/schema2"
+	manifestschema2 "github.com/distribution/distribution/v3/manifest/schema2"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
