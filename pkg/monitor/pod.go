@@ -11,48 +11,54 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
 func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
-	podInformer := cache.NewSharedIndexInformer(
-		NewErrorRecordingListWatcher(m, &cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return client.CoreV1().Pods("").List(ctx, options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return client.CoreV1().Pods("").Watch(ctx, options)
-			},
-		}),
-		&corev1.Pod{},
-		time.Hour,
-		nil,
-	)
-	m.AddSampler(func(now time.Time) []*monitorapi.Condition {
-		var conditions []*monitorapi.Condition
-		for _, obj := range podInformer.GetStore().List() {
-			pod, ok := obj.(*corev1.Pod)
-			if !ok {
-				continue
+	podPendingFn := func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
+		isCreate := oldPod == nil
+		oldPodIsPending := oldPod != nil && oldPod.Status.Phase == "Pending"
+		newPodIsPending := pod != nil && pod.Status.Phase == "Pending"
+
+		switch {
+		case !oldPodIsPending && newPodIsPending:
+			return []monitorapi.Condition{
+				{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.LocatePod(pod),
+					Message: monitorapi.Message().Reason(monitorapi.PodPendingReason).NoDetails(),
+				},
 			}
-			if pod.Status.Phase == "Pending" {
-				if now.Sub(pod.CreationTimestamp.Time) > time.Minute {
-					conditions = append(conditions, &monitorapi.Condition{
-						Level:   monitorapi.Warning,
+
+		case !oldPodIsPending && !newPodIsPending:
+			if isCreate { // if we're creating, then our first state is not-pending.
+				return []monitorapi.Condition{
+					{
+						Level:   monitorapi.Info,
 						Locator: monitorapi.LocatePod(pod),
-						Message: "pod has been pending longer than a minute",
-					})
+						Message: monitorapi.Message().Reason(monitorapi.PodNotPendingReason).NoDetails(),
+					},
 				}
 			}
+			return nil
+
+		case oldPodIsPending && newPodIsPending:
+			return nil
+
+		case oldPodIsPending && !newPodIsPending:
+			return []monitorapi.Condition{
+				{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.LocatePod(pod),
+					Message: monitorapi.Message().Reason(monitorapi.PodNotPendingReason).NoDetails(),
+				},
+			}
+
 		}
-		return conditions
-	})
-	go podInformer.Run(ctx.Done())
+		return nil
+	}
 
 	podScheduledFn := func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 		oldPodHasNode := oldPod != nil && len(oldPod.Spec.NodeName) > 0
@@ -344,9 +350,13 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		func(pod *corev1.Pod) []monitorapi.Condition {
 			return containerReadinessFn(pod, nil)
 		},
+		func(pod *corev1.Pod) []monitorapi.Condition {
+			return podPendingFn(pod, nil)
+		},
 	}
 
 	podChangeFns := []func(pod, oldPod *corev1.Pod) []monitorapi.Condition{
+		podPendingFn,
 		// check if the pod was scheduled
 		podScheduledFn,
 		// check if container lifecycle state changed

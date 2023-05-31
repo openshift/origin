@@ -29,8 +29,6 @@ type Recorder interface {
 
 	StartInterval(t time.Time, condition monitorapi.Condition) int
 	EndInterval(startedInterval int, t time.Time)
-
-	AddSampler(fn SamplerFunc)
 }
 
 type ConditionalSampler interface {

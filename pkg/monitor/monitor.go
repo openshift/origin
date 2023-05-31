@@ -1,7 +1,6 @@
 package monitor
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -43,37 +42,6 @@ func NewMonitorWithInterval(interval time.Duration) *Monitor {
 }
 
 var _ Interface = &Monitor{}
-
-// StartSampling starts sampling every interval until the provided context is done.
-// A sample is captured when the context is closed.
-func (m *Monitor) StartSampling(ctx context.Context) {
-	if m.interval == 0 {
-		return
-	}
-	go func() {
-		ticker := time.NewTicker(m.interval)
-		defer ticker.Stop()
-		hasConditions := false
-		for {
-			select {
-			case <-ticker.C:
-			case <-ctx.Done():
-				hasConditions = m.sample(hasConditions)
-				return
-			}
-			hasConditions = m.sample(hasConditions)
-		}
-	}()
-}
-
-// AddSampler adds a sampler function to the list of samplers to run every interval.
-// Conditions discovered this way are recorded with a start and end time if they persist
-// across multiple sampling intervals.
-func (m *Monitor) AddSampler(fn SamplerFunc) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	m.samplers = append(m.samplers, fn)
-}
 
 func (m *Monitor) CurrentResourceState() monitorapi.ResourcesMap {
 	m.recordedResourceLock.Lock()
@@ -233,31 +201,6 @@ func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 			To:        t,
 		})
 	}
-}
-
-func (m *Monitor) sample(hasPrevious bool) bool {
-	m.lock.Lock()
-	samplers := m.samplers
-	m.lock.Unlock()
-
-	now := time.Now().UTC()
-	var conditions []*monitorapi.Condition
-	for _, fn := range samplers {
-		conditions = append(conditions, fn(now)...)
-	}
-	if len(conditions) == 0 {
-		if !hasPrevious {
-			return false
-		}
-	}
-
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	m.samples = append(m.samples, &sample{
-		at:         now,
-		conditions: conditions,
-	})
-	return len(conditions) > 0
 }
 
 func (m *Monitor) snapshot() ([]*sample, monitorapi.Intervals, monitorapi.Intervals) {

@@ -10,6 +10,51 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
+func IntervalsFromEvents_PodChanges(events monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
+	var intervals monitorapi.Intervals
+	podStateTracker := newStateTracker(beginning)
+	locatorToMessageAnnotations := map[string]map[string]string{}
+
+	for _, event := range events {
+		pod := monitorapi.PodFrom(event.Locator)
+		if len(pod.Name) == 0 {
+			continue
+		}
+		reason := monitorapi.ReasonFrom(event.Message)
+		switch reason {
+		case monitorapi.PodPendingReason, monitorapi.PodNotPendingReason, monitorapi.PodReasonDeleted:
+		default:
+			continue
+		}
+
+		podLocator := pod.ToLocator()
+		podPendingState := state("Pending", "PodWasPending")
+
+		switch reason {
+		case monitorapi.PodPendingReason:
+			podStateTracker.openInterval(podLocator, podPendingState, event.From)
+		case monitorapi.PodNotPendingReason:
+			intervals = append(intervals, podStateTracker.closeIfOpenedInterval(podLocator, podPendingState, pendingPodCondition, event.From)...)
+		case monitorapi.PodReasonDeleted:
+			intervals = append(intervals, podStateTracker.closeIfOpenedInterval(podLocator, podPendingState, pendingPodCondition, event.From)...)
+		}
+	}
+	intervals = append(intervals, podStateTracker.closeAllIntervals(locatorToMessageAnnotations, end)...)
+
+	return intervals
+}
+
+func pendingPodCondition(locator string, from, to time.Time) (monitorapi.Condition, bool) {
+	if to.Sub(from) < 1*time.Minute {
+		return monitorapi.Condition{}, false
+	}
+	return monitorapi.Condition{
+		Level:   monitorapi.Warning,
+		Locator: locator,
+		Message: "pod has been pending longer than a minute",
+	}, true
+}
+
 func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, startTime, endTime time.Time) monitorapi.Intervals {
 	sort.Stable(ByPodLifecycle(input))
 	// these *static* locators to events. These are NOT the same as the actual event locators because nodes are not consistently assigned.

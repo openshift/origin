@@ -117,6 +117,8 @@ const (
 
 	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
 
+	PodPendingReason               IntervalReason = "PodIsPending"
+	PodNotPendingReason            IntervalReason = "PodIsNotPending"
 	PodReasonCreated               IntervalReason = "Created"
 	PodReasonGracefulDeleteStarted IntervalReason = "GracefulDelete"
 	PodReasonForceDelete           IntervalReason = "ForceDelete"
@@ -134,6 +136,9 @@ const (
 
 	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
 	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"
+
+	NodeUpdateReason   IntervalReason = "NodeUpdate"
+	NodeNotReadyReason IntervalReason = "NotReady"
 )
 
 type AnnotationKey string
