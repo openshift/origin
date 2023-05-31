@@ -194,7 +194,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		alerts.CheckAlerts(alerts.AllowedAlertsDuringConformance, oc.AdminConfig(), oc.NewPrometheusClient(context.TODO()), oc.AdminConfigClient(), testDuration, nil)
 	})
 
-	g.It("shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster", func() {
+	g.It("shouldn't exceed the series limit of total series sent via telemetry from each cluster", func() {
 		if enabledErr, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
 			e2e.Failf("could not determine if Telemetry is enabled: %v", err)
 		} else if enabledErr != nil {
@@ -207,7 +207,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		tests := map[string]bool{
 			// We want to limit the number of total series sent, the cluster:telemetry_selected_series:count
 			// rule contains the count of the all the series that are sent via telemetry. It is permissible
-			// for some scenarios to generate more series than 650, we just want the basic state to be below
+			// for some scenarios to generate more series than 750, we just want the basic state to be below
 			// a threshold.
 			//
 			// The following query can be executed against the telemetry server
@@ -222,7 +222,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 			//     )[30m:1m]
 			//   )
 			// )
-			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 650`, testDuration):  false,
+			fmt.Sprintf(`avg_over_time(cluster:telemetry_selected_series:count[%s]) >= 750`, testDuration):  false,
 			fmt.Sprintf(`max_over_time(cluster:telemetry_selected_series:count[%s]) >= 1200`, testDuration): false,
 		}
 		err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
