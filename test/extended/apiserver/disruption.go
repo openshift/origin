@@ -254,6 +254,7 @@ func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create boo
 	labels := map[string]string{
 		"app": name,
 	}
+	bTrue := true
 	obj := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -308,6 +309,9 @@ func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create boo
 									Name:      "artifacts",
 									MountPath: disruptionDataPath,
 								},
+							},
+							SecurityContext: &corev1.SecurityContext{
+								Privileged: &bTrue,
 							},
 						},
 					},
@@ -367,7 +371,7 @@ func callRBACHostaccess(ctx context.Context, oc *exutil.CLI, create bool) error 
 		},
 		RoleRef: corev1.ObjectReference{
 			Kind: "ClusterRole",
-			Name: "system:openshift:scc:hostaccess",
+			Name: "system:openshift:scc:privileged",
 		},
 		Subjects: []corev1.ObjectReference{
 			{
