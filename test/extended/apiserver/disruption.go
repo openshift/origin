@@ -130,7 +130,7 @@ func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *apps
 		if err != nil {
 			return err
 		}
-		if err := wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
 			ds, err := client.Get(context.Background(), obj.Name, metav1.GetOptions{})
 			if err != nil {
 				framework.Logf("error getting daemonsets %v", err)
@@ -143,8 +143,21 @@ func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *apps
 
 	} else {
 		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
-		if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-			return nil
+		if err != nil {
+			return err
+		}
+		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+			_, err := client.Get(context.Background(), obj.Name, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return true, nil
+				}
+				framework.Logf("Error getting daemonset %s: %v", err)
+				return false, nil
+			}
+			return false, nil
+		}); err != nil {
+			return fmt.Errorf("daemonset %s didn't roll out: %v", obj.Name, err)
 		}
 	}
 
