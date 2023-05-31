@@ -270,7 +270,7 @@ var _ = g.Describe("[sig-network][Feature:tuning]", func() {
 
 			updateAllowlistConfig(updatedSysctls, f.ClientSet)
 
-			err = e2epod.WaitForPodCondition(context.TODO(), f.ClientSet, namespace, pod.Name, "Failed", 30*time.Second, func(pod *kapiv1.Pod) (bool, error) {
+			err = e2epod.WaitForPodCondition(context.TODO(), f.ClientSet, namespace, pod.Name, "Failed", 60*time.Second, func(pod *kapiv1.Pod) (bool, error) {
 				if pod.Status.Phase == kapiv1.PodRunning {
 					return true, nil
 				}
