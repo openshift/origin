@@ -3,6 +3,7 @@ package externalservice
 import (
 	"context"
 
+	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -18,7 +19,7 @@ const (
 // running the tests can reach and external service. This is used to compare to disruption observed against the
 // ephemeral cluster under test, and compare to see if the build cluster where the tests are running is having
 // network issues, or if we're seeing real disruption.
-func StartExternalServiceMonitoring(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
+func StartExternalServiceMonitoring(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config, _ backend.LoadBalancerType) error {
 	if err := startExternalServiceMonitoringWithNewConnections(ctx, m, clusterConfig); err != nil {
 		return err
 	}

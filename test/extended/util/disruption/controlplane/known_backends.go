@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func StartAllAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
+func StartAllAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
 	if err := startKubeAPIMonitoringWithNewConnections(ctx, m, clusterConfig); err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func StartAllAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfi
 	}
 
 	factory := disruptionci.NewDisruptionTestFactory(clusterConfig)
-	if err := startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx, m, factory); err != nil {
+	if err := startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx, m, factory, lb); err != nil {
 		return err
 	}
 	if err := startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx, m, factory); err != nil {
@@ -74,8 +74,8 @@ func StartAllAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfi
 	return nil
 }
 
-func startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory) error {
-	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory)
+func startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
 	if err != nil {
 		return err
 	}
@@ -282,11 +282,11 @@ func createOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig *r
 	return createAPIServerBackendSampler(clusterConfig, "cache-oauth-api", "/apis/oauth.openshift.io/v1/oauthclients?resourceVersion=0", monitorapi.ReusedConnectionType)
 }
 
-func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory) (*disruptionci.BackendSampler, error) {
+func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (*disruptionci.BackendSampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
-			LoadBalancerType: backend.ExternalLoadBalancerType,
+			LoadBalancerType: lb,
 			ConnectionType:   monitorapi.NewConnectionType,
 			Protocol:         backend.ProtocolHTTP2,
 		},

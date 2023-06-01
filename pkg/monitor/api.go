@@ -8,6 +8,8 @@ import (
 	"time"
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/disruption/backend"
+	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +33,7 @@ func GetMonitorRESTConfig() (*rest.Config, error) {
 
 // Start begins monitoring the cluster referenced by the default kube configuration until
 // context is finished.
-func Start(ctx context.Context, restConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc) (*Monitor, error) {
+func Start(ctx context.Context, restConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc, lb backend.LoadBalancerType) (*Monitor, error) {
 	m := NewMonitorWithInterval(time.Second)
 	client, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -43,7 +45,7 @@ func Start(ctx context.Context, restConfig *rest.Config, additionalEventInterval
 	}
 
 	for _, additionalEventIntervalRecorder := range additionalEventIntervalRecorders {
-		if err := additionalEventIntervalRecorder(ctx, m, restConfig); err != nil {
+		if err := additionalEventIntervalRecorder(ctx, m, restConfig, lb); err != nil {
 			return nil, err
 		}
 	}
