@@ -40,6 +40,30 @@ const (
 
 var disruptionDataPath = fmt.Sprintf("%s/%s", varLogPath, disruptionDataFolder)
 
+func TearDownInClusterMonitors(oc *exutil.CLI) {
+	ctx := context.Background()
+	deleteTestBed(ctx, oc)
+
+	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	var events monitorapi.Intervals
+	var errs []error
+	for _, node := range nodes.Items {
+		nodeEvents, err := fetchNodeInClusterEvents(ctx, oc, &node)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		framework.Logf("in-cluster monitors: found %d events for node %s", len(events), node.Name)
+		events = append(events, nodeEvents...)
+	}
+	if len(errs) > 0 {
+		framework.Logf("found errors fetching in-cluster data: %v", errs)
+	}
+	err = monitorserialization.EventsToFile(exutil.ArtifactPath(inClusterEventsFile), events)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
@@ -51,27 +75,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	})
 
 	g.It("tear down in-cluster disruption monitors [Late]", func() {
-		ctx := context.Background()
-		deleteTestBed(ctx, oc)
-
-		nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		var events monitorapi.Intervals
-		var errs []error
-		for _, node := range nodes.Items {
-			nodeEvents, err := fetchNodeInClusterEvents(ctx, oc, &node)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			framework.Logf("in-cluster monitors: found %d events for node %s", len(events), node.Name)
-			events = append(events, nodeEvents...)
-		}
-		if len(errs) > 0 {
-			framework.Logf("found errors fetching in-cluster data: %v", errs)
-		}
-		err = monitorserialization.EventsToFile(exutil.ArtifactPath(inClusterEventsFile), events)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		TearDownInClusterMonitors(oc)
 	})
 })
 

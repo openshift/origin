@@ -40,6 +40,20 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	"k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/e2e/upgrades/node"
+
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/openshift/origin/test/e2e/upgrade/adminack"
+	"github.com/openshift/origin/test/e2e/upgrade/alert"
+	"github.com/openshift/origin/test/e2e/upgrade/dns"
+	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
+	"github.com/openshift/origin/test/e2e/upgrade/service"
+	apidisruption "github.com/openshift/origin/test/extended/apiserver"
+	"github.com/openshift/origin/test/extended/prometheus"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/disruption"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
+	"github.com/openshift/origin/test/extended/util/operator"
 )
 
 // NoTests is an empty list of tests
@@ -140,6 +154,8 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 	f := framework.NewDefaultFramework("cluster-upgrade")
 	f.SkipNamespaceCreation = true
 
+	oc := exutil.NewCLI("apiserver")
+
 	g.It("Cluster should remain functional during upgrade [Disruptive]", func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
@@ -161,6 +177,11 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 				}
 			},
 		)
+	})
+
+	// Two tests need to be defined, so that monitors would be stopped during upgrades too
+	g.It("tear down in-cluster disruption monitors [Late][Suite:upgrade]", func() {
+		apidisruption.TearDownInClusterMonitors(oc)
 	})
 })
 
