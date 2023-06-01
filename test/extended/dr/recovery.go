@@ -45,6 +45,9 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		err = runClusterBackupScript(oc, backupNode)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
+		err = createPostBackupResources(oc)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
 		// remove the etcd recovery member before we're starting to restore
 		err = removeMemberOfNode(oc, recoveryNode)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -54,9 +57,11 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
 
-		// TODO(thomas): that's not all the validation from the old test
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
 		waitForOperatorsToSettle()
+
+		assertPostBackupResourcesAreStillFound(oc)
+		assertPostBackupResourcesAreStillFunctional(oc)
 	})
 })
 
@@ -111,6 +116,9 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		err = runClusterBackupScript(oc, backupNode)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
+		err = createPostBackupResources(oc)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
 		// From here on out we're going to leave the restore orchestration to a pod running on the recovery node.
 		// While it makes it more difficult to gather debug information during that time, it's much easier
 		// to test on different platforms due to ssh constraints. Previous approaches with bastions were not scalable.
@@ -132,7 +140,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
 		// CEO will bring back the other etcd static pods again
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
-
 		waitForOperatorsToSettle()
+
+		assertPostBackupResourcesAreNotFound(oc)
 	})
 })

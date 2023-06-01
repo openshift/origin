@@ -38,10 +38,10 @@ import (
 )
 
 const (
-	operatorWait      = 25 * time.Minute
-	defaultSSHTimeout = 5 * time.Minute
-
-	sshPath = "/tmp/ssh"
+	operatorWait           = 25 * time.Minute
+	defaultSSHTimeout      = 5 * time.Minute
+	openshiftEtcdNamespace = "openshift-etcd"
+	sshPath                = "/tmp/ssh"
 	// sshKeyDance is necessary because permissions on a secret mount can't be changed and ssh is very strict about this
 	sshKeyDance = `
 		CORE_SSH_BASE_DIR=$HOME/.ssh
@@ -202,7 +202,7 @@ func condition(cv objx.Map, condition string) objx.Map {
 func waitForReadyEtcdStaticPods(client kubernetes.Interface, masterCount int) {
 	g.By("Waiting for all etcd static pods to become ready")
 	waitForPodsTolerateClientTimeout(
-		client.CoreV1().Pods("openshift-etcd"),
+		client.CoreV1().Pods(openshiftEtcdNamespace),
 		exutil.ParseLabelsOrDie("app=etcd"),
 		exutil.CheckPodIsRunning,
 		masterCount,
@@ -228,23 +228,22 @@ func waitForPodsTolerateClientTimeout(c corev1client.PodInterface, label labels.
 }
 
 // InstallSSHKeyOnControlPlaneNodes will create a new private/public ssh keypair,
-// create a new secret for both in the openshift-etcd-operator namespace. Then it
+// create a new secret for both in the openshift-etcd namespace. Then it
 // will append the public key on the host core user authorized_keys file with a daemon set.
 func InstallSSHKeyOnControlPlaneNodes(oc *exutil.CLI) error {
 	const name = "dr-ssh"
-	const namespace = "openshift-etcd"
 
-	err := createPrivatePublicSSHKeySecret(oc, name, namespace)
+	err := createPrivatePublicSSHKeySecret(oc, name, openshiftEtcdNamespace)
 	if err != nil {
 		return err
 	}
 
-	err = createKeyInstallerDaemon(oc, name, namespace)
+	err = createKeyInstallerDaemon(oc, name, openshiftEtcdNamespace)
 	if err != nil {
 		return err
 	}
 
-	err = ensureControlPlaneSSHAccess(oc, name, namespace)
+	err = ensureControlPlaneSSHAccess(oc, name, openshiftEtcdNamespace)
 	if err != nil {
 		return err
 	}
@@ -424,7 +423,6 @@ func createPrivatePublicSSHKeySecret(oc *exutil.CLI, name string, namespace stri
 // This will get triggered through a CRD in CEO over the next couple of iterations.
 func runClusterBackupScript(oc *exutil.CLI, backupNode *corev1.Node) error {
 	const name = "etcd-backup-pod"
-	const namespace = "openshift-etcd"
 	framework.Logf("running backup script on node: %v", backupNode.Name)
 
 	internalIp := internalIP(backupNode)
@@ -465,13 +463,12 @@ EOF
 		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName("dr-ssh")),
 	}
 
-	pod := applycorev1.Pod(name, namespace).WithSpec(podSpec)
+	pod := applycorev1.Pod(name, openshiftEtcdNamespace).WithSpec(podSpec)
 	return runPodAndWaitForSuccess(oc, pod)
 }
 
 func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node) error {
 	const name = "etcd-restore-pod"
-	const namespace = "openshift-etcd"
 	framework.Logf("running restore script on node: %v", restoreNode.Name)
 
 	backupInternalIp := internalIP(backupNode)
@@ -492,22 +489,12 @@ func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNod
          SNAPSHOT=\$(ls -vd /home/core/backup/snapshot*.db | tail -1)
          mv \$SNAPSHOT /home/core/backup/snapshot.db
 
-         # TODO(thomas): why not use cluster-restore.sh directly? 
-         # the script was designed to create a single recovery etcd instance. Replacing a single node would
-         # create two etcd clusters, which causes some major disruptions after the operation finishes.
-         # Thus below we are manually doing a simple restore with snapshot restore directly. 
-         # This will delete the etcd data dir and the etcd static pod.
          sudo -s -- <<EOF
-            ls -la /etc/kubernetes/manifests/
-            mv /etc/kubernetes/manifests/etcd-pod.yaml /tmp/etcd.pod.yaml
-            # TODO(thomas): wait for containers to stop?
-
-            source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd.env
-            source /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-scripts/etcd-common-tools
-            dl_etcdctl
             rm -rf /var/lib/etcd
-            mkdir -p /var/lib/etcd 
-            etcdctl snapshot restore /home/core/backup/snapshot.db --data-dir=/var/lib/etcd
+            mkdir -p /var/lib/etcd
+            export ETCD_ETCDCTL_RESTORE=true
+            export ETCD_RESTORE_SKIP_MOVE_CP_STATIC_PODS=true
+            /usr/local/bin/cluster-restore.sh /home/core/backup
             # from here on out, the member should come back through the static pod installer in CEO
 EOF
 		 exit
@@ -534,13 +521,12 @@ EOF
 		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName("dr-ssh")),
 	}
 
-	pod := applycorev1.Pod(name, namespace).WithSpec(podSpec)
+	pod := applycorev1.Pod(name, openshiftEtcdNamespace).WithSpec(podSpec)
 	return runPodAndWaitForSuccess(oc, pod)
 }
 
 func runDeleteAndRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node, nonRecoveryNodes []*corev1.Node) error {
 	const name = "etcd-restore-pod"
-	const namespace = "openshift-etcd"
 	framework.Logf("running deletes and restore script on node: %v", restoreNode.Name)
 
 	backupInternalIp := internalIP(backupNode)
@@ -603,7 +589,7 @@ EOF`, sshKeyDance, strings.Join(nonRecoveryIps, " "), restoreInternalIp, backupI
 		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName("dr-ssh")),
 	}
 
-	pod := applycorev1.Pod(name, namespace).WithSpec(podSpec)
+	pod := applycorev1.Pod(name, openshiftEtcdNamespace).WithSpec(podSpec)
 	// we only run the pod and not wait for it, as it will not be tracked after the control plane comes back
 	return runPod(oc, pod)
 }
@@ -611,7 +597,6 @@ EOF`, sshKeyDance, strings.Join(nonRecoveryIps, " "), restoreInternalIp, backupI
 // TODO(thomas): this shouldn't be necessary once we can bump the etcd revisions
 func runOVNRepairCommands(oc *exutil.CLI, restoreNode *corev1.Node, nonRecoveryNodes []*corev1.Node) error {
 	const name = "etcd-ovn-repair-pod"
-	const namespace = "openshift-etcd"
 	framework.Logf("running ovn-repair script on node: %v", restoreNode.Name)
 
 	var nodeIPs []string
@@ -657,7 +642,7 @@ func runOVNRepairCommands(oc *exutil.CLI, restoreNode *corev1.Node, nonRecoveryN
 		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName("dr-ssh")),
 	}
 
-	pod := applycorev1.Pod(name, namespace).WithSpec(podSpec)
+	pod := applycorev1.Pod(name, openshiftEtcdNamespace).WithSpec(podSpec)
 	err := runPodAndWaitForSuccess(oc, pod)
 	if err != nil {
 		return err
@@ -766,7 +751,7 @@ func runPod(oc *exutil.CLI, pod *applycorev1.PodApplyConfiguration) error {
 }
 
 func removeMemberOfNode(oc *exutil.CLI, node *corev1.Node) error {
-	etcdEndpointsConfigMap, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-etcd").Get(context.Background(), "etcd-endpoints", metav1.GetOptions{})
+	etcdEndpointsConfigMap, err := oc.AdminKubeClient().CoreV1().ConfigMaps(openshiftEtcdNamespace).Get(context.Background(), "etcd-endpoints", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -785,14 +770,14 @@ func removeMemberOfNode(oc *exutil.CLI, node *corev1.Node) error {
 }
 
 func removeMember(oc *exutil.CLI, memberID string) {
-	pods, err := e2epod.GetPods(context.TODO(), oc.AdminKubeClient(), "openshift-etcd", map[string]string{"app": "etcd"})
+	pods, err := e2epod.GetPods(context.TODO(), oc.AdminKubeClient(), openshiftEtcdNamespace, map[string]string{"app": "etcd"})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	for _, pod := range pods {
 		_, err = utils.PodRunningReady(&pod)
 		if err == nil {
 			framework.Logf("found running etcd pod to exec member removal: %s", pod.Name)
-			member, err := oc.AsAdmin().Run("exec").Args("-n", "openshift-etcd", pod.Name, "-c", "etcdctl", "etcdctl", "member", "remove", memberID).Output()
+			member, err := oc.AsAdmin().Run("exec").Args("-n", openshiftEtcdNamespace, pod.Name, "-c", "etcdctl", "etcdctl", "member", "remove", memberID).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(member).To(o.ContainSubstring("removed from cluster"))
 			return
@@ -803,7 +788,7 @@ func removeMember(oc *exutil.CLI, memberID string) {
 }
 
 func waitForEtcdToStabilizeOnTheSameRevision(t library.LoggingT, oc *exutil.CLI) error {
-	podClient := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd")
+	podClient := oc.AdminKubeClient().CoreV1().Pods(openshiftEtcdNamespace)
 	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "app=etcd", 3, 10*time.Second, 5*time.Second, 30*time.Minute)
 }
 
