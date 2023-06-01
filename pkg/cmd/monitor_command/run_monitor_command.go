@@ -7,10 +7,10 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
@@ -27,7 +27,7 @@ type RunMonitorOptions struct {
 	Out, ErrOut       io.Writer
 	ArtifactDir       string
 	APIDisruptionOnly bool
-	DisruptionPrefix  string
+	LoadBalancerType  string
 	ExtraMessage      string
 
 	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
@@ -67,9 +67,9 @@ func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command 
 	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
 		"artifact-dir", monitorOpt.ArtifactDir,
 		"The directory where monitor events will be stored.")
-	cmd.Flags().StringVar(&monitorOpt.DisruptionPrefix,
-		"disruption-prefix", monitorOpt.DisruptionPrefix,
-		"Add custom prefix to the locator of disruption events")
+	cmd.Flags().StringVar(&monitorOpt.LoadBalancerType,
+		"lb-type", monitorOpt.LoadBalancerType,
+		"Set load balancer type, available options: internal-lb, service-network, external-lb (default)")
 	cmd.Flags().StringVar(&monitorOpt.ExtraMessage,
 		"extra-message", monitorOpt.ExtraMessage,
 		"Add custom label to disruption event message")
@@ -111,7 +111,19 @@ func (opt *RunMonitorOptions) Run() error {
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring)
 	}
-	m, err := monitor.Start(ctx, restConfig, additionalEventIntervalRecorders)
+	var lb backend.LoadBalancerType
+	switch opt.LoadBalancerType {
+	case "service-network":
+		lb = backend.ServiceNetworkType
+	case "internal-lb":
+		lb = backend.InternalLoadBalancerType
+	case "external-lb":
+		lb = backend.ExternalLoadBalancerType
+	default:
+		lb = backend.ExternalLoadBalancerType
+	}
+
+	m, err := monitor.Start(ctx, restConfig, additionalEventIntervalRecorders, lb)
 	if err != nil {
 		return err
 	}
@@ -153,13 +165,6 @@ func (opt *RunMonitorOptions) Run() error {
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
 		intervals := m.Intervals(time.Time{}, time.Time{})
-		if len(opt.DisruptionPrefix) > 0 {
-			fmt.Fprintf(opt.Out, "\nAppending %s to disruption signature in recorded event locator\n", opt.DisruptionPrefix)
-			for i, event := range intervals {
-				intervals[i].Locator = strings.ReplaceAll(event.Locator, "disruption/", fmt.Sprintf("disruption/%s/", opt.DisruptionPrefix))
-				intervals[i].Message = strings.ReplaceAll(event.Message, "disruption/", fmt.Sprintf("disruption/%s/", opt.DisruptionPrefix))
-			}
-		}
 		if len(opt.ExtraMessage) > 0 {
 			fmt.Fprintf(opt.Out, "\nAppending %s to recorded event message\n", opt.ExtraMessage)
 			for i, event := range intervals {
