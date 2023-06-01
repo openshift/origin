@@ -3,7 +3,7 @@
         {
             "level": "Info",
             "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
-            "message": "constructed/true reason/Created ",
+            "message": "constructed/true reason/Created",
             "from": "2022-03-22T21:41:54Z",
             "to": "2022-03-22T22:02:53Z"
         },
@@ -24,28 +24,28 @@
         {
             "level": "Info",
             "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
-            "message": "constructed/true reason/Scheduled node/ci-op-ckiwry67-db044-lzjpd-master-0",
+            "message": "constructed/true node/ci-op-ckiwry67-db044-lzjpd-master-0 reason/Scheduled",
             "from": "2022-03-22T22:02:53Z",
             "to": "2022-03-22T22:29:35Z"
         },
         {
             "level": "Info",
             "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
-            "message": "constructed/true reason/Ready ",
+            "message": "constructed/true reason/Ready",
             "from": "2022-03-22T22:02:53Z",
             "to": "2022-03-22T22:29:35Z"
         },
         {
             "level": "Info",
             "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
-            "message": "constructed/true reason/GracefulDelete duration/30s",
+            "message": "constructed/true duration/30s reason/GracefulDelete",
             "from": "2022-03-22T22:29:35Z",
             "to": "2022-03-22T22:29:36Z"
         },
         {
             "level": "Info",
             "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
-            "message": "constructed/true reason/NotReady ",
+            "message": "constructed/true reason/NotReady",
             "from": "2022-03-22T22:29:35Z",
             "to": "2022-03-22T22:29:35Z"
         }

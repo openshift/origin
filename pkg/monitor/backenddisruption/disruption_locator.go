@@ -28,37 +28,43 @@ func DisruptionEndedMessage(locator string, connectionType monitorapi.BackendCon
 // Used to downgrade to a warning instead of an error, and omitted from final disruption numbers and testing.
 var DnsLookupRegex = regexp.MustCompile(`dial tcp: lookup.*: i/o timeout`)
 
-const (
-	DisruptionBeganEventReason              = "DisruptionBegan"
-	DisruptionEndedEventReason              = "DisruptionEnded"
-	DisruptionSamplerOutageBeganEventReason = "DisruptionSamplerOutageBegan"
-)
-
 // DisruptionBegan examines the error received, attempts to determine if it looks like real disruption to the cluster under test,
 // or other problems possibly on the system running the tests/monitor, and returns an appropriate user message, event reason, and monitoring level.
-func DisruptionBegan(locator string, connectionType monitorapi.BackendConnectionType, err error) (string, string, monitorapi.EventLevel) {
+func DisruptionBegan(locator string, connectionType monitorapi.BackendConnectionType, err error) (string, monitorapi.IntervalReason, monitorapi.EventLevel) {
 	if DnsLookupRegex.MatchString(err.Error()) {
 		switch connectionType {
 		case monitorapi.NewConnectionType:
-			return fmt.Sprintf("reason/%s DNS lookup timeouts began for %s GET requests over new connections: %v (likely a problem in cluster running tests, not the cluster under test)",
-				DisruptionSamplerOutageBeganEventReason, locator, err), DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
+			return monitorapi.Message().
+					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
+					Messagef("DNS lookup timeouts began for %s GET requests over new connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err),
+				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		case monitorapi.ReusedConnectionType:
-			return fmt.Sprintf("reason/%s DNS lookup timeouts began for %s GET requests over reused connections: %v (likely a problem in cluster running tests, not the cluster under test)",
-				DisruptionSamplerOutageBeganEventReason, locator, err), DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
+			return monitorapi.Message().
+					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
+					Messagef("DNS lookup timeouts began for %s GET requests over reused connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err),
+				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		default:
-			return fmt.Sprintf("reason/%s DNS lookup timeouts began for %s GET requests over %v connections: %v (likely a problem in cluster running tests, not the cluster under test)",
-				DisruptionSamplerOutageBeganEventReason, locator, "Unknown", err), DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
+			return monitorapi.Message().
+					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
+					Messagef("DNS lookup timeouts began for %s GET requests over %v connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, "Unknown", err),
+				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		}
 	}
 	switch connectionType {
 	case monitorapi.NewConnectionType:
-		return fmt.Sprintf("reason/%s %s stopped responding to GET requests over new connections: %v",
-			DisruptionBeganEventReason, locator, err), DisruptionBeganEventReason, monitorapi.Error
+		return monitorapi.Message().
+				Reason(monitorapi.DisruptionBeganEventReason).
+				Messagef("%s stopped responding to GET requests over new connections: %v", locator, err),
+			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	case monitorapi.ReusedConnectionType:
-		return fmt.Sprintf("reason/%s %s stopped responding to GET requests over reused connections: %v",
-			DisruptionBeganEventReason, locator, err), DisruptionBeganEventReason, monitorapi.Error
+		return monitorapi.Message().
+				Reason(monitorapi.DisruptionBeganEventReason).
+				Messagef("%s stopped responding to GET requests over reused connections: %v", locator, err),
+			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	default:
-		return fmt.Sprintf("reason/%s %s stopped responding to GET requests over %v connections: %v",
-			DisruptionBeganEventReason, locator, "Unknown", err), DisruptionBeganEventReason, monitorapi.Error
+		return monitorapi.Message().
+				Reason(monitorapi.DisruptionBeganEventReason).
+				Messagef("%s stopped responding to GET requests over %v connections: %v", locator, "Unknown", err),
+			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	}
 }

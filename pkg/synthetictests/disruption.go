@@ -114,7 +114,7 @@ func TestAPIServerIPTablesAccessDisruption(events monitorapi.Intervals) []*junit
 	messages := []string{}
 	for _, event := range events {
 		reason := monitorapi.ReasonFrom(event.Message)
-		if !strings.Contains(reason, "iptables-operation-not-permitted") {
+		if reason != "iptables-operation-not-permitted" {
 			continue
 		}
 		ns := monitorapi.NamespaceFromLocator(event.Locator)
@@ -317,11 +317,11 @@ func testDNSOverlapDisruption(events monitorapi.Intervals) []*junitapi.JUnitTest
 	disruptionIntervals := []monitorapi.EventInterval{}
 	for _, event := range events {
 		// DNS outage
-		if reason := monitorapi.ReasonFrom(event.Message); strings.HasPrefix(reason, "DisruptionSamplerOutageBegan") {
+		if reason := monitorapi.ReasonFrom(event.Message); reason == "DisruptionSamplerOutageBegan" {
 			dnsIntervals = append(dnsIntervals, event)
 		}
 		// real disruption
-		if reason := monitorapi.ReasonFrom(event.Message); strings.HasPrefix(reason, "DisruptionBegan") {
+		if reason := monitorapi.ReasonFrom(event.Message); reason == "DisruptionBegan" {
 			disruptionIntervals = append(disruptionIntervals, event)
 		}
 	}
