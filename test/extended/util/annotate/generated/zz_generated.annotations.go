@@ -1175,7 +1175,7 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster when using openshift-sdn should be able to get the sdn ovs flows": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][Late] Alerts shouldn't exceed the 650 series limit of total series sent via telemetry from each cluster": " [Suite:openshift/conformance/parallel]",
+	"[sig-instrumentation][Late] Alerts shouldn't exceed the series limit of total series sent via telemetry from each cluster": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-instrumentation][Late] Alerts shouldn't report any unexpected alerts in firing or pending state": " [Suite:openshift/conformance/parallel]",
 
