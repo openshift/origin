@@ -118,7 +118,7 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 		return fmt.Errorf("BUILD_ID env var is not defined")
 	}
 
-	bearerToken, err := obtainSSOBearerToken(clientID, clientSecret, intervals)
+	bearerToken, err := obtainSSOBearerToken(clientID, clientSecret)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 	labels := map[string]string{
 		"invoker": invoker,
 		"type":    "origin-interval",
-		// TODO: in future, may group intrvals in origin rather than in the js itself, if we do,
+		// TODO: in future, may group intervals in origin rather than in the js itself, if we do,
 		// ensure this group gets carried over to this series.
 	}
 
@@ -168,7 +168,7 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 				continue
 			}
 
-			// WAARNING: opting for a potentially risky change here, I want namespace filtering to be available as a
+			// WARNING: opting for a potentially risky change here, I want namespace filtering to be available as a
 			// label in loki soon,	and thus I am translating some labels we used historically in origin intervals to
 			// match those we pull from pod logs in the cluster itself. This will require our intervals charts in sippy
 			// be able to parse this new name instead of the other. Ideally, we would go rename these fully in origin wherever used.
@@ -187,7 +187,8 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 		// directives in logQL.
 		logLineJson, err := json.Marshal(logLine)
 		if err != nil {
-			logrus.WithError(err).Errorf("unable to unmashall log line: %s", logLine)
+			logrus.WithError(err).Errorf("unable to mashall log line to json: %s", logLine)
+			continue
 		}
 
 		values = append(values, []interface{}{
@@ -240,7 +241,7 @@ type LokiData struct {
 	Streams []Streams `json:"streams"`
 }
 
-func obtainSSOBearerToken(clientID, clientSecret string, intervals monitorapi.Intervals) (string, error) {
+func obtainSSOBearerToken(clientID, clientSecret string) (string, error) {
 	logrus.Info("requesting bearer token from RH SSO")
 	// Obtain a bearer token for pushing intervals to loki using RH SSO:
 	client := &http.Client{}
