@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -135,7 +136,7 @@ func (opt *RunMonitorOptions) Run() error {
 
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
-		recordedEvents := m.Intervals(time.Time{}, time.Time{})
+		intervals := m.Intervals(time.Time{}, time.Time{})
 		recordedResources := m.CurrentResourceState()
 		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
@@ -145,11 +146,18 @@ func (opt *RunMonitorOptions) Run() error {
 			return err
 		}
 
-		if err := monitor.WriteEventsForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix); err != nil {
+		if err := monitor.WriteEventsForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
 			fmt.Printf("Failed to write event data, err: %v\n", err)
 			return err
 		}
-		if err := monitor.WriteTrackedResourcesForJobRun(eventDir, recordedResources, recordedEvents, timeSuffix); err != nil {
+
+		err = monitor.UploadIntervalsToLoki(intervals)
+		if err != nil {
+			// Best effort, we do not want to error out here:
+			logrus.WithError(err).Warn("unable to upload intervals to loki")
+		}
+
+		if err := monitor.WriteTrackedResourcesForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
 			fmt.Printf("Failed to write resource data, err: %v\n", err)
 			return err
 		}

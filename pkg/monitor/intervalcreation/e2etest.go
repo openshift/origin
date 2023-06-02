@@ -65,7 +65,7 @@ func IntervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 		ret = append(ret, monitorapi.EventInterval{
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Warning,
-				Locator: monitorapi.OperatorLocator(testName),
+				Locator: monitorapi.E2ETestLocator(testName),
 				Message: fmt.Sprintf("e2e test did not finish %q", "DidNotFinish"),
 			},
 			From: testStart,
