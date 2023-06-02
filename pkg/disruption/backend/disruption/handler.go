@@ -72,7 +72,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 	framework.Logf(message)
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()},
-		nil, v1.EventTypeWarning, eventReason, "detected", message)
+		nil, v1.EventTypeWarning, string(eventReason), "detected", message)
 
 	condition := monitorapi.Condition{
 		Level:   level,
@@ -98,7 +98,7 @@ func (h *ciHandler) Available(from, to *backend.SampleResult) {
 
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()}, nil,
-		v1.EventTypeNormal, backenddisruption.DisruptionEndedEventReason, "detected", message)
+		v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
 	condition := monitorapi.Condition{
 		Level:   monitorapi.Info,
 		Locator: h.descriptor.DisruptionLocator(),
