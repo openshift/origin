@@ -362,9 +362,12 @@ func updateEnvVars(envs []string) []string {
 	}
 	// copied from provider.go
 	// TODO: add error handling, and maybe turn this into sharable helper?
+	config := &exutilcluster.ClusterConfiguration{}
 	clientConfig, _ := framework.LoadConfig(true)
 	clusterState, _ := exutilcluster.DiscoverClusterState(clientConfig)
-	config, _ := exutilcluster.LoadConfig(clusterState)
+	if clusterState != nil {
+		config, _ = exutilcluster.LoadConfig(clusterState)
+	}
 	if len(config.ProviderName) == 0 {
 		config.ProviderName = "skeleton"
 	}
