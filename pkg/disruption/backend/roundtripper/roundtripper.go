@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptrace"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -91,6 +92,11 @@ func WithAuditID(delegate backend.Client) backend.Client {
 // This function will attach the data obtained from the client trace
 // to the request context so it can be retrieved later.
 func WithGotConnTrace(delegate backend.Client) backend.Client {
+	// TODO: for now this is a global lock that applies to each disruption test
+	//  instance, we can use a more fine grained request scoped lock in the
+	//  future since the data race can happen at the http.Request level only.
+	lock := sync.Mutex{}
+
 	return backend.ClientFunc(func(req *http.Request) (*http.Response, error) {
 		trace := &httptrace.ClientTrace{
 			GotConn: func(ci httptrace.GotConnInfo) {
@@ -100,14 +106,18 @@ func WithGotConnTrace(delegate backend.Client) backend.Client {
 				connInfo.IdleTime = ci.IdleTime
 				connInfo.WasIdle = ci.WasIdle
 
+				lock.Lock()
 				if data := backend.RequestContextAssociatedDataFrom(req.Context()); data != nil {
 					data.GotConnInfo = connInfo
 				}
+				lock.Unlock()
 			},
 			DNSDone: func(d httptrace.DNSDoneInfo) {
+				lock.Lock()
 				if data := backend.RequestContextAssociatedDataFrom(req.Context()); data != nil {
 					data.DNSErr = d.Err
 				}
+				lock.Unlock()
 			},
 		}
 		req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
