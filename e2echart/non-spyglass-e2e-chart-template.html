@@ -815,6 +815,8 @@
         createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "interesting_events");
 
         var segmentFunc = function (segment) {
+            // Copy label to clipboard
+            navigator.clipboard.writeText(segment.labelVal);
             // for (var i in data) {
             //     if (data[i].group == segment.group) {
             //         var groupdata = data[i].data
