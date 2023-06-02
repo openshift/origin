@@ -381,6 +381,7 @@
         + '<strong>From: </strong>' + new Date(d.timeRange[0]).toUTCString() + '<br>'
         + '<strong>To: </strong>' + new Date(d.timeRange[1]).toUTCString() + '</span>';
     }
+
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc, regex) {
         const data = {}
         var now = new Date();
@@ -504,6 +505,9 @@
         createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isInterestingOrPathological, regex)
 
         var segmentFunc = function (segment) {
+            // Copy label to clipboard
+            navigator.clipboard.writeText(segment.val);
+
             // for (var i in data) {
             //     if (data[i].group == segment.group) {
             //         var groupdata = data[i].data
