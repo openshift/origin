@@ -88,7 +88,7 @@ type TestDescriptor struct {
 }
 
 func (t TestDescriptor) Name() string {
-	return fmt.Sprintf("%s-%s-%s-%s", t.TargetServer, t.Protocol, t.LoadBalancerType, t.ConnectionType)
+	return fmt.Sprintf("%s-%s-%s-%s-connections", t.TargetServer, t.Protocol, t.LoadBalancerType, t.ConnectionType)
 }
 
 func (t TestDescriptor) DisruptionLocator() string {

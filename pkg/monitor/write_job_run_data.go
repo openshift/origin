@@ -119,6 +119,9 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 			DisruptionMessages: disruptionMessages,
 			LoadBalancerType:   "external-lb",
 			Protocol:           "http1",
+			// for existing disruption test, the 'disruption' locator
+			// part closely resembles the api being tested.
+			TargetAPI: disruptionBackend,
 		}
 		ret.BackendDisruptions[aggregatedDisruptionName] = bs
 
@@ -126,6 +129,7 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 			bs.LoadBalancerType = loadBalancerType
 			bs.Protocol = monitorapi.DisruptionProtocolFrom(locatorParts)
 			bs.TargetAPI = monitorapi.DisruptionTargetAPIFrom(locatorParts)
+			bs.BackendName = fmt.Sprintf("%s-%s-%s", bs.TargetAPI, bs.Protocol, bs.LoadBalancerType)
 		}
 	}
 
