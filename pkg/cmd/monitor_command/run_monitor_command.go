@@ -106,13 +106,20 @@ func (opt *RunMonitorOptions) Run() error {
 	additionalEventIntervalRecorders := []monitor.StartEventIntervalRecorderFunc{
 		controlplane.StartAllAPIMonitoring,
 	}
-	if !opt.APIDisruptionOnly {
+	if !opt.APIDisruptionOnly || os.Getenv("API_DISRUPTION_ONLY") == "true" {
 		additionalEventIntervalRecorders = append(additionalEventIntervalRecorders,
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring)
 	}
+	var lbTypeOpt string
+	if len(opt.LoadBalancerType) > 0 {
+		lbTypeOpt = opt.LoadBalancerType
+	}
+	if len(os.Getenv("LOAD_BALANCER_TYPE")) > 0 {
+		lbTypeOpt = os.Getenv("LOAD_BALANCER_TYPE")
+	}
 	var lb backend.LoadBalancerType
-	switch opt.LoadBalancerType {
+	switch lbTypeOpt {
 	case "service-network":
 		lb = backend.ServiceNetworkType
 	case "internal-lb":
@@ -165,10 +172,17 @@ func (opt *RunMonitorOptions) Run() error {
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
 		intervals := m.Intervals(time.Time{}, time.Time{})
+		var extraMessage string
 		if len(opt.ExtraMessage) > 0 {
-			fmt.Fprintf(opt.Out, "\nAppending %s to recorded event message\n", opt.ExtraMessage)
+			extraMessage = opt.ExtraMessage
+		}
+		if len(os.Getenv("EXTRA_MESSAGE")) > 0 {
+			extraMessage = os.Getenv("EXTRA_MESSAGE")
+		}
+		if len(extraMessage) > 0 {
+			fmt.Fprintf(opt.Out, "\nAppending %s to recorded event message\n", extraMessage)
 			for i, event := range intervals {
-				intervals[i].Message = fmt.Sprintf("%s %s", event.Message, opt.ExtraMessage)
+				intervals[i].Message = fmt.Sprintf("%s %s", event.Message, extraMessage)
 			}
 		}
 		recordedResources := m.CurrentResourceState()
@@ -191,7 +205,7 @@ func (opt *RunMonitorOptions) Run() error {
 			logrus.WithError(err).Warn("unable to upload intervals to loki")
 		}
 
-		if !opt.APIDisruptionOnly {
+		if !opt.APIDisruptionOnly || os.Getenv("APIDisruptionOnly") == "true" {
 			if err := monitor.WriteTrackedResourcesForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
 				fmt.Printf("Failed to write resource data, err: %v\n", err)
 				return err

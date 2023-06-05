@@ -218,15 +218,22 @@ func callInternalLBDaemonset(ctx context.Context, oc *exutil.CLI, create bool, a
 										},
 									},
 								},
+								{
+									Name:  "API_DISRUPTION_ONLY",
+									Value: "true",
+								},
+								{
+									Name:  "LOAD_BALANCER_TYPE",
+									Value: "internal-lb",
+								},
+								{
+									Name:  "EXTRA_MESSAGE",
+									Value: "node=$(NODE_NAME)",
+								},
 							},
 							Command: []string{
 								"openshift-tests",
 								"run-monitor",
-								"--api-disruption-only",
-								"--lb-type",
-								"internal-lb",
-								"--extra-message",
-								"node=$(NODE_NAME)",
 								"--artifact-dir",
 								disruptionDataPath,
 							},
@@ -288,13 +295,8 @@ func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create boo
 							Name:  "service-network",
 							Image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest",
 							Command: []string{
-								"openshift-tests",
+								"openshift-tests",  
 								"run-monitor",
-								"--api-disruption-only",
-								"--lb-type",
-								"service-network",
-								"--extra-message",
-								"node=$(NODE_NAME)",
 								"--artifact-dir",
 								disruptionDataPath,
 							},
@@ -306,6 +308,18 @@ func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create boo
 											FieldPath: "spec.nodeName",
 										},
 									},
+								},
+								{
+									Name:  "API_DISRUPTION_ONLY",
+									Value: "true",
+								},
+								{
+									Name:  "LOAD_BALANCER_TYPE",
+									Value: "service-network",
+								},
+								{
+									Name:  "EXTRA_MESSAGE",
+									Value: "node=$(NODE_NAME)",
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
