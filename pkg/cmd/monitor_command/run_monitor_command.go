@@ -106,7 +106,7 @@ func (opt *RunMonitorOptions) Run() error {
 	additionalEventIntervalRecorders := []monitor.StartEventIntervalRecorderFunc{
 		controlplane.StartAllAPIMonitoring,
 	}
-	if !opt.APIDisruptionOnly || os.Getenv("API_DISRUPTION_ONLY") == "true" {
+	if !opt.APIDisruptionOnly || os.Getenv("API_DISRUPTION_ONLY") != "true" {
 		additionalEventIntervalRecorders = append(additionalEventIntervalRecorders,
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring)
