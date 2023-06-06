@@ -134,7 +134,7 @@ func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *apps
 		if err != nil {
 			return err
 		}
-		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+		if err := wait.PollImmediateWithContext(ctx, 10*time.Second, 5*time.Minute, func(context.Context) (bool, error) {
 			ds, err := client.Get(context.Background(), obj.Name, metav1.GetOptions{})
 			if err != nil {
 				framework.Logf("error getting daemonsets %v", err)
@@ -150,7 +150,7 @@ func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *apps
 		if err != nil {
 			return err
 		}
-		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
+		if err := wait.PollImmediateWithContext(ctx, 10*time.Second, 5*time.Minute, func(context.Context) (bool, error) {
 			_, err := client.Get(context.Background(), obj.Name, metav1.GetOptions{})
 			if err != nil {
 				if apierrors.IsNotFound(err) {

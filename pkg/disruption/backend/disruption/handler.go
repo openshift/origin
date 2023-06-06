@@ -98,7 +98,7 @@ func (h *ciHandler) Available(from, to *backend.SampleResult) {
 
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()}, nil,
-		v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
+		v1.EventTypeNormal, string(backenddisruption.DisruptionEndedEventReason), "detected", message)
 	condition := monitorapi.Condition{
 		Level:   monitorapi.Info,
 		Locator: h.descriptor.DisruptionLocator(),

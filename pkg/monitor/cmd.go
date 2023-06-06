@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/openshift/origin/pkg/disruption/backend"
 )
 
 // Options is used to run a monitoring process against the provided server as
@@ -45,7 +47,7 @@ func (opt *Options) Run() error {
 	if err != nil {
 		return err
 	}
-	m, err := Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders)
+	m, err := Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders, backend.ExternalLoadBalancerType)
 	if err != nil {
 		return err
 	}

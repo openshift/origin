@@ -12,10 +12,11 @@ import (
 
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitor_cmd"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"github.com/sirupsen/logrus"
+
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -32,13 +33,13 @@ type RunMonitorOptions struct {
 
 	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
 
-	TimelineOptions TimelineOptions
+	TimelineOptions monitor_cmd.TimelineOptions
 }
 
 const EventDir = "monitor-events"
 
 func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOptions {
-	timelineOptions := NewTimelineOptions(ioStreams)
+	timelineOptions := monitor_cmd.NewTimelineOptions(ioStreams)
 
 	return &RunMonitorOptions{
 		Out:    ioStreams.Out,
@@ -197,12 +198,6 @@ func (opt *RunMonitorOptions) Run() error {
 		if err := monitor.WriteEventsForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
 			fmt.Printf("Failed to write event data, err: %v\n", err)
 			return err
-		}
-
-		err = monitor.UploadIntervalsToLoki(intervals)
-		if err != nil {
-			// Best effort, we do not want to error out here:
-			logrus.WithError(err).Warn("unable to upload intervals to loki")
 		}
 
 		if !opt.APIDisruptionOnly || os.Getenv("APIDisruptionOnly") == "true" {

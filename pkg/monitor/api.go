@@ -9,7 +9,7 @@ import (
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/disruption/backend"
-	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

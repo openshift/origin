@@ -2,7 +2,6 @@ package controlplane
 
 import (
 	"context"
-	"fmt"
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"time"
 
