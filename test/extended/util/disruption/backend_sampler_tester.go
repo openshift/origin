@@ -134,6 +134,7 @@ func (t *backendDisruptionTest) Setup(ctx context.Context, f *framework.Framewor
 func (t *backendDisruptionTest) Test(ctx context.Context, f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
+	defer ginkgo.GinkgoRecover()
 
 	newBroadcaster := events.NewBroadcaster(&events.EventSinkImpl{Interface: f.ClientSet.EventsV1()})
 	eventRecorder := newBroadcaster.NewRecorder(scheme.Scheme, "openshift.io/"+t.backend.GetDisruptionBackendName())
