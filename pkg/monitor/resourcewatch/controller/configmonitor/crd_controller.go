@@ -2,6 +2,7 @@ package configmonitor
 
 import (
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
@@ -41,5 +42,6 @@ func WireResourceInformersToGitRepo(
 				},
 			},
 		)
+		klog.Infof("Added event handler for resource %s", resourceToWatch.String())
 	}
 }
