@@ -74,8 +74,6 @@ func (bs *RemoteSampler) RunEndpointMonitoring(ctx context.Context, m backenddis
 		eventRecorder = fakeEventRecorder
 	}
 
-	framework.Logf("DisruptionTest: starting in-cluster monitors")
-	sampler.StartInClusterMonitors(ctx, bs.config)
 	<-ctx.Done()
 	framework.Logf("DisruptionTest: stopping in-cluster monitors")
 	sampler.TearDownInClusterMonitors(bs.config)
@@ -85,7 +83,8 @@ func (bs *RemoteSampler) RunEndpointMonitoring(ctx context.Context, m backenddis
 }
 
 func (bs *RemoteSampler) StartEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error {
-	return nil
+	framework.Logf("DisruptionTest: starting in-cluster monitors")
+	return sampler.StartInClusterMonitors(ctx, bs.config)
 }
 
 func (bs *RemoteSampler) Stop() {

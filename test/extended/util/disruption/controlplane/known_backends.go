@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/disruption/backend"
+	"github.com/openshift/origin/pkg/disruption/ci"
 
 	disruptionci "github.com/openshift/origin/pkg/disruption/ci"
 	"github.com/openshift/origin/pkg/monitor"
@@ -70,6 +71,10 @@ func StartAllAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfi
 		return err
 	}
 	if err := startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx, m, factory, lb); err != nil {
+		return err
+	}
+	remoteFactory := disruptionci.NewInClusterMonitorTestFactory(clusterConfig)
+	if err := startRemoteMonitoring(ctx, m, remoteFactory); err != nil {
 		return err
 	}
 	return nil
@@ -382,4 +387,12 @@ func createAPIServerBackendSampler(clusterConfig *rest.Config, disruptionBackend
 	backendSampler = backendSampler.WithUserAgent(fmt.Sprintf("openshift-external-backend-sampler-%s-%s", connectionType, disruptionBackendName))
 
 	return backendSampler, nil
+}
+
+func startRemoteMonitoring(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory) error {
+	remoteBackendSampler, err := factory.New(ci.TestConfiguration{})
+	if err != nil {
+		return err
+	}
+	return remoteBackendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
