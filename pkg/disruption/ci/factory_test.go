@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 )
 
 func TestBackendSampler(t *testing.T) {
@@ -141,6 +142,7 @@ func (d *testServerDependency) HostName() string { return d.server.URL }
 func (d *testServerDependency) GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error) {
 	return nil, nil
 }
+func (d *testServerDependency) GetRestConfig() *rest.Config { return nil }
 
 type instruction struct {
 	val int64

@@ -75,6 +75,14 @@ func StartAllAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfi
 	return nil
 }
 
+func StartRemoteAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
+	remoteFactory := disruptionci.NewInClusterMonitorTestFactory(clusterConfig)
+	if err := startRemoteMonitoring(ctx, m, remoteFactory); err != nil {
+		return err
+	}
+	return nil
+}
+
 func startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
 	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
 	if err != nil {
@@ -382,4 +390,12 @@ func createAPIServerBackendSampler(clusterConfig *rest.Config, disruptionBackend
 	backendSampler = backendSampler.WithUserAgent(fmt.Sprintf("openshift-external-backend-sampler-%s-%s", connectionType, disruptionBackendName))
 
 	return backendSampler, nil
+}
+
+func startRemoteMonitoring(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory) error {
+	remoteBackendSampler, err := factory.New(disruptionci.TestConfiguration{})
+	if err != nil {
+		return err
+	}
+	return remoteBackendSampler.StartEndpointMonitoring(ctx, m, nil)
 }

@@ -60,6 +60,7 @@ func NewMonitorEventsOptions(out io.Writer, errOut io.Writer) *MonitorEventsOpti
 	return &MonitorEventsOptions{
 		Recorders: []monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAllAPIMonitoring,
+			controlplane.StartRemoteAPIMonitoring,
 			frontends.StartAllIngressMonitoring,
 		},
 		RunDataWriters: []RunDataWriter{

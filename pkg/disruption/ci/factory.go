@@ -132,6 +132,9 @@ type dependency interface {
 
 	// GetHostNameDecoder returns the appropriate HostNameDecoder instance.
 	GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error)
+
+	// GetRestConfig returns kubeconfig
+	GetRestConfig() *rest.Config
 }
 
 type testFactory struct {
@@ -215,4 +218,7 @@ func (r *restConfigDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 func (r *restConfigDependency) HostName() string { return r.config.Host }
 func (r *restConfigDependency) GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error) {
 	return NewAPIServerIdentityToHostNameDecoder(r.config)
+}
+func (r *restConfigDependency) GetRestConfig() *rest.Config {
+	return r.config
 }
