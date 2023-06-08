@@ -818,7 +818,7 @@ func (HTTPGetAction) SwaggerDoc() map[string]string {
 
 var map_HTTPHeader = map[string]string{
 	"":      "HTTPHeader describes a custom header to be used in HTTP probes",
-	"name":  "The header field name",
+	"name":  "The header field name. This will be canonicalized upon output, so case-variant names will be understood as the same header.",
 	"value": "The header field value",
 }
 
@@ -2041,7 +2041,7 @@ var map_ResourceRequirements = map[string]string{
 	"":         "ResourceRequirements describes the compute resource requirements.",
 	"limits":   "Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
 	"requests": "Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/",
-	"claims":   "Claims lists the names of resources, defined in spec.resourceClaims, that are used by this container.\n\nThis is an alpha field and requires enabling the DynamicResourceAllocation feature gate.\n\nThis field is immutable.",
+	"claims":   "Claims lists the names of resources, defined in spec.resourceClaims, that are used by this container.\n\nThis is an alpha field and requires enabling the DynamicResourceAllocation feature gate.\n\nThis field is immutable. It can only be set for containers.",
 }
 
 func (ResourceRequirements) SwaggerDoc() map[string]string {

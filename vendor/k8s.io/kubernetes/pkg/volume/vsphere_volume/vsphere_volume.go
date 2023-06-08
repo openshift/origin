@@ -75,7 +75,7 @@ func (plugin *vsphereVolumePlugin) GetPluginName() string {
 }
 
 func (plugin *vsphereVolumePlugin) IsMigratedToCSI() bool {
-	return utilfeature.DefaultFeatureGate.Enabled(features.CSIMigrationvSphere)
+	return utilfeature.DefaultFeatureGate.Enabled(features.CSIMigrationvSphere) && features.OpenShiftStartCSIMigrationVSphere()
 }
 
 func (plugin *vsphereVolumePlugin) GetVolumeName(spec *volume.Spec) (string, error) {
@@ -277,7 +277,7 @@ func (b *vsphereVolumeMounter) SetUpAt(dir string, mounterArgs volume.MounterArg
 		os.Remove(dir)
 		return err
 	}
-	volume.SetVolumeOwnership(b, mounterArgs.FsGroup, mounterArgs.FSGroupChangePolicy, util.FSGroupCompleteHook(b.plugin, nil))
+	volume.SetVolumeOwnership(b, dir, mounterArgs.FsGroup, mounterArgs.FSGroupChangePolicy, util.FSGroupCompleteHook(b.plugin, nil))
 	klog.V(3).Infof("vSphere volume %s mounted to %s", b.volPath, dir)
 
 	return nil
