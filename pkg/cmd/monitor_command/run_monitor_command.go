@@ -12,6 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -34,8 +35,6 @@ type RunMonitorOptions struct {
 
 	TimelineOptions TimelineOptions
 }
-
-const EventDir = "monitor-events"
 
 func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOptions {
 	timelineOptions := NewTimelineOptions(ioStreams)
@@ -188,7 +187,7 @@ func (opt *RunMonitorOptions) Run() error {
 		recordedResources := m.CurrentResourceState()
 		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
-		eventDir := filepath.Join(opt.ArtifactDir, EventDir)
+		eventDir := filepath.Join(opt.ArtifactDir, monitorapi.EventDir)
 		if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
 			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
 			return err

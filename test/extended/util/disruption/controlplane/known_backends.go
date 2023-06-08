@@ -3,8 +3,9 @@ package controlplane
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/pkg/disruption/backend"
 	"time"
+
+	"github.com/openshift/origin/pkg/disruption/backend"
 
 	disruptionci "github.com/openshift/origin/pkg/disruption/ci"
 	"github.com/openshift/origin/pkg/monitor"
@@ -282,7 +283,7 @@ func createOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig *r
 	return createAPIServerBackendSampler(clusterConfig, "cache-oauth-api", "/apis/oauth.openshift.io/v1/oauthclients?resourceVersion=0", monitorapi.ReusedConnectionType)
 }
 
-func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (*disruptionci.BackendSampler, error) {
+func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -297,7 +298,7 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory
 	})
 }
 
-func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (*disruptionci.BackendSampler, error) {
+func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -312,7 +313,7 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factor
 	})
 }
 
-func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType) (*disruptionci.BackendSampler, error) {
+func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -327,7 +328,7 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory
 	})
 }
 
-func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType) (*disruptionci.BackendSampler, error) {
+func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -342,7 +343,7 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factor
 	})
 }
 
-func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (*disruptionci.BackendSampler, error) {
+func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.OpenShiftAPIServer,
@@ -357,7 +358,7 @@ func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Fa
 	})
 }
 
-func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (*disruptionci.BackendSampler, error) {
+func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.OpenShiftAPIServer,

@@ -56,10 +56,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	remoteFactory := ci.NewInClusterMonitorTestFactory(restConfig)
+	backend3, err := remoteFactory.New(ci.TestConfiguration{})
+	if err != nil {
+		klog.ErrorS(err, "failed to create disruption test")
+		os.Exit(1)
+	}
+
 	parent, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	monitorErrCh1, monitorErrCh2 := make(chan error, 1), make(chan error, 1)
+	monitorErrCh1, monitorErrCh2, monitorErrCh3 := make(chan error, 1), make(chan error, 1), make(chan error, 1)
 	go func() {
 		err := backend1.RunEndpointMonitoring(parent, &recorder{}, &fakeRecorder{})
 		monitorErrCh1 <- err
@@ -67,6 +74,10 @@ func main() {
 	go func() {
 		err := backend2.RunEndpointMonitoring(parent, &recorder{}, &fakeRecorder{})
 		monitorErrCh2 <- err
+	}()
+	go func() {
+		err := backend3.RunEndpointMonitoring(parent, &recorder{}, &fakeRecorder{})
+		monitorErrCh3 <- err
 	}()
 
 	stopCh := make(chan struct{})
@@ -82,12 +93,19 @@ func main() {
 		<-stopCh
 		backend2.Stop()
 	}()
+	go func() {
+		<-stopCh
+		backend3.Stop()
+	}()
 
 	klog.Infof("waiting for monitor to be done")
 	if err := <-monitorErrCh1; err != nil {
 		klog.ErrorS(err, "disruption test returned an error")
 	}
 	if err := <-monitorErrCh2; err != nil {
+		klog.ErrorS(err, "disruption test returned an error")
+	}
+	if err := <-monitorErrCh3; err != nil {
 		klog.ErrorS(err, "disruption test returned an error")
 	}
 }

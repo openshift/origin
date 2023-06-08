@@ -1,4 +1,4 @@
-package apiserver
+package sampler
 
 import (
 	"bytes"
@@ -9,8 +9,7 @@ import (
 	"strings"
 	"time"
 
-	g "github.com/onsi/ginkgo/v2"
-	o "github.com/onsi/gomega"
+	//o "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,7 +22,8 @@ import (
 
 	authv1 "github.com/openshift/api/authorization/v1"
 	projv1 "github.com/openshift/api/project/v1"
-	"github.com/openshift/origin/pkg/cmd/monitor_command"
+
+	// "github.com/openshift/origin/pkg/cmd/monitor_command"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -40,12 +40,14 @@ const (
 
 var disruptionDataPath = fmt.Sprintf("%s/%s", varLogPath, disruptionDataFolder)
 
-func TearDownInClusterMonitors(oc *exutil.CLI) {
+func TearDownInClusterMonitors(oc *exutil.CLI) error {
 	ctx := context.Background()
 	deleteTestBed(ctx, oc)
 
 	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	var events monitorapi.Intervals
 	var errs []error
 	for _, node := range nodes.Items {
@@ -61,66 +63,75 @@ func TearDownInClusterMonitors(oc *exutil.CLI) {
 		framework.Logf("found errors fetching in-cluster data: %v", errs)
 	}
 	err = monitorserialization.EventsToFile(exutil.ArtifactPath(inClusterEventsFile), events)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	return err
 }
 
-var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
-	defer g.GinkgoRecover()
-
-	oc := exutil.NewCLI("apiserver")
-
-	g.It("start in-cluster disruption monitors [Early]", func() {
-		ctx := context.Background()
-		createTestBed(ctx, oc)
-	})
-
-	g.It("tear down in-cluster disruption monitors [Late]", func() {
-		TearDownInClusterMonitors(oc)
-	})
-})
-
-func createTestBed(ctx context.Context, oc *exutil.CLI) {
+func createTestBed(ctx context.Context, oc *exutil.CLI) error {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 
 	internalAPI, err := url.Parse(infra.Status.APIServerURL)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	apiIntHost := strings.Replace(internalAPI.Hostname(), "api.", "api-int.", 1)
 
 	err = callProject(ctx, oc, true)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	err = callServiceAccount(ctx, oc, true)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	err = callRBACClusterAdmin(ctx, oc, true)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	err = callRBACHostaccess(ctx, oc, false)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	err = exutil.WaitForServiceAccountWithSecret(
 		oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace),
 		serviceAccountName)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	err = callInternalLBDaemonset(ctx, oc, true, apiIntHost)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = callServiceNetworkDaemonset(ctx, oc, true)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
+	return callServiceNetworkDaemonset(ctx, oc, true)
 }
 
-func deleteTestBed(ctx context.Context, oc *exutil.CLI) {
+func deleteTestBed(ctx context.Context, oc *exutil.CLI) error {
 	// Stop daemonsets first so that test stop before serviceaccount is removed
 	// and permission issues from apiserver are not recorded as disruption
 	err := callInternalLBDaemonset(ctx, oc, false, "")
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	err = callServiceNetworkDaemonset(ctx, oc, false)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 
 	err = callRBACClusterAdmin(ctx, oc, false)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	err = callRBACHostaccess(ctx, oc, false)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
 	err = callServiceAccount(ctx, oc, false)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = callProject(ctx, oc, false)
-	o.Expect(err).NotTo(o.HaveOccurred())
+	if err != nil {
+		return err
+	}
+	return callProject(ctx, oc, false)
 }
 
 func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *appsv1.DaemonSet) error {
@@ -295,7 +306,7 @@ func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create boo
 							Name:  "service-network",
 							Image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest",
 							Command: []string{
-								"openshift-tests",  
+								"openshift-tests",
 								"run-monitor",
 								"--artifact-dir",
 								disruptionDataPath,
@@ -484,7 +495,7 @@ func fetchNodeInClusterEvents(ctx context.Context, oc *exutil.CLI, node *corev1.
 	var errs []error
 
 	// Fetch a list of e2e data files
-	basePath := fmt.Sprintf("/%s/%s", disruptionDataFolder, monitor_command.EventDir)
+	basePath := fmt.Sprintf("/%s/%s", disruptionDataFolder, monitorapi.EventDir)
 	fileListOutput, err := fetchFileViaOC(ctx, oc, node.Name, basePath)
 	if err != nil {
 		return events, fmt.Errorf("failed to list files in disruption event folder on node %s: %v", node.Name, err)

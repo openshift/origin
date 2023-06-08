@@ -80,9 +80,6 @@ func TestBackendSampler(t *testing.T) {
 		t.Fatalf("failed to build backend sampler: %v", err)
 	}
 
-	t.Logf("setters: %v", bs1.wantEventRecorderAndMonitor)
-	t.Logf("setters: %v", bs2.wantEventRecorderAndMonitor)
-
 	parent, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
