@@ -5,28 +5,29 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
-
-	//o "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	authv1 "github.com/openshift/api/authorization/v1"
 	projv1 "github.com/openshift/api/project/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	projectclient "github.com/openshift/client-go/project/clientset/versioned"
 
-	// "github.com/openshift/origin/pkg/cmd/monitor_command"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -40,18 +41,27 @@ const (
 
 var disruptionDataPath = fmt.Sprintf("%s/%s", varLogPath, disruptionDataFolder)
 
-func TearDownInClusterMonitors(oc *exutil.CLI) error {
+func TearDownInClusterMonitors(config *rest.Config) error {
 	ctx := context.Background()
-	deleteTestBed(ctx, oc)
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	projectClient, err := projectclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
 
-	nodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	deleteTestBed(ctx, projectClient, kubeClient)
+
+	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	var events monitorapi.Intervals
 	var errs []error
 	for _, node := range nodes.Items {
-		nodeEvents, err := fetchNodeInClusterEvents(ctx, oc, &node)
+		nodeEvents, err := fetchNodeInClusterEvents(ctx, &node)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -62,12 +72,20 @@ func TearDownInClusterMonitors(oc *exutil.CLI) error {
 	if len(errs) > 0 {
 		framework.Logf("found errors fetching in-cluster data: %v", errs)
 	}
-	err = monitorserialization.EventsToFile(exutil.ArtifactPath(inClusterEventsFile), events)
-	return err
+	artifactPath := filepath.Join(os.Getenv("ARTIFACT_DIR"), inClusterEventsFile)
+	return monitorserialization.EventsToFile(artifactPath, events)
 }
 
-func createTestBed(ctx context.Context, oc *exutil.CLI) error {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+func StartInClusterMonitors(ctx context.Context, config *rest.Config) error {
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	configClient, err := configclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -78,64 +96,63 @@ func createTestBed(ctx context.Context, oc *exutil.CLI) error {
 	}
 	apiIntHost := strings.Replace(internalAPI.Hostname(), "api.", "api-int.", 1)
 
-	err = callProject(ctx, oc, true)
+	projectClient, err := projectclient.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	err = callServiceAccount(ctx, oc, true)
+
+	err = callProject(ctx, projectClient, true)
 	if err != nil {
 		return err
 	}
-	err = callRBACClusterAdmin(ctx, oc, true)
+	err = callServiceAccount(ctx, kubeClient, true)
 	if err != nil {
 		return err
 	}
-	err = callRBACHostaccess(ctx, oc, false)
+	err = callRBACClusterAdmin(ctx, kubeClient, true)
 	if err != nil {
 		return err
 	}
-	err = exutil.WaitForServiceAccountWithSecret(
-		oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace),
-		serviceAccountName)
+	err = callRBACHostaccess(ctx, kubeClient, false)
 	if err != nil {
 		return err
 	}
-	err = callInternalLBDaemonset(ctx, oc, true, apiIntHost)
+	err = callInternalLBDaemonset(ctx, kubeClient, true, apiIntHost)
 	if err != nil {
 		return err
 	}
-	return callServiceNetworkDaemonset(ctx, oc, true)
+	return callServiceNetworkDaemonset(ctx, kubeClient, true)
 }
 
-func deleteTestBed(ctx context.Context, oc *exutil.CLI) error {
+func deleteTestBed(ctx context.Context, projectClient *projectclient.Clientset, kubeClient *kubernetes.Clientset) error {
 	// Stop daemonsets first so that test stop before serviceaccount is removed
 	// and permission issues from apiserver are not recorded as disruption
-	err := callInternalLBDaemonset(ctx, oc, false, "")
+	err := callInternalLBDaemonset(ctx, kubeClient, false, "")
 	if err != nil {
 		return err
 	}
-	err = callServiceNetworkDaemonset(ctx, oc, false)
+	err = callServiceNetworkDaemonset(ctx, kubeClient, false)
 	if err != nil {
 		return err
 	}
 
-	err = callRBACClusterAdmin(ctx, oc, false)
+	err = callRBACClusterAdmin(ctx, kubeClient, false)
 	if err != nil {
 		return err
 	}
-	err = callRBACHostaccess(ctx, oc, false)
+	err = callRBACHostaccess(ctx, kubeClient, false)
 	if err != nil {
 		return err
 	}
-	err = callServiceAccount(ctx, oc, false)
+	err = callServiceAccount(ctx, kubeClient, false)
 	if err != nil {
 		return err
 	}
-	return callProject(ctx, oc, false)
+	return callProject(ctx, projectClient, false)
 }
 
-func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *appsv1.DaemonSet) error {
-	client := oc.AdminKubeClient().AppsV1().DaemonSets(namespace)
+func createDaemonset(ctx context.Context, clientset *kubernetes.Clientset, create bool, obj *appsv1.DaemonSet) error {
+	client := clientset.AppsV1().DaemonSets(namespace)
 	var err error
 	if create {
 		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
@@ -179,7 +196,7 @@ func createDaemonset(ctx context.Context, oc *exutil.CLI, create bool, obj *apps
 	return err
 }
 
-func callInternalLBDaemonset(ctx context.Context, oc *exutil.CLI, create bool, apiIntHost string) error {
+func callInternalLBDaemonset(ctx context.Context, clientset *kubernetes.Clientset, create bool, apiIntHost string) error {
 	name := "pod-monitor-internal-lb"
 	labels := map[string]string{
 		"app": name,
@@ -268,10 +285,10 @@ func callInternalLBDaemonset(ctx context.Context, oc *exutil.CLI, create bool, a
 		},
 	}
 
-	return createDaemonset(ctx, oc, create, obj)
+	return createDaemonset(ctx, clientset, create, obj)
 }
 
-func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create bool) error {
+func callServiceNetworkDaemonset(ctx context.Context, clientset *kubernetes.Clientset, create bool) error {
 	name := "pod-monitor-service-network"
 	labels := map[string]string{
 		"app": name,
@@ -356,20 +373,20 @@ func callServiceNetworkDaemonset(ctx context.Context, oc *exutil.CLI, create boo
 		},
 	}
 
-	return createDaemonset(ctx, oc, create, obj)
+	return createDaemonset(ctx, clientset, create, obj)
 }
 
-func callRBACClusterAdmin(ctx context.Context, oc *exutil.CLI, create bool) error {
-	obj := &authv1.ClusterRoleBinding{
+func callRBACClusterAdmin(ctx context.Context, clientset *kubernetes.Clientset, create bool) error {
+	obj := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-admin", serviceAccountName),
 			Namespace: namespace,
 		},
-		RoleRef: corev1.ObjectReference{
+		RoleRef: rbacv1.RoleRef{
 			Kind: "ClusterRole",
 			Name: "cluster-admin",
 		},
-		Subjects: []corev1.ObjectReference{
+		Subjects: []rbacv1.Subject{
 			{
 				Kind:      rbacv1.ServiceAccountKind,
 				Name:      serviceAccountName,
@@ -378,7 +395,7 @@ func callRBACClusterAdmin(ctx context.Context, oc *exutil.CLI, create bool) erro
 		},
 	}
 
-	client := oc.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings()
+	client := clientset.RbacV1().ClusterRoleBindings()
 	var err error
 	if create {
 		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
@@ -392,17 +409,17 @@ func callRBACClusterAdmin(ctx context.Context, oc *exutil.CLI, create bool) erro
 	return err
 }
 
-func callRBACHostaccess(ctx context.Context, oc *exutil.CLI, create bool) error {
-	obj := &authv1.ClusterRoleBinding{
+func callRBACHostaccess(ctx context.Context, clientset *kubernetes.Clientset, create bool) error {
+	obj := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-privileged", serviceAccountName),
 			Namespace: namespace,
 		},
-		RoleRef: corev1.ObjectReference{
+		RoleRef: rbacv1.RoleRef{
 			Kind: "ClusterRole",
 			Name: "system:openshift:scc:privileged",
 		},
-		Subjects: []corev1.ObjectReference{
+		Subjects: []rbacv1.Subject{
 			{
 				Kind:      rbacv1.ServiceAccountKind,
 				Name:      serviceAccountName,
@@ -411,7 +428,7 @@ func callRBACHostaccess(ctx context.Context, oc *exutil.CLI, create bool) error 
 		},
 	}
 
-	client := oc.AdminAuthorizationClient().AuthorizationV1().ClusterRoleBindings()
+	client := clientset.RbacV1().ClusterRoleBindings()
 	var err error
 	if create {
 		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
@@ -425,7 +442,7 @@ func callRBACHostaccess(ctx context.Context, oc *exutil.CLI, create bool) error 
 	return err
 }
 
-func callServiceAccount(ctx context.Context, oc *exutil.CLI, create bool) error {
+func callServiceAccount(ctx context.Context, clientset *kubernetes.Clientset, create bool) error {
 	obj := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceAccountName,
@@ -433,7 +450,7 @@ func callServiceAccount(ctx context.Context, oc *exutil.CLI, create bool) error 
 		},
 	}
 
-	client := oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace)
+	client := clientset.CoreV1().ServiceAccounts(namespace)
 	var err error
 	if create {
 		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
@@ -447,7 +464,7 @@ func callServiceAccount(ctx context.Context, oc *exutil.CLI, create bool) error 
 	return err
 }
 
-func callProject(ctx context.Context, oc *exutil.CLI, create bool) error {
+func callProject(ctx context.Context, clientset *projectclient.Clientset, create bool) error {
 	obj := &projv1.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -459,7 +476,7 @@ func callProject(ctx context.Context, oc *exutil.CLI, create bool) error {
 		},
 	}
 
-	client := oc.AsAdmin().ProjectClient().ProjectV1().Projects()
+	client := clientset.ProjectV1().Projects()
 	var err error
 	if create {
 		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
@@ -473,7 +490,7 @@ func callProject(ctx context.Context, oc *exutil.CLI, create bool) error {
 	return err
 }
 
-func fetchFileViaOC(ctx context.Context, oc *exutil.CLI, nodeName string, filePath string) (string, error) {
+func fetchFileViaOC(ctx context.Context, nodeName string, filePath string) (string, error) {
 	args := []string{"adm", "node-logs", nodeName, fmt.Sprintf("--path=%s", filePath)}
 	cmd := exec.CommandContext(ctx, "oc", args...)
 	var outb, errb bytes.Buffer
@@ -490,13 +507,13 @@ func fetchFileViaOC(ctx context.Context, oc *exutil.CLI, nodeName string, filePa
 	return outb.String(), nil
 }
 
-func fetchNodeInClusterEvents(ctx context.Context, oc *exutil.CLI, node *corev1.Node) (monitorapi.Intervals, error) {
+func fetchNodeInClusterEvents(ctx context.Context, node *corev1.Node) (monitorapi.Intervals, error) {
 	var events monitorapi.Intervals
 	var errs []error
 
 	// Fetch a list of e2e data files
 	basePath := fmt.Sprintf("/%s/%s", disruptionDataFolder, monitorapi.EventDir)
-	fileListOutput, err := fetchFileViaOC(ctx, oc, node.Name, basePath)
+	fileListOutput, err := fetchFileViaOC(ctx, node.Name, basePath)
 	if err != nil {
 		return events, fmt.Errorf("failed to list files in disruption event folder on node %s: %v", node.Name, err)
 	}
@@ -507,7 +524,7 @@ func fetchNodeInClusterEvents(ctx context.Context, oc *exutil.CLI, node *corev1.
 		}
 		framework.Logf("Found events file %s on node %s", fileName, node.Name)
 		filePath := fmt.Sprintf("%s/%s", basePath, fileName)
-		fileEvents, err := fetchEventsFromFileOnNode(ctx, oc, filePath, node.Name)
+		fileEvents, err := fetchEventsFromFileOnNode(ctx, filePath, node.Name)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -521,11 +538,11 @@ func fetchNodeInClusterEvents(ctx context.Context, oc *exutil.CLI, node *corev1.
 	return events, nil
 }
 
-func fetchEventsFromFileOnNode(ctx context.Context, oc *exutil.CLI, filePath string, nodeName string) (monitorapi.Intervals, error) {
+func fetchEventsFromFileOnNode(ctx context.Context, filePath string, nodeName string) (monitorapi.Intervals, error) {
 	var filteredEvents monitorapi.Intervals
 	var err error
 
-	eventsJson, err := fetchFileViaOC(ctx, oc, nodeName, filePath)
+	eventsJson, err := fetchFileViaOC(ctx, nodeName, filePath)
 	if err != nil {
 		return filteredEvents, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
 	}

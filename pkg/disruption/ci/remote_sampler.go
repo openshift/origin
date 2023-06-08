@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -21,6 +22,7 @@ type testRemoteFactory struct {
 type RemoteSampler struct {
 	lock   sync.Mutex
 	cancel context.CancelFunc
+	config *rest.Config
 }
 
 func (bs *RemoteSampler) GetTargetServerName() string {
@@ -72,10 +74,12 @@ func (bs *RemoteSampler) RunEndpointMonitoring(ctx context.Context, m backenddis
 		eventRecorder = fakeEventRecorder
 	}
 
-	framework.Logf("InClusterDisruptionTest: starting in-cluster monitors")
+	framework.Logf("DisruptionTest: starting in-cluster monitors")
+	sampler.StartInClusterMonitors(ctx, bs.config)
 	<-ctx.Done()
-
-	framework.Logf("InClusterDisruptionTest: Run has completed")
+	framework.Logf("DisruptionTest: stopping in-cluster monitors")
+	sampler.TearDownInClusterMonitors(bs.config)
+	framework.Logf("DisruptionTest: run has completed")
 
 	return nil
 }
@@ -104,12 +108,9 @@ func NewInClusterMonitorTestFactory(config *rest.Config) Factory {
 	}
 }
 
-func (b *testRemoteFactory) New(c TestConfiguration) (Sampler, error) {
+func (b *testRemoteFactory) New(_ TestConfiguration) (Sampler, error) {
 	if b.err != nil {
 		return nil, b.err
 	}
-	if err := c.Validate(); err != nil {
-		return nil, err
-	}
-	return &RemoteSampler{}, nil
+	return &RemoteSampler{config: b.dependency.GetRestConfig()}, nil
 }
