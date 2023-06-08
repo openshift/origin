@@ -52615,6 +52615,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isGracefulShutdownActivity(eventInterval) {
+        if (eventInterval.locator.includes("shutdown/graceful")) {
+            return true
+        }
+
+        return false
+    }
+
     function isEndpointConnectivity(eventInterval) {
         if (!eventInterval.message.includes("reason/DisruptionBegan") && !eventInterval.message.includes("reason/DisruptionSamplerOutageBegan")){
             return false
@@ -52762,6 +52770,16 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, "", "AlertCritical"]
     }
 
+    function apiserverDisruptionValue(item) {
+        // TODO: isolate DNS error into CIClusterDisruption
+        return [item.locator, "", "Disruption"]
+    }
+
+    function apiserverShutdownValue(item) {
+        // TODO: isolate DNS error into CIClusterDisruption
+        return [item.locator, "", "GracefulShutdownInterval"]
+    }
+
     function disruptionValue(item) {
         // We classify these disruption samples with this message if it thinks
         // it looks like a problem in the CI cluster running the tests, not the cluster under test.
@@ -52894,6 +52912,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "endpoint-availability", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
+
+        timelineGroups.push({group: "shutdown-interval", data: []})
+        createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
