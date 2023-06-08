@@ -20,6 +20,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -510,6 +511,11 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 			fmt.Fprintf(opt.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
 
 		}
+	}
+
+	// Fetch data from in-cluster monitors if available
+	if err = sampler.TearDownInClusterMonitors(restConfig); err != nil {
+		fmt.Printf("Failed to write events from in-cluster monitors, err: %v\n", err)
 	}
 
 	// monitor the cluster while the tests are running and report any detected anomalies
