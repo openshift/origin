@@ -29,7 +29,7 @@ const (
 // Factory creates a new instance of a Disruption test from
 // the user specified configuration.
 type Factory interface {
-	New(TestConfiguration) (*BackendSampler, error)
+	New(TestConfiguration) (Sampler, error)
 }
 
 // NewDisruptionTestFactory returns a shared disruption test factory that uses
@@ -144,7 +144,7 @@ type testFactory struct {
 	hostNameDecoder        backend.HostNameDecoderWithRunner
 }
 
-func (b *testFactory) New(c TestConfiguration) (*BackendSampler, error) {
+func (b *testFactory) New(c TestConfiguration) (Sampler, error) {
 	if b.err != nil {
 		return nil, b.err
 	}
