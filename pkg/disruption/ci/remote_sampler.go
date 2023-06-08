@@ -75,11 +75,8 @@ func (bs *RemoteSampler) RunEndpointMonitoring(ctx context.Context, m backenddis
 	}
 
 	<-ctx.Done()
-	framework.Logf("DisruptionTest: stopping in-cluster monitors")
-	sampler.TearDownInClusterMonitors(bs.config)
-	framework.Logf("DisruptionTest: run has completed")
-
 	return nil
+
 }
 
 func (bs *RemoteSampler) StartEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error {

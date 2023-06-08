@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/disruption/backend"
+	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
@@ -196,6 +197,10 @@ func (opt *RunMonitorOptions) Run() error {
 		if err := monitor.WriteEventsForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
 			fmt.Printf("Failed to write event data, err: %v\n", err)
 			return err
+		}
+
+		if err = sampler.TearDownInClusterMonitors(restConfig); err != nil {
+			fmt.Printf("Failed to write events from in-cluster monitors, err: %v\n", err)
 		}
 
 		err = monitor.UploadIntervalsToLoki(intervals)
