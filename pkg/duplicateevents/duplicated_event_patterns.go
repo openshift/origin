@@ -40,6 +40,10 @@ const (
 	ProbeErrorConnectionRefusedRegExpStr      = "reason/ProbeError.*Readiness probe error.*connection refused"
 	SingleNodeErrorConnectionRefusedRegExpStr = "reason/.*dial tcp.*connection refused"
 
+	ErrorReconcilingNode  = "reason/ErrorReconcilingNode roles/worker .*annotation not found for node"
+	FailedScheduling      = "reason/FailedScheduling .*nodes are available.*didn't match Pod's node affinity/selector"
+	OperatorStatusChanged = "reason/OperatorStatusChanged Status for clusteroperator/etcd changed.*No unhealthy members found"
+
 	DuplicateEventThreshold           = 20
 	DuplicateSingleNodeEventThreshold = 30
 	PathologicalMark                  = "pathological/true"
@@ -264,6 +268,9 @@ var AllowedRepeatedEventFns = []IsRepeatedEventOKFunc{
 	isOauthApiserverProbeErrorReadinessFailed,
 	isOauthApiserverProbeErrorLivenessFailed,
 	isOauthApiserverProbeErrorConnectionRefusedFailed,
+	isErrorReconcilingNode,
+	isFailedScheduling,
+	isOperatorStatusChanged,
 }
 
 var AllowedSingleNodeRepeatedEventFns = []IsRepeatedEventOKFunc{
@@ -359,6 +366,24 @@ func isOauthApiserverProbeErrorLivenessFailed(monitorEvent monitorapi.EventInter
 func isOauthApiserverProbeErrorConnectionRefusedFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(ProbeErrorConnectionRefusedRegExpStr)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
+}
+
+// reason/ErrorReconcilingNode roles/worker [k8s.ovn.org/node-chassis-id annotation not found for node ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86, macAddress annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86" , k8s.ovn.org/l3-gateway-config annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86"]
+func isErrorReconcilingNode(monitorEvent monitorapi.EventInterval, _ *rest.Config, count int) (bool, error) {
+	regExp := regexp.MustCompile(ErrorReconcilingNode)
+	return regExp.MatchString(monitorEvent.String()) && count < DuplicateSingleNodeEventThreshold, nil
+}
+
+// reason/FailedScheduling 0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod anti-affinity rules, 2 node(s) were unschedulable. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling..
+func isFailedScheduling(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
+	regExp := regexp.MustCompile(FailedScheduling)
+	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-route-controller-manager", regExp), nil
+}
+
+// reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy" to "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: No unhealthy members found"
+func isOperatorStatusChanged(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
+	regExp := regexp.MustCompile(OperatorStatusChanged)
+	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-etcd", regExp), nil
 }
 
 // isConnectionRefusedOnSingleNode returns true if the event matched has a connection refused message for single node events and is with in threshold.

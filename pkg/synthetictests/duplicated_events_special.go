@@ -91,7 +91,7 @@ func newSingleEventCheckRegex(testName, regex string, failThreshold, flakeThresh
 //
 // to happen over a certain threshold and marks it as a failure or flake accordingly.
 func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	testName := "[sig-arch] should not see excessive pull back-off on registry.redhat.io"
+	testName := "[sig-arch] pathological event should not see excessive pull back-off on registry.redhat.io"
 	return newSingleEventCheckRegex(testName, duplicateevents.ImagePullRedhatRegEx, math.MaxInt, duplicateevents.ImagePullRedhatFlakeThreshold).test(events)
 }
 
@@ -102,7 +102,7 @@ func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junit
 // and fails if it happens more than the failure threshold count of 20 and flakes more than the
 // flake threshold.  See https://bugzilla.redhat.com/show_bug.cgi?id=2031564.
 func testRequiredInstallerResourcesMissing(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	testName := "[bz-etcd] should not see excessive RequiredInstallerResourcesMissing secrets"
+	testName := "[bz-etcd] pathological event should not see excessive RequiredInstallerResourcesMissing secrets"
 	return newSingleEventCheckRegex(testName, duplicateevents.RequiredResourcesMissingRegEx, duplicateevents.DuplicateEventThreshold, duplicateevents.RequiredResourceMissingFlakeThreshold).test(events)
 }
 
@@ -110,7 +110,7 @@ func testRequiredInstallerResourcesMissing(events monitorapi.Intervals) []*junit
 //
 //	reason/BackOff Back-off restarting failed container
 func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	testName := "[sig-cluster-lifecycle] should not see excessive Back-off restarting failed containers"
+	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers"
 
 	return newSingleEventCheckRegex(testName, duplicateevents.BackoffRestartingFailedRegEx, duplicateevents.DuplicateEventThreshold, duplicateevents.BackoffRestartingFlakeThreshold).
 		test(events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)))
@@ -120,7 +120,7 @@ func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi
 //
 //	reason/BackOff Back-off restarting failed container
 func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	testName := "[sig-cluster-lifecycle] should not see excessive Back-off restarting failed containers in e2e namespaces"
+	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers in e2e namespaces"
 
 	// always flake for now
 	return newSingleEventCheckRegex(testName, duplicateevents.BackoffRestartingFailedRegEx, math.MaxInt, duplicateevents.BackoffRestartingFlakeThreshold).
@@ -128,40 +128,55 @@ func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Interv
 }
 
 func testErrorUpdatingEndpointSlices(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	testName := "[sig-networking] should not see excessive FailedToUpdateEndpointSlices Error updating Endpoint Slices"
+	testName := "[sig-networking] pathological event should not see excessive FailedToUpdateEndpointSlices Error updating Endpoint Slices"
 
 	return newSingleEventCheckRegex(testName, duplicateevents.ErrorUpdatingEndpointSlicesRegex, duplicateevents.ErrorUpdatingEndpointSlicesFailedThreshold, duplicateevents.ErrorUpdatingEndpointSlicesFlakeThreshold).
 		test(events.Filter(monitorapi.IsInNamespaces(sets.NewString("openshift-ovn-kubernetes"))))
 }
 
 func testConfigOperatorProbeErrorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] openshift-config-operator should not get probe error on readiness probe due to timeout"
+	const testName = "[sig-node] pathological event openshift-config-operator should not get probe error on readiness probe due to timeout"
 	return makeProbeTest(testName, events, "openshift-config-operator", duplicateevents.ProbeErrorReadinessMessageRegExpStr, duplicateevents.DuplicateEventThreshold)
 }
 
 func testConfigOperatorProbeErrorLivenessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] openshift-config-operator should not get probe error on liveness probe due to timeout"
+	const testName = "[sig-node] pathological event openshift-config-operator should not get probe error on liveness probe due to timeout"
 	return makeProbeTest(testName, events, "openshift-config-operator", duplicateevents.ProbeErrorLivenessMessageRegExpStr, duplicateevents.DuplicateEventThreshold)
 }
 
 func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] openshift-config-operator readiness probe should not fail due to timeout"
+	const testName = "[sig-node] pathological event openshift-config-operator readiness probe should not fail due to timeout"
 	return makeProbeTest(testName, events, "openshift-config-operator", duplicateevents.ReadinessFailedMessageRegExpStr, duplicateevents.DuplicateEventThreshold)
 }
 
 func testNodeHasNoDiskPressure(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] Test the NodeHasNoDiskPressure condition does not occur too often"
+	const testName = "[sig-node] pathological event NodeHasNoDiskPressure condition does not occur too often"
 	return eventExprMatchThresholdTest(testName, events, duplicateevents.NodeHasNoDiskPressureRegExpStr, duplicateevents.DuplicateEventThreshold)
 }
 
 func testNodeHasSufficientMemory(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] Test the NodeHasSufficeintMemory condition does not occur too often"
+	const testName = "[sig-node] pathological event NodeHasSufficeintMemory condition does not occur too often"
 	return eventExprMatchThresholdTest(testName, events, duplicateevents.NodeHasSufficientMemoryRegExpStr, duplicateevents.DuplicateEventThreshold)
 }
 
 func testNodeHasSufficientPID(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] Test the NodeHasSufficientPID condition does not occur too often"
+	const testName = "[sig-node] pathological event NodeHasSufficientPID condition does not occur too often"
 	return eventExprMatchThresholdTest(testName, events, duplicateevents.NodeHasSufficientPIDRegExpStr, duplicateevents.DuplicateEventThreshold)
+}
+
+func testErrorReconcilingNode(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] pathological event ErrorReconcilingNode condition does not occur too often"
+	return eventExprMatchThresholdTest(testName, events, duplicateevents.ErrorReconcilingNode, duplicateevents.DuplicateEventThreshold)
+}
+
+func testFailedScheduling(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] pathological event FailedScheduling condition does not occur too often"
+	return eventExprMatchThresholdTest(testName, events, duplicateevents.FailedScheduling, duplicateevents.DuplicateEventThreshold)
+}
+
+func testOperatorStatusChanged(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] pathological event OperatorStatusChanged condition does not occur too often"
+	return eventExprMatchThresholdTest(testName, events, duplicateevents.OperatorStatusChanged, duplicateevents.DuplicateEventThreshold)
 }
 
 func makeProbeTest(testName string, events monitorapi.Intervals, operatorName string, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {

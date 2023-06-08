@@ -147,6 +147,9 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testNodeHasNoDiskPressure(events)...)
 	tests = append(tests, testNodeHasSufficientMemory(events)...)
 	tests = append(tests, testNodeHasSufficientPID(events)...)
+	tests = append(tests, testErrorReconcilingNode(events)...)
+	tests = append(tests, testFailedScheduling(events)...)
+	tests = append(tests, testOperatorStatusChanged(events)...)
 
 	tests = append(tests, testAnonymousCertConnectionFailure(events)...)
 	tests = append(tests, testFailedToDeleteCGroupsPath(events)...)
