@@ -52623,6 +52623,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isAPIServerShutdownEventActivity(eventInterval) {
+        if (eventInterval.locator.includes("shutdown/apiserver")) {
+            return true
+        }
+
+        return false
+    }
+
     function isEndpointConnectivity(eventInterval) {
         if (!eventInterval.message.includes("reason/DisruptionBegan") && !eventInterval.message.includes("reason/DisruptionSamplerOutageBegan")){
             return false
@@ -52791,6 +52799,11 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, "", "Disruption"]
     }
 
+    function apiserverShutdownEventsValue(item) {
+        // TODO: isolate DNS error into CIClusterDisruption
+        return [item.locator, "", "GracefulShutdownWindow"]
+    }
+
     function getDurationString(durationSeconds) {
         const seconds = durationSeconds % 60;
         const minutes = Math.floor(durationSeconds/60);
@@ -52915,6 +52928,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "shutdown-interval", data: []})
         createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
+
+        timelineGroups.push({group: "shutdown-events", data: []})
+        createTimelineData(apiserverShutdownEventsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIServerShutdownEventActivity, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
