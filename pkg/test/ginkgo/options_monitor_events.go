@@ -18,6 +18,7 @@ import (
 
 	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/clientview"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/nodedetails"
@@ -176,7 +177,15 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 	if err != nil {
 		fmt.Fprintf(o.ErrOut, "FetchEventIntervalsForAllAlerts error but continuing processing: %v", err)
 	}
+
+	// add events from rest client so we can create the intervals
+	clientEventIntervals, err := clientview.FetchEventIntervalsForRestClientError(ctx, restConfig, *o.startTime)
+	if err != nil {
+		fmt.Fprintf(o.ErrOut, "FetchEventIntervalsForRestClientError error but continuing processing: %v", err)
+	}
+
 	events = append(events, alertEventIntervals...)
+	events = append(events, clientEventIntervals...)
 	events = intervalcreation.InsertCalculatedIntervals(events, o.recordedResources, fromTime, endTime)
 
 	// read events from other test processes (individual tests for instance) that happened during this run.
