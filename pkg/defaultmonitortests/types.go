@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/storage/legacystoragemonitortests"
 	"github.com/openshift/origin/pkg/monitortests/testframework/additionaleventscollector"
 	"github.com/openshift/origin/pkg/monitortests/testframework/alertanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/clientresterroranalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/clusterinfoserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
@@ -126,6 +127,7 @@ func newUniversalMonitorTests() monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("client-rest-error-serializer", "Test Framework", clientresterroranalyzer.NewClientRestErrorSerializer())
 
 	return monitorTestRegistry
 }

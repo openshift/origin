@@ -52518,6 +52518,38 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
+    function isClientInternalLBEvent(eventInterval) {
+        if (eventInterval.locator.includes("client/APIError source/internal-lb")) {
+            return true
+        }
+
+        return false
+    }
+
+    function isClientExternalLBEvent(eventInterval) {
+        if (eventInterval.locator.includes("client/APIError source/external-lb")) {
+            return true
+        }
+
+        return false
+    }
+
+    function isClientServiceNetworkEvent(eventInterval) {
+        if (eventInterval.locator.includes("client/APIError source/service-network")) {
+            return true
+        }
+
+        return false
+    }
+
+    function isClientLocalhostEvent(eventInterval) {
+        if (eventInterval.locator.includes("client/APIError source/localhost")) {
+            return true
+        }
+
+        return false
+    }
+
     function isEndpointConnectivity(eventInterval) {
         if (!eventInterval.message.includes("reason/DisruptionBegan") && !eventInterval.message.includes("reason/DisruptionSamplerOutageBegan")){
             return false
@@ -52691,6 +52723,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, "", "GracefulShutdownWindow"]
     }
 
+    function clientErrorEventsValue(item) {
+        return [item.locator, "", "ClientError"]
+    }
+
     function getDurationString(durationSeconds) {
         const seconds = durationSeconds % 60;
         const minutes = Math.floor(durationSeconds/60);
@@ -52818,6 +52854,18 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "shutdown-events", data: []})
         createTimelineData(apiserverShutdownEventsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIServerShutdownEventActivity, regex)
+
+        timelineGroups.push({group: "client-internal-lb", data: []})
+        createTimelineData(clientErrorEventsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isClientInternalLBEvent, regex)
+
+        timelineGroups.push({group: "client-external-lb", data: []})
+        createTimelineData(clientErrorEventsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isClientExternalLBEvent, regex)
+
+        timelineGroups.push({group: "client-service-network", data: []})
+        createTimelineData(clientErrorEventsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isClientServiceNetworkEvent, regex)
+
+        timelineGroups.push({group: "client-localhost", data: []})
+        createTimelineData(clientErrorEventsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isClientLocalhostEvent, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
