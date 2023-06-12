@@ -64,7 +64,7 @@ func launchWebserverNodePortService(client k8sclient.Interface, namespace, servi
 
 }
 
-func launchWebserverLoadBalancerService(client k8sclient.Interface, namespace, serviceName string, nodeName string) (int32, []v1.LoadBalancerIngress) {
+func launchWebserverLoadBalancerService(client k8sclient.Interface, namespace, serviceName string, nodeName string) string {
 	labelSelector := make(map[string]string)
 	labelSelector["name"] = "web"
 	createPodForService(client, namespace, serviceName, nodeName, labelSelector)
@@ -93,11 +93,18 @@ func launchWebserverLoadBalancerService(client k8sclient.Interface, namespace, s
 	expectNoError(err)
 
 	jig := svc.NewTestJig(client, namespace, serviceName)
-	service, err = jig.WaitForLoadBalancer(context.Background(), 1*time.Minute)
+	service, err = jig.WaitForLoadBalancer(context.Background(), svc.GetServiceLoadBalancerCreationTimeout(context.Background(), client))
 	expectNoError(err)
 
-	return int32(servicePort), service.Status.LoadBalancer.Ingress
+	host := ""
+	if service.Status.LoadBalancer.Ingress[0].IP != "" {
+		host = service.Status.LoadBalancer.Ingress[0].IP
+	} else if service.Status.LoadBalancer.Ingress[0].Hostname != "" {
+		host = service.Status.LoadBalancer.Ingress[0].Hostname
+	}
+	Expect(host).NotTo(Equal(""))
 
+	return net.JoinHostPort(host, strconv.Itoa(servicePort))
 }
 
 func checkConnectivityToHostWithCLI(f *e2e.Framework, oc *exutil.CLI, nodeName string, podName string, host string, timeout time.Duration, hostNetwork bool) error {
@@ -266,11 +273,10 @@ func checkKubeVirtInfraClusterConnectivity(serverFramework, clientFramework *e2e
 		serviceAddr = net.JoinHostPort(serverGuestNodeIP, strconv.Itoa(int(serverGuestNodePort)))
 	}
 	if serviceType == v1.ServiceTypeLoadBalancer {
-		serverLBPort, externalIP := launchWebserverLoadBalancerService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverGuestNode.Name)
-		serviceAddr = net.JoinHostPort(externalIP[0].IP, strconv.Itoa(int(serverLBPort)))
+		serviceAddr = launchWebserverLoadBalancerService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverGuestNode.Name)
 	}
 
-	return checkConnectivityToHostWithCLI(clientFramework, oc, infraClientNode, "service-wget", serviceAddr, 30*time.Second, false)
+	return checkConnectivityToHostWithCLI(clientFramework, oc, infraClientNode, "service-wget", serviceAddr, 10*time.Minute, false)
 }
 
 func checkKubeVirtInfraClusterNodePortConnectivity(serverFramework, clientFramework *e2e.Framework, oc *exutil.CLI) error {
@@ -300,11 +306,9 @@ func checkKubeVirtGuestClusterConnectivity(serverFramework, clientFramework *e2e
 		serviceAddr = exutil.LaunchWebserverPod(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name)
 	}
 	if serviceType == v1.ServiceTypeLoadBalancer {
-		serverLBPort, externalIP := launchWebserverLoadBalancerService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name)
-		serviceAddr = net.JoinHostPort(externalIP[0].IP, strconv.Itoa(int(serverLBPort)))
-
+		serviceAddr = launchWebserverLoadBalancerService(serverFramework.ClientSet, serverFramework.Namespace.Name, podName, serverNode.Name)
 	}
-	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", serviceAddr, 10*time.Second, hostNetwork)
+	return checkConnectivityToHost(clientFramework, clientNode.Name, "service-wget", serviceAddr, 10*time.Minute, hostNetwork)
 }
 
 func checkKubeVirtGuestClusterPodNetworkConnectivity(serverFramework, clientFramework *e2e.Framework) error {
