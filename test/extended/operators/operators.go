@@ -39,6 +39,8 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 		o.Expect(err).NotTo(o.HaveOccurred())
 		dc, err := dynamic.NewForConfig(cfg)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		configClient, err := configclient.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// presence of the CVO namespace gates this test
 		g.By("checking for the cluster version operator")
@@ -81,10 +83,14 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 			e2e.Failf("There must be at least one cluster operator")
 		}
 
+		infrastructure, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		platformType := infrastructure.Status.PlatformStatus.Type
+
 		var unready []string
 		for _, co := range items {
 			name := co.Get("metadata.name").String()
-			badConditions, missingTypes := surprisingConditions(co)
+			badConditions, missingTypes := surprisingConditions(co, platformType)
 			if len(badConditions) > 0 {
 				worstCondition := badConditions[0]
 
@@ -216,7 +222,7 @@ func condition(cv objx.Map, condition string) objx.Map {
 // severity (e.g. Available=False is more severe than Degraded=True).
 // It also returns a slice of types for which a condition entry was
 // expected but not supplied on the ClusterOperator.
-func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusCondition, []configv1.ClusterStatusConditionType) {
+func surprisingConditions(co objx.Map, platformType configv1.PlatformType) ([]configv1.ClusterOperatorStatusCondition, []configv1.ClusterStatusConditionType) {
 	name := co.Get("metadata.name").String()
 	var badConditions []configv1.ClusterOperatorStatusCondition
 	var missingTypes []configv1.ClusterStatusConditionType
@@ -264,6 +270,14 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 					// storage attempts to contact vsphere to determine if it can be ugpraded.  If the storage operator cannot reach vsphere to determine
 					// whether the upgrade is safe or not, it is appropriate to be upgradeable=Unknown
 					(name == "storage" && status == "Unknown" && strings.Contains(message, "Failed to connect to vSphere")) ||
+
+					// The ClusterStorageOperator does not currently manage kubevirt-csi. Instead, the
+					// hypershift ControlPlaneOperator and HostedClusterConfigOperator manage the csi
+					// components across the infra and guest cluster. It's possible we will converge
+					// with the storage operator in the future. That work is tracked here [1]
+					//
+					// 1. https://issues.redhat.com/browse/CNV-21553
+					(name == "storage" && status == "Unknown" && platformType == configv1.KubevirtPlatformType) ||
 					// cloud-credential's default behavior is to set upgradeable=False [1] when the cluster is in Manual credentialsMode [2][3] as set
 					// on the cloudcredential config CR.
 					// User is expected to set an "cloudcredential.openshift.io/upgradeable-to" annotation on the cloud-credential config CR
