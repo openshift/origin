@@ -26,5 +26,8 @@ func NewRunResourceWatchCommand() *cobra.Command {
 			return operator.RunResourceWatch()
 		},
 	}
+	var dummy string
+	cmd.Flags().StringVar(&dummy, "kubeconfig", "", "This option is not used any more. It will be removed in later releases")
+	cmd.Flags().StringVar(&dummy, "namespace", "", "This option is not used any more. It will be removed in later releases")
 	return cmd
 }
