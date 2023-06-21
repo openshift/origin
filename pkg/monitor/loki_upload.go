@@ -12,10 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 const (
@@ -160,6 +161,10 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 
 		for _, lp := range locatorParts {
 			parts := strings.Split(lp, "/")
+			if len(parts) < 2 {
+				logrus.Warnf("unable to split locator parts: %+v", lp)
+				continue
+			}
 			tag, val := parts[0], parts[1]
 			if strings.TrimSpace(tag) == "" {
 				// Have seen this fail on: WARN[0002] unable to process locator tag: May 12 11:10:00.000 I /machine-config reason/OperatorVersionChanged clusteroperator/machine-config-operator version changed from [{operator 4.14.0-0.nightly-2023-05-03-163151}] to [{operator 4.14.0-0.nightly-2023-05-12-121801}]
