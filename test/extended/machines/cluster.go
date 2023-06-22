@@ -8,8 +8,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	configv1 "github.com/openshift/api/config/v1"
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/prometheus"
@@ -117,15 +115,6 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 
 	g.It("should verify that nodes have no unexpected reboots [Late]", func() {
 		ctx := context.Background()
-
-		// This test is applicable for SNO installations only
-		configClient, err := configv1client.NewForConfig(oc.AdminConfig())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if infrastructure.Status.ControlPlaneTopology != configv1.SingleReplicaTopologyMode {
-			return
-		}
 
 		// List all nodes
 		nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
