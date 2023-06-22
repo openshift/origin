@@ -1,41 +1,30 @@
 package operators
 
 import (
-	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
-	"io"
 	"strings"
-	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/stretchr/objx"
-
-	authv1 "github.com/openshift/api/authorization/v1"
 	configv1 "github.com/openshift/api/config/v1"
-	projv1 "github.com/openshift/api/project/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/prometheus"
+	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/wait"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	psapi "k8s.io/pod-security-admission/api"
 	"k8s.io/utils/strings/slices"
-
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/image"
-	"github.com/openshift/origin/test/extended/util/prometheus"
-)
-
-const (
-	namespace          = "e2e-machines-testbed"
-	serviceAccountName = "e2e-machines"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
@@ -81,10 +70,16 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed clu
 	})
 })
 
+var (
+	//go:embed display_reboots_pod.yaml
+	displayRebootsPodYaml []byte
+	displayRebootsPod     = resourceread.ReadPodV1OrDie(displayRebootsPodYaml)
+)
+
 var _ = g.Describe("[sig-node] Managed cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("managed-cluster-node").AsAdmin()
+		oc = exutil.NewCLIWithPodSecurityLevel("managed-cluster-node", psapi.LevelPrivileged).AsAdmin()
 	)
 
 	var staticNodeNames []string
@@ -132,9 +127,6 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 			return
 		}
 
-		createTestBed(ctx, oc)
-		defer deleteTestBed(ctx, oc)
-
 		// List all nodes
 		nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -175,7 +167,7 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 			expectedRebootsForNodeRole := expectedReboots[getNodeRole(&node)]
 			o.Expect(expectedReboots).To(o.HaveKey(expectedRebootsForNodeRole))
 			expected[node.Name] = expectedRebootsForNodeRole
-			nodeReboots, err := getNumberOfBootsForNode(oc.KubeClient(), node.Name, 0)
+			nodeReboots, err := getNumberOfBootsForNode(oc.KubeClient(), oc.Namespace(), node.Name)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -203,201 +195,42 @@ func getNodeRole(node *corev1.Node) string {
 	return "worker"
 }
 
-func getNumberOfBootsForNode(kubeClient kubernetes.Interface, nodeName string, attempt int) (int, error) {
-
-	// Run up to 10 attempts
-	if attempt > 9 {
-		return 0, fmt.Errorf("giving up after 10 attempts")
-	}
-
-	// Run journalctl to collect a list of boots
-	command := "exec chroot /host journalctl --list-boots"
-	isTrue := true
-	zero := int64(0)
+func getNumberOfBootsForNode(kubeClient kubernetes.Interface, namespaceName, nodeName string) (int, error) {
 	ctx := context.Background()
-	name := fmt.Sprintf("list-boots-%s-%d", nodeName, attempt)
-	pod, err := kubeClient.CoreV1().Pods(namespace).Create(context.Background(), &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: corev1.PodSpec{
-			Tolerations: []corev1.Toleration{
-				{
-					Effect:   "NoSchedule",
-					Key:      "node-role.kubernetes.io/master",
-					Operator: corev1.TolerationOpExists,
-				},
-			},
-			HostPID:            true,
-			RestartPolicy:      corev1.RestartPolicyNever,
-			NodeName:           nodeName,
-			ServiceAccountName: serviceAccountName,
-			Volumes: []corev1.Volume{
-				{
-					Name: "host",
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/",
-						},
-					},
-				},
-			},
-			Containers: []corev1.Container{
-				{
-					Name: "list-boots",
-					SecurityContext: &corev1.SecurityContext{
-						RunAsUser:  &zero,
-						Privileged: &isTrue,
-					},
-					Image: image.ShellImage(),
-					Command: []string{
-						command,
-					},
-					TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							MountPath: "/host",
-							Name:      "host",
-						},
-					},
-				},
-			},
-		},
-	}, metav1.CreateOptions{})
-	if apierrors.IsAlreadyExists(err) {
-		return getNumberOfBootsForNode(kubeClient, nodeName, attempt+1)
-	}
-	if err != nil {
-		return 0, fmt.Errorf("failed to create pod %s: %v", name, err)
-	}
 
-	podName := pod.Name
+	desiredPod := displayRebootsPod.DeepCopy()
+	desiredPod.Namespace = namespaceName
+	desiredPod.Spec.NodeName = nodeName
 
-	// Wait for pod to run
-	err = wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
-		podGet, getErr := kubeClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
-		if getErr != nil {
-			return false, getErr
+	errs := []error{}
+	for i := 0; i < 10; i++ {
+		// Run journalctl to collect a list of boots
+		actualPod, err := kubeClient.CoreV1().Pods(namespaceName).Create(context.Background(), desiredPod, metav1.CreateOptions{})
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to create pod: %w", err))
+			continue
 		}
-		switch podGet.Status.Phase {
-		case corev1.PodSucceeded:
-			return true, nil
-		case corev1.PodFailed:
-			return true, fmt.Errorf("journalctl command in pod %s failed. Pod status: %#v", name, podGet.Status)
-		default:
-			return false, nil
+
+		if err := pod.WaitForPodSuccessInNamespace(ctx, kubeClient, actualPod.Name, actualPod.Namespace); err != nil {
+			errs = append(errs, fmt.Errorf("failed waiting for pod to succeed: %w", err))
+			continue
 		}
-	})
-	if err != nil {
-		return 0, fmt.Errorf("pod %s failed to complete: %v", name, err)
+
+		podLogs, err := pod.GetPodLogs(ctx, kubeClient, actualPod.Namespace, actualPod.Name, "list-boots")
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed reading pod/logs: --namespace=%v pods/%v: %w", actualPod.Namespace, actualPod.Name, err))
+			continue
+		}
+
+		// Fetch pod logs
+		linesInPodLogs := strings.Count(podLogs, "\n") - 1
+		if linesInPodLogs < 1 {
+			errs = append(errs, fmt.Errorf("failed to fetch boot list from --namespace=%v pods/%v pod logs: %v", actualPod.Namespace, actualPod.Name, podLogs))
+			continue
+		}
+		return linesInPodLogs, nil
 	}
 
-	// Fetch pod logs
-	linesInPodLogs := -1
-	podLogOpts := corev1.PodLogOptions{}
-	req := kubeClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
-	podLogs, err := req.Stream(ctx)
-	if err != nil {
-		return linesInPodLogs, fmt.Errorf("failed to open stream to read %s pod logs: %v", name, err)
-	}
-	defer podLogs.Close()
-
-	// Count number of boots
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, podLogs)
-	if err != nil {
-		return 0, fmt.Errorf("failed to copy information from podLogs to buf: %v", err)
-	}
-	linesInPodLogs = strings.Count(buf.String(), "\n") - 1
-	if linesInPodLogs < 1 {
-		return 0, fmt.Errorf("failed to fetch boot list from %s pod logs: %v", name, buf)
-	}
-	return linesInPodLogs, nil
-}
-
-func createTestBed(ctx context.Context, oc *exutil.CLI) {
-	err := callProject(ctx, oc, true)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = callServiceAccount(ctx, oc)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = callRBAC(ctx, oc)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = exutil.WaitForServiceAccountWithSecret(
-		oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace),
-		serviceAccountName)
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func deleteTestBed(ctx context.Context, oc *exutil.CLI) {
-	err := callProject(ctx, oc, false)
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func callRBAC(ctx context.Context, oc *exutil.CLI) error {
-	obj := &authv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceAccountName,
-			Namespace: namespace,
-		},
-		RoleRef: corev1.ObjectReference{
-			Kind: "ClusterRole",
-			Name: "system:openshift:scc:privileged",
-		},
-		Subjects: []corev1.ObjectReference{
-			{
-				Kind:      rbacv1.ServiceAccountKind,
-				Name:      serviceAccountName,
-				Namespace: namespace,
-			},
-		},
-	}
-
-	client := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(namespace)
-	_, err := client.Create(ctx, obj, metav1.CreateOptions{})
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
-}
-
-func callServiceAccount(ctx context.Context, oc *exutil.CLI) error {
-	obj := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceAccountName,
-			Namespace: namespace,
-		},
-	}
-
-	client := oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace)
-	_, err := client.Create(ctx, obj, metav1.CreateOptions{})
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
-}
-
-func callProject(ctx context.Context, oc *exutil.CLI, create bool) error {
-	obj := &projv1.Project{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-			Labels: map[string]string{
-				"pod-security.kubernetes.io/audit":   "privileged",
-				"pod-security.kubernetes.io/enforce": "privileged",
-				"pod-security.kubernetes.io/warn":    "privileged",
-			},
-		},
-	}
-
-	client := oc.AsAdmin().ProjectClient().ProjectV1().Projects()
-	var err error
-	if create {
-		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-	} else {
-		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
-	}
-
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
+	// report all the failures we saw. If we got here, we couldn't start the pod, finish the call, read the logs.
+	return 0, utilerrors.NewAggregate(errs)
 }

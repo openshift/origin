@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: list-boots-
+spec:
+  restartPolicy: Never
+  hostPID: true
+  containers:
+    - command:
+        - exec chroot /host-root journalctl --list-boots
+      image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+      name: list-boots
+      terminationMessagePolicy: FallbackToLogsOnError
+      securityContext:
+        runAsUser: 0
+        privileged: true
+      volumeMounts:
+        - mountPath: /host-root
+          name: host-root
+  volumes:
+    - name: host-root
+      hostPath:
+        path: /
+        type: Directory
