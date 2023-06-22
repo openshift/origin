@@ -31,19 +31,19 @@ type workingSet struct {
 
 func (s *workingSet) isWorkingOn(key string) bool {
 	s.lock.RLock()
-	defer s.lock.RLock()
+	defer s.lock.RUnlock()
 	return s.currentlyWorking.Has(key)
 }
 
 func (s *workingSet) reserve(key string) {
 	s.lock.Lock()
-	defer s.lock.Lock()
+	defer s.lock.Unlock()
 	s.currentlyWorking.Insert(key)
 }
 
 func (s *workingSet) release(key string) {
 	s.lock.Lock()
-	defer s.lock.Lock()
+	defer s.lock.Unlock()
 	s.currentlyWorking.Delete(key)
 }
 
@@ -91,6 +91,7 @@ func NewGitStorage(path string) (*GitStorage, error) {
 		return nil, err
 	}
 	storage := &GitStorage{path: path, repo: repo}
+	storage.currentlyRecording.currentlyWorking = sets.String{}
 
 	return storage, nil
 }

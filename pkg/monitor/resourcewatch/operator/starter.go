@@ -3,23 +3,48 @@ package operator
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 
-	"k8s.io/client-go/dynamic/dynamicinformer"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
-
+	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/controller/configmonitor"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/storage"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/klog/v2"
 )
 
 // this doesn't appear to handle restarts cleanly.  To do so it would need to compare the resource version that it is applying
 // to the resource version present and it would need to handle unobserved deletions properly.  both are possible, neither is easy.
-func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerContext) error {
-	dynamicClient, err := dynamic.NewForConfig(controllerCtx.KubeConfig)
+func RunResourceWatch() error {
+	ctx, cancelFn := context.WithCancel(context.Background())
+	defer cancelFn()
+	abortCh := make(chan os.Signal, 2)
+	go func() {
+		<-abortCh
+		klog.Errorf("Interrupted, terminating")
+		cancelFn()
+		sig := <-abortCh
+		klog.Errorf("Interrupted twice, exiting (%s)\n", sig)
+		switch sig {
+		case syscall.SIGINT:
+			os.Exit(130)
+		default:
+			os.Exit(0)
+		}
+	}()
+	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
+
+	kubeConfig, err := monitor.GetMonitorRESTConfig()
 	if err != nil {
+		klog.Errorf("Failed to get kubeconfig with error %v", err)
+		return err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(kubeConfig)
+	if err != nil {
+		klog.Errorf("Failed to create dynamic client with error %v", err)
 		return err
 	}
 
@@ -30,6 +55,7 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 
 	gitStorage, err := storage.NewGitStorage(repositoryPath)
 	if err != nil {
+		klog.Errorf("Failed to create git storage with error %v", err)
 		return err
 	}
 
@@ -74,6 +100,8 @@ func RunOperator(ctx context.Context, controllerCtx *controllercmd.ControllerCon
 	)
 
 	dynamicInformer.Start(ctx.Done())
+
+	klog.Infof("Started all informers")
 
 	<-ctx.Done()
 
