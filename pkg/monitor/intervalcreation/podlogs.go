@@ -94,6 +94,7 @@ func buildLogGatherers() []PodLogIntervalGenerator {
 				{"dropped internal Raft message since sending buffer is full", monitorapi.Warning},
 				{"waiting for ReadIndex response took too long, retrying", monitorapi.Warning},
 				{"apply request took too long", monitorapi.Warning},
+				{"leader failed to send out heartbeat on time; took too long, leader is overloaded likely from slow disk", monitorapi.Warning},
 			},
 			lineParser: etcdLogParser,
 		},
