@@ -2,21 +2,29 @@ package operators
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/stretchr/objx"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
+	configv1 "github.com/openshift/api/config/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/prometheus"
+	"github.com/stretchr/objx"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	psapi "k8s.io/pod-security-admission/api"
+	"k8s.io/utils/strings/slices"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
@@ -62,10 +70,16 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed clu
 	})
 })
 
+var (
+	//go:embed display_reboots_pod.yaml
+	displayRebootsPodYaml []byte
+	displayRebootsPod     = resourceread.ReadPodV1OrDie(displayRebootsPodYaml)
+)
+
 var _ = g.Describe("[sig-node] Managed cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("managed-cluster-node").AsAdmin()
+		oc = exutil.NewCLIWithPodSecurityLevel("managed-cluster-node", psapi.LevelPrivileged).AsAdmin()
 	)
 
 	var staticNodeNames []string
@@ -100,4 +114,123 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 		err := prometheus.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
+
+	g.It("should verify that nodes have no unexpected reboots [Late]", func() {
+		ctx := context.Background()
+
+		// This test is applicable for SNO installations only
+		configClient, err := configv1client.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infrastructure.Status.ControlPlaneTopology != configv1.SingleReplicaTopologyMode {
+			return
+		}
+
+		// List all nodes
+		nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(nodes.Items).NotTo(o.HaveLen(0))
+
+		expected := make(map[string]int)
+		actual := make(map[string]int)
+		errs := make([]error, 0)
+
+		// Find a number of rendered-* machineconfigs for masters and workers
+		// Each rendered config adds expected reboot
+		expectedReboots := map[string]int{
+			"worker": 0,
+			"master": 0,
+		}
+		dynamicClient, err := dynamic.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		machineConfigGroupVersionResource := schema.GroupVersionResource{
+			Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs",
+		}
+		mcList, err := dynamicClient.Resource(machineConfigGroupVersionResource).List(ctx, metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for i := range mcList.Items {
+			mcName := mcList.Items[i].GetName()
+			for prefix := range expectedReboots {
+				if strings.HasPrefix(mcName, fmt.Sprintf("rendered-%s-", prefix)) {
+					expectedReboots[prefix] += 1
+				}
+			}
+		}
+
+		// List nodes, set actual and expected number of reboots
+		for _, node := range nodes.Items {
+			// Examine only the nodes which are available at the start of the test
+			if !slices.Contains(staticNodeNames, node.Name) {
+				continue
+			}
+			expectedRebootsForNodeRole := expectedReboots[getNodeRole(&node)]
+			o.Expect(expectedReboots).To(o.HaveKey(expectedRebootsForNodeRole))
+			expected[node.Name] = expectedRebootsForNodeRole
+			nodeReboots, err := getNumberOfBootsForNode(oc.KubeClient(), oc.Namespace(), node.Name)
+			if err != nil {
+				errs = append(errs, err)
+			}
+			actual[node.Name] = nodeReboots
+		}
+		// Use gomega's WithTransform to compare actual to expected - and check that errs is empty
+		var emptyErrors = func(a interface{}) (interface{}, error) {
+			if len(errs) > 0 {
+				return a, fmt.Errorf("errors found: %v", errs)
+			}
+			return a, nil
+		}
+		o.Expect(actual).To(o.WithTransform(emptyErrors, o.Equal(expected)))
+	})
 })
+
+// getNodeRole reads node labels and returns either "worker" or "master"
+func getNodeRole(node *corev1.Node) string {
+	if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
+		return "worker"
+	}
+	if _, ok := node.Labels["node-role.kubernetes.io/master"]; ok {
+		return "master"
+	}
+	return "worker"
+}
+
+func getNumberOfBootsForNode(kubeClient kubernetes.Interface, namespaceName, nodeName string) (int, error) {
+	ctx := context.Background()
+
+	desiredPod := displayRebootsPod.DeepCopy()
+	desiredPod.Namespace = namespaceName
+	desiredPod.Spec.NodeName = nodeName
+
+	errs := []error{}
+	for i := 0; i < 10; i++ {
+		// Run journalctl to collect a list of boots
+		actualPod, err := kubeClient.CoreV1().Pods(namespaceName).Create(context.Background(), desiredPod, metav1.CreateOptions{})
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to create pod: %w", err))
+			continue
+		}
+
+		if err := pod.WaitForPodSuccessInNamespace(ctx, kubeClient, actualPod.Name, actualPod.Namespace); err != nil {
+			errs = append(errs, fmt.Errorf("failed waiting for pod to succeed: %w", err))
+			continue
+		}
+
+		podLogs, err := pod.GetPodLogs(ctx, kubeClient, actualPod.Namespace, actualPod.Name, "list-boots")
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed reading pod/logs: --namespace=%v pods/%v: %w", actualPod.Namespace, actualPod.Name, err))
+			continue
+		}
+
+		// Fetch pod logs
+		linesInPodLogs := strings.Count(podLogs, "\n") - 1
+		if linesInPodLogs < 1 {
+			errs = append(errs, fmt.Errorf("failed to fetch boot list from --namespace=%v pods/%v pod logs: %v", actualPod.Namespace, actualPod.Name, podLogs))
+			continue
+		}
+		return linesInPodLogs, nil
+	}
+
+	// report all the failures we saw. If we got here, we couldn't start the pod, finish the call, read the logs.
+	return 0, utilerrors.NewAggregate(errs)
+}
