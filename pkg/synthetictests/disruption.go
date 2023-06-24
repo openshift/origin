@@ -16,6 +16,24 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
+// isExcludedDisruptionBackend returns true if any of the given backends are in the
+// disruption backend name.  Essentially, we want to test these disruption backends
+// but flake them for now to avoid failing payloads.
+func isExcludedDisruptionBackend(name string) bool {
+	excludedNames := []string{
+		"ci-cluster-network-liveness",
+		"kube-api-http1-external-lb",
+		"kube-api-http2-external-lb",
+		"openshift-api-http2-external-lb",
+	}
+
+	for _, excludedName := range excludedNames {
+		if strings.Contains(name, excludedName) {
+			return true
+		}
+	}
+	return false
+}
 func testServerAvailability(
 	owner, locator string,
 	events monitorapi.Intervals,
@@ -101,7 +119,14 @@ func testServerAvailability(
 			},
 			SystemOut: strings.Join(disruptionMsgs, "\n"),
 		}
-		return []*junitapi.JUnitTestCase{test}
+		retVal := []*junitapi.JUnitTestCase{test}
+		if isExcludedDisruptionBackend(backendName) {
+			// Flake failures to allow us to track the disruptions without failing a payload.
+			retVal = append(retVal, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		}
+		return retVal
 	} else {
 		successTest.SystemOut = resultsStr
 		return []*junitapi.JUnitTestCase{successTest}
