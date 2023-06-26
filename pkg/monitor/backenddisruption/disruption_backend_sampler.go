@@ -211,7 +211,7 @@ func (b *BackendSampler) GetConnectionType() monitorapi.BackendConnectionType {
 
 func (b *BackendSampler) getTimeout() time.Duration {
 	if b.timeout == nil {
-		return 10 * time.Second
+		return 20 * time.Second
 	}
 	return *b.timeout
 }
@@ -249,7 +249,7 @@ func (b *BackendSampler) wrapWithAuth(rt http.RoundTripper) (http.RoundTripper, 
 
 func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 	timeoutForEntireRequest := b.getTimeout()
-	timeoutForPartOfRequest := timeoutForEntireRequest / 2 // this is less so that we can see failures for individual portions of the request
+	timeoutForPartOfRequest := timeoutForEntireRequest * 4 / 5 // this is less so that we can see failures for individual portions of the request
 
 	b.initHTTPClient.Do(func() {
 		var httpTransport *http.Transport
