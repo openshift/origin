@@ -3,6 +3,7 @@ package sampler
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
 	"net/url"
 	"os"
@@ -11,35 +12,48 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
 
-	projv1 "github.com/openshift/api/project/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	projectclient "github.com/openshift/client-go/project/clientset/versioned"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 )
 
 const (
-	namespace            = "e2e-disruption-monitor"
-	serviceAccountName   = "disruption-monitor-sa"
-	varLogPath           = "/var/log"
 	disruptionDataFolder = "disruption-data"
 	disruptionTypeEnvVar = "DISRUPTION_TYPE_LABEL"
 	inClusterEventsFile  = "junit/AdditionalEvents__in_cluster_disruption.json"
 )
 
-var disruptionDataPath = fmt.Sprintf("%s/%s", varLogPath, disruptionDataFolder)
+var (
+	namespace string
+	//go:embed manifests/namespace.yaml
+	namespaceYaml []byte
+	//go:embed manifests/crb-hostaccess.yaml
+	rbacPrivilegedYaml []byte
+	//go:embed manifests/crb-cluster-reader.yaml
+	rbacClusterReaderYaml []byte
+	//go:embed manifests/serviceaccount.yaml
+	serviceAccountYaml []byte
+	//go:embed manifests/daemonset.yaml
+	daemonsetYaml            []byte
+	rbacPrivilegedCRBName    string
+	rbacClusterReaderCRBName string
+	daemonsetName            string
+)
 
 func TearDownInClusterMonitors(config *rest.Config) error {
 	ctx := context.Background()
@@ -47,12 +61,7 @@ func TearDownInClusterMonitors(config *rest.Config) error {
 	if err != nil {
 		return err
 	}
-	projectClient, err := projectclient.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
-	deleteTestBed(ctx, projectClient, kubeClient)
+	deleteTestBed(ctx, kubeClient)
 
 	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -96,336 +105,130 @@ func StartInClusterMonitors(ctx context.Context, config *rest.Config) error {
 	}
 	apiIntHost := internalAPI.Hostname()
 
-	projectClient, err := projectclient.NewForConfig(config)
+	err = createNamespace(ctx, kubeClient)
 	if err != nil {
 		return err
 	}
-
-	err = callProject(ctx, projectClient, true)
+	err = createServiceAccount(ctx, kubeClient)
 	if err != nil {
 		return err
 	}
-	err = callServiceAccount(ctx, kubeClient, true)
+	err = createRBACPrivileged(ctx, kubeClient)
 	if err != nil {
 		return err
 	}
-	err = callRBACClusterAdmin(ctx, kubeClient, true)
-	if err != nil {
-		return err
-	}
-	err = callRBACHostaccess(ctx, kubeClient, false)
-	if err != nil {
-		return err
-	}
-	return callMonitorDaemonset(ctx, kubeClient, apiIntHost, true)
+	return createDaemonset(ctx, kubeClient, apiIntHost)
 }
 
-func deleteTestBed(ctx context.Context, projectClient *projectclient.Clientset, kubeClient *kubernetes.Clientset) error {
-	// Stop daemonsets first so that test stop before serviceaccount is removed
-	// and permission issues from apiserver are not recorded as disruption
-	err := callMonitorDaemonset(ctx, kubeClient, "", false)
+func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error {
+	nsClient := kubeClient.CoreV1().Namespaces()
+	err := nsClient.Delete(ctx, namespace, metav1.DeleteOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error removing namespace %s: %v", namespace, err)
 	}
 
-	err = callRBACClusterAdmin(ctx, kubeClient, false)
-	if err != nil {
-		return err
+	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
+		cache.NewListWatchFromClient(
+			kubeClient.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", daemonsetName)),
+		&appsv1.DaemonSet{},
+		nil,
+		func(event watch.Event) (bool, error) {
+			return event.Type == watch.Deleted, nil
+		},
+	); watchErr != nil {
+		return fmt.Errorf("namespace %s didn't get destroyed: %v", namespace, watchErr)
 	}
-	err = callRBACHostaccess(ctx, kubeClient, false)
-	if err != nil {
-		return err
+
+	rbacClient := kubeClient.RbacV1().ClusterRoleBindings()
+	err = rbacClient.Delete(ctx, rbacClusterReaderCRBName, metav1.DeleteOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
 	}
-	err = callServiceAccount(ctx, kubeClient, false)
 	if err != nil {
-		return err
+		return fmt.Errorf("error removing cluster reader CRB: %v", err)
 	}
-	return callProject(ctx, projectClient, false)
+
+	err = rbacClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("error removing cluster reader CRB: %v", err)
+	}
+	return nil
 }
 
-func createDaemonset(ctx context.Context, clientset *kubernetes.Clientset, create bool, obj *appsv1.DaemonSet) error {
+func createDaemonset(ctx context.Context, clientset *kubernetes.Clientset, apiIntHost string) error {
+	daemonsetObj := resourceread.ReadDaemonSetV1OrDie(daemonsetYaml)
+	daemonsetObj.Namespace = namespace
+	daemonsetObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
+
 	client := clientset.AppsV1().DaemonSets(namespace)
 	var err error
-	if create {
-		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-		if apierrors.IsAlreadyExists(err) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
-			ds, err := client.Get(context.Background(), obj.Name, metav1.GetOptions{})
-			if err != nil {
-				framework.Logf("error getting daemonsets %v", err)
-				return false, nil
-			}
+	_, err = client.Create(ctx, daemonsetObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating daemonset: %v", err)
+	}
+
+	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
+		cache.NewListWatchFromClient(
+			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", daemonsetObj.Name)),
+		&appsv1.DaemonSet{},
+		nil,
+		func(event watch.Event) (bool, error) {
+			ds := event.Object.(*appsv1.DaemonSet)
 			return ds.Status.NumberReady > 0, nil
-		}); err != nil {
-			return fmt.Errorf("daemonset %s didn't roll out: %v", obj.Name, err)
-		}
-
-	} else {
-		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(context.Context) (bool, error) {
-			_, err := client.Get(context.Background(), obj.Name, metav1.GetOptions{})
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					return true, nil
-				}
-				framework.Logf("Error getting daemonset %s: %v", err)
-				return false, nil
-			}
-			return false, nil
-		}); err != nil {
-			return fmt.Errorf("daemonset %s didn't roll out: %v", obj.Name, err)
-		}
+		},
+	); watchErr != nil {
+		return fmt.Errorf("daemonset %s didn't roll out: %v", daemonsetObj.Name, watchErr)
 	}
-
-	return err
+	daemonsetName = daemonsetObj.Name
+	return nil
 }
 
-func callMonitorDaemonset(ctx context.Context, clientset *kubernetes.Clientset, apiIntHost string, create bool) error {
-	name := "pod-monitor"
-	labels := map[string]string{
-		"app": name,
-	}
-	bTrue := true
-	obj := &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: appsv1.DaemonSetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					Volumes: []corev1.Volume{
-						{
-							Name: "artifacts",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: disruptionDataPath,
-								},
-							},
-						},
-					},
-					Containers: []corev1.Container{
-						{
-							Name:  "internal-lb",
-							Image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest",
-							Env: []corev1.EnvVar{
-								{
-									Name:  "KUBERNETES_SERVICE_HOST",
-									Value: apiIntHost,
-								},
-								{
-									Name:  "KUBERNETES_SERVICE_PORT",
-									Value: "6443",
-								},
-								{
-									Name: "EXTRA_MESSAGE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "spec.nodeName",
-										},
-									},
-								},
-								{
-									Name:  "API_DISRUPTION_ONLY",
-									Value: "true",
-								},
-								{
-									Name:  "LOAD_BALANCER_TYPE",
-									Value: "internal-lb",
-								},
-							},
-							Command: []string{
-								"openshift-tests",
-								"run-monitor",
-								"--artifact-dir",
-								disruptionDataPath,
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "artifacts",
-									MountPath: disruptionDataPath,
-								},
-							},
-						},
-						{
-							Name:  "service-network",
-							Image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest",
-							Command: []string{
-								"openshift-tests",
-								"run-monitor",
-								"--artifact-dir",
-								disruptionDataPath,
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name: "EXTRA_MESSAGE",
-									ValueFrom: &corev1.EnvVarSource{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "spec.nodeName",
-										},
-									},
-								},
-								{
-									Name:  "API_DISRUPTION_ONLY",
-									Value: "true",
-								},
-								{
-									Name:  "LOAD_BALANCER_TYPE",
-									Value: "service-network",
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "artifacts",
-									MountPath: disruptionDataPath,
-								},
-							},
-							SecurityContext: &corev1.SecurityContext{
-								Privileged: &bTrue,
-							},
-						},
-					},
-					ServiceAccountName: serviceAccountName,
-					Tolerations: []corev1.Toleration{
-						{
-							Key:    "node-role.kubernetes.io/master",
-							Effect: corev1.TaintEffectNoSchedule,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	return createDaemonset(ctx, clientset, create, obj)
-}
-
-func callRBACClusterAdmin(ctx context.Context, clientset *kubernetes.Clientset, create bool) error {
-	obj := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-admin", serviceAccountName),
-			Namespace: namespace,
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind: "ClusterRole",
-			Name: "cluster-admin",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      rbacv1.ServiceAccountKind,
-				Name:      serviceAccountName,
-				Namespace: namespace,
-			},
-		},
-	}
+func createRBACPrivileged(ctx context.Context, clientset *kubernetes.Clientset) error {
+	rbacPrivilegedObj := resourceread.ReadClusterRoleBindingV1OrDie(rbacPrivilegedYaml)
+	rbacPrivilegedObj.Subjects[0].Namespace = namespace
 
 	client := clientset.RbacV1().ClusterRoleBindings()
-	var err error
-	if create {
-		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-	} else {
-		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
+	_, err := client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating privileged SCC CRB: %v", err)
 	}
-
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
+	rbacPrivilegedCRBName = rbacPrivilegedObj.Name
+	return nil
 }
 
-func callRBACHostaccess(ctx context.Context, clientset *kubernetes.Clientset, create bool) error {
-	obj := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-privileged", serviceAccountName),
-			Namespace: namespace,
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind: "ClusterRole",
-			Name: "system:openshift:scc:privileged",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      rbacv1.ServiceAccountKind,
-				Name:      serviceAccountName,
-				Namespace: namespace,
-			},
-		},
-	}
-
-	client := clientset.RbacV1().ClusterRoleBindings()
-	var err error
-	if create {
-		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-	} else {
-		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
-	}
-
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
-}
-
-func callServiceAccount(ctx context.Context, clientset *kubernetes.Clientset, create bool) error {
-	obj := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceAccountName,
-			Namespace: namespace,
-		},
-	}
-
+func createServiceAccount(ctx context.Context, clientset *kubernetes.Clientset) error {
+	serviceAccountObj := resourceread.ReadServiceAccountV1OrDie(serviceAccountYaml)
+	serviceAccountObj.Namespace = namespace
 	client := clientset.CoreV1().ServiceAccounts(namespace)
-	var err error
-	if create {
-		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-	} else {
-		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
+	_, err := client.Create(ctx, serviceAccountObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating service account: %v", err)
 	}
-
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
+	return nil
 }
 
-func callProject(ctx context.Context, clientset *projectclient.Clientset, create bool) error {
-	obj := &projv1.Project{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-			Labels: map[string]string{
-				"pod-security.kubernetes.io/enforce": "privileged",
-				"pod-security.kubernetes.io/audit":   "privileged",
-				"pod-security.kubernetes.io/warn":    "privileged",
-			},
-		},
-	}
+func createNamespace(ctx context.Context, clientset *kubernetes.Clientset) error {
+	namespaceObj := resourceread.ReadNamespaceV1OrDie(namespaceYaml)
 
-	client := clientset.ProjectV1().Projects()
-	var err error
-	if create {
-		_, err = client.Create(ctx, obj, metav1.CreateOptions{})
-	} else {
-		err = client.Delete(ctx, obj.Name, metav1.DeleteOptions{})
+	client := clientset.CoreV1().Namespaces()
+	actualNamespace, err := client.Create(ctx, namespaceObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating namespace: %v", err)
 	}
-
-	if apierrors.IsAlreadyExists(err) || apierrors.IsNotFound(err) {
-		return nil
-	}
-	return err
+	namespace = actualNamespace.Name
+	return nil
 }
 
 func fetchFileViaOC(ctx context.Context, nodeName string, filePath string) (string, error) {
