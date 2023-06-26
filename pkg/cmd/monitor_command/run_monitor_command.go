@@ -95,7 +95,7 @@ func (opt *RunMonitorOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders)
+	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders, backend.ExternalLoadBalancerType)
 	if err != nil {
 		return err
 	}
