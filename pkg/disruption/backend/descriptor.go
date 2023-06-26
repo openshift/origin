@@ -19,6 +19,19 @@ const (
 	ServiceNetworkType       LoadBalancerType = "service-network"
 )
 
+func ParseStringToLoadBalancerType(input string) LoadBalancerType {
+	switch input {
+	case "service-network":
+		return ServiceNetworkType
+	case "internal-lb":
+		return InternalLoadBalancerType
+	case "external-lb":
+		return ExternalLoadBalancerType
+	default:
+		return ExternalLoadBalancerType
+	}
+}
+
 // TestDescriptor describes a backend disruption test
 type TestDescriptor interface {
 	Name() string
