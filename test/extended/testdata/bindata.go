@@ -35994,6 +35994,9 @@ var _testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml = []byte(`apiVersion: ap
 kind: DeploymentConfig
 metadata:
   generateName: idling-echo-
+  labels:
+    app: idling-echo
+    deploymentconfig: idling-echo
 spec:
   replicas: 2
   selector:
