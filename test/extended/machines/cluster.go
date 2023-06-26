@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/prometheus"
 	"github.com/stretchr/objx"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -137,6 +138,10 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 			Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs",
 		}
 		mcList, err := dynamicClient.Resource(machineConfigGroupVersionResource).List(ctx, metav1.ListOptions{})
+		if apierrors.IsNotFound(err) {
+			g.Skip("Skipping test because we have no machineconfigs.machineconfiguration.openshift.io.")
+			return
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		for i := range mcList.Items {
 			mcName := mcList.Items[i].GetName()
