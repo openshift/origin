@@ -1,14 +1,15 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -43,10 +44,12 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("create deploymentconfig and get deploymentconfig name")
-		out, err := oc.Run("create").Args("-f", idleDeploymentConfig, "-o=name").Output()
+		_, err = oc.Run("create").Args("-f", idleDeploymentConfig).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(strings.TrimSpace(out)).ShouldNot(o.HaveLen(0))
-		deploymentConfigName = strings.TrimSpace(strings.Split(out, "/")[1])
+
+		dcList, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(projectName).List(context.TODO(), metav1.ListOptions{LabelSelector: "app=idling-echo,deploymentconfig=idling-echo"})
+		o.Expect(dcList.Items).Should(o.HaveLen(1))
+		deploymentConfigName = dcList.Items[0].Name
 
 		expectedOutput = fmt.Sprintf("The service will unidle DeploymentConfig \"%s/%s\" to %s replicas once it receives traffic", projectName, deploymentConfigName, scaledReplicaCount)
 
