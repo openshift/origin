@@ -2094,6 +2094,25 @@ func DoesApiResourceExist(config *rest.Config, apiResourceName, groupVersionName
 	return false, nil
 }
 
+func IsMicroShiftCluster(oc *CLI) (bool, error) {
+	// MicroShift cluster contains "microshift-version" configmap in "kube-public" namespace
+	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("kube-public").Get(context.Background(), "microshift-version", metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			e2e.Logf("microshift-version configmap not found")
+			return false, nil
+		}
+		e2e.Logf("error accessing microshift-version configmap: %v", err)
+		return false, err
+	}
+	if cm == nil {
+		e2e.Logf("microshift-version configmap is nil")
+		return false, nil
+	}
+	e2e.Logf("MicroShift cluster with version: %s", cm.Data["version"])
+	return true, nil
+}
+
 func groupName(groupVersionName string) string {
 	return strings.Split(groupVersionName, "/")[0]
 }
