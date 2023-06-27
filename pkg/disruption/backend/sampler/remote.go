@@ -20,7 +20,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
-	"k8s.io/kubernetes/test/e2e/framework"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,7 +57,24 @@ var (
 )
 
 func TearDownInClusterMonitors(config *rest.Config) error {
-	ctx := context.Background()
+	ctx, cancelFn := context.WithCancel(context.Background())
+	defer cancelFn()
+	abortCh := make(chan os.Signal, 2)
+	go func() {
+		<-abortCh
+		fmt.Fprintf(os.Stderr, "Interrupted, terminating\n")
+		cancelFn()
+		sig := <-abortCh
+		fmt.Fprintf(os.Stderr, "Interrupted twice, exiting (%s)\n", sig)
+		switch sig {
+		case syscall.SIGINT:
+			os.Exit(130)
+		default:
+			os.Exit(0)
+		}
+	}()
+	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
+
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
