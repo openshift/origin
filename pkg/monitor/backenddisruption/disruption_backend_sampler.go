@@ -211,7 +211,7 @@ func (b *BackendSampler) GetConnectionType() monitorapi.BackendConnectionType {
 
 func (b *BackendSampler) getTimeout() time.Duration {
 	if b.timeout == nil {
-		return 10 * time.Second
+		return 20 * time.Second
 	}
 	return *b.timeout
 }
@@ -249,7 +249,7 @@ func (b *BackendSampler) wrapWithAuth(rt http.RoundTripper) (http.RoundTripper, 
 
 func (b *BackendSampler) GetHTTPClient() (*http.Client, error) {
 	timeoutForEntireRequest := b.getTimeout()
-	timeoutForPartOfRequest := timeoutForEntireRequest / 2 // this is less so that we can see failures for individual portions of the request
+	timeoutForPartOfRequest := timeoutForEntireRequest * 4 / 5 // this is less so that we can see failures for individual portions of the request
 
 	b.initHTTPClient.Do(func() {
 		var httpTransport *http.Transport
@@ -489,7 +489,12 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 		currDisruptionSample := b.newSample(ctx)
 		go func() {
 			uid, sampleErr := b.backendSampler.CheckConnection(ctx)
+			if sampleErr != nil {
+				// add the audit ID to the error so we can track backwards to the audit log to chase a request.
+				sampleErr = fmt.Errorf("%w -- RequestAuditID=%v", sampleErr, uid)
+			}
 			currDisruptionSample.setSampleError(sampleErr)
+			currDisruptionSample.setRequestAuditID(uid)
 			if sampleErr != nil {
 				// We'd like to include these UUIDs in the backend-disruption.json file but this is
 				// not possible without some work as we're basing everything off intervals today. There is
@@ -576,7 +581,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, interval time.Du
 			}
 
 			// start a new interval with the new error
-			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError)
+			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
 			framework.Logf(message)
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
@@ -612,7 +617,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, interval time.Du
 				monitorRecorder.EndInterval(previousIntervalID, currSample.startTime)
 			}
 
-			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError)
+			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
 			framework.Logf(message)
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
@@ -663,9 +668,10 @@ func (b *disruptionSampler) numberOfSamples(ctx context.Context) int {
 }
 
 type disruptionSample struct {
-	lock      sync.Mutex
-	startTime time.Time
-	sampleErr error
+	lock           sync.Mutex
+	startTime      time.Time
+	sampleErr      error
+	requestAuditID string
 
 	finished chan struct{}
 }
@@ -682,8 +688,21 @@ func (s *disruptionSample) setSampleError(sampleErr error) {
 	defer s.lock.Unlock()
 	s.sampleErr = sampleErr
 }
+
 func (s *disruptionSample) getSampleError() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	return s.sampleErr
+}
+
+func (s *disruptionSample) setRequestAuditID(auditID string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.requestAuditID = auditID
+}
+
+func (s *disruptionSample) getRequestAuditID() string {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return s.requestAuditID
 }

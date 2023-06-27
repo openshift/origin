@@ -67,7 +67,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 		info = fmt.Sprintf("range=[%d-%d] %s", fs.ID, ts.ID, info)
 	}
 	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator(),
-		h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", from.AggregateErr(), info))
+		h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", from.AggregateErr(), info), "no-audit-id")
 
 	framework.Logf(message)
 	h.eventRecorder.Eventf(
