@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -29,6 +28,7 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitor/nodedetails"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 )
 
@@ -57,20 +57,20 @@ var (
 
 func TearDownInClusterMonitors(config *rest.Config) error {
 	ctx := context.Background()
-	kubeClient, err := kubernetes.NewForConfig(config)
+	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	deleteTestBed(ctx, kubeClient)
+	deleteTestBed(ctx, client)
 
-	nodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	var events monitorapi.Intervals
 	var errs []error
 	for _, node := range nodes.Items {
-		nodeEvents, err := fetchNodeInClusterEvents(ctx, &node)
+		nodeEvents, err := fetchNodeInClusterEvents(ctx, client, &node)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -231,41 +231,28 @@ func createNamespace(ctx context.Context, clientset *kubernetes.Clientset) error
 	return nil
 }
 
-func fetchFileViaOC(ctx context.Context, nodeName string, filePath string) (string, error) {
-	args := []string{"adm", "node-logs", nodeName, fmt.Sprintf("--path=%s", filePath)}
-	cmd := exec.CommandContext(ctx, "oc", args...)
-	var outb, errb bytes.Buffer
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-	framework.Logf("in-cluster monitors: running 'oc %v'", args)
-	if err := cmd.Run(); err != nil {
-		// exit early if errors has "404 page not found" - no events were logged
-		if strings.HasSuffix(errb.String(), "404 page not found\n") {
-			return "", nil
-		}
-		return "", fmt.Errorf("failed to run oc %s on node %s: %v, stdout: %s, stderr: %s", args, nodeName, err, outb.String(), errb.String())
-	}
-	return outb.String(), nil
-}
-
-func fetchNodeInClusterEvents(ctx context.Context, node *corev1.Node) (monitorapi.Intervals, error) {
+func fetchNodeInClusterEvents(ctx context.Context, clientset *kubernetes.Clientset, node *corev1.Node) (monitorapi.Intervals, error) {
 	var events monitorapi.Intervals
 	var errs []error
 
 	// Fetch a list of e2e data files
 	basePath := fmt.Sprintf("/%s/%s", disruptionDataFolder, monitorapi.EventDir)
-	fileListOutput, err := fetchFileViaOC(ctx, node.Name, basePath)
+	allBytes, err := nodedetails.GetNodeLogFile(ctx, clientset, node.Name, basePath)
 	if err != nil {
 		return events, fmt.Errorf("failed to list files in disruption event folder on node %s: %v", node.Name, err)
 	}
-	fileList := strings.Split(strings.Trim(fileListOutput, "\n"), "\n")
+	fileList, err := nodedetails.GetDirectoryListing(bytes.NewBuffer(allBytes))
+	if err != nil {
+		return nil, err
+	}
 	for _, fileName := range fileList {
 		if len(fileName) == 0 {
 			continue
 		}
 		framework.Logf("Found events file %s on node %s", fileName, node.Name)
 		filePath := fmt.Sprintf("%s/%s", basePath, fileName)
-		fileEvents, err := fetchEventsFromFileOnNode(ctx, filePath, node.Name)
+		fmt.Fprintf(os.Stdout, "Found events file %s on node %s\n", filePath, node.Name)
+		fileEvents, err := fetchEventsFromFileOnNode(ctx, clientset, filePath, node.Name)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -279,16 +266,15 @@ func fetchNodeInClusterEvents(ctx context.Context, node *corev1.Node) (monitorap
 	return events, nil
 }
 
-func fetchEventsFromFileOnNode(ctx context.Context, filePath string, nodeName string) (monitorapi.Intervals, error) {
+func fetchEventsFromFileOnNode(ctx context.Context, clientset *kubernetes.Clientset, filePath string, nodeName string) (monitorapi.Intervals, error) {
 	var filteredEvents monitorapi.Intervals
 	var err error
 
-	eventsJson, err := fetchFileViaOC(ctx, nodeName, filePath)
+	allBytes, err := nodedetails.GetNodeLogFile(ctx, clientset, nodeName, filePath)
 	if err != nil {
 		return filteredEvents, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
 	}
-
-	allEvents, err := monitorserialization.EventsFromJSON([]byte(eventsJson))
+	allEvents, err := monitorserialization.EventsFromJSON(allBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert file %s from node %s to intervals: %v", filePath, nodeName, err)
 	}
