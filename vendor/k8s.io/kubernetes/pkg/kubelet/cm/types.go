@@ -84,6 +84,8 @@ type CgroupManager interface {
 	ReduceCPULimits(cgroupName CgroupName) error
 	// MemoryUsage returns current memory usage of the specified cgroup, as read from the cgroupfs.
 	MemoryUsage(name CgroupName) (int64, error)
+	// Toggle whether CPU load balancing should be disabled for new cgroups the kubelet creates
+	SetCPULoadBalanceDisable()
 }
 
 // QOSContainersInfo stores the names of containers per qos

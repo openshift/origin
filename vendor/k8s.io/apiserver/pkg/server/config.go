@@ -344,6 +344,8 @@ type AuthenticationInfo struct {
 	APIAudiences authenticator.Audiences
 	// Authenticator determines which subject is making the request
 	Authenticator authenticator.Request
+
+	RequestHeaderConfig *authenticatorfactory.RequestHeaderConfig
 }
 
 type AuthorizationInfo struct {
@@ -958,12 +960,15 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericapifilters.WithAudit(handler, c.AuditBackend, c.AuditPolicyRuleEvaluator, c.LongRunningFunc)
 	handler = filterlatency.TrackStarted(handler, c.TracerProvider, "audit")
 
+	handler = genericfilters.WithShutdownLateAnnotation(handler, c.lifecycleSignals.ShutdownInitiated, c.ShutdownDelayDuration)
+	handler = genericfilters.WithStartupEarlyAnnotation(handler, c.lifecycleSignals.HasBeenReady)
+
 	failedHandler := genericapifilters.Unauthorized(c.Serializer)
 	failedHandler = genericapifilters.WithFailedAuthenticationAudit(failedHandler, c.AuditBackend, c.AuditPolicyRuleEvaluator)
 
 	failedHandler = filterlatency.TrackCompleted(failedHandler)
 	handler = filterlatency.TrackCompleted(handler)
-	handler = genericapifilters.WithAuthentication(handler, c.Authentication.Authenticator, failedHandler, c.Authentication.APIAudiences)
+	handler = genericapifilters.WithAuthentication(handler, c.Authentication.Authenticator, failedHandler, c.Authentication.APIAudiences, c.Authentication.RequestHeaderConfig)
 	handler = filterlatency.TrackStarted(handler, c.TracerProvider, "authentication")
 
 	handler = genericfilters.WithCORS(handler, c.CorsAllowedOriginList, nil, nil, nil, "true")
