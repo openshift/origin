@@ -196,6 +196,9 @@ var (
 	microshiftCRDTypes = []schema.GroupVersionResource{
 		{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
 		{Group: "topolvm.io", Version: "v1", Resource: "logicalvolumes"},
+
+		// exclude resources not having "spec" and "status" in "oc explain".
+		// they are included in specialTypes list and tested separately.
 		//{Group: "security.internal.openshift.io", Version: "v1", Resource: "rangeallocations"},
 		//{Group: "security.openshift.io", Version: "v1", Resource: "securitycontextconstraints"},
 	}
