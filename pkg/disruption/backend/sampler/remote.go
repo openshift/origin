@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
@@ -75,11 +77,11 @@ func TearDownInClusterMonitors(config *rest.Config) error {
 			errs = append(errs, err)
 			continue
 		}
-		framework.Logf("in-cluster monitors: found %d events for node %s", len(events), node.Name)
+		fmt.Fprintf(os.Stdout, "in-cluster monitors: found %d events for node %s\n", len(events), node.Name)
 		events = append(events, nodeEvents...)
 	}
 	if len(errs) > 0 {
-		framework.Logf("found errors fetching in-cluster data: %v", errs)
+		fmt.Fprintf(os.Stdout, "found errors fetching in-cluster data: %+v\n", errs)
 	}
 	artifactPath := filepath.Join(os.Getenv("ARTIFACT_DIR"), inClusterEventsFile)
 	return monitorserialization.EventsToFile(artifactPath, events)
@@ -249,7 +251,6 @@ func fetchNodeInClusterEvents(ctx context.Context, clientset *kubernetes.Clients
 		if len(fileName) == 0 {
 			continue
 		}
-		framework.Logf("Found events file %s on node %s", fileName, node.Name)
 		filePath := fmt.Sprintf("%s/%s", basePath, fileName)
 		fmt.Fprintf(os.Stdout, "Found events file %s on node %s\n", filePath, node.Name)
 		fileEvents, err := fetchEventsFromFileOnNode(ctx, clientset, filePath, node.Name)
@@ -286,6 +287,6 @@ func fetchEventsFromFileOnNode(ctx context.Context, clientset *kubernetes.Client
 		}
 		filteredEvents = append(filteredEvents, event)
 	}
-	framework.Logf("Fetched %d events from node %s", len(filteredEvents), nodeName)
+	fmt.Fprintf(os.Stdout, "Found %d disruption events from node %s\n", len(filteredEvents), nodeName)
 	return filteredEvents, err
 }
