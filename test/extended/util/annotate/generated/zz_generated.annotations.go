@@ -1185,6 +1185,10 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have description and summary annotations": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should link to a valid URL if the runbook_url annotation is defined": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should link to an HTTP(S) location if the runbook_url annotation is defined": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from guest cluster PodNetwork pod via LoadBalancer service across different guest nodes": " [Suite:openshift/conformance/parallel]",
