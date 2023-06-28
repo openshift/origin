@@ -167,9 +167,21 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 		// the probe will go false when the sig-term is sent.
 		rc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Path = "/readyz"
 
+		rc.Spec.Template.Spec.Containers[0].Lifecycle = &v1.Lifecycle{
+			PreStop: &v1.LifecycleHandler{
+				Exec: &v1.ExecAction{
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						"sleep 80",
+					},
+				},
+			},
+		}
+
 		// delay shutdown long enough to go readyz=false before the process exits when the pod is deleted.
 		// 80 second delay was found to not show disruption in testing
-		rc.Spec.Template.Spec.Containers[0].Args = append(rc.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=80")
+		// rc.Spec.Template.Spec.Containers[0].Args = append(rc.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=80")
 
 		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
 		minuteAndAHalf := int64(90)
