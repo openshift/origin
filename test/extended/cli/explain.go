@@ -51,13 +51,18 @@ var (
 		"route.openshift.io": {
 			{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
 		},
+		"template.openshift.io": {
+			{Group: "template.openshift.io", Version: "v1", Resource: "templateinstances"},
+		},
+	}
+
+	// This list holds builtin apigroups whose resources are not similar for OpenShift and MicroShift.
+	// Hence test will be performed for individual resource level.
+	builtinExceptionTypes = map[string][]schema.GroupVersionResource{
 		"security.openshift.io": {
 			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyreviews"},
 			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyselfsubjectreviews"},
 			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicysubjectreviews"},
-		},
-		"template.openshift.io": {
-			{Group: "template.openshift.io", Version: "v1", Resource: "templateinstances"},
 		},
 	}
 
@@ -335,18 +340,6 @@ var (
 				pattern: `FIELD\: +displayName`,
 			},
 		},
-		"security.openshift.io": {
-			{
-				gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
-				field:   "rangeallocations.range",
-				pattern: `FIELD\: +range`,
-			},
-			{
-				gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
-				field:   "securitycontextconstraints",
-				pattern: `FIELDS\:.*`,
-			},
-		},
 		"template.openshift.io": {
 			{
 				gv:      schema.GroupVersion{Group: "template.openshift.io", Version: "v1"},
@@ -425,6 +418,23 @@ var (
 		},
 	}
 
+	// This list holds apigroups whose resources are not similar for OpenShift and MicroShift.
+	// Hence test will be performed for individual resource level.
+	specialExceptionTypes = map[string][]explainExceptions{
+		"security.openshift.io": {
+			{
+				gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
+				field:   "rangeallocations.range",
+				pattern: `FIELD\: +range`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
+				field:   "securitycontextconstraints",
+				pattern: `FIELDS\:.*`,
+			},
+		},
+	}
+
 	specialNetworkingTypes = []explainExceptions{
 		{
 			gv:      schema.GroupVersion{Group: "network.operator.openshift.io", Version: "v1"},
@@ -450,24 +460,6 @@ var (
 			gv:      schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
 			field:   "egressnetworkpolicies.spec",
 			pattern: `DESCRIPTION\:.*`,
-		},
-	}
-
-	microShiftTypes = []explainExceptions{
-		{
-			gv:      schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"},
-			field:   "rolebindingrestrictions.spec",
-			pattern: `FIELDS\:.*`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "security.internal.openshift.io", Version: "v1"},
-			field:   "rangeallocations.range",
-			pattern: `FIELD\: +range`,
-		},
-		{
-			gv:      schema.GroupVersion{Group: "security.openshift.io", Version: "v1"},
-			field:   "securitycontextconstraints",
-			pattern: `FIELDS\:.*`,
 		},
 	}
 )
@@ -569,6 +561,23 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		})
 	}
 
+	for group, bets := range builtinExceptionTypes {
+		groupName := group
+		types := bets
+		for _, bet := range types {
+			resourceName := bet.Resource
+			g.It(fmt.Sprintf("should contain spec+status for %s of %s, if the resource is present [apigroup:%s]", resourceName, groupName, groupName), func() {
+				e2e.Logf("Checking %s of %s...", resourceName, groupName)
+				exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), resourceName, groupName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if !exist {
+					g.Skip(fmt.Sprintf("Resource %s of %s does not exist, skipping", resourceName, groupName))
+				}
+				o.Expect(verifySpecStatusExplain(oc, nil, bet)).NotTo(o.HaveOccurred())
+			})
+		}
+	}
+
 	g.It("should contain proper spec+status for CRDs", func() {
 		crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 		crdTypesTest := getCrdTypes(oc)
@@ -597,6 +606,25 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 					st.pattern, st.field, fmt.Sprintf("--api-version=%s", st.gv))).NotTo(o.HaveOccurred())
 			}
 		})
+	}
+
+	for group, sets := range specialExceptionTypes {
+		groupName := group
+		types := sets
+		for _, set := range types {
+			resourceName := strings.Split(set.field, ".")[0]
+			g.It(fmt.Sprintf("should contain proper fields description for %s of %s, if the resource is present [apigroup:%s]", resourceName, groupName, groupName), func() {
+				e2e.Logf("Checking %s, Field=%s...", set.gv, set.field)
+				gvr := set.gv.WithResource(resourceName)
+				exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), resourceName, groupName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if !exist {
+					g.Skip(fmt.Sprintf("Resource %s of %s does not exist, skipping", resourceName, groupName))
+				}
+				o.Expect(verifyExplain(oc, nil, gvr,
+					set.pattern, set.field, fmt.Sprintf("--api-version=%s", set.gv))).NotTo(o.HaveOccurred())
+			})
+		}
 	}
 })
 
