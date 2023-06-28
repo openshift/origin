@@ -22,6 +22,16 @@ var (
 	rtPodName        = "rt-tests"
 )
 
+func skipIfNotRT(oc *exutil.CLI) {
+	g.By("checking kernel configuration")
+	rtNodes, err := getRealTimeWorkerNodes(oc)
+	o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve realtime worker nodes")
+
+	if len(rtNodes) == 0 {
+		g.Skip("Skipping due to lack of Realtime Nodes")
+	}
+}
+
 func failIfNotRT(oc *exutil.CLI) {
 	g.By("checking kernel configuration")
 
