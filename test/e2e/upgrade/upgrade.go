@@ -201,8 +201,9 @@ func latestCompleted(history []configv1.UpdateHistory) (*configv1.Update, bool) 
 	return nil, false
 }
 
-func checkUpgradeability(c configv1client.Interface) error {
-	cv, err := c.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+func checkUpgradeability(configClient configv1client.Interface) error {
+	ctx := context.TODO()
+	cv, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -216,15 +217,19 @@ func checkUpgradeability(c configv1client.Interface) error {
 		}
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil && c.Status == configv1.ConditionTrue {
+		framework.Logf("A clusteroperator is degraded %v:\n%v\n", c.Message, clusterOperatorsForRendering(ctx, configClient))
 		return fmt.Errorf("cluster is reporting a degraded condition: %v", c.Message)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil && c.Status == configv1.ConditionTrue {
+		framework.Logf("A clusteroperator is failing %v:\n%v\n", c.Message, clusterOperatorsForRendering(ctx, configClient))
 		return fmt.Errorf("cluster is reporting a failing condition: %v", c.Message)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c == nil || c.Status != configv1.ConditionFalse {
+		framework.Logf("A clusteroperator is progressing %v:\n%v\n", c.Message, clusterOperatorsForRendering(ctx, configClient))
 		return fmt.Errorf("cluster must be reporting a progressing=false condition: %#v", c)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorAvailable); c == nil || c.Status != configv1.ConditionTrue {
+		framework.Logf("A clusteroperator is not available %v:\n%v\n", c.Message, clusterOperatorsForRendering(ctx, configClient))
 		return fmt.Errorf("cluster must be reporting an available=true condition: %#v", c)
 	}
 
