@@ -111,7 +111,7 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 		}
 	}
 	if len(image) == 0 {
-		return "", fmt.Errorf("%s not found", image)
+		return "", fmt.Errorf("%s not found", tag)
 	}
 	if err := runImageExtract(image, binary, tmpDir); err != nil {
 		return "", err
