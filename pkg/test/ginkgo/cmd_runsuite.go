@@ -163,8 +163,10 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
 
+	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		fmt.Fprintf(opt.Out, "Attempting to pull tests from external binary...\n")
+		buf := &bytes.Buffer{}
+		fmt.Fprintf(buf, "Attempting to pull tests from external binary...\n")
 		externalTests, err := externalTestsForSuite(ctx)
 		if err == nil {
 			filteredTests := []*testCase{}
@@ -180,10 +182,24 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 				}
 			}
 			tests = append(filteredTests, externalTests...)
-			fmt.Fprintf(opt.Out, "Got %d tests from external binary\n", len(externalTests))
+			fmt.Fprintf(buf, "Got %d tests from external binary\n", len(externalTests))
 		} else {
-			fmt.Fprintf(opt.Out, "Falling back to built-in suite, failed reading external test suites: %v\n", err)
+			fmt.Fprintf(buf, "Falling back to built-in suite, failed reading external test suites: %v\n", err)
+			// adding this test twice (one failure here, and success below) will
+			// ensure it gets picked as flake further down in synthetic tests processing
+			fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
+				Name:      "[sig-arch] External binary usage",
+				SystemOut: buf.String(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: buf.String(),
+				},
+			})
 		}
+		fmt.Fprintf(opt.Out, buf.String())
+		fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
+			Name:      "[sig-arch] External binary usage",
+			SystemOut: buf.String(),
+		})
 	} else {
 		fmt.Fprintf(opt.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
 	}
@@ -520,6 +536,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		currResState := opt.MonitorEventsOptions.GetRecordedResources()
 		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
+		syntheticTestResults = append(syntheticTestResults, fallbackSyntheticTestResult...)
 
 		if len(syntheticTestResults) > 0 {
 			// mark any failures by name
