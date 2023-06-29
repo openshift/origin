@@ -191,7 +191,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, readinessError(currLine)...)
 		ret = append(ret, statusHttpClientConnectionLostError(currLine)...)
 		ret = append(ret, reflectorHttpClientConnectionLostError(currLine)...)
-		ret = append(ret, kubeletNodeHttpClientConnectionLostError(currLine)...)
+		ret = append(ret, kubeletNodeHttpClientError(currLine)...)
 		ret = append(ret, startupProbeError(currLine)...)
 		ret = append(ret, errParsingSignature(currLine)...)
 		ret = append(ret, failedToDeleteCGroupsPath(nodeLocator, currLine)...)
@@ -523,23 +523,28 @@ func anonymousCertConnectionError(nodeLocator, logLine string) monitorapi.Interv
 var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
 var nodeOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
 
-func kubeletNodeHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
-	if !strings.Contains(logLine, `http2: client connection lost`) {
-		return nil
-	}
-
+func kubeletNodeHttpClientError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `Error updating node status`) {
 		return nil
 	}
 
-	return commonErrorInterval(logLine, statusOutputRegex, monitorapi.HttpClientConnectionLost, func() string {
+	var reason monitorapi.IntervalReason
+	if strings.Contains(logLine, `http2: client connection lost`) {
+		reason = monitorapi.HttpClientConnectionLost
+	} else if strings.Contains(logLine, `http: request canceled`) {
+		reason = monitorapi.HttpClientRequestCanceled
+	}
+	if len(reason) == 0 {
+		return nil
+	}
+
+	return commonErrorInterval(logLine, statusOutputRegex, reason, func() string {
 		nodeRefRegex.MatchString(logLine)
 		if !nodeRefRegex.MatchString(logLine) {
 			return ""
 		}
 		return "node/" + nodeRefRegex.FindStringSubmatch(logLine)[1]
 	})
-
 }
 
 func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason monitorapi.IntervalReason, locator func() string) monitorapi.Intervals {

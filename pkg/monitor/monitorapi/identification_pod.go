@@ -115,7 +115,8 @@ const (
 	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
 	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
 
-	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
+	HttpClientConnectionLost  IntervalReason = "HttpClientConnectionLost"
+	HttpClientRequestCanceled IntervalReason = "HttpClientRequestCanceled"
 
 	PodReasonCreated               IntervalReason = "Created"
 	PodReasonGracefulDeleteStarted IntervalReason = "GracefulDelete"

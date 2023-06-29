@@ -60,6 +60,19 @@ func TestMonitorApiIntervals(t *testing.T) {
 			},
 		},
 		{
+			name:    "kubelet HttpClientRequestCanceled",
+			logLine: `Jun 29 05:16:34.251681 ci-op-cyqgzj4w-ed5cd-ll5md-master-0 kubenswrapper[2336]: E0629 05:16:34.251643    2336 kubelet_node_status.go:567] "Error updating node status, will retry" err="error getting node \"ci-op-cyqgzj4w-ed5cd-ll5md-master-0\": Get \"https://api-int.ci-op-cyqgzj4w-ed5cd.ci2.azure.devcluster.openshift.com:6443/api/v1/nodes/ci-op-cyqgzj4w-ed5cd-ll5md-master-0?timeout=10s\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"`,
+			want: monitorapi.EventInterval{
+				Condition: monitorapi.Condition{
+					Level:   monitorapi.Info,
+					Locator: "node/ci-op-cyqgzj4w-ed5cd-ll5md-master-0",
+					Message: "reason/HttpClientRequestCanceled error getting node \"ci-op-cyqgzj4w-ed5cd-ll5md-master-0\": Get \"https://api-int.ci-op-cyqgzj4w-ed5cd.ci2.azure.devcluster.openshift.com:6443/api/v1/nodes/ci-op-cyqgzj4w-ed5cd-ll5md-master-0?timeout=10s\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+				},
+				From: systemdJournalLogTime("Jun 29 05:16:34.251681"),
+				To:   systemdJournalLogTime("Jun 29 05:16:34.251681"),
+			},
+		},
+		{
 			name:    "simple failure",
 			logLine: `Jul 05 17:47:52.807876 ci-op-lxqqvl5x-d3bee-gl4hp-master-0 hyperkube[1495]: I0606 17:47:52.807876    1599 prober.go:121] "Probe failed" probeType="Readiness" pod="openshift-authentication/oauth-openshift-77f7b95df5-r4xf7" podUID=1af660b3-ac3a-4182-86eb-2f74725d8415 containerName="oauth-openshift" probeResult=failure output="Get \"https://10.129.0.12:6443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)"`,
 			want: monitorapi.EventInterval{
