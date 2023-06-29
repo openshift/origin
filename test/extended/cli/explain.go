@@ -193,6 +193,16 @@ var (
 		{Group: "performance.openshift.io", Version: "v2", Resource: "performanceprofiles"},
 	}
 
+	microshiftCRDTypes = []schema.GroupVersionResource{
+		{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
+		{Group: "topolvm.io", Version: "v1", Resource: "logicalvolumes"},
+
+		// exclude resources not having "spec" and "status" in "oc explain".
+		// they are included in specialTypes list and tested separately.
+		//{Group: "security.internal.openshift.io", Version: "v1", Resource: "rangeallocations"},
+		//{Group: "security.openshift.io", Version: "v1", Resource: "securitycontextconstraints"},
+	}
+
 	specialTypes = map[string][]explainExceptions{
 		"apps.openshift.io": {
 			{
@@ -473,6 +483,11 @@ var (
 )
 
 func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
+	isMicroShift, err := exutil.IsMicroShiftCluster(oc)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if isMicroShift {
+		return microshiftCRDTypes
+	}
 	crdTypes := append(baseCRDTypes, mcoTypes...)
 	crdTypes = append(crdTypes, autoscalingTypes...)
 	crdTypes = append(crdTypes, machineTypes...)
