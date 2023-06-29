@@ -57,6 +57,9 @@ func AllAlertTests(jobType *platformidentification.JobType, etcdAllowance AlertT
 	ret = append(ret, newAlert("monitoring", "PrometheusOperatorWatchErrors", jobType).pending().neverFail().toTests()...)
 	ret = append(ret, newAlert("monitoring", "PrometheusOperatorWatchErrors", jobType).firing().toTests()...)
 
+	ret = append(ret, newAlert("networking", "OVNKubernetesResourceRetryFailure", jobType).pending().neverFail().toTests()...)
+	ret = append(ret, newAlert("networking", "OVNKubernetesResourceRetryFailure", jobType).firing().toTests()...)
+
 	ret = append(ret, newAlert("OLM", "RedhatOperatorsCatalogError", jobType).pending().neverFail().toTests()...)
 	ret = append(ret, newAlert("OLM", "RedhatOperatorsCatalogError", jobType).firing().toTests()...)
 
