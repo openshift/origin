@@ -31,8 +31,6 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 	)
 
 	g.BeforeEach(func() {
-		// TODO: Remove to run on all cluster configs after resolving missing deployments/daemonsets.
-		skipNonCPUPartitionedCluster(oc)
 		isClusterCPUPartitioned = getCpuPartitionedStatus(oc) == ocpv1.CPUPartitioningAllNodes
 		matcher, messageFormat = adjustMatcherAndMessageForCluster(isClusterCPUPartitioned, matcher)
 	})
