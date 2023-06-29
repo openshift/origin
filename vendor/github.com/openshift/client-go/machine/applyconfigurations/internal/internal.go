@@ -212,6 +212,12 @@ var schemaYAML = typed.YAMLObject(`types:
           elementType:
             namedType: com.github.openshift.api.machine.v1.GCPFailureDomain
           elementRelationship: atomic
+    - name: openstack
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.machine.v1.OpenStackFailureDomain
+          elementRelationship: atomic
     - name: platform
       type:
         scalar: string
@@ -225,6 +231,8 @@ var schemaYAML = typed.YAMLObject(`types:
         discriminatorValue: Azure
       - fieldName: gcp
         discriminatorValue: GCP
+      - fieldName: openstack
+        discriminatorValue: OpenStack
 - name: com.github.openshift.api.machine.v1.GCPFailureDomain
   map:
     fields:
@@ -247,6 +255,21 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.machine.v1beta1.MachineSpec
       default: {}
+- name: com.github.openshift.api.machine.v1.OpenStackFailureDomain
+  map:
+    fields:
+    - name: availabilityZone
+      type:
+        scalar: string
+    - name: rootVolume
+      type:
+        namedType: com.github.openshift.api.machine.v1.RootVolume
+- name: com.github.openshift.api.machine.v1.RootVolume
+  map:
+    fields:
+    - name: availabilityZone
+      type:
+        scalar: string
 - name: com.github.openshift.api.machine.v1beta1.Condition
   map:
     fields:

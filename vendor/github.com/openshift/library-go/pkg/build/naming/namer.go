@@ -24,7 +24,7 @@ func GetName(base, suffix string, maxLength int) string {
 	baseLength := maxLength - 10 /*length of -hash-*/ - len(suffix)
 
 	// if the suffix is too long, ignore it
-	if baseLength < 0 {
+	if baseLength <= 0 {
 		prefix := base[0:min(len(base), max(0, maxLength-9))]
 		// Calculate hash on initial base-suffix string
 		shortName := fmt.Sprintf("%s-%s", prefix, hash(name))

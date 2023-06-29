@@ -2,10 +2,15 @@
 
 package v1
 
+import (
+	v1 "github.com/openshift/api/operator/v1"
+)
+
 // GatewayConfigApplyConfiguration represents an declarative configuration of the GatewayConfig type for use
 // with apply.
 type GatewayConfigApplyConfiguration struct {
-	RoutingViaHost *bool `json:"routingViaHost,omitempty"`
+	RoutingViaHost *bool                `json:"routingViaHost,omitempty"`
+	IPForwarding   *v1.IPForwardingMode `json:"ipForwarding,omitempty"`
 }
 
 // GatewayConfigApplyConfiguration constructs an declarative configuration of the GatewayConfig type for use with
@@ -19,5 +24,13 @@ func GatewayConfig() *GatewayConfigApplyConfiguration {
 // If called multiple times, the RoutingViaHost field is set to the value of the last call.
 func (b *GatewayConfigApplyConfiguration) WithRoutingViaHost(value bool) *GatewayConfigApplyConfiguration {
 	b.RoutingViaHost = &value
+	return b
+}
+
+// WithIPForwarding sets the IPForwarding field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IPForwarding field is set to the value of the last call.
+func (b *GatewayConfigApplyConfiguration) WithIPForwarding(value v1.IPForwardingMode) *GatewayConfigApplyConfiguration {
+	b.IPForwarding = &value
 	return b
 }

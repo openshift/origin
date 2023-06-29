@@ -1,6 +1,7 @@
 package tokenrequest
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -39,6 +40,9 @@ const (
 	// openShiftCLIClientID is the name of the CLI OAuth client, copied from pkg/oauth/apiserver/auth.go
 	openShiftCLIClientID = "openshift-challenging-client"
 
+	// openShiftCLIBrowserClientID the name of the CLI client for logging in through a browser
+	openShiftCLIBrowserClientID = "openshift-cli-client"
+
 	// pkce_s256 is sha256 hash per RFC7636, copied from github.com/RangelReale/osincli/pkce.go
 	pkce_s256 = "S256"
 
@@ -55,37 +59,101 @@ type RequestTokenOptions struct {
 	OsinConfig   *osincli.ClientConfig
 	Issuer       string
 	TokenFlow    bool
+
+	// AuthorizationURLHandler defines how the authorization URL of the OAuth Code Grant flow
+	// should be handled; for example use this function to take the URL and open it in a browser
+	AuthorizationURLHandler AuthorizationURLHandlerFunc
+
+	// LocalCallbackServer receives the callback once the user authorizes the request
+	// as a redirect from the OAuth server, and exchanges the authorization code for an access token
+	LocalCallbackServer *callbackServer
 }
 
-// RequestToken uses the cmd arguments to locate an openshift oauth server and attempts to authenticate via an
-// OAuth code flow and challenge handling.  It returns the access token if it gets one or an error if it does not.
-func RequestToken(clientCfg *restclient.Config, challengeHandlers ...challengehandlers.ChallengeHandler) (string, error) {
-	return NewRequestTokenOptions(clientCfg, false, challengeHandlers...).RequestToken()
+type AuthorizationURLHandlerFunc func(url *url.URL) error
+
+// RequestTokenWithChallengeHandlers uses the cmd arguments to locate an openshift oauth server
+// and attempts to authenticate with the OAuth code flow and challenge handling.
+// It returns the access token if it gets one or an error if it does not.
+func RequestTokenWithChallengeHandlers(clientCfg *restclient.Config, challengeHandlers ...challengehandlers.ChallengeHandler) (string, error) {
+	o, err := NewRequestTokenOptions(clientCfg, false).WithChallengeHandlers(challengeHandlers...)
+	if err != nil {
+		return "", err
+	}
+
+	return o.RequestToken()
+}
+
+// RequestTokenWithLocalCallback will perform the OAuth authorization code grant flow to obtain an access token.
+// authzURLHandler is used to forward the user to the OAuth server's parametrized authorization URL to
+// retrieve the authorization code.
+// It starts a localhost server on port `callbackPort` (random port if unspecified) to exchange the authorization code for an access token.
+func RequestTokenWithLocalCallback(clientCfg *restclient.Config, authzURLHandler AuthorizationURLHandlerFunc, callbackPort int) (string, error) {
+	o, err := NewRequestTokenOptions(clientCfg, false).WithLocalCallback(authzURLHandler, callbackPort)
+	if err != nil {
+		return "", err
+	}
+
+	return o.RequestToken()
 }
 
 func NewRequestTokenOptions(
 	clientCfg *restclient.Config,
 	tokenFlow bool,
-	challengeHandlers ...challengehandlers.ChallengeHandler,
 ) *RequestTokenOptions {
 
+	return &RequestTokenOptions{
+		ClientConfig: clientCfg,
+		TokenFlow:    tokenFlow,
+	}
+}
+
+// WithChallengeHandlers sets up the RequestTokenOptions with the provided challengeHandlers to be
+// used in the OAuth code flow.
+// If RequestTokenOptions.OsinConfig is nil, it will be defaulted using SetDefaultOsinConfig.
+// The caller is responsible for setting up the entire OsinConfig if the value is not nil.
+func (o *RequestTokenOptions) WithChallengeHandlers(challengeHandlers ...challengehandlers.ChallengeHandler) (*RequestTokenOptions, error) {
 	var handler challengehandlers.ChallengeHandler
 	if len(challengeHandlers) == 1 {
 		handler = challengeHandlers[0]
 	} else {
 		handler = challengehandlers.NewMultiHandler(challengeHandlers...)
 	}
+	o.Handler = handler
 
-	return &RequestTokenOptions{
-		ClientConfig: clientCfg,
-		Handler:      handler,
-		TokenFlow:    tokenFlow,
+	if o.OsinConfig == nil {
+		if err := o.SetDefaultOsinConfig(openShiftCLIClientID, nil); err != nil {
+			return nil, err
+		}
 	}
+
+	return o, nil
+}
+
+// WithLocalCallback sets up the RequestTokenOptions with an AuthorizationURLHanderFunc and an
+// unstarted local callback server on the specified port.
+// If RequestTokenOptions.OsinConfig is nil, it will be defaulted using SetDefaultOsinConfig.
+// The caller is responsible for setting up the entire OsinConfig if the value is not nil.
+func (o *RequestTokenOptions) WithLocalCallback(handleAuthzURL AuthorizationURLHandlerFunc, localCallbackPort int) (*RequestTokenOptions, error) {
+	var err error
+	o.AuthorizationURLHandler = handleAuthzURL
+	o.LocalCallbackServer, err = newCallbackServer(localCallbackPort)
+	if err != nil {
+		return nil, err
+	}
+
+	if o.OsinConfig == nil {
+		redirectUrl := fmt.Sprintf("http://%s/callback", o.LocalCallbackServer.ListenAddr())
+		if err := o.SetDefaultOsinConfig(openShiftCLIBrowserClientID, &redirectUrl); err != nil {
+			return nil, err
+		}
+	}
+
+	return o, nil
 }
 
 // SetDefaultOsinConfig overwrites RequestTokenOptions.OsinConfig with the default CLI
 // OAuth client and PKCE support if the server supports S256 / a code flow is being used
-func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
+func (o *RequestTokenOptions) SetDefaultOsinConfig(clientID string, redirectURL *string) error {
 	if o.OsinConfig != nil {
 		return fmt.Errorf("osin config is already set to: %#v", *o.OsinConfig)
 	}
@@ -115,11 +183,16 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 
 	// use the metadata to build the osin config
 	config := &osincli.ClientConfig{
-		ClientId:     openShiftCLIClientID,
+		ClientId:     clientID,
 		AuthorizeUrl: metadata.AuthorizationEndpoint,
 		TokenUrl:     metadata.TokenEndpoint,
 		RedirectUrl:  oauthdiscovery.OpenShiftOAuthTokenImplicitURL(metadata.Issuer),
 	}
+
+	if redirectURL != nil {
+		config.RedirectUrl = *redirectURL
+	}
+
 	if !o.TokenFlow && sets.NewString(metadata.CodeChallengeMethodsSupported...).Has(pkce_s256) {
 		if err := osincli.PopulatePKCE(config); err != nil {
 			return err
@@ -131,13 +204,29 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 	return nil
 }
 
-// RequestToken locates an openshift oauth server and attempts to authenticate.
+// RequestToken decides on how to perform the token request based on the configured
+// RequestTokenOptions object and performs the request.
 // It returns the access token if it gets one, or an error if it does not.
 // It should only be invoked once on a given RequestTokenOptions instance.
-// The Handler held by the options is released as part of this call.
-// If RequestTokenOptions.OsinConfig is nil, it will be defaulted using SetDefaultOsinConfig.
-// The caller is responsible for setting up the entire OsinConfig if the value is not nil.
 func (o *RequestTokenOptions) RequestToken() (string, error) {
+
+	switch {
+	case o.LocalCallbackServer != nil:
+		return o.requestTokenWithLocalCallback()
+
+	case o.Handler != nil:
+		return o.requestTokenWithChallengeHandlers()
+
+	default:
+		return "", fmt.Errorf("no challenge handlers or localhost callback server were provided")
+	}
+}
+
+// requestTokenWithChallengeHandlers performs the OAuth code flow using the configured
+// challenge handlers.
+// It returns the access token if it gets one, or an error if it does not.
+// The Handler held by the options is released as part of this call.
+func (o *RequestTokenOptions) requestTokenWithChallengeHandlers() (string, error) {
 	defer func() {
 		// Always release the handler
 		if err := o.Handler.Release(); err != nil {
@@ -146,29 +235,10 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 		}
 	}()
 
-	if o.OsinConfig == nil {
-		if err := o.SetDefaultOsinConfig(); err != nil {
-			return "", err
-		}
-	}
-
-	// we are going to use this transport to talk
-	// with a server that may not be the api server
-	// thus we need to include the system roots
-	// in our ca data otherwise an external
-	// oauth server with a valid cert will fail with
-	// error: x509: certificate signed by unknown authority
-	rt, err := transportWithSystemRoots(o.Issuer, o.ClientConfig)
+	client, authorizeRequest, err := o.newOsinClient()
 	if err != nil {
 		return "", err
 	}
-
-	client, err := osincli.NewClient(o.OsinConfig)
-	if err != nil {
-		return "", err
-	}
-	client.Transport = rt
-	authorizeRequest := client.NewAuthorizeRequest(osincli.CODE) // assume code flow to start with
 
 	var oauthTokenFunc func(redirectURL string) (accessToken string, oauthError error)
 	if o.TokenFlow {
@@ -193,7 +263,7 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 
 	for {
 		// Make the request
-		resp, err := request(rt, requestURL, requestHeaders)
+		resp, err := request(client.Transport, requestURL, requestHeaders)
 		if err != nil {
 			return "", err
 		}
@@ -212,7 +282,11 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 						klog.V(2).Infof("%v", err)
 						tokenPromptErr.ErrStatus.Details = &metav1.StatusDetails{
 							Causes: []metav1.StatusCause{
-								{Message: fmt.Sprintf("You must obtain an API token by visiting %s/request", o.OsinConfig.TokenUrl)},
+								{Message: fmt.Sprintf(
+									"You must obtain an API token by visiting %s/request\n\n%s",
+									o.OsinConfig.TokenUrl,
+									`Alternatively, use "oc login --web" to login via your browser. See "oc login --help" for more information.`,
+								)},
 							},
 						}
 						return "", tokenPromptErr
@@ -284,6 +358,63 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 	}
 }
 
+// requestTokenWithLocalCallback performs the OAuth authorization code grant flow.
+// It will start the local callback server, invoke the authorization URL handler,
+// and exchange the code for an access token. Once done, it will also shut down
+// the callback server.
+// It returns the access token if it gets one, or an error if it does not.
+func (o *RequestTokenOptions) requestTokenWithLocalCallback() (string, error) {
+
+	client, authorizeRequest, err := o.newOsinClient()
+	if err != nil {
+		return "", err
+	}
+
+	o.LocalCallbackServer.SetCallbackHandler(func(callback *http.Request) (string, error) {
+		// once the redirect callback is received, use it to request an access token
+		// from the oauth server
+		return requestAccessToken(client, authorizeRequest, callback)
+	})
+
+	go func() { o.LocalCallbackServer.Start() }()
+	defer func() { o.LocalCallbackServer.Shutdown(context.Background()) }()
+
+	if err := o.AuthorizationURLHandler(authorizeRequest.GetAuthorizeUrl()); err != nil {
+		return "", err
+	}
+
+	result := <-o.LocalCallbackServer.resultChan
+	if result.err != nil {
+		return "", result.err
+	}
+
+	return result.token, nil
+}
+
+func (o *RequestTokenOptions) newOsinClient() (*osincli.Client, *osincli.AuthorizeRequest, error) {
+
+	// we are going to use this transport to talk
+	// with a server that may not be the api server
+	// thus we need to include the system roots
+	// in our ca data otherwise an external
+	// oauth server with a valid cert will fail with
+	// error: x509: certificate signed by unknown authority
+	rt, err := transportWithSystemRoots(o.Issuer, o.ClientConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	client, err := osincli.NewClient(o.OsinConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	client.Transport = rt
+
+	authorizeRequest := client.NewAuthorizeRequest(osincli.CODE) // assume code flow to start with
+
+	return client, authorizeRequest, nil
+}
+
 // oauthTokenFlow attempts to extract an OAuth token from location's fragment's access_token value.
 // It only returns an error if something "impossible" happens (location is not a valid URL) or a definite
 // OAuth error is contained in the location URL.  No error is returned if location does not contain a token.
@@ -331,6 +462,11 @@ func oauthCodeFlow(client *osincli.Client, authorizeRequest *osincli.AuthorizeRe
 	if len(req.Form.Get("code")) == 0 {
 		return "", nil // no code parameter so this is not part of the OAuth flow
 	}
+
+	return requestAccessToken(client, authorizeRequest, req)
+}
+
+func requestAccessToken(client *osincli.Client, authorizeRequest *osincli.AuthorizeRequest, req *http.Request) (string, error) {
 
 	// any errors after this are fatal because we are committed to an OAuth flow now
 	authorizeData, err := authorizeRequest.HandleRequest(req)

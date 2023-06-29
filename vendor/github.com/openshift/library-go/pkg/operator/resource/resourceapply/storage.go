@@ -18,6 +18,8 @@ import (
 const (
 	// Label on the CSIDriver to declare the driver's effective pod security profile
 	csiInlineVolProfileLabel = "security.openshift.io/csi-ephemeral-volume-profile"
+
+	defaultScAnnotationKey = "storageclass.kubernetes.io/is-default-class"
 )
 
 var (
@@ -40,6 +42,22 @@ func ApplyStorageClass(ctx context.Context, client storageclientv1.StorageClasse
 	}
 	if err != nil {
 		return nil, false, err
+	}
+
+	if required.ObjectMeta.ResourceVersion != "" && required.ObjectMeta.ResourceVersion != existing.ObjectMeta.ResourceVersion {
+		err = fmt.Errorf("rejected to update StorageClass %s because the object has been modified: desired/actual ResourceVersion: %v/%v",
+			required.Name, required.ObjectMeta.ResourceVersion, existing.ObjectMeta.ResourceVersion)
+		return nil, false, err
+	}
+	// Our caller may not be able to set required.ObjectMeta.ResourceVersion. We only want to overwrite value of
+	// default storage class annotation if it is missing in existing.Annotations
+	if existing.Annotations != nil {
+		if _, ok := existing.Annotations[defaultScAnnotationKey]; ok {
+			if required.Annotations == nil {
+				required.Annotations = make(map[string]string)
+			}
+			required.Annotations[defaultScAnnotationKey] = existing.Annotations[defaultScAnnotationKey]
+		}
 	}
 
 	// First, let's compare ObjectMeta from both objects
