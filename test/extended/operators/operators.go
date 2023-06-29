@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 
 		fg := objx.Map(fgObj.UnstructuredContent())
 		featureSet := fg.Get("spec.featureSet").String()
-		isNoUpgrade := featureSet == "TechPreviewNoUpgrade" || featureSet == "CustomNoUpgrade"
+		isNoUpgrade := featureSet != ""
 
 		// gate on all clusteroperators being ready
 		g.By("ensuring all cluster operators are stable")
@@ -89,9 +89,12 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 			if len(badConditions) > 0 {
 				worstCondition := badConditions[0]
 
-				// kube-apiserver blocks upgrades when feature gates are present.
+				// kube-apiserver and/or config-operator blocks upgrades when feature gates are present.
 				// Allow testing of TechPreviewNoUpgrade clusters by ignoring this condition.
-				if isNoUpgrade && name == "kube-apiserver" && isKubeAPIUpgradableNoUpgradeCondition(worstCondition) {
+				if isNoUpgrade && name == "kube-apiserver" && isUpgradableNoUpgradeCondition(worstCondition) {
+					continue
+				}
+				if isNoUpgrade && name == "config-operator" && isUpgradableNoUpgradeCondition(worstCondition) {
 					continue
 				}
 
@@ -292,9 +295,9 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 }
 
 // When a TechPreviewNoUpgrade or CustomNoUpgrades feature set are in force in the cluster, the following condition
-// is set on the kube-apiserver cluster operator
+// is set on the kube-apiserver and/or the cluster-config clusteroperator
 // Ref: https://github.com/openshift/cluster-kube-apiserver-operator/blob/39a98d67c3b825b9215454a7817ffadb0577609b/pkg/operator/featureupgradablecontroller/feature_upgradeable_controller_test.go#L41-L46
-func isKubeAPIUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCondition) bool {
+func isUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCondition) bool {
 	return (cond.Reason == "FeatureGates_RestrictedFeatureGates_TechPreviewNoUpgrade" ||
 		cond.Reason == "FeatureGates_RestrictedFeatureGates_CustomNoUpgrade") &&
 		cond.Status == "False" &&
