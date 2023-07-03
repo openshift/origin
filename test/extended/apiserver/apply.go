@@ -113,7 +113,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("checking that the field managers are as expected"))
+			g.By("checking that the field managers are as expected")
 			accessor, err := meta.Accessor(obj)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			managedFields := accessor.GetManagedFields()

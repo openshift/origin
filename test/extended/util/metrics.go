@@ -155,7 +155,7 @@ func getPodInfoForNamespace(adminClient kubernetes.Interface, adminConfig *restc
 				if strings.Contains(err.Error(), "EOF") {
 					info.skipped = true
 					info.failed = false
-					info.result = fmt.Sprintf("/metrics endpoint not available")
+					info.result = "/metrics endpoint not available"
 				}
 			}
 

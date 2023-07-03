@@ -2,7 +2,6 @@ package dr
 
 import (
 	"context"
-	"fmt"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -23,7 +22,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 	g.It("[Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node", func() {
 		// ensure the CEO can still act without quorum, doing it first so the CEO can cycle while we install ssh keys
-		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)
+		data := `{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -87,7 +86,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 	g.It("[Feature:EtcdRecovery][Disruptive] Recover with snapshot with two unhealthy nodes and lost quorum", func() {
 		// ensure the CEO can still act without quorum, doing it first so the CEO can cycle while we install ssh keys
-		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)
+		data := `{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`
 		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 

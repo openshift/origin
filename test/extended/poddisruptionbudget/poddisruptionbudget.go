@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 			}
 		})
 
-		g.It(fmt.Sprintf("should evict according to the IfHealthyBudget policy"), func() {
+		g.It("should evict according to the IfHealthyBudget policy", func() {
 			g.By(fmt.Sprintf("calling oc create -f %q", ifHealthyBudgetPolicyPDB))
 			err := oc.Run("create").Args("-f", ifHealthyBudgetPolicyPDB).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -165,7 +165,7 @@ var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 			}
 		})
 
-		g.It(fmt.Sprintf("should evict according to the AlwaysAllow policy"), func() {
+		g.It("should evict according to the AlwaysAllow policy", func() {
 			g.By(fmt.Sprintf("calling oc create -f %q", alwaysAllowPolicyPDB))
 			err := oc.Run("create").Args("-f", alwaysAllowPolicyPDB).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

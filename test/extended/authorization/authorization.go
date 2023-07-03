@@ -47,7 +47,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 	g.Context("", func() {
 		g.Describe("TestClusterReaderCoverage", func() {
-			g.It(fmt.Sprintf("should succeed"), func() {
+			g.It("should succeed", func() {
 				g.Skip("this test was in integration and didn't cover a real configuration, so it's horribly, horribly wrong now")
 
 				t := g.GinkgoT()
@@ -399,7 +399,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization][Serial] authoriza
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationResourceAccessReview", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:authorization.openshift.io]", func() {
 				clusterAdminAuthorizationClient := oc.AdminAuthorizationClient().AuthorizationV1()
 
 				hammerProjectName := createProject(oc, "hammer")
@@ -502,7 +502,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationSubjectAccessReview", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:authorization.openshift.io]", func() {
 				t := g.GinkgoT()
 
 				clusterAdminLocalSARGetter := oc.AdminKubeClient().AuthorizationV1()
@@ -1066,7 +1066,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 	g.Context("", func() {
 		g.Describe("TestAuthorizationSubjectAccessReviewAPIGroup", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:authorization.openshift.io]", func() {
 				t := g.GinkgoT()
 
 				clusterAdminKubeClient := oc.AdminKubeClient()
@@ -1202,7 +1202,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 	g.Context("", func() {
 		g.Describe("TestBrowserSafeAuthorizer", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io]"), func() {
+			g.It("should succeed [apigroup:user.openshift.io]", func() {
 				t := g.GinkgoT()
 
 				// this client has an API token so it is safe

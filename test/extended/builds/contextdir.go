@@ -45,7 +45,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 		})
 
 		g.Describe("s2i context directory build", func() {
-			g.It(fmt.Sprintf("should s2i build an application using a context directory [apigroup:build.openshift.io]"), func() {
+			g.It("should s2i build an application using a context directory [apigroup:build.openshift.io]", func() {
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc create -f %q", appFixture))
@@ -99,7 +99,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 		})
 
 		g.Describe("docker context directory build", func() {
-			g.It(fmt.Sprintf("should docker build an application using a context directory [apigroup:build.openshift.io]"), func() {
+			g.It("should docker build an application using a context directory [apigroup:build.openshift.io]", func() {
 				g.By("initializing local repo")
 				repo, err := exutil.NewGitRepo("contextdir")
 				o.Expect(err).NotTo(o.HaveOccurred())

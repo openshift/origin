@@ -55,7 +55,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][a
 			defer func() {
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
-			g.By(fmt.Sprintf("deploying a service using a reencrypt route without a destinationCACertificate"))
+			g.By("deploying a service using a reencrypt route without a destinationCACertificate")
 			err := oc.Run("create").Args("-f", configPath).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 

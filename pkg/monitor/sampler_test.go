@@ -62,12 +62,12 @@ func TestStartSampling(t *testing.T) {
 	}
 
 	expected := []string{
-		fmt.Sprintf("{Error tester dying}"),
-		fmt.Sprintf("{Error tester down}"),
-		fmt.Sprintf("{Info tester recovering}"),
-		fmt.Sprintf("{Error tester dying 2}"),
-		fmt.Sprintf("{Error tester down}"),
-		fmt.Sprintf("{Info tester recovering 2}"),
+		"{Error tester dying}",
+		"{Error tester down}",
+		"{Info tester recovering}",
+		"{Error tester dying 2}",
+		"{Error tester down}",
+		"{Info tester recovering 2}",
 	}
 	if !reflect.DeepEqual(log, expected) {
 		t.Fatalf("%s", diff.ObjectReflectDiff(log, expected))

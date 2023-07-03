@@ -53,7 +53,7 @@ func testServerAvailability(
 				Name:     testName,
 				Duration: jobRunDuration.Seconds(),
 				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("error in platform identification"),
+					Output: "error in platform identification",
 				},
 			},
 		}

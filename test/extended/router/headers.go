@@ -3,8 +3,8 @@ package router
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"net"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -106,11 +106,11 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			host := "router-headers.example.com"
-			g.By(fmt.Sprintf("waiting for the route to become active"))
+			g.By("waiting for the route to become active")
 			err = waitForRouterOKResponseExec(ns, execPod.Name, routerURL, host, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("making a request and reading back the echoed headers"))
+			g.By("making a request and reading back the echoed headers")
 			var payload string
 			payload, err = getRoutePayloadExec(ns, execPod.Name, routerURL, host)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -124,7 +124,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// check that the header is what we expect
-			g.By(fmt.Sprintf("inspecting the echoed headers"))
+			g.By("inspecting the echoed headers")
 			ffHeader := req.Header.Get("X-Forwarded-For")
 
 			ignoreClientIP := false

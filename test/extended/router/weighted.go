@@ -376,7 +376,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 			err = expectRouteStatusCodeRepeatedExec(ns, execPod.Name, routerURL, "weighted.example.com", http.StatusOK, times, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("checking that there are three weighted backends in the router stats"))
+			g.By("checking that there are three weighted backends in the router stats")
 			var trafficValues []string
 			err = wait.PollImmediate(100*time.Millisecond, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				statsURL := fmt.Sprintf("http://%s/;csv", net.JoinHostPort(routerIP, "1936"))
@@ -398,7 +398,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]",
 				e2e.Failf("Unexpected weighted ratio for incoming traffic: %v (%d/%d)", weightedRatio, trafficEP1, trafficEP2)
 			}
 
-			g.By(fmt.Sprintf("checking that zero weights are also respected by the router"))
+			g.By("checking that zero weights are also respected by the router")
 			host = "zeroweight.example.com"
 			err = expectRouteStatusCodeExec(ns, execPod.Name, routerURL, host, http.StatusServiceUnavailable)
 			o.Expect(err).NotTo(o.HaveOccurred())

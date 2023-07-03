@@ -200,7 +200,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Error,
 					Locator: monitorapi.LocatePodContainer(pod, containerName),
-					Message: fmt.Sprintf("reason/TerminationStateCleared lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
+					Message: "reason/TerminationStateCleared lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)",
 				})
 			}
 
@@ -379,14 +379,14 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					conditions = append(conditions, monitorapi.Condition{
 						Level:   monitorapi.Warning,
 						Locator: monitorapi.LocatePod(pod),
-						Message: fmt.Sprintf("pod moved back to Pending"),
+						Message: "pod moved back to Pending",
 					})
 				}
 			case new == corev1.PodUnknown:
 				conditions = append(conditions, monitorapi.Condition{
 					Level:   monitorapi.Warning,
 					Locator: monitorapi.LocatePod(pod),
-					Message: fmt.Sprintf("pod moved to the Unknown phase"),
+					Message: "pod moved to the Unknown phase",
 				})
 			case new == corev1.PodFailed && old != corev1.PodFailed:
 				switch pod.Status.Reason {

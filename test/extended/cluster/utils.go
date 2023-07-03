@@ -383,7 +383,7 @@ func convertVariablesToString(params map[string]interface{}) (args []string) {
 		if v == nil {
 			// Parameter not defined, see if it is defined in the environment.
 			var found bool
-			v, found = os.LookupEnv(fmt.Sprintf("%s", k))
+			v, found = os.LookupEnv(k)
 			if !found {
 				// Parameter not defined in the environment, do not define it
 				continue

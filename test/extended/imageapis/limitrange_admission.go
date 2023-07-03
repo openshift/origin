@@ -42,19 +42,19 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota][Serial][Suite:opensh
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("trying to push an image exceeding size limit with just 1 layer"))
+		g.By("trying to push an image exceeding size limit with just 1 layer")
 		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "middle", 16000, 1, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("trying to push an image exceeding size limit in total"))
+		g.By("trying to push an image exceeding size limit in total")
 		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "middle", 16000, 5, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("trying to push an image with one big layer below size limit"))
+		g.By("trying to push an image with one big layer below size limit")
 		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "small", 8000, 1, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By(fmt.Sprintf("trying to push an image below size limit"))
+		g.By("trying to push an image below size limit")
 		err = imagesutil.BuildAndPushImageOfSizeWithBuilder(oc, nil, oc.Namespace(), "sized", "small", 8000, 2, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})

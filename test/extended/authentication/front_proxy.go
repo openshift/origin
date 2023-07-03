@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -26,7 +25,7 @@ var _ = g.Describe("[sig-auth][Feature:Authentication] ", func() {
 	oc := exutil.NewCLI("project-api")
 
 	g.Describe("TestFrontProxy", func() {
-		g.It(fmt.Sprintf("should succeed"), func() {
+		g.It("should succeed", func() {
 			controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

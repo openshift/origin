@@ -1,8 +1,6 @@
 package authorization
 
 import (
-	"fmt"
-
 	"k8s.io/client-go/kubernetes"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -17,7 +15,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatib
 
 	g.Context("", func() {
 		g.Describe("TestBootstrapPolicySelfSubjectAccessReviews", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]", func() {
 				t := g.GinkgoT()
 
 				valerieName := oc.CreateUser("valerie-").Name
@@ -56,7 +54,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] self-SAR compatib
 		})
 
 		g.Describe("TestSelfSubjectAccessReviewsNonExistingNamespace", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io]", func() {
 				t := g.GinkgoT()
 
 				valerieName := oc.CreateUser("valerie-").Name

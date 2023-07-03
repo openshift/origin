@@ -31,31 +31,31 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for op
 	oc := exutil.NewCLI("rbac-proxy")
 	g.Context("", func() {
 		g.Describe("RunLegacyLocalRoleBindingEndpoint", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:authorization.openshift.io]", func() {
 				RunLegacyLocalRoleBindingEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 
 		g.Describe("RunLegacyEndpointConfirmNoEscalation [apigroup:authorization.openshift.io]", func() {
-			g.It(fmt.Sprintf("should succeed"), func() {
+			g.It("should succeed", func() {
 				RunLegacyEndpointConfirmNoEscalation(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Username(), oc.Namespace())
 			})
 		})
 
 		g.Describe("RunLegacyClusterRoleBindingEndpoint", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:authorization.openshift.io]", func() {
 				RunLegacyClusterRoleBindingEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 
 		g.Describe("RunLegacyClusterRoleEndpoint", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:authorization.openshift.io]", func() {
 				RunLegacyClusterRoleEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 
 		g.Describe("RunLegacyLocalRoleEndpoint", func() {
-			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {
+			g.It("should succeed [apigroup:authorization.openshift.io]", func() {
 				RunLegacyLocalRoleEndpoint(g.GinkgoT(), oc.AdminAuthorizationClient().AuthorizationV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})

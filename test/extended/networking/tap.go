@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-network][Feature:tap]", func() {
 		}
 	})
 
-	g.It(fmt.Sprintf("should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]"), func() {
+	g.It("should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]", func() {
 		ns := f.Namespace.Name
 		podName := "pod1"
 		nadName := "nad-tap"
@@ -94,7 +94,7 @@ var _ = g.Describe("[sig-network][Feature:tap]", func() {
 		g.By("creating a pod on worker with container_use_devices on")
 		exutil.CreateExecPodOrFail(f.ClientSet, ns, podName, func(pod *kapiv1.Pod) {
 			tapAnnotation := fmt.Sprintf("%s/%s@%s", ns, nadName, ifName)
-			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": fmt.Sprintf("%s", tapAnnotation)}
+			pod.ObjectMeta.Annotations = map[string]string{"k8s.v1.cni.cncf.io/networks": tapAnnotation}
 			pod.Spec.NodeSelector = worker.Labels
 		})
 		pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), podName, metav1.GetOptions{})

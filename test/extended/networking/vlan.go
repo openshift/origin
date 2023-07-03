@@ -70,7 +70,7 @@ var _ = g.Describe("[sig-network][Feature:vlan]", func() {
 			bridge,
 			fmt.Sprintf(`{"cniVersion":"0.4.0","name":"%s","plugins":[{ "type": "bridge", "bridge": "%s"}]}`, bridge, bridge),
 		)
-		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unable to create bridge network-attachment-definition"))
+		o.Expect(err).NotTo(o.HaveOccurred(), "unable to create bridge network-attachment-definition")
 	})
 
 	g.AfterEach(func() {
@@ -152,7 +152,7 @@ var _ = g.Describe("[sig-network][Feature:vlan]", func() {
 			podDefinition.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
-						Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f /tmp/ready")},
+						Command: []string{"/bin/bash", "-c", "test -f /tmp/ready"},
 					},
 				},
 			}

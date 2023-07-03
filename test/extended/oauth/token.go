@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 
 	"github.com/pborman/uuid"
 
@@ -27,7 +26,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func()
 	oc := exutil.NewCLI("oauth-access-token-e2e-test")
 	ctx := context.Background()
 
-	g.It(fmt.Sprintf("accepts sha256 access tokens [apigroup:user.openshift.io][apigroup:oauth.openshift.io]"), func() {
+	g.It("accepts sha256 access tokens [apigroup:user.openshift.io][apigroup:oauth.openshift.io]", func() {
 		user, err := oc.AdminUserClient().UserV1().Users().Create(ctx, &userv1.User{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{

@@ -136,11 +136,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					g.By(fmt.Sprintf("verifying the build output contains the env vars"))
+					g.By("verifying the build output contains the env vars")
 					o.Expect(buildLog).To(o.ContainSubstring("FOO=bar"))
 					o.Expect(buildLog).To(o.ContainSubstring("VAR=test"))
 
-					g.By(fmt.Sprintf("verifying the build output contains inherited env vars"))
+					g.By("verifying the build output contains inherited env vars")
 					// This variable is not set and thus inherited from the original build config
 					o.Expect(buildLog).To(o.ContainSubstring("BAR=test"))
 				})
@@ -152,11 +152,11 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					verifyNodeSelector(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					g.By(fmt.Sprintf("verifying the build output is verbose"))
+					g.By("verifying the build output is verbose")
 					o.Expect(buildLog).To(o.ContainSubstring("Creating a new S2I builder"))
 					o.Expect(buildLog).To(o.MatchRegexp("openshift-builder [1-9v]"))
 					// Bug 1694871: logging before flag.Parse error
-					g.By(fmt.Sprintf("verifying the build output has no error about flag.Parse"))
+					g.By("verifying the build output has no error about flag.Parse")
 					o.Expect(buildLog).NotTo(o.ContainSubstring("ERROR: logging before flag.Parse"))
 				})
 
@@ -167,7 +167,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					verifyNodeSelector(oc, br.BuildName)
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
-					g.By(fmt.Sprintf("verifying the build output is not verbose"))
+					g.By("verifying the build output is not verbose")
 					o.Expect(buildLog).NotTo(o.ContainSubstring("Creating a new S2I builder"))
 					o.Expect(buildLog).NotTo(o.MatchRegexp("openshift-builder [1-9v]"))
 				})
@@ -488,7 +488,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("s2i build maintaining symlinks", func() {
-				g.It(fmt.Sprintf("should s2i build image and maintain symlinks [apigroup:build.openshift.io][apigroup:image.openshift.io]"), func() {
+				g.It("should s2i build image and maintain symlinks [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
 					g.By("initializing a local git repo")
 					repo, err := exutil.NewGitRepo("symlinks")
 					o.Expect(err).NotTo(o.HaveOccurred())
