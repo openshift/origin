@@ -45,15 +45,19 @@ var (
 	namespaceYaml []byte
 	//go:embed manifests/crb-hostaccess.yaml
 	rbacPrivilegedYaml []byte
-	//go:embed manifests/crb-cluster-reader.yaml
-	rbacClusterReaderYaml []byte
+	//go:embed manifests/role-monitor.yaml
+	rbacMonitorRoleYaml []byte
+	//go:embed manifests/crb-monitor.yaml
+	rbacListOauthClientCRBYaml []byte
 	//go:embed manifests/serviceaccount.yaml
 	serviceAccountYaml []byte
 	//go:embed manifests/daemonset.yaml
-	daemonsetYaml            []byte
-	rbacPrivilegedCRBName    string
-	rbacClusterReaderCRBName string
-	daemonsetName            string
+	daemonsetYaml               []byte
+	rbacPrivilegedCRBName       string
+	rbacClusterReaderCRBName    string
+	rbacListOauthClientRoleName string
+	rbacListOauthClientCRBName  string
+	daemonsetName               string
 )
 
 func TearDownInClusterMonitors(config *rest.Config) error {
@@ -135,6 +139,14 @@ func StartInClusterMonitors(ctx context.Context, config *rest.Config) error {
 	if err != nil {
 		return err
 	}
+	err = createMonitorRole(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	err = createMonitorCRB(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
 	return createDaemonset(ctx, kubeClient, apiIntHost)
 }
 
@@ -163,22 +175,23 @@ func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error 
 		return fmt.Errorf("namespace %s didn't get destroyed: %v", namespace, watchErr)
 	}
 
-	rbacClient := kubeClient.RbacV1().ClusterRoleBindings()
-	err = rbacClient.Delete(ctx, rbacClusterReaderCRBName, metav1.DeleteOptions{})
-	if apierrors.IsNotFound(err) {
-		return nil
-	}
-	if err != nil {
+	crbClient := kubeClient.RbacV1().ClusterRoleBindings()
+	err = crbClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error removing cluster reader CRB: %v", err)
 	}
 
-	err = rbacClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
-	if apierrors.IsNotFound(err) {
-		return nil
+	err = crbClient.Delete(ctx, rbacMonitorCRBName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing monitor CRB: %v", err)
 	}
-	if err != nil {
-		return fmt.Errorf("error removing cluster reader CRB: %v", err)
+
+	rolesClient := kubeClient.RbacV1().ClusterRoles()
+	err = rolesClient.Delete(ctx, rbacMonitorRoleName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing monitor role: %v", err)
 	}
+
 	return nil
 }
 
@@ -223,6 +236,33 @@ func createRBACPrivileged(ctx context.Context, clientset *kubernetes.Clientset) 
 		return fmt.Errorf("error creating privileged SCC CRB: %v", err)
 	}
 	rbacPrivilegedCRBName = rbacPrivilegedObj.Name
+	return nil
+}
+
+func createMonitorRole(ctx context.Context, clientset *kubernetes.Clientset) error {
+	rbacMonitorRoleObj := resourceread.ReadClusterRoleV1OrDie(rbacMonitorRoleYaml)
+	rbacMonitorRoleName = rbacMonitorRoleObj.Name
+
+	client := clientset.RbacV1().ClusterRoles()
+	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating oauthclients list role: %v", err)
+	}
+	rbacMonitorRoleName = rbacMonitorRoleObj.Name
+	return nil
+}
+
+func createMonitorCRB(ctx context.Context, clientset *kubernetes.Clientset) error {
+	rbacMonitorCRBObj := resourceread.ReadClusterRoleBindingV1OrDie(rbacListOauthClientCRBYaml)
+	rbacMonitorCRBObj.Subjects[0].Namespace = namespace
+	rbacMonitorCRBName = rbacMonitorCRBObj.Name
+
+	client := clientset.RbacV1().ClusterRoleBindings()
+	_, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating oauthclients list CRB: %v", err)
+	}
+	rbacMonitorCRBName = rbacMonitorCRBObj.Name
 	return nil
 }
 
