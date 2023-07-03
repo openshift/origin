@@ -35,8 +35,8 @@ const (
 	prometheusQueryRetrySleep  = 10 * time.Second
 )
 
-// PrometheusResponse is used to contain prometheus query results
-type PrometheusResponse struct {
+// Response is used to contain prometheus query results
+type Response struct {
 	Data prometheusResponseData `json:"data"`
 }
 
@@ -188,11 +188,11 @@ func StripLabels(m model.Metric, names ...string) model.LabelSet {
 	return labels
 }
 
-func RunQuery(ctx context.Context, prometheusClient prometheusv1.API, query string) (*PrometheusResponse, error) {
+func RunQuery(ctx context.Context, prometheusClient prometheusv1.API, query string) (*Response, error) {
 	return RunQueryAtTime(ctx, prometheusClient, query, time.Now())
 }
 
-func RunQueryAtTime(ctx context.Context, prometheusClient prometheusv1.API, query string, evaluationTime time.Time) (*PrometheusResponse, error) {
+func RunQueryAtTime(ctx context.Context, prometheusClient prometheusv1.API, query string, evaluationTime time.Time) (*Response, error) {
 	result, warnings, err := prometheusClient.Query(ctx, query, evaluationTime)
 	if err != nil {
 		return nil, err
@@ -203,7 +203,7 @@ func RunQueryAtTime(ctx context.Context, prometheusClient prometheusv1.API, quer
 	if result.Type() != model.ValVector {
 		return nil, fmt.Errorf("result type is not the vector: %v", result.Type())
 	}
-	return &PrometheusResponse{
+	return &Response{
 		Data: prometheusResponseData{
 			Result: result.(model.Vector),
 		},
@@ -220,7 +220,7 @@ func RunQueries(ctx context.Context, prometheusClient prometheusv1.API, promQuer
 			if _, ok := passed[query]; ok {
 				continue
 			}
-			//TODO when the http/query apis discussed at https://github.com/prometheus/client_golang#client-for-the-prometheus-http-api
+			// TODO when the http/query apis discussed at https://github.com/prometheus/client_golang#client-for-the-prometheus-http-api
 			// and introduced at https://github.com/prometheus/client_golang/blob/master/api/prometheus/v1/api.go are vendored into
 			// openshift/origin, look to replace this homegrown http request / query param with that API
 			g.By("perform prometheus metric query " + query)
@@ -320,7 +320,7 @@ func FetchAlertingRules(promURL, bearerToken string) (map[string][]promv1.Alerti
 	url := fmt.Sprintf("%s/api/v1/rules", promURL)
 	contents, err := GetBearerTokenURL(url, bearerToken)
 	if err != nil {
-		return nil, fmt.Errorf("unable to query %s: %v", url, err)
+		return nil, fmt.Errorf("unable to fetch rules from %s: %v", url, err)
 	}
 
 	var result struct {
@@ -328,7 +328,7 @@ func FetchAlertingRules(promURL, bearerToken string) (map[string][]promv1.Alerti
 		Data   promv1.RulesResult `json:"data"`
 	}
 	if err := json.Unmarshal([]byte(contents), &result); err != nil {
-		return nil, fmt.Errorf("unable to parse response %q from %s: %v", contents, url, err)
+		return nil, fmt.Errorf("unable to unmarshal rules from %s: %v", url, err)
 	}
 
 	alertingRules := make(map[string][]promv1.AlertingRule)
@@ -404,15 +404,15 @@ func ForEachAlertingRule(rules map[string][]promv1.AlertingRule, f func(a promv1
 	for group, alerts := range rules {
 		for _, alert := range alerts {
 			// The Watchdog alert is special because it is only there to
-			// test the end-to-end alert flow and it isn't meant to be
+			// test the end-to-end alert flow, and it isn't meant to be
 			// routed to cluster admins.
 			if alert.Name == "Watchdog" {
 				continue
 			}
 
-			// Remove backslashs added by the HTTP API since they can't be parsed by
+			// Remove backslashes added by the HTTP API since they can't be parsed by
 			// the promQL parser.
-			alert.Query := strings.Replace(alert.Query, "\\", "", -1)
+			alert.Query = strings.Replace(alert.Query, "\\", "", -1)
 
 			if violations := f(alert); violations != nil {
 				for _, v := range violations.List() {
