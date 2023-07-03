@@ -75,6 +75,12 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 		clusterOperatorsObj, err := coc.List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		g.By("determining fetching the cluster platform")
+		infraC := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "infrastructures", Version: "v1"})
+		infraObj, err := infraC.Get(context.Background(), "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		infra := objx.Map(infraObj.UnstructuredContent())
+
 		clusterOperators := objx.Map(clusterOperatorsObj.UnstructuredContent())
 		items := objects(clusterOperators.Get("items"))
 		if len(items) == 0 {
@@ -94,6 +100,12 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 					continue
 				}
 				if isNoUpgrade && name == "config-operator" && isUpgradableNoUpgradeCondition(worstCondition) {
+					continue
+				}
+
+				// For 4.13 onwards the cloud-controller-manager is used to prevent upgrades for AlibabaCloud clusters.
+				// This will eventually go away once Alibaba is removed from the product and forced into TechPreview only.
+				if infra.Get("status.platformStatus.type").String() == "AlibabaCloud" && name == "cloud-controller-manager" && isCloudControllerManagerUpgradableNoUpgradeCondition(worstCondition) {
 					continue
 				}
 
@@ -296,6 +308,15 @@ func surprisingConditions(co objx.Map) ([]configv1.ClusterOperatorStatusConditio
 func isUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCondition) bool {
 	return (cond.Reason == "FeatureGates_RestrictedFeatureGates_TechPreviewNoUpgrade" ||
 		cond.Reason == "FeatureGates_RestrictedFeatureGates_CustomNoUpgrade") &&
+		cond.Status == "False" &&
+		cond.Type == "Upgradeable"
+}
+
+// AlibabaCloud should always have been tech preview, and used a feature gate, but it didn't.
+// To prevent upgrades, the cloud-controller-manager operator sets the following condition and prevents upgrades.
+// Ref: https://github.com/openshift/cluster-cloud-controller-manager-operator/pull/257
+func isCloudControllerManagerUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCondition) bool {
+	return cond.Reason == "PlatformTechPreview" &&
 		cond.Status == "False" &&
 		cond.Type == "Upgradeable"
 }
