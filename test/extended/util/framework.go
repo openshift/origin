@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"os"
 	"path"
@@ -169,7 +169,7 @@ func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
 			req := oc.AdminKubeClient().CoreV1().Pods("openshift-controller-manager").GetLogs(pod.Name, &corev1.PodLogOptions{})
 			readCloser, err := req.Stream(ctx)
 			if err == nil {
-				b, err := ioutil.ReadAll(readCloser)
+				b, err := io.ReadAll(readCloser)
 				if err == nil {
 					podLog := string(b)
 					podLogs[pod.Name] = podLog
@@ -663,14 +663,14 @@ func ExaminePodDiskUsage(oc *CLI) {
 // VarSubOnFile reads in srcFile, finds instances of ${key} from the map
 // and replaces them with their associated values.
 func VarSubOnFile(srcFile string, destFile string, vars map[string]string) error {
-	srcData, err := ioutil.ReadFile(srcFile)
+	srcData, err := os.ReadFile(srcFile)
 	if err == nil {
 		srcString := string(srcData)
 		for k, v := range vars {
 			k = "${" + k + "}"
 			srcString = strings.Replace(srcString, k, v, -1) // -1 means unlimited replacements
 		}
-		err = ioutil.WriteFile(destFile, []byte(srcString), 0644)
+		err = os.WriteFile(destFile, []byte(srcString), 0644)
 	}
 	return err
 }
@@ -1458,7 +1458,7 @@ func fixtureDirectory() (string, bool) {
 		// reuse fixture directories across child processes for efficiency
 		internalFixtureDir = os.Getenv("OS_TEST_FIXTURE_DIR")
 		if len(internalFixtureDir) == 0 {
-			dir, err := ioutil.TempDir("", "fixture-testdata-dir")
+			dir, err := os.MkdirTemp("", "fixture-testdata-dir")
 			if err != nil {
 				panic(err)
 			}
@@ -1521,7 +1521,7 @@ func restoreFixtureAsset(dir, name string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(assetFilePath(dir, name), data, 0640)
+	err = os.WriteFile(assetFilePath(dir, name), data, 0640)
 	if err != nil {
 		return err
 	}
@@ -1809,7 +1809,7 @@ func getPodLogs(oc *CLI, pod *corev1.Pod) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logs, err := ioutil.ReadAll(reader)
+	logs, err := io.ReadAll(reader)
 	if err != nil {
 		return "", err
 	}
@@ -1855,7 +1855,7 @@ func (r GitRepo) AddAndCommit(file, content string) error {
 	if err := os.MkdirAll(filepath.Join(r.RepoPath, dir), 0777); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(filepath.Join(r.RepoPath, file), []byte(content), 0666); err != nil {
+	if err := os.WriteFile(filepath.Join(r.RepoPath, file), []byte(content), 0666); err != nil {
 		return err
 	}
 	if err := r.repo.Add(r.RepoPath, file); err != nil {
@@ -1876,7 +1876,7 @@ func (r GitRepo) Remove() {
 
 // NewGitRepo creates temporary test directories with local and "remote" git repo
 func NewGitRepo(repoName string) (GitRepo, error) {
-	testDir, err := ioutil.TempDir(os.TempDir(), repoName)
+	testDir, err := os.MkdirTemp(os.TempDir(), repoName)
 	if err != nil {
 		return GitRepo{}, err
 	}

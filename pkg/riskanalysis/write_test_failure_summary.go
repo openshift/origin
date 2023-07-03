@@ -3,7 +3,6 @@ package riskanalysis
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -68,7 +67,7 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 	}
 	outputFile := filepath.Join(artifactDir, fmt.Sprintf("%s%s.json",
 		testFailureSummaryFilePrefix, timeSuffix))
-	return ioutil.WriteFile(outputFile, jsonContent, 0644)
+	return os.WriteFile(outputFile, jsonContent, 0644)
 }
 
 // passFail is a simple struct to track test names which can appear more than once.

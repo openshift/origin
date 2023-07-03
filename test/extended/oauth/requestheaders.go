@@ -9,7 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httputil"
@@ -308,7 +308,7 @@ func testBrowserClientRedirectsProperly(caCerts *x509.CertPool, oauthServerURL s
 		respDump, err := httputil.DumpResponse(resp, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(resp.StatusCode).To(o.Equal(200), fmt.Sprintf("full response header: %s\n", respDump))
-		respBody, err := ioutil.ReadAll(resp.Body)
+		respBody, err := io.ReadAll(resp.Body)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(string(respBody)).To(o.ContainSubstring("<a href=\"/oauth/authorize?client_id=openshift-browser-client&amp;idp=test-request-header"))
 	})
@@ -319,7 +319,7 @@ func testBrowserClientRedirectsProperly(caCerts *x509.CertPool, oauthServerURL s
 		respDump, err := httputil.DumpResponse(resp, false)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(resp.StatusCode).To(o.Equal(200), fmt.Sprintf("full response header: %s\n", respDump))
-		respBody, err := ioutil.ReadAll(resp.Body)
+		respBody, err := io.ReadAll(resp.Body)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(string(respBody)).To(o.ContainSubstring("<a href=\"/oauth/authorize?client_id=openshift-browser-client&amp;idp=test-request-header"))
 	})

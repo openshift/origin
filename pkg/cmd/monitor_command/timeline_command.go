@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"regexp"
 	"strings"
 	"time"
@@ -287,7 +287,7 @@ func loadKnownPods(filename string) (monitorapi.ResourcesMap, error) {
 		if err != nil {
 			return nil, err
 		}
-		currBytes, err := ioutil.ReadAll(rc)
+		currBytes, err := io.ReadAll(rc)
 		if err != nil {
 			return nil, err
 		}

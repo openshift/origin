@@ -3,7 +3,7 @@ package deployments
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -815,7 +815,7 @@ func (d *deployerPodInvariantChecker) Wait() {
 }
 
 func ReadFixture(path string) (runtime.Object, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %q: %v", path, err)
 	}

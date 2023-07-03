@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"net"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -196,7 +195,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 		g.By("Creating the idling file")
 		serviceNames := resources["service"]
 
-		targetFile, err := ioutil.TempFile("", "idling-services-")
+		targetFile, err := os.CreateTemp("", "idling-services-")
 		o.Expect(err).ToNot(o.HaveOccurred())
 		defer targetFile.Close()
 		idlingFile = targetFile.Name()

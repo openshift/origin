@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"strings"
 	"time"
@@ -256,7 +255,7 @@ func validateDNSResults(f *e2e.Framework, pod *kapiv1.Pod, fileNames sets.String
 	if err != nil {
 		e2e.Failf("Failed to get pod logs %s: %v", pod.Name, err)
 	}
-	out, err := ioutil.ReadAll(r)
+	out, err := io.ReadAll(r)
 	if err != nil {
 		e2e.Failf("Failed to read pod logs %s: %v", pod.Name, err)
 	}

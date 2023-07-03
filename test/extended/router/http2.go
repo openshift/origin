@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -495,7 +495,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				o.Expect(resp).ToNot(o.BeNil(), testConfig)
 				o.Expect(resp.StatusCode).To(o.Equal(tc.statusCode), testConfig)
 				o.Expect(resp.Proto).To(o.Equal(tc.frontendProto), testConfig)
-				body, err := ioutil.ReadAll(resp.Body)
+				body, err := io.ReadAll(resp.Body)
 				o.Expect(err).NotTo(o.HaveOccurred(), testConfig)
 				o.Expect(string(body)).To(o.Equal(tc.backendProto), testConfig)
 				o.Expect(resp.Body.Close()).NotTo(o.HaveOccurred())

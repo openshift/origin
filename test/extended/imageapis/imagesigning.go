@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 
@@ -244,7 +244,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:Image] signature", func() {
 })
 
 func getImageFixture(oc *exutil.CLI, filename string) (*imagev1.Image, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

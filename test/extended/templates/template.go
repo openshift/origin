@@ -1,7 +1,7 @@
 package templates
 
 import (
-	"io/ioutil"
+	"os"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -111,7 +111,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 		}
 
 		for _, path := range templateFixtures {
-			data, err := ioutil.ReadFile(path)
+			data, err := os.ReadFile(path)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			template, err := runtime.Decode(unstructured.UnstructuredJSONScheme, data)

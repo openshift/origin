@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -91,7 +90,7 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 		return "", err
 	}
 	defer jsonFile.Close()
-	data, err := ioutil.ReadAll(jsonFile)
+	data, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return "", err
 	}

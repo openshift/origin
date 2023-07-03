@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -253,18 +252,19 @@ func (j *JenkinsRef) ProcessJenkinsJobUsingVars(filename, namespace string, vars
 	err := exutil.VarSubOnFile(pre, post, vars)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
-	data, err := ioutil.ReadFile(post)
+	data, err := os.ReadFile(post)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
 	newfile, err := CreateTempFile(string(data))
 	e2e.Logf("new temp file %s err %v", newfile, err)
 	if err != nil {
-		files, dbgerr := ioutil.ReadDir("/tmp")
+		files, dbgerr := os.ReadDir("/tmp")
 		if dbgerr != nil {
 			e2e.Logf("problem diagnosing /tmp: %v", dbgerr)
 		} else {
 			for _, file := range files {
-				e2e.Logf("found file %s under temp isdir %q mode %s", file.Name(), file.IsDir(), file.Mode().String())
+				info, _ := file.Info()
+				e2e.Logf("found file %s under temp isdir %q mode %s", file.Name(), file.IsDir(), info.Mode().String())
 			}
 		}
 	}
@@ -384,15 +384,15 @@ func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 // CreateTempFile stores the specified data in a temp dir/temp file
 // for the test who calls it
 func CreateTempFile(data string) (string, error) {
-	testDir, err := ioutil.TempDir(os.TempDir(), "test-files")
+	testDir, err := os.MkdirTemp(os.TempDir(), "test-files")
 	if err != nil {
 		return "", err
 	}
-	testFile, err := ioutil.TempFile(testDir, "test-file")
+	testFile, err := os.CreateTemp(testDir, "test-file")
 	if err != nil {
 		return "", err
 	}
-	if err := ioutil.WriteFile(testFile.Name(), []byte(data), 0666); err != nil {
+	if err := os.WriteFile(testFile.Name(), []byte(data), 0666); err != nil {
 		return "", err
 	}
 	return testFile.Name(), nil

@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"time"
@@ -80,7 +79,7 @@ func NewBuildAnalyzerCommand() *cobra.Command {
 
 func (o *BuildAnalyzerOptions) Run() error {
 
-	raw, err := ioutil.ReadFile(o.BuildFile)
+	raw, err := os.ReadFile(o.BuildFile)
 	if err != nil {
 		fmt.Printf("Error reading file: %v\n", err)
 		os.Exit(1)

@@ -6,7 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"regexp"
@@ -343,7 +343,7 @@ func (b *BackendSampler) CheckConnection(ctx context.Context) (string, error) {
 	var body []byte
 	var bodyReadErr, sampleErr error
 	if getErr == nil {
-		body, bodyReadErr = ioutil.ReadAll(resp.Body)
+		body, bodyReadErr = io.ReadAll(resp.Body)
 		if closeErr := resp.Body.Close(); closeErr != nil {
 			framework.Logf("error closing body: %v: %v", b.GetLocator(), closeErr)
 		}

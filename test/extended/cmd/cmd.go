@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -156,7 +155,7 @@ func getDirDataAndKeyPathMap(dir string) (map[string]string, []corev1.KeyToPath)
 		if info.IsDir() {
 			return nil
 		}
-		fileCont, err := ioutil.ReadFile(path)
+		fileCont, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}

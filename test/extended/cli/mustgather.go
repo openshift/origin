@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -43,7 +42,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			g.Skip("oc must-gather doesn't currently support external controlPlaneTopology")
 		}
 
-		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
 		o.Expect(oc.Run("adm", "must-gather").Args("--dest-dir", tempDir).Execute()).To(o.Succeed())
@@ -108,7 +107,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			g.Skip("oc must-gather doesn't currently support external controlPlaneTopology")
 		}
 
-		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
 		args := []string{
@@ -172,7 +171,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		}, metav1.CreateOptions{})
 		o.Expect(err2).NotTo(o.HaveOccurred())
 
-		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(tempDir)
 
@@ -310,7 +309,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 					g.Skip("External clusters don't have control plane audit logs")
 				}
 
-				tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+				tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				defer os.RemoveAll(tempDir)
 
@@ -340,7 +339,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 							return nil
 						}
 
-						lockLog, err := ioutil.ReadFile(path)
+						lockLog, err := os.ReadFile(path)
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						// TODO: turn this into a failure as soon as kubelet is fixed

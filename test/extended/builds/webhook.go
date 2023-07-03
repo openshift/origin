@@ -5,7 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 	"net/http"
 	"time"
 
@@ -328,7 +329,7 @@ func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
 
 func postFile(client rest.Interface, headerFunc func(*http.Header), filename, url string, expStatusCode int, t g.GinkgoTInterface, oc *exutil.CLI) []byte {
 	path := exutil.FixturePath("testdata", "builds", "webhook", filename)
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
 	}
@@ -341,7 +342,7 @@ func postFile(client rest.Interface, headerFunc func(*http.Header), filename, ur
 	if err != nil {
 		t.Fatalf("Failed posting webhook: %v", err)
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != expStatusCode {
 		t.Errorf("Wrong response code, expecting %d, got %d: %s!", expStatusCode, resp.StatusCode, string(body))
 	}

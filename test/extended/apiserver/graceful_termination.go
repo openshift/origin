@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -166,7 +165,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 				logReaders[pod.Namespace+"-"+pod.Name] = reader
 			}
 		} else {
-			tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+			tempDir, err := os.MkdirTemp("", "test.oc-adm-must-gather.")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer os.RemoveAll(tempDir)
 			args := []string{"--dest-dir", tempDir, "--", "/usr/bin/gather_audit_logs"}

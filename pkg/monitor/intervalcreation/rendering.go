@@ -3,7 +3,7 @@ package intervalcreation
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -71,7 +71,7 @@ func (r eventIntervalRenderer) writeEventData(artifactDir, filenameBase string, 
 	e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_TITLE_GOES_HERE"), []byte(e2eChartTitle))
 	e2eChartHTML = bytes.ReplaceAll(e2eChartHTML, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
 	e2eChartHTMLPath := filepath.Join(artifactDir, fmt.Sprintf("%s.html", filenameBase))
-	if err := ioutil.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
+	if err := os.WriteFile(e2eChartHTMLPath, e2eChartHTML, 0644); err != nil {
 		errs = append(errs, err)
 	}
 

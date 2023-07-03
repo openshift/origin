@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -218,7 +217,7 @@ func parseResponses(out string) ([]*Response, error) {
 		if res.StatusCode != r.CURL.Code {
 			return nil, fmt.Errorf("response %d returned a different status code than was encoded in the headers:\n%s", i, r.Headers)
 		}
-		res.Body = ioutil.NopCloser(bytes.NewBuffer(r.Body))
+		res.Body = io.NopCloser(bytes.NewBuffer(r.Body))
 		r.Response = res
 
 		responses = append(responses, r)

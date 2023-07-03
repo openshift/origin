@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -72,7 +72,7 @@ func writeDisruptionData(filename string, disruption *BackendDisruptionList) err
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, jsonContent, 0644)
+	return os.WriteFile(filename, jsonContent, 0644)
 }
 
 func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisruptionList {
@@ -161,7 +161,7 @@ func writeClusterData(filename string, clusterData platformidentification.Cluste
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, jsonContent, 0644)
+	return os.WriteFile(filename, jsonContent, 0644)
 }
 
 func CollectClusterData(masterNodeUpdated string) platformidentification.ClusterData {

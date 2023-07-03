@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -101,7 +101,7 @@ func writeJUnitReport(s *junitapi.JUnitTestSuite, filePrefix, fileSuffix, dir st
 	}
 	path := filepath.Join(dir, fmt.Sprintf("%s_%s.xml", filePrefix, fileSuffix))
 	fmt.Fprintf(errOut, "Writing JUnit report to %s\n\n", path)
-	return ioutil.WriteFile(path, test.StripANSI(out), 0640)
+	return os.WriteFile(path, test.StripANSI(out), 0640)
 }
 
 func lastLinesUntil(output string, max int, until ...string) string {

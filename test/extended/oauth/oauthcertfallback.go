@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -51,7 +50,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 		// make a client cert signed by a fake CA with the same name as the real CA.
 		// this is needed to get the go client to actually send the cert to the server,
 		// since the server advertises the signer name it requires
-		fakecadir, err := ioutil.TempDir("", "fakeca")
+		fakecadir, err := os.MkdirTemp("", "fakeca")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.RemoveAll(fakecadir)
 
