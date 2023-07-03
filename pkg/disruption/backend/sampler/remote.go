@@ -51,13 +51,13 @@ var (
 	rbacListOauthClientCRBYaml []byte
 	//go:embed manifests/serviceaccount.yaml
 	serviceAccountYaml []byte
-	//go:embed manifests/daemonset.yaml
-	daemonsetYaml               []byte
-	rbacPrivilegedCRBName       string
-	rbacClusterReaderCRBName    string
-	rbacListOauthClientRoleName string
-	rbacListOauthClientCRBName  string
-	daemonsetName               string
+	//go:embed manifests/ds-internal-lb.yaml
+	dsInternalLBYaml []byte
+	//go:embed manifests/ds-service-network.yaml
+	dsServiceNetworkYaml  []byte
+	rbacPrivilegedCRBName string
+	rbacMonitorRoleName   string
+	rbacMonitorCRBName    string
 )
 
 func TearDownInClusterMonitors(config *rest.Config) error {
@@ -147,7 +147,11 @@ func StartInClusterMonitors(ctx context.Context, config *rest.Config) error {
 	if err != nil {
 		return err
 	}
-	return createDaemonset(ctx, kubeClient, apiIntHost)
+	err = createServiceNetworkDS(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	return createInternalLBDS(ctx, kubeClient, apiIntHost)
 }
 
 func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error {
@@ -165,8 +169,8 @@ func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error 
 
 	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
 		cache.NewListWatchFromClient(
-			kubeClient.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", daemonsetName)),
-		&appsv1.DaemonSet{},
+			kubeClient.CoreV1().RESTClient(), "namespaces", namespace, fields.OneTermEqualSelector("metadata.name", namespace)),
+		&corev1.Namespace{},
 		nil,
 		func(event watch.Event) (bool, error) {
 			return event.Type == watch.Deleted, nil
@@ -195,15 +199,15 @@ func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error 
 	return nil
 }
 
-func createDaemonset(ctx context.Context, clientset *kubernetes.Clientset, apiIntHost string) error {
-	daemonsetObj := resourceread.ReadDaemonSetV1OrDie(daemonsetYaml)
-	daemonsetObj.Namespace = namespace
-	daemonsetObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
+func createInternalLBDS(ctx context.Context, clientset *kubernetes.Clientset, apiIntHost string) error {
+	dsObj := resourceread.ReadDaemonSetV1OrDie(dsInternalLBYaml)
+	dsObj.Namespace = namespace
+	dsObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
 
 	client := clientset.AppsV1().DaemonSets(namespace)
 	var err error
-	_, err = client.Create(ctx, daemonsetObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
+	_, err = client.Create(ctx, dsObj, metav1.CreateOptions{})
+	if err != nil {
 		return fmt.Errorf("error creating daemonset: %v", err)
 	}
 
@@ -212,7 +216,7 @@ func createDaemonset(ctx context.Context, clientset *kubernetes.Clientset, apiIn
 
 	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
 		cache.NewListWatchFromClient(
-			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", daemonsetObj.Name)),
+			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", dsObj.Name)),
 		&appsv1.DaemonSet{},
 		nil,
 		func(event watch.Event) (bool, error) {
@@ -220,9 +224,37 @@ func createDaemonset(ctx context.Context, clientset *kubernetes.Clientset, apiIn
 			return ds.Status.NumberReady > 0, nil
 		},
 	); watchErr != nil {
-		return fmt.Errorf("daemonset %s didn't roll out: %v", daemonsetObj.Name, watchErr)
+		return fmt.Errorf("daemonset %s didn't roll out: %v", dsObj.Name, watchErr)
 	}
-	daemonsetName = daemonsetObj.Name
+	return nil
+}
+
+func createServiceNetworkDS(ctx context.Context, clientset *kubernetes.Clientset) error {
+	dsObj := resourceread.ReadDaemonSetV1OrDie(dsServiceNetworkYaml)
+	dsObj.Namespace = namespace
+
+	client := clientset.AppsV1().DaemonSets(namespace)
+	var err error
+	_, err = client.Create(ctx, dsObj, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("error creating daemonset: %v", err)
+	}
+
+	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
+		cache.NewListWatchFromClient(
+			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", dsObj.Name)),
+		&appsv1.DaemonSet{},
+		nil,
+		func(event watch.Event) (bool, error) {
+			ds := event.Object.(*appsv1.DaemonSet)
+			return ds.Status.NumberReady > 0, nil
+		},
+	); watchErr != nil {
+		return fmt.Errorf("daemonset %s didn't roll out: %v", dsObj.Name, watchErr)
+	}
 	return nil
 }
 
