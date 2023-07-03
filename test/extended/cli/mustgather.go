@@ -30,21 +30,13 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 
 	oc := exutil.NewCLI("oc-adm-must-gather").AsAdmin()
 
-	g.BeforeEach(func() {
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isMicroShift {
-			g.Skip("oc adm must-gather is not supported in MicroShift, skipping")
-		}
-	})
-
 	g.JustBeforeEach(func() {
 		// wait for the default service account to be avaiable
 		err := exutil.WaitForServiceAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()), "default")
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.It("runs successfully", func() {
+	g.It("runs successfully [apigroup:config.openshift.io]", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
@@ -109,7 +101,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		}
 	})
 
-	g.It("runs successfully with options", func() {
+	g.It("runs successfully with options [apigroup:config.openshift.io]", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
@@ -307,7 +299,7 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 		}
 	})
 
-	g.When("looking at the audit logs", func() {
+	g.When("looking at the audit logs [apigroup:config.openshift.io]", func() {
 		g.Describe("[sig-node] kubelet", func() {
 			g.It("runs apiserver processes strictly sequentially in order to not risk audit log corruption", func() {
 				controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
