@@ -52,7 +52,14 @@ func StartAllAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfi
 	if err := startOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(ctx, m, clusterConfig); err != nil {
 		return err
 	}
+	if err := StartAPIMonitoringUsingNewBackend(ctx, m, clusterConfig, lb); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func StartAPIMonitoringUsingNewBackend(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
 	factory := disruptionci.NewDisruptionTestFactory(clusterConfig)
 	if err := startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx, m, factory, lb); err != nil {
 		return err

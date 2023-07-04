@@ -158,7 +158,7 @@ func StartAPIAvailability(ctx context.Context, restConfig *rest.Config, lb backe
 	if err != nil {
 		return nil, err
 	}
-	if err := controlplane.StartAllAPIMonitoring(ctx, m, restConfig, lb); err != nil {
+	if err := controlplane.StartAPIMonitoringUsingNewBackend(ctx, m, restConfig, lb); err != nil {
 		return nil, err
 	}
 
