@@ -1187,6 +1187,8 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have underlying expressions returning values": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have valid labels for all underlying expressions": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should link to a valid URL if the runbook_url annotation is defined": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should link to an HTTP(S) location if the runbook_url annotation is defined": " [Suite:openshift/conformance/parallel]",
