@@ -196,6 +196,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, errParsingSignature(currLine)...)
 		ret = append(ret, failedToDeleteCGroupsPath(nodeLocator, currLine)...)
 		ret = append(ret, anonymousCertConnectionError(nodeLocator, currLine)...)
+		ret = append(ret, leaseUpdateError(nodeLocator, currLine)...)
 	}
 
 	return ret
@@ -456,7 +457,7 @@ func reflectorHttpClientConnectionLostError(logLine string) monitorapi.Intervals
 		return nil
 	}
 
-	return commonErrorInterval(logLine, reflectorOutputRegex, "HttpClientConnectionLost", func() string {
+	return commonErrorInterval(logLine, reflectorOutputRegex, monitorapi.HttpClientConnectionLost, func() string {
 		containerRef := regexToContainerReference(logLine, reflectorRefRegex)
 		return containerRef.ToLocator()
 	})
@@ -474,7 +475,7 @@ func statusHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 		return nil
 	}
 
-	return commonErrorInterval(logLine, nodeOutputRegex, "HttpClientConnectionLost", func() string {
+	return commonErrorInterval(logLine, nodeOutputRegex, monitorapi.HttpClientConnectionLost, func() string {
 		containerRef := regexToContainerReference(logLine, statusRefRegex)
 		return containerRef.ToLocator()
 	})
@@ -513,6 +514,61 @@ func anonymousCertConnectionError(nodeLocator, logLine string) monitorapi.Interv
 				Level:   monitorapi.Error,
 				Locator: nodeLocator,
 				Message: monitorapi.Message().Reason("FailedToAuthenticateWithOpenShiftUser").Message(logLine),
+			},
+			From: failureTime,
+			To:   failureTime.Add(1 * time.Second),
+		},
+	}
+}
+
+// lower 'f'ailed and 'error'
+var failedLeaseUpdateErrorRegex = regexp.MustCompile(`failed to update lease, error: Put \"(?P<URL>[a-z0-9.-:\/\-\?\=]+)\": (?P<MSG>[^\"]+)`)
+
+// upper 'F'ailed and 'err'
+var failedLeaseUpdateErrRegex = regexp.MustCompile(`Failed to update lease\" err\=\"Put \\\"(?P<URL>[a-z0-9.-:\/\-\?\=]+)\\\": (?P<MSG>[^\"]+)`)
+
+func leaseUpdateError(nodeLocator, logLine string) monitorapi.Intervals {
+
+	// Two cases, one upper F the other lower so substring match without the leading f
+	if !strings.Contains(logLine, "ailed to update lease") {
+		return nil
+	}
+
+	failureTime := systemdJournalLogTime(logLine)
+	url := ""
+	msg := ""
+
+	subMatches := failedLeaseUpdateErrorRegex.FindStringSubmatch(logLine)
+	subNames := failedLeaseUpdateErrorRegex.SubexpNames()
+
+	if len(subMatches) == 0 {
+		subMatches = failedLeaseUpdateErrRegex.FindStringSubmatch(logLine)
+		subNames = failedLeaseUpdateErrRegex.SubexpNames()
+	}
+
+	if len(subNames) > len(subMatches) {
+		return nil
+	}
+
+	for i, name := range subNames {
+		switch name {
+		case "URL":
+			url = subMatches[i]
+		case "MSG":
+			msg = subMatches[i]
+		}
+	}
+
+	if len(url) == 0 && len(msg) == 0 {
+		return nil
+	}
+
+	return monitorapi.Intervals{
+		{
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: nodeLocator,
+				Message: monitorapi.Message().Reason("FailedToUpdateLease").Message(fmt.Sprintf("%s - %s", url, msg)),
 			},
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),

@@ -100,6 +100,45 @@ func testHttpConnectionLost(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 	return []*junitapi.JUnitTestCase{failure, success}
 }
 
+func testLeaseUpdateError(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] kubelet logs do not contain late lease update errors"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	var firstEventTime time.Time
+
+	for _, event := range events {
+
+		if firstEventTime.IsZero() {
+			firstEventTime = event.From
+			continue
+		}
+
+		if strings.Contains(event.Message, "FailedToUpdateLease") {
+			// start with a 30 minute grace period as we do see some FailedToUpdateLease errors
+			// under normal conditions, it is the late ones that indicate a node may have go unready unexpectedly
+			// if we get false hits we can increase the grace period
+			if event.From.After(firstEventTime.Add(30 * time.Minute)) {
+				failures = append(failures, fmt.Sprintf("%s %v - %v", event.From.Format(time.RFC3339), event.Locator, event.Message))
+			}
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("%d late updating lease errors contained in kubelet logs.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+	// TODO: marked flaky until we have monitored it for consistency
+	return []*junitapi.JUnitTestCase{failure, success}
+}
+
 func testAnonymousCertConnectionFailure(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] kubelet should not use an anonymous user"
 
