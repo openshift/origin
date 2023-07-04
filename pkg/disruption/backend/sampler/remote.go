@@ -155,13 +155,11 @@ func StartInClusterMonitors(ctx context.Context, config *rest.Config) error {
 }
 
 func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error {
-	nsClient := kubeClient.CoreV1().Namespaces()
-	err := nsClient.Delete(ctx, namespace, metav1.DeleteOptions{})
-	if apierrors.IsNotFound(err) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("error removing namespace %s: %v", namespace, err)
+	// Remove daemonsets first to avoid trailing false-positive disruption intervals
+	dsClient := kubeClient.AppsV1().DaemonSets(namespace)
+	err := dsClient.DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing daemonsets in namespace %s: %v", namespace, err)
 	}
 
 	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -169,14 +167,20 @@ func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error 
 
 	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
 		cache.NewListWatchFromClient(
-			kubeClient.CoreV1().RESTClient(), "namespaces", namespace, fields.OneTermEqualSelector("metadata.name", namespace)),
-		&corev1.Namespace{},
+			kubeClient.AppsV1().RESTClient(), "daemonsets", namespace, fields.Everything()),
+		&appsv1.DaemonSet{},
 		nil,
 		func(event watch.Event) (bool, error) {
 			return event.Type == watch.Deleted, nil
 		},
 	); watchErr != nil {
-		return fmt.Errorf("namespace %s didn't get destroyed: %v", namespace, watchErr)
+		return fmt.Errorf("daemonsets in namespace %s didn't get destroyed: %v", namespace, watchErr)
+	}
+
+	nsClient := kubeClient.CoreV1().Namespaces()
+	err = nsClient.Delete(ctx, namespace, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing namespace %s: %v", namespace, err)
 	}
 
 	crbClient := kubeClient.RbacV1().ClusterRoleBindings()
