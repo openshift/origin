@@ -193,10 +193,28 @@ func RunQuery(ctx context.Context, prometheusClient prometheusv1.API, query stri
 }
 
 func RunQueryAtTime(ctx context.Context, prometheusClient prometheusv1.API, query string, evaluationTime time.Time) (*PrometheusResponse, error) {
-	result, warnings, err := prometheusClient.Query(ctx, query, evaluationTime)
-	if err != nil {
-		return nil, err
+	var lastErr error
+	var result model.Value
+	var warnings prometheusv1.Warnings
+	for i := 0; i < 5; i++ {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		result, warnings, lastErr = prometheusClient.Query(ctx, query, evaluationTime)
+		if lastErr == nil {
+			break
+		}
+
+		select {
+		case <-time.After(10 * time.Second):
+		case <-ctx.Done():
+			break
+		}
 	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+
 	if len(warnings) > 0 {
 		framework.Logf("#### warnings \n\t%v\n", strings.Join(warnings, "\n\t"))
 	}
