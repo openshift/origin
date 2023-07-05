@@ -11,6 +11,7 @@ import (
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/pborman/uuid"
@@ -149,6 +150,30 @@ var _ = g.Describe("[sig-arch][Feature:ClusterUpgrade]", func() {
 		client := configv1client.NewForConfigOrDie(config)
 		err = checkUpgradeability(client)
 		framework.ExpectNoError(err)
+	})
+
+	g.It("All nodes should be in ready state [Early][Suite:upgrade]", func() {
+		config, err := framework.LoadConfig()
+		framework.ExpectNoError(err)
+		client := kubernetes.NewForConfigOrDie(config)
+		nodeList, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var errMsgs []string
+		for _, node := range nodeList.Items {
+			for _, condition := range node.Status.Conditions {
+				if condition.Type == v1.NodeReady && condition.Status != v1.ConditionTrue {
+					err := fmt.Errorf("node/%s ready state is not true, status: %v, reason: %s", node.Name, condition.Status, condition.Reason)
+					framework.Logf("Error: %v", err)
+					errMsgs = append(errMsgs, err.Error())
+				}
+			}
+		}
+
+		if len(errMsgs) > 0 {
+			combinedErr := fmt.Errorf(strings.Join(errMsgs, "; "))
+			o.Expect(combinedErr).NotTo(o.HaveOccurred())
+		}
 	})
 
 	g.It("Cluster should remain functional during upgrade [Disruptive]", func() {
