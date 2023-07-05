@@ -6,14 +6,14 @@ import (
 )
 
 // Early upgrade cycle tests
-var _ = g.Describe("[sig-node][Disruptive][Feature:ClusterUpgrade] Openshift running on RT Kernel", func() {
+var _ = g.Describe("[sig-node][Disruptive][Feature:ClusterUpgrade]", func() {
 	defer g.GinkgoRecover()
 
 	var (
 		oc = exutil.NewCLI(rtNamespace).AsAdmin()
 	)
 
-	g.Context("prior to upgrade", g.Ordered, func() {
+	g.Context("[Early] Openshift running on RT Kernel prior to upgrade", g.Ordered, func() {
 		g.BeforeAll(func() {
 			skipIfNotRT(oc)
 			configureRealtimeTestEnvironment(oc)
@@ -23,15 +23,15 @@ var _ = g.Describe("[sig-node][Disruptive][Feature:ClusterUpgrade] Openshift run
 			startRtTestPod(oc)
 		})
 
-		g.It("should allow pi_stress to run successfully with the fifo algorithm [Early]", func() {
+		g.It("should allow pi_stress to run successfully with the fifo algorithm", func() {
 			runPiStressFifo(oc)
 		})
 
-		g.It("should allow pi_stress to run successfully with the round robin algorithm [Early]", func() {
+		g.It("should allow pi_stress to run successfully with the round robin algorithm", func() {
 			runPiStressRR(oc)
 		})
 
-		g.It("should allow deadline_test to run successfully [Early]", func() {
+		g.It("should allow deadline_test to run successfully", func() {
 			runDeadlineTest(oc)
 		})
 
@@ -44,7 +44,7 @@ var _ = g.Describe("[sig-node][Disruptive][Feature:ClusterUpgrade] Openshift run
 		})
 	})
 
-	g.Context("after upgrade", g.Ordered, func() {
+	g.Context("[Late] Openshift running on RT Kernel after upgrade", g.Ordered, func() {
 		g.BeforeAll(func() {
 			skipIfNotRT(oc)
 			configureRealtimeTestEnvironment(oc)
@@ -54,15 +54,15 @@ var _ = g.Describe("[sig-node][Disruptive][Feature:ClusterUpgrade] Openshift run
 			startRtTestPod(oc)
 		})
 
-		g.It("should allow pi_stress to run successfully with the fifo algorithm [Late]", func() {
+		g.It("should allow pi_stress to run successfully with the fifo algorithm", func() {
 			runPiStressFifo(oc)
 		})
 
-		g.It("should allow pi_stress to run successfully with the round robin algorithm [Late]", func() {
+		g.It("should allow pi_stress to run successfully with the round robin algorithm", func() {
 			runPiStressRR(oc)
 		})
 
-		g.It("should allow deadline_test to run successfully [Late]", func() {
+		g.It("should allow deadline_test to run successfully", func() {
 			runDeadlineTest(oc)
 		})
 
