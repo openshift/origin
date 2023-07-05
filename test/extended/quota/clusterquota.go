@@ -273,9 +273,11 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 })
 
 func waitForQuotaLabeling(clusterAdminClient quotaclient.Interface, namespaceName string) error {
-	return utilwait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
+	// timeout is increased due to https://issues.redhat.com//browse/OCPBUGS-15568
+	return utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
 		list, err := clusterAdminClient.QuotaV1().AppliedClusterResourceQuotas(namespaceName).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
+			framework.Logf("unexpected err during cluster quota listing: %v", err)
 			return false, nil
 		}
 		if len(list.Items) > 0 && len(list.Items[0].Status.Total.Hard) > 0 {
