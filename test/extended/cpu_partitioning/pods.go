@@ -13,7 +13,39 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
+
+// When using the workload partitioning feature ( which allows cluster admins to limit the number of CPUs the platform pods have access to ),
+// with BestEffort Pods, the probability of CPU time contention goes up and resource.requests become more important for platform pods.
+// It is strongly recommended that for everything but your least important pods you should supply adequate resource.requests,
+// otherwise you might be in scenarios where your pod might be starved for CPU time since BestEffort pods get a default of 2 CPU Shares.
+// In other words under a highly utilized CPU in a CPU pinned cluster would mean your pod would only get 2/1024 * 100 = ~0.19% CPU time.
+//
+// Please be sure to verify that the deployment can function normally if these pods don't get a chance to complete their work.
+//
+// The below exclude lists are used to skip resource checks on these objects.
+// the map is string(<resource-name>):[]string(<resource-namespace-substring>).
+// Any pod resource that matches the name in the map and the substring of the namespace in the array is skipped.
+var (
+	excludedBestEffortDeployments = map[string][]string{
+		"egress-router-cni-deployment": {"openshift-multus"},
+	}
+	excludedBestEffortDaemonSets = map[string][]string{
+		"cni-sysctl-allowlist-ds": {"egress-router-cni-e2e"},
+	}
+)
+
+func isExcluded(list map[string][]string, namespace, name string) bool {
+	if value, ok := list[name]; ok {
+		for _, subStringNamespace := range value {
+			if strings.Contains(namespace, subStringNamespace) {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster platform workloads", func() {
 	defer g.GinkgoRecover()
@@ -46,6 +78,13 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 
 		for _, deployment := range deployments.Items {
 			if _, ok := deployment.Spec.Template.Annotations[workloadAnnotations]; ok {
+
+				// If we find a deployment that is to be excluded from resource checks, we skip looking for their pods.
+				// Note: annotation check is still performed prior to this skip.
+				if isExcluded(excludedBestEffortDeployments, deployment.Namespace, deployment.Name) {
+					framework.Logf("skipping resource check on deployment (%s/%s) due to presence in BestEffort exclude list", deployment.Namespace, deployment.Name)
+					continue
+				}
 
 				pods, err := oc.KubeClient().CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(deployment.Spec.Template.Labels).String(),
@@ -85,6 +124,13 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 
 		for _, daemonset := range daemonsets.Items {
 			if _, ok := daemonset.Spec.Template.Annotations[workloadAnnotations]; ok {
+
+				// If we find a daemonset that is to be excluded from resource checks, we skip looking for their pods.
+				// Note: annotation check is still performed prior to this skip.
+				if isExcluded(excludedBestEffortDaemonSets, daemonset.Namespace, daemonset.Name) {
+					framework.Logf("skipping resource check on daemonset (%s/%s) due to presence in BestEffort exclude list", daemonset.Namespace, daemonset.Name)
+					continue
+				}
 
 				pods, err := oc.KubeClient().CoreV1().Pods(daemonset.Namespace).List(ctx, metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(daemonset.Spec.Template.Labels).String(),
