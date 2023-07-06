@@ -28,7 +28,7 @@ func skipIfNotRT(oc *exutil.CLI) {
 	o.Expect(err).NotTo(o.HaveOccurred(), "unable to retrieve realtime worker nodes")
 
 	if len(rtNodes) == 0 {
-		g.Skip("Skipping due to lack of Realtime Nodes")
+		g.Skip("These tests are only expected to run on nodes running a realtime kernel")
 	}
 }
 
