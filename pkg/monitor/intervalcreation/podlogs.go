@@ -124,7 +124,11 @@ func IntervalsFromPodLogs(kubeClient kubernetes.Interface, beginning, end time.T
 			logger.Infof("fetching logs between %s and %s", beginning.Format(time.RFC3339), end.Format(time.RFC3339))
 			reader, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: g.container}).Stream(context.Background())
 			if err != nil {
+
+				// If there's trouble getting logs, the intervals will be missing.  During troubleshooting,
+				// error information (including the pod name) will be in this message.
 				logger.WithError(err).Error("error reading pod logs")
+				continue
 			}
 			scan := bufio.NewScanner(reader)
 			for scan.Scan() {
