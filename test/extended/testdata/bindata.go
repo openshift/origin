@@ -2895,52 +2895,6 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "referencePolicy": {
               "type": "Local"
             }
-          },
-          {
-            "name": "3.1-el7",
-            "annotations": {
-              "description": "Build and run .NET Core 3.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/3.1/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET Core 3.1 (CentOS 7)",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-3.1",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
-              "supports": "dotnet:3.1,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet31",
-              "version": "3.1"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/dotnet/dotnet-31-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "3.1",
-            "annotations": {
-              "description": "Build and run .NET Core 3.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/3.1/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET Core 3.1 (CentOS 7)",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-3.1",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex",
-              "supports": "dotnet:3.1,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet31,hidden",
-              "version": "3.1"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/dotnet/dotnet-31-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
           }
         ]
       },
@@ -33039,76 +32993,6 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
   "kind": "List",
   "apiVersion": "v1",
   "items": [
-    {
-      "apiVersion": "image.openshift.io/v1",
-      "kind": "ImageStream",
-      "metadata": {
-        "annotations": {
-          "openshift.io/display-name": ".NET Core"
-        },
-        "name": "dotnet"
-      },
-      "spec": {
-        "tags": [
-          {
-            "annotations": {
-              "description": "Build and run .NET Core applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET Core (Latest)",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-3.1",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
-              "supports": "dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore"
-            },
-            "from": {
-              "kind": "ImageStreamTag",
-              "name": "3.1"
-            },
-            "name": "latest",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
-              "description": "Build and run .NET Core 2.2 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/blob/master/2.2/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET Core 2.2",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-2.2",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
-              "supports": "dotnet:2.2,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet21",
-              "version": "2.2"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/dotnet/dotnet-22-centos7:latest"
-            },
-            "name": "2.2"
-          },
-          {
-            "annotations": {
-              "description": "Build and run .NET Core 3.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/blob/master/3.1/build/README.md.",
-              "iconClass": "icon-dotnet",
-              "openshift.io/display-name": ".NET Core 3.1",
-              "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-3.1",
-              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
-              "supports": "dotnet:3.1,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet21",
-              "version": "3.1"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.centos.org/dotnet/dotnet-31-centos7:latest"
-            },
-            "name": "3.1"
-          }
-        ]
-      }
-    },
     {
       "apiVersion": "image.openshift.io/v1",
       "kind": "ImageStream",
