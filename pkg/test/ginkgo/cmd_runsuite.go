@@ -138,7 +138,7 @@ func max(a, b int) int {
 	return b
 }
 
-func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
+func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) error {
 	ctx := context.Background()
 
 	if len(opt.Regex) > 0 {
@@ -536,7 +536,11 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string) error {
 		currResState := opt.MonitorEventsOptions.GetRecordedResources()
 		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
-		syntheticTestResults = append(syntheticTestResults, fallbackSyntheticTestResult...)
+		if !upgrade {
+			// the current mechanism for external binaries does not support upgrade
+			// tests, so don't report information there at all
+			syntheticTestResults = append(syntheticTestResults, fallbackSyntheticTestResult...)
+		}
 
 		if len(syntheticTestResults) > 0 {
 			// mark any failures by name
