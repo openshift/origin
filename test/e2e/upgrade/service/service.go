@@ -168,11 +168,12 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 		rc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Path = "/readyz"
 
 		// delay shutdown long enough to go readyz=false before the process exits when the pod is deleted.
-		rc.Spec.Template.Spec.Containers[0].Args = append(rc.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=45")
+		// 80 second delay was found to not show disruption in testing
+		rc.Spec.Template.Spec.Containers[0].Args = append(rc.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=80")
 
 		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
-		minute := int64(60)
-		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minute
+		minuteAndAHalf := int64(90)
+		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minuteAndAHalf
 
 		jig.AddRCAntiAffinity(rc)
 	})
