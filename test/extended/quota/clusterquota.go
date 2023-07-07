@@ -41,8 +41,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			clusterAdminDynamicClient := oc.AdminDynamicClient()
 
 			labelSelectorKey := "foo-" + oc.Namespace()
+			cqName := "overall-" + oc.Namespace()
 			cq := &quotav1.ClusterResourceQuota{
-				ObjectMeta: metav1.ObjectMeta{Name: "overall-" + oc.Namespace()},
+				ObjectMeta: metav1.ObjectMeta{Name: cqName},
 				Spec: quotav1.ClusterResourceQuotaSpec{
 					Selector: quotav1.ClusterResourceQuotaSelector{
 						LabelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{labelSelectorKey: "bar"}},
@@ -103,10 +104,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			if err := labelNamespace(clusterAdminKubeClient.CoreV1(), labelSelectorKey, secondProjectName); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if err := waitForQuotaLabeling(clusterAdminQuotaClient, firstProjectName); err != nil {
+			if err := waitForQuotaLabeling(clusterAdminQuotaClient, firstProjectName, cqName); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if err := waitForQuotaLabeling(clusterAdminQuotaClient, secondProjectName); err != nil {
+			if err := waitForQuotaLabeling(clusterAdminQuotaClient, secondProjectName, cqName); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := waitForQuotaStatus(clusterAdminQuotaClient, cq.Name, func(quota *quotav1.ClusterResourceQuota) error {
@@ -117,7 +118,6 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			}); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-
 			configmap := &corev1.ConfigMap{}
 			configmap.GenerateName = "test"
 			if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps(firstProjectName).Create(context.Background(), configmap, metav1.CreateOptions{}); err != nil {
@@ -272,7 +272,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 	})
 })
 
-func waitForQuotaLabeling(clusterAdminClient quotaclient.Interface, namespaceName string) error {
+func waitForQuotaLabeling(clusterAdminClient quotaclient.Interface, namespaceName, cqName string) error {
 	// timeout is increased due to https://issues.redhat.com//browse/OCPBUGS-15568
 	return utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
 		list, err := clusterAdminClient.QuotaV1().AppliedClusterResourceQuotas(namespaceName).List(context.Background(), metav1.ListOptions{})
@@ -283,6 +283,14 @@ func waitForQuotaLabeling(clusterAdminClient quotaclient.Interface, namespaceNam
 		if len(list.Items) > 0 && len(list.Items[0].Status.Total.Hard) > 0 {
 			return true, nil
 		}
+		currentCQ, err := clusterAdminClient.QuotaV1().ClusterResourceQuotas().Get(context.Background(), cqName, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("unexpected err during cluster quota %s retrieval: %v", cqName, err)
+		}
+		if currentCQ != nil {
+			framework.Logf("latest status of cluster quota %s is %#v", cqName, currentCQ)
+		}
+
 		return false, nil
 	})
 }
