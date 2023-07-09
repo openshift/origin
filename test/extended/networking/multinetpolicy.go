@@ -13,6 +13,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 
@@ -32,6 +33,8 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial]", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("multinetpol-e2e", admissionapi.LevelBaseline)
 	f := oc.KubeFramework()
 
+	// Ensure that MultiNetPolicy stays in the same enabled/disabled state
+	// after the test, that it was in before the test
 	var previousUseMultiNetworkPolicy bool
 	g.BeforeEach(func() {
 		previousUseMultiNetworkPolicy = isMultinetNetworkPolicyEnabled(oc)
@@ -124,15 +127,22 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial]", func() {
 
 })
 
-func enableMultiNetworkPolicy(oc *exutil.CLI) {
-	c := oc.AdminOperatorClient().OperatorV1().Networks()
-	config := getCluserNetwork(c)
+func setUseMultiNetworkPolicy(oc *exutil.CLI, enabled bool) {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		c := oc.AdminOperatorClient().OperatorV1().Networks()
+		config := getCluserNetwork(c)
 
-	b := true
-	config.Spec.UseMultiNetworkPolicy = &b
+		b := enabled
+		config.Spec.UseMultiNetworkPolicy = &b
 
-	_, err := c.Update(context.Background(), config, metav1.UpdateOptions{})
+		_, updateErr := c.Update(context.Background(), config, metav1.UpdateOptions{})
+		return updateErr
+	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+func enableMultiNetworkPolicy(oc *exutil.CLI) {
+	setUseMultiNetworkPolicy(oc, true)
 
 	o.Eventually(func() error {
 		return oc.AsAdmin().Run("get").Args("multi-networkpolicies.k8s.cni.cncf.io").Execute()
@@ -155,14 +165,7 @@ func enableMultiNetworkPolicy(oc *exutil.CLI) {
 }
 
 func disableMultiNetworkPolicy(oc *exutil.CLI) {
-	c := oc.AdminOperatorClient().OperatorV1().Networks()
-	config := getCluserNetwork(c)
-
-	b := false
-	config.Spec.UseMultiNetworkPolicy = &b
-
-	_, err := c.Update(context.Background(), config, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	setUseMultiNetworkPolicy(oc, false)
 
 	o.Eventually(func() error {
 		return oc.AsAdmin().Run("get").Args("multi-networkpolicies.k8s.cni.cncf.io").Execute()
