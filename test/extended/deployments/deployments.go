@@ -483,9 +483,9 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
 			g.By("verifying the deployer service account can update imagestreamtags and user can get them")
-			err = exutil.WaitForUserBeAuthorized(oc, oc.Username(), &authorizationv1.ResourceAttributes{Namespace: oc.Namespace(), Verb: "get", Resource: "imagestreamtags"})
+			err = exutil.WaitForUserBeAuthorized(oc, oc.Username(), &authorizationv1.ResourceAttributes{Namespace: oc.Namespace(), Group: "image.openshift.io", Verb: "get", Resource: "imagestreamtags"})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":deployer", &authorizationv1.ResourceAttributes{Namespace: oc.Namespace(), Verb: "update", Resource: "imagestreamtags"})
+			err = exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":deployer", &authorizationv1.ResourceAttributes{Namespace: oc.Namespace(), Group: "image.openshift.io", Verb: "update", Resource: "imagestreamtags"})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the post deployment action happened: tag is set")
