@@ -631,13 +631,13 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc adm images [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc adm must-gather runs successfully [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc adm must-gather runs successfully for audit logs [apigroup:config.openshift.io][apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm must-gather runs successfully with options": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm must-gather runs successfully with options [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc adm must-gather runs successfully": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-cli] oc adm must-gather when looking at the audit logs [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": " [Suite:openshift/conformance/parallel]",
+	"[sig-cli] oc adm must-gather when looking at the audit logs [apigroup:config.openshift.io] [sig-node] kubelet runs apiserver processes strictly sequentially in order to not risk audit log corruption": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm new-project [apigroup:project.openshift.io][apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
