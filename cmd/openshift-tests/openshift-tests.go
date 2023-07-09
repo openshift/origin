@@ -327,7 +327,7 @@ func newRunCommand() *cobra.Command {
 				if !opt.DryRun {
 					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 				}
-				err = opt.Run(&suite.TestSuite, "openshift-tests")
+				err = opt.Run(&suite.TestSuite, "openshift-tests", false)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
 				}
@@ -393,7 +393,7 @@ func newRunUpgradeCommand() *cobra.Command {
 				if !opt.DryRun {
 					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 				}
-				err = opt.Run(&suite.TestSuite, "openshift-tests-upgrade")
+				err = opt.Run(&suite.TestSuite, "openshift-tests-upgrade", true)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
 				}

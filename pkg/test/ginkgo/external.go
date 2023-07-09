@@ -38,7 +38,7 @@ func externalTestsForSuite(ctx context.Context) ([]*testCase, error) {
 	command := exec.Command(testBinary, "list")
 	testList, err := runWithTimeout(ctx, command, 1*time.Minute)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed running '%s list': %w", testBinary, err)
 	}
 	buf := bytes.NewBuffer(testList)
 	for {
@@ -70,13 +70,13 @@ func externalTestsForSuite(ctx context.Context) ([]*testCase, error) {
 func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 	tmpDir, err := os.MkdirTemp("", "release")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot create temporary directory for extracted binary: %w", err)
 	}
 
 	oc := util.NewCLIWithoutNamespace("default")
 	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed reading ClusterVersion/version: %w", err)
 	}
 	releaseImage := cv.Status.Desired.Image
 	if len(releaseImage) == 0 {
@@ -84,16 +84,16 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 	}
 
 	if err := runImageExtract(releaseImage, "/release-manifests/image-references", tmpDir); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed extracting image-references: %w", err)
 	}
 	jsonFile, err := os.Open(filepath.Join(tmpDir, "image-references"))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed reading image-references: %w", err)
 	}
 	defer jsonFile.Close()
 	data, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to load release image-references: %w", err)
 	}
 	is := &imagev1.ImageStream{}
 	if err := json.Unmarshal(data, &is); err != nil {
@@ -114,12 +114,12 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 		return "", fmt.Errorf("%s not found", tag)
 	}
 	if err := runImageExtract(image, binary, tmpDir); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed extracting %q from %q: %w", binary, image, err)
 	}
 
 	extractedBinary := filepath.Join(tmpDir, filepath.Base(binary))
 	if err := os.Chmod(extractedBinary, 0755); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed making the extracted binary executable: %w", err)
 	}
 	return extractedBinary, nil
 }
