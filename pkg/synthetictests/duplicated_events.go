@@ -139,7 +139,7 @@ func appendToFirstLine(s string, add string) string {
 func getJUnitName(testName string, namespace string) string {
 	jUnitName := testName
 	if namespace != "" {
-		jUnitName = jUnitName + " for namespace " + namespace
+		jUnitName = jUnitName + " for ns/" + namespace
 	}
 	return jUnitName
 }
