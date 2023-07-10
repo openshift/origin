@@ -475,7 +475,7 @@ var (
 )
 
 func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
-	isMicroShift, err := exutil.IsMicroShiftCluster(oc)
+	isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if isMicroShift {
 		return microshiftCRDTypes
