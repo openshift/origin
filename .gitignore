@@ -29,4 +29,3 @@ vendor/github.com/prometheus/procfs/fixtures/26231/exe
 
 # Ignore generated binary
 /openshift-tests
-/disruption

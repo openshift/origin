@@ -147,8 +147,7 @@ const (
 	AnnotationPodPhase          AnnotationKey = "phase"
 	AnnotationIsStaticPod       AnnotationKey = "mirrored"
 	// TODO this looks wrong. seems like it ought to be set in the to/from
-	AnnotationDuration       AnnotationKey = "duration"
-	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
+	AnnotationDuration AnnotationKey = "duration"
 )
 
 type MessageBuilder struct {
