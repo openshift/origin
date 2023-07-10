@@ -54,7 +54,9 @@ var (
 	//go:embed manifests/ds-internal-lb.yaml
 	dsInternalLBYaml []byte
 	//go:embed manifests/ds-service-network.yaml
-	dsServiceNetworkYaml  []byte
+	dsServiceNetworkYaml []byte
+	//go:embed manifests/ds-localhost.yaml
+	dsLocalhostYaml       []byte
 	rbacPrivilegedCRBName string
 	rbacMonitorRoleName   string
 	rbacMonitorCRBName    string
@@ -151,6 +153,10 @@ func StartInClusterMonitors(ctx context.Context, config *rest.Config) error {
 	if err != nil {
 		return err
 	}
+	err = createLocalhostDS(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
 	return createInternalLBDS(ctx, kubeClient, apiIntHost)
 }
 
@@ -235,6 +241,35 @@ func createInternalLBDS(ctx context.Context, clientset *kubernetes.Clientset, ap
 
 func createServiceNetworkDS(ctx context.Context, clientset *kubernetes.Clientset) error {
 	dsObj := resourceread.ReadDaemonSetV1OrDie(dsServiceNetworkYaml)
+	dsObj.Namespace = namespace
+
+	client := clientset.AppsV1().DaemonSets(namespace)
+	var err error
+	_, err = client.Create(ctx, dsObj, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("error creating daemonset: %v", err)
+	}
+
+	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
+		cache.NewListWatchFromClient(
+			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", dsObj.Name)),
+		&appsv1.DaemonSet{},
+		nil,
+		func(event watch.Event) (bool, error) {
+			ds := event.Object.(*appsv1.DaemonSet)
+			return ds.Status.NumberReady > 0, nil
+		},
+	); watchErr != nil {
+		return fmt.Errorf("daemonset %s didn't roll out: %v", dsObj.Name, watchErr)
+	}
+	return nil
+}
+
+func createLocalhostDS(ctx context.Context, clientset *kubernetes.Clientset) error {
+	dsObj := resourceread.ReadDaemonSetV1OrDie(dsLocalhostYaml)
 	dsObj.Namespace = namespace
 
 	client := clientset.AppsV1().DaemonSets(namespace)

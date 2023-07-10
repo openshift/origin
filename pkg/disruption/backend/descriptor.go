@@ -17,6 +17,7 @@ const (
 	ExternalLoadBalancerType LoadBalancerType = "external-lb"
 	InternalLoadBalancerType LoadBalancerType = "internal-lb"
 	ServiceNetworkType       LoadBalancerType = "service-network"
+	LocalhostType            LoadBalancerType = "localhost"
 )
 
 func ParseStringToLoadBalancerType(input string) LoadBalancerType {
@@ -27,6 +28,8 @@ func ParseStringToLoadBalancerType(input string) LoadBalancerType {
 		return InternalLoadBalancerType
 	case "external-lb":
 		return ExternalLoadBalancerType
+	case "localhost":
+		return LocalhostType
 	default:
 		return ExternalLoadBalancerType
 	}
