@@ -71,6 +71,7 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 func isPlatformExternal(platformType configv1.PlatformType) bool {
 	switch platformType {
 	case configv1.AWSPlatformType,
+		configv1.AzurePlatformType,
 		configv1.OpenStackPlatformType,
 		configv1.VSpherePlatformType:
 		return true
