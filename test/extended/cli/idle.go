@@ -31,7 +31,6 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		idleSVCRoute         = filepath.Join(cmdTestData, "idling-svc-route.yaml")
 		idleDeploymentConfig = filepath.Join(cmdTestData, "idling-dc.yaml")
 		idledTemplate        = fmt.Sprintf("--template={{index .metadata.annotations \"%s\"}}", idledAnnotation)
-		prevScaleTemplate    = fmt.Sprintf("--template={{index .metadata.annotations \"%s\"}}", prevScaleAnnotation)
 	)
 
 	var deploymentConfigName, expectedOutput string
@@ -147,8 +146,12 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))
 
-		out, err = oc.Run("get").Args("dc", deploymentConfigName, prevScaleTemplate, "--output=go-template").Output()
+		projectName, err := oc.Run("project").Args("-q").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		dcObj, err := oc.AdminAppsClient().AppsV1().DeploymentConfigs(projectName).Get(context.TODO(), deploymentConfigName, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		out = dcObj.Annotations[prevScaleAnnotation]
 		o.Expect(out).To(o.Equal(scaledReplicaCount))
 	})
 })
