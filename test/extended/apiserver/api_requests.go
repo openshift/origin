@@ -110,7 +110,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			configv1.AWSPlatformType: {
 				"authentication-operator":                519,
 				"aws-ebs-csi-driver-operator":            199.0,
-				"cloud-credential-operator":              146.0,
+				"cloud-credential-operator":              176.0,
 				"cluster-autoscaler-operator":            132.0,
 				"cluster-baremetal-operator":             119.0,
 				"cluster-capi-operator":                  50.0,
@@ -140,7 +140,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			configv1.AzurePlatformType: {
 				"authentication-operator":                527.0,
 				"azure-disk-csi-driver-operator":         170.0,
-				"cloud-credential-operator":              99.0,
+				"cloud-credential-operator":              129.0,
 				"cluster-autoscaler-operator":            100.0,
 				"cluster-baremetal-operator":             90.0,
 				"cluster-capi-operator":                  50.0,
@@ -169,7 +169,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			},
 			configv1.GCPPlatformType: {
 				"authentication-operator":                349,
-				"cloud-credential-operator":              48.0,
+				"cloud-credential-operator":              78.0,
 				"cluster-autoscaler-operator":            54.0,
 				"cluster-baremetal-operator":             44.0,
 				"cluster-capi-operator":                  50.0,
@@ -199,7 +199,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			},
 			configv1.BareMetalPlatformType: {
 				"authentication-operator":                424.0,
-				"cloud-credential-operator":              52.0,
+				"cloud-credential-operator":              82.0,
 				"cluster-autoscaler-operator":            72.0,
 				"cluster-baremetal-operator":             86.0,
 				"cluster-image-registry-operator":        160.0,
@@ -227,7 +227,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			},
 			configv1.VSpherePlatformType: {
 				"authentication-operator":                311.0,
-				"cloud-credential-operator":              41.0,
+				"cloud-credential-operator":              71.0,
 				"cluster-autoscaler-operator":            49.0,
 				"cluster-baremetal-operator":             39.0,
 				"cluster-image-registry-operator":        106.0,
@@ -257,7 +257,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			},
 			configv1.OpenStackPlatformType: {
 				"authentication-operator":                309,
-				"cloud-credential-operator":              40.0,
+				"cloud-credential-operator":              70.0,
 				"cluster-autoscaler-operator":            53.0,
 				"cluster-baremetal-operator":             42.0,
 				"cluster-image-registry-operator":        112,
@@ -291,7 +291,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			configv1.AWSPlatformType: {
 				"authentication-operator":                308,
 				"aws-ebs-csi-driver-operator":            142,
-				"cloud-credential-operator":              64,
+				"cloud-credential-operator":              94,
 				"cluster-autoscaler-operator":            44,
 				"cluster-baremetal-operator":             40,
 				"cluster-image-registry-operator":        119,
