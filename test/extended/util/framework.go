@@ -2071,17 +2071,25 @@ func IsTechPreviewNoUpgrade(oc *CLI) bool {
 
 // DoesApiResourceExist searches the list of ApiResources and returns "true" if a given
 // apiResourceName Exists. Valid search strings are for example "cloudprivateipconfigs" or "machines".
-func DoesApiResourceExist(config *rest.Config, apiResourceName, groupVersionName string) (bool, error) {
+func DoesApiResourceExist(config *rest.Config, apiResourceName, group string) (bool, error) {
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {
 		return false, err
 	}
 	_, allResourceList, err := discoveryClient.ServerGroupsAndResources()
-	if err != nil {
+	var groupFailed *discovery.ErrGroupDiscoveryFailed
+	if errors.As(err, &groupFailed) {
+		for gv, err := range groupFailed.Groups {
+			if gv.Group == group {
+				return false, err
+			}
+		}
+	} else if err != nil {
 		return false, err
 	}
+
 	for _, apiResourceList := range allResourceList {
-		if groupName(groupVersionName) != groupName(apiResourceList.GroupVersion) {
+		if groupName(group) != groupName(apiResourceList.GroupVersion) {
 			continue
 		}
 		for _, apiResource := range apiResourceList.APIResources {
