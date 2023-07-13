@@ -121,7 +121,10 @@ func pushBatch(client *http.Client, bearerToken, invoker, namespace string, valu
 
 // UploadIntervalsToLoki attempts to push the set of intervals from this portion of the job run up to Loki,
 // allowing for more efficient querying and searching in TRT tooling.
-func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
+//
+// timeSuffix is the same as used when writing e2e-events json files to gcs. It allows us
+// to diffentiate between multiple sets of intervals from the same job run. (i.e. upgrade and conformance run)
+func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string) error {
 
 	// Ensure we have appropriate env vars defined, if not exit with an error.
 	clientID, defined := os.LookupEnv("LOKI_SSO_CLIENT_ID")
@@ -161,7 +164,7 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 	nsIntervals := map[string][][]interface{}{}
 
 	for _, i := range intervals {
-		namespace, logLine, err := intervalToLogLine(i)
+		namespace, logLine, err := intervalToLogLine(i, timeSuffix)
 
 		// Convert the log data to a packed json log line, where the message is in '_entry'.
 		// This allows us to search additional fields we didn't index as labels using the unpack/json
@@ -203,11 +206,29 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 	return nil
 }
 
-func intervalToLogLine(i monitorapi.EventInterval) (string, map[string]string, error) {
+func intervalToLogLine(i monitorapi.EventInterval, timeSuffix string) (string, map[string]string, error) {
 
 	logLine := map[string]string{
-		"_entry": i.Message,
+		"_entry":   i.Message,
+		"filename": timeSuffix, // used in the UI to differentiate batches of intervals for one job run (upgrade + conformance)
 	}
+
+	// Loki logs are timestamped, for this we use the "from" of the interval. We'll include a durationSec
+	// so we can calculate the "to" time in our tooling. This will also have the benefit of allowing loki queries
+	// on durationSec > 5 or similar.
+	if i.To.IsZero() {
+		// Not 100% sure To is always set
+		logLine["durationSec"] = "1"
+	} else {
+		d := i.To.Sub(i.From)
+		durInSeconds := math.Round(d.Seconds())
+		if durInSeconds < 1 {
+			durInSeconds = 1
+		}
+		logLine["durationSec"] = strconv.FormatFloat(durInSeconds, 'f', -1, 64)
+	}
+
+	logLine["level"] = i.Level.String()
 
 	if strings.HasPrefix(i.Locator, "e2e-test/\"") {
 		startIndex := strings.Index(i.Locator, "\"") + 1
@@ -248,21 +269,6 @@ func intervalToLogLine(i monitorapi.EventInterval) (string, map[string]string, e
 		}
 
 		logLine[tag] = val
-	}
-
-	// Loki logs are timestamped, for this we use the "from" of the interval. We'll include a durationSec
-	// so we can calculate the "to" time in our tooling. This will also have the benefit of allowing loki queries
-	// on durationSec > 5 or similar.
-	if i.To.IsZero() {
-		// Not 100% sure To is always set
-		logLine["durationSec"] = "1"
-	} else {
-		d := i.To.Sub(i.From)
-		durInSeconds := math.Ceil(d.Seconds())
-		if durInSeconds < 1 {
-			durInSeconds = 1
-		}
-		logLine["durationSec"] = strconv.FormatFloat(durInSeconds, 'f', -1, 64)
 	}
 
 	// TODO: add a concept of filename for upgrade vs e2e phases

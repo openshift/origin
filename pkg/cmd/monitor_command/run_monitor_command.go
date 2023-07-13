@@ -154,7 +154,7 @@ func (opt *RunMonitorOptions) Run() error {
 			fmt.Printf("Failed to write events from in-cluster monitors, err: %v\n", err)
 		}
 
-		err = monitor.UploadIntervalsToLoki(intervals)
+		err = monitor.UploadIntervalsToLoki(intervals, timeSuffix)
 		if err != nil {
 			// Best effort, we do not want to error out here:
 			logrus.WithError(err).Warn("unable to upload intervals to loki")

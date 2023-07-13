@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
@@ -237,7 +238,8 @@ func newUploadIntervalsCommand() *cobra.Command {
 			}
 			logrus.Infof("loaded %d intervals", len(intervals))
 
-			err = monitor.UploadIntervalsToLoki(intervals)
+			timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
+			err = monitor.UploadIntervalsToLoki(intervals, timeSuffix)
 			if err != nil {
 				logrus.WithError(err).Fatal("error uploading intervals to loki")
 			}
