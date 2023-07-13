@@ -8,6 +8,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
@@ -18,6 +19,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	securityv1 "github.com/openshift/api/security/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -46,6 +48,105 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity]", func() {
 		}, metav1.CreateOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())                                                     // the pod passed admission
 		o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2")) // and the mutating SCC is restricted-v2
+	})
+})
+
+var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
+	defer g.GinkgoRecover()
+
+	oc := exutil.NewCLIWithPodSecurityLevel("required-scc", psapi.LevelPrivileged)
+
+	g.It("required-scc annotation is being applied to workloads", func() {
+		privilegedSA, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(oc.Namespace()).Create(
+			context.Background(),
+			&corev1.ServiceAccount{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "privileged-sa-",
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		sccRole, err := oc.AdminKubeClient().RbacV1().ClusterRoles().Create(context.Background(),
+			&v1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "required-scc-",
+				},
+				Rules: []v1.PolicyRule{
+					{APIGroups: []string{"security.openshift.io"}, Resources: []string{"securitycontextconstraints"}, Verbs: []string{"use"}},
+				},
+			}, metav1.CreateOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		_, err = oc.AdminKubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(context.Background(),
+			&v1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "required-scc-",
+					Namespace:    oc.Namespace(),
+				},
+				RoleRef: v1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "ClusterRole",
+					Name:     sccRole.Name,
+				},
+				Subjects: []v1.Subject{
+					{
+						Kind:      "ServiceAccount",
+						Name:      privilegedSA.Name,
+						Namespace: oc.Namespace(),
+					},
+					{
+						Kind:     "User",
+						Name:     oc.Username(),
+						APIGroup: "rbac.authorization.k8s.io",
+					},
+				},
+			},
+			metav1.CreateOptions{},
+		)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		newPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "required-scc-testpod",
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: privilegedSA.Name, // testpod's service account has permissions to use a privileged SCC
+				Containers: []corev1.Container{
+					{
+						Name:    "sleeper",
+						Image:   "fedora:latest",
+						Command: []string{"sleep"},
+						Args:    []string{"infinity"},
+						SecurityContext: &corev1.SecurityContext{
+							RunAsNonRoot: pointer.Bool(true),
+							Capabilities: &corev1.Capabilities{
+								Drop: []corev1.Capability{
+									"ALL",
+								},
+							},
+						},
+					},
+				},
+				SecurityContext: &corev1.PodSecurityContext{
+					RunAsNonRoot: pointer.Bool(true),
+				},
+			},
+		}
+
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), newPod, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// pod has permissions to use all SCCs and matches the "anyuid" SCC because it specifies RunAsNonRoot=true.
+		o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("anyuid"))
+
+		// we pin the SCC to a concrete SCC using the required annotation.
+		newPod.Annotations = map[string]string{securityv1.RequiredSCCAnnotation: "restricted-v2"}
+		pod, err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), newPod, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2"))
 	})
 })
 
