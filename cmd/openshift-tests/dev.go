@@ -221,6 +221,7 @@ a running cluster.
 
 type uploadIntervalsOpts struct {
 	intervalsFile string
+	dryRun        bool
 }
 
 func newUploadIntervalsCommand() *cobra.Command {
@@ -239,7 +240,7 @@ func newUploadIntervalsCommand() *cobra.Command {
 			logrus.Infof("loaded %d intervals", len(intervals))
 
 			timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
-			err = monitor.UploadIntervalsToLoki(intervals, timeSuffix)
+			err = monitor.UploadIntervalsToLoki(intervals, timeSuffix, opts.dryRun)
 			if err != nil {
 				logrus.WithError(err).Fatal("error uploading intervals to loki")
 			}
@@ -249,5 +250,8 @@ func newUploadIntervalsCommand() *cobra.Command {
 	cmd.Flags().StringVar(&opts.intervalsFile,
 		"intervals-file", "e2e-events.json",
 		"Path to an intervals file (i.e. e2e-events_20230214-203340.json). Can be obtained from a CI run in openshift-tests junit artifacts.")
+	cmd.Flags().BoolVar(&opts.dryRun,
+		"dry-run", false,
+		"Runs all upload logic without actually sending any requests")
 	return cmd
 }

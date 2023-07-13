@@ -260,7 +260,7 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 	// TODO: Re-sort for loki, where we need these to go    in chronologically, and based on the
 	// above comments that would not be the case otherwise.
 	sort.Sort(monitorapi.Intervals(events))
-	err := monitor.UploadIntervalsToLoki(events, timeSuffix)
+	err := monitor.UploadIntervalsToLoki(events, timeSuffix, false)
 	if err != nil {
 		// Best effort, we do not want to error out here:
 		logrus.WithError(err).Warn("unable to upload intervals to loki")

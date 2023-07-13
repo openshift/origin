@@ -29,7 +29,7 @@ var batchCtr int
 // pushBatch sends logs to Loki in batches of 500 using raw HTTP requets. Attempts were made to vendor and use the
 // promtail library but this gets extremely complicated when you already vendor kube.
 // Includes a rudimentary retry mechanism.
-func pushBatch(client *http.Client, bearerToken, invoker, namespace string, values [][]interface{}) error {
+func pushBatch(client *http.Client, bearerToken, invoker, namespace string, values [][]interface{}, dryRun bool) error {
 	batchCtr++
 	logger := logrus.WithField("namespace", namespace)
 	logger.Info("uploading an intervals batch")
@@ -72,6 +72,11 @@ func pushBatch(client *http.Client, bearerToken, invoker, namespace string, valu
 
 	for key, value := range headers {
 		req.Header.Set(key, value)
+	}
+
+	if dryRun {
+		logger.Warn("skipping upload (dry-run)")
+		return nil
 	}
 
 	return retry.OnError(
@@ -124,7 +129,7 @@ func pushBatch(client *http.Client, bearerToken, invoker, namespace string, valu
 //
 // timeSuffix is the same as used when writing e2e-events json files to gcs. It allows us
 // to diffentiate between multiple sets of intervals from the same job run. (i.e. upgrade and conformance run)
-func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string) error {
+func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string, dryRun bool) error {
 
 	// Ensure we have appropriate env vars defined, if not exit with an error.
 	clientID, defined := os.LookupEnv("LOKI_SSO_CLIENT_ID")
@@ -144,9 +149,13 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string) er
 		return fmt.Errorf("BUILD_ID env var is not defined")
 	}
 
-	bearerToken, err := obtainSSOBearerToken(clientID, clientSecret)
-	if err != nil {
-		return err
+	var bearerToken string
+	var err error
+	if !dryRun {
+		bearerToken, err = obtainSSOBearerToken(clientID, clientSecret)
+		if err != nil {
+			return err
+		}
 	}
 
 	logrus.Info("bearer token obtained")
@@ -184,7 +193,7 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string) er
 		})
 
 		if len(nsIntervals[namespace]) == batchSize {
-			err := pushBatch(client, bearerToken, invoker, namespace, nsIntervals[namespace])
+			err := pushBatch(client, bearerToken, invoker, namespace, nsIntervals[namespace], dryRun)
 			if err != nil {
 				return err
 			}
@@ -196,7 +205,7 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string) er
 	logrus.Info("pushing final batches for each remaining namespace")
 	for namespace, v := range nsIntervals {
 		if len(v) > 0 {
-			err := pushBatch(client, bearerToken, invoker, namespace, nsIntervals[namespace])
+			err := pushBatch(client, bearerToken, invoker, namespace, nsIntervals[namespace], dryRun)
 			if err != nil {
 				return err
 			}
@@ -270,9 +279,6 @@ func intervalToLogLine(i monitorapi.EventInterval, timeSuffix string) (string, m
 
 		logLine[tag] = val
 	}
-
-	// TODO: add a concept of filename for upgrade vs e2e phases
-	// TODO: add level
 
 	// If we have a namespace in the locator, return and it will be used as a proper label:
 	var namespace string
