@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -190,6 +191,24 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 
 			logLine[tag] = val
 		}
+
+		// Loki logs are timestamped, for this we use the "from" of the interval. We'll include a durationSec
+		// so we can calculate the "to" time in our tooling. This will also have the benefit of allowing loki queries
+		// on durationSec > 5 or similar.
+		if i.To.IsZero() {
+			// Not 100% sure To is always set
+			logLine["durationSec"] = "1"
+		} else {
+			d := i.To.Sub(i.From)
+			durInSeconds := math.Ceil(d.Seconds())
+			if durInSeconds < 1 {
+				durInSeconds = 1
+			}
+			logLine["durationSec"] = strconv.FormatFloat(durInSeconds, 'f', -1, 64)
+		}
+
+		// TODO: add a concept of filename for upgrade vs e2e phases
+		// TODO: add level
 
 		// Convert the log data to a packed json log line, where the message is in '_entry'.
 		// This allows us to search additional fields we didn't index as labels using the unpack/json
