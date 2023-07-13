@@ -436,8 +436,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 						targets.Expect(labels{"job": "controller-manager"}, "up", "^https://.*/metrics$"),
 
 						// The kube control plane
-						// TODO restore this after etcd operator lands
-						//targets.Expect(labels{"job": "etcd"}, "up", "^https://.*/metrics$"),
+						targets.Expect(labels{"job": "etcd"}, "up", "^https://.*/metrics$"),
 						targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
 						targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^https://.*/metrics$"),
 						targets.Expect(labels{"job": "scheduler"}, "up", "^https://.*/metrics$"),
