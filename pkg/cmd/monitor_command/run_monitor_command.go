@@ -76,12 +76,18 @@ func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command 
 // events accumulated to Out. When the user hits CTRL+C or signals termination the
 // condition intervals (all non-instantaneous events) are reported to Out.
 func (opt *RunMonitorOptions) Run() error {
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating\n")
+		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 		sig := <-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
@@ -94,10 +100,6 @@ func (opt *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
 	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders, backend.ExternalLoadBalancerType)
 	if err != nil {
 		return err

@@ -293,12 +293,18 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		parallelism = 10
 	}
 
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating tests\n")
+		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 		sig := <-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
@@ -311,10 +317,6 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
 	monitorEventRecorder, err := opt.MonitorEventsOptions.Start(ctx, restConfig)
 	if err != nil {
 		return err

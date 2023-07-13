@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
@@ -63,23 +61,7 @@ var (
 )
 
 func TearDownInClusterMonitors(config *rest.Config) error {
-	ctx, cancelFn := context.WithCancel(context.Background())
-	defer cancelFn()
-	abortCh := make(chan os.Signal, 2)
-	go func() {
-		<-abortCh
-		fmt.Fprintf(os.Stderr, "Interrupted, terminating\n")
-		cancelFn()
-		sig := <-abortCh
-		fmt.Fprintf(os.Stderr, "Interrupted twice, exiting (%s)\n", sig)
-		switch sig {
-		case syscall.SIGINT:
-			os.Exit(130)
-		default:
-			os.Exit(0)
-		}
-	}()
-	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
+	ctx := context.Background()
 
 	client, err := kubernetes.NewForConfig(config)
 	if err != nil {
