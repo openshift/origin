@@ -24,15 +24,15 @@ const (
 	batchSize = 500
 )
 
-var batchCtr int
+var totalIntervalsPushed int
 
 // pushBatch sends logs to Loki in batches of 500 using raw HTTP requets. Attempts were made to vendor and use the
 // promtail library but this gets extremely complicated when you already vendor kube.
 // Includes a rudimentary retry mechanism.
 func pushBatch(client *http.Client, bearerToken, invoker, namespace string, values [][]interface{}, dryRun bool) error {
-	batchCtr++
+	totalIntervalsPushed += len(values)
 	logger := logrus.WithField("namespace", namespace)
-	logger.Info("uploading an intervals batch")
+	logger.Infof("uploading a batch of %d intervals", len(values))
 
 	labels := map[string]string{
 		"invoker": invoker,
@@ -88,12 +88,10 @@ func pushBatch(client *http.Client, bearerToken, invoker, namespace string, valu
 		},
 		func(err error) bool {
 			// re-try on any error
-			logger.WithError(err).Warningf("error occurred on batch %d, re-trying", batchCtr)
+			logger.WithError(err).Warningf("error occurred on batch, re-trying")
 			return true
 		},
 		func() error {
-			logger.Infof("pushing batch %d of %d intervals", batchCtr,
-				len(lokiData.Streams[0].Values))
 			response, err := client.Do(req)
 			if err != nil {
 				logger.WithError(err).Error("error making HTTP request")
@@ -211,6 +209,10 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string, dr
 			}
 			nsIntervals[namespace] = make([][]interface{}, 0)
 		}
+	}
+	logrus.Infof("pushed %d/%d intervals to loki", totalIntervalsPushed, len(intervals))
+	if totalIntervalsPushed != len(intervals) {
+		logrus.Warn("failed to push all intervals we were given to loki, we may have a bug")
 	}
 	return nil
 }
