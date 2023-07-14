@@ -3,5 +3,6 @@ schemapatch:
   - ""
   - "Default"
   - "TechPreviewNoUpgrade"
+  - "CustomNoUpgrade"
 swaggerdocs:
   commentPolicy: Warn

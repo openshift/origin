@@ -6,6 +6,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// SecurityEncryptionTypes represents the Encryption Type when the Azure Virtual Machine is a
+// Confidential VM.
+type SecurityEncryptionTypes string
+
+const (
+	// SecurityEncryptionTypesVMGuestStateOnly disables OS disk confidential encryption.
+	SecurityEncryptionTypesVMGuestStateOnly SecurityEncryptionTypes = "VMGuestStateOnly"
+	// SecurityEncryptionTypesDiskWithVMGuestState enables OS disk confidential encryption with a
+	// platform-managed key (PMK) or a customer-managed key (CMK).
+	SecurityEncryptionTypesDiskWithVMGuestState SecurityEncryptionTypes = "DiskWithVMGuestState"
+)
+
+// SecurityTypes represents the SecurityType of the virtual machine.
+type SecurityTypes string
+
+const (
+	// SecurityTypesConfidentialVM defines the SecurityType of the virtual machine as a Confidential VM.
+	SecurityTypesConfidentialVM SecurityTypes = "ConfidentialVM"
+	// SecurityTypesTrustedLaunch defines the SecurityType of the virtual machine as a Trusted Launch VM.
+	SecurityTypesTrustedLaunch SecurityTypes = "TrustedLaunch"
+)
+
 // AzureMachineProviderSpec is the type that will be embedded in a Machine.Spec.ProviderSpec field
 // for an Azure virtual machine. It is used by the Azure machine actuator to create a single Machine.
 // Required parameters such as location that are not specified by this configuration, will be defaulted
@@ -397,6 +419,36 @@ type OSDiskManagedDiskParameters struct {
 	// DiskEncryptionSet is the disk encryption set properties
 	// +optional
 	DiskEncryptionSet *DiskEncryptionSetParameters `json:"diskEncryptionSet,omitempty"`
+	// securityProfile specifies the security profile for the managed disk.
+	// +optional
+	SecurityProfile VMDiskSecurityProfile `json:"securityProfile,omitempty"`
+}
+
+// VMDiskSecurityProfile specifies the security profile settings for the managed disk.
+// It can be set only for Confidential VMs.
+type VMDiskSecurityProfile struct {
+	// diskEncryptionSet specifies the customer managed disk encryption set resource id for the
+	// managed disk that is used for Customer Managed Key encrypted ConfidentialVM OS Disk and
+	// VMGuest blob.
+	// +optional
+	DiskEncryptionSet DiskEncryptionSetParameters `json:"diskEncryptionSet,omitempty"`
+	// securityEncryptionType specifies the encryption type of the managed disk.
+	// It is set to DiskWithVMGuestState to encrypt the managed disk along with the VMGuestState
+	// blob, and to VMGuestStateOnly to encrypt the VMGuestState blob only.
+	// When set to VMGuestStateOnly, the vTPM should be enabled.
+	// When set to DiskWithVMGuestState, both SecureBoot and vTPM should be enabled.
+	// If the above conditions are not fulfilled, the VM will not be created and the respective error
+	// will be returned.
+	// It can be set only for Confidential VMs. Confidential VMs are defined by their
+	// SecurityProfile.SecurityType being set to ConfidentialVM, the SecurityEncryptionType of their
+	// OS disk being set to one of the allowed values and by enabling the respective
+	// SecurityProfile.UEFISettings of the VM (i.e. vTPM and SecureBoot), depending on the selected
+	// SecurityEncryptionType.
+	// For further details on Azure Confidential VMs, please refer to the respective documentation:
+	// https://learn.microsoft.com/azure/confidential-computing/confidential-vm-overview
+	// +kubebuilder:validation:Enum=VMGuestStateOnly;DiskWithVMGuestState
+	// +optional
+	SecurityEncryptionType SecurityEncryptionTypes `json:"securityEncryptionType,omitempty"`
 }
 
 // DataDiskManagedDiskParameters is the parameters of a DataDisk managed disk.
@@ -437,11 +489,71 @@ type DiskEncryptionSetParameters struct {
 // SecurityProfile specifies the Security profile settings for a
 // virtual machine or virtual machine scale set.
 type SecurityProfile struct {
-	// This field indicates whether Host Encryption should be enabled
-	// or disabled for a virtual machine or virtual machine scale
-	// set. Default is disabled.
+	// encryptionAtHost indicates whether Host Encryption should be enabled or disabled for a virtual
+	// machine or virtual machine scale set.
+	// This should be disabled when SecurityEncryptionType is set to DiskWithVMGuestState.
+	// Default is disabled.
 	// +optional
 	EncryptionAtHost *bool `json:"encryptionAtHost,omitempty"`
+	// settings specify the security type and the UEFI settings of the virtual machine. This field can
+	// be set for Confidential VMs and Trusted Launch for VMs.
+	// +optional
+	Settings SecuritySettings `json:"settings,omitempty"`
+}
+
+// SecuritySettings define the security type and the UEFI settings of the virtual machine.
+// +union
+type SecuritySettings struct {
+	// securityType specifies the SecurityType of the virtual machine. It has to be set to any specified value to
+	// enable UEFISettings. The default behavior is: UEFISettings will not be enabled unless this property is set.
+	// +kubebuilder:validation:Enum=ConfidentialVM;TrustedLaunch
+	// +kubebuilder:validation:Required
+	// +unionDiscriminator
+	SecurityType SecurityTypes `json:"securityType,omitempty"`
+	// confidentialVM specifies the security configuration of the virtual machine.
+	// For more information regarding Confidential VMs, please refer to:
+	// https://learn.microsoft.com/azure/confidential-computing/confidential-vm-overview
+	// +optional
+	ConfidentialVM *ConfidentialVM `json:"confidentialVM,omitempty"`
+	// trustedLaunch specifies the security configuration of the virtual machine.
+	// For more information regarding TrustedLaunch for VMs, please refer to:
+	// https://learn.microsoft.com/azure/virtual-machines/trusted-launch
+	// +optional
+	TrustedLaunch *TrustedLaunch `json:"trustedLaunch,omitempty"`
+}
+
+// ConfidentialVM defines the UEFI settings for the virtual machine.
+type ConfidentialVM struct {
+	// uefiSettings specifies the security settings like secure boot and vTPM used while creating the virtual machine.
+	// +kubebuilder:validation:Required
+	UEFISettings UEFISettings `json:"uefiSettings,omitempty"`
+}
+
+// TrustedLaunch defines the UEFI settings for the virtual machine.
+type TrustedLaunch struct {
+	// uefiSettings specifies the security settings like secure boot and vTPM used while creating the virtual machine.
+	// +kubebuilder:validation:Required
+	UEFISettings UEFISettings `json:"uefiSettings,omitempty"`
+}
+
+// UEFISettings specifies the security settings like secure boot and vTPM used while creating the
+// virtual machine.
+type UEFISettings struct {
+	// secureBoot specifies whether secure boot should be enabled on the virtual machine.
+	// Secure Boot verifies the digital signature of all boot components and halts the boot process if
+	// signature verification fails.
+	// If omitted, the platform chooses a default, which is subject to change over time, currently that default is disabled.
+	// +kubebuilder:validation:Enum=Enabled;Disabled
+	// +optional
+	SecureBoot SecureBootPolicy `json:"secureBoot,omitempty"`
+	// virtualizedTrustedPlatformModule specifies whether vTPM should be enabled on the virtual machine.
+	// When enabled the virtualized trusted platform module measurements are used to create a known good boot integrity policy baseline.
+	// The integrity policy baseline is used for comparison with measurements from subsequent VM boots to determine if anything has changed.
+	// This is required to be enabled if SecurityEncryptionType is defined.
+	// If omitted, the platform chooses a default, which is subject to change over time, currently that default is disabled.
+	// +kubebuilder:validation:Enum=Enabled;Disabled
+	// +optional
+	VirtualizedTrustedPlatformModule VirtualizedTrustedPlatformModulePolicy `json:"virtualizedTrustedPlatformModule,omitempty"`
 }
 
 // AzureUltraSSDCapabilityState defines the different states of an UltraSSDCapability

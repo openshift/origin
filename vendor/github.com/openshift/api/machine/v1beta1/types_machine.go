@@ -19,6 +19,11 @@ const (
 	// MachineClusterIDLabel is the label that a machine must have to identify the
 	// cluster to which it belongs.
 	MachineClusterIDLabel = "machine.openshift.io/cluster-api-cluster"
+
+	// IPClaimProtectionFinalizer is placed on an IPAddressClaim by the machine reconciler
+	// when an IPAddressClaim associated with a machine is created. This finalizer is removed
+	// from the IPAddressClaim when the associated machine is deleted.
+	IPClaimProtectionFinalizer = "machine.openshift.io/ip-claim-protection"
 )
 
 type MachineStatusError string
@@ -89,6 +94,9 @@ const (
 	// not result in a Node joining the cluster within a given timeout
 	// and that are managed by a MachineSet
 	JoinClusterTimeoutMachineError = "JoinClusterTimeoutError"
+
+	// IPAddressInvalidReason is set to indicate that the claimed IP address is not valid.
+	IPAddressInvalidReason MachineStatusError = "IPAddressInvalid"
 )
 
 type ClusterStatusError string
