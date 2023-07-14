@@ -219,8 +219,14 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string, dr
 
 func intervalToLogLine(i monitorapi.EventInterval, timeSuffix string) (string, map[string]string, error) {
 
+	ib, err := json.Marshal(i)
+	if err != nil {
+		return "", map[string]string{}, err
+	}
+	jsonStr := string(ib[:])
+
 	logLine := map[string]string{
-		"_entry":   i.Message,
+		"_entry":   jsonStr,
 		"filename": timeSuffix, // used in the UI to differentiate batches of intervals for one job run (upgrade + conformance)
 	}
 
