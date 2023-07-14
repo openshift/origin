@@ -280,7 +280,7 @@ func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
 
 func NodeUpdate(eventInterval EventInterval) bool {
 	reason := ReasonFrom(eventInterval.Message)
-	return "NodeUpdate" == reason
+	return NodeUpdateReason == reason
 }
 
 func AlertFiringInNamespace(alertName, namespace string) EventIntervalMatchesFunc {

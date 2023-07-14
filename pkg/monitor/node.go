@@ -16,7 +16,73 @@ import (
 )
 
 func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
+	nodeReadyFn := func(node, oldNode *corev1.Node) []monitorapi.Condition {
+		isCreate := false
+		if oldNode == nil {
+			isCreate = true
+		}
+
+		isReady := false
+		if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
+			isReady = c.Status == corev1.ConditionTrue
+		}
+
+		wasReady := false
+		if !isCreate {
+			if c := findNodeCondition(oldNode.Status.Conditions, corev1.NodeReady, 0); c != nil {
+				wasReady = c.Status == corev1.ConditionTrue
+			}
+
+		}
+
+		switch {
+		case isCreate && !isReady:
+			return []monitorapi.Condition{
+				{
+					Level:   monitorapi.Warning,
+					Locator: monitorapi.NodeLocator(node.Name),
+					Message: fmt.Sprintf("reason/NotReady roles/%s node is not ready", nodeRoles(node)),
+				},
+			}
+
+		case isCreate && isReady:
+			return []monitorapi.Condition{
+				{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.NodeLocator(node.Name),
+					Message: fmt.Sprintf("reason/Ready roles/%s node is ready", nodeRoles(node)),
+				},
+			}
+
+		case wasReady && !isReady:
+			return []monitorapi.Condition{
+				{
+					Level:   monitorapi.Warning,
+					Locator: monitorapi.NodeLocator(node.Name),
+					Message: fmt.Sprintf("reason/NotReady roles/%s node is not ready", nodeRoles(node)),
+				},
+			}
+
+		case !wasReady && isReady:
+			return []monitorapi.Condition{
+				{
+					Level:   monitorapi.Info,
+					Locator: monitorapi.NodeLocator(node.Name),
+					Message: fmt.Sprintf("reason/Ready roles/%s node is ready", nodeRoles(node)),
+				},
+			}
+		}
+
+		return nil
+	}
+
+	nodeAddFns := []func(node *corev1.Node) []monitorapi.Condition{
+		func(node *corev1.Node) []monitorapi.Condition {
+			return nodeReadyFn(node, nil)
+		},
+	}
 	nodeChangeFns := []func(node, oldNode *corev1.Node) []monitorapi.Condition{
+		nodeReadyFn,
 		func(node, oldNode *corev1.Node) []monitorapi.Condition {
 			var conditions []monitorapi.Condition
 			roles := nodeRoles(node)
@@ -74,7 +140,15 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 	nodeInformer := informercorev1.NewNodeInformer(client, time.Hour, nil)
 	nodeInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {},
+			AddFunc: func(obj interface{}) {
+				node, ok := obj.(*corev1.Node)
+				if !ok {
+					return
+				}
+				for _, fn := range nodeAddFns {
+					m.Record(fn(node)...)
+				}
+			},
 			DeleteFunc: func(obj interface{}) {
 				node, ok := obj.(*corev1.Node)
 				if !ok {
@@ -101,28 +175,6 @@ func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Inte
 			},
 		},
 	)
-
-	m.AddSampler(func(now time.Time) []*monitorapi.Condition {
-		var conditions []*monitorapi.Condition
-		for _, obj := range nodeInformer.GetStore().List() {
-			node, ok := obj.(*corev1.Node)
-			if !ok {
-				continue
-			}
-			isReady := false
-			if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
-				isReady = c.Status == corev1.ConditionTrue
-			}
-			if !isReady {
-				conditions = append(conditions, &monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("roles/%s node is not ready", nodeRoles(node)),
-				})
-			}
-		}
-		return conditions
-	})
 
 	go nodeInformer.Run(ctx.Done())
 }

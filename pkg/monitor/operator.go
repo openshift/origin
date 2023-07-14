@@ -263,26 +263,6 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 		},
 	)
 
-	m.AddSampler(func(now time.Time) []*monitorapi.Condition {
-		var conditions []*monitorapi.Condition
-		for _, obj := range cvInformer.GetStore().List() {
-			cv, ok := obj.(*configv1.ClusterVersion)
-			if !ok {
-				continue
-			}
-			if len(cv.Status.History) > 0 {
-				if cv.Status.History[0].State != configv1.CompletedUpdate {
-					conditions = append(conditions, &monitorapi.Condition{
-						Level:   monitorapi.Warning,
-						Locator: locateClusterVersion(cv),
-						Message: fmt.Sprintf("cluster is updating to %s", versionOrImage(cv.Status.History[0])),
-					})
-				}
-			}
-		}
-		return conditions
-	})
-
 	go cvInformer.Run(ctx.Done())
 }
 
