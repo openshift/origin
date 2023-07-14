@@ -204,7 +204,16 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 					[]rbacv1.PolicyRule{
 						// These custom resources are used to extend console functionality
 						// The console team may eventually eliminate this exception
-						rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources("consoleclidownloads", "consolelinks", "consoleexternalloglinks", "consolenotifications", "consoleyamlsamples", "consolequickstarts", "consoleplugins").RuleOrDie(),
+						rbacv1helpers.NewRule(read...).Groups(consoleGroup).Resources(
+							"consoleclidownloads",
+							"consoleexternalloglinks",
+							"consolelinks",
+							"consolenotifications",
+							"consoleplugins",
+							"consolequickstarts",
+							"consolesamples",
+							"consoleyamlsamples",
+						).RuleOrDie(),
 
 						// HelmChartRepository instances keep Helm chart repository configuration
 						// By default users are able to browse charts from all configured repositories through console UI
