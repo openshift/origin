@@ -489,10 +489,6 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 		currDisruptionSample := b.newSample(ctx)
 		go func() {
 			uid, sampleErr := b.backendSampler.CheckConnection(ctx)
-			if sampleErr != nil {
-				// add the audit ID to the error so we can track backwards to the audit log to chase a request.
-				sampleErr = fmt.Errorf("%w -- RequestAuditID=%v", sampleErr, uid)
-			}
 			currDisruptionSample.setSampleError(sampleErr)
 			currDisruptionSample.setRequestAuditID(uid)
 			if sampleErr != nil {
