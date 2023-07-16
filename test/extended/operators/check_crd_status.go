@@ -90,6 +90,7 @@ func checkStatusInSchema(crdItemList []apiextensionsv1.CustomResourceDefinition)
 		"consolenotifications.console.openshift.io",
 		"consoleplugins.console.openshift.io",
 		"consolequickstarts.console.openshift.io",
+		"consolesamples.console.openshift.io",
 		"consoleyamlsamples.console.openshift.io",
 		"egressnetworkpolicies.network.openshift.io",
 		"hostsubnets.network.openshift.io",
