@@ -14,7 +14,6 @@ type SamplerFunc func(time.Time) []*monitorapi.Condition
 
 type Interface interface {
 	Intervals(from, to time.Time) monitorapi.Intervals
-	Conditions(from, to time.Time) monitorapi.Intervals
 	CurrentResourceState() monitorapi.ResourcesMap
 }
 

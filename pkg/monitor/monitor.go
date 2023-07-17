@@ -21,7 +21,6 @@ type Monitor struct {
 	lock           sync.Mutex
 	events         monitorapi.Intervals
 	unsortedEvents monitorapi.Intervals
-	samples        []*sample
 
 	recordedResourceLock sync.Mutex
 	recordedResources    monitorapi.ResourcesMap
@@ -203,21 +202,10 @@ func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	}
 }
 
-func (m *Monitor) snapshot() ([]*sample, monitorapi.Intervals, monitorapi.Intervals) {
+func (m *Monitor) snapshot() (monitorapi.Intervals, monitorapi.Intervals) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	return m.samples, m.events, m.unsortedEvents
-}
-
-// Conditions returns all conditions that were sampled in the interval
-// between from and to. If that does not include a sample interval, no
-// results will be returned. Intervals are returned in order of
-// their first sampling. A condition that was only sampled once is
-// returned with from == to. No duplicate conditions are returned
-// unless a sampling interval did not report that value.
-func (m *Monitor) Conditions(from, to time.Time) monitorapi.Intervals {
-	samples, _, _ := m.snapshot()
-	return filterSamples(samples, from, to)
+	return m.events, m.unsortedEvents
 }
 
 // Intervals returns all events that occur between from and to, including
@@ -225,67 +213,10 @@ func (m *Monitor) Conditions(from, to time.Time) monitorapi.Intervals {
 // Intervals are returned in order of their occurrence. The returned slice
 // is a copy of the monitor's state and is safe to update.
 func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
-	samples, sortedEvents, unsortedEvents := m.snapshot()
+	sortedEvents, unsortedEvents := m.snapshot()
 
-	intervals := mergeIntervals(sortedEvents.Slice(from, to), unsortedEvents.CopyAndSort(from, to), filterSamples(samples, from, to))
+	intervals := mergeIntervals(sortedEvents.Slice(from, to), unsortedEvents.CopyAndSort(from, to))
 
-	return intervals
-}
-
-// filterSamples converts the sorted samples that are within [from,to) to a set of
-// intervals.
-// TODO: simplify this by having the monitor samplers produce intervals themselves
-//
-//	and make the streaming print logic simply show transitions.
-func filterSamples(samples []*sample, from, to time.Time) monitorapi.Intervals {
-	if len(samples) == 0 {
-		return nil
-	}
-
-	if !from.IsZero() {
-		first := sort.Search(len(samples), func(i int) bool {
-			return samples[i].at.After(from)
-		})
-		if first == -1 {
-			return nil
-		}
-		samples = samples[first:]
-	}
-
-	if !to.IsZero() {
-		for i, sample := range samples {
-			if sample.at.After(to) {
-				samples = samples[:i]
-				break
-			}
-		}
-	}
-	if len(samples) == 0 {
-		return nil
-	}
-
-	intervals := make(monitorapi.Intervals, 0, len(samples)*2)
-	last, next := make(map[monitorapi.Condition]*monitorapi.EventInterval), make(map[monitorapi.Condition]*monitorapi.EventInterval)
-	for _, sample := range samples {
-		for _, condition := range sample.conditions {
-			interval, ok := last[*condition]
-			if ok {
-				interval.To = sample.at
-				next[*condition] = interval
-				continue
-			}
-			intervals = append(intervals, monitorapi.EventInterval{
-				Condition: *condition,
-				From:      sample.at,
-				To:        sample.at.Add(time.Second),
-			})
-			next[*condition] = &intervals[len(intervals)-1]
-		}
-		for k := range last {
-			delete(last, k)
-		}
-		last, next = next, last
-	}
 	return intervals
 }
 
