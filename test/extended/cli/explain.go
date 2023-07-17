@@ -411,18 +411,23 @@ var (
 				pattern: `DESCRIPTION\:.*`,
 			},
 			{
-				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1alpha1"},
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
 				field:   "consoleplugins.spec",
 				pattern: `DESCRIPTION\:.*`,
 			},
 			{
 				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
-				field:   "consoleyamlsamples.spec",
+				field:   "consolequickstarts.spec",
 				pattern: `DESCRIPTION\:.*`,
 			},
 			{
 				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
-				field:   "consolequickstarts.spec",
+				field:   "consolesamples.spec",
+				pattern: `DESCRIPTION\:.*`,
+			},
+			{
+				gv:      schema.GroupVersion{Group: "console.openshift.io", Version: "v1"},
+				field:   "consoleyamlsamples.spec",
 				pattern: `DESCRIPTION\:.*`,
 			},
 		},
