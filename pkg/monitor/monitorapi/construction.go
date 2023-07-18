@@ -196,6 +196,7 @@ func (m *MessageBuilder) StructuredNoDetails() StructuredMessage {
 	ret := StructuredMessage{
 		Annotations: map[AnnotationKey]string{},
 	}
+	// TODO: what do we gain from a map with fixed keys, vs fields on the StructuredMessage?
 	for k, v := range m.annotations {
 		ret.Annotations[k] = v
 		switch k {
@@ -212,6 +213,7 @@ func (m *MessageBuilder) StructuredMessagef(messageFormat string, args ...interf
 	return m.StructuredMessage(fmt.Sprintf(messageFormat, args...))
 }
 
+// StructuredMessage adds the human readable message.
 func (m *MessageBuilder) StructuredMessage(message string) StructuredMessage {
 	if len(message) == 0 {
 		return m.StructuredNoDetails()

@@ -128,7 +128,9 @@ const (
 	ContainerReasonReadinessErrored   IntervalReason = "ReadinessErrored"
 	ContainerReasonStartupProbeFailed IntervalReason = "StartupProbeFailed"
 	ContainerReasonReady              IntervalReason = "Ready"
+	ContainerReasonRestarted          IntervalReason = "Restarted"
 	ContainerReasonNotReady           IntervalReason = "NotReady"
+	TerminationStateCleared           IntervalReason = "TerminationStateCleared"
 
 	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
 	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"

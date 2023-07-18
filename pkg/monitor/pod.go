@@ -92,18 +92,21 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 
 			// always produce conditions during create
 			if (isCreate && !newContainerReady) || (oldContainerReady && !newContainerReady) {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.LocatePodContainer(pod, containerName),
-					Message: monitorapi.Message().Reason(monitorapi.ContainerReasonNotReady).NoDetails(),
-				})
+				conditions = append(conditions, monitorapi.Event(monitorapi.Warning).
+					Locator(monitorapi.LocateContainerFromPod(pod, containerName).Structured()).
+					Message(
+						monitorapi.Message().
+							Reason(monitorapi.ContainerReasonNotReady).
+							StructuredNoDetails(),
+					).
+					Event())
 			}
 			if (isCreate && newContainerReady) || (!oldContainerReady && newContainerReady) {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: monitorapi.LocatePodContainer(pod, containerName),
-					Message: monitorapi.Message().Reason(monitorapi.ContainerReasonReady).NoDetails(),
-				})
+				conditions = append(conditions, monitorapi.Event(monitorapi.Info).
+					Locator(monitorapi.LocateContainerFromPod(pod, containerName).Structured()).
+					Message(
+						monitorapi.Message().Reason(monitorapi.ContainerReasonReady).StructuredNoDetails(),
+					).Event())
 			}
 		}
 
@@ -203,11 +206,11 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			}
 
 			if oldContainerStatus != nil && oldContainerStatus.LastTerminationState.Terminated != nil && containerStatus.LastTerminationState.Terminated == nil {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Error,
-					Locator: monitorapi.LocatePodContainer(pod, containerName),
-					Message: fmt.Sprintf("reason/TerminationStateCleared lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
-				})
+				conditions = append(conditions, monitorapi.Event(monitorapi.Error).
+					Locator(monitorapi.LocateContainerFromPod(pod, containerName).Structured()).
+					Message(
+						monitorapi.Message().Reason(monitorapi.TerminationStateCleared).StructuredMessage("lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
+					).Event())
 			}
 
 			// if this container is not terminated, then we don't need to compute an event for it.
@@ -304,11 +307,11 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			}
 
 			if containerStatus.RestartCount != oldContainerStatus.RestartCount {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.LocatePodContainer(pod, containerName),
-					Message: "reason/Restarted",
-				})
+				conditions = append(conditions, monitorapi.Event(monitorapi.Warning).
+					Locator(monitorapi.LocateContainerFromPod(pod, containerName).Structured()).
+					Message(
+						monitorapi.Message().Reason(monitorapi.ContainerReasonRestarted).StructuredNoDetails(),
+					).Event())
 			}
 		}
 
