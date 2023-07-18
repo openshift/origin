@@ -308,26 +308,64 @@ func resourceFilename(gvr schema.GroupVersionResource, namespace, name string) s
 	return filepath.Join("namespaces", namespace, groupStr, gvr.Resource, name+".yaml")
 }
 
+func (s *GitStorage) execCommand(command string) ([]byte, error) {
+	osCommand := exec.Command("bash", "-e", "-c", command)
+	osCommand.Dir = s.path
+	return osCommand.CombinedOutput()
+}
+
+func (s *GitStorage) cleanupIndexLock() {
+	// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
+	// so simply remove the lock file.
+	if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
+		if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
+			klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
+		}
+	}
+}
+
+func (s *GitStorage) gitCommitWithRetry(command, authorString, commitMessage string) error {
+	output, err := s.execCommand(command)
+	if err != nil {
+		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
+		s.cleanupIndexLock()
+		// have we hit an error where we have multiple updates pending
+		// but, we are only adding a single file?
+		// fallback to git add .
+		// Untracked files:
+		//  (use "git add <file>..." to include in what will be committed)
+		//	namespaces/openshift-etcd/core/pods/etcd-ci-op-g2xjpfr4-ed5cd-gqjcq-master-0.yaml
+		// Changes not staged for commit:
+		//  (use "git add <file>..." to update what will be committed)
+		//  (use "git restore <file>..." to discard changes in working directory)
+		//	modified:   namespaces/openshift-apiserver/core/pods/apiserver-856c47d994-47cf7.yaml
+		if strings.Contains(string(output), "use \"git add") {
+			klog.Infof("Detected unstaged commit, falling back to git add .")
+			command = fmt.Sprintf(`git add . && git commit --author=%q -m %q`, authorString, commitMessage)
+			output, err = s.execCommand(command)
+			if err != nil {
+				klog.Errorf("Ran %v\n%v\n\n", command, string(output))
+				s.cleanupIndexLock()
+			}
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *GitStorage) commitAdd(path, author, ocCommand string) error {
 	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
 	commitMessage := fmt.Sprintf("added %s", ocCommand)
 	command := fmt.Sprintf(`git add %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
 
-	osCommand := exec.Command("bash", "-e", "-c", command)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
+	err := s.gitCommitWithRetry(command, authorString, commitMessage)
 	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
-		}
 		return err
 	}
-
 	klog.Infof("Add: %v -- %v added %v", path, author, ocCommand)
 	return nil
 }
@@ -337,18 +375,8 @@ func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 	commitMessage := fmt.Sprintf("modifed %s", ocCommand)
 	command := fmt.Sprintf(`git add %q && git commit --author=%q -m %q`, path, authorString, commitMessage)
 
-	osCommand := exec.Command("bash", "-e", "-c", command)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
+	err := s.gitCommitWithRetry(command, authorString, commitMessage)
 	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
-		}
 		return err
 	}
 
@@ -359,20 +387,12 @@ func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
 	authorString := fmt.Sprintf("%s <ci-monitor@openshift.io>", author)
 	commitMessage := fmt.Sprintf("removed %s", ocCommand)
+	// the command explicitly calls 'rm' prior to 'git rm' so
+	// if we hit a changes not staged issue that implies the rm worked and we can just use `git add .` in the common retry block
 	command := fmt.Sprintf(`rm %q && git rm %q && git commit --author=%q -m %q`, path, path, authorString, commitMessage)
 
-	osCommand := exec.Command("bash", "-e", "-c", command)
-	osCommand.Dir = s.path
-	output, err := osCommand.CombinedOutput()
+	err := s.gitCommitWithRetry(command, authorString, commitMessage)
 	if err != nil {
-		klog.Errorf("Ran %v\n%v\n\n", command, string(output))
-		// sometimes git can leave behind an index.lock.  This process should be the only one working in this git repo
-		// so simply remove the lock file.
-		if _, statErr := os.Stat(filepath.Join(s.path, ".git/index.lock")); statErr == nil {
-			if deleteErr := os.Remove(filepath.Join(s.path, ".git/index.lock")); deleteErr != nil {
-				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
-			}
-		}
 		return err
 	}
 
