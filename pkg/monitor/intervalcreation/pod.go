@@ -137,7 +137,8 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Message(instantEvent.Message),
+					Message: monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).
+						HumanMessage(instantEvent.Message).BuildString(),
 				},
 				From: instantEvent.From,
 				To:   instantEvent.From.Add(1 * time.Second),

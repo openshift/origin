@@ -56,6 +56,7 @@ func ContainerFrom(locator string) ContainerReference {
 	}
 }
 
+// TODO: delete all these
 type PodReference struct {
 	NamespacedReference
 }

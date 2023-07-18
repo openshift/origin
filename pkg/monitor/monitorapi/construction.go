@@ -38,7 +38,7 @@ func (b *EventBuilder) Message(mb *MessageBuilder) *EventBuilder {
 }
 
 func (b *EventBuilder) Locator(lb *LocatorBuilder) *EventBuilder {
-	b.structuredLocator = lb.build()
+	b.structuredLocator = lb.Build()
 	return b
 }
 
@@ -95,7 +95,7 @@ func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) *LocatorBuilder {
 	return b
 }
 
-func (b *LocatorBuilder) build() StructuredLocator {
+func (b *LocatorBuilder) Build() StructuredLocator {
 	ret := StructuredLocator{
 		Type:        b.targetType,
 		LocatorKeys: map[LocatorKey]string{},
@@ -140,8 +140,8 @@ func (m *MessageBuilder) Node(node string) *MessageBuilder {
 	return m.WithAnnotation(AnnotationNode, node)
 }
 
-func (m *MessageBuilder) Constructed() *MessageBuilder {
-	return m.WithAnnotation(AnnotationConstructed, "true")
+func (m *MessageBuilder) Constructed(constructedBy ConstructionOwner) *MessageBuilder {
+	return m.WithAnnotation(AnnotationConstructed, string(constructedBy))
 }
 
 func (m *MessageBuilder) WithAnnotation(name AnnotationKey, value string) *MessageBuilder {
@@ -160,6 +160,7 @@ func (m *MessageBuilder) WithAnnotations(annotations map[AnnotationKey]string) *
 func (m *MessageBuilder) HumanMessage(message string) *MessageBuilder {
 	if len(m.humanMessage) == 0 {
 		m.humanMessage = message
+		return m
 	}
 	// TODO: track a slice of human messages? we are aiming for structure here...
 	m.humanMessage = fmt.Sprintf("%v %v", m.humanMessage, message)
