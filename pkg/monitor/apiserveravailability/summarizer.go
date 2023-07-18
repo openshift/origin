@@ -28,7 +28,7 @@ func timeFromPodLogTime(line string) time.Time {
 	return time.Now()
 }
 
-func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator monitorapi.StructuredLocator, line string) {
+func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator *monitorapi.LocatorBuilder, line string) {
 	if strings.Contains(line, "write: operation not permitted") {
 		timeOfLog := timeFromPodLogTime(line)
 		// TODO collapse all in the same second into a single interval

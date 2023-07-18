@@ -33,12 +33,12 @@ func (b *EventBuilder) Event() Condition {
 }
 
 func (b *EventBuilder) Message(mb *MessageBuilder) *EventBuilder {
-	b.structuredMessage = mb.Build()
+	b.structuredMessage = mb.build()
 	return b
 }
 
-func (b *EventBuilder) Locator(locator StructuredLocator) *EventBuilder {
-	b.structuredLocator = locator
+func (b *EventBuilder) Locator(lb *LocatorBuilder) *EventBuilder {
+	b.structuredLocator = lb.build()
 	return b
 }
 
@@ -53,65 +53,54 @@ func Locator() *LocatorBuilder {
 	}
 }
 
-func LocateNodeFromName(nodeName string) *LocatorBuilder {
-	ret := &LocatorBuilder{
-		targetType: StructuredTypeNode,
-		annotations: map[LocatorKey]string{
-			LocatorNodeKey: nodeName,
-		},
-	}
-
-	return ret
+func (b *LocatorBuilder) NodeFromName(nodeName string) *LocatorBuilder {
+	b.targetType = StructuredTypeNode
+	b.annotations[LocatorNodeKey] = nodeName
+	return b
 }
 
-func LocateContainerFromPod(pod *corev1.Pod, containerName string) *LocatorBuilder {
-	ret := LocatePodFromPod(pod)
-	ret.targetType = StructuredTypeContainer
-	ret.annotations[LocatorContainerKey] = containerName
-
-	return ret
+func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) *LocatorBuilder {
+	b.PodFromPod(pod)
+	b.targetType = StructuredTypeContainer
+	b.annotations[LocatorContainerKey] = containerName
+	return b
 }
 
-func LocateContainerFromNames(namespace, podName, uid, containerName string) *LocatorBuilder {
-	ret := LocatePodFromNames(namespace, podName, uid)
-	ret.targetType = StructuredTypeContainer
-	ret.annotations[LocatorContainerKey] = containerName
-
-	return ret
+func (b *LocatorBuilder) ContainerFromNames(namespace, podName, uid, containerName string) *LocatorBuilder {
+	b.PodFromNames(namespace, podName, uid)
+	b.targetType = StructuredTypeContainer
+	b.annotations[LocatorContainerKey] = containerName
+	return b
 }
 
-func LocatePodFromNames(namespace, name, uid string) *LocatorBuilder {
-	ret := &LocatorBuilder{
-		targetType: StructuredTypePod,
-		annotations: map[LocatorKey]string{
-			LocatorNamespaceKey: namespace,
-			LocatorPodKey:       name,
-			LocatorUIDKey:       uid,
-		},
-	}
+func (b *LocatorBuilder) PodFromNames(namespace, podName, uid string) *LocatorBuilder {
+	b.targetType = StructuredTypePod
+	b.annotations[LocatorNamespaceKey] = namespace
+	b.annotations[LocatorPodKey] = podName
+	b.annotations[LocatorUIDKey] = uid
 
-	return ret
+	return b
 }
 
-func LocatePodFromPod(pod *corev1.Pod) *LocatorBuilder {
-	ret := LocatePodFromNames(pod.Namespace, pod.Name, string(pod.UID))
+func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) *LocatorBuilder {
+	b.PodFromNames(pod.Namespace, pod.Name, string(pod.UID))
 	// TODO, to be removed.  this should be in the message, not in the locator
 	if len(pod.Spec.NodeName) > 0 {
-		ret.annotations[LocatorNodeKey] = pod.Spec.NodeName
+		b.annotations[LocatorNodeKey] = pod.Spec.NodeName
 	}
 	if mirrorUID := pod.Annotations["kubernetes.io/config.mirror"]; len(mirrorUID) > 0 {
-		ret.annotations[LocatorMirrorUIDKey] = mirrorUID
+		b.annotations[LocatorMirrorUIDKey] = mirrorUID
 	}
 
-	return ret
+	return b
 }
 
-func (m *LocatorBuilder) Structured() StructuredLocator {
+func (b *LocatorBuilder) build() StructuredLocator {
 	ret := StructuredLocator{
-		Type:        m.targetType,
+		Type:        b.targetType,
 		LocatorKeys: map[LocatorKey]string{},
 	}
-	for k, v := range m.annotations {
+	for k, v := range b.annotations {
 		ret.LocatorKeys[k] = v
 	}
 	return ret
@@ -182,8 +171,8 @@ func (m *MessageBuilder) HumanMessagef(messageFormat string, args ...interface{}
 	return m.HumanMessage(fmt.Sprintf(messageFormat, args...))
 }
 
-// Build creates the final StructuredMessage with all data assembled by this builder.
-func (m *MessageBuilder) Build() StructuredMessage {
+// build creates the final StructuredMessage with all data assembled by this builder.
+func (m *MessageBuilder) build() StructuredMessage {
 	ret := StructuredMessage{
 		Annotations: map[AnnotationKey]string{},
 	}
