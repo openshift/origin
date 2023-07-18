@@ -25,7 +25,7 @@ func simpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorap
 		return monitorapi.Condition{
 			Level:   level,
 			Locator: locator,
-			Message: monitorapi.Message().Reason(reason).Constructed(constructedBy).Message(message),
+			Message: monitorapi.Message().Reason(reason).Constructed(constructedBy).HumanMessage(message).BuildString(),
 		}, true
 	}
 }

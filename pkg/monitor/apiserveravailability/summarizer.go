@@ -35,7 +35,7 @@ func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator monitorapi.S
 		event := monitorapi.EventInterval{
 			Condition: monitorapi.Event(monitorapi.Warning).
 				Locator(locator).
-				Message(monitorapi.Message().Reason(monitorapi.IPTablesNotPermitted).StructuredMessage(line)).
+				Message(monitorapi.Message().Reason(monitorapi.IPTablesNotPermitted).HumanMessage(line)).
 				Event(),
 			From: timeOfLog,
 			To:   timeOfLog.Add(1 * time.Second),

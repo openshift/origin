@@ -37,19 +37,22 @@ func DisruptionBegan(locator string, connectionType monitorapi.BackendConnection
 			return monitorapi.Message().
 					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
 					WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-					Messagef("DNS lookup timeouts began for %s GET requests over new connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err),
+					HumanMessagef("DNS lookup timeouts began for %s GET requests over new connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err).
+					BuildString(),
 				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		case monitorapi.ReusedConnectionType:
 			return monitorapi.Message().
 					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
 					WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-					Messagef("DNS lookup timeouts began for %s GET requests over reused connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err),
+					HumanMessagef("DNS lookup timeouts began for %s GET requests over reused connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err).
+					BuildString(),
 				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		default:
 			return monitorapi.Message().
 					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
 					WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-					Messagef("DNS lookup timeouts began for %s GET requests over %v connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, "Unknown", err),
+					HumanMessagef("DNS lookup timeouts began for %s GET requests over %v connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, "Unknown", err).
+					BuildString(),
 				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		}
 	}
@@ -58,19 +61,22 @@ func DisruptionBegan(locator string, connectionType monitorapi.BackendConnection
 		return monitorapi.Message().
 				Reason(monitorapi.DisruptionBeganEventReason).
 				WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-				Messagef("%s stopped responding to GET requests over new connections: %v", locator, err),
+				HumanMessagef("%s stopped responding to GET requests over new connections: %v", locator, err).
+				BuildString(),
 			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	case monitorapi.ReusedConnectionType:
 		return monitorapi.Message().
 				Reason(monitorapi.DisruptionBeganEventReason).
 				WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-				Messagef("%s stopped responding to GET requests over reused connections: %v", locator, err),
+				HumanMessagef("%s stopped responding to GET requests over reused connections: %v", locator, err).
+				BuildString(),
 			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	default:
 		return monitorapi.Message().
 				Reason(monitorapi.DisruptionBeganEventReason).
 				WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-				Messagef("%s stopped responding to GET requests over %v connections: %v", locator, "Unknown", err),
+				HumanMessagef("%s stopped responding to GET requests over %v connections: %v", locator, "Unknown", err).
+				BuildString(),
 			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	}
 }

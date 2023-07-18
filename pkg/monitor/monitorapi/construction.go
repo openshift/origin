@@ -32,8 +32,8 @@ func (b *EventBuilder) Event() Condition {
 	return ret
 }
 
-func (b *EventBuilder) Message(message StructuredMessage) *EventBuilder {
-	b.structuredMessage = message
+func (b *EventBuilder) Message(mb *MessageBuilder) *EventBuilder {
+	b.structuredMessage = mb.Build()
 	return b
 }
 
@@ -118,8 +118,8 @@ func (m *LocatorBuilder) Structured() StructuredLocator {
 }
 
 type MessageBuilder struct {
-	annotations     map[AnnotationKey]string
-	originalMessage string
+	annotations  map[AnnotationKey]string
+	humanMessage string
 }
 
 func Message() *MessageBuilder {
@@ -128,12 +128,14 @@ func Message() *MessageBuilder {
 	}
 }
 
+// ExpandMessage parses a message that was collapsed into a string to extract each annotation
+// and the original message.
 func ExpandMessage(prevMessage string) *MessageBuilder {
 	prevAnnotations := AnnotationsFromMessage(prevMessage)
 	prevNonAnnotationMessage := NonAnnotationMessage(prevMessage)
 	return &MessageBuilder{
-		annotations:     prevAnnotations,
-		originalMessage: prevNonAnnotationMessage,
+		annotations:  prevAnnotations,
+		humanMessage: prevNonAnnotationMessage,
 	}
 }
 
@@ -165,7 +167,44 @@ func (m *MessageBuilder) WithAnnotations(annotations map[AnnotationKey]string) *
 	return m
 }
 
-func (m *MessageBuilder) NoDetails() string {
+// HumanMessage adds the human readable message. If called multiple times, the message is appended.
+func (m *MessageBuilder) HumanMessage(message string) *MessageBuilder {
+	if len(m.humanMessage) == 0 {
+		m.humanMessage = message
+	}
+	// TODO: track a slice of human messages? we are aiming for structure here...
+	m.humanMessage = fmt.Sprintf("%v %v", m.humanMessage, message)
+	return m
+}
+
+// HumanMessagef adds a formatted string to the human readable message. If called multiple times, the message is appended.
+func (m *MessageBuilder) HumanMessagef(messageFormat string, args ...interface{}) *MessageBuilder {
+	return m.HumanMessage(fmt.Sprintf(messageFormat, args...))
+}
+
+// Build creates the final StructuredMessage with all data assembled by this builder.
+func (m *MessageBuilder) Build() StructuredMessage {
+	ret := StructuredMessage{
+		Annotations: map[AnnotationKey]string{},
+	}
+	// TODO: what do we gain from a mStructuredMessageap with fixed keys, vs fields on the StructuredMessage?
+	// They're not really fixed, some WithAnnotation calls are floating around, but could those also be functions here?
+	for k, v := range m.annotations {
+		ret.Annotations[k] = v
+		switch k {
+		case AnnotationReason:
+			ret.Reason = IntervalReason(v)
+		case AnnotationCause:
+			ret.Cause = v
+		}
+	}
+	ret.HumanMessage = m.humanMessage
+	return ret
+}
+
+// BuildString creates the final message as a flat single string.
+// Each annotation is prepended in the form name/value, followed by the human message, if any.
+func (m *MessageBuilder) BuildString() string {
 	keys := sets.NewString()
 	for k := range m.annotations {
 		keys.Insert(string(k))
@@ -176,56 +215,10 @@ func (m *MessageBuilder) NoDetails() string {
 		v := m.annotations[AnnotationKey(k)]
 		annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
 	}
-	annotationString := strings.Join(annotations, " ")
-	return m.appendPreviousMessage(annotationString)
-}
+	retString := strings.Join(annotations, " ")
 
-func (m *MessageBuilder) Messagef(messageFormat string, args ...interface{}) string {
-	return m.Message(fmt.Sprintf(messageFormat, args...))
-}
-
-func (m *MessageBuilder) Message(message string) string {
-	if len(message) == 0 {
-		return m.NoDetails()
+	if len(m.humanMessage) > 0 {
+		retString = fmt.Sprintf("%v %v", retString, m.humanMessage)
 	}
-	annotationString := m.NoDetails()
-	return m.appendPreviousMessage(fmt.Sprintf("%v %v", annotationString, message))
-}
-
-func (m *MessageBuilder) StructuredNoDetails() StructuredMessage {
-	ret := StructuredMessage{
-		Annotations: map[AnnotationKey]string{},
-	}
-	// TODO: what do we gain from a map with fixed keys, vs fields on the StructuredMessage?
-	for k, v := range m.annotations {
-		ret.Annotations[k] = v
-		switch k {
-		case AnnotationReason:
-			ret.Reason = IntervalReason(v)
-		case AnnotationCause:
-			ret.Cause = v
-		}
-	}
-	return ret
-}
-
-func (m *MessageBuilder) StructuredMessagef(messageFormat string, args ...interface{}) StructuredMessage {
-	return m.StructuredMessage(fmt.Sprintf(messageFormat, args...))
-}
-
-// StructuredMessage adds the human readable message.
-func (m *MessageBuilder) StructuredMessage(message string) StructuredMessage {
-	if len(message) == 0 {
-		return m.StructuredNoDetails()
-	}
-	ret := m.StructuredNoDetails()
-	ret.HumanMessage = message
-	return ret
-}
-
-func (m *MessageBuilder) appendPreviousMessage(newMessage string) string {
-	if len(m.originalMessage) == 0 {
-		return newMessage
-	}
-	return fmt.Sprintf("%v %v", m.originalMessage, newMessage)
+	return retString
 }

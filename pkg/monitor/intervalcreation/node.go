@@ -65,7 +65,7 @@ func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		case "NotReady":
 			nodeStateTracker.openInterval(nodeLocator, notReadyState, event.From)
 		case "Ready":
-			message := monitorapi.Message().Reason(monitorapi.NodeNotReadyReason).Messagef("role/%v is not ready", roles)
+			message := monitorapi.Message().Reason(monitorapi.NodeNotReadyReason).HumanMessagef("role/%v is not ready", roles).BuildString()
 			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, notReadyState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Warning, monitorapi.NodeNotReadyReason, message), event.From)...)
 		case "MachineConfigChange":
 			nodeStateTracker.openInterval(nodeLocator, updateState, event.From)
@@ -268,7 +268,7 @@ func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
 		{
 			Condition: monitorapi.Event(monitorapi.Info).
 				Locator(containerRef).
-				Message(monitorapi.Message().Reason(monitorapi.ContainerReasonReadinessFailed).Node(nodeName).StructuredMessage(message)).
+				Message(monitorapi.Message().Reason(monitorapi.ContainerReasonReadinessFailed).Node(nodeName).HumanMessage(message)).
 				Event(),
 			From: failureTime,
 			To:   failureTime,
@@ -302,7 +302,7 @@ func readinessError(nodeName, logLine string) monitorapi.Intervals {
 					monitorapi.Message().
 						Reason(monitorapi.ContainerReasonReadinessErrored).
 						Node(nodeName).
-						StructuredMessage(message),
+						HumanMessage(message),
 				).Event(),
 			From: failureTime,
 			To:   failureTime,
@@ -331,8 +331,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 					monitorapi.Message().
 						Reason(monitorapi.ContainerErrImagePull).
 						Cause(monitorapi.ContainerUnrecognizedSignatureFormat).
-						Node(nodeName).
-						StructuredNoDetails(),
+						Node(nodeName),
 				).
 				Event(),
 			From: failureTime,
@@ -381,7 +380,7 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 					monitorapi.Message().
 						Reason(monitorapi.ContainerReasonStartupProbeFailed).
 						Node(nodeName).
-						StructuredMessage(message),
+						HumanMessage(message),
 				).Event(),
 			From: failureTime,
 			To:   failureTime,
@@ -485,7 +484,7 @@ func failedToDeleteCGroupsPath(nodeLocator monitorapi.StructuredLocator, logLine
 		{
 			Condition: monitorapi.Event(monitorapi.Error).
 				Locator(nodeLocator).
-				Message(monitorapi.Message().Reason("FailedToDeleteCGroupsPath").StructuredMessage(logLine)).
+				Message(monitorapi.Message().Reason("FailedToDeleteCGroupsPath").HumanMessage(logLine)).
 				Event(),
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
@@ -504,7 +503,7 @@ func anonymousCertConnectionError(nodeLocator monitorapi.StructuredLocator, logL
 		{
 			Condition: monitorapi.Event(monitorapi.Error).
 				Locator(nodeLocator).
-				Message(monitorapi.Message().Reason("FailedToAuthenticateWithOpenShiftUser").StructuredMessage(logLine)).
+				Message(monitorapi.Message().Reason("FailedToAuthenticateWithOpenShiftUser").HumanMessage(logLine)).
 				Event(),
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
@@ -559,7 +558,7 @@ func leaseUpdateError(nodeLocator monitorapi.StructuredLocator, logLine string) 
 			Condition: monitorapi.Event(monitorapi.Info).
 				Locator(nodeLocator).
 				Message(
-					monitorapi.Message().Reason(monitorapi.NodeFailedLease).StructuredMessage(fmt.Sprintf("%s - %s", url, msg)),
+					monitorapi.Message().Reason(monitorapi.NodeFailedLease).HumanMessage(fmt.Sprintf("%s - %s", url, msg)),
 				).Event(),
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
@@ -604,7 +603,7 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 			Condition: monitorapi.Event(monitorapi.Info).
 				Locator(locator()).
 				Message(
-					monitorapi.Message().Reason(reason).Node(nodeName).StructuredMessage(message),
+					monitorapi.Message().Reason(reason).Node(nodeName).HumanMessage(message),
 				).Event(),
 			From: failureTime,
 			To:   failureTime,

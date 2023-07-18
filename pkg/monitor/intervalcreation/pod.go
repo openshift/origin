@@ -505,7 +505,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).WithAnnotations(prevAnnotations).Message(prevBareMessage),
+					Message: monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).WithAnnotations(prevAnnotations).HumanMessage(prevBareMessage).BuildString(),
 				},
 				From: prevEvent.From,
 				To:   currEvent.From,
@@ -524,7 +524,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 			case !hasPrev && currReason != startReason:
 				// we missed the startReason (it probably happened before the watch was established).
 				// adjust the message to indicate that we missed the start event for this locator
-				nextInterval.Message = monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Reason(startReason).Messagef("missed real %q", startReason)
+				nextInterval.Message = monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Reason(startReason).HumanMessagef("missed real %q", startReason).BuildString()
 			}
 
 			// if the current reason is a logical ending point, reset to an empty previous
@@ -540,7 +540,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: monitorapi.ExpandMessage(prevEvent.Message).Constructed(monitorapi.ConstructionOwnerPodLifecycle).NoDetails(),
+					Message: monitorapi.ExpandMessage(prevEvent.Message).Constructed(monitorapi.ConstructionOwnerPodLifecycle).BuildString(),
 				},
 				From: prevEvent.From,
 				To:   timeBounder.getEndTime(locator),
