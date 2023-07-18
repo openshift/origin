@@ -1,9 +1,11 @@
 package intervalcreation
 
 import (
+	"embed"
 	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -400,4 +402,94 @@ func Test_readinessFailure(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNodeUpdateCreation(t *testing.T) {
+	files, err := nodeTests.ReadDir("nodeTest")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nodeTests := map[string]nodeIntervalTest{}
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+		testName := file.Name()
+		events := nodeBytesOrDie(fmt.Sprintf("nodeTest/%s/startingEvents.json", testName))
+		expected := nodeStringOrDie(fmt.Sprintf("nodeTest/%s/expected.json", testName))
+		times := nodeStringOrDie(fmt.Sprintf("nodeTest/%s/times.txt", testName))
+		timeTokens := strings.Split(times, "\n")
+
+		nodeTest := nodeIntervalTest{
+			events:    events,
+			results:   expected,
+			startTime: timeTokens[0],
+			endTime:   timeTokens[1],
+		}
+		nodeTests[testName] = nodeTest
+
+		t.Logf("%v\n", file.Name())
+	}
+
+	for name, test := range nodeTests {
+		t.Run(name, func(t *testing.T) {
+			test.test(t)
+		})
+	}
+}
+
+type nodeIntervalTest struct {
+	events    []byte
+	results   string
+	startTime string
+	endTime   string
+}
+
+func (p nodeIntervalTest) test(t *testing.T) {
+	inputIntervals, err := monitorserialization.EventsFromJSON(p.events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	startTime, err := time.Parse(time.RFC3339, p.startTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	endTime, err := time.Parse(time.RFC3339, p.endTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := IntervalsFromEvents_NodeChanges(inputIntervals, nil, startTime, endTime)
+
+	resultBytes, err := monitorserialization.EventsToJSON(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resultJSON := string(resultBytes)
+	if p.results != resultJSON {
+		t.Log(p.results)
+		t.Fatal(resultJSON)
+	}
+}
+
+//go:embed nodeTest/*
+var nodeTests embed.FS
+
+func nodeBytesOrDie(name string) []byte {
+	ret, err := nodeTests.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	return ret
+}
+
+func nodeStringOrDie(name string) string {
+	ret, err := nodeTests.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(ret)
 }

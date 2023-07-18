@@ -23,7 +23,7 @@ func simpleCondition(level monitorapi.EventLevel, reason monitorapi.IntervalReas
 		return monitorapi.Condition{
 			Level:   level,
 			Locator: locator,
-			Message: monitorapi.Message().Reason(reason).Message(message),
+			Message: monitorapi.Message().Reason(reason).Constructed().Message(message),
 		}, true
 	}
 }
@@ -136,9 +136,9 @@ func (t *stateTracker) closeAllIntervals(locatorToMessageAnnotations map[string]
 		for k, v := range locatorToMessageAnnotations[locator] {
 			annotationStrings = append(annotationStrings, fmt.Sprintf("%v/%v", k, v))
 		}
-		message := fmt.Sprintf("%v phase never completed", strings.Join(annotationStrings, " "))
 
 		for stateName := range states {
+			message := fmt.Sprintf("%v state/%v never completed", strings.Join(annotationStrings, " "), stateName.stateName)
 			ret = append(ret, t.closeInterval(locator, stateName, simpleCondition(monitorapi.Warning, stateName.reason, message), end)...)
 		}
 	}

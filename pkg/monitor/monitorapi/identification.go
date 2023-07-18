@@ -31,16 +31,8 @@ func IsE2ETest(locator string) bool {
 }
 
 func E2ETestFromLocator(locator string) (string, bool) {
-	if !strings.HasPrefix(locator, "e2e-test/") {
-		return "", false
-	}
-	parts := strings.SplitN(locator, "/", 2)
-	quotedTestName := parts[1]
-	testName, err := strconv.Unquote(quotedTestName)
-	if err != nil {
-		return "", false
-	}
-	return testName, true
+	ret := E2ETestFrom(LocatorParts(locator))
+	return ret, len(ret) > 0
 }
 
 func NodeLocator(testName string) string {
@@ -53,11 +45,8 @@ func IsNode(locator string) bool {
 }
 
 func NodeFromLocator(locator string) (string, bool) {
-	if !strings.HasPrefix(locator, "node/") {
-		return "", false
-	}
-	parts := strings.SplitN(strings.TrimPrefix(locator, "node/"), " ", 2)
-	return parts[0], true
+	ret := NodeFrom(LocatorParts(locator))
+	return ret, len(ret) > 0
 }
 
 func OperatorLocator(operatorName string) string {
@@ -65,11 +54,23 @@ func OperatorLocator(operatorName string) string {
 }
 
 func OperatorFromLocator(locator string) (string, bool) {
-	if !strings.HasPrefix(locator, "clusteroperator/") {
-		return "", false
+	ret := OperatorFrom(LocatorParts(locator))
+	return ret, len(ret) > 0
+}
+
+func NamespaceFromLocator(locator string) string {
+	locatorParts := LocatorParts(locator)
+	if ns, ok := locatorParts["ns"]; ok {
+		return ns
 	}
-	parts := strings.SplitN(strings.TrimPrefix(locator, "clusteroperator/"), " ", 2)
-	return parts[0], true
+	if ns, ok := locatorParts["namespace"]; ok {
+		return ns
+	}
+	return ""
+}
+
+func AlertFromLocator(locator string) string {
+	return AlertFrom(LocatorParts(locator))
 }
 
 func LocatorParts(locator string) map[string]string {
@@ -98,19 +99,24 @@ func NamespaceFrom(locatorParts map[string]string) string {
 	return ""
 }
 
-func NamespaceFromLocator(locator string) string {
-	locatorParts := LocatorParts(locator)
-	if ns, ok := locatorParts["ns"]; ok {
-		return ns
+func E2ETestFrom(locatorParts map[string]string) string {
+	quotedTestName, ok := locatorParts["e2e-test"]
+	if !ok {
+		return ""
 	}
-	if ns, ok := locatorParts["namespace"]; ok {
-		return ns
+	testName, err := strconv.Unquote(quotedTestName)
+	if err != nil {
+		return ""
 	}
-	return ""
+	return testName
 }
 
-func AlertFromLocator(locator string) string {
-	return AlertFrom(LocatorParts(locator))
+func NodeFrom(locatorParts map[string]string) string {
+	return locatorParts["node"]
+}
+
+func OperatorFrom(locatorParts map[string]string) string {
+	return locatorParts["clusteroperator"]
 }
 
 func AlertFrom(locatorParts map[string]string) string {
