@@ -102,6 +102,22 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	// this means there will never be contention on a single file.
 	// we will lock just before the commit itself.
 
+	// Allowing files to be written while a commit is in progress leads to commit failures due to unstaged changes
+	// moving the lock to the top of the handler to make the action atomic.
+	// E0706 02:06:26.489945    2444 git_store.go:338] Ran git add "namespaces/openshift-cloud-credential-operator/core/services/cco-metrics.yaml" && git commit --author="modified-unknown <ci-monitor@openshift.io>" -m "modifed services/cco-metrics -n openshift-cloud-credential-operator"
+	// On branch master
+	// Changes not staged for commit:
+	//  (use "git add <file>..." to update what will be committed)
+	//  (use "git restore <file>..." to discard changes in working directory)
+	//	modified:   namespaces/openshift-apiserver/core/pods/apiserver-856c47d994-47cf7.yaml
+	//
+	// Untracked files:
+	//  (use "git add <file>..." to include in what will be committed)
+	//	namespaces/openshift-etcd/core/pods/etcd-ci-op-g2xjpfr4-ed5cd-gqjcq-master-0.yaml
+
+	s.Lock()
+	defer s.Unlock()
+
 	filePath, content, err := decodeUnstructuredObject(gvr, obj)
 	if err != nil {
 		klog.Warningf("Decoding %q failed: %v", filePath, err)
@@ -123,11 +139,6 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	if delete {
 		// ignore error, we've already reported and we're not doing anything else.
 		_ = wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
-			// either the golang git library or git itself doesn't properly handle threading, so we have to lock here.
-			// take the lock inside the poll so that retries don't keep the lock for a long time.
-			s.Lock()
-			defer s.Unlock()
-
 			if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
 				klog.Error(err)
 				return false, nil
@@ -150,11 +161,6 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 
 	// ignore error, we've already reported and we're not doing anything else.
 	_ = wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
-		// either the golang git library or git itself doesn't properly handle threading, so we have to lock here.
-		// take the lock inside the poll so that retries don't keep the lock for a long time.
-		s.Lock()
-		defer s.Unlock()
-
 		switch {
 		case operation == gitOpAdded:
 			if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
