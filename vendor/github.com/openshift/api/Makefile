@@ -48,6 +48,7 @@ verify-scripts:
 	bash -x hack/verify-compatibility.sh
 	bash -x hack/verify-integration-tests.sh
 	bash -x hack/verify-group-versions.sh
+	bash -x hack/verify-prerelease-lifecycle-gen.sh
 
 .PHONY: verify
 verify: verify-scripts verify-codegen-crds
@@ -71,7 +72,7 @@ verify-%:
 ################################################################################################
 
 .PHONY: update-scripts
-update-scripts: update-compatibility update-openapi update-deepcopy update-protobuf update-swagger-docs tests-vendor
+update-scripts: update-compatibility update-openapi update-deepcopy update-protobuf update-swagger-docs tests-vendor update-prerelease-lifecycle-gen
 
 .PHONY: update-compatibility
 update-compatibility:
@@ -92,6 +93,10 @@ update-protobuf:
 .PHONY: update-swagger-docs
 update-swagger-docs:
 	hack/update-swagger-docs.sh
+
+.PHONY: update-prerelease-lifecycle-gen
+update-prerelease-lifecycle-gen:
+	hack/update-prerelease-lifecycle-gen.sh
 
 #####################
 #

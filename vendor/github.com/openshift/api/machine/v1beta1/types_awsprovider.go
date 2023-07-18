@@ -79,6 +79,11 @@ type AWSMachineProviderConfig struct {
 	// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_InstanceMetadataOptionsRequest.html
 	// +optional
 	MetadataServiceOptions MetadataServiceOptions `json:"metadataServiceOptions,omitempty"`
+	// PlacementGroupName specifies the name of the placement group in which to launch the instance.
+	// The placement group must already be created and may use any placement strategy.
+	// When omitted, no placement group is used when creating the EC2 instance.
+	// +optional
+	PlacementGroupName string `json:"placementGroupName,omitempty"`
 }
 
 // BlockDeviceMappingSpec describes a block device mapping

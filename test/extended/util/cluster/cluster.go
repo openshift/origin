@@ -171,6 +171,19 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 	}
 
 	config.HasNoOptionalCapabilities = len(state.OptionalCapabilities) == 0
+	// after introducing MachineAPI capability it's needed to be always enabled
+	// to make it compatable to CI.
+	// We need this code in order to keep tests working with no capabilities
+	// enabled and have proper tests skips so we won't run the tests for the components
+	// which are not present in the cluster.
+	// This is strictly required in every CI job because without it cluster install won't succeed
+	// at all and CI job would fail.
+	//
+	// This part checks if only MachineAPI is enabled and sets HasNoOptionalCapabilities
+	// field to true.
+	if len(state.OptionalCapabilities) == 1 && state.OptionalCapabilities[0] == configv1.ClusterVersionCapabilityMachineAPI {
+		config.HasNoOptionalCapabilities = true
+	}
 
 	if zones.Len() > 0 {
 		config.Zone = zones.List()[0]

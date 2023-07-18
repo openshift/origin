@@ -2,6 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    capability.openshift.io/name: MachineAPI
     api-approved.openshift.io: https://github.com/openshift/api/pull/1112
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
@@ -243,6 +244,39 @@ spec:
                                   zone:
                                     description: Zone is the zone in which the GCP machine provider will create the VM.
                                     type: string
+                            openstack:
+                              description: OpenStack configures failure domain information for the OpenStack platform.
+                              type: array
+                              items:
+                                description: OpenStackFailureDomain configures failure domain information for the OpenStack platform.
+                                type: object
+                                minProperties: 1
+                                properties:
+                                  availabilityZone:
+                                    description: 'availabilityZone is the nova availability zone in which the OpenStack machine provider will create the VM. If not specified, the VM will be created in the default availability zone specified in the nova configuration. Availability zone names must NOT contain : since it is used by admin users to specify hosts where instances are launched in server creation. Also, it must not contain spaces otherwise it will lead to node that belongs to this availability zone register failure, see kubernetes/cloud-provider-openstack#1379 for further information. The maximum length of availability zone name is 63 as per labels limits.'
+                                    type: string
+                                    maxLength: 63
+                                    minLength: 1
+                                    pattern: '^[^: ]*$'
+                                  rootVolume:
+                                    description: rootVolume contains settings that will be used by the OpenStack machine provider to create the root volume attached to the VM. If not specified, no root volume will be created.
+                                    type: object
+                                    minProperties: 1
+                                    properties:
+                                      availabilityZone:
+                                        description: availabilityZone specifies the Cinder availability zone where the root volume will be created. If not specifified, the root volume will be created in the availability zone specified by the volume type in the cinder configuration. If the volume type (configured in the OpenStack cluster) does not specify an availability zone, the root volume will be created in the default availability zone specified in the cinder configuration. See https://docs.openstack.org/cinder/latest/admin/availability-zone-type.html for more details. If the OpenStack cluster is deployed with the cross_az_attach configuration option set to false, the root volume will have to be in the same availability zone as the VM (defined by OpenStackFailureDomain.AvailabilityZone). Availability zone names must NOT contain spaces otherwise it will lead to volume that belongs to this availability zone register failure, see kubernetes/cloud-provider-openstack#1379 for further information. The maximum length of availability zone name is 63 as per labels limits.
+                                        type: string
+                                        maxLength: 63
+                                        minLength: 1
+                                        pattern: ^[^ ]*$
+                                      volumeType:
+                                        description: volumeType specifies the type of the root volume that will be provisioned. If not specifified, the root volume will be created as the type in the machine template. The maximum length of a volume type name is 255 characters, as per the OpenStack limit.
+                                        type: string
+                                        maxLength: 255
+                                        minLength: 1
+                                x-kubernetes-validations:
+                                  - rule: '!has(self.availabilityZone) || !has(self.rootVolume) || has(self.rootVolume.availabilityZone)'
+                                    message: rootVolume.availabilityZone is required when availabilityZone is set
                             platform:
                               description: Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, and GCP.
                               type: string
@@ -271,6 +305,8 @@ spec:
                               message: azure configuration is required when platform is Azure, and forbidden otherwise
                             - rule: 'has(self.platform) && self.platform == ''GCP'' ?  has(self.gcp) : !has(self.gcp)'
                               message: gcp configuration is required when platform is GCP, and forbidden otherwise
+                            - rule: 'has(self.platform) && self.platform == ''OpenStack'' ?  has(self.openstack) : !has(self.openstack)'
+                              message: openstack configuration is required when platform is OpenStack, and forbidden otherwise
                         metadata:
                           description: 'ObjectMeta is the standard object metadata More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata Labels are required to match the ControlPlaneMachineSet selector.'
                           type: object

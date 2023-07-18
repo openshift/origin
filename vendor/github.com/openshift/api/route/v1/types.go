@@ -246,6 +246,9 @@ type RouterShard struct {
 }
 
 // TLSConfig defines config used to secure a route and provide termination
+//
+// +kubebuilder:validation:XValidation:rule="has(self.termination) && has(self.insecureEdgeTerminationPolicy) ? !((self.termination=='passthrough') && (self.insecureEdgeTerminationPolicy=='Allow')) : true", message="cannot have both spec.tls.termination: passthrough and spec.tls.insecureEdgeTerminationPolicy: Allow"
+// +openshift:validation:FeatureSetAwareXValidation:featureSet=TechPreviewNoUpgrade;CustomNoUpgrade,rule="!(has(self.certificate) && has(self.externalCertificate))", message="cannot have both spec.tls.certificate and spec.tls.externalCertificate"
 type TLSConfig struct {
 	// termination indicates termination type.
 	//
@@ -276,10 +279,32 @@ type TLSConfig struct {
 	// insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While
 	// each router may make its own decisions on which ports to expose, this is normally port 80.
 	//
-	// * Allow - traffic is sent to the server on the insecure port (default)
-	// * Disable - no traffic is allowed on the insecure port.
+	// * Allow - traffic is sent to the server on the insecure port (edge/reencrypt terminations only) (default).
+	// * None - no traffic is allowed on the insecure port.
 	// * Redirect - clients are redirected to the secure port.
+	//
+	// +kubebuilder:validation:Enum=Allow;None;Redirect;""
 	InsecureEdgeTerminationPolicy InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty" protobuf:"bytes,6,opt,name=insecureEdgeTerminationPolicy,casttype=InsecureEdgeTerminationPolicyType"`
+
+	// externalCertificate provides certificate contents as a secret reference.
+	// This should be a single serving certificate, not a certificate
+	// chain. Do not include a CA certificate. The secret referenced should
+	// be present in the same namespace as that of the Route.
+	// Forbidden when `certificate` is set.
+	//
+	// +openshift:enable:FeatureSets=CustomNoUpgrade;TechPreviewNoUpgrade
+	// +optional
+	ExternalCertificate LocalObjectReference `json:"externalCertificate,omitempty" protobuf:"bytes,7,opt,name=externalCertificate"`
+}
+
+// LocalObjectReference contains enough information to let you locate the
+// referenced object inside the same namespace.
+// +structType=atomic
+type LocalObjectReference struct {
+	// name of the referent.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+	// +optional
+	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
 }
 
 // TLSTerminationType dictates where the secure communication will stop
