@@ -235,8 +235,6 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] OAuthClientWithRedirectURIs must validate request URIs according to oauth-client definition": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the authorize URL": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the grant URL": " [Suite:openshift/conformance/parallel]",
@@ -263,7 +261,9 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that expire shortly works as expected when using a token authorization flow [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] well-known endpoint should be reachable [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [apigroup:oauth.openshift.io] OAuthClientWithRedirectURIs must validate request URIs according to oauth-client definition": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-auth][Feature:OAuthServer] well-known endpoint should be reachable [apigroup:route.openshift.io] [apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleBindingEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 

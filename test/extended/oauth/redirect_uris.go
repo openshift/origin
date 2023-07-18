@@ -31,7 +31,7 @@ type testCaseRedirectURIs struct {
 	responseValidator func(*http.Request, *http.Response) bool
 }
 
-var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
+var _ = g.Describe("[sig-auth][Feature:OAuthServer] [apigroup:oauth.openshift.io]", func() {
 	g.Describe("OAuthClientWithRedirectURIs", func() {
 		ctx := context.Background()
 		oc := exutil.NewCLI("oauthclient-with-redirect-uris")
