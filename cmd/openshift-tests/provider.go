@@ -78,7 +78,23 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcluster
 func decodeProvider(provider string, dryRun, discover bool, clusterState *exutilcluster.ClusterState) (*exutilcluster.ClusterConfiguration, error) {
 	switch provider {
 	case "none":
-		return &exutilcluster.ClusterConfiguration{ProviderName: "skeleton"}, nil
+		config := &exutilcluster.ClusterConfiguration{
+			ProviderName: "skeleton",
+		}
+		// Add NoOptionalCapabilities for MicroShift
+		coreClient, err := e2e.LoadClientset(true)
+		if err != nil {
+			return nil, err
+		}
+		isMicroShift, err := exutil.IsMicroShiftCluster(coreClient)
+		if err != nil {
+			return nil, err
+		}
+		if isMicroShift {
+			config.HasNoOptionalCapabilities = true
+		}
+
+		return config, nil
 
 	case "":
 		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
