@@ -52395,21 +52395,21 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     });
 
     function isOperatorAvailable(eventInterval) {
-        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Available") && eventInterval.message.includes("status/False")) {
+        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Available") && eventInterval.message.includes("status/False")) {
             return true
         }
         return false
     }
 
     function isOperatorDegraded(eventInterval) {
-        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Degraded") && eventInterval.message.includes("status/True")) {
+        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Degraded") && eventInterval.message.includes("status/True")) {
             return true
         }
         return false
     }
 
     function isOperatorProgressing(eventInterval) {
-        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Progressing") && eventInterval.message.includes("status/True")) {
+        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Progressing") && eventInterval.message.includes("status/True")) {
             return true
         }
         return false
@@ -52482,21 +52482,21 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isE2EFailed(eventInterval) {
-        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
+        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
             return true
         }
         return false
     }
 
     function isE2EFlaked(eventInterval) {
-        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Flaked")) {
+        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Flaked")) {
             return true
         }
         return false
     }
 
     function isE2EPassed(eventInterval) {
-        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Passed")) {
+        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Passed")) {
             return true
         }
         return false
@@ -52525,7 +52525,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         if (eventInterval.locator.includes("disruption/")) {
             return true
         }
-        if (eventInterval.locator.startsWith("ns/e2e-k8s-service-lb-available")) {
+        if (eventInterval.locator.includes("ns/e2e-k8s-service-lb-available")) {
             return true
         }
         if (eventInterval.locator.includes(" route/")) {
@@ -52536,14 +52536,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isNodeState(eventInterval) {
-        if (eventInterval.locator.startsWith("node/")) {
-            return (eventInterval.message.startsWith("reason/NodeUpdate ") || eventInterval.message.includes("node is not ready"))
+        if (eventInterval.locator.includes("node/")) {
+            return (eventInterval.message.includes("reason/NodeUpdate ") || eventInterval.message.includes("node is not ready"))
         }
         return false
     }
 
     function isAlert(eventInterval) {
-        if (eventInterval.locator.startsWith("alert/")) {
+        if (eventInterval.locator.includes("alert/")) {
             return true
         }
         return false
@@ -53195,7 +53195,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     // Structure the locator data and then categorize the event
     _.forEach(eventIntervals.items, function(eventInterval) {
         eventInterval.locatorObj = {};
-        if (eventInterval.locator.startsWith("e2e-test/")) {
+        if (eventInterval.locator.includes("e2e-test/")) {
             var value = eventInterval.locator.slice(eventInterval.locator.indexOf('/') + 1);
             eventInterval.locatorObj.e2e_test = value;
         }
@@ -53232,21 +53232,21 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     });
 
     function isOperatorAvailable(eventInterval) {
-        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Available") && eventInterval.message.includes("status/False")) {
+        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Available") && eventInterval.message.includes("status/False")) {
             return true
         }
         return false
     }
 
     function isOperatorDegraded(eventInterval) {
-        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Degraded") && eventInterval.message.includes("status/True")) {
+        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Degraded") && eventInterval.message.includes("status/True")) {
             return true
         }
         return false
     }
 
     function isOperatorProgressing(eventInterval) {
-        if (eventInterval.locator.startsWith("clusteroperator/") && eventInterval.message.includes("condition/Progressing") && eventInterval.message.includes("status/True")) {
+        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Progressing") && eventInterval.message.includes("status/True")) {
             return true
         }
         return false
@@ -53319,21 +53319,21 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isE2EFailed(eventInterval) {
-        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
+        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
             return true
         }
         return false
     }
 
     function isE2EFlaked(eventInterval) {
-        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Flaked")) {
+        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Flaked")) {
             return true
         }
         return false
     }
 
     function isE2EPassed(eventInterval) {
-        if (eventInterval.locator.startsWith("e2e-test/") && eventInterval.message.includes("finished As \"Passed")) {
+        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Passed")) {
             return true
         }
         return false
@@ -53346,7 +53346,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         if (eventInterval.locator.includes("disruption/")) {
             return true
         }
-        if (eventInterval.locator.startsWith("ns/e2e-k8s-service-lb-available")) {
+        if (eventInterval.locator.includes("ns/e2e-k8s-service-lb-available")) {
             return true
         }
         if (eventInterval.locator.includes(" route/")) {
@@ -53357,14 +53357,14 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isNodeState(eventInterval) {
-        if (eventInterval.locator.startsWith("node/")) {
-            return (eventInterval.message.startsWith("reason/NodeUpdate ") || eventInterval.message.includes("node is not ready"))
+        if (eventInterval.locator.includes("node/")) {
+            return (eventInterval.message.includes("reason/NodeUpdate ") || eventInterval.message.includes("node is not ready"))
         }
         return false
     }
 
     function isAlert(eventInterval) {
-        if (eventInterval.locator.startsWith("alert/")) {
+        if (eventInterval.locator.includes("alert/")) {
             return true
         }
         return false
