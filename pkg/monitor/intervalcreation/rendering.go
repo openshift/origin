@@ -140,12 +140,12 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
 }
 
 func IsPodLifecycle(eventInterval monitorapi.EventInterval) bool {
-	return strings.Contains(eventInterval.Message, "constructed/true")
+	return monitorapi.ConstructionOwnerFrom(eventInterval.Message) == monitorapi.ConstructionOwnerPodLifecycle
 }
 
 func IsOriginalPodEvent(eventInterval monitorapi.EventInterval) bool {
 	// constructed events are not original
-	if strings.Contains(eventInterval.Message, "constructed/true") {
+	if len(monitorapi.ConstructionOwnerFrom(eventInterval.Message)) > 0 {
 		return false
 	}
 	return strings.Contains(eventInterval.Locator, "pod/")
@@ -153,7 +153,7 @@ func IsOriginalPodEvent(eventInterval monitorapi.EventInterval) bool {
 
 func isPlatformPodEvent(eventInterval monitorapi.EventInterval) bool {
 	// only include pod events that were created in CreatePodIntervalsFromInstants
-	if !strings.Contains(eventInterval.Message, "constructed/true") {
+	if !IsPodLifecycle(eventInterval) {
 		return false
 	}
 	pod := monitorapi.PodFrom(eventInterval.Locator)

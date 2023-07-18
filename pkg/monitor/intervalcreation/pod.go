@@ -12,7 +12,7 @@ import (
 
 func IntervalsFromEvents_PodChanges(events monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
-	podStateTracker := newStateTracker(beginning)
+	podStateTracker := newStateTracker(monitorapi.ConstructionOwnerPodLifecycle, beginning)
 	locatorToMessageAnnotations := map[string]map[string]string{}
 
 	for _, event := range events {
@@ -137,7 +137,7 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: "constructed/true " + instantEvent.Message,
+					Message: monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Message(instantEvent.Message),
 				},
 				From: instantEvent.From,
 				To:   instantEvent.From.Add(1 * time.Second),
@@ -505,7 +505,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: monitorapi.Message().Constructed().WithAnnotations(prevAnnotations).Message(prevBareMessage),
+					Message: monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).WithAnnotations(prevAnnotations).Message(prevBareMessage),
 				},
 				From: prevEvent.From,
 				To:   currEvent.From,
@@ -524,7 +524,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 			case !hasPrev && currReason != startReason:
 				// we missed the startReason (it probably happened before the watch was established).
 				// adjust the message to indicate that we missed the start event for this locator
-				nextInterval.Message = monitorapi.Message().Constructed().Reason(startReason).Messagef("missed real %q", startReason)
+				nextInterval.Message = monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Reason(startReason).Messagef("missed real %q", startReason)
 			}
 
 			// if the current reason is a logical ending point, reset to an empty previous
@@ -540,7 +540,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Eve
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: monitorapi.ExpandMessage(prevEvent.Message).Constructed().NoDetails(),
+					Message: monitorapi.ExpandMessage(prevEvent.Message).Constructed(monitorapi.ConstructionOwnerPodLifecycle).NoDetails(),
 				},
 				From: prevEvent.From,
 				To:   timeBounder.getEndTime(locator),

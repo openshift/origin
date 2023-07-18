@@ -101,6 +101,11 @@ func ReasonFrom(message string) IntervalReason {
 	return IntervalReason(annotations[AnnotationReason])
 }
 
+func ConstructionOwnerFrom(message string) IntervalReason {
+	annotations := AnnotationsFromMessage(message)
+	return IntervalReason(annotations[AnnotationConstructed])
+}
+
 func PhaseFrom(message string) string {
 	annotations := AnnotationsFromMessage(message)
 	return annotations[AnnotationPodPhase]
@@ -156,6 +161,13 @@ const (
 	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
 )
 
+type ConstructionOwner string
+
+const (
+	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
+	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
+)
+
 type MessageBuilder struct {
 	annotations     map[AnnotationKey]string
 	originalMessage string
@@ -188,8 +200,8 @@ func (m *MessageBuilder) Node(node string) *MessageBuilder {
 	return m.WithAnnotation(AnnotationNode, node)
 }
 
-func (m *MessageBuilder) Constructed() *MessageBuilder {
-	return m.WithAnnotation(AnnotationConstructed, "true")
+func (m *MessageBuilder) Constructed(constructedBy ConstructionOwner) *MessageBuilder {
+	return m.WithAnnotation(AnnotationConstructed, string(constructedBy))
 }
 
 func (m *MessageBuilder) WithAnnotation(name AnnotationKey, value string) *MessageBuilder {
