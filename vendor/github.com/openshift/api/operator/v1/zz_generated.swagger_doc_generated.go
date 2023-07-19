@@ -39,6 +39,8 @@ var map_NodeStatus = map[string]string{
 	"currentRevision":          "currentRevision is the generation of the most recently successful deployment",
 	"targetRevision":           "targetRevision is the generation of the deployment we're trying to apply",
 	"lastFailedRevision":       "lastFailedRevision is the generation of the deployment we tried and failed to deploy.",
+	"lastFailedTime":           "lastFailedTime is the time the last failed revision failed the last time.",
+	"lastFailedCount":          "lastFailedCount is how often the last failed revision failed.",
 	"lastFailedRevisionErrors": "lastFailedRevisionErrors is a list of the errors during the failed deployment referenced in lastFailedRevision",
 }
 
@@ -223,6 +225,7 @@ var map_ConsoleSpec = map[string]string{
 	"customization": "customization is used to optionally provide a small set of customization options to the web console.",
 	"providers":     "providers contains configuration for using specific service providers.",
 	"route":         "route contains hostname and secret reference that contains the serving certificate. If a custom route is specified, a new route will be created with the provided hostname, under which console will be available. In case of custom hostname uses the default routing suffix of the cluster, the Secret specification for a serving certificate will not be needed. In case of custom hostname points to an arbitrary domain, manual DNS configurations steps are necessary. The default console route will be maintained to reserve the default hostname for console if the custom route is removed. If not specified, default route will be used.",
+	"plugins":       "plugins defines a list of enabled console plugin names.",
 }
 
 func (ConsoleSpec) SwaggerDoc() map[string]string {

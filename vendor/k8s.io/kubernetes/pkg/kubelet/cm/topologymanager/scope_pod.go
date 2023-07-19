@@ -19,6 +19,7 @@ package topologymanager
 import (
 	"k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/pkg/kubelet/cm/containermap"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 	"k8s.io/kubernetes/pkg/kubelet/util/format"
 )
@@ -37,7 +38,7 @@ func NewPodScope(policy Policy) Scope {
 			name:             podTopologyScope,
 			podTopologyHints: podTopologyHints{},
 			policy:           policy,
-			podMap:           make(map[string]string),
+			podMap:           containermap.NewContainerMap(),
 		},
 	}
 }
@@ -56,12 +57,7 @@ func (s *podScope) Admit(pod *v1.Pod) lifecycle.PodAdmitResult {
 
 	for _, container := range append(pod.Spec.InitContainers, pod.Spec.Containers...) {
 		klog.Infof("[topologymanager] Topology Affinity for (pod: %v container: %v): %v", format.Pod(pod), container.Name, bestHint)
-
-		if (s.podTopologyHints)[string(pod.UID)] == nil {
-			(s.podTopologyHints)[string(pod.UID)] = make(map[string]TopologyHint)
-		}
-
-		(s.podTopologyHints)[string(pod.UID)][container.Name] = bestHint
+		s.setTopologyHints(string(pod.UID), container.Name, bestHint)
 
 		err := s.allocateAlignedResources(pod, &container)
 		if err != nil {

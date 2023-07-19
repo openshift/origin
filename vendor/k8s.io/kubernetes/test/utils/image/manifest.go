@@ -212,10 +212,10 @@ func initImageConfigs() (map[int]Config, map[int]Config) {
 	configs[APIServer] = Config{e2eRegistry, "sample-apiserver", "1.17"}
 	configs[AppArmorLoader] = Config{e2eRegistry, "apparmor-loader", "1.0"}
 	configs[BusyBox] = Config{dockerLibraryRegistry, "busybox", "1.29"}
-	configs[CheckMetadataConcealment] = Config{e2eRegistry, "metadata-concealment", "1.2"}
+	configs[CheckMetadataConcealment] = Config{promoterE2eRegistry, "metadata-concealment", "1.6"}
 	configs[CudaVectorAdd] = Config{e2eRegistry, "cuda-vector-add", "1.0"}
 	configs[CudaVectorAdd2] = Config{e2eRegistry, "cuda-vector-add", "2.0"}
-	configs[DebianIptables] = Config{buildImageRegistry, "debian-iptables", "buster-v1.3.0"}
+	configs[DebianIptables] = Config{buildImageRegistry, "debian-iptables", "buster-v1.6.7"}
 	configs[EchoServer] = Config{e2eRegistry, "echoserver", "2.2"}
 	configs[Etcd] = Config{gcRegistry, "etcd", "3.4.13-0"}
 	configs[GlusterDynamicProvisioner] = Config{dockerGluster, "glusterdynamic-provisioner", "v1.0"}

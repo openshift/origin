@@ -222,6 +222,20 @@ func (w *worker) doProbe() (keepGoing bool) {
 			w.pod.Spec.RestartPolicy != v1.RestartPolicyNever
 	}
 
+	// Graceful shutdown of the pod.
+	if w.pod.ObjectMeta.DeletionTimestamp != nil && (w.probeType == liveness || w.probeType == startup) {
+		klog.V(3).Infof("Pod deletion requested, setting %v probe result to success: %v - %v",
+			w.probeType.String(), format.Pod(w.pod), w.container.Name)
+		if w.probeType == startup {
+			klog.Warningf("Pod deletion requested before container has fully started: %v - %v",
+				format.Pod(w.pod), w.container.Name)
+		}
+		// Set a last result to ensure quiet shutdown.
+		w.resultsManager.Set(w.containerID, results.Success, w.pod)
+		// Stop probing at this point.
+		return false
+	}
+
 	// Probe disabled for InitialDelaySeconds.
 	if int32(time.Since(c.State.Running.StartedAt.Time).Seconds()) < w.spec.InitialDelaySeconds {
 		return true
@@ -229,6 +243,7 @@ func (w *worker) doProbe() (keepGoing bool) {
 
 	if c.Started != nil && *c.Started {
 		// Stop probing for startup once container has started.
+		// we keep it running to make sure it will work for restarted container.
 		if w.probeType == startup {
 			return true
 		}

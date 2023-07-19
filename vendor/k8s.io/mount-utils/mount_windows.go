@@ -64,6 +64,12 @@ func (mounter *Mounter) MountSensitiveWithoutSystemd(source string, target strin
 	return mounter.MountSensitive(source, target, fstype, options, sensitiveOptions /* sensitiveOptions */)
 }
 
+// MountSensitiveWithoutSystemdWithMountFlags is the same as MountSensitiveWithoutSystemd with additional mount flags
+// Windows not supported systemd mount, this function degrades to MountSensitive().
+func (mounter *Mounter) MountSensitiveWithoutSystemdWithMountFlags(source string, target string, fstype string, options []string, sensitiveOptions []string, mountFlags []string) error {
+	return mounter.MountSensitive(source, target, fstype, options, sensitiveOptions /* sensitiveOptions */)
+}
+
 // MountSensitive is the same as Mount() but this method allows
 // sensitiveOptions to be passed in a separate parameter from the normal
 // mount options and ensures the sensitiveOptions are never logged. This
@@ -164,7 +170,7 @@ func newSMBMapping(username, password, remotepath string) (string, error) {
 	// https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables?view=powershell-5.1
 	cmdLine := `$PWord = ConvertTo-SecureString -String $Env:smbpassword -AsPlainText -Force` +
 		`;$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $Env:smbuser, $PWord` +
-		`;New-SmbGlobalMapping -RemotePath $Env:smbremotepath -Credential $Credential`
+		`;New-SmbGlobalMapping -RemotePath $Env:smbremotepath -Credential $Credential -RequirePrivacy $true`
 	cmd := exec.Command("powershell", "/c", cmdLine)
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("smbuser=%s", username),

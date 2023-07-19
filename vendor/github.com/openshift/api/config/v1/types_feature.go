@@ -129,6 +129,7 @@ var defaultFeatures = &FeatureGateEnabledDisabled{
 	},
 	Disabled: []string{
 		"LegacyNodeRoleBehavior", // sig-scheduling, ccoleman
+		"RemoveSelfLink",         // kuryr needs updating, deads2k will personally remove in 4.8
 	},
 }
 

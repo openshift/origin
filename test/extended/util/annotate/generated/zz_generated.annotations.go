@@ -175,6 +175,8 @@ var annotations = map[string]string{
 
 	"[Top Level] [k8s.io] Probing container should be restarted with a exec \"cat /tmp/health\" liveness probe [NodeConformance] [Conformance]": "should be restarted with a exec \"cat /tmp/health\" liveness probe [NodeConformance] [Conformance] [sig-node] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
+	"[Top Level] [k8s.io] Probing container should be restarted with a failing exec liveness probe that took longer than the timeout": "should be restarted with a failing exec liveness probe that took longer than the timeout [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
+
 	"[Top Level] [k8s.io] Probing container should be restarted with a local redirect http liveness probe": "should be restarted with a local redirect http liveness probe [sig-node] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[Top Level] [k8s.io] Probing container should have monotonically increasing restart count [NodeConformance] [Conformance]": "should have monotonically increasing restart count [NodeConformance] [Conformance] [sig-node] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
