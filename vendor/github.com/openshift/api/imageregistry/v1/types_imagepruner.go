@@ -80,6 +80,13 @@ type ImagePrunerSpec struct {
 	// errors while parsing image references.
 	// +optional
 	IgnoreInvalidImageReferences bool `json:"ignoreInvalidImageReferences,omitempty"`
+	// logLevel sets the level of log output for the pruner job.
+	//
+	// Valid values are: "Normal", "Debug", "Trace", "TraceAll".
+	// Defaults to "Normal".
+	// +optional
+	// +kubebuilder:default=Normal
+	LogLevel operatorv1.LogLevel `json:"logLevel,omitempty"`
 }
 
 // ImagePrunerStatus reports image pruner operational status.

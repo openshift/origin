@@ -150,7 +150,7 @@ func makeMounts(pod *v1.Pod, podDir string, container *v1.Container, hostName, h
 		mountEtcHostsFile = mountEtcHostsFile && (mount.MountPath != etcHostsPath)
 		vol, ok := podVolumes[mount.Name]
 		if !ok || vol.Mounter == nil {
-			klog.Errorf("Mount cannot be satisfied for container %q, because the volume is missing or the volume mounter is nil: %+v", container.Name, mount)
+			klog.Errorf("Mount cannot be satisfied for container %q, because the volume is missing (ok=%v) or the volume mounter (vol.Mounter) is nil (vol=%+v): %+v", container.Name, ok, vol, mount)
 			return nil, cleanupAction, fmt.Errorf("cannot find volume %q to mount into container %q", mount.Name, container.Name)
 		}
 
@@ -1036,7 +1036,7 @@ func (kl *Kubelet) removeOrphanedPodStatuses(pods []*v1.Pod, mirrorPods []*v1.Po
 func (kl *Kubelet) deleteOrphanedMirrorPods() {
 	podFullNames := kl.podManager.GetOrphanedMirrorPodNames()
 	for _, podFullname := range podFullNames {
-		if !kl.podKiller.IsMirrorPodPendingTerminationByPodName(podFullname) {
+		if !kl.podKiller.IsPodPendingTerminationByPodName(podFullname) {
 			_, err := kl.podManager.DeleteMirrorPod(podFullname, nil)
 			if err != nil {
 				klog.Errorf("encountered error when deleting mirror pod %q : %v", podFullname, err)
@@ -1141,18 +1141,16 @@ func (kl *Kubelet) HandlePodCleanups() error {
 // PodKiller handles requests for killing pods
 type PodKiller interface {
 	// KillPod receives pod speficier representing the pod to kill
-	KillPod(pair *kubecontainer.PodPair)
+	KillPod(podPair *kubecontainer.PodPair)
 	// PerformPodKillingWork performs the actual pod killing work via calling CRI
 	// It returns after its Close() func is called and all outstanding pod killing requests are served
 	PerformPodKillingWork()
 	// After Close() is called, this pod killer wouldn't accept any more pod killing requests
 	Close()
-	// IsMirrorPodPendingTerminationByPodName checks whether the mirror pod for the given full pod name is pending termination
-	IsMirrorPodPendingTerminationByPodName(podFullname string) bool
-	// IsMirrorPodPendingTerminationByUID checks whether the mirror pod for the given uid is pending termination
-	IsMirrorPodPendingTerminationByUID(uid types.UID) bool
-	// MarkMirrorPodPendingTermination marks the mirror pod entering grace period of termination
-	MarkMirrorPodPendingTermination(pod *v1.Pod)
+	// IsPodPendingTerminationByPodName checks whether any pod for the given full pod name is pending termination (thread safe)
+	IsPodPendingTerminationByPodName(podFullname string) bool
+	// IsPodPendingTerminationByUID checks whether the mirror pod for the given uid is pending termination (thread safe)
+	IsPodPendingTerminationByUID(uid types.UID) bool
 }
 
 // podKillerWithChannel is an implementation of PodKiller which receives pod killing requests via channel
@@ -1160,10 +1158,13 @@ type podKillerWithChannel struct {
 	// Channel for getting pods to kill.
 	podKillingCh chan *kubecontainer.PodPair
 	// lock for synchronization between HandlePodCleanups and pod killer
-	podKillingLock *sync.Mutex
+	podKillingLock *sync.RWMutex
 	// mirrorPodTerminationMap keeps track of the progress of mirror pod termination
 	// The key is the UID of the pod and the value is the full name of the pod
 	mirrorPodTerminationMap map[string]string
+	// podTerminationMap keeps track of the progress of pod termination.
+	// The key is the UID of the pod and the value is the full name of the pod
+	podTerminationMap map[string]string
 	// killPod is the func which invokes runtime to kill the pod
 	killPod func(pod *v1.Pod, runningPod *kubecontainer.Pod, status *kubecontainer.PodStatus, gracePeriodOverride *int64) error
 }
@@ -1172,26 +1173,37 @@ type podKillerWithChannel struct {
 func NewPodKiller(kl *Kubelet) PodKiller {
 	podKiller := &podKillerWithChannel{
 		podKillingCh:            make(chan *kubecontainer.PodPair, podKillingChannelCapacity),
-		podKillingLock:          &sync.Mutex{},
+		podKillingLock:          &sync.RWMutex{},
 		mirrorPodTerminationMap: make(map[string]string),
+		podTerminationMap:       make(map[string]string),
 		killPod:                 kl.killPod,
 	}
 	return podKiller
 }
 
-// IsMirrorPodPendingTerminationByUID checks whether the pod for the given uid is pending termination
-func (pk *podKillerWithChannel) IsMirrorPodPendingTerminationByUID(uid types.UID) bool {
-	pk.podKillingLock.Lock()
-	defer pk.podKillingLock.Unlock()
-	_, ok := pk.mirrorPodTerminationMap[string(uid)]
-	return ok
+// IsPodPendingTerminationByUID checks whether the pod for the given uid is pending termination
+func (pk *podKillerWithChannel) IsPodPendingTerminationByUID(uid types.UID) bool {
+	pk.podKillingLock.RLock()
+	defer pk.podKillingLock.RUnlock()
+	if _, ok := pk.podTerminationMap[string(uid)]; ok {
+		return ok
+	}
+	if _, ok := pk.mirrorPodTerminationMap[string(uid)]; ok {
+		return ok
+	}
+	return false
 }
 
 // IsMirrorPodPendingTerminationByPodName checks whether the given pod is in grace period of termination
-func (pk *podKillerWithChannel) IsMirrorPodPendingTerminationByPodName(podFullname string) bool {
-	pk.podKillingLock.Lock()
-	defer pk.podKillingLock.Unlock()
+func (pk *podKillerWithChannel) IsPodPendingTerminationByPodName(podFullname string) bool {
+	pk.podKillingLock.RLock()
+	defer pk.podKillingLock.RUnlock()
 	for _, name := range pk.mirrorPodTerminationMap {
+		if name == podFullname {
+			return true
+		}
+	}
+	for _, name := range pk.podTerminationMap {
 		if name == podFullname {
 			return true
 		}
@@ -1199,20 +1211,51 @@ func (pk *podKillerWithChannel) IsMirrorPodPendingTerminationByPodName(podFullna
 	return false
 }
 
-func (pk *podKillerWithChannel) markMirrorPodTerminated(uid string) {
-	pk.podKillingLock.Lock()
+func (pk *podKillerWithChannel) markPodTerminated(uid string) {
 	klog.V(4).Infof("marking pod termination %q", uid)
+	pk.podKillingLock.Lock()
+	defer pk.podKillingLock.Unlock()
 	delete(pk.mirrorPodTerminationMap, uid)
-	pk.podKillingLock.Unlock()
+	delete(pk.podTerminationMap, uid)
 }
 
-// MarkMirrorPodPendingTermination marks the pod entering grace period of termination
-func (pk *podKillerWithChannel) MarkMirrorPodPendingTermination(pod *v1.Pod) {
-	fullname := kubecontainer.GetPodFullName(pod)
-	klog.V(3).Infof("marking pod pending termination %q", string(pod.UID))
+// KillPod sends pod killing request to the killer after marks the pod
+// unless the given pod has been marked to be killed
+func (pk *podKillerWithChannel) KillPod(podPair *kubecontainer.PodPair) {
 	pk.podKillingLock.Lock()
-	pk.mirrorPodTerminationMap[string(pod.UID)] = fullname
-	pk.podKillingLock.Unlock()
+	defer pk.podKillingLock.Unlock()
+	var apiPodExists bool
+	var runningPodExists bool
+	if podPair.APIPod != nil {
+		uid := string(podPair.APIPod.UID)
+		_, apiPodExists = pk.mirrorPodTerminationMap[uid]
+		if !apiPodExists {
+			fullname := kubecontainer.GetPodFullName(podPair.APIPod)
+			klog.V(4).Infof("marking api pod pending termination %q : %q", uid, fullname)
+			pk.mirrorPodTerminationMap[uid] = fullname
+		}
+	}
+	if podPair.RunningPod != nil {
+		uid := string(podPair.RunningPod.ID)
+		_, runningPodExists = pk.podTerminationMap[uid]
+		if !runningPodExists {
+			fullname := podPair.RunningPod.Name
+			klog.V(4).Infof("marking running pod pending termination %q: %q", uid, fullname)
+			pk.podTerminationMap[uid] = fullname
+		}
+	}
+	if apiPodExists || runningPodExists {
+		if apiPodExists && runningPodExists {
+			klog.V(4).Infof("api pod %q and running pod %q is pending termination", podPair.APIPod.UID, podPair.RunningPod.ID)
+		} else if apiPodExists {
+			klog.V(4).Infof("api pod %q is pending termination", podPair.APIPod.UID)
+		} else {
+			klog.V(4).Infof("running pod %q is pending termination", podPair.RunningPod.ID)
+		}
+		return
+	}
+	// Limit to one request per pod
+	pk.podKillingCh <- podPair
 }
 
 // Close closes the channel through which requests are delivered
@@ -1220,41 +1263,21 @@ func (pk *podKillerWithChannel) Close() {
 	close(pk.podKillingCh)
 }
 
-// KillPod sends pod killing request to the killer
-func (pk *podKillerWithChannel) KillPod(pair *kubecontainer.PodPair) {
-	pk.podKillingCh <- pair
-}
-
 // PerformPodKillingWork launches a goroutine to kill a pod received from the channel if
 // another goroutine isn't already in action.
 func (pk *podKillerWithChannel) PerformPodKillingWork() {
-	killing := sets.NewString()
-	// guard for the killing set
-	lock := sync.Mutex{}
 	for podPair := range pk.podKillingCh {
 		runningPod := podPair.RunningPod
 		apiPod := podPair.APIPod
 
-		lock.Lock()
-		exists := killing.Has(string(runningPod.ID))
-		if !exists {
-			killing.Insert(string(runningPod.ID))
-		}
-		lock.Unlock()
-
-		if !exists {
-			go func(apiPod *v1.Pod, runningPod *kubecontainer.Pod) {
-				klog.V(2).Infof("Killing unwanted pod %q", runningPod.Name)
-				err := pk.killPod(apiPod, runningPod, nil, nil)
-				if err != nil {
-					klog.Errorf("Failed killing the pod %q: %v", runningPod.Name, err)
-				}
-				lock.Lock()
-				killing.Delete(string(runningPod.ID))
-				lock.Unlock()
-				pk.markMirrorPodTerminated(string(runningPod.ID))
-			}(apiPod, runningPod)
-		}
+		go func(apiPod *v1.Pod, runningPod *kubecontainer.Pod) {
+			klog.V(2).Infof("Killing unwanted pod %q", runningPod.Name)
+			err := pk.killPod(apiPod, runningPod, nil, nil)
+			if err != nil {
+				klog.Errorf("Failed killing the pod %q: %v", runningPod.Name, err)
+			}
+			pk.markPodTerminated(string(runningPod.ID))
+		}(apiPod, runningPod)
 	}
 }
 
@@ -1605,7 +1628,7 @@ func (kl *Kubelet) convertStatusToAPIStatus(pod *v1.Pod, podStatus *kubecontaine
 // convertToAPIContainerStatuses converts the given internal container
 // statuses into API container statuses.
 func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecontainer.PodStatus, previousStatus []v1.ContainerStatus, containers []v1.Container, hasInitContainers, isInitContainer bool) []v1.ContainerStatus {
-	convertContainerStatus := func(cs *kubecontainer.Status) *v1.ContainerStatus {
+	convertContainerStatus := func(cs *kubecontainer.Status, oldStatus *v1.ContainerStatus) *v1.ContainerStatus {
 		cid := cs.ID.String()
 		status := &v1.ContainerStatus{
 			Name:         cs.Name,
@@ -1614,17 +1637,17 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 			ImageID:      cs.ImageID,
 			ContainerID:  cid,
 		}
-		switch cs.State {
-		case kubecontainer.ContainerStateRunning:
+		switch {
+		case cs.State == kubecontainer.ContainerStateRunning:
 			status.State.Running = &v1.ContainerStateRunning{StartedAt: metav1.NewTime(cs.StartedAt)}
-		case kubecontainer.ContainerStateCreated:
+		case cs.State == kubecontainer.ContainerStateCreated:
 			// Treat containers in the "created" state as if they are exited.
 			// The pod workers are supposed start all containers it creates in
 			// one sync (syncPod) iteration. There should not be any normal
 			// "created" containers when the pod worker generates the status at
 			// the beginning of a sync iteration.
 			fallthrough
-		case kubecontainer.ContainerStateExited:
+		case cs.State == kubecontainer.ContainerStateExited:
 			status.State.Terminated = &v1.ContainerStateTerminated{
 				ExitCode:    int32(cs.ExitCode),
 				Reason:      cs.Reason,
@@ -1633,7 +1656,31 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 				FinishedAt:  metav1.NewTime(cs.FinishedAt),
 				ContainerID: cid,
 			}
+
+		case cs.State == kubecontainer.ContainerStateUnknown &&
+			oldStatus != nil && // we have an old status
+			oldStatus.State.Running != nil: // our previous status was running
+			// if this happens, then we know that this container was previously running and isn't anymore (assuming the CRI isn't failing to return running containers).
+			// you can imagine this happening in cases where a container failed and the kubelet didn't ask about it in time to see the result.
+			// in this case, the container should not to into waiting state immediately because that can make cases like runonce pods actually run
+			// twice. "container never ran" is different than "container ran and failed".  This is handled differently in the kubelet
+			// and it is handled differently in higher order logic like crashloop detection and handling
+			status.State.Terminated = &v1.ContainerStateTerminated{
+				Reason:   "ContainerStatusUnknown",
+				Message:  "The container could not be located when the pod was terminated",
+				ExitCode: 137, // this code indicates an error
+			}
+			// the restart count normally comes from the CRI (see near the top of this method), but since this is being added explicitly
+			// for the case where the CRI did not return a status, we need to manually increment the restart count to be accurate.
+			status.RestartCount = oldStatus.RestartCount + 1
+
 		default:
+			// this collapses any unknown state to container waiting.  If any container is waiting, then the pod status moves to pending even if it is running.
+			// if I'm reading this correctly, then any failure to read status on any container results in the entire pod going pending even if the containers
+			// are actually running.
+			// see https://github.com/kubernetes/kubernetes/blob/5d1b3e26af73dde33ecb6a3e69fb5876ceab192f/pkg/kubelet/kuberuntime/kuberuntime_container.go#L497 to
+			// https://github.com/kubernetes/kubernetes/blob/8976e3620f8963e72084971d9d4decbd026bf49f/pkg/kubelet/kuberuntime/helpers.go#L58-L71
+			// and interpreted here https://github.com/kubernetes/kubernetes/blob/b27e78f590a0d43e4a23ca3b2bf1739ca4c6e109/pkg/kubelet/kubelet_pods.go#L1434-L1439
 			status.State.Waiting = &v1.ContainerStateWaiting{}
 		}
 		return status
@@ -1673,6 +1720,70 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		statuses[container.Name] = status
 	}
 
+	for _, container := range containers {
+		found := false
+		for _, cStatus := range podStatus.ContainerStatuses {
+			if container.Name == cStatus.Name {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+		// if no container is found, then assuming it should be waiting seems plausible, but the status code requires
+		// that a previous termination be present.  If we're offline long enough (or something removed the container?), then
+		// the previous termination may not be present.  This next code block ensures that if the container was previously running
+		// then when that container status disappears, we can infer that it terminated even if we don't know the status code.
+		// By setting the lasttermination state we are able to leave the container status waiting and present more accurate
+		// data via the API.
+
+		oldStatus, ok := oldStatuses[container.Name]
+		if !ok {
+			continue
+		}
+		if oldStatus.State.Terminated != nil {
+			// if the old container status was terminated, the lasttermination status is correct
+			continue
+		}
+		if oldStatus.State.Running == nil {
+			// if the old container status isn't running, then waiting is an appropriate status and we have nothing to do
+			continue
+		}
+
+		if pod.DeletionTimestamp == nil {
+			continue
+		}
+
+		// and if the pod itself is being deleted, then the CRI may have removed the container already and for whatever reason the kubelet missed the exit code
+		// (this seems not awesome).  We know at this point that we will not be restarting the container.
+		status := statuses[container.Name]
+		// if the status we're about to write indicates the default, the Waiting status will force this pod back into Pending.
+		// That isn't true, we know the pod is going away.
+		isDefaultWaitingStatus := status.State.Waiting != nil && status.State.Waiting.Reason == "ContainerCreating"
+		if hasInitContainers {
+			isDefaultWaitingStatus = status.State.Waiting != nil && status.State.Waiting.Reason == "PodInitializing"
+		}
+		if !isDefaultWaitingStatus {
+			// we the status was written, don't override
+			continue
+		}
+		if status.LastTerminationState.Terminated != nil {
+			// if we already have a termination state, nothing to do
+			continue
+		}
+
+		// setting this value ensures that we show as stopped here, not as waiting:
+		// https://github.com/kubernetes/kubernetes/blob/90c9f7b3e198e82a756a68ffeac978a00d606e55/pkg/kubelet/kubelet_pods.go#L1440-L1445
+		// This prevents the pod from becoming pending
+		status.LastTerminationState.Terminated = &v1.ContainerStateTerminated{
+			Reason:   "ContainerStatusUnknown",
+			Message:  "The container could not be located when the pod was deleted.  The container used to be Running",
+			ExitCode: 137,
+		}
+		statuses[container.Name] = status
+	}
+
 	// Make the latest container status comes first.
 	sort.Sort(sort.Reverse(kubecontainer.SortContainerStatusesByCreationTime(podStatus.ContainerStatuses)))
 	// Set container statuses according to the statuses seen in pod status
@@ -1686,7 +1797,11 @@ func (kl *Kubelet) convertToAPIContainerStatuses(pod *v1.Pod, podStatus *kubecon
 		if containerSeen[cName] >= 2 {
 			continue
 		}
-		status := convertContainerStatus(cStatus)
+		var oldStatusPtr *v1.ContainerStatus
+		if oldStatus, ok := oldStatuses[cName]; ok {
+			oldStatusPtr = &oldStatus
+		}
+		status := convertContainerStatus(cStatus, oldStatusPtr)
 		if containerSeen[cName] == 0 {
 			statuses[cName] = status
 		} else {
@@ -1852,7 +1967,7 @@ func (kl *Kubelet) cleanupOrphanedPodCgroups(pcm cm.PodContainerManager, cgroupP
 		}
 
 		// if the pod is within termination grace period, we shouldn't cleanup the underlying cgroup
-		if kl.podKiller.IsMirrorPodPendingTerminationByUID(uid) {
+		if kl.podKiller.IsPodPendingTerminationByUID(uid) {
 			klog.V(3).Infof("pod %q is pending termination", uid)
 			continue
 		}

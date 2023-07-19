@@ -58,11 +58,19 @@ func ReadServiceV1OrDie(objBytes []byte) *corev1.Service {
 }
 
 func ReadPodV1OrDie(objBytes []byte) *corev1.Pod {
-	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(corev1.SchemeGroupVersion), objBytes)
+	requiredObj, err := ReadPodV1(objBytes)
 	if err != nil {
 		panic(err)
 	}
-	return requiredObj.(*corev1.Pod)
+	return requiredObj
+}
+
+func ReadPodV1(objBytes []byte) (*corev1.Pod, error) {
+	requiredObj, err := runtime.Decode(coreCodecs.UniversalDecoder(corev1.SchemeGroupVersion), objBytes)
+	if err != nil {
+		return nil, err
+	}
+	return requiredObj.(*corev1.Pod), nil
 }
 
 func WritePodV1OrDie(obj *corev1.Pod) string {

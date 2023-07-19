@@ -35,10 +35,13 @@ var (
 
 // convertImageToDockerImage converts an object of type *godockerclient.Image to *docker10.DockerImage
 func convertImageToDockerImage(in *godockerclient.Image, out *docker10.DockerImage, s conversion.Scope) error {
-	if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
+	if out.Config == nil {
+		out.Config = new(docker10.DockerConfig)
+	}
+	if err := convertConfigToDockerConfig(in.Config, out.Config); err != nil {
 		return err
 	}
-	if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {
+	if err := convertConfigToDockerConfig(&in.ContainerConfig, &out.ContainerConfig); err != nil {
 		return err
 	}
 	out.ID = in.ID
@@ -53,12 +56,55 @@ func convertImageToDockerImage(in *godockerclient.Image, out *docker10.DockerIma
 	return nil
 }
 
+// convertConfigToDockerConfig converts an object of type *godockerclient.Config to *docker10.DockerConfig
+func convertConfigToDockerConfig(in *godockerclient.Config, out *docker10.DockerConfig) error {
+	if in == nil {
+		return nil
+	}
+	out.Hostname = in.Hostname
+	out.Domainname = in.Domainname
+	out.User = in.User
+	out.Memory = in.Memory
+	out.MemorySwap = in.MemorySwap
+	out.CPUShares = in.CPUShares
+	out.CPUSet = in.CPUSet
+	out.AttachStdin = in.AttachStdin
+	out.AttachStdout = in.AttachStdout
+	out.AttachStderr = in.AttachStderr
+	out.PortSpecs = in.PortSpecs
+	if out.ExposedPorts == nil {
+		out.ExposedPorts = make(map[string]struct{})
+	}
+	for k, v := range in.ExposedPorts {
+		out.ExposedPorts[string(k)] = v
+	}
+	out.Tty = in.Tty
+	out.OpenStdin = in.OpenStdin
+	out.StdinOnce = in.StdinOnce
+	out.Env = in.Env
+	out.Cmd = in.Cmd
+	out.DNS = in.DNS
+	out.Image = in.Image
+	out.Volumes = in.Volumes
+	out.VolumesFrom = in.VolumesFrom
+	out.WorkingDir = in.WorkingDir
+	out.Entrypoint = in.Entrypoint
+	out.NetworkDisabled = in.NetworkDisabled
+	out.SecurityOpts = in.SecurityOpts
+	out.OnBuild = in.OnBuild
+	out.Labels = in.Labels
+	return nil
+}
+
 // convertDockerImageToImage converts an object of type *docker10.DockerImage to *godockerclient.Image
 func convertDockerImageToImage(in *docker10.DockerImage, out *godockerclient.Image, s conversion.Scope) error {
-	if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
+	if out.Config == nil {
+		out.Config = new(godockerclient.Config)
+	}
+	if err := convertDockerConfigToConfig(in.Config, out.Config); err != nil {
 		return err
 	}
-	if err := s.Convert(&in.ContainerConfig, &out.ContainerConfig, conversion.AllowDifferentFieldTypeNames); err != nil {
+	if err := convertDockerConfigToConfig(&in.ContainerConfig, &out.ContainerConfig); err != nil {
 		return err
 	}
 	out.ID = in.ID
@@ -70,6 +116,46 @@ func convertDockerImageToImage(in *docker10.DockerImage, out *godockerclient.Ima
 	out.Author = in.Author
 	out.Architecture = in.Architecture
 	out.Size = in.Size
+	return nil
+}
+
+// convertDockerConfigToConfig converts an object of type *docker10.DockerConfig to *godockerclient.Config
+func convertDockerConfigToConfig(in *docker10.DockerConfig, out *godockerclient.Config) error {
+	if in == nil {
+		return nil
+	}
+	out.Hostname = in.Hostname
+	out.Domainname = in.Domainname
+	out.User = in.User
+	out.Memory = in.Memory
+	out.MemorySwap = in.MemorySwap
+	out.CPUShares = in.CPUShares
+	out.CPUSet = in.CPUSet
+	out.AttachStdin = in.AttachStdin
+	out.AttachStdout = in.AttachStdout
+	out.AttachStderr = in.AttachStderr
+	out.PortSpecs = in.PortSpecs
+	if out.ExposedPorts == nil {
+		out.ExposedPorts = make(map[godockerclient.Port]struct{})
+	}
+	for k, v := range in.ExposedPorts {
+		out.ExposedPorts[godockerclient.Port(k)] = v
+	}
+	out.Tty = in.Tty
+	out.OpenStdin = in.OpenStdin
+	out.StdinOnce = in.StdinOnce
+	out.Env = in.Env
+	out.Cmd = in.Cmd
+	out.DNS = in.DNS
+	out.Image = in.Image
+	out.Volumes = in.Volumes
+	out.VolumesFrom = in.VolumesFrom
+	out.WorkingDir = in.WorkingDir
+	out.Entrypoint = in.Entrypoint
+	out.NetworkDisabled = in.NetworkDisabled
+	out.SecurityOpts = in.SecurityOpts
+	out.OnBuild = in.OnBuild
+	out.Labels = in.Labels
 	return nil
 }
 

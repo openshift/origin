@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"sync"
 
+	cadvisorapi "github.com/google/cadvisor/info/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
-	cputopology "k8s.io/kubernetes/pkg/kubelet/cm/cpumanager/topology"
 	"k8s.io/kubernetes/pkg/kubelet/cm/topologymanager/bitmask"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 )
@@ -122,12 +122,12 @@ func (th *TopologyHint) LessThan(other TopologyHint) bool {
 var _ Manager = &manager{}
 
 //NewManager creates a new TopologyManager based on provided policy
-func NewManager(numaNodeInfo cputopology.NUMANodeInfo, topologyPolicyName string) (Manager, error) {
+func NewManager(topology []cadvisorapi.Node, topologyPolicyName string) (Manager, error) {
 	klog.Infof("[topologymanager] Creating topology manager with %s policy", topologyPolicyName)
 
 	var numaNodes []int
-	for node := range numaNodeInfo {
-		numaNodes = append(numaNodes, node)
+	for _, node := range topology {
+		numaNodes = append(numaNodes, node.Id)
 	}
 
 	if topologyPolicyName != PolicyNone && len(numaNodes) > maxAllowableNUMANodes {
@@ -167,6 +167,8 @@ func NewManager(numaNodeInfo cputopology.NUMANodeInfo, topologyPolicyName string
 }
 
 func (m *manager) GetAffinity(podUID string, containerName string) TopologyHint {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	return m.podTopologyHints[podUID][containerName]
 }
 
@@ -256,10 +258,12 @@ func (m *manager) Admit(attrs *lifecycle.PodAdmitAttributes) lifecycle.PodAdmitR
 		}
 
 		klog.Infof("[topologymanager] Topology Affinity for (pod: %v container: %v): %v", pod.UID, container.Name, result)
+		m.mutex.Lock()
 		if m.podTopologyHints[string(pod.UID)] == nil {
 			m.podTopologyHints[string(pod.UID)] = make(map[string]TopologyHint)
 		}
 		m.podTopologyHints[string(pod.UID)][container.Name] = result
+		m.mutex.Unlock()
 
 		err := m.allocateAlignedResources(pod, &container)
 		if err != nil {

@@ -170,33 +170,24 @@ properties:
 // Aware of the kubectl example files map.
 func cleanupKubectlInputs(fileContents string, ns string, selectors ...string) {
 	ginkgo.By("using delete to clean up resources")
-	var nsArg string
-	if ns != "" {
-		nsArg = fmt.Sprintf("--namespace=%s", ns)
-	}
 	// support backward compatibility : file paths or raw json - since we are removing file path
 	// dependencies from this test.
-	framework.RunKubectlOrDieInput(ns, fileContents, "delete", "--grace-period=0", "--force", "-f", "-", nsArg)
+	framework.RunKubectlOrDieInput(ns, fileContents, "delete", "--grace-period=0", "--force", "-f", "-")
 	assertCleanup(ns, selectors...)
 }
 
 // assertCleanup asserts that cleanup of a namespace wrt selectors occurred.
 func assertCleanup(ns string, selectors ...string) {
-	var nsArg string
-	if ns != "" {
-		nsArg = fmt.Sprintf("--namespace=%s", ns)
-	}
-
 	var e error
 	verifyCleanupFunc := func() (bool, error) {
 		e = nil
 		for _, selector := range selectors {
-			resources := framework.RunKubectlOrDie(ns, "get", "rc,svc", "-l", selector, "--no-headers", nsArg)
+			resources := framework.RunKubectlOrDie(ns, "get", "rc,svc", "-l", selector, "--no-headers")
 			if resources != "" {
 				e = fmt.Errorf("Resources left running after stop:\n%s", resources)
 				return false, nil
 			}
-			pods := framework.RunKubectlOrDie(ns, "get", "pods", "-l", selector, nsArg, "-o", "go-template={{ range .items }}{{ if not .metadata.deletionTimestamp }}{{ .metadata.name }}{{ \"\\n\" }}{{ end }}{{ end }}")
+			pods := framework.RunKubectlOrDie(ns, "get", "pods", "-l", selector, "-o", "go-template={{ range .items }}{{ if not .metadata.deletionTimestamp }}{{ .metadata.name }}{{ \"\\n\" }}{{ end }}{{ end }}")
 			if pods != "" {
 				e = fmt.Errorf("Pods left unterminated after stop:\n%s", pods)
 				return false, nil
@@ -912,7 +903,7 @@ metadata:
 		/*
 			Release: v1.19
 			Testname: Kubectl, server-side dry-run Pod
-			Description: The command 'kubectl run' must create a pod with the specified image name. After, the command 'kubectl replace --dry-run=server' should update the Pod with the new image name and server-side dry-run enabled. The image name must not change.
+			Description: The command 'kubectl run' must create a pod with the specified image name. After, the command 'kubectl patch pod -p {...} --dry-run=server' should update the Pod with the new image name and server-side dry-run enabled. The image name must not change.
 		*/
 		framework.ConformanceIt("should check if kubectl can dry-run update Pods", func() {
 			ginkgo.By("running the image " + httpdImage)
@@ -920,12 +911,8 @@ metadata:
 			framework.RunKubectlOrDie(ns, "run", podName, "--image="+httpdImage, "--labels=run="+podName)
 
 			ginkgo.By("replace the image in the pod with server-side dry-run")
-			podJSON := framework.RunKubectlOrDie(ns, "get", "pod", podName, "-o", "json")
-			podJSON = strings.Replace(podJSON, httpdImage, busyboxImage, 1)
-			if !strings.Contains(podJSON, busyboxImage) {
-				framework.Failf("Failed replacing image from %s to %s in:\n%s\n", httpdImage, busyboxImage, podJSON)
-			}
-			framework.RunKubectlOrDieInput(ns, podJSON, "replace", "-f", "-", "--dry-run", "server")
+			specImage := fmt.Sprintf(`{"spec":{"containers":[{"name": "%s","image": "%s"}]}}`, podName, busyboxImage)
+			framework.RunKubectlOrDie(ns, "patch", "pod", podName, "-p", specImage, "--dry-run=server")
 
 			ginkgo.By("verifying the pod " + podName + " has the right image " + httpdImage)
 			pod, err := c.CoreV1().Pods(ns).Get(context.TODO(), podName, metav1.GetOptions{})
@@ -1198,7 +1185,7 @@ metadata:
 
 		ginkgo.It("should check if kubectl describe prints relevant information for cronjob", func() {
 			ginkgo.By("creating a cronjob")
-			cronjobYaml := commonutils.SubstituteImageName(string(readTestFileOrDie("busybox-cronjob.yaml")))
+			cronjobYaml := commonutils.SubstituteImageName(string(readTestFileOrDie("busybox-cronjob.yaml.in")))
 			framework.RunKubectlOrDieInput(ns, cronjobYaml, "create", "-f", "-")
 
 			ginkgo.By("waiting for cronjob to start.")
@@ -1358,7 +1345,7 @@ metadata:
 		var podYaml string
 		ginkgo.BeforeEach(func() {
 			ginkgo.By("creating the pod")
-			podYaml = commonutils.SubstituteImageName(string(readTestFileOrDie("busybox-pod.yaml")))
+			podYaml = commonutils.SubstituteImageName(string(readTestFileOrDie("busybox-pod.yaml.in")))
 			framework.RunKubectlOrDieInput(ns, podYaml, "create", "-f", "-")
 			framework.ExpectEqual(e2epod.CheckPodsRunningReady(c, ns, []string{busyboxPodName}, framework.PodStartTimeout), true)
 		})

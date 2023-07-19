@@ -168,6 +168,8 @@ type Config struct {
 	Serializer runtime.NegotiatedSerializer
 	// OpenAPIConfig will be used in generating OpenAPI spec. This is nil by default. Use DefaultOpenAPIConfig for "working" defaults.
 	OpenAPIConfig *openapicommon.Config
+	// SkipOpenAPIInstallation avoids installing the OpenAPI handler if set to true.
+	SkipOpenAPIInstallation bool
 
 	// RESTOptionsGetter is used to construct RESTStorage types via the generic registry.
 	RESTOptionsGetter genericregistry.RESTOptionsGetter
@@ -631,7 +633,8 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 
 		listedPathProvider: apiServerHandler,
 
-		openAPIConfig: c.OpenAPIConfig,
+		openAPIConfig:           c.OpenAPIConfig,
+		skipOpenAPIInstallation: c.SkipOpenAPIInstallation,
 
 		postStartHooks:         map[string]postStartHookEntry{},
 		preShutdownHooks:       map[string]preShutdownHookEntry{},
@@ -722,6 +725,31 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 		klog.V(3).Infof("Not requested to run hook %s", priorityAndFairnessConfigConsumerHookName)
 	}
 
+	// Add PostStartHooks for maintaining the watermarks for the Priority-and-Fairness and the Max-in-Flight filters.
+	if c.FlowControl != nil {
+		const priorityAndFairnessFilterHookName = "priority-and-fairness-filter"
+		if !s.isPostStartHookRegistered(priorityAndFairnessFilterHookName) {
+			err := s.AddPostStartHook(priorityAndFairnessFilterHookName, func(context PostStartHookContext) error {
+				genericfilters.StartPriorityAndFairnessWatermarkMaintenance(context.StopCh)
+				return nil
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		const maxInFlightFilterHookName = "max-in-flight-filter"
+		if !s.isPostStartHookRegistered(maxInFlightFilterHookName) {
+			err := s.AddPostStartHook(maxInFlightFilterHookName, func(context PostStartHookContext) error {
+				genericfilters.StartMaxInFlightWatermarkMaintenance(context.StopCh)
+				return nil
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	for _, delegateCheck := range delegationTarget.HealthzChecks() {
 		skip := false
 		for _, existingCheck := range c.HealthzChecks {
@@ -777,7 +805,7 @@ func DefaultBuildHandlerChain(apiHandler http.Handler, c *Config) http.Handler {
 	handler = genericapifilters.WithWarningRecorder(handler)
 	handler = genericapifilters.WithCacheControl(handler)
 	handler = genericapifilters.WithRequestReceivedTimestamp(handler)
-	handler = genericfilters.WithPanicRecovery(handler, c.IsTerminating)
+	handler = genericfilters.WithPanicRecovery(handler, c.IsTerminating, c.RequestInfoResolver)
 	return handler
 }
 

@@ -232,6 +232,7 @@ var map_ImagePrunerSpec = map[string]string{
 	"successfulJobsHistoryLimit":   "successfulJobsHistoryLimit specifies how many successful image pruner jobs to retain. Defaults to 3 if not set.",
 	"failedJobsHistoryLimit":       "failedJobsHistoryLimit specifies how many failed image pruner jobs to retain. Defaults to 3 if not set.",
 	"ignoreInvalidImageReferences": "ignoreInvalidImageReferences indicates whether the pruner can ignore errors while parsing image references.",
+	"logLevel":                     "logLevel sets the level of log output for the pruner job.\n\nValid values are: \"Normal\", \"Debug\", \"Trace\", \"TraceAll\". Defaults to \"Normal\".",
 }
 
 func (ImagePrunerSpec) SwaggerDoc() map[string]string {

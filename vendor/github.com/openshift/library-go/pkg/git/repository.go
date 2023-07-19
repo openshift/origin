@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,7 +37,9 @@ type Repository interface {
 	Add(dir string, spec string) error
 	Commit(dir string, message string) error
 	AddRemote(dir string, name, url string) error
+	AddConfig(location, name, value string) error
 	AddLocalConfig(dir, name, value string) error
+	AddGlobalConfig(name, value string) error
 	ShowFormat(dir, commit, format string) (string, error)
 	ListRemote(url string, args ...string) (string, string, error)
 	TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error)
@@ -254,9 +257,30 @@ func (r *repository) AddRemote(location, name, url string) error {
 	return err
 }
 
-// AddLocalConfig adds a value to the current repository
+// AddConfig adds a value to the default git configuration. This is one of the following locations:
+//
+// 1. The file or option specified by the GIT_CONFIG environment variable
+// 2. The repository-specific git configuration ($location/.git/config)
+func (r *repository) AddConfig(location, name, value string) error {
+	_, _, err := r.git(location, "config", "--add", name, value)
+	return err
+}
+
+// AddLocalConfig adds a value to git configuration for the repository at the provided location.
+//
+// This command will return an error if the GIT_CONFIG environment variable is set.
+// Use AddConfig instead.
 func (r *repository) AddLocalConfig(location, name, value string) error {
 	_, _, err := r.git(location, "config", "--local", "--add", name, value)
+	return err
+}
+
+// AddGlobalConfig adds a value to the global git configuration.
+//
+// This command will return an error if the GIT_CONFIG environment variable is set.
+// Use AddConfig instead.
+func (r *repository) AddGlobalConfig(name, value string) error {
+	_, _, err := r.git("", "config", "--global", "--add", name, value)
 	return err
 }
 
@@ -421,7 +445,9 @@ func command(name, dir string, env []string, args ...string) (stdout, stderr str
 func timedCommand(timeout time.Duration, name, dir string, env []string, args ...string) (stdout, stderr string, err error) {
 	var stdoutBuffer, stderrBuffer bytes.Buffer
 
-	klog.V(4).Infof("Executing %s %s", name, strings.Join(args, " "))
+	logArgs := safeForLoggingArgs(args...)
+
+	klog.V(4).Infof("Executing %s %s", name, strings.Join(logArgs, " "))
 
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
@@ -464,6 +490,29 @@ func timedCommand(timeout time.Duration, name, dir string, env []string, args ..
 
 	// if we didn't encounter an ExitError or a timeout, simply return the error
 	return stdout, stderr, err
+}
+
+// safeForLoggingArgs checks if a list of arguments contains a URL with embedded credentials.
+// If credentials are found, the username and password are redacted.
+func safeForLoggingArgs(args ...string) []string {
+	safeArgs := []string{}
+	for _, arg := range args {
+		u, err := url.Parse(arg)
+		if err != nil {
+			safeArgs = append(safeArgs, arg)
+			continue
+		}
+		if u.User == nil {
+			safeArgs = append(safeArgs, arg)
+			continue
+		}
+		if _, passwordSet := u.User.Password(); passwordSet {
+			// wipe out the user info from the url.
+			u.User = url.User("redacted")
+		}
+		safeArgs = append(safeArgs, u.String())
+	}
+	return safeArgs
 }
 
 // runCommand runs the command with the given timeout, and returns any errors encountered and whether

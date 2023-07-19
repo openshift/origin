@@ -656,6 +656,18 @@ spec:
                   pruning. Defaults to 60m (60 minutes).
                 type: string
                 format: duration
+              logLevel:
+                description: "logLevel sets the level of log output for the pruner
+                  job. \n Valid values are: \"Normal\", \"Debug\", \"Trace\", \"TraceAll\".
+                  Defaults to \"Normal\"."
+                type: string
+                default: Normal
+                enum:
+                - ""
+                - Normal
+                - Debug
+                - Trace
+                - TraceAll
               nodeSelector:
                 description: nodeSelector defines the node selection constraints for
                   the image pruner pod.

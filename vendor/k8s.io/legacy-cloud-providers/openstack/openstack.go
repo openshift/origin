@@ -46,9 +46,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	netutil "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
 	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/retry"
 	cloudprovider "k8s.io/cloud-provider"
 	nodehelpers "k8s.io/cloud-provider/node/helpers"
 	"k8s.io/klog/v2"
@@ -279,9 +281,24 @@ func (os *OpenStack) setConfigFromSecret() error {
 		return fmt.Errorf("secret lister is not initialized")
 	}
 
-	secret, err := os.secretLister.Secrets(os.secretNamespace).Get(os.secretName)
+	var secret *v1.Secret
+	err := retry.OnError(
+		wait.Backoff{
+			Duration: time.Second,
+			Factor:   1.5,
+			Jitter:   1,
+			Steps:    10,
+		},
+		func(_ error) bool {
+			return true
+		},
+		func() (err error) {
+			secret, err = os.secretLister.Secrets(os.secretNamespace).Get(os.secretName)
+			return err
+		},
+	)
 	if err != nil {
-		klog.Errorf("Cannot get secret %s in namespace %s. error: %q", os.secretName, os.secretNamespace, err)
+		klog.Errorf("cannot get secret %s in namespace %s. error: %q", os.secretName, os.secretNamespace, err)
 		return err
 	}
 
@@ -290,11 +307,11 @@ func (os *OpenStack) setConfigFromSecret() error {
 
 		err = gcfg.ReadStringInto(cfg, string(content))
 		if err != nil {
-			return fmt.Errorf("cannot parse data from the secret")
+			return fmt.Errorf("cannot parse data from the secret: %s", err)
 		}
 		provider, err := newProvider(*cfg)
 		if err != nil {
-			return fmt.Errorf("cannot initialize cloud provider using data from the secret")
+			return fmt.Errorf("cannot initialize cloud provider using data from the secret: %s", err)
 		}
 		os.provider = provider
 		os.region = cfg.Global.Region
@@ -312,9 +329,10 @@ func (os *OpenStack) ensureCloudProviderWasInitialized() error {
 
 	if os.secretName != "" && os.secretNamespace != "" {
 		err := os.setConfigFromSecret()
-		if err == nil {
-			return nil
+		if err != nil {
+			return fmt.Errorf("cloud provider is not initialized: %s", err)
 		}
+		return nil
 	}
 
 	return fmt.Errorf("cloud provider is not initialized")
@@ -876,6 +894,10 @@ func (os *OpenStack) Routes() (cloudprovider.Routes, bool) {
 }
 
 func (os *OpenStack) volumeService(forceVersion string) (volumeService, error) {
+	if err := os.ensureCloudProviderWasInitialized(); err != nil {
+		return nil, err
+	}
+
 	bsVersion := ""
 	if forceVersion == "" {
 		bsVersion = os.bsOpts.BSVersion

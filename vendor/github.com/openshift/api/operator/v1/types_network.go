@@ -74,8 +74,12 @@ type NetworkSpec struct {
 	// by the operator. Currently only Kuryr SDN is affected by this setting.
 	// Please note that turning on extensive logging may affect performance.
 	// The default value is "Normal".
+	//
+	// Valid values are: "Normal", "Debug", "Trace", "TraceAll".
+	// Defaults to "Normal".
 	// +optional
-	LogLevel LogLevel `json:"logLevel"`
+	// +kubebuilder:default=Normal
+	LogLevel LogLevel `json:"logLevel,omitempty"`
 }
 
 // ClusterNetworkEntry is a subnet from which to allocate PodIPs. A network of size

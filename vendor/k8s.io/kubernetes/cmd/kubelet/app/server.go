@@ -363,7 +363,8 @@ func UnsecuredDependencies(s *options.KubeletServer, featureGate featuregate.Fea
 	}
 
 	mounter := mount.New(s.ExperimentalMounterPath)
-	subpather := subpath.New(mounter)
+	subpatherMounter := subpath.NewMounter(mounter, s.ExperimentalMounterPath)
+	subpather := subpath.New(subpatherMounter)
 	hu := hostutil.NewHostUtil()
 	var pluginRunner = exec.New()
 
@@ -409,7 +410,7 @@ func Run(ctx context.Context, s *options.KubeletServer, kubeDeps *kubelet.Depend
 	logOption.Apply()
 	// To help debugging, immediately log version
 	klog.Infof("Version: %+v", version.Get())
-	if err := initForOS(s.KubeletFlags.WindowsService); err != nil {
+	if err := initForOS(s.KubeletFlags.WindowsService, s.KubeletFlags.WindowsPriorityClass); err != nil {
 		return fmt.Errorf("failed OS init: %v", err)
 	}
 	if err := run(ctx, s, kubeDeps, featureGate); err != nil {

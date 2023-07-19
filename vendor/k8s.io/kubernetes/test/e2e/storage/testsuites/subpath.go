@@ -441,7 +441,7 @@ func (s *subPathTestSuite) DefineTests(driver TestDriver, pattern testpatterns.T
 		defer cleanup()
 
 		// Change volume container to busybox so we can exec later
-		l.pod.Spec.Containers[1].Image = e2evolume.GetTestImage(imageutils.GetE2EImage(imageutils.BusyBox))
+		l.pod.Spec.Containers[1].Image = e2evolume.GetDefaultTestImage()
 		l.pod.Spec.Containers[1].Command = e2evolume.GenerateScriptCmd("sleep 100000")
 		l.pod.Spec.Containers[1].Args = nil
 
@@ -508,6 +508,28 @@ func SubpathTestPod(f *framework.Framework, subpath, volumeType string, source *
 		probeVolumeName = "liveness-probe-volume"
 		seLinuxOptions  = &v1.SELinuxOptions{Level: "s0:c0,c1"}
 	)
+
+	volumeMount := v1.VolumeMount{Name: volumeName, MountPath: volumePath}
+	volumeSubpathMount := v1.VolumeMount{Name: volumeName, MountPath: volumePath, SubPath: subpath}
+	probeMount := v1.VolumeMount{Name: probeVolumeName, MountPath: probeVolumePath}
+
+	initSubpathContainer := e2epod.NewAgnhostContainer(
+		fmt.Sprintf("test-init-subpath-%s", suffix),
+		[]v1.VolumeMount{volumeSubpathMount, probeMount}, nil, "mounttest")
+	initSubpathContainer.SecurityContext = e2evolume.GenerateSecurityContext(privilegedSecurityContext)
+	initVolumeContainer := e2epod.NewAgnhostContainer(
+		fmt.Sprintf("test-init-volume-%s", suffix),
+		[]v1.VolumeMount{volumeMount, probeMount}, nil, "mounttest")
+	initVolumeContainer.SecurityContext = e2evolume.GenerateSecurityContext(privilegedSecurityContext)
+	subpathContainer := e2epod.NewAgnhostContainer(
+		fmt.Sprintf("test-container-subpath-%s", suffix),
+		[]v1.VolumeMount{volumeSubpathMount, probeMount}, nil, "mounttest")
+	subpathContainer.SecurityContext = e2evolume.GenerateSecurityContext(privilegedSecurityContext)
+	volumeContainer := e2epod.NewAgnhostContainer(
+		fmt.Sprintf("test-container-volume-%s", suffix),
+		[]v1.VolumeMount{volumeMount, probeMount}, nil, "mounttest")
+	volumeContainer.SecurityContext = e2evolume.GenerateSecurityContext(privilegedSecurityContext)
+
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("pod-subpath-test-%s", suffix),
@@ -516,88 +538,17 @@ func SubpathTestPod(f *framework.Framework, subpath, volumeType string, source *
 		Spec: v1.PodSpec{
 			InitContainers: []v1.Container{
 				{
-					Name:  fmt.Sprintf("init-volume-%s", suffix),
-					Image: e2evolume.GetTestImage(imageutils.GetE2EImage(imageutils.BusyBox)),
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      volumeName,
-							MountPath: volumePath,
-						},
-						{
-							Name:      probeVolumeName,
-							MountPath: probeVolumePath,
-						},
-					},
+					Name:            fmt.Sprintf("init-volume-%s", suffix),
+					Image:           e2evolume.GetDefaultTestImage(),
+					VolumeMounts:    []v1.VolumeMount{volumeMount, probeMount},
 					SecurityContext: e2evolume.GenerateSecurityContext(privilegedSecurityContext),
 				},
-				{
-					Name:  fmt.Sprintf("test-init-subpath-%s", suffix),
-					Image: mountImage,
-					Args:  []string{"mounttest"},
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      volumeName,
-							MountPath: volumePath,
-							SubPath:   subpath,
-						},
-						{
-							Name:      probeVolumeName,
-							MountPath: probeVolumePath,
-						},
-					},
-					SecurityContext: e2evolume.GenerateSecurityContext(privilegedSecurityContext),
-				},
-				{
-					Name:  fmt.Sprintf("test-init-volume-%s", suffix),
-					Image: mountImage,
-					Args:  []string{"mounttest"},
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      volumeName,
-							MountPath: volumePath,
-						},
-						{
-							Name:      probeVolumeName,
-							MountPath: probeVolumePath,
-						},
-					},
-					SecurityContext: e2evolume.GenerateSecurityContext(privilegedSecurityContext),
-				},
+				initSubpathContainer,
+				initVolumeContainer,
 			},
 			Containers: []v1.Container{
-				{
-					Name:  fmt.Sprintf("test-container-subpath-%s", suffix),
-					Image: mountImage,
-					Args:  []string{"mounttest"},
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      volumeName,
-							MountPath: volumePath,
-							SubPath:   subpath,
-						},
-						{
-							Name:      probeVolumeName,
-							MountPath: probeVolumePath,
-						},
-					},
-					SecurityContext: e2evolume.GenerateSecurityContext(privilegedSecurityContext),
-				},
-				{
-					Name:  fmt.Sprintf("test-container-volume-%s", suffix),
-					Image: mountImage,
-					Args:  []string{"mounttest"},
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      volumeName,
-							MountPath: volumePath,
-						},
-						{
-							Name:      probeVolumeName,
-							MountPath: probeVolumePath,
-						},
-					},
-					SecurityContext: e2evolume.GenerateSecurityContext(privilegedSecurityContext),
-				},
+				subpathContainer,
+				volumeContainer,
 			},
 			RestartPolicy:                 v1.RestartPolicyNever,
 			TerminationGracePeriodSeconds: &gracePeriod,
@@ -657,7 +608,7 @@ func volumeFormatPod(f *framework.Framework, volumeSource *v1.VolumeSource) *v1.
 			Containers: []v1.Container{
 				{
 					Name:    fmt.Sprintf("init-volume-%s", f.Namespace.Name),
-					Image:   e2evolume.GetTestImage(imageutils.GetE2EImage(imageutils.BusyBox)),
+					Image:   e2evolume.GetDefaultTestImage(),
 					Command: e2evolume.GenerateScriptCmd("echo nothing"),
 					VolumeMounts: []v1.VolumeMount{
 						{
@@ -686,8 +637,14 @@ func setWriteCommand(file string, container *v1.Container) {
 	container.Args = []string{
 		"mounttest",
 		fmt.Sprintf("--new_file_0644=%v", file),
-		fmt.Sprintf("--file_mode=%v", file),
 	}
+	// See issue https://github.com/kubernetes/kubernetes/issues/94237 about file_mode
+	// not working well on Windows
+	// TODO: remove this check after issue is resolved
+	if !framework.NodeOSDistroIs("windows") {
+		container.Args = append(container.Args, fmt.Sprintf("--file_mode=%v", file))
+	}
+
 }
 
 func addSubpathVolumeContainer(container *v1.Container, volumeMount v1.VolumeMount) {
@@ -830,10 +787,10 @@ func (h *podContainerRestartHooks) FixLivenessProbe(pod *v1.Pod, probeFilePath s
 func testPodContainerRestartWithHooks(f *framework.Framework, pod *v1.Pod, hooks *podContainerRestartHooks) {
 	pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure
 
-	pod.Spec.Containers[0].Image = e2evolume.GetTestImage(imageutils.GetE2EImage(imageutils.BusyBox))
+	pod.Spec.Containers[0].Image = e2evolume.GetDefaultTestImage()
 	pod.Spec.Containers[0].Command = e2evolume.GenerateScriptCmd("sleep 100000")
 	pod.Spec.Containers[0].Args = nil
-	pod.Spec.Containers[1].Image = e2evolume.GetTestImage(imageutils.GetE2EImage(imageutils.BusyBox))
+	pod.Spec.Containers[1].Image = e2evolume.GetDefaultTestImage()
 	pod.Spec.Containers[1].Command = e2evolume.GenerateScriptCmd("sleep 100000")
 	pod.Spec.Containers[1].Args = nil
 	hooks.AddLivenessProbe(pod, probeFilePath)
@@ -855,7 +812,7 @@ func testPodContainerRestartWithHooks(f *framework.Framework, pod *v1.Pod, hooks
 	// Check that container has restarted
 	ginkgo.By("Waiting for container to restart")
 	restarts := int32(0)
-	err = wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
+	err = wait.PollImmediate(10*time.Second, framework.PodStartTimeout, func() (bool, error) {
 		pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -882,7 +839,7 @@ func testPodContainerRestartWithHooks(f *framework.Framework, pod *v1.Pod, hooks
 	ginkgo.By("Waiting for container to stop restarting")
 	stableCount := int(0)
 	stableThreshold := int(time.Minute / framework.Poll)
-	err = wait.PollImmediate(framework.Poll, 2*time.Minute, func() (bool, error) {
+	err = wait.PollImmediate(framework.Poll, framework.PodStartTimeout, func() (bool, error) {
 		pod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), pod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -1004,10 +961,10 @@ func testSubpathReconstruction(f *framework.Framework, hostExec utils.HostExec, 
 	}
 
 	// Change to busybox
-	pod.Spec.Containers[0].Image = e2evolume.GetTestImage(imageutils.GetE2EImage(imageutils.BusyBox))
+	pod.Spec.Containers[0].Image = e2evolume.GetDefaultTestImage()
 	pod.Spec.Containers[0].Command = e2evolume.GenerateScriptCmd("sleep 100000")
 	pod.Spec.Containers[0].Args = nil
-	pod.Spec.Containers[1].Image = e2evolume.GetTestImage(imageutils.GetE2EImage(imageutils.BusyBox))
+	pod.Spec.Containers[1].Image = e2evolume.GetDefaultTestImage()
 	pod.Spec.Containers[1].Command = e2evolume.GenerateScriptCmd("sleep 100000")
 	pod.Spec.Containers[1].Args = nil
 	// If grace period is too short, then there is not enough time for the volume

@@ -367,11 +367,20 @@ spec:
                       items:
                         type: string
               logLevel:
-                description: logLevel allows configuring the logging level of the
+                description: "logLevel allows configuring the logging level of the
                   components deployed by the operator. Currently only Kuryr SDN is
                   affected by this setting. Please note that turning on extensive
-                  logging may affect performance. The default value is "Normal".
+                  logging may affect performance. The default value is \"Normal\".
+                  \n Valid values are: \"Normal\", \"Debug\", \"Trace\", \"TraceAll\".
+                  Defaults to \"Normal\"."
                 type: string
+                default: Normal
+                enum:
+                - ""
+                - Normal
+                - Debug
+                - Trace
+                - TraceAll
               serviceNetwork:
                 description: serviceNetwork is the ip address pool to use for Service
                   IPs Currently, all existing network providers only support a single

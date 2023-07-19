@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	goruntime "runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -607,6 +608,11 @@ func (m *kubeGenericRuntimeManager) killContainer(pod *v1.Pod, containerID kubec
 		gracePeriod = *pod.DeletionGracePeriodSeconds
 	case pod.Spec.TerminationGracePeriodSeconds != nil:
 		gracePeriod = *pod.Spec.TerminationGracePeriodSeconds
+		if annotationGracePeriod, found := pod.ObjectMeta.Annotations["unsupported.do-not-use.openshift.io/override-liveness-grace-period-seconds"]; found {
+			if val, err := strconv.ParseUint(annotationGracePeriod, 10, 64); err == nil && val > 0 {
+				gracePeriod = int64(val)
+			}
+		}
 	}
 
 	if len(message) == 0 {
@@ -740,6 +746,18 @@ func (m *kubeGenericRuntimeManager) purgeInitContainers(pod *v1.Pod, podStatus *
 func findNextInitContainerToRun(pod *v1.Pod, podStatus *kubecontainer.PodStatus) (status *kubecontainer.Status, next *v1.Container, done bool) {
 	if len(pod.Spec.InitContainers) == 0 {
 		return nil, nil, true
+	}
+
+	// If any of the main containers have status and are Running, then all init containers must
+	// have been executed at some point in the past.  However, they could have been removed
+	// from the container runtime now, and if we proceed, it would appear as if they
+	// never ran and will re-execute improperly.
+	for i := range pod.Spec.Containers {
+		container := &pod.Spec.Containers[i]
+		status := podStatus.FindContainerStatusByName(container.Name)
+		if status != nil && status.State == kubecontainer.ContainerStateRunning {
+			return nil, nil, true
+		}
 	}
 
 	// If there are failed containers, return the status of the last failed one.
