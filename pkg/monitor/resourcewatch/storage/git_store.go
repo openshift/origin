@@ -137,16 +137,24 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	}
 
 	if delete {
+		klog.Infof("Calling commitRemove for %s", filePath)
 		// ignore error, we've already reported and we're not doing anything else.
-		_ = wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
+		pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
 			if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
 				klog.Error(err)
 				return false, nil
 			}
 			return true, nil
 		})
+
+		if pollErr != nil {
+			klog.Errorf("PollWait Error: %v", pollErr)
+		}
+
 		return
 	}
+
+	klog.Infof("Calling write for %s", filePath)
 	operation, err := s.write(filePath, content)
 	if err != nil {
 		klog.Warningf("Writing file content failed %q: %v", filePath, err)
@@ -160,25 +168,31 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	}
 
 	// ignore error, we've already reported and we're not doing anything else.
-	_ = wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
+	pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
 		switch {
 		case operation == gitOpAdded:
+			klog.Infof("Calling commitAdd for %s", filePath)
 			if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
 				klog.Error(err)
 				return false, nil
 			}
 		case operation == gitOpModified:
+			klog.Infof("Calling commitModify for %s", filePath)
 			if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
 				klog.Error(err)
 				return false, nil
 			}
 		default:
-			klog.Error("unhandled case")
+			klog.Errorf("unhandled case for %s", filePath)
 
 			return true, nil
 		}
 		return true, nil
 	})
+
+	if pollErr != nil {
+		klog.Errorf("PollWait Error: %v", pollErr)
+	}
 }
 
 func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
