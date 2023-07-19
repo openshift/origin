@@ -1,37 +1,34 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: consolenotifications.console.openshift.io
   annotations:
+    api-approved.openshift.io: https://github.com/openshift/api/pull/481
     description: Extension for configuring openshift web console notifications.
     displayName: ConsoleNotification
     include.release.openshift.io/ibm-cloud-managed: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
+  name: consolenotifications.console.openshift.io
 spec:
-  scope: Cluster
   group: console.openshift.io
   names:
-    plural: consolenotifications
-    singular: consolenotification
     kind: ConsoleNotification
     listKind: ConsoleNotificationList
+    plural: consolenotifications
+    singular: consolenotification
+  scope: Cluster
   versions:
-  - name: v1
-    served: true
-    storage: true
-    additionalPrinterColumns:
-    - name: Text
+  - additionalPrinterColumns:
+    - jsonPath: .spec.text
+      name: Text
       type: string
-      jsonPath: .spec.text
-    - name: Location
+    - jsonPath: .spec.location
+      name: Location
       type: string
-      jsonPath: .spec.location
-    - name: Age
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
       type: date
-      jsonPath: .metadata.creationTimestamp
-    subresources:
-      status: {}
+    name: v1
     schema:
       openAPIV3Schema:
         description: ConsoleNotification is the extension for configuring openshift
@@ -90,3 +87,7 @@ spec:
               text:
                 description: text is the visible text of the notification.
                 type: string
+    served: true
+    storage: true
+    subresources:
+      status: {}

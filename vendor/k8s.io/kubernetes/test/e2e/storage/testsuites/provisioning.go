@@ -134,7 +134,7 @@ func (p *provisioningTestSuite) DefineTests(driver storageframework.TestDriver, 
 		dDriver, _ = driver.(storageframework.DynamicPVTestDriver)
 		// Now do the more expensive test initialization.
 		l.config, l.driverCleanup = driver.PrepareTest(f)
-		l.migrationCheck = newMigrationOpCheck(f.ClientSet, dInfo.InTreePluginName)
+		l.migrationCheck = newMigrationOpCheck(f.ClientSet, f.ClientConfig(), dInfo.InTreePluginName)
 		l.cs = l.config.Framework.ClientSet
 		testVolumeSizeRange := p.GetTestSuiteInfo().SupportedSizeRange
 		driverVolumeSizeRange := dDriver.GetDriverInfo().SupportedSizeRange
@@ -595,14 +595,6 @@ func (t StorageClassTest) TestBindingWaitForFirstConsumerMultiPVC(claims []*v1.P
 	var err error
 	framework.ExpectNotEqual(len(claims), 0)
 	namespace := claims[0].Namespace
-
-	ginkgo.By("creating a storage class " + t.Class.Name)
-	class, err := t.Client.StorageV1().StorageClasses().Create(context.TODO(), t.Class, metav1.CreateOptions{})
-	framework.ExpectNoError(err)
-	defer func() {
-		err = storageutils.DeleteStorageClass(t.Client, class.Name)
-		framework.ExpectNoError(err, "While deleting storage class")
-	}()
 
 	ginkgo.By("creating claims")
 	var claimNames []string

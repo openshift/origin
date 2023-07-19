@@ -730,6 +730,8 @@ type DockerBuildStrategy struct {
 
 	// buildArgs contains build arguments that will be resolved in the Dockerfile.  See
 	// https://docs.docker.com/engine/reference/builder/#/arg for more details.
+	// NOTE: Only the 'name' and 'value' fields are supported. Any settings on the 'valueFrom' field
+	// are ignored.
 	BuildArgs []corev1.EnvVar `json:"buildArgs,omitempty" protobuf:"bytes,7,rep,name=buildArgs"`
 
 	// imageOptimizationPolicy describes what optimizations the system can use when building images

@@ -142,8 +142,10 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 			claimSize = pvc.Spec.Resources.Requests.Storage().String()
 
 			ginkgo.By("[init] starting a pod to use the claim")
-			originalMntTestData = fmt.Sprintf("hello from %s namespace", pvc.GetNamespace())
-			command := fmt.Sprintf("echo '%s' > %s", originalMntTestData, datapath)
+			originalMntTestData = fmt.Sprintf("hello from %s namespace", f.Namespace.Name)
+			// After writing data to a file `sync` flushes the data from memory to disk.
+			// sync is available in the Linux and Windows versions of agnhost.
+			command := fmt.Sprintf("echo '%s' > %s; sync", originalMntTestData, datapath)
 
 			pod := RunInPodWithVolume(cs, f.Timeouts, pvc.Namespace, pvc.Name, "pvc-snapshottable-tester", command, config.ClientNodeSelection)
 
@@ -276,7 +278,9 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 
 				ginkgo.By("modifying the data in the source PVC")
 
-				command := fmt.Sprintf("echo '%s' > %s", modifiedMntTestData, datapath)
+				// After writing data to a file `sync` flushes the data from memory to disk.
+				// sync is available in the Linux and Windows versions of agnhost.
+				command := fmt.Sprintf("echo '%s' > %s; sync", modifiedMntTestData, datapath)
 				RunInPodWithVolume(cs, f.Timeouts, pvc.Namespace, pvc.Name, "pvc-snapshottable-data-tester", command, config.ClientNodeSelection)
 
 				ginkgo.By("creating a pvc from the snapshot")
@@ -317,11 +321,15 @@ func (s *snapshottableTestSuite) DefineTests(driver storageframework.TestDriver,
 
 				ginkgo.By("should delete the VolumeSnapshotContent according to its deletion policy")
 
-				// Delete both Snapshot and PVC at the same time because different storage systems
-				// have different ordering of deletion. Some may require delete PVC first before
+				// Delete both Snapshot and restored Pod/PVC at the same time because different storage systems
+				// have different ordering of deletion. Some may require delete the restored PVC first before
 				// Snapshot deletion and some are opposite.
 				err = storageutils.DeleteSnapshotWithoutWaiting(dc, vs.GetNamespace(), vs.GetName())
 				framework.ExpectNoError(err)
+				framework.Logf("deleting restored pod %q/%q", restoredPod.Namespace, restoredPod.Name)
+				err = cs.CoreV1().Pods(restoredPod.Namespace).Delete(context.TODO(), restoredPod.Name, metav1.DeleteOptions{})
+				framework.ExpectNoError(err)
+				framework.Logf("deleting restored PVC %q/%q", restoredPVC.Namespace, restoredPVC.Name)
 				err = cs.CoreV1().PersistentVolumeClaims(restoredPVC.Namespace).Delete(context.TODO(), restoredPVC.Name, metav1.DeleteOptions{})
 				framework.ExpectNoError(err)
 

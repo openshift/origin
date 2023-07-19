@@ -357,6 +357,16 @@ func (m *manager) removeStaleState() {
 			}
 		}
 	}
+
+	m.containerMap.Visit(func(podUID, containerName, containerID string) {
+		if _, ok := activeContainers[podUID][containerName]; !ok {
+			klog.ErrorS(nil, "RemoveStaleState: removing container", "podUID", podUID, "containerName", containerName)
+			err := m.policyRemoveContainerByRef(podUID, containerName)
+			if err != nil {
+				klog.ErrorS(err, "RemoveStaleState: failed to remove container", "podUID", podUID, "containerName", containerName)
+			}
+		}
+	})
 }
 
 func (m *manager) reconcileState() (success []reconciledContainer, failure []reconciledContainer) {
@@ -364,6 +374,7 @@ func (m *manager) reconcileState() (success []reconciledContainer, failure []rec
 	failure = []reconciledContainer{}
 
 	m.removeStaleState()
+	workloadEnabled := managed.IsEnabled()
 	for _, pod := range m.activePods() {
 		pstatus, ok := m.podStatusProvider.GetPodStatus(pod.UID)
 		if !ok {
@@ -371,7 +382,7 @@ func (m *manager) reconcileState() (success []reconciledContainer, failure []rec
 			failure = append(failure, reconciledContainer{pod.Name, "", ""})
 			continue
 		}
-		if enabled, _, _ := managed.IsPodManaged(pod); enabled {
+		if enabled, _, _ := managed.IsPodManaged(pod); workloadEnabled && enabled {
 			klog.V(4).InfoS("[cpumanager] reconcileState: skipping pod; pod is managed (pod: %s)", pod.Name)
 			continue
 		}

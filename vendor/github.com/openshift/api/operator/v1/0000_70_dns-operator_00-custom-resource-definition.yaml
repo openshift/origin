@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: dnses.operator.openshift.io
   annotations:
+    api-approved.openshift.io: https://github.com/openshift/api/pull/475
     include.release.openshift.io/ibm-cloud-managed: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -71,8 +72,13 @@ spec:
                       type: string
                   tolerations:
                     description: "tolerations is a list of tolerations applied to
-                      DNS pods. \n The default is an empty list.  This default is
-                      subject to change. \n See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/"
+                      DNS pods. \n If empty, the operator sets a toleration for the
+                      \"node-role.kubernetes.io/master\" taint.  This default is subject
+                      to change.  Specifying tolerations without including a toleration
+                      for the \"node-role.kubernetes.io/master\" taint may be risky
+                      as it could lead to an outage if all worker nodes become unavailable.
+                      \n Note that the daemon controller adds some tolerations as
+                      well.  See https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/"
                     type: array
                     items:
                       description: The pod this Toleration is attached to tolerates
