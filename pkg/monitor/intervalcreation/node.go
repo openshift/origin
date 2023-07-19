@@ -27,7 +27,7 @@ const (
 
 func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
-	nodeStateTracker := newStateTracker(beginning)
+	nodeStateTracker := newStateTracker(monitorapi.ConstructionOwnerNodeLifecycle, beginning)
 	locatorToMessageAnnotations := map[string]map[string]string{}
 
 	for _, event := range events {
@@ -66,25 +66,25 @@ func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 			nodeStateTracker.openInterval(nodeLocator, notReadyState, event.From)
 		case "Ready":
 			message := monitorapi.Message().Reason(monitorapi.NodeNotReadyReason).Messagef("role/%v is not ready", roles)
-			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, notReadyState, simpleCondition(monitorapi.Warning, monitorapi.NodeNotReadyReason, message), event.From)...)
+			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, notReadyState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Warning, monitorapi.NodeNotReadyReason, message), event.From)...)
 		case "MachineConfigChange":
 			nodeStateTracker.openInterval(nodeLocator, updateState, event.From)
 		case "MachineConfigReached":
 			message := strings.ReplaceAll(event.Message, "reason/MachineConfigReached ", "phase/Update ") + " roles/" + roles
-			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, updateState, simpleCondition(monitorapi.Info, monitorapi.NodeUpdateReason, message), event.From)...)
+			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, updateState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Info, monitorapi.NodeUpdateReason, message), event.From)...)
 		case "Cordon", "Drain":
 			nodeStateTracker.openInterval(nodeLocator, drainState, event.From)
 		case "OSUpdateStarted":
-			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, drainState, simpleCondition(monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseDrain, roles)), event.From)...)
+			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, drainState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseDrain, roles)), event.From)...)
 			nodeStateTracker.openInterval(nodeLocator, osUpdateState, event.From)
 		case "Reboot":
-			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, drainState, simpleCondition(monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseDrain, roles)), event.From)...)
-			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, osUpdateState, simpleCondition(monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseOSUpdate, roles)), event.From)...)
+			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, drainState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseDrain, roles)), event.From)...)
+			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, osUpdateState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseOSUpdate, roles)), event.From)...)
 			nodeStateTracker.openInterval(nodeLocator, rebootState, event.From)
 		case "Starting":
-			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, drainState, simpleCondition(monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseDrain, roles)), event.From)...)
-			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, osUpdateState, simpleCondition(monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseOSUpdate, roles)), event.From)...)
-			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, rebootState, simpleCondition(monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseReboot, roles)), event.From)...)
+			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, drainState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseDrain, roles)), event.From)...)
+			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, osUpdateState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseOSUpdate, roles)), event.From)...)
+			intervals = append(intervals, nodeStateTracker.closeIfOpenedInterval(nodeLocator, rebootState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Info, monitorapi.NodeUpdateReason, fmt.Sprintf(msgPhaseReboot, roles)), event.From)...)
 		}
 	}
 	intervals = append(intervals, nodeStateTracker.closeAllIntervals(locatorToMessageAnnotations, end)...)

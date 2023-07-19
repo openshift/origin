@@ -14,25 +14,28 @@ type stateTracker struct {
 
 	locatorToStateMap        map[string]stateMap
 	locatorsToObservedStates map[string]sets.String
+
+	constructedBy monitorapi.ConstructionOwner
 }
 
 type conditionCreationFunc func(locator string, from, to time.Time) (monitorapi.Condition, bool)
 
-func simpleCondition(level monitorapi.EventLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
+func simpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorapi.EventLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
 	return func(locator string, from, to time.Time) (monitorapi.Condition, bool) {
 		return monitorapi.Condition{
 			Level:   level,
 			Locator: locator,
-			Message: monitorapi.Message().Reason(reason).Message(message),
+			Message: monitorapi.Message().Reason(reason).Constructed(constructedBy).Message(message),
 		}, true
 	}
 }
 
-func newStateTracker(beginning time.Time) *stateTracker {
+func newStateTracker(constructedBy monitorapi.ConstructionOwner, beginning time.Time) *stateTracker {
 	return &stateTracker{
 		beginning:                beginning,
 		locatorToStateMap:        map[string]stateMap{},
 		locatorsToObservedStates: map[string]sets.String{},
+		constructedBy:            constructedBy,
 	}
 }
 
@@ -136,10 +139,10 @@ func (t *stateTracker) closeAllIntervals(locatorToMessageAnnotations map[string]
 		for k, v := range locatorToMessageAnnotations[locator] {
 			annotationStrings = append(annotationStrings, fmt.Sprintf("%v/%v", k, v))
 		}
-		message := fmt.Sprintf("%v phase never completed", strings.Join(annotationStrings, " "))
 
 		for stateName := range states {
-			ret = append(ret, t.closeInterval(locator, stateName, simpleCondition(monitorapi.Warning, stateName.reason, message), end)...)
+			message := fmt.Sprintf("%v state/%v never completed", strings.Join(annotationStrings, " "), stateName.stateName)
+			ret = append(ret, t.closeInterval(locator, stateName, simpleCondition(t.constructedBy, monitorapi.Warning, stateName.reason, message), end)...)
 		}
 	}
 
