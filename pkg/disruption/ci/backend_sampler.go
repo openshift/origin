@@ -47,7 +47,7 @@ func (bs *BackendSampler) GetDisruptionBackendName() string {
 	return bs.Name()
 }
 
-func (bs *BackendSampler) GetLocator() string {
+func (bs *BackendSampler) GetLocator() *monitorapi.LocatorBuilder {
 	return bs.DisruptionLocator()
 }
 

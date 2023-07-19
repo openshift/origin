@@ -72,12 +72,14 @@ type Condition struct {
 type LocatorType string
 
 const (
-	LocatorTypePod             LocatorType = "Pod"
-	LocatorTypeContainer       LocatorType = "Container"
-	LocatorTypeNode            LocatorType = "Node"
-	LocatorTypeAlert           LocatorType = "Alert"
-	LocatorTypeClusterOperator LocatorType = "ClusterOperator"
-	LocatorTypeOther           LocatorType = "Other"
+	LocatorTypePod               LocatorType = "Pod"
+	LocatorTypeContainer         LocatorType = "Container"
+	LocatorTypeNode              LocatorType = "Node"
+	LocatorTypeAlert             LocatorType = "Alert"
+	LocatorTypeClusterOperator   LocatorType = "ClusterOperator"
+	LocatorTypeOther             LocatorType = "Other"
+	LocatorTypeDisruption        LocatorType = "Disruption"
+	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
 )
 
 type LocatorKey string
@@ -93,8 +95,13 @@ const (
 	LocatorAlertKey           LocatorKey = "alert"
 	LocatorRouteKey           LocatorKey = "route"
 	LocatorDisruptionKey      LocatorKey = "disruption"
-	LocatorConnectionKey      LocatorKey = "connection"
 	LocatorE2ETestKey         LocatorKey = "e2e-test"
+	LocatorLoadBalancerKey    LocatorKey = "load-balancer"
+	LocatorConnectionKey      LocatorKey = "connection"
+	LocatorProtocolKey        LocatorKey = "protocol"
+	LocatorTargetKey          LocatorKey = "target"
+	LocatorShutdownKey        LocatorKey = "shutdown"
+	LocatorServerKey          LocatorKey = "server"
 )
 
 type Locator struct {

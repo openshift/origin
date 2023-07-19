@@ -22,8 +22,8 @@ const (
 // TestDescriptor describes a backend disruption test
 type TestDescriptor interface {
 	Name() string
-	DisruptionLocator() string
-	ShutdownLocator() string
+	DisruptionLocator() *monitorapi.LocatorBuilder
+	ShutdownLocator() *monitorapi.LocatorBuilder
 	GetLoadBalancerType() LoadBalancerType
 	GetProtocol() ProtocolType
 	GetConnectionType() monitorapi.BackendConnectionType

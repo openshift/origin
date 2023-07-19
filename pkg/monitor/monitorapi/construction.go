@@ -79,6 +79,32 @@ func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, contain
 	return b
 }
 
+func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, protocol, target string) *LocatorBuilder {
+	b.targetType = LocatorTypeDisruption
+	b.annotations[LocatorDisruptionKey] = disruptionName
+	if len(loadBalancer) > 0 {
+		b.annotations[LocatorLoadBalancerKey] = loadBalancer
+	}
+	if len(connection) > 0 {
+		b.annotations[LocatorConnectionKey] = connection
+	}
+	if len(protocol) > 0 {
+		b.annotations[LocatorProtocolKey] = protocol
+	}
+	if len(target) > 0 {
+		b.annotations[LocatorTargetKey] = target
+	}
+	return b
+}
+
+func (b *LocatorBuilder) APIServerShutdown(loadBalancer string) *LocatorBuilder {
+	b.targetType = LocatorTypeAPIServerShutdown
+	if len(loadBalancer) > 0 {
+		b.annotations[LocatorLoadBalancerKey] = loadBalancer
+	}
+	return b
+}
+
 func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) *LocatorBuilder {
 	b.PodFromPod(pod)
 	b.targetType = LocatorTypeContainer
