@@ -30,8 +30,8 @@ func defaultIntervalCreationFns() []simpleIntervalCreationFunc {
 }
 
 // InsertCalculatedIntervals calculates intervals from the currently known interval set and saves them into the same list
-func InsertCalculatedIntervals(startingIntervals []monitorapi.EventInterval, recordedResources monitorapi.ResourcesMap, from, to time.Time) monitorapi.Intervals {
-	ret := make([]monitorapi.EventInterval, len(startingIntervals))
+func InsertCalculatedIntervals(startingIntervals []monitorapi.Interval, recordedResources monitorapi.ResourcesMap, from, to time.Time) monitorapi.Intervals {
+	ret := make([]monitorapi.Interval, len(startingIntervals))
 	copy(ret, startingIntervals)
 
 	intervalCreationFns := defaultIntervalCreationFns()
@@ -47,8 +47,8 @@ func InsertCalculatedIntervals(startingIntervals []monitorapi.EventInterval, rec
 }
 
 // InsertIntervalsFromCluster contacts the cluster, retrieves information deemed pertinent, and creates intervals for them.
-func InsertIntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, startingIntervals []monitorapi.EventInterval, recordedResources monitorapi.ResourcesMap, from, to time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
-	ret := make([]monitorapi.EventInterval, len(startingIntervals))
+func InsertIntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, startingIntervals []monitorapi.Interval, recordedResources monitorapi.ResourcesMap, from, to time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
+	ret := make([]monitorapi.Interval, len(startingIntervals))
 	copy(ret, startingIntervals)
 
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)

@@ -9,7 +9,7 @@ import (
 )
 
 func Test_dnsOverlapDisruption(t *testing.T) {
-	events := []monitorapi.EventInterval{
+	events := []monitorapi.Interval{
 		{
 			Condition: monitorapi.Condition{
 				Locator: "disruption/openshift-api connection/new",
@@ -72,7 +72,7 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			name: "Partial Overlap between DNS and disruption",
-			events: append(events, monitorapi.EventInterval{
+			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Message: "reason/DisruptionBegan disruption",
 				},
@@ -83,7 +83,7 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			name: "Complete Overlap between DNS and disruption",
-			events: append(events, monitorapi.EventInterval{
+			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Message: "reason/DisruptionSamplerOutageBegan DNS lookup timeouts began",
 				},
@@ -94,7 +94,7 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			name: "Overlap within 10 seconds between DNS and disruption",
-			events: append(events, monitorapi.EventInterval{
+			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Message: "reason/DisruptionSamplerOutageBegan DNS lookup timeouts began",
 				},
@@ -105,7 +105,7 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			name: "Overlap between DNS and disruption with same start time",
-			events: append(events, monitorapi.EventInterval{
+			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Message: "reason/DisruptionBegan disruption",
 				},
@@ -116,7 +116,7 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			name: "Overlap between DNS and disruption with same end time",
-			events: append(events, monitorapi.EventInterval{
+			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Message: "reason/DisruptionBegan disruption",
 				},

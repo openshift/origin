@@ -24,15 +24,15 @@ const (
 	ObservedRecreationCountAnnotation = "monitor.openshift.io/observed-recreation-count"
 )
 
-type EventLevel int
+type ConditionLevel int
 
 const (
-	Info EventLevel = iota
+	Info ConditionLevel = iota
 	Warning
 	Error
 )
 
-func (e EventLevel) String() string {
+func (e ConditionLevel) String() string {
 	switch e {
 	case Info:
 		return "Info"
@@ -45,7 +45,7 @@ func (e EventLevel) String() string {
 	}
 }
 
-func EventLevelFromString(s string) (EventLevel, error) {
+func ConditionLevelFromString(s string) (ConditionLevel, error) {
 	switch s {
 	case "Info":
 		return Info, nil
@@ -60,22 +60,23 @@ func EventLevelFromString(s string) (EventLevel, error) {
 }
 
 type Condition struct {
-	Level EventLevel
+	Level ConditionLevel
 
+	// TODO: Goal here is to drop Locator/Message, and rename the structured variants to Locator/Message
 	Locator           string
-	StructuredLocator StructuredLocator
+	StructuredLocator Locator
 	Message           string
-	StructuredMessage StructuredMessage
+	StructuredMessage Message
 }
 
-type StructuredType string
+type LocatorType string
 
 const (
-	StructuredTypePod             StructuredType = "Pod"
-	StructuredTypeContainer       StructuredType = "Container"
-	StructuredTypeNode            StructuredType = "Node"
-	StructuredTypeClusterOperator StructuredType = "ClusterOperator"
-	StructuredTypeOther           StructuredType = "Other"
+	LocatorTypePod             LocatorType = "Pod"
+	LocatorTypeContainer       LocatorType = "Container"
+	LocatorTypeNode            LocatorType = "Node"
+	LocatorTypeClusterOperator LocatorType = "ClusterOperator"
+	LocatorTypeOther           LocatorType = "Other"
 )
 
 type LocatorKey string
@@ -95,8 +96,8 @@ const (
 	LocatorAlertKey           LocatorKey = "alert"
 )
 
-type StructuredLocator struct {
-	Type StructuredType
+type Locator struct {
+	Type LocatorType
 
 	// annotations will include the Reason and Cause under their respective keys
 	LocatorKeys map[LocatorKey]string
@@ -162,7 +163,8 @@ const (
 	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
 )
 
-type StructuredMessage struct {
+type Message struct {
+	// TODO: reason/cause both fields and annotations...
 	Reason       IntervalReason
 	Cause        string
 	HumanMessage string
@@ -171,14 +173,14 @@ type StructuredMessage struct {
 	Annotations map[AnnotationKey]string
 }
 
-type EventInterval struct {
+type Interval struct {
 	Condition
 
 	From time.Time
 	To   time.Time
 }
 
-func (i EventInterval) String() string {
+func (i Interval) String() string {
 	if i.From.Equal(i.To) {
 		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 	}
@@ -189,7 +191,7 @@ func (i EventInterval) String() string {
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 }
 
-func (i StructuredMessage) OldMessage() string {
+func (i Message) OldMessage() string {
 	keys := sets.NewString()
 	for k := range i.Annotations {
 		keys.Insert(string(k))
@@ -209,7 +211,7 @@ func (i StructuredMessage) OldMessage() string {
 	return fmt.Sprintf("%v %v", annotationString, i.HumanMessage)
 }
 
-func (i StructuredLocator) OldLocator() string {
+func (i Locator) OldLocator() string {
 	keys := sets.NewString()
 	for k := range i.LocatorKeys {
 		keys.Insert(string(k))
@@ -225,11 +227,11 @@ func (i StructuredLocator) OldLocator() string {
 	return annotationString
 }
 
-type IntervalFilter func(i EventInterval) bool
+type IntervalFilter func(i Interval) bool
 
 type IntervalFilters []IntervalFilter
 
-func (filters IntervalFilters) All(i EventInterval) bool {
+func (filters IntervalFilters) All(i Interval) bool {
 	for _, filter := range filters {
 		if !filter(i) {
 			return false
@@ -238,7 +240,7 @@ func (filters IntervalFilters) All(i EventInterval) bool {
 	return true
 }
 
-func (filters IntervalFilters) Any(i EventInterval) bool {
+func (filters IntervalFilters) Any(i Interval) bool {
 	for _, filter := range filters {
 		if filter(i) {
 			return true
@@ -247,7 +249,7 @@ func (filters IntervalFilters) Any(i EventInterval) bool {
 	return false
 }
 
-type Intervals []EventInterval
+type Intervals []Interval
 
 var _ sort.Interface = Intervals{}
 
@@ -307,25 +309,25 @@ func (intervals Intervals) Duration(minCurrentDuration time.Duration) time.Durat
 }
 
 // EventIntervalMatchesFunc is a function for matching eventIntervales
-type EventIntervalMatchesFunc func(eventInterval EventInterval) bool
+type EventIntervalMatchesFunc func(eventInterval Interval) bool
 
 // IsErrorEvent returns true if the eventInterval is an Error
-func IsErrorEvent(eventInterval EventInterval) bool {
+func IsErrorEvent(eventInterval Interval) bool {
 	return eventInterval.Level == Error
 }
 
 // IsWarningEvent returns true if the eventInterval is an Warning
-func IsWarningEvent(eventInterval EventInterval) bool {
+func IsWarningEvent(eventInterval Interval) bool {
 	return eventInterval.Level == Warning
 }
 
 // IsInfoEvent returns true if the eventInterval is an Info
-func IsInfoEvent(eventInterval EventInterval) bool {
+func IsInfoEvent(eventInterval Interval) bool {
 	return eventInterval.Level == Info
 }
 
 // IsInE2ENamespace returns true if the eventInterval is in an e2e namespace
-func IsInE2ENamespace(eventInterval EventInterval) bool {
+func IsInE2ENamespace(eventInterval Interval) bool {
 	if strings.Contains(eventInterval.Locator, "ns/e2e-") {
 		return true
 	}
@@ -333,7 +335,7 @@ func IsInE2ENamespace(eventInterval EventInterval) bool {
 }
 
 func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		ns := NamespaceFromLocator(eventInterval.Locator)
 		return namespaces.Has(ns)
 	}
@@ -341,7 +343,7 @@ func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 
 // ContainsAllParts ensures that all listed key match at least one of the values.
 func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		actualParts := LocatorParts(eventInterval.Locator)
 		for key, possibleValues := range matchers {
 			actualValue := actualParts[key]
@@ -364,7 +366,7 @@ func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatches
 
 // NotContainsAllParts returns a function that returns false if any key matches.
 func NotContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		actualParts := LocatorParts(eventInterval.Locator)
 		for key, possibleValues := range matchers {
 			actualValue := actualParts[key]
@@ -380,7 +382,7 @@ func NotContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatc
 }
 
 func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		for _, filter := range filters {
 			if !filter(eventInterval) {
 				return false
@@ -391,7 +393,7 @@ func And(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 }
 
 func Or(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		for _, filter := range filters {
 			if filter(eventInterval) {
 				return true
@@ -402,32 +404,32 @@ func Or(filters ...EventIntervalMatchesFunc) EventIntervalMatchesFunc {
 }
 
 func Not(filter EventIntervalMatchesFunc) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		return !filter(eventInterval)
 	}
 }
 
 func StartedBefore(limit time.Time) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		return eventInterval.From.Before(limit)
 	}
 }
 
 func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		return eventInterval.To.After(limit)
 	}
 }
 
-func NodeUpdate(eventInterval EventInterval) bool {
+func NodeUpdate(eventInterval Interval) bool {
 	reason := ReasonFrom(eventInterval.Message)
 	return NodeUpdateReason == reason
 }
 
 func AlertFiringInNamespace(alertName, namespace string) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		return And(
-			func(eventInterval EventInterval) bool {
+			func(eventInterval Interval) bool {
 				locatorParts := LocatorParts(eventInterval.Locator)
 				eventAlertName := AlertFrom(locatorParts)
 				if eventAlertName != alertName {
@@ -444,9 +446,9 @@ func AlertFiringInNamespace(alertName, namespace string) EventIntervalMatchesFun
 }
 
 func AlertPendingInNamespace(alertName, namespace string) EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		return And(
-			func(eventInterval EventInterval) bool {
+			func(eventInterval Interval) bool {
 				locatorParts := LocatorParts(eventInterval.Locator)
 				eventAlertName := AlertFrom(locatorParts)
 				if eventAlertName != alertName {
@@ -463,7 +465,7 @@ func AlertPendingInNamespace(alertName, namespace string) EventIntervalMatchesFu
 }
 
 func AlertFiring() EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
 			return true
 		}
@@ -472,7 +474,7 @@ func AlertFiring() EventIntervalMatchesFunc {
 }
 
 func AlertPending() EventIntervalMatchesFunc {
-	return func(eventInterval EventInterval) bool {
+	return func(eventInterval Interval) bool {
 		if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
 			return true
 		}
@@ -481,8 +483,8 @@ func AlertPending() EventIntervalMatchesFunc {
 }
 
 // InNamespace if namespace == "", then every event matches, same as kube-api
-func InNamespace(namespace string) func(event EventInterval) bool {
-	return func(event EventInterval) bool {
+func InNamespace(namespace string) func(event Interval) bool {
+	return func(event Interval) bool {
 		switch {
 		case len(namespace) == 0:
 			return true

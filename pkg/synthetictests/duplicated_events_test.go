@@ -181,7 +181,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			for _, message := range test.messages {
 
 				events = append(events,
-					monitorapi.EventInterval{
+					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
 						From:      time.Unix(872827200, 0),
 						To:        time.Unix(872827200, 0)},
@@ -311,7 +311,7 @@ func TestKnownBugEvents(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			events := monitorapi.Intervals{}
 			events = append(events,
-				monitorapi.EventInterval{
+				monitorapi.Interval{
 					Condition: monitorapi.Condition{Message: test.message},
 					From:      time.Unix(1, 0),
 					To:        time.Unix(1, 0)},
@@ -388,7 +388,7 @@ func TestKnownBugEventsGroup(t *testing.T) {
 			for _, message := range test.messages {
 
 				events = append(events,
-					monitorapi.EventInterval{
+					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
 						From:      time.Unix(872827200, 0),
 						To:        time.Unix(872827200, 0)},
@@ -477,7 +477,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			for _, message := range test.messages {
 
 				events = append(events,
-					monitorapi.EventInterval{
+					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
 						From:      time.Unix(1, 0),
 						To:        time.Unix(1, 0)},

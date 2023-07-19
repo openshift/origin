@@ -70,7 +70,7 @@ func (a *watchdogAlertTest) TestAlert(ctx context.Context, prometheusClient prom
 	return nil
 }
 
-func IsWatchdogAlert(eventInterval monitorapi.EventInterval) bool {
+func IsWatchdogAlert(eventInterval monitorapi.Interval) bool {
 	return eventInterval.Locator == "alert/Watchdog ns/openshift-monitoring"
 }
 

@@ -78,18 +78,18 @@ func (r eventIntervalRenderer) writeEventData(artifactDir, filenameBase string, 
 	return utilerrors.NewAggregate(errs)
 }
 
-func BelongsInEverything(eventInterval monitorapi.EventInterval) bool {
+func BelongsInEverything(eventInterval monitorapi.Interval) bool {
 	return true
 }
 
-func isInterestingOrPathological(eventInterval monitorapi.EventInterval) bool {
+func isInterestingOrPathological(eventInterval monitorapi.Interval) bool {
 	if strings.Contains(eventInterval.Locator, duplicateevents.InterestingMark) || strings.Contains(eventInterval.Locator, duplicateevents.PathologicalMark) {
 		return true
 	}
 	return false
 }
 
-func BelongsInSpyglass(eventInterval monitorapi.EventInterval) bool {
+func BelongsInSpyglass(eventInterval monitorapi.Interval) bool {
 	if isLessInterestingAlert(eventInterval) {
 		return false
 	}
@@ -105,7 +105,7 @@ func BelongsInSpyglass(eventInterval monitorapi.EventInterval) bool {
 	return true
 }
 
-func BelongsInOperatorRollout(eventInterval monitorapi.EventInterval) bool {
+func BelongsInOperatorRollout(eventInterval monitorapi.Interval) bool {
 	if monitorapi.IsE2ETest(eventInterval.Locator) {
 		return false
 	}
@@ -119,7 +119,7 @@ func BelongsInOperatorRollout(eventInterval monitorapi.EventInterval) bool {
 	return true
 }
 
-func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
+func BelongsInKubeAPIServer(eventInterval monitorapi.Interval) bool {
 	if monitorapi.IsE2ETest(eventInterval.Locator) {
 		return false
 	}
@@ -139,11 +139,11 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.EventInterval) bool {
 	return true
 }
 
-func IsPodLifecycle(eventInterval monitorapi.EventInterval) bool {
+func IsPodLifecycle(eventInterval monitorapi.Interval) bool {
 	return monitorapi.ConstructionOwnerFrom(eventInterval.Message) == monitorapi.ConstructionOwnerPodLifecycle
 }
 
-func IsOriginalPodEvent(eventInterval monitorapi.EventInterval) bool {
+func IsOriginalPodEvent(eventInterval monitorapi.Interval) bool {
 	// constructed events are not original
 	if len(monitorapi.ConstructionOwnerFrom(eventInterval.Message)) > 0 {
 		return false
@@ -151,7 +151,7 @@ func IsOriginalPodEvent(eventInterval monitorapi.EventInterval) bool {
 	return strings.Contains(eventInterval.Locator, "pod/")
 }
 
-func isPlatformPodEvent(eventInterval monitorapi.EventInterval) bool {
+func isPlatformPodEvent(eventInterval monitorapi.Interval) bool {
 	// only include pod events that were created in CreatePodIntervalsFromInstants
 	if !IsPodLifecycle(eventInterval) {
 		return false
@@ -187,13 +187,13 @@ var kubeAPIServerDependentNamespaces = sets.NewString(
 	"openshift-authentication-operator", "openshift-oauth-apiserver",
 )
 
-func isInterestingNamespace(eventInterval monitorapi.EventInterval, interestingNamespaces sets.String) bool {
+func isInterestingNamespace(eventInterval monitorapi.Interval, interestingNamespaces sets.String) bool {
 	locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
 	namespace := monitorapi.NamespaceFrom(locatorParts)
 	return interestingNamespaces.Has(namespace)
 }
 
-func isLessInterestingAlert(eventInterval monitorapi.EventInterval) bool {
+func isLessInterestingAlert(eventInterval monitorapi.Interval) bool {
 	locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
 	alertName := monitorapi.AlertFrom(locatorParts)
 	if len(alertName) == 0 {

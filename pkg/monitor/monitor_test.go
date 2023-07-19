@@ -10,7 +10,7 @@ import (
 )
 
 func TestMonitor_Newlines(t *testing.T) {
-	evt := &monitorapi.EventInterval{Condition: monitorapi.Condition{Message: "a\nb\n"}}
+	evt := &monitorapi.Interval{Condition: monitorapi.Condition{Message: "a\nb\n"}}
 	expected := "Jan 01 00:00:00.000 I  a\\nb\\n"
 	if evt.String() != expected {
 		t.Fatalf("unexpected:\n%s\n%s", expected, evt.String())

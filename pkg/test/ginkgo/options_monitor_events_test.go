@@ -24,7 +24,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 		{
 			name: "two pathos, one previous event each",
 			args: args{
-				events: []monitorapi.EventInterval{
+				events: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0",
@@ -58,7 +58,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 						To:   to.Add(-105 * time.Second),
 					},
 				},
-				mutatedEvents: []monitorapi.EventInterval{
+				mutatedEvents: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0 hmsg/f33a7e39ac",
@@ -97,7 +97,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 		{
 			name: "locatorMatch, msgDifferent",
 			args: args{
-				events: []monitorapi.EventInterval{
+				events: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "ns/openshift-kube-controller-manager pod/revision-pruner-6-ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0 node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0",
@@ -115,7 +115,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 						To:   to.Add(-89 * time.Second),
 					},
 				},
-				mutatedEvents: []monitorapi.EventInterval{
+				mutatedEvents: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "ns/openshift-kube-controller-manager pod/revision-pruner-6-ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0 node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0",
@@ -138,7 +138,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 		{
 			name: "locatorDifferent, msgMatch",
 			args: args{
-				events: []monitorapi.EventInterval{
+				events: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-DIFFERENT",
@@ -156,7 +156,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 						To:   to.Add(-105 * time.Second),
 					},
 				},
-				mutatedEvents: []monitorapi.EventInterval{
+				mutatedEvents: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-DIFFERENT",
@@ -179,7 +179,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 		{
 			name: "no patho events",
 			args: args{
-				events: []monitorapi.EventInterval{
+				events: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0",
@@ -197,7 +197,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 						To:   to.Add(-105 * time.Second),
 					},
 				},
-				mutatedEvents: []monitorapi.EventInterval{
+				mutatedEvents: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0",
@@ -220,7 +220,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 		{
 			name: "two pathos (with one already known), one previous event each",
 			args: args{
-				events: []monitorapi.EventInterval{
+				events: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0",
@@ -254,7 +254,7 @@ func Test_markMissedPathologicalEvents(t *testing.T) {
 						To:   to.Add(-105 * time.Second),
 					},
 				},
-				mutatedEvents: []monitorapi.EventInterval{
+				mutatedEvents: []monitorapi.Interval{
 					{
 						Condition: monitorapi.Condition{
 							Locator: "node/ci-op-i20psv8m-6a467-xftbs-master-j6mzw-0 hmsg/f33a7e39ac",

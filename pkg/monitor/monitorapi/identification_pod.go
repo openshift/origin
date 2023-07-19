@@ -158,7 +158,7 @@ var (
 	)
 )
 
-type ByTimeWithNamespacedPods []EventInterval
+type ByTimeWithNamespacedPods []Interval
 
 func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
 	lhsIsPodConstructed := strings.Contains(intervals[i].Message, "constructed") && strings.Contains(intervals[i].Locator, "pod/")

@@ -114,7 +114,7 @@ func writeAlertData(filename string, alertData *AlertList) error {
 	return ioutil.WriteFile(filename, jsonContent, 0644)
 }
 
-func getAlertLevelFromEvent(event monitorapi.EventInterval) AlertLevel {
+func getAlertLevelFromEvent(event monitorapi.Interval) AlertLevel {
 	if event.Level == monitorapi.Error {
 		return CriticalAlertLevel
 	}
@@ -126,7 +126,7 @@ func getAlertLevelFromEvent(event monitorapi.EventInterval) AlertLevel {
 
 func computeAlertData(events monitorapi.Intervals) *AlertList {
 	alertEvents := events.Filter(
-		func(eventInterval monitorapi.EventInterval) bool {
+		func(eventInterval monitorapi.Interval) bool {
 			locator := monitorapi.LocatorParts(eventInterval.Locator)
 			alertName := monitorapi.AlertFrom(locator)
 			if len(alertName) == 0 {

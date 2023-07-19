@@ -50,11 +50,11 @@ func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
 	}
 	events := make(monitorapi.Intervals, 0, len(list.Items))
 	for _, interval := range list.Items {
-		level, err := monitorapi.EventLevelFromString(interval.Level)
+		level, err := monitorapi.ConditionLevelFromString(interval.Level)
 		if err != nil {
 			return nil, err
 		}
-		events = append(events, monitorapi.EventInterval{
+		events = append(events, monitorapi.Interval{
 			Condition: monitorapi.Condition{
 				Level:   level,
 				Locator: interval.Locator,
@@ -102,7 +102,7 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 	return json.MarshalIndent(list, "", "    ")
 }
 
-func monitorEventIntervalToEventInterval(interval monitorapi.EventInterval) EventInterval {
+func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
 	ret := EventInterval{
 		Level:   fmt.Sprintf("%v", interval.Level),
 		Locator: interval.Locator,

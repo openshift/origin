@@ -8,19 +8,19 @@ import (
 	"k8s.io/kube-openapi/pkg/util/sets"
 )
 
-type EventBuilder struct {
-	level             EventLevel
-	structuredLocator StructuredLocator
-	structuredMessage StructuredMessage
+type ConditionBuilder struct {
+	level             ConditionLevel
+	structuredLocator Locator
+	structuredMessage Message
 }
 
-func Event(level EventLevel) *EventBuilder {
-	return &EventBuilder{
+func NewCondition(level ConditionLevel) *ConditionBuilder {
+	return &ConditionBuilder{
 		level: level,
 	}
 }
 
-func (b *EventBuilder) Event() Condition {
+func (b *ConditionBuilder) Build() Condition {
 	ret := Condition{
 		Level:             b.level,
 		Locator:           b.structuredLocator.OldLocator(),
@@ -32,49 +32,49 @@ func (b *EventBuilder) Event() Condition {
 	return ret
 }
 
-func (b *EventBuilder) Message(mb *MessageBuilder) *EventBuilder {
+func (b *ConditionBuilder) Message(mb *MessageBuilder) *ConditionBuilder {
 	b.structuredMessage = mb.build()
 	return b
 }
 
-func (b *EventBuilder) Locator(lb *LocatorBuilder) *EventBuilder {
+func (b *ConditionBuilder) Locator(lb *LocatorBuilder) *ConditionBuilder {
 	b.structuredLocator = lb.Build()
 	return b
 }
 
 type LocatorBuilder struct {
-	targetType  StructuredType
+	targetType  LocatorType
 	annotations map[LocatorKey]string
 }
 
-func Locator() *LocatorBuilder {
+func NewLocator() *LocatorBuilder {
 	return &LocatorBuilder{
 		annotations: map[LocatorKey]string{},
 	}
 }
 
 func (b *LocatorBuilder) NodeFromName(nodeName string) *LocatorBuilder {
-	b.targetType = StructuredTypeNode
+	b.targetType = LocatorTypeNode
 	b.annotations[LocatorNodeKey] = nodeName
 	return b
 }
 
 func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) *LocatorBuilder {
 	b.PodFromPod(pod)
-	b.targetType = StructuredTypeContainer
+	b.targetType = LocatorTypeContainer
 	b.annotations[LocatorContainerKey] = containerName
 	return b
 }
 
 func (b *LocatorBuilder) ContainerFromNames(namespace, podName, uid, containerName string) *LocatorBuilder {
 	b.PodFromNames(namespace, podName, uid)
-	b.targetType = StructuredTypeContainer
+	b.targetType = LocatorTypeContainer
 	b.annotations[LocatorContainerKey] = containerName
 	return b
 }
 
 func (b *LocatorBuilder) PodFromNames(namespace, podName, uid string) *LocatorBuilder {
-	b.targetType = StructuredTypePod
+	b.targetType = LocatorTypePod
 	b.annotations[LocatorNamespaceKey] = namespace
 	b.annotations[LocatorPodKey] = podName
 	b.annotations[LocatorUIDKey] = uid
@@ -95,8 +95,8 @@ func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) *LocatorBuilder {
 	return b
 }
 
-func (b *LocatorBuilder) Build() StructuredLocator {
-	ret := StructuredLocator{
+func (b *LocatorBuilder) Build() Locator {
+	ret := Locator{
 		Type:        b.targetType,
 		LocatorKeys: map[LocatorKey]string{},
 	}
@@ -111,7 +111,7 @@ type MessageBuilder struct {
 	humanMessage string
 }
 
-func Message() *MessageBuilder {
+func NewMessage() *MessageBuilder {
 	return &MessageBuilder{
 		annotations: map[AnnotationKey]string{},
 	}
@@ -173,11 +173,11 @@ func (m *MessageBuilder) HumanMessagef(messageFormat string, args ...interface{}
 }
 
 // build creates the final StructuredMessage with all data assembled by this builder.
-func (m *MessageBuilder) build() StructuredMessage {
-	ret := StructuredMessage{
+func (m *MessageBuilder) build() Message {
+	ret := Message{
 		Annotations: map[AnnotationKey]string{},
 	}
-	// TODO: what do we gain from a mStructuredMessageap with fixed keys, vs fields on the StructuredMessage?
+	// TODO: what do we gain from a mStructuredMessage with fixed keys, vs fields on the StructuredMessage?
 	// They're not really fixed, some WithAnnotation calls are floating around, but could those also be functions here?
 	for k, v := range m.annotations {
 		ret.Annotations[k] = v

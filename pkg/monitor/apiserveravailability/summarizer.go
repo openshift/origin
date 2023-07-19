@@ -13,7 +13,7 @@ type SummarizationFunc func(locator, line string)
 
 type APIServerClientAccessFailureSummary struct {
 	lock                   sync.Mutex
-	WriteOperationFailures []monitorapi.EventInterval
+	WriteOperationFailures []monitorapi.Interval
 }
 
 func timeFromPodLogTime(line string) time.Time {
@@ -32,11 +32,11 @@ func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator *monitorapi.
 	if strings.Contains(line, "write: operation not permitted") {
 		timeOfLog := timeFromPodLogTime(line)
 		// TODO collapse all in the same second into a single interval
-		event := monitorapi.EventInterval{
-			Condition: monitorapi.Event(monitorapi.Warning).
+		event := monitorapi.Interval{
+			Condition: monitorapi.NewCondition(monitorapi.Warning).
 				Locator(locator).
-				Message(monitorapi.Message().Reason(monitorapi.IPTablesNotPermitted).HumanMessage(line)).
-				Event(),
+				Message(monitorapi.NewMessage().Reason(monitorapi.IPTablesNotPermitted).HumanMessage(line)).
+				Build(),
 			From: timeOfLog,
 			To:   timeOfLog.Add(1 * time.Second),
 		}

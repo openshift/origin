@@ -20,7 +20,7 @@ func timeFor(asString string) time.Time {
 func TestIntervalsFromEvents_OperatorProgressing(t *testing.T) {
 	intervals := monitorapi.Intervals{}
 	intervals = append(intervals,
-		monitorapi.EventInterval{
+		monitorapi.Interval{
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: "clusteroperator/network",
@@ -28,7 +28,7 @@ func TestIntervalsFromEvents_OperatorProgressing(t *testing.T) {
 			},
 			From: timeFor("2021-03-29T15:56:00Z"),
 		},
-		monitorapi.EventInterval{
+		monitorapi.Interval{
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Info,
 				Locator: "clusteroperator/network",
