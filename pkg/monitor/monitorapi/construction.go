@@ -59,6 +59,26 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) *LocatorBuilder {
 	return b
 }
 
+func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, container string) *LocatorBuilder {
+	b.targetType = LocatorTypeAlert
+	if len(alertName) > 0 {
+		b.annotations[LocatorAlertKey] = alertName
+	}
+	if len(node) > 0 {
+		b.annotations[LocatorNodeKey] = node
+	}
+	if len(namespace) > 0 {
+		b.annotations[LocatorNamespaceKey] = namespace
+	}
+	if len(pod) > 0 {
+		b.annotations[LocatorPodKey] = pod
+	}
+	if len(container) > 0 {
+		b.annotations[LocatorContainerKey] = container
+	}
+	return b
+}
+
 func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) *LocatorBuilder {
 	b.PodFromPod(pod)
 	b.targetType = LocatorTypeContainer

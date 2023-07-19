@@ -356,41 +356,35 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 		for _, alert := range matrixAlert {
 			alertName := alert.Metric[prometheustypes.AlertNameLabel]
 
-			locator := "alert/" + alertName
-			if node := alert.Metric["instance"]; len(node) > 0 {
-				locator += " node/" + node
-			}
-			if namespace := alert.Metric["namespace"]; len(namespace) > 0 {
-				locator += " ns/" + namespace
-			}
-			if pod := alert.Metric["pod"]; len(pod) > 0 {
-				locator += " pod/" + pod
-			}
-			if container := alert.Metric["container"]; len(container) > 0 {
-				locator += " container/" + container
-			}
+			lb := monitorapi.NewLocator().AlertFromNames(
+				string(alertName),
+				string(alert.Metric["instance"]),
+				string(alert.Metric["namespace"]),
+				string(alert.Metric["pod"]),
+				string(alert.Metric["container"]),
+			)
 
-			alertIntervalTemplate := monitorapi.Interval{
-				Condition: monitorapi.Condition{
-					Locator: string(locator),
-					Message: alert.Metric.String(),
-				},
-			}
+			var level monitorapi.ConditionLevel
 			switch {
 			// as I understand it, pending alerts are cases where the conditions except for "how long has been happening"
 			// are all met.  Pending alerts include what level the eventual alert will be, but they are not errors in and
 			// of themselves.  They are you useful to show in time to find patterns of "X fails concurrent with Y"
 			case alert.Metric["alertstate"] == "pending":
-				alertIntervalTemplate.Level = monitorapi.Info
+				level = monitorapi.Info
 
 			case alert.Metric["severity"] == "warning":
-				alertIntervalTemplate.Level = monitorapi.Warning
+				level = monitorapi.Warning
 			case alert.Metric["severity"] == "critical":
-				alertIntervalTemplate.Level = monitorapi.Error
+				level = monitorapi.Error
 			case alert.Metric["severity"] == "info":
-				alertIntervalTemplate.Level = monitorapi.Info
+				level = monitorapi.Info
 			default:
-				alertIntervalTemplate.Level = monitorapi.Error
+				level = monitorapi.Error
+			}
+			alertIntervalTemplate := monitorapi.Interval{
+				Condition: monitorapi.NewCondition(level).
+					Locator(lb).
+					Message(monitorapi.NewMessage().HumanMessage(alert.Metric.String())).Build(),
 			}
 
 			var alertStartTime *time.Time
@@ -436,11 +430,9 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 
 	default:
 		ret = append(ret, monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Level:   monitorapi.Error,
-				Locator: "alert/all",
-				Message: fmt.Sprintf("unhandled type: %v", alerts.Type()),
-			},
+			Condition: monitorapi.NewCondition(monitorapi.Error).
+				Locator(monitorapi.NewLocator().AlertFromNames("all", "", "", "", "")).
+				Message(monitorapi.NewMessage().HumanMessagef("unhandled type: %v", alerts.Type())).Build(),
 			From: startTime,
 			To:   time.Now(),
 		})

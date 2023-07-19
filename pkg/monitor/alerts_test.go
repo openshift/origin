@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_nonOverlappingBlackoutWindowsFromEvents(t *testing.T) {
@@ -336,9 +337,8 @@ func Test_blackoutEvents(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := blackoutEvents(tt.args.startingEvents, tt.args.blackoutWindows); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("blackoutEvents() = %v, want %v", got, tt.want)
-			}
+			got := blackoutEvents(tt.args.startingEvents, tt.args.blackoutWindows)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

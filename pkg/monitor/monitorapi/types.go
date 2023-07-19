@@ -75,6 +75,7 @@ const (
 	LocatorTypePod             LocatorType = "Pod"
 	LocatorTypeContainer       LocatorType = "Container"
 	LocatorTypeNode            LocatorType = "Node"
+	LocatorTypeAlert           LocatorType = "Alert"
 	LocatorTypeClusterOperator LocatorType = "ClusterOperator"
 	LocatorTypeOther           LocatorType = "Other"
 )
@@ -89,11 +90,11 @@ const (
 	LocatorUIDKey             LocatorKey = "uid"
 	LocatorMirrorUIDKey       LocatorKey = "mirror-uid"
 	LocatorContainerKey       LocatorKey = "container"
+	LocatorAlertKey           LocatorKey = "alert"
 	LocatorRouteKey           LocatorKey = "route"
 	LocatorDisruptionKey      LocatorKey = "disruption"
 	LocatorConnectionKey      LocatorKey = "connection"
 	LocatorE2ETestKey         LocatorKey = "e2e-test"
-	LocatorAlertKey           LocatorKey = "alert"
 )
 
 type Locator struct {
