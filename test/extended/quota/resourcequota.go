@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 
 func waitForResourceQuotaStatus(clusterAdminKubeClient kubernetes.Interface, name string, namespace string, conditionFn func(*corev1.ResourceQuota) error) error {
 	var pollErr error
-	err := utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
+	err := utilwait.PollImmediate(100*time.Millisecond, QuotaWaitTimeout, func() (done bool, err error) {
 		quota, err := clusterAdminKubeClient.CoreV1().ResourceQuotas(namespace).Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			pollErr = err

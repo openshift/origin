@@ -26,6 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// QuotaWaitTimeout should be greater than the monitor's sync timeout value in cluster quota
+// reconciliation controller (cluster-policy-controller), because it can hang for 30 seconds when a rare deadlock occurs.
+// Upstream sets it to 1 minute so we set the same.
+const QuotaWaitTimeout = time.Minute
+
 var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("crq")
@@ -273,8 +278,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 })
 
 func waitForQuotaLabeling(clusterAdminClient quotaclient.Interface, namespaceName, cqName string) error {
-	// timeout is increased due to https://issues.redhat.com//browse/OCPBUGS-15568
-	return utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
+	return utilwait.PollImmediate(100*time.Millisecond, QuotaWaitTimeout, func() (done bool, err error) {
 		list, err := clusterAdminClient.QuotaV1().AppliedClusterResourceQuotas(namespaceName).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			framework.Logf("unexpected err during cluster quota listing: %v", err)
@@ -312,7 +316,7 @@ func labelNamespace(clusterAdminKubeClient corev1client.NamespacesGetter, labelK
 
 func waitForQuotaStatus(clusterAdminClient quotaclient.Interface, name string, conditionFn func(*quotav1.ClusterResourceQuota) error) error {
 	var pollErr error
-	err := utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
+	err := utilwait.PollImmediate(100*time.Millisecond, QuotaWaitTimeout, func() (done bool, err error) {
 		quota, err := clusterAdminClient.QuotaV1().ClusterResourceQuotas().Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
 			pollErr = err
