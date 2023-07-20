@@ -37,11 +37,14 @@ func (b *ConditionBuilder) Message(mb *MessageBuilder) *ConditionBuilder {
 	return b
 }
 
-func (b *ConditionBuilder) Locator(lb *LocatorBuilder) *ConditionBuilder {
-	b.structuredLocator = lb.Build()
+func (b *ConditionBuilder) Locator(locator Locator) *ConditionBuilder {
+	b.structuredLocator = locator
 	return b
 }
 
+// LocatorBuilder is used to create locators. We do not want to allow chaining of locators however
+// as this has led to illegal definitions of locators in the past. (such as node + namespace)
+// Instead the builder serves primarily as a place to store the builder functions.
 type LocatorBuilder struct {
 	targetType  LocatorType
 	annotations map[LocatorKey]string
@@ -53,13 +56,13 @@ func NewLocator() *LocatorBuilder {
 	}
 }
 
-func (b *LocatorBuilder) NodeFromName(nodeName string) *LocatorBuilder {
+func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 	b.targetType = LocatorTypeNode
 	b.annotations[LocatorNodeKey] = nodeName
-	return b
+	return b.Build()
 }
 
-func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, container string) *LocatorBuilder {
+func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, container string) Locator {
 	b.targetType = LocatorTypeAlert
 	if len(alertName) > 0 {
 		b.annotations[LocatorAlertKey] = alertName
@@ -76,10 +79,10 @@ func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, contain
 	if len(container) > 0 {
 		b.annotations[LocatorContainerKey] = container
 	}
-	return b
+	return b.Build()
 }
 
-func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, protocol, target string) *LocatorBuilder {
+func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, protocol, target string) Locator {
 	b.targetType = LocatorTypeDisruption
 	b.annotations[LocatorDisruptionKey] = disruptionName
 	if len(loadBalancer) > 0 {
@@ -94,10 +97,10 @@ func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, pr
 	if len(target) > 0 {
 		b.annotations[LocatorTargetKey] = target
 	}
-	return b
+	return b.Build()
 }
 
-func (b *LocatorBuilder) KubeEvent(event *corev1.Event) *LocatorBuilder {
+func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 	b.targetType = LocatorTypeKubeEvent
 
 	// WARNING: we're trying to use an enum for the locator keys, but we cannot know
@@ -109,44 +112,47 @@ func (b *LocatorBuilder) KubeEvent(event *corev1.Event) *LocatorBuilder {
 	if len(event.InvolvedObject.Namespace) > 0 {
 		b.annotations[LocatorNamespaceKey] = event.InvolvedObject.Namespace
 	}
+
+	// TODO: node + namespace is illegal, look at original impl, it may have handled this better
 	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
 		b.annotations[LocatorNodeKey] = event.Source.Host
 	}
-	return b
+
+	return b.Build()
 }
 
-func (b *LocatorBuilder) APIServerShutdown(loadBalancer string) *LocatorBuilder {
+func (b *LocatorBuilder) APIServerShutdown(loadBalancer string) Locator {
 	b.targetType = LocatorTypeAPIServerShutdown
 	if len(loadBalancer) > 0 {
 		b.annotations[LocatorLoadBalancerKey] = loadBalancer
 	}
-	return b
+	return b.Build()
 }
 
-func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) *LocatorBuilder {
+func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) Locator {
 	b.PodFromPod(pod)
 	b.targetType = LocatorTypeContainer
 	b.annotations[LocatorContainerKey] = containerName
-	return b
+	return b.Build()
 }
 
-func (b *LocatorBuilder) ContainerFromNames(namespace, podName, uid, containerName string) *LocatorBuilder {
+func (b *LocatorBuilder) ContainerFromNames(namespace, podName, uid, containerName string) Locator {
 	b.PodFromNames(namespace, podName, uid)
 	b.targetType = LocatorTypeContainer
 	b.annotations[LocatorContainerKey] = containerName
-	return b
+	return b.Build()
 }
 
-func (b *LocatorBuilder) PodFromNames(namespace, podName, uid string) *LocatorBuilder {
+func (b *LocatorBuilder) PodFromNames(namespace, podName, uid string) Locator {
 	b.targetType = LocatorTypePod
 	b.annotations[LocatorNamespaceKey] = namespace
 	b.annotations[LocatorPodKey] = podName
 	b.annotations[LocatorUIDKey] = uid
 
-	return b
+	return b.Build()
 }
 
-func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) *LocatorBuilder {
+func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) Locator {
 	b.PodFromNames(pod.Namespace, pod.Name, string(pod.UID))
 	// TODO, to be removed.  this should be in the message, not in the locator
 	if len(pod.Spec.NodeName) > 0 {
@@ -156,7 +162,7 @@ func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) *LocatorBuilder {
 		b.annotations[LocatorMirrorUIDKey] = mirrorUID
 	}
 
-	return b
+	return b.Build()
 }
 
 func (b *LocatorBuilder) Build() Locator {

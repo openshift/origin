@@ -66,7 +66,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 		// we have multiple failed samples with the same error
 		info = fmt.Sprintf("range=[%d-%d] %s", fs.ID, ts.ID, info)
 	}
-	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator().Build().OldLocator(),
+	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator().OldLocator(),
 		h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", from.AggregateErr(), info), "no-audit-id")
 
 	framework.Logf(message)
@@ -90,7 +90,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 //	   to the same sample in question.
 func (h *ciHandler) Available(from, to *backend.SampleResult) {
 	fs, ts := from.Sample, to.Sample
-	message := backenddisruption.DisruptionEndedMessage(h.descriptor.DisruptionLocator().Build().OldLocator(),
+	message := backenddisruption.DisruptionEndedMessage(h.descriptor.DisruptionLocator().OldLocator(),
 		h.descriptor.GetConnectionType())
 	framework.Logf(message)
 

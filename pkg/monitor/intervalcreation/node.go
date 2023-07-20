@@ -400,19 +400,19 @@ var startupFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="St
 // so we won't miss the event.
 var startupFailureMultiLineOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Startup".*output=\<(?P<OUTPUT>.*)`)
 
-func errImagePullToContainerReference(logLine string) *monitorapi.LocatorBuilder {
+func errImagePullToContainerReference(logLine string) monitorapi.Locator {
 	// err="failed to \"StartContainer\" for \"oauth-proxy\"
 	return regexToContainerReference(logLine, imagePullContainerRefRegex)
 }
 
-func probeProblemToContainerReference(logLine string) *monitorapi.LocatorBuilder {
+func probeProblemToContainerReference(logLine string) monitorapi.Locator {
 	return regexToContainerReference(logLine, containerRefRegex)
 }
 
-func regexToContainerReference(logLine string, containerReferenceMatch *regexp.Regexp) *monitorapi.LocatorBuilder {
+func regexToContainerReference(logLine string, containerReferenceMatch *regexp.Regexp) monitorapi.Locator {
 	containerReferenceMatch.MatchString(logLine)
 	if !containerReferenceMatch.MatchString(logLine) {
-		return monitorapi.NewLocator()
+		return monitorapi.Locator{}
 	}
 
 	subMatches := containerReferenceMatch.FindStringSubmatch(logLine)
@@ -449,7 +449,7 @@ func reflectorHttpClientConnectionLostError(nodeName, logLine string) monitorapi
 		return nil
 	}
 
-	return commonErrorInterval(nodeName, logLine, reflectorOutputRegex, monitorapi.HttpClientConnectionLost, func() *monitorapi.LocatorBuilder {
+	return commonErrorInterval(nodeName, logLine, reflectorOutputRegex, monitorapi.HttpClientConnectionLost, func() monitorapi.Locator {
 		containerRef := regexToContainerReference(logLine, reflectorRefRegex)
 		return containerRef
 	})
@@ -467,13 +467,13 @@ func statusHttpClientConnectionLostError(nodeName, logLine string) monitorapi.In
 		return nil
 	}
 
-	return commonErrorInterval(nodeName, logLine, nodeOutputRegex, monitorapi.HttpClientConnectionLost, func() *monitorapi.LocatorBuilder {
+	return commonErrorInterval(nodeName, logLine, nodeOutputRegex, monitorapi.HttpClientConnectionLost, func() monitorapi.Locator {
 		containerRef := regexToContainerReference(logLine, statusRefRegex)
 		return containerRef
 	})
 }
 
-func failedToDeleteCGroupsPath(nodeLocator *monitorapi.LocatorBuilder, logLine string) monitorapi.Intervals {
+func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, "Failed to delete cgroup paths") {
 		return nil
 	}
@@ -492,7 +492,7 @@ func failedToDeleteCGroupsPath(nodeLocator *monitorapi.LocatorBuilder, logLine s
 	}
 }
 
-func anonymousCertConnectionError(nodeLocator *monitorapi.LocatorBuilder, logLine string) monitorapi.Intervals {
+func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, "User \"system:anonymous\"") {
 		return nil
 	}
@@ -517,7 +517,7 @@ var failedLeaseUpdateErrorRegex = regexp.MustCompile(`failed to update lease, er
 // upper 'F'ailed and 'err'
 var failedLeaseUpdateErrRegex = regexp.MustCompile(`Failed to update lease\" err\=\"Put \\\"(?P<URL>[a-z0-9.-:\/\-\?\=]+)\\\": (?P<MSG>[^\"]+)`)
 
-func leaseUpdateError(nodeLocator *monitorapi.LocatorBuilder, logLine string) monitorapi.Intervals {
+func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
 
 	// Two cases, one upper F the other lower so substring match without the leading f
 	if !strings.Contains(logLine, "ailed to update lease") {
@@ -578,13 +578,13 @@ func kubeletNodeHttpClientConnectionLostError(nodeName, logLine string) monitora
 		return nil
 	}
 
-	return commonErrorInterval(nodeName, logLine, statusOutputRegex, monitorapi.HttpClientConnectionLost, func() *monitorapi.LocatorBuilder {
+	return commonErrorInterval(nodeName, logLine, statusOutputRegex, monitorapi.HttpClientConnectionLost, func() monitorapi.Locator {
 		return monitorapi.NewLocator().NodeFromName(nodeName)
 	})
 
 }
 
-func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, reason monitorapi.IntervalReason, locator func() *monitorapi.LocatorBuilder) monitorapi.Intervals {
+func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, reason monitorapi.IntervalReason, locator func() monitorapi.Locator) monitorapi.Intervals {
 	messageExp.MatchString(logLine)
 	if !messageExp.MatchString(logLine) {
 		return nil

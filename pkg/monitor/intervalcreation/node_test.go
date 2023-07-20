@@ -245,6 +245,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 						Annotations: map[monitorapi.AnnotationKey]string{
 							monitorapi.AnnotationReason: "ErrImagePull",
 							monitorapi.AnnotationNode:   "testName",
+							monitorapi.AnnotationCause:  "UnrecognizedSignatureFormat",
 						},
 					},
 				},
@@ -353,7 +354,7 @@ func TestRegexToContainerReference(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := regexToContainerReference(tt.args.logLine, tt.args.containerReferenceMatch).Build()
+			got := regexToContainerReference(tt.args.logLine, tt.args.containerReferenceMatch)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -422,7 +423,7 @@ func Test_probeProblemToContainerReference(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := probeProblemToContainerReference(tt.args.logLine).Build()
+			got := probeProblemToContainerReference(tt.args.logLine)
 			assert.Equal(t, tt.want, got)
 		})
 	}

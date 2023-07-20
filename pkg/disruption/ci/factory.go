@@ -91,12 +91,12 @@ func (t TestDescriptor) Name() string {
 	return fmt.Sprintf("%s-%s-%s-%s-connections", t.TargetServer, t.Protocol, t.LoadBalancerType, t.ConnectionType)
 }
 
-func (t TestDescriptor) DisruptionLocator() *monitorapi.LocatorBuilder {
+func (t TestDescriptor) DisruptionLocator() monitorapi.Locator {
 	return monitorapi.NewLocator().Disruption(t.Name(), string(t.LoadBalancerType),
 		string(t.ConnectionType), string(t.Protocol), string(t.TargetServer))
 }
 
-func (t TestDescriptor) ShutdownLocator() *monitorapi.LocatorBuilder {
+func (t TestDescriptor) ShutdownLocator() monitorapi.Locator {
 	return monitorapi.NewLocator().APIServerShutdown(string(t.LoadBalancerType))
 }
 
