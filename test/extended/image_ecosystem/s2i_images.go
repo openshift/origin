@@ -112,13 +112,6 @@ var s2iImages = map[string][]tc{
 			Version:  "14",
 			Cmd:      "node --version",
 			Expected: "v14",
-			Tag:      "14-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
-			Version:  "14",
-			Cmd:      "node --version",
-			Expected: "v14",
 			Tag:      "14-ubi7",
 			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},

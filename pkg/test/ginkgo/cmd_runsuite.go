@@ -20,6 +20,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -292,12 +293,18 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		parallelism = 10
 	}
 
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating tests\n")
+		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 		sig := <-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
@@ -310,10 +317,6 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
 	monitorEventRecorder, err := opt.MonitorEventsOptions.Start(ctx, restConfig)
 	if err != nil {
 		return err
@@ -510,6 +513,11 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 			fmt.Fprintf(opt.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
 
 		}
+	}
+
+	// Fetch data from in-cluster monitors if available
+	if err = sampler.TearDownInClusterMonitors(restConfig); err != nil {
+		fmt.Printf("Failed to write events from in-cluster monitors, err: %v\n", err)
 	}
 
 	// monitor the cluster while the tests are running and report any detected anomalies

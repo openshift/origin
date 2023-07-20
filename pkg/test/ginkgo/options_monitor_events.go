@@ -16,6 +16,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
@@ -59,6 +60,7 @@ func NewMonitorEventsOptions(out io.Writer, errOut io.Writer) *MonitorEventsOpti
 	return &MonitorEventsOptions{
 		Recorders: []monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAllAPIMonitoring,
+			controlplane.StartRemoteAPIMonitoring,
 			frontends.StartAllIngressMonitoring,
 		},
 		RunDataWriters: []RunDataWriter{
@@ -95,6 +97,7 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring,
 		},
+		backend.ExternalLoadBalancerType,
 	)
 	if err != nil {
 		return nil, err

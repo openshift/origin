@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+const EventDir = "monitor-events"
+
 // BackendDisruptionSeconds return duration of disruption observed (rounded to nearest second),
 // disruptionMessages, and New or Reused connection type.
 func BackendDisruptionSeconds(locator string, events Intervals) (time.Duration, []string, string) {

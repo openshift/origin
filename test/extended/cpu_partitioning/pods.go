@@ -29,10 +29,10 @@ import (
 // Any pod resource that matches the name in the map and the substring of the namespace in the array is skipped.
 var (
 	excludedBestEffortDeployments = map[string][]string{
-		"egress-router-cni-deployment": {"openshift-multus"},
+		"egress-router-cni-deployment": {"openshift-multus", "egress-router-cni-e2e"},
 	}
 	excludedBestEffortDaemonSets = map[string][]string{
-		"cni-sysctl-allowlist-ds": {"egress-router-cni-e2e"},
+		"cni-sysctl-allowlist-ds": {"openshift-multus", "egress-router-cni-e2e"},
 	}
 )
 

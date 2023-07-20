@@ -15,6 +15,19 @@ import (
 	"k8s.io/client-go/tools/events"
 )
 
+type Sampler interface {
+	GetTargetServerName() string
+	GetLoadBalancerType() string
+	GetConnectionType() monitorapi.BackendConnectionType
+	GetProtocol() string
+	GetDisruptionBackendName() string
+	GetLocator() string
+	GetURL() (string, error)
+	RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
+	StartEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
+	Stop()
+}
+
 // BackendSampler has the machinery to run a disruption test in CI
 type BackendSampler struct {
 	TestConfiguration
