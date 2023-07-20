@@ -408,7 +408,7 @@ func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
 func (s *GitStorage) write(name string, content []byte) (gitOperation, error) {
 	fullPath := filepath.Join(s.path, name)
 
-	mode := os.FileMode(0644)
+	fileMode := os.FileMode(0644)
 
 	// If the file does not exist, create it and report it as new file
 	// This will get reflected in the commit message
@@ -417,17 +417,17 @@ func (s *GitStorage) write(name string, content []byte) (gitOperation, error) {
 			return gitOpError, err
 		}
 
-		if err := os.MkdirAll(filepath.Dir(fullPath), mode); err != nil {
+		if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
 			return gitOpError, err
 		}
-		if err := os.WriteFile(fullPath, content, mode); err != nil {
+		if err := os.WriteFile(fullPath, content, fileMode); err != nil {
 			return gitOpError, err
 		}
 		return gitOpAdded, nil
 	}
 
 	// If the file exists, updated its content and report modified
-	if err := os.WriteFile(fullPath, content, mode); err != nil {
+	if err := os.WriteFile(fullPath, content, fileMode); err != nil {
 		return gitOpError, err
 	}
 	return gitOpModified, nil
