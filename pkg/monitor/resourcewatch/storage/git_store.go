@@ -363,7 +363,17 @@ func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
 			}
 		}
+		// if nothing changed in the modify don't keep trying over and over
+		if strings.Contains(string(output), "nothing to commit") {
+			klog.Info("Exiting commitModify as nothing to commit")
+			return nil
+		}
+
 		return err
+	}
+
+	if output != nil {
+		klog.Infof("Ran %v\n%v\n\n", command, string(output))
 	}
 
 	klog.Infof("Modified: %v -- %v updated %v", path, author, ocCommand)
@@ -398,23 +408,26 @@ func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
 func (s *GitStorage) write(name string, content []byte) (gitOperation, error) {
 	fullPath := filepath.Join(s.path, name)
 
+	mode := os.FileMode(0644)
+
 	// If the file does not exist, create it and report it as new file
 	// This will get reflected in the commit message
 	if _, err := os.Lstat(fullPath); err != nil {
 		if !os.IsNotExist(err) {
 			return gitOpError, err
 		}
-		if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
+
+		if err := os.MkdirAll(filepath.Dir(fullPath), mode); err != nil {
 			return gitOpError, err
 		}
-		if err := os.WriteFile(fullPath, content, os.ModePerm); err != nil {
+		if err := os.WriteFile(fullPath, content, mode); err != nil {
 			return gitOpError, err
 		}
 		return gitOpAdded, nil
 	}
 
 	// If the file exists, updated its content and report modified
-	if err := os.WriteFile(fullPath, content, os.ModePerm); err != nil {
+	if err := os.WriteFile(fullPath, content, mode); err != nil {
 		return gitOpError, err
 	}
 	return gitOpModified, nil
