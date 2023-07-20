@@ -18,6 +18,8 @@ func TestMonitor_Newlines(t *testing.T) {
 }
 
 func TestMonitor_Events(t *testing.T) {
+	condition1 := monitorapi.NewCondition(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Message(monitorapi.NewMessage().HumanMessage("1")).Build()
+	condition2 := monitorapi.NewCondition(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Message(monitorapi.NewMessage().HumanMessage("2")).Build()
 	tests := []struct {
 		name   string
 		events monitorapi.Intervals
@@ -28,42 +30,42 @@ func TestMonitor_Events(t *testing.T) {
 		{
 			name: "one",
 			events: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 			want: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 		},
 		{
 			name: "two",
 			events: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 			from: time.Unix(1, 0),
 			want: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 		},
 		{
 			name: "three",
 			events: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 			from: time.Unix(1, 0),
 			to:   time.Unix(2, 0),
 			want: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 		},
 		{
 			name: "four",
 			events: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(1, 0)},
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 			from: time.Unix(2, 0),
 			want: monitorapi.Intervals{},

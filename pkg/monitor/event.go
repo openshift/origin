@@ -206,11 +206,8 @@ func recordAddOrUpdateEvent(
 	default:
 		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	}
-	condition := monitorapi.Condition{
-		Level:   monitorapi.Info,
-		Locator: locateEvent(obj),
-		Message: message,
-	}
+	condition := monitorapi.NewCondition(monitorapi.Info).
+		Locator(monitorapi.NewLocator().KubeEvent(obj)).Message(monitorapi.NewMessage().HumanMessage(message)).Build()
 	if obj.Type == corev1.EventTypeWarning {
 		condition.Level = monitorapi.Warning
 	}

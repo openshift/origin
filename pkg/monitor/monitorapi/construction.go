@@ -97,6 +97,24 @@ func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, pr
 	return b
 }
 
+func (b *LocatorBuilder) KubeEvent(event *corev1.Event) *LocatorBuilder {
+	b.targetType = LocatorTypeKubeEvent
+
+	// WARNING: we're trying to use an enum for the locator keys, but we cannot know
+	// all kinds in a cluster. Instead we'll split the kind and name into two different LocatorKeys
+	// for Events:
+	b.annotations[LocatorKindKey] = event.InvolvedObject.Kind
+	b.annotations[LocatorNameKey] = event.InvolvedObject.Name
+
+	if len(event.InvolvedObject.Namespace) > 0 {
+		b.annotations[LocatorNamespaceKey] = event.InvolvedObject.Namespace
+	}
+	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+		b.annotations[LocatorNodeKey] = event.Source.Host
+	}
+	return b
+}
+
 func (b *LocatorBuilder) APIServerShutdown(loadBalancer string) *LocatorBuilder {
 	b.targetType = LocatorTypeAPIServerShutdown
 	if len(loadBalancer) > 0 {

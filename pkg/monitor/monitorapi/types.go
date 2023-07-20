@@ -79,6 +79,7 @@ const (
 	LocatorTypeClusterOperator   LocatorType = "ClusterOperator"
 	LocatorTypeOther             LocatorType = "Other"
 	LocatorTypeDisruption        LocatorType = "Disruption"
+	LocatorTypeKubeEvent         LocatorType = "KubeEvent"
 	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
 )
 
@@ -88,6 +89,8 @@ const (
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorNodeKey            LocatorKey = "node"
+	LocatorKindKey            LocatorKey = "kind"
+	LocatorNameKey            LocatorKey = "name"
 	LocatorPodKey             LocatorKey = "pod"
 	LocatorUIDKey             LocatorKey = "uid"
 	LocatorMirrorUIDKey       LocatorKey = "mirror-uid"

@@ -150,6 +150,8 @@ func Test_blackoutEvents(t *testing.T) {
 		startingEvents  []monitorapi.Interval
 		blackoutWindows []monitorapi.Interval
 	}
+	conditionFoo := monitorapi.NewCondition(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Build()
+	conditionBar := monitorapi.NewCondition(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("bar")).Build()
 	tests := []struct {
 		name string
 		args args
@@ -160,24 +162,24 @@ func Test_blackoutEvents(t *testing.T) {
 			args: args{
 				startingEvents: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:00:00Z"),
 						To:        timeOrDie("2022-03-22T19:10:00Z"),
 					},
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:05:00Z"),
 						To:        timeOrDie("2022-03-22T19:20:00Z"),
 					},
 				},
 				blackoutWindows: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "bar"},
+						Condition: conditionBar,
 						From:      timeOrDie("2022-03-22T19:00:00Z"),
 						To:        timeOrDie("2022-03-22T19:10:00Z"),
 					},
 					{
-						Condition: monitorapi.Condition{Locator: "bar"},
+						Condition: conditionBar,
 						From:      timeOrDie("2022-03-22T19:05:00Z"),
 						To:        timeOrDie("2022-03-22T19:20:00Z"),
 					},
@@ -185,12 +187,12 @@ func Test_blackoutEvents(t *testing.T) {
 			},
 			want: []monitorapi.Interval{
 				{
-					Condition: monitorapi.Condition{Locator: "foo"},
+					Condition: conditionFoo,
 					From:      timeOrDie("2022-03-22T19:00:00Z"),
 					To:        timeOrDie("2022-03-22T19:10:00Z"),
 				},
 				{
-					Condition: monitorapi.Condition{Locator: "foo"},
+					Condition: conditionFoo,
 					From:      timeOrDie("2022-03-22T19:05:00Z"),
 					To:        timeOrDie("2022-03-22T19:20:00Z"),
 				},
@@ -201,24 +203,24 @@ func Test_blackoutEvents(t *testing.T) {
 			args: args{
 				startingEvents: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:00:00Z"),
 						To:        timeOrDie("2022-03-22T19:10:00Z"),
 					},
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:05:00Z"),
 						To:        timeOrDie("2022-03-22T19:20:00Z"),
 					},
 				},
 				blackoutWindows: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:00:00Z"),
 						To:        timeOrDie("2022-03-22T19:08:00Z"),
 					},
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:05:00Z"),
 						To:        timeOrDie("2022-03-22T19:20:00Z"),
 					},
@@ -231,19 +233,19 @@ func Test_blackoutEvents(t *testing.T) {
 			args: args{
 				startingEvents: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:00:00Z"),
 						To:        timeOrDie("2022-03-22T19:10:00Z"),
 					},
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:05:00Z"),
 						To:        timeOrDie("2022-03-22T19:20:00Z"),
 					},
 				},
 				blackoutWindows: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:05:00Z"),
 						To:        timeOrDie("2022-03-22T19:20:00Z"),
 					},
@@ -251,7 +253,7 @@ func Test_blackoutEvents(t *testing.T) {
 			},
 			want: []monitorapi.Interval{
 				{
-					Condition: monitorapi.Condition{Locator: "foo"},
+					Condition: conditionFoo,
 					From:      timeOrDie("2022-03-22T19:00:00Z"),
 					To:        timeOrDie("2022-03-22T19:05:00Z"),
 				},
@@ -262,19 +264,19 @@ func Test_blackoutEvents(t *testing.T) {
 			args: args{
 				startingEvents: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:00:00Z"),
 						To:        timeOrDie("2022-03-22T19:10:00Z"),
 					},
 				},
 				blackoutWindows: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:01:00Z"),
 						To:        timeOrDie("2022-03-22T19:02:00Z"),
 					},
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:04:00Z"),
 						To:        timeOrDie("2022-03-22T19:05:00Z"),
 					},
@@ -282,17 +284,17 @@ func Test_blackoutEvents(t *testing.T) {
 			},
 			want: []monitorapi.Interval{
 				{
-					Condition: monitorapi.Condition{Locator: "foo"},
+					Condition: conditionFoo,
 					From:      timeOrDie("2022-03-22T19:00:00Z"),
 					To:        timeOrDie("2022-03-22T19:01:00Z"),
 				},
 				{
-					Condition: monitorapi.Condition{Locator: "foo"},
+					Condition: conditionFoo,
 					From:      timeOrDie("2022-03-22T19:02:00Z"),
 					To:        timeOrDie("2022-03-22T19:04:00Z"),
 				},
 				{
-					Condition: monitorapi.Condition{Locator: "foo"},
+					Condition: conditionFoo,
 					From:      timeOrDie("2022-03-22T19:05:00Z"),
 					To:        timeOrDie("2022-03-22T19:10:00Z"),
 				},
@@ -303,19 +305,19 @@ func Test_blackoutEvents(t *testing.T) {
 			args: args{
 				startingEvents: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:00:00Z"),
 						To:        timeOrDie("2022-03-22T19:10:00Z"),
 					},
 				},
 				blackoutWindows: []monitorapi.Interval{
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T18:55:00Z"),
 						To:        timeOrDie("2022-03-22T19:02:00Z"),
 					},
 					{
-						Condition: monitorapi.Condition{Locator: "foo"},
+						Condition: conditionFoo,
 						From:      timeOrDie("2022-03-22T19:04:00Z"),
 						To:        timeOrDie("2022-03-22T19:05:00Z"),
 					},
@@ -323,12 +325,12 @@ func Test_blackoutEvents(t *testing.T) {
 			},
 			want: []monitorapi.Interval{
 				{
-					Condition: monitorapi.Condition{Locator: "foo"},
+					Condition: conditionFoo,
 					From:      timeOrDie("2022-03-22T19:02:00Z"),
 					To:        timeOrDie("2022-03-22T19:04:00Z"),
 				},
 				{
-					Condition: monitorapi.Condition{Locator: "foo"},
+					Condition: conditionFoo,
 					From:      timeOrDie("2022-03-22T19:05:00Z"),
 					To:        timeOrDie("2022-03-22T19:10:00Z"),
 				},
