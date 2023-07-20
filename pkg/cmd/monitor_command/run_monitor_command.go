@@ -10,7 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/disruption/backend"
+	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -73,12 +76,18 @@ func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command 
 // events accumulated to Out. When the user hits CTRL+C or signals termination the
 // condition intervals (all non-instantaneous events) are reported to Out.
 func (opt *RunMonitorOptions) Run() error {
+	restConfig, err := monitor.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating\n")
+		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 		sig := <-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
@@ -91,11 +100,7 @@ func (opt *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
-	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders)
+	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders, backend.ExternalLoadBalancerType)
 	if err != nil {
 		return err
 	}
@@ -140,7 +145,7 @@ func (opt *RunMonitorOptions) Run() error {
 		recordedResources := m.CurrentResourceState()
 		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
-		eventDir := fmt.Sprintf("%s/monitor-events", opt.ArtifactDir)
+		eventDir := filepath.Join(opt.ArtifactDir, monitorapi.EventDir)
 		if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
 			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
 			return err
@@ -149,6 +154,10 @@ func (opt *RunMonitorOptions) Run() error {
 		if err := monitor.WriteEventsForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
 			fmt.Printf("Failed to write event data, err: %v\n", err)
 			return err
+		}
+
+		if err = sampler.TearDownInClusterMonitors(restConfig); err != nil {
+			fmt.Printf("Failed to write events from in-cluster monitors, err: %v\n", err)
 		}
 
 		err = monitor.UploadIntervalsToLoki(intervals)

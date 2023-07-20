@@ -29,7 +29,7 @@ const (
 // Factory creates a new instance of a Disruption test from
 // the user specified configuration.
 type Factory interface {
-	New(TestConfiguration) (*BackendSampler, error)
+	New(TestConfiguration) (Sampler, error)
 }
 
 // NewDisruptionTestFactory returns a shared disruption test factory that uses
@@ -132,6 +132,9 @@ type dependency interface {
 
 	// GetHostNameDecoder returns the appropriate HostNameDecoder instance.
 	GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error)
+
+	// GetRestConfig returns kubeconfig
+	GetRestConfig() *rest.Config
 }
 
 type testFactory struct {
@@ -144,7 +147,7 @@ type testFactory struct {
 	hostNameDecoder        backend.HostNameDecoderWithRunner
 }
 
-func (b *testFactory) New(c TestConfiguration) (*BackendSampler, error) {
+func (b *testFactory) New(c TestConfiguration) (Sampler, error) {
 	if b.err != nil {
 		return nil, b.err
 	}
@@ -215,4 +218,7 @@ func (r *restConfigDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 func (r *restConfigDependency) HostName() string { return r.config.Host }
 func (r *restConfigDependency) GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error) {
 	return NewAPIServerIdentityToHostNameDecoder(r.config)
+}
+func (r *restConfigDependency) GetRestConfig() *rest.Config {
+	return r.config
 }

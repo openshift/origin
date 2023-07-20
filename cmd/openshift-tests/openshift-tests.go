@@ -83,6 +83,7 @@ func main() {
 		newTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
 		monitor_command.NewTimelineCommand(ioStreams),
+		NewRunInClusterDisruptionMonitorCommand(ioStreams),
 	)
 
 	f := flag.CommandLine.Lookup("v")

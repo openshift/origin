@@ -167,7 +167,7 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 }
 
 // this is copy/pasted from the oc node logs impl
-func getDirectoryListing(in io.Reader) ([]string, error) {
+func GetDirectoryListing(in io.Reader) ([]string, error) {
 	filenames := []string{}
 	bufferSize := 4096
 	buf := bufio.NewReaderSize(in, bufferSize)
@@ -211,7 +211,7 @@ func streamNodeLogFile(ctx context.Context, client kubernetes.Interface, nodeNam
 	return req.Stream(ctx)
 }
 
-func getNodeLogFile(ctx context.Context, client kubernetes.Interface, nodeName, filename string) ([]byte, error) {
+func GetNodeLogFile(ctx context.Context, client kubernetes.Interface, nodeName, filename string) ([]byte, error) {
 	in, err := streamNodeLogFile(ctx, client, nodeName, filename)
 	if err != nil {
 		return nil, err
@@ -222,12 +222,12 @@ func getNodeLogFile(ctx context.Context, client kubernetes.Interface, nodeName, 
 }
 
 func getAuditLogFilenames(ctx context.Context, client kubernetes.Interface, nodeName, apiserverName string) ([]string, error) {
-	allBytes, err := getNodeLogFile(ctx, client, nodeName, apiserverName)
+	allBytes, err := GetNodeLogFile(ctx, client, nodeName, apiserverName)
 	if err != nil {
 		return nil, err
 	}
 
-	filenames, err := getDirectoryListing(bytes.NewBuffer(allBytes))
+	filenames, err := GetDirectoryListing(bytes.NewBuffer(allBytes))
 	if err != nil {
 		return nil, err
 	}

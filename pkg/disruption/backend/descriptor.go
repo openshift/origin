@@ -17,7 +17,23 @@ const (
 	ExternalLoadBalancerType LoadBalancerType = "external-lb"
 	InternalLoadBalancerType LoadBalancerType = "internal-lb"
 	ServiceNetworkType       LoadBalancerType = "service-network"
+	LocalhostType            LoadBalancerType = "localhost"
 )
+
+func ParseStringToLoadBalancerType(input string) LoadBalancerType {
+	switch input {
+	case "service-network":
+		return ServiceNetworkType
+	case "internal-lb":
+		return InternalLoadBalancerType
+	case "external-lb":
+		return ExternalLoadBalancerType
+	case "localhost":
+		return LocalhostType
+	default:
+		return ExternalLoadBalancerType
+	}
+}
 
 // TestDescriptor describes a backend disruption test
 type TestDescriptor interface {
