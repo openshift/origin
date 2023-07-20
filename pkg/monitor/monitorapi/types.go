@@ -108,10 +108,10 @@ const (
 )
 
 type Locator struct {
-	Type LocatorType
+	Type LocatorType `json:"type"`
 
 	// annotations will include the Reason and Cause under their respective keys
-	LocatorKeys map[LocatorKey]string
+	Keys map[LocatorKey]string `json:"keys"`
 }
 
 type IntervalReason string
@@ -224,13 +224,13 @@ func (i Message) OldMessage() string {
 
 func (i Locator) OldLocator() string {
 	keys := sets.NewString()
-	for k := range i.LocatorKeys {
+	for k := range i.Keys {
 		keys.Insert(string(k))
 	}
 
 	annotations := []string{}
 	for _, k := range keys.List() {
-		v := i.LocatorKeys[LocatorKey(k)]
+		v := i.Keys[LocatorKey(k)]
 		annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
 	}
 	annotationString := strings.Join(annotations, " ")

@@ -32,7 +32,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Message: "reason/HttpClientConnectionLost ",
 					StructuredLocator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
-						LocatorKeys: map[monitorapi.LocatorKey]string{
+						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-monitoring",
 							"pod":       "prometheus-k8s-0",
 							"uid":       "a1947638-25c2-4fd8-b3c8-4dbaa666bc61",
@@ -62,7 +62,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Message: "reason/HttpClientConnectionLost unable to decode an event from the watch stream: http2: client connection lost",
 					StructuredLocator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
-						LocatorKeys: map[monitorapi.LocatorKey]string{
+						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-monitoring",
 							"pod":       "prometheus-adapter-7m6srg4dfreoi",
 							"uid":       "",
@@ -92,7 +92,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Message: "reason/HttpClientConnectionLost error getting node \"ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s\": Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/nodes/ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s?timeout=10s\": http2: client connection lost",
 					StructuredLocator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeNode,
-						LocatorKeys: map[monitorapi.LocatorKey]string{
+						Keys: map[monitorapi.LocatorKey]string{
 							"node": "testName",
 						},
 					},
@@ -119,7 +119,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Message: "reason/FailedToUpdateLease https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
 					StructuredLocator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeNode,
-						LocatorKeys: map[monitorapi.LocatorKey]string{
+						Keys: map[monitorapi.LocatorKey]string{
 							"node": "testName",
 						},
 					},
@@ -145,7 +145,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Message: "reason/FailedToUpdateLease https://api-int.ci-op-cyqgzj4w-ed5cd.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-cyqgzj4w-ed5cd-ll5md-master-0?timeout=10s - http2: client connection lost",
 					StructuredLocator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeNode,
-						LocatorKeys: map[monitorapi.LocatorKey]string{
+						Keys: map[monitorapi.LocatorKey]string{
 							"node": "testName",
 						},
 					},
@@ -171,7 +171,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Message: "reason/ReadinessFailed Get \"https://10.129.0.12:6443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
 					StructuredLocator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
-						LocatorKeys: map[monitorapi.LocatorKey]string{
+						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-authentication",
 							"pod":       "oauth-openshift-77f7b95df5-r4xf7",
 							"uid":       "1af660b3-ac3a-4182-86eb-2f74725d8415",
@@ -201,7 +201,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Message: "reason/ReadinessErrored rpc error: code = NotFound desc = container is not created or running: checking if PID of 645437acbb2ca429c04d5a2628924e2e10d44c681c824dddc7c82ffa30a936be is running failed: container process not found",
 					StructuredLocator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
-						LocatorKeys: map[monitorapi.LocatorKey]string{
+						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-marketplace",
 							"pod":       "redhat-operators-4jpg4",
 							"uid":       "0bac4741-a3bd-483c-b119-e97663d64024",
@@ -231,7 +231,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 					Message: "cause/UnrecognizedSignatureFormat reason/ErrImagePull",
 					StructuredLocator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
-						LocatorKeys: map[monitorapi.LocatorKey]string{
+						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-e2e-loki",
 							"pod":       "loki-promtail-plm74",
 							"uid":       "59b26cbf-3421-407c-98ee-986b5a091ef4",
@@ -295,7 +295,7 @@ func TestRegexToContainerReference(t *testing.T) {
 			},
 			want: monitorapi.Locator{
 				Type: monitorapi.LocatorTypeContainer,
-				LocatorKeys: map[monitorapi.LocatorKey]string{
+				Keys: map[monitorapi.LocatorKey]string{
 					monitorapi.LocatorContainerKey: "",
 					monitorapi.LocatorNamespaceKey: "openshift-monitoring",
 					monitorapi.LocatorPodKey:       "prometheus-k8s-0",
@@ -311,7 +311,7 @@ func TestRegexToContainerReference(t *testing.T) {
 			},
 			want: monitorapi.Locator{
 				Type: monitorapi.LocatorTypeContainer,
-				LocatorKeys: map[monitorapi.LocatorKey]string{
+				Keys: map[monitorapi.LocatorKey]string{
 					monitorapi.LocatorContainerKey: "",
 					monitorapi.LocatorNamespaceKey: "openshift-monitoring",
 					monitorapi.LocatorPodKey:       "prometheus-adapter-7m6srg4dfreoi",
@@ -327,7 +327,7 @@ func TestRegexToContainerReference(t *testing.T) {
 			},
 			want: monitorapi.Locator{
 				Type: monitorapi.LocatorTypeContainer,
-				LocatorKeys: map[monitorapi.LocatorKey]string{
+				Keys: map[monitorapi.LocatorKey]string{
 					monitorapi.LocatorContainerKey: "oauth-openshift",
 					monitorapi.LocatorNamespaceKey: "openshift-authentication",
 					monitorapi.LocatorPodKey:       "oauth-openshift-77f7b95df5-r4xf7",
@@ -343,7 +343,7 @@ func TestRegexToContainerReference(t *testing.T) {
 			},
 			want: monitorapi.Locator{
 				Type: monitorapi.LocatorTypeContainer,
-				LocatorKeys: map[monitorapi.LocatorKey]string{
+				Keys: map[monitorapi.LocatorKey]string{
 					monitorapi.LocatorContainerKey: "registry-server",
 					monitorapi.LocatorNamespaceKey: "openshift-marketplace",
 					monitorapi.LocatorPodKey:       "redhat-operators-4jpg4",
@@ -397,7 +397,7 @@ func Test_probeProblemToContainerReference(t *testing.T) {
 			},
 			want: monitorapi.Locator{
 				Type: monitorapi.LocatorTypeContainer,
-				LocatorKeys: map[monitorapi.LocatorKey]string{
+				Keys: map[monitorapi.LocatorKey]string{
 					monitorapi.LocatorContainerKey: "oauth-openshift",
 					monitorapi.LocatorNamespaceKey: "openshift-authentication",
 					monitorapi.LocatorPodKey:       "oauth-openshift-77f7b95df5-r4xf7",
@@ -412,7 +412,7 @@ func Test_probeProblemToContainerReference(t *testing.T) {
 			},
 			want: monitorapi.Locator{
 				Type: monitorapi.LocatorTypeContainer,
-				LocatorKeys: map[monitorapi.LocatorKey]string{
+				Keys: map[monitorapi.LocatorKey]string{
 					monitorapi.LocatorContainerKey: "registry-server",
 					monitorapi.LocatorNamespaceKey: "openshift-marketplace",
 					monitorapi.LocatorPodKey:       "redhat-operators-4jpg4",
@@ -512,7 +512,7 @@ func Test_readinessFailure(t *testing.T) {
 						Locator: `ns/openshift-authentication pod/oauth-openshift-77f7b95df5-r4xf7 uid/1af660b3-ac3a-4182-86eb-2f74725d8415 container/oauth-openshift`,
 						StructuredLocator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeContainer,
-							LocatorKeys: map[monitorapi.LocatorKey]string{
+							Keys: map[monitorapi.LocatorKey]string{
 								"namespace": "openshift-authentication",
 								"pod":       "oauth-openshift-77f7b95df5-r4xf7",
 								"uid":       "1af660b3-ac3a-4182-86eb-2f74725d8415",

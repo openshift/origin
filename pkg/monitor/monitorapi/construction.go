@@ -104,7 +104,7 @@ func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 	b.targetType = LocatorTypeKubeEvent
 
 	// WARNING: we're trying to use an enum for the locator keys, but we cannot know
-	// all kinds in a cluster. Instead we'll split the kind and name into two different LocatorKeys
+	// all kinds in a cluster. Instead we'll split the kind and name into two different Keys
 	// for Events:
 	b.annotations[LocatorKindKey] = event.InvolvedObject.Kind
 	b.annotations[LocatorNameKey] = event.InvolvedObject.Name
@@ -169,11 +169,11 @@ func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) Locator {
 
 func (b *LocatorBuilder) Build() Locator {
 	ret := Locator{
-		Type:        b.targetType,
-		LocatorKeys: map[LocatorKey]string{},
+		Type: b.targetType,
+		Keys: map[LocatorKey]string{},
 	}
 	for k, v := range b.annotations {
-		ret.LocatorKeys[k] = v
+		ret.Keys[k] = v
 	}
 	return ret
 }
