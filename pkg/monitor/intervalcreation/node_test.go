@@ -615,10 +615,7 @@ func (p nodeIntervalTest) test(t *testing.T) {
 	}
 
 	resultJSON := string(resultBytes)
-	if p.results != resultJSON {
-		t.Log(p.results)
-		t.Fatal(resultJSON)
-	}
+	assert.Equal(t, strings.TrimSpace(p.results), resultJSON)
 }
 
 //go:embed nodeTest/*

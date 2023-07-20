@@ -4,6 +4,16 @@
             "level": "Info",
             "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
             "message": "constructed/pod-lifecycle-constructor reason/Created",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "Reason": "",
+                "Cause": "",
+                "HumanMessage": "",
+                "Annotations": null
+            },
             "from": "2022-03-07T22:47:04Z",
             "to": "2022-03-07T22:47:04Z"
         },
@@ -11,6 +21,16 @@
             "level": "Info",
             "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
             "message": "constructed/pod-lifecycle-constructor node/ip-10-0-154-151.ec2.internal reason/Scheduled",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "Reason": "",
+                "Cause": "",
+                "HumanMessage": "",
+                "Annotations": null
+            },
             "from": "2022-03-07T22:47:04Z",
             "to": "2022-03-07T22:47:14Z"
         },
@@ -18,6 +38,16 @@
             "level": "Info",
             "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "Reason": "",
+                "Cause": "",
+                "HumanMessage": "",
+                "Annotations": null
+            },
             "from": "2022-03-07T22:47:04Z",
             "to": "2022-03-07T22:47:07Z"
         },
@@ -25,6 +55,16 @@
             "level": "Info",
             "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "Reason": "",
+                "Cause": "",
+                "HumanMessage": "",
+                "Annotations": null
+            },
             "from": "2022-03-07T22:47:07Z",
             "to": "2022-03-07T22:47:14Z"
         },
@@ -32,6 +72,16 @@
             "level": "Info",
             "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "cause/ constructed/pod-lifecycle-constructor duration/3.00s reason/ContainerStart",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "Reason": "",
+                "Cause": "",
+                "HumanMessage": "",
+                "Annotations": null
+            },
             "from": "2022-03-07T22:47:07Z",
             "to": "2022-03-07T22:47:15Z"
         },
@@ -39,6 +89,16 @@
             "level": "Info",
             "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
             "message": "constructed/pod-lifecycle-constructor duration/1s reason/GracefulDelete",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "Reason": "",
+                "Cause": "",
+                "HumanMessage": "",
+                "Annotations": null
+            },
             "from": "2022-03-07T22:47:14Z",
             "to": "2022-03-07T22:47:15Z"
         },
@@ -46,6 +106,16 @@
             "level": "Info",
             "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "Reason": "",
+                "Cause": "",
+                "HumanMessage": "",
+                "Annotations": null
+            },
             "from": "2022-03-07T22:47:14Z",
             "to": "2022-03-07T22:47:15Z"
         },
@@ -53,6 +123,16 @@
             "level": "Info",
             "locator": "ns/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "Reason": "",
+                "Cause": "",
+                "HumanMessage": "",
+                "Annotations": null
+            },
             "from": "2022-03-07T22:47:15Z",
             "to": "2022-03-07T22:47:15Z"
         }
