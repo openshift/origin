@@ -123,6 +123,8 @@ func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 
 func (b *LocatorBuilder) APIServerShutdown(loadBalancer string) Locator {
 	b.targetType = LocatorTypeAPIServerShutdown
+	b.annotations[LocatorShutdownKey] = "graceful"
+	b.annotations[LocatorServerKey] = "kube-apiserver"
 	if len(loadBalancer) > 0 {
 		b.annotations[LocatorLoadBalancerKey] = loadBalancer
 	}
