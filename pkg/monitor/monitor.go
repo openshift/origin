@@ -28,9 +28,8 @@ type Monitor struct {
 	adminKubeConfig                  *rest.Config
 	additionalEventIntervalRecorders []StartEventIntervalRecorderFunc
 
-	lock           sync.Mutex
-	events         monitorapi.Intervals
-	unsortedEvents monitorapi.Intervals
+	lock   sync.Mutex
+	events monitorapi.Intervals
 
 	recordedResourceLock sync.Mutex
 	recordedResources    monitorapi.ResourcesMap
@@ -205,11 +204,11 @@ func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.EventInterval) {
 func (m *Monitor) StartInterval(t time.Time, condition monitorapi.Condition) int {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.unsortedEvents = append(m.unsortedEvents, monitorapi.EventInterval{
+	m.events = append(m.events, monitorapi.EventInterval{
 		Condition: condition,
 		From:      t,
 	})
-	return len(m.unsortedEvents) - 1
+	return len(m.events) - 1
 }
 
 // EndInterval updates the To of the interval started by StartInterval if it is greater than
@@ -217,9 +216,9 @@ func (m *Monitor) StartInterval(t time.Time, condition monitorapi.Condition) int
 func (m *Monitor) EndInterval(startedInterval int, t time.Time) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	if startedInterval < len(m.unsortedEvents) {
-		if m.unsortedEvents[startedInterval].From.Before(t) {
-			m.unsortedEvents[startedInterval].To = t
+	if startedInterval < len(m.events) {
+		if m.events[startedInterval].From.Before(t) {
+			m.events[startedInterval].To = t
 		}
 	}
 }
@@ -233,7 +232,7 @@ func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	for _, condition := range conditions {
-		m.unsortedEvents = append(m.unsortedEvents, monitorapi.EventInterval{
+		m.events = append(m.events, monitorapi.EventInterval{
 			Condition: condition,
 			From:      t,
 			To:        t,
@@ -241,10 +240,10 @@ func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	}
 }
 
-func (m *Monitor) snapshot() (monitorapi.Intervals, monitorapi.Intervals) {
+func (m *Monitor) snapshot() monitorapi.Intervals {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	return m.events, m.unsortedEvents
+	return m.events
 }
 
 // Intervals returns all events that occur between from and to, including
@@ -252,9 +251,9 @@ func (m *Monitor) snapshot() (monitorapi.Intervals, monitorapi.Intervals) {
 // Intervals are returned in order of their occurrence. The returned slice
 // is a copy of the monitor's state and is safe to update.
 func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
-	sortedEvents, unsortedEvents := m.snapshot()
+	events := m.snapshot()
 
-	intervals := mergeIntervals(sortedEvents.Slice(from, to), unsortedEvents.CopyAndSort(from, to))
+	intervals := mergeIntervals(events.Slice(from, to))
 
 	return intervals
 }
