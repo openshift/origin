@@ -201,13 +201,9 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			jUnitName := getJUnitName(testName, test.namespace)
 			for _, junit := range junits {
 				if (junit.Name == jUnitName) && (test.expectedMessage != "") {
-					if strings.Compare(junit.FailureOutput.Output, test.expectedMessage) != 0 {
-						t.Fatalf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junit.FailureOutput.Output)
-					}
+					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
-					if junit.FailureOutput != nil {
-						t.Fatalf("expected success, but got failure with output: %s.", junit.FailureOutput.Output)
-					}
+					assert.Nil(t, junit.FailureOutput, "expected success but got failure output")
 				}
 			}
 
