@@ -144,7 +144,7 @@ func (t *backendDisruptionTest) Test(ctx context.Context, f *framework.Framework
 
 	endpointMonitoringContext, endpointMonitoringCancel := context.WithCancel(ctx)
 	defer endpointMonitoringCancel() // final backstop on closure
-	m := monitor.NewMonitorWithInterval(1 * time.Second)
+	m := monitor.NewMonitor()
 	disruptionErrCh := make(chan error, 1)
 	go func() {
 		err := t.backend.RunEndpointMonitoring(endpointMonitoringContext, m, eventRecorder)

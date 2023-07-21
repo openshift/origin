@@ -11,11 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type SamplerFunc func(time.Time) []*monitorapi.Condition
-
 type Interface interface {
 	Intervals(from, to time.Time) monitorapi.Intervals
-	Conditions(from, to time.Time) monitorapi.Intervals
 	CurrentResourceState() monitorapi.ResourcesMap
 }
 
@@ -30,22 +27,6 @@ type Recorder interface {
 
 	StartInterval(t time.Time, condition monitorapi.Condition) int
 	EndInterval(startedInterval int, t time.Time)
-}
-
-type ConditionalSampler interface {
-	ConditionWhenFailing(context.Context, *monitorapi.Condition) SamplerFunc
-	WhenFailing(context.Context, *monitorapi.Condition)
-}
-
-// SampleFunc takes a bool representing "were you failing last time" and returns
-//  1. a nil condition if there is no noteworthy state change
-//  2. a condition if there is a noteworthy state change
-//  3. a bool indicating if it is currently available
-type SampleFunc func(previouslyAvailable bool) (edgeCondition *monitorapi.Condition, currentlyAvailable bool)
-
-type sample struct {
-	at         time.Time
-	conditions []*monitorapi.Condition
 }
 
 // StartEventIntervalRecorder is non-blocking and must stop on a context cancel.  It is expected to call the recorder

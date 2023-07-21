@@ -36,7 +36,7 @@ func GetMonitorRESTConfig() (*rest.Config, error) {
 // Start begins monitoring the cluster referenced by the default kube configuration until
 // context is finished.
 func Start(ctx context.Context, restConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc, lb backend.LoadBalancerType) (*Monitor, error) {
-	m := NewMonitorWithInterval(time.Second)
+	m := NewMonitor()
 	client, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -108,18 +108,6 @@ func locateEvent(event *corev1.Event) string {
 		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
 	}
 	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-}
-
-func filterToSystemNamespaces(obj runtime.Object) bool {
-	m, ok := obj.(metav1.Object)
-	if !ok {
-		return true
-	}
-	ns := m.GetNamespace()
-	if len(ns) == 0 {
-		return true
-	}
-	return strings.HasPrefix(ns, "kube-") || strings.HasPrefix(ns, "openshift-") || ns == "default"
 }
 
 type errorRecordingListWatcher struct {
