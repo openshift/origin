@@ -102,7 +102,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			name: "Single Event test",
 			args: args{
 				ctx:                    context.TODO(),
-				m:                      NewMonitorWithInterval(time.Second),
+				m:                      NewMonitor(),
 				client:                 nil,
 				reMatchFirstQuote:      regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`),
 				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
@@ -115,7 +115,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			skip: true, // skip since we use this only for interactive debugging
 			args: args{
 				ctx:               context.TODO(),
-				m:                 NewMonitorWithInterval(time.Second),
+				m:                 NewMonitor(),
 				client:            clientSet,
 				reMatchFirstQuote: regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`),
 

@@ -19,12 +19,11 @@ func TestMonitor_Newlines(t *testing.T) {
 
 func TestMonitor_Events(t *testing.T) {
 	tests := []struct {
-		name    string
-		events  monitorapi.Intervals
-		samples []*sample
-		from    time.Time
-		to      time.Time
-		want    monitorapi.Intervals
+		name   string
+		events monitorapi.Intervals
+		from   time.Time
+		to     time.Time
+		want   monitorapi.Intervals
 	}{
 		{
 			name: "one",
@@ -69,39 +68,11 @@ func TestMonitor_Events(t *testing.T) {
 			from: time.Unix(2, 0),
 			want: monitorapi.Intervals{},
 		},
-		{
-			name: "five",
-			samples: []*sample{
-				{at: time.Unix(1, 0), conditions: []*monitorapi.Condition{{Message: "1"}, {Message: "A"}}},
-				{at: time.Unix(2, 0), conditions: []*monitorapi.Condition{{Message: "2"}}},
-				{at: time.Unix(3, 0), conditions: []*monitorapi.Condition{{Message: "2"}, {Message: "A"}}},
-			},
-			from: time.Unix(1, 0),
-			want: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(3, 0)},
-				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(3, 0), To: time.Unix(4, 0)},
-			},
-		},
-		{
-			name: "six",
-			samples: []*sample{
-				{at: time.Unix(1, 0), conditions: []*monitorapi.Condition{{Message: "1"}, {Message: "A"}}},
-				{at: time.Unix(2, 0), conditions: []*monitorapi.Condition{{Message: "2"}}},
-				{at: time.Unix(3, 0), conditions: []*monitorapi.Condition{{Message: "2"}, {Message: "A"}}},
-			},
-			want: monitorapi.Intervals{
-				{Condition: monitorapi.Condition{Message: "1"}, From: time.Unix(1, 0), To: time.Unix(2, 0)},
-				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(1, 0), To: time.Unix(2, 0)},
-				{Condition: monitorapi.Condition{Message: "2"}, From: time.Unix(2, 0), To: time.Unix(3, 0)},
-				{Condition: monitorapi.Condition{Message: "A"}, From: time.Unix(3, 0), To: time.Unix(4, 0)},
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Monitor{
 				events:            tt.events,
-				samples:           tt.samples,
 				recordedResources: monitorapi.ResourcesMap{},
 			}
 			if got := m.Intervals(tt.from, tt.to); !reflect.DeepEqual(got, tt.want) {

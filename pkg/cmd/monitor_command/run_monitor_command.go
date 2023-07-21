@@ -132,12 +132,6 @@ func (opt *RunMonitorOptions) Run() error {
 	<-ctx.Done()
 
 	time.Sleep(150 * time.Millisecond)
-	if events := m.Conditions(time.Time{}, time.Time{}); len(events) > 0 {
-		fmt.Fprintf(opt.Out, "\nConditions:\n\n")
-		for _, event := range events {
-			fmt.Fprintln(opt.Out, event.String())
-		}
-	}
 
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
