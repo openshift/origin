@@ -339,7 +339,12 @@ func IsInfoEvent(eventInterval Interval) bool {
 
 // IsInE2ENamespace returns true if the eventInterval is in an e2e namespace
 func IsInE2ENamespace(eventInterval Interval) bool {
+	// Old style
 	if strings.Contains(eventInterval.Locator, "ns/e2e-") {
+		return true
+	}
+	// New style
+	if strings.Contains(eventInterval.Locator, "namespace/e2e-") {
 		return true
 	}
 	return false
