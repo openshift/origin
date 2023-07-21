@@ -57,8 +57,9 @@ func (s *workingSet) waitUntilAvailable(key string) error {
 }
 
 type GitStorage struct {
-	repo *git.Repository
-	path string
+	repo     *git.Repository
+	path     string
+	fileMode os.FileMode
 
 	currentlyRecording workingSet
 
@@ -90,10 +91,17 @@ func NewGitStorage(path string) (*GitStorage, error) {
 	if err != nil {
 		return nil, err
 	}
-	storage := &GitStorage{path: path, repo: repo}
+	storage := &GitStorage{path: path, repo: repo, fileMode: os.ModePerm}
 	storage.currentlyRecording.currentlyWorking = sets.String{}
 
 	return storage, nil
+}
+
+// SetFileMode allows the default fileMode to be overridden, returning the previous value
+func (s *GitStorage) SetFileMode(fileMode os.FileMode) os.FileMode {
+	previousFileMode := s.fileMode
+	s.fileMode = fileMode
+	return previousFileMode
 }
 
 // handle handles different operations on git
@@ -387,14 +395,14 @@ func (s *GitStorage) write(name string, content []byte) (gitOperation, error) {
 		if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
 			return gitOpError, err
 		}
-		if err := os.WriteFile(fullPath, content, os.ModePerm); err != nil {
+		if err := os.WriteFile(fullPath, content, s.fileMode); err != nil {
 			return gitOpError, err
 		}
 		return gitOpAdded, nil
 	}
 
-	// If the file exists, updated its content and report modified
-	if err := os.WriteFile(fullPath, content, os.ModePerm); err != nil {
+	// If the file exists, update its content and report modified
+	if err := os.WriteFile(fullPath, content, s.fileMode); err != nil {
 		return gitOpError, err
 	}
 	return gitOpModified, nil

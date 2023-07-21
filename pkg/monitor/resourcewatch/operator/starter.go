@@ -59,6 +59,12 @@ func RunResourceWatch() error {
 		return err
 	}
 
+	// prevent git showing files as modified
+	// after tar extraction
+	// setting core.filemode false in git config works as well
+	// git config core.filemode false
+	gitStorage.SetFileMode(os.FileMode(0644))
+
 	dynamicInformer := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 0)
 
 	resourcesToWatch := []schema.GroupVersionResource{
