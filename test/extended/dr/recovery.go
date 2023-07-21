@@ -60,7 +60,9 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
 		waitForOperatorsToSettle()
 
+		framework.Logf("asserting post backup resources are still found...")
 		assertPostBackupResourcesAreStillFound(oc)
+		framework.Logf("asserting post backup resources are still functional...")
 		assertPostBackupResourcesAreStillFunctional(oc)
 	})
 })
@@ -143,6 +145,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
 		waitForOperatorsToSettle()
 
+		framework.Logf("asserting post backup resources are not found anymore...")
 		assertPostBackupResourcesAreNotFound(oc)
 	})
 })

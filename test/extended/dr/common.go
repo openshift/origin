@@ -526,7 +526,7 @@ EOF
 }
 
 func runDeleteAndRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node, nonRecoveryNodes []*corev1.Node) error {
-	const name = "etcd-restore-pod"
+	const name = "bumping-etcd-restore-pod"
 	framework.Logf("running deletes and restore script on node: %v", restoreNode.Name)
 
 	backupInternalIp := internalIP(backupNode)
