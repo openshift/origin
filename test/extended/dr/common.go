@@ -562,6 +562,8 @@ func runDeleteAndRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupN
          SNAPSHOT=\$(ls -vd /home/core/backup/snapshot*.db | tail -1)
          mv \$SNAPSHOT /home/core/backup/snapshot.db
          sudo rm -rf /var/lib/etcd
+         
+         export ETCD_ETCDCTL_RESTORE_ENABLE_BUMP=true
          sudo /usr/local/bin/cluster-restore.sh /home/core/backup
          # this will cause the pod to disappear effectively, must be the last statement
          sudo systemctl restart kubelet.service
