@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
-	"k8s.io/kubernetes/test/e2e/framework/pod"
+
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	svc "k8s.io/kubernetes/test/e2e/framework/service"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
@@ -111,7 +111,7 @@ func checkConnectivityToHostWithCLI(f *e2e.Framework, oc *exutil.CLI, nodeName s
 	namespace := f.Namespace.Name
 
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
-	execPod := pod.CreateExecPodOrFail(context.TODO(), f.ClientSet, namespace, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+	execPod := exutil.CreateExecPodOrFail(f.ClientSet, namespace, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
 		pod.Spec.NodeName = nodeName
 		pod.Spec.HostNetwork = hostNetwork
 	})
@@ -173,7 +173,7 @@ func platformType(configClient configv1client.Interface) (configv1.PlatformType,
 
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration, hostNetwork bool) error {
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
-	execPod := pod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+	execPod := exutil.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
 		pod.Spec.NodeName = nodeName
 		pod.Spec.HostNetwork = hostNetwork
 	})
