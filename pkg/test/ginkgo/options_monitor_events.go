@@ -11,13 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
-	"github.com/sirupsen/logrus"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/rest"
-
+	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
@@ -28,6 +22,10 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+	"github.com/sirupsen/logrus"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
 )
 
 type RunDataWriter interface {
@@ -84,11 +82,15 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 	t := time.Now()
 	o.startTime = &t
 
-	m := monitor.NewMonitor(restConfig, []monitor.StartEventIntervalRecorderFunc{
-		controlplane.StartAllAPIMonitoring,
-		frontends.StartAllIngressMonitoring,
-		externalservice.StartExternalServiceMonitoring,
-	})
+	m := monitor.NewMonitor(
+		restConfig,
+		[]monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAllAPIMonitoring,
+			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
+		},
+		defaultinvariants.NewDefaultInvariants(),
+	)
 	err := m.Start(ctx)
 	if err != nil {
 		return nil, err

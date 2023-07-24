@@ -1,22 +1,21 @@
-package monitor
+package watchpods
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"k8s.io/client-go/informers"
-
-	"github.com/openshift/origin/pkg/monitor/podipcontroller"
-
+	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitor/podipcontroller"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
-func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
+func startPodMonitoring(ctx context.Context, m monitor.Recorder, client kubernetes.Interface) {
 	podPendingFn := func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 		isCreate := oldPod == nil
 		oldPodIsPending := oldPod != nil && oldPod.Status.Phase == "Pending"
@@ -566,6 +565,10 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 
 }
 
+type objCreateFunc func(obj interface{}) []monitorapi.Condition
+type objUpdateFunc func(obj, oldObj interface{}) []monitorapi.Condition
+type objDeleteFunc func(obj interface{}) []monitorapi.Condition
+
 func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Condition) []objCreateFunc {
 	ret := []objCreateFunc{}
 
@@ -629,4 +632,18 @@ func conditionsForTransitioningContainer(pod *corev1.Pod, current *corev1.Contai
 
 func isMirrorPod(pod *corev1.Pod) bool {
 	return len(pod.Annotations["kubernetes.io/config.mirror"]) > 0
+}
+
+func findContainerStatus(status []corev1.ContainerStatus, name string, position int) *corev1.ContainerStatus {
+	if position < len(status) {
+		if status[position].Name == name {
+			return &status[position]
+		}
+	}
+	for i := range status {
+		if status[i].Name == name {
+			return &status[i]
+		}
+	}
+	return nil
 }

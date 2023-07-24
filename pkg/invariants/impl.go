@@ -52,7 +52,7 @@ func (r *invariantRegistry) AddInvariantOrDie(name, jiraComponent string, invari
 	}
 }
 
-func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config) ([]*junitapi.JUnitTestCase, error) {
+func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.Recorder) ([]*junitapi.JUnitTestCase, error) {
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
@@ -60,7 +60,7 @@ func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig
 		testName := fmt.Sprintf("jira/%q invariant test %v setup", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		err := invariant.invariantTest.StartCollection(ctx, adminRESTConfig)
+		err := invariant.invariantTest.StartCollection(ctx, adminRESTConfig, recorder)
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
@@ -85,7 +85,7 @@ func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig
 	return junits, utilerrors.NewAggregate(errs)
 }
 
-func (r *invariantRegistry) CollectData(ctx context.Context) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+func (r *invariantRegistry) CollectData(ctx context.Context, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	intervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
@@ -95,7 +95,7 @@ func (r *invariantRegistry) CollectData(ctx context.Context) (monitorapi.Interva
 			testName := fmt.Sprintf("jira/%q invariant test %v collection", invariant.jiraComponent, invariant.name)
 
 			start := time.Now()
-			localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx)
+			localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx, beginning, end)
 			junits = append(junits, localJunits...)
 			intervals = append(intervals, localIntervals...)
 			end := time.Now()
@@ -123,7 +123,7 @@ func (r *invariantRegistry) CollectData(ctx context.Context) (monitorapi.Interva
 	return intervals, junits, utilerrors.NewAggregate(errs)
 }
 
-func (r *invariantRegistry) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+func (r *invariantRegistry) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	intervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
@@ -133,7 +133,7 @@ func (r *invariantRegistry) ConstructComputedIntervals(ctx context.Context, star
 			testName := fmt.Sprintf("jira/%q invariant test %v interval construction", invariant.jiraComponent, invariant.name)
 
 			start := time.Now()
-			localIntervals, err := invariant.invariantTest.ConstructComputedIntervals(ctx, startingIntervals)
+			localIntervals, err := invariant.invariantTest.ConstructComputedIntervals(ctx, startingIntervals, recordedResources, beginning, end)
 			intervals = append(intervals, localIntervals...)
 			end := time.Now()
 			duration := end.Sub(start)

@@ -1,4 +1,4 @@
-package intervalcreation
+package watchpods
 
 import (
 	"embed"
@@ -96,7 +96,7 @@ func (p podIntervalTest) test(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := CreatePodIntervalsFromInstants(inputIntervals, resourceMap, startTime, endTime)
+	result := createPodIntervalsFromInstants(inputIntervals, resourceMap, startTime, endTime)
 
 	resultBytes, err := monitorserialization.EventsToJSON(result)
 	if err != nil {
