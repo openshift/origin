@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"gopkg.in/yaml.v2"
 )
 
 // Manifest yaml structs
@@ -48,7 +50,7 @@ type YamlManifest struct {
 }
 
 func printStorageCapabilities(out io.Writer) {
-	manifestFilename := strings.Split(os.Getenv(manifestEnvVar), ",")[0]
+	manifestFilename := strings.Split(os.Getenv(clusterdiscovery.CSIManifestEnvVar), ",")[0]
 	if manifestFilename == "" {
 		fmt.Fprintln(out, "No manifest filename passed")
 		return

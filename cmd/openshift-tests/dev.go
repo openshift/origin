@@ -44,7 +44,7 @@ type alertInvariantOpts struct {
 }
 
 func newRunAlertInvariantsCommand() *cobra.Command {
-	opts := alertInvariantOpts{}
+	o := alertInvariantOpts{}
 
 	cmd := &cobra.Command{
 		Use:   "run-alert-invariants",
@@ -58,20 +58,20 @@ a running cluster.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logrus.Info("running alert invariant tests")
 
-			logrus.WithField("intervalsFile", opts.intervalsFile).Info("loading e2e intervals")
-			intervals, err := readIntervalsFromFile(opts.intervalsFile)
+			logrus.WithField("intervalsFile", o.intervalsFile).Info("loading e2e intervals")
+			intervals, err := readIntervalsFromFile(o.intervalsFile)
 			if err != nil {
 				logrus.WithError(err).Fatal("error loading intervals file")
 			}
 			logrus.Infof("loaded %d intervals", len(intervals))
 
 			jobType := &platformidentification.JobType{
-				Release:      opts.release,
-				FromRelease:  opts.fromRelease,
-				Platform:     opts.platform,
-				Architecture: opts.architecture,
-				Network:      opts.network,
-				Topology:     opts.topology,
+				Release:      o.release,
+				FromRelease:  o.fromRelease,
+				Platform:     o.platform,
+				Architecture: o.architecture,
+				Network:      o.network,
+				Topology:     o.topology,
 			}
 
 			logrus.Info("running tests")
@@ -92,31 +92,31 @@ a running cluster.
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&opts.intervalsFile,
+	cmd.Flags().StringVar(&o.intervalsFile,
 		"intervals-file", "e2e-events.json",
 		"Path to an intervals file (i.e. e2e-events_20230214-203340.json). Can be obtained from a CI run in openshift-tests junit artifacts.")
 	cmd.Flags().StringVar(
-		&opts.platform,
+		&o.platform,
 		"platform", "gcp",
 		"Platform for simulated cluster under test when intervals were gathered (aws, azure, gcp, metal, vsphere, etc)")
 	cmd.Flags().StringVar(
-		&opts.network,
+		&o.network,
 		"network", "ocp",
 		"Network plugin for simulated cluster under test when intervals were gathered")
 	cmd.Flags().StringVar(
-		&opts.release,
+		&o.release,
 		"release", "4.13",
 		"Release for simulated cluster under test when intervals were gathered")
 	cmd.Flags().StringVar(
-		&opts.fromRelease,
+		&o.fromRelease,
 		"from-release", "4.13",
 		"FromRelease simulated cluster under test was upgraded from when intervals were gathered (use \"\" for non-upgrade jobs, use matching value to --release for micro upgrades)")
 	cmd.Flags().StringVar(
-		&opts.architecture,
+		&o.architecture,
 		"arch", "amd64",
 		"Architecture for simulated cluster under test when intervals were gathered")
 	cmd.Flags().StringVar(
-		&opts.topology,
+		&o.topology,
 		"topology", "ha",
 		"Topology for simulated cluster under test when intervals were gathered (ha, single)")
 	return cmd

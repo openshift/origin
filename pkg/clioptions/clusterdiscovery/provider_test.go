@@ -1,4 +1,4 @@
-package main
+package clusterdiscovery
 
 import (
 	"net/url"
@@ -7,7 +7,6 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
-	exutilcluster "github.com/openshift/origin/test/extended/util/cluster"
 	"github.com/stretchr/testify/require"
 
 	corev1 "k8s.io/api/core/v1"
@@ -280,18 +279,18 @@ func TestDecodeProvider(t *testing.T) {
 		},
 	}
 
-	// Unset these to keep decodeProvider from returning "local"
+	// Unset these to keep DecodeProvider from returning "local"
 	os.Unsetenv("KUBE_SSH_USER")
 	os.Unsetenv("LOCAL_SSH_KEY")
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			discover := tc.discoveredPlatform != nil
-			var testState *exutilcluster.ClusterState
+			var testState *ClusterState
 			if discover {
 				topology := configv1.HighlyAvailableTopologyMode
 				testURL, _ := url.Parse("https://example.com")
-				testState = &exutilcluster.ClusterState{
+				testState = &ClusterState{
 					PlatformStatus:       tc.discoveredPlatform,
 					Masters:              tc.discoveredMasters,
 					NonMasters:           nonMasters,
@@ -301,7 +300,7 @@ func TestDecodeProvider(t *testing.T) {
 					OptionalCapabilities: tc.optionalCapabilities,
 				}
 			}
-			config, err := decodeProvider(tc.provider, false, discover, testState)
+			config, err := DecodeProvider(tc.provider, false, discover, testState)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
