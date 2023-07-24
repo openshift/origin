@@ -1,0 +1,67 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21",
+      "message": "reason/Created ",
+      "from": "2022-03-21T21:37:20Z",
+      "to": "2022-03-21T21:37:20Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21",
+      "message": "reason/Scheduled node/ci-op-97t906zm-db044-bwrrn-master-0",
+      "from": "2022-03-21T21:37:20Z",
+      "to": "2022-03-21T21:37:20Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+      "message": "reason/NotReady ",
+      "from": "2022-03-21T21:37:20Z",
+      "to": "2022-03-21T21:37:20Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+      "message": "reason/Ready ",
+      "from": "2022-03-21T21:37:23Z",
+      "to": "2022-03-21T21:37:23Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+      "message": "reason/ContainerStart cause/ duration/3.00s",
+      "from": "2022-03-21T21:37:23Z",
+      "to": "2022-03-21T21:37:23Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+      "message": "reason/NotReady ",
+      "from": "2022-03-21T21:37:56Z",
+      "to": "2022-03-21T21:37:56Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
+      "message": "reason/ContainerExit code/0 cause/Completed ",
+      "from": "2022-03-21T21:37:56Z",
+      "to": "2022-03-21T21:37:56Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21",
+      "message": "reason/DeletedAfterCompletion ",
+      "from": "2022-03-21T22:22:32Z",
+      "to": "2022-03-21T22:22:32Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 node/ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21",
+      "message": "reason/Deleted ",
+      "from": "2022-03-21T22:22:32Z",
+      "to": "2022-03-21T22:22:32Z"
+    }
+  ]
+}

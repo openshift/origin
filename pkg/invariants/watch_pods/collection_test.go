@@ -1,4 +1,4 @@
-package monitor
+package watchpods
 
 import (
 	"time"

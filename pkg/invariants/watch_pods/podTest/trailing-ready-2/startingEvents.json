@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb node/ip-10-0-231-18.us-east-2.compute.internal uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+      "message": "reason/Created ",
+      "from": "2022-03-08T23:17:18Z",
+      "to": "2022-03-08T23:17:18Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb node/ip-10-0-231-18.us-east-2.compute.internal uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+      "message": "reason/Scheduled node/ip-10-0-231-18.us-east-2.compute.internal",
+      "from": "2022-03-08T23:17:18Z",
+      "to": "2022-03-08T23:17:18Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb node/ip-10-0-231-18.us-east-2.compute.internal uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
+      "message": "reason/Ready ",
+      "from": "2022-03-08T23:17:18Z",
+      "to": "2022-03-08T23:17:18Z"
+    }
+  ]
+}
