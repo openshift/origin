@@ -95,7 +95,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	m, err := StartAPIAvailability(ctx, restConfig, lb)
+	recorder, err := StartAPIAvailability(ctx, restConfig, lb)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 			case <-ctx.Done():
 				done = true
 			}
-			events := m.Intervals(last, time.Time{})
+			events := recorder.Intervals(last, time.Time{})
 			if len(events) > 0 {
 				for _, event := range events {
 					if !event.From.Equal(event.To) {
@@ -127,7 +127,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	<-ctx.Done()
 
 	// Store intervals to artifact directory
-	intervals := m.Intervals(time.Time{}, time.Time{})
+	intervals := recorder.Intervals(time.Time{}, time.Time{})
 	if len(opt.ExtraMessage) > 0 {
 		fmt.Fprintf(opt.Out, "\nAppending %s to recorded event message\n", opt.ExtraMessage)
 		for i, event := range intervals {
@@ -152,13 +152,14 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 }
 
 // StartAPIAvailability monitors just the cluster availability
-func StartAPIAvailability(ctx context.Context, restConfig *rest.Config, lb backend.LoadBalancerType) (*monitor.Monitor, error) {
-	m := monitor.NewMonitor(restConfig, nil)
+func StartAPIAvailability(ctx context.Context, restConfig *rest.Config, lb backend.LoadBalancerType) (monitor.Recorder, error) {
+	recorder := monitor.NewRecorder()
+
 	client, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
-	if err := controlplane.StartAPIMonitoringUsingNewBackend(ctx, m, restConfig, lb); err != nil {
+	if err := controlplane.StartAPIMonitoringUsingNewBackend(ctx, recorder, restConfig, lb); err != nil {
 		return nil, err
 	}
 
@@ -167,6 +168,6 @@ func StartAPIAvailability(ctx context.Context, restConfig *rest.Config, lb backe
 	if err != nil {
 		klog.Errorf("error reading initial apiserver availability: %v", err)
 	}
-	m.AddIntervals(intervals...)
-	return m, nil
+	recorder.AddIntervals(intervals...)
+	return recorder, nil
 }
