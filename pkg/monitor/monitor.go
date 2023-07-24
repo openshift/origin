@@ -4,6 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
+	"github.com/openshift/origin/pkg/invariants"
+
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
@@ -20,16 +24,20 @@ import (
 type Monitor struct {
 	adminKubeConfig                  *rest.Config
 	additionalEventIntervalRecorders []StartEventIntervalRecorderFunc
+	invariantRegistry                invariants.InvariantRegistry
 
 	recorder Recorder
+
+	junits []*junitapi.JUnitTestCase
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
-func NewMonitor(adminKubeConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc) *Monitor {
+func NewMonitor(adminKubeConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc, invariantRegistry invariants.InvariantRegistry) *Monitor {
 	return &Monitor{
 		adminKubeConfig:                  adminKubeConfig,
 		additionalEventIntervalRecorders: additionalEventIntervalRecorders,
 		recorder:                         NewRecorder(),
+		invariantRegistry:                invariantRegistry,
 	}
 }
 
@@ -38,6 +46,12 @@ var _ Recorder = &Monitor{}
 
 // Start begins monitoring the cluster referenced by the default kube configuration until context is finished.
 func (m *Monitor) Start(ctx context.Context) error {
+	localJunits, err := m.invariantRegistry.StartCollection(ctx, m.adminKubeConfig, m.recorder)
+	if err != nil {
+		return err
+	}
+	m.junits = append(m.junits, localJunits...)
+
 	client, err := kubernetes.NewForConfig(m.adminKubeConfig)
 	if err != nil {
 		return err
@@ -60,13 +74,50 @@ func (m *Monitor) Start(ctx context.Context) error {
 	}
 	m.AddIntervals(intervals...)
 
-	startPodMonitoring(ctx, m, client)
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)
 	shutdown.StartMonitoringGracefulShutdownEvents(ctx, m, client)
 
 	// add interval creation at the same point where we add the monitors
 	startClusterOperatorMonitoring(ctx, m, configClient)
+	return nil
+}
+
+func (m *Monitor) End(ctx context.Context, beginning, end time.Time) error {
+	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, beginning, end)
+	if err != nil {
+		return err
+	}
+	m.recorder.AddIntervals(collectedIntervals...)
+	m.junits = append(m.junits, collectionJunits...)
+
+	computedIntervals, computedJunit, err := m.invariantRegistry.ConstructComputedIntervals(
+		ctx,
+		m.recorder.Intervals(beginning, end),
+		m.recorder.CurrentResourceState(),
+		beginning,
+		end)
+	if err != nil {
+		return err
+	}
+	m.recorder.AddIntervals(computedIntervals...)
+	m.junits = append(m.junits, computedJunit...)
+
+	invariantJunits, err := m.invariantRegistry.EvaluateTestsFromConstructedIntervals(
+		ctx,
+		m.recorder.Intervals(beginning, end),
+	)
+	if err != nil {
+		return err
+	}
+	m.junits = append(m.junits, invariantJunits...)
+
+	cleanupJunits, err := m.invariantRegistry.Cleanup(ctx)
+	if err != nil {
+		return err
+	}
+	m.junits = append(m.junits, cleanupJunits...)
+
 	return nil
 }
 

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/defaultinvariants"
+
 	"github.com/sirupsen/logrus"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -90,11 +92,15 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 	t := time.Now()
 	o.startTime = &t
 
-	m := monitor.NewMonitor(restConfig, []monitor.StartEventIntervalRecorderFunc{
-		controlplane.StartAllAPIMonitoring,
-		frontends.StartAllIngressMonitoring,
-		externalservice.StartExternalServiceMonitoring,
-	})
+	m := monitor.NewMonitor(
+		restConfig,
+		[]monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAllAPIMonitoring,
+			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
+		},
+		defaultinvariants.NewDefaultInvariants(),
+	)
 	err := m.Start(ctx)
 	if err != nil {
 		return nil, err
@@ -162,6 +168,10 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 
 	var err error
 	fromTime, endTime := *o.startTime, *o.endTime
+	if err := o.monitor.End(ctx, fromTime, endTime); err != nil {
+		return err
+	}
+
 	events := o.monitor.Intervals(fromTime, endTime)
 
 	markMissedPathologicalEvents(events)

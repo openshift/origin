@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/defaultinvariants"
+
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -91,11 +93,15 @@ func (opt *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	m := monitor.NewMonitor(restConfig, []monitor.StartEventIntervalRecorderFunc{
-		controlplane.StartAllAPIMonitoring,
-		frontends.StartAllIngressMonitoring,
-		externalservice.StartExternalServiceMonitoring,
-	})
+	m := monitor.NewMonitor(
+		restConfig,
+		[]monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAllAPIMonitoring,
+			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
+		},
+		defaultinvariants.NewDefaultInvariants(),
+	)
 	if err := m.Start(ctx); err != nil {
 		return err
 	}
@@ -127,6 +133,10 @@ func (opt *RunMonitorOptions) Run() error {
 	<-ctx.Done()
 
 	time.Sleep(150 * time.Millisecond)
+
+	if err := m.End(ctx, time.Time{}, time.Time{}); err != nil {
+		return err
+	}
 
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {

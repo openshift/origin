@@ -13,6 +13,25 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+type Recorder interface {
+	// Intervals returns a sorted snapshot of intervals in the selected timeframe
+	Intervals(from, to time.Time) Intervals
+	// CurrentResourceState returns a list of all known resources of a given type at the instant called.
+	CurrentResourceState() ResourcesMap
+
+	// RecordResource stores a resource for later serialization.  Deletion is not tracked, so this can be used
+	// to determine the final state of resource that are deleted in a namespace.
+	// Annotations are added to indicate number of updates and the number of recreates.
+	RecordResource(resourceType string, obj runtime.Object)
+
+	Record(conditions ...Condition)
+	RecordAt(t time.Time, conditions ...Condition)
+
+	AddIntervals(eventIntervals ...EventInterval)
+	StartInterval(t time.Time, condition Condition) int
+	EndInterval(startedInterval int, t time.Time)
+}
+
 const (
 	// ObservedUpdateCountAnnotation is an annotation added locally (in the monitor only), that tracks how many updates
 	// we've seen to this resource.  This is useful during post-processing for determining if we have a hot resource.

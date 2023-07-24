@@ -30,7 +30,7 @@ func simpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorap
 	}
 }
 
-func newStateTracker(constructedBy monitorapi.ConstructionOwner, beginning time.Time) *stateTracker {
+func NewStateTracker(constructedBy monitorapi.ConstructionOwner, beginning time.Time) *stateTracker {
 	return &stateTracker{
 		beginning:                beginning,
 		locatorToStateMap:        map[string]stateMap{},
@@ -39,10 +39,10 @@ func newStateTracker(constructedBy monitorapi.ConstructionOwner, beginning time.
 	}
 }
 
-// stateMap is a map from state name to last transition time.
-type stateMap map[stateInfo]time.Time
+// stateMap is a map from State name to last transition time.
+type stateMap map[StateInfo]time.Time
 
-type stateInfo struct {
+type StateInfo struct {
 	stateName string
 	reason    monitorapi.IntervalReason
 }
@@ -74,14 +74,14 @@ func (t *stateTracker) hasOpenedState(locator, stateName string) bool {
 	return states.Has(stateName)
 }
 
-func state(stateName string, reason monitorapi.IntervalReason) stateInfo {
-	return stateInfo{
+func State(stateName string, reason monitorapi.IntervalReason) StateInfo {
+	return StateInfo{
 		stateName: stateName,
 		reason:    reason,
 	}
 }
 
-func (t *stateTracker) openInterval(locator string, state stateInfo, from time.Time) bool {
+func (t *stateTracker) OpenInterval(locator string, state StateInfo, from time.Time) bool {
 	states := t.getStates(locator)
 	if _, ok := states[state]; ok {
 		return true
@@ -96,16 +96,16 @@ func (t *stateTracker) openInterval(locator string, state stateInfo, from time.T
 
 	return false
 }
-func (t *stateTracker) closeIfOpenedInterval(locator string, state stateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.EventInterval {
+func (t *stateTracker) CloseIfOpenedInterval(locator string, state StateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.EventInterval {
 	states := t.getStates(locator)
 	if _, ok := states[state]; !ok {
 		return nil
 	}
 
-	return t.closeInterval(locator, state, conditionCreator, to)
+	return t.CloseInterval(locator, state, conditionCreator, to)
 }
 
-func (t *stateTracker) closeInterval(locator string, state stateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.EventInterval {
+func (t *stateTracker) CloseInterval(locator string, state StateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.EventInterval {
 	states := t.getStates(locator)
 
 	from, ok := states[state]
@@ -113,7 +113,7 @@ func (t *stateTracker) closeInterval(locator string, state stateInfo, conditionC
 		if t.hasOpenedState(locator, state.stateName) {
 			return nil // nothing to add, this is an extra close for something that already opened at least once.
 		}
-		// if we have no from and have not opened at all, then this is closing an interval that was in this state from the beginning of the run.
+		// if we have no from and have not opened at all, then this is closing an interval that was in this State from the beginning of the run.
 		from = t.beginning
 	}
 	delete(states, state)
@@ -132,7 +132,7 @@ func (t *stateTracker) closeInterval(locator string, state stateInfo, conditionC
 	}
 }
 
-func (t *stateTracker) closeAllIntervals(locatorToMessageAnnotations map[string]map[string]string, end time.Time) []monitorapi.EventInterval {
+func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]map[string]string, end time.Time) []monitorapi.EventInterval {
 	ret := []monitorapi.EventInterval{}
 	for locator, states := range t.locatorToStateMap {
 		annotationStrings := []string{}
@@ -142,7 +142,7 @@ func (t *stateTracker) closeAllIntervals(locatorToMessageAnnotations map[string]
 
 		for stateName := range states {
 			message := fmt.Sprintf("%v state/%v never completed", strings.Join(annotationStrings, " "), stateName.stateName)
-			ret = append(ret, t.closeInterval(locator, stateName, simpleCondition(t.constructedBy, monitorapi.Warning, stateName.reason, message), end)...)
+			ret = append(ret, t.CloseInterval(locator, stateName, simpleCondition(t.constructedBy, monitorapi.Warning, stateName.reason, message), end)...)
 		}
 	}
 

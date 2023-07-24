@@ -44,7 +44,7 @@ func intervalsFromEvents_OperatorStatus(intervals monitorapi.Intervals, beginnin
 			continue
 		}
 		if currentCondition.Status != conditionGoodState {
-			// don't overwrite a previous condition in a bad state
+			// don't overwrite a previous condition in a bad State
 			if lastCondition == nil {
 				// force teh last transition time, sinc we think we just transitioned at this instant
 				currentCondition.LastTransitionTime.Time = event.From
@@ -53,7 +53,7 @@ func intervalsFromEvents_OperatorStatus(intervals monitorapi.Intervals, beginnin
 			continue
 		}
 
-		// at this point we have transitioned to a good state.  Remove the previous "bad" state
+		// at this point we have transitioned to a good State.  Remove the previous "bad" State
 		delete(operatorToInterestingBadCondition, operatorName)
 
 		from := beginning
@@ -64,7 +64,7 @@ func intervalsFromEvents_OperatorStatus(intervals monitorapi.Intervals, beginnin
 			lastStatus = fmt.Sprintf("%v", lastCondition.Status)
 			lastMessage = lastCondition.Message
 		} else {
-			// if we're in a good state now, then we were probably in a bad state before.  Let's start by assuming that anyway
+			// if we're in a good State now, then we were probably in a bad State before.  Let's start by assuming that anyway
 			if conditionGoodState == configv1.ConditionTrue {
 				lastStatus = "False"
 			} else {

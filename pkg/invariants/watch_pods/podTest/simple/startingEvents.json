@@ -1,0 +1,60 @@
+{
+  "items": [
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "message": "reason/Created ",
+      "from": "2022-03-22T22:02:53Z",
+      "to": "2022-03-22T22:02:53Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "message": "reason/Scheduled node/ci-op-ckiwry67-db044-lzjpd-master-0",
+      "from": "2022-03-22T22:02:53Z",
+      "to": "2022-03-22T22:02:53Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "message": "reason/Ready ",
+      "from": "2022-03-22T22:02:53Z",
+      "to": "2022-03-22T22:02:53Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "message": "reason/GracefulDelete duration/30s",
+      "from": "2022-03-22T22:29:35Z",
+      "to": "2022-03-22T22:29:35Z"
+    },
+    {
+      "level": "Warning",
+      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "message": "reason/NotReady ",
+      "from": "2022-03-22T22:29:36Z",
+      "to": "2022-03-22T22:29:36Z"
+    },
+    {
+      "level": "Error",
+      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "message": "reason/TerminationStateCleared lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)",
+      "from": "2022-03-22T22:29:36Z",
+      "to": "2022-03-22T22:29:36Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "message": "reason/ContainerExit code/0 cause/Completed ",
+      "from": "2022-03-22T22:29:36Z",
+      "to": "2022-03-22T22:29:36Z"
+    },
+    {
+      "level": "Info",
+      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "message": "reason/Deleted ",
+      "from": "2022-03-22T22:29:36Z",
+      "to": "2022-03-22T22:29:36Z"
+    }
+  ]
+}

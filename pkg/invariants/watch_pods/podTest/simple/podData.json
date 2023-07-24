@@ -1,0 +1,280 @@
+{
+  "metadata": {
+    "annotations": {
+      "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"openshift-sdn\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.128.0.18\"\n    ],\n    \"default\": true,\n    \"dns\": {}\n}]",
+      "k8s.v1.cni.cncf.io/networks-status": "[{\n    \"name\": \"openshift-sdn\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.128.0.18\"\n    ],\n    \"default\": true,\n    \"dns\": {}\n}]",
+      "monitor.openshift.io/observed-recreation-count": "4",
+      "monitor.openshift.io/observed-update-count": "5",
+      "openshift.io/scc": "anyuid"
+    },
+    "creationTimestamp": "2022-03-22T21:41:54Z",
+    "deletionGracePeriodSeconds": 0,
+    "deletionTimestamp": "2022-03-22T22:29:35Z",
+    "generateName": "openshift-apiserver-operator-845779f5d-",
+    "labels": {
+      "app": "openshift-apiserver-operator",
+      "pod-template-hash": "845779f5d"
+    },
+    "name": "openshift-apiserver-operator-845779f5d-975gr",
+    "namespace": "openshift-apiserver-operator",
+    "ownerReferences": [
+      {
+        "apiVersion": "apps/v1",
+        "blockOwnerDeletion": true,
+        "controller": true,
+        "kind": "ReplicaSet",
+        "name": "openshift-apiserver-operator-845779f5d",
+        "uid": "729ccdab-259f-49c9-9a75-4a09bf5e06e7"
+      }
+    ],
+    "resourceVersion": "44651",
+    "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+  },
+  "spec": {
+    "containers": [
+      {
+        "args": [
+          "--config=/var/run/configmaps/config/config.yaml"
+        ],
+        "command": [
+          "cluster-openshift-apiserver-operator",
+          "operator"
+        ],
+        "env": [
+          {
+            "name": "IMAGE",
+            "value": "registry.build01.ci.openshift.org/ci-op-ckiwry67/stable-initial@sha256:3eead87248b27a997a8f00aaf7fcab6844ba10b4f20dd6c6917577be9d745676"
+          },
+          {
+            "name": "OPERATOR_IMAGE",
+            "value": "registry.build01.ci.openshift.org/ci-op-ckiwry67/stable-initial@sha256:321b111358c67fa7133b5be89a918953e9615c55ef928911ed8056dd9dbc041a"
+          },
+          {
+            "name": "OPERATOR_IMAGE_VERSION",
+            "value": "4.11.0-0.ci.test-2022-03-22-213420-ci-op-ckiwry67-initial"
+          },
+          {
+            "name": "OPERAND_IMAGE_VERSION",
+            "value": "4.11.0-0.ci.test-2022-03-22-213420-ci-op-ckiwry67-initial"
+          },
+          {
+            "name": "KUBE_APISERVER_OPERATOR_IMAGE",
+            "value": "registry.build01.ci.openshift.org/ci-op-ckiwry67/stable-initial@sha256:454af744093c351bfecf606c8740939d33b2a3360b3b9a2a649bdc8f9b4d6f17"
+          }
+        ],
+        "image": "registry.build01.ci.openshift.org/ci-op-ckiwry67/stable-initial@sha256:321b111358c67fa7133b5be89a918953e9615c55ef928911ed8056dd9dbc041a",
+        "imagePullPolicy": "IfNotPresent",
+        "name": "openshift-apiserver-operator",
+        "ports": [
+          {
+            "containerPort": 8443,
+            "name": "metrics",
+            "protocol": "TCP"
+          }
+        ],
+        "resources": {
+          "requests": {
+            "cpu": "10m",
+            "memory": "50Mi"
+          }
+        },
+        "securityContext": {
+          "capabilities": {
+            "drop": [
+              "MKNOD"
+            ]
+          }
+        },
+        "terminationMessagePath": "/dev/termination-log",
+        "terminationMessagePolicy": "FallbackToLogsOnError",
+        "volumeMounts": [
+          {
+            "mountPath": "/var/run/configmaps/config",
+            "name": "config"
+          },
+          {
+            "mountPath": "/var/run/secrets/serving-cert",
+            "name": "serving-cert"
+          },
+          {
+            "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount",
+            "name": "kube-api-access-b5hbz",
+            "readOnly": true
+          }
+        ]
+      }
+    ],
+    "dnsPolicy": "ClusterFirst",
+    "enableServiceLinks": true,
+    "nodeName": "ci-op-ckiwry67-db044-lzjpd-master-0",
+    "nodeSelector": {
+      "node-role.kubernetes.io/master": ""
+    },
+    "preemptionPolicy": "PreemptLowerPriority",
+    "priority": 2000000000,
+    "priorityClassName": "system-cluster-critical",
+    "restartPolicy": "Always",
+    "schedulerName": "default-scheduler",
+    "securityContext": {
+      "seLinuxOptions": {
+        "level": "s0:c15,c5"
+      }
+    },
+    "serviceAccount": "openshift-apiserver-operator",
+    "serviceAccountName": "openshift-apiserver-operator",
+    "terminationGracePeriodSeconds": 30,
+    "tolerations": [
+      {
+        "effect": "NoSchedule",
+        "key": "node-role.kubernetes.io/master",
+        "operator": "Exists"
+      },
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/unreachable",
+        "operator": "Exists",
+        "tolerationSeconds": 120
+      },
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/not-ready",
+        "operator": "Exists",
+        "tolerationSeconds": 120
+      },
+      {
+        "effect": "NoSchedule",
+        "key": "node.kubernetes.io/memory-pressure",
+        "operator": "Exists"
+      }
+    ],
+    "volumes": [
+      {
+        "name": "serving-cert",
+        "secret": {
+          "defaultMode": 420,
+          "optional": true,
+          "secretName": "openshift-apiserver-operator-serving-cert"
+        }
+      },
+      {
+        "configMap": {
+          "defaultMode": 420,
+          "name": "openshift-apiserver-operator-config"
+        },
+        "name": "config"
+      },
+      {
+        "name": "kube-api-access-b5hbz",
+        "projected": {
+          "defaultMode": 420,
+          "sources": [
+            {
+              "serviceAccountToken": {
+                "expirationSeconds": 3607,
+                "path": "token"
+              }
+            },
+            {
+              "configMap": {
+                "items": [
+                  {
+                    "key": "ca.crt",
+                    "path": "ca.crt"
+                  }
+                ],
+                "name": "kube-root-ca.crt"
+              }
+            },
+            {
+              "downwardAPI": {
+                "items": [
+                  {
+                    "fieldRef": {
+                      "apiVersion": "v1",
+                      "fieldPath": "metadata.namespace"
+                    },
+                    "path": "namespace"
+                  }
+                ]
+              }
+            },
+            {
+              "configMap": {
+                "items": [
+                  {
+                    "key": "service-ca.crt",
+                    "path": "service-ca.crt"
+                  }
+                ],
+                "name": "openshift-service-ca.crt"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "status": {
+    "conditions": [
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2022-03-22T21:44:19Z",
+        "status": "True",
+        "type": "Initialized"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2022-03-22T22:29:36Z",
+        "message": "containers with unready status: [openshift-apiserver-operator]",
+        "reason": "ContainersNotReady",
+        "status": "False",
+        "type": "Ready"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2022-03-22T22:29:36Z",
+        "message": "containers with unready status: [openshift-apiserver-operator]",
+        "reason": "ContainersNotReady",
+        "status": "False",
+        "type": "ContainersReady"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2022-03-22T21:44:19Z",
+        "status": "True",
+        "type": "PodScheduled"
+      }
+    ],
+    "containerStatuses": [
+      {
+        "containerID": "cri-o://c34b4ba1998db625a595d5be44b92f11593488f9613f287ea89402841ae01b20",
+        "image": "registry.build01.ci.openshift.org/ci-op-ckiwry67/stable-initial@sha256:321b111358c67fa7133b5be89a918953e9615c55ef928911ed8056dd9dbc041a",
+        "imageID": "registry.build01.ci.openshift.org/ci-op-ckiwry67/stable-initial@sha256:321b111358c67fa7133b5be89a918953e9615c55ef928911ed8056dd9dbc041a",
+        "lastState": {},
+        "name": "openshift-apiserver-operator",
+        "ready": false,
+        "restartCount": 1,
+        "started": false,
+        "state": {
+          "terminated": {
+            "containerID": "cri-o://c34b4ba1998db625a595d5be44b92f11593488f9613f287ea89402841ae01b20",
+            "exitCode": 0,
+            "finishedAt": "2022-03-22T22:29:35Z",
+            "reason": "Completed",
+            "startedAt": "2022-03-22T21:46:28Z"
+          }
+        }
+      }
+    ],
+    "hostIP": "10.0.0.4",
+    "phase": "Running",
+    "podIP": "10.128.0.18",
+    "podIPs": [
+      {
+        "ip": "10.128.0.18"
+      }
+    ],
+    "qosClass": "Burstable",
+    "startTime": "2022-03-22T21:44:19Z"
+  }
+}

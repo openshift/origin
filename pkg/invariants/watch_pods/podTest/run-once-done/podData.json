@@ -1,0 +1,31 @@
+{
+  "metadata": {
+    "creationTimestamp": null,
+    "name": "installer-3-ip-10-0-136-132.us-west-2.compute.internal",
+    "namespace": "openshift-kube-scheduler",
+    "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
+  },
+  "spec": {
+    "containers": null,
+    "restartPolicy": "Never"
+  },
+  "status": {
+    "containerStatuses": [
+      {
+        "name": "",
+        "state": {
+          "terminated": {
+            "exitCode": 0,
+            "startedAt": null,
+            "finishedAt": "2022-03-14T15:00:00Z"
+          }
+        },
+        "lastState": {},
+        "ready": false,
+        "restartCount": 0,
+        "image": "",
+        "imageID": ""
+      }
+    ]
+  }
+}

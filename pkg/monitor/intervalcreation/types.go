@@ -24,8 +24,6 @@ func defaultIntervalCreationFns() []simpleIntervalCreationFunc {
 		IntervalsFromEvents_OperatorDegraded,
 		IntervalsFromEvents_E2ETests,
 		IntervalsFromEvents_NodeChanges,
-		CreatePodIntervalsFromInstants,
-		IntervalsFromEvents_PodChanges,
 	}
 }
 
