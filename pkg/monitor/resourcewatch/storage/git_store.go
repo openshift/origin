@@ -102,6 +102,22 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	// this means there will never be contention on a single file.
 	// we will lock just before the commit itself.
 
+	// Allowing files to be written while a commit is in progress leads to commit failures due to unstaged changes
+	// moving the lock to the top of the handler to make the action atomic.
+	// E0706 02:06:26.489945    2444 git_store.go:338] Ran git add "namespaces/openshift-cloud-credential-operator/core/services/cco-metrics.yaml" && git commit --author="modified-unknown <ci-monitor@openshift.io>" -m "modifed services/cco-metrics -n openshift-cloud-credential-operator"
+	// On branch master
+	// Changes not staged for commit:
+	//  (use "git add <file>..." to update what will be committed)
+	//  (use "git restore <file>..." to discard changes in working directory)
+	//	modified:   namespaces/openshift-apiserver/core/pods/apiserver-856c47d994-47cf7.yaml
+	//
+	// Untracked files:
+	//  (use "git add <file>..." to include in what will be committed)
+	//	namespaces/openshift-etcd/core/pods/etcd-ci-op-g2xjpfr4-ed5cd-gqjcq-master-0.yaml
+
+	s.Lock()
+	defer s.Unlock()
+
 	filePath, content, err := decodeUnstructuredObject(gvr, obj)
 	if err != nil {
 		klog.Warningf("Decoding %q failed: %v", filePath, err)
@@ -121,21 +137,24 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	}
 
 	if delete {
+		klog.Infof("Calling commitRemove for %s", filePath)
 		// ignore error, we've already reported and we're not doing anything else.
-		_ = wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
-			// either the golang git library or git itself doesn't properly handle threading, so we have to lock here.
-			// take the lock inside the poll so that retries don't keep the lock for a long time.
-			s.Lock()
-			defer s.Unlock()
-
+		pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
 			if err := s.commitRemove(filePath, "unknown", ocCommand); err != nil {
 				klog.Error(err)
 				return false, nil
 			}
 			return true, nil
 		})
+
+		if pollErr != nil {
+			klog.Errorf("PollWait Error: %v", pollErr)
+		}
+
 		return
 	}
+
+	klog.Infof("Calling write for %s", filePath)
 	operation, err := s.write(filePath, content)
 	if err != nil {
 		klog.Warningf("Writing file content failed %q: %v", filePath, err)
@@ -149,30 +168,31 @@ func (s *GitStorage) handle(gvr schema.GroupVersionResource, oldObj, obj *unstru
 	}
 
 	// ignore error, we've already reported and we're not doing anything else.
-	_ = wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
-		// either the golang git library or git itself doesn't properly handle threading, so we have to lock here.
-		// take the lock inside the poll so that retries don't keep the lock for a long time.
-		s.Lock()
-		defer s.Unlock()
-
+	pollErr := wait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
 		switch {
 		case operation == gitOpAdded:
+			klog.Infof("Calling commitAdd for %s", filePath)
 			if err := s.commitAdd(filePath, modifyingUser, ocCommand); err != nil {
 				klog.Error(err)
 				return false, nil
 			}
 		case operation == gitOpModified:
+			klog.Infof("Calling commitModify for %s", filePath)
 			if err := s.commitModify(filePath, modifyingUser, ocCommand); err != nil {
 				klog.Error(err)
 				return false, nil
 			}
 		default:
-			klog.Error("unhandled case")
+			klog.Errorf("unhandled case for %s", filePath)
 
 			return true, nil
 		}
 		return true, nil
 	})
+
+	if pollErr != nil {
+		klog.Errorf("PollWait Error: %v", pollErr)
+	}
 }
 
 func (s *GitStorage) OnAdd(gvr schema.GroupVersionResource, obj interface{}) {
@@ -343,7 +363,17 @@ func (s *GitStorage) commitModify(path, author, ocCommand string) error {
 				klog.Errorf("Error removing .git/index.lock: %v", deleteErr)
 			}
 		}
+		// if nothing changed in the modify don't keep trying over and over
+		if strings.Contains(string(output), "nothing to commit") {
+			klog.Info("Exiting commitModify as nothing to commit")
+			return nil
+		}
+
 		return err
+	}
+
+	if output != nil {
+		klog.Infof("Ran %v\n%v\n\n", command, string(output))
 	}
 
 	klog.Infof("Modified: %v -- %v updated %v", path, author, ocCommand)
@@ -378,23 +408,26 @@ func (s *GitStorage) commitRemove(path, author, ocCommand string) error {
 func (s *GitStorage) write(name string, content []byte) (gitOperation, error) {
 	fullPath := filepath.Join(s.path, name)
 
+	fileMode := os.FileMode(0644)
+
 	// If the file does not exist, create it and report it as new file
 	// This will get reflected in the commit message
 	if _, err := os.Lstat(fullPath); err != nil {
 		if !os.IsNotExist(err) {
 			return gitOpError, err
 		}
+
 		if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
 			return gitOpError, err
 		}
-		if err := os.WriteFile(fullPath, content, os.ModePerm); err != nil {
+		if err := os.WriteFile(fullPath, content, fileMode); err != nil {
 			return gitOpError, err
 		}
 		return gitOpAdded, nil
 	}
 
 	// If the file exists, updated its content and report modified
-	if err := os.WriteFile(fullPath, content, os.ModePerm); err != nil {
+	if err := os.WriteFile(fullPath, content, fileMode); err != nil {
 		return gitOpError, err
 	}
 	return gitOpModified, nil

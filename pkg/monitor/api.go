@@ -1,26 +1,18 @@
 package monitor
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
-	configclientset "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/disruption/backend"
-	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitor/shutdown"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 )
 
 func GetMonitorRESTConfig() (*rest.Config, error) {
@@ -31,42 +23,6 @@ func GetMonitorRESTConfig() (*rest.Config, error) {
 	}
 
 	return clusterConfig, nil
-}
-
-// Start begins monitoring the cluster referenced by the default kube configuration until
-// context is finished.
-func Start(ctx context.Context, restConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc, lb backend.LoadBalancerType) (*Monitor, error) {
-	m := NewMonitorWithInterval(time.Second)
-	client, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-	configClient, err := configclientset.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, additionalEventIntervalRecorder := range additionalEventIntervalRecorders {
-		if err := additionalEventIntervalRecorder(ctx, m, restConfig, lb); err != nil {
-			return nil, err
-		}
-	}
-
-	// read the state of the cluster apiserver client access issues *before* any test (like upgrade) begins
-	intervals, err := apiserveravailability.APIServerAvailabilityIntervalsFromCluster(client, time.Time{}, time.Time{})
-	if err != nil {
-		klog.Errorf("error reading initial apiserver availability: %v", err)
-	}
-	m.AddIntervals(intervals...)
-
-	startPodMonitoring(ctx, m, client)
-	startNodeMonitoring(ctx, m, client)
-	startEventMonitoring(ctx, m, client)
-	shutdown.StartMonitoringGracefulShutdownEvents(ctx, m, client)
-
-	// add interval creation at the same point where we add the monitors
-	startClusterOperatorMonitoring(ctx, m, configClient)
-	return m, nil
 }
 
 func findContainerStatus(status []corev1.ContainerStatus, name string, position int) *corev1.ContainerStatus {
@@ -108,18 +64,6 @@ func locateEvent(event *corev1.Event) string {
 		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
 	}
 	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-}
-
-func filterToSystemNamespaces(obj runtime.Object) bool {
-	m, ok := obj.(metav1.Object)
-	if !ok {
-		return true
-	}
-	ns := m.GetNamespace()
-	if len(ns) == 0 {
-		return true
-	}
-	return strings.HasPrefix(ns, "kube-") || strings.HasPrefix(ns, "openshift-") || ns == "default"
 }
 
 type errorRecordingListWatcher struct {
