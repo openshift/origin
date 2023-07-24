@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/podipcontroller"
 	corev1 "k8s.io/api/core/v1"
@@ -15,7 +14,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func startPodMonitoring(ctx context.Context, m monitor.Recorder, client kubernetes.Interface) {
+func startPodMonitoring(ctx context.Context, m monitorapi.Recorder, client kubernetes.Interface) {
 	podPendingFn := func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 		isCreate := oldPod == nil
 		oldPodIsPending := oldPod != nil && oldPod.Status.Phase == "Pending"

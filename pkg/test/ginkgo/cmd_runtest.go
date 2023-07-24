@@ -107,6 +107,10 @@ func (opt *TestOptions) Run(args []string) error {
 		if err := opt.MonitorEventsOptions.Stop(ctx, restConfig, ""); err != nil {
 			return err
 		}
+		if err := opt.MonitorEventsOptions.SerializeResults(ctx, "", "e2e-invariant"); err != nil {
+			fmt.Fprintf(opt.ErrOut, "error: Failed to serialize run-data: %v\n", err)
+		}
+
 		timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().
 			UTC().Format("20060102-150405"))
 		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir("", timeSuffix); err != nil {

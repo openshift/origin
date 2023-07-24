@@ -27,7 +27,7 @@ func NewRecorder() *recorder {
 	}
 }
 
-var _ Recorder = &recorder{}
+var _ monitorapi.Recorder = &recorder{}
 
 func (m *recorder) CurrentResourceState() monitorapi.ResourcesMap {
 	m.recordedResourceLock.Lock()
