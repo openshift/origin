@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/synthetictests/allowedbackenddisruption"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/sirupsen/logrus"
@@ -48,6 +49,19 @@ func testServerAvailability(
 	connType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
 	backendName := fmt.Sprintf("%s-%s-connections", disruptionName, connType)
 	if jobType == nil {
+		// check for MicroShift cluster
+		kubeClient, err := framework.LoadClientset(true)
+		if err != nil {
+			panic(err)
+		}
+		isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+		if err != nil {
+			panic(err)
+		}
+		if isMicroShift {
+			return []*junitapi.JUnitTestCase{}
+		}
+
 		return []*junitapi.JUnitTestCase{
 			{
 				Name:     testName,
