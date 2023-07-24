@@ -124,7 +124,7 @@ func (m *recorder) RecordResource(resourceType string, obj runtime.Object) {
 }
 
 // Record captures one or more conditions at the current time. All conditions are recorded
-// in monotonic order as EventInterval objects.
+// in monotonic order as Interval objects.
 func (m *recorder) Record(conditions ...monitorapi.Condition) {
 	if len(conditions) == 0 {
 		return
@@ -133,7 +133,7 @@ func (m *recorder) Record(conditions ...monitorapi.Condition) {
 	defer m.lock.Unlock()
 	t := time.Now().UTC()
 	for _, condition := range conditions {
-		m.events = append(m.events, monitorapi.EventInterval{
+		m.events = append(m.events, monitorapi.Interval{
 			Condition: condition,
 			From:      t,
 			To:        t,
@@ -142,7 +142,7 @@ func (m *recorder) Record(conditions ...monitorapi.Condition) {
 }
 
 // AddIntervals provides a mechanism to directly inject eventIntervals
-func (m *recorder) AddIntervals(eventIntervals ...monitorapi.EventInterval) {
+func (m *recorder) AddIntervals(eventIntervals ...monitorapi.Interval) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.events = append(m.events, eventIntervals...)
@@ -153,7 +153,7 @@ func (m *recorder) AddIntervals(eventIntervals ...monitorapi.EventInterval) {
 func (m *recorder) StartInterval(t time.Time, condition monitorapi.Condition) int {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.events = append(m.events, monitorapi.EventInterval{
+	m.events = append(m.events, monitorapi.Interval{
 		Condition: condition,
 		From:      t,
 	})
@@ -173,7 +173,7 @@ func (m *recorder) EndInterval(startedInterval int, t time.Time) {
 }
 
 // RecordAt captures one or more conditions at the provided time. All conditions are recorded
-// as EventInterval objects.
+// as Interval objects.
 func (m *recorder) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	if len(conditions) == 0 {
 		return
@@ -181,7 +181,7 @@ func (m *recorder) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	for _, condition := range conditions {
-		m.events = append(m.events, monitorapi.EventInterval{
+		m.events = append(m.events, monitorapi.Interval{
 			Condition: condition,
 			From:      t,
 			To:        t,

@@ -132,7 +132,7 @@ func (r podRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap
 	errs := []error{}
 	for _, namespaceGroup := range namespaceGroups {
 		writer := NewNonSpyglassEventIntervalRenderer(namespaceGroup.name,
-			func(eventInterval monitorapi.EventInterval) bool {
+			func(eventInterval monitorapi.Interval) bool {
 				if !IsPodLifecycle(eventInterval) {
 					return false
 				}
@@ -171,7 +171,7 @@ func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorap
 		monitorapi.DisruptionSamplerOutageBeganEventReason)
 	relevantNamespaces := sets.NewString("openshift-authentication", "openshift-console", "openshift-image-registry", "openshift-ingress", "openshift-ovn-kubernetes")
 	writer := NewNonSpyglassEventIntervalRenderer("image-reg-console-oauth",
-		func(eventInterval monitorapi.EventInterval) bool {
+		func(eventInterval monitorapi.Interval) bool {
 			switch {
 			case isInterestingNamespace(eventInterval, relevantNamespaces):
 				return true

@@ -241,7 +241,7 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 
 	// use custom sorting here so that we can prioritize the sort order to make the intervals html page as readable
 	// as possible. This makes the events *not* sorted by time.
-	events := make([]monitorapi.EventInterval, len(o.recordedEvents))
+	events := make([]monitorapi.Interval, len(o.recordedEvents))
 	for i := range o.recordedEvents {
 		events[i] = o.recordedEvents[i]
 	}

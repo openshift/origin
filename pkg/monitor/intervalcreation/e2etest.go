@@ -50,7 +50,7 @@ func IntervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 		}
 
 		delete(testNameToLastStart, testName)
-		ret = append(ret, monitorapi.EventInterval{
+		ret = append(ret, monitorapi.Interval{
 			Condition: monitorapi.Condition{
 				Level:   level,
 				Locator: event.Locator,
@@ -62,7 +62,7 @@ func IntervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 	}
 
 	for testName, testStart := range testNameToLastStart {
-		ret = append(ret, monitorapi.EventInterval{
+		ret = append(ret, monitorapi.Interval{
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Warning,
 				Locator: monitorapi.E2ETestLocator(testName),
