@@ -15,7 +15,6 @@ import (
 
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	exutilcluster "github.com/openshift/origin/test/extended/util/cluster"
 )
@@ -127,7 +126,7 @@ type commandContext struct {
 type testOutputConfig struct {
 	testOutputLock  *sync.Mutex
 	out             io.Writer
-	monitorRecorder monitor.Recorder
+	monitorRecorder monitorapi.Recorder
 
 	includeSuccessfulOutput bool
 }
@@ -176,7 +175,7 @@ func isTestFailed(testState TestState) bool {
 }
 
 // testOutputLock prevents parallel tests from interleaving their output.
-func newTestOutputConfig(testOutputLock *sync.Mutex, out io.Writer, monitorRecorder monitor.Recorder, includeSuccessfulOutput bool) testOutputConfig {
+func newTestOutputConfig(testOutputLock *sync.Mutex, out io.Writer, monitorRecorder monitorapi.Recorder, includeSuccessfulOutput bool) testOutputConfig {
 	return testOutputConfig{
 		testOutputLock:          testOutputLock,
 		out:                     out,
@@ -260,7 +259,7 @@ func recordTestResultInLog(testRunResult *testRunResultHandle, out io.Writer, in
 	}
 }
 
-func recordTestResultInMonitor(testRunResult *testRunResultHandle, monitorRecorder monitor.Recorder) {
+func recordTestResultInMonitor(testRunResult *testRunResultHandle, monitorRecorder monitorapi.Recorder) {
 	eventMessage := "finishedStatus/Unknown reason/Unknown"
 	eventLevel := monitorapi.Warning
 

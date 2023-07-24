@@ -69,13 +69,13 @@ func locateEvent(event *corev1.Event) string {
 type errorRecordingListWatcher struct {
 	lw cache.ListerWatcher
 
-	recorder Recorder
+	recorder monitorapi.Recorder
 
 	lock          sync.Mutex
 	receivedError bool
 }
 
-func NewErrorRecordingListWatcher(recorder Recorder, lw cache.ListerWatcher) cache.ListerWatcher {
+func NewErrorRecordingListWatcher(recorder monitorapi.Recorder, lw cache.ListerWatcher) cache.ListerWatcher {
 	return &errorRecordingListWatcher{
 		lw:       lw,
 		recorder: recorder,

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -83,7 +84,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 
 	type args struct {
 		ctx                    context.Context
-		m                      Recorder
+		m                      monitorapi.Recorder
 		client                 kubernetes.Interface
 		reMatchFirstQuote      *regexp.Regexp
 		significantlyBeforeNow time.Time

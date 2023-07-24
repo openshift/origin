@@ -531,6 +531,9 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		return err
 	}
 	if len(opt.JUnitDir) > 0 {
+		if err := opt.MonitorEventsOptions.SerializeResults(ctx, opt.JUnitDir, junitSuiteName); err != nil {
+			fmt.Fprintf(opt.ErrOut, "error: Failed to serialize run-data: %v\n", err)
+		}
 		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(opt.JUnitDir, timeSuffix); err != nil {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}

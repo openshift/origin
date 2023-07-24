@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/monitor_command"
+	"github.com/openshift/origin/pkg/cmd/monitor_command/timeline"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
@@ -82,7 +83,7 @@ func main() {
 		monitor_command.NewMonitorCommand(),
 		newTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
-		monitor_command.NewTimelineCommand(ioStreams),
+		timeline.NewTimelineCommand(ioStreams),
 		NewRunInClusterDisruptionMonitorCommand(ioStreams),
 	)
 
