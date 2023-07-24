@@ -389,3 +389,31 @@ func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals)
 	// for now.
 	return []*junitapi.JUnitTestCase{failure, success}
 }
+
+func testNoTooManyNetlinkEventLogs(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-network] NetworkManager should not log too many netlink events to system journal"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "read: too many netlink events. Need to resynchronize platform cache") && strings.Contains(event.Message, "NetworkManager") {
+			msg := fmt.Sprintf("%v - %v", event.Locator, event.Message)
+			failures = append(failures, msg)
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("Found %d instances of NetworkManager logging too many netlink events. An undersized netlink socket receive buffer in NetworkManager can cause the kernel to have to send more, smaller messages at any given time. If NetworkManager does not process them fast enough, some messages can be lost, requiring a re-sync and triggering this log message.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+
+	// leaving as a flake so we can see how common this is for now.
+	return []*junitapi.JUnitTestCase{failure, success}
+}
