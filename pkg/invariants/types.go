@@ -2,6 +2,7 @@ package invariants
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/client-go/rest"
 
@@ -13,17 +14,17 @@ type InvariantTest interface {
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.
 	// This allows us to know when setups fail.
-	StartCollection(ctx context.Context, adminRESTConfig *rest.Config) error
+	StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.Recorder) error
 
 	// CollectData will only be called once near the end of execution, before all Intervals are inspected.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
-	CollectData(ctx context.Context) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
+	CollectData(ctx context.Context, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
 
 	// ConstructComputedIntervals is called after all InvariantTests have produced raw Intervals.
 	// Order of ConstructComputedIntervals across different InvariantTests is not guaranteed.
 	// Return *only* the constructed intervals.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
-	ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals) (constructedIntervals monitorapi.Intervals, err error)
+	ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error)
 
 	// EvaluateTestsFromConstructedIntervals is called after all Intervals are known and can produce
 	// junit tests for reporting purposes.
@@ -46,17 +47,17 @@ type InvariantRegistry interface {
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.
 	// This allows us to know when setups fail.
-	StartCollection(ctx context.Context, adminRESTConfig *rest.Config) ([]*junitapi.JUnitTestCase, error)
+	StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.Recorder) ([]*junitapi.JUnitTestCase, error)
 
 	// CollectData will only be called once near the end of execution, before all Intervals are inspected.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
-	CollectData(ctx context.Context) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
+	CollectData(ctx context.Context, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
 
 	// ConstructComputedIntervals is called after all InvariantTests have produced raw Intervals.
 	// Order of ConstructComputedIntervals across different InvariantTests is not guaranteed.
 	// Return *only* the constructed intervals.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
-	ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
+	ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
 
 	// EvaluateTestsFromConstructedIntervals is called after all Intervals are known and can produce
 	// junit tests for reporting purposes.

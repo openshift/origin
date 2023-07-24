@@ -1,4 +1,4 @@
-package intervalcreation
+package watchpods
 
 import (
 	"sort"
@@ -7,12 +7,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func IntervalsFromEvents_PodChanges(events monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
+func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
-	podStateTracker := newStateTracker(monitorapi.ConstructionOwnerPodLifecycle, beginning)
+	podStateTracker := intervalcreation.NewStateTracker(monitorapi.ConstructionOwnerPodLifecycle, beginning)
 	locatorToMessageAnnotations := map[string]map[string]string{}
 
 	for _, event := range events {
@@ -28,34 +29,23 @@ func IntervalsFromEvents_PodChanges(events monitorapi.Intervals, _ monitorapi.Re
 		}
 
 		podLocator := pod.ToLocator()
-		podPendingState := state("Pending", "PodWasPending")
+		podPendingState := intervalcreation.State("Pending", "PodWasPending")
 
 		switch reason {
 		case monitorapi.PodPendingReason:
-			podStateTracker.openInterval(podLocator, podPendingState, event.From)
+			podStateTracker.OpenInterval(podLocator, podPendingState, event.From)
 		case monitorapi.PodNotPendingReason:
-			intervals = append(intervals, podStateTracker.closeIfOpenedInterval(podLocator, podPendingState, pendingPodCondition, event.From)...)
+			intervals = append(intervals, podStateTracker.CloseIfOpenedInterval(podLocator, podPendingState, pendingPodCondition, event.From)...)
 		case monitorapi.PodReasonDeleted:
-			intervals = append(intervals, podStateTracker.closeIfOpenedInterval(podLocator, podPendingState, pendingPodCondition, event.From)...)
+			intervals = append(intervals, podStateTracker.CloseIfOpenedInterval(podLocator, podPendingState, pendingPodCondition, event.From)...)
 		}
 	}
-	intervals = append(intervals, podStateTracker.closeAllIntervals(locatorToMessageAnnotations, end)...)
+	intervals = append(intervals, podStateTracker.CloseAllIntervals(locatorToMessageAnnotations, end)...)
 
 	return intervals
 }
 
-func pendingPodCondition(locator string, from, to time.Time) (monitorapi.Condition, bool) {
-	if to.Sub(from) < 1*time.Minute {
-		return monitorapi.Condition{}, false
-	}
-	return monitorapi.Condition{
-		Level:   monitorapi.Warning,
-		Locator: locator,
-		Message: "pod has been pending longer than a minute",
-	}, true
-}
-
-func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, startTime, endTime time.Time) monitorapi.Intervals {
+func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, startTime, endTime time.Time) monitorapi.Intervals {
 	sort.Stable(ByPodLifecycle(input))
 	// these *static* locators to events. These are NOT the same as the actual event locators because nodes are not consistently assigned.
 	podToStateTransitions := map[string][]monitorapi.Interval{}
@@ -148,6 +138,17 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 
 	sort.Stable(ret)
 	return ret
+}
+
+func pendingPodCondition(locator string, from, to time.Time) (monitorapi.Condition, bool) {
+	if to.Sub(from) < 1*time.Minute {
+		return monitorapi.Condition{}, false
+	}
+	return monitorapi.Condition{
+		Level:   monitorapi.Warning,
+		Locator: locator,
+		Message: "pod has been pending longer than a minute",
+	}, true
 }
 
 func newSimpleTimeBounder(startTime, endTime time.Time) timeBounder {
