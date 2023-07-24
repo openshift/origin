@@ -10,6 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -29,6 +30,18 @@ func TestServerAvailability(
 	connType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
 	backendName := fmt.Sprintf("%s-%s-connections", disruptionName, connType)
 	if jobType == nil {
+		// check for MicroShift cluster
+		kubeClient, err := framework.LoadClientset(true)
+		if err != nil {
+			panic(err)
+		}
+		isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+		if err != nil {
+			panic(err)
+		}
+		if isMicroShift {
+			return []*junitapi.JUnitTestCase{}
+		}
 		return []*junitapi.JUnitTestCase{
 			{
 				Name:     testName,

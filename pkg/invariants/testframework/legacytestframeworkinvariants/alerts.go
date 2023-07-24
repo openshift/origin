@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
@@ -48,8 +49,9 @@ func testAlerts(events monitorapi.Intervals,
 	var etcdAllowance allowedalerts2.AlertTestAllowanceCalculator
 	etcdAllowance = allowedalerts2.DefaultAllowances
 	// if we have a restConfig,  use it.
+	var kubeClient *kubernetes.Clientset
 	if restConfig != nil {
-		kubeClient, err := kubernetes.NewForConfig(restConfig)
+		kubeClient, err = kubernetes.NewForConfig(restConfig)
 		if err != nil {
 			panic(err)
 		}
@@ -58,6 +60,20 @@ func testAlerts(events monitorapi.Intervals,
 		if err != nil {
 			panic(err)
 		}
+	}
+
+	if kubeClient == nil {
+		kubeClient, err = framework.LoadClientset(true)
+		if err != nil {
+			panic(err)
+		}
+	}
+	nsExist, err := exutil.IsNamespaceExist(kubeClient, "openshift-monitoring")
+	if err != nil {
+		panic(err)
+	}
+	if !nsExist {
+		return []*junitapi.JUnitTestCase{}
 	}
 
 	ret := RunAlertTests(jobType, allowancesFunc, featureSet, etcdAllowance, events, recordedResource)
