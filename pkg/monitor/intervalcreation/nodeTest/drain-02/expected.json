@@ -9,10 +9,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2023-07-18T16:40:16Z",
             "to": "2023-07-18T16:41:49Z"
@@ -26,10 +26,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2023-07-18T16:41:49Z",
             "to": "2023-07-19T23:58:52Z"

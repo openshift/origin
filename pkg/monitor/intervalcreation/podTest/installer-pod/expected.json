@@ -9,10 +9,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T21:37:20Z",
             "to": "2022-03-21T21:37:20Z"
@@ -26,10 +26,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T21:37:20Z",
             "to": "2022-03-21T21:37:56Z"
@@ -43,10 +43,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T21:37:20Z",
             "to": "2022-03-21T21:37:23Z"
@@ -60,10 +60,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T21:37:23Z",
             "to": "2022-03-21T21:37:23Z"
@@ -77,10 +77,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T21:37:23Z",
             "to": "2022-03-21T21:37:56Z"
@@ -94,10 +94,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T21:37:23Z",
             "to": "2022-03-21T21:37:56Z"
@@ -111,10 +111,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T21:37:56Z",
             "to": "2022-03-21T21:37:56Z"

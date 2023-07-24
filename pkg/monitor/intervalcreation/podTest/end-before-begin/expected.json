@@ -9,10 +9,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T16:43:14Z",
             "to": "2022-03-21T16:43:14Z"
@@ -26,10 +26,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T16:43:14Z",
             "to": "2022-03-21T16:43:14Z"
@@ -43,10 +43,10 @@
                 "keys": null
             },
             "tempStructuredMessage": {
-                "Reason": "",
-                "Cause": "",
-                "HumanMessage": "",
-                "Annotations": null
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
             },
             "from": "2022-03-21T16:43:14Z",
             "to": "2022-03-21T16:43:14Z"
