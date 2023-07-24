@@ -80,7 +80,7 @@ func NewMonitorEventsOptions(out io.Writer, errOut io.Writer) *MonitorEventsOpti
 	}
 }
 
-func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Config) (monitor.Recorder, error) {
+func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Config) (monitorapi.Recorder, error) {
 	if o.monitor != nil {
 		return nil, fmt.Errorf("already started")
 	}
@@ -227,6 +227,10 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	o.recordedEvents = events
 
 	return nil
+}
+
+func (m *MonitorEventsOptions) SerializeResults(ctx context.Context, storageDir, junitSuiteName string) error {
+	return m.monitor.SerializeResults(ctx, storageDir, junitSuiteName)
 }
 
 func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {
