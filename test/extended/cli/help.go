@@ -28,8 +28,8 @@ var _ = g.Describe("[sig-cli] oc help", func() {
 		out := string(stdout)
 		o.Expect(out).To(o.ContainSubstring("Build and Deploy Commands:"))
 		o.Expect(out).To(o.ContainSubstring("Other Commands:"))
-		o.Expect(out).NotTo(o.ContainSubstring("Options"))
-		o.Expect(out).NotTo(o.ContainSubstring("Global Options"))
+		o.Expect(out).NotTo(o.ContainSubstring("RunSuiteOptions"))
+		o.Expect(out).NotTo(o.ContainSubstring("Global RunSuiteOptions"))
 
 		stdout, err = exec.Command("oc", "--help").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -54,8 +54,8 @@ var _ = g.Describe("[sig-cli] oc help", func() {
 		// help for root commands with --help flag must be consistent
 		out, err = oc.Run("login").Args("--help").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Options"))
-		o.Expect(out).NotTo(o.ContainSubstring("Global Options"))
+		o.Expect(out).To(o.ContainSubstring("RunSuiteOptions"))
+		o.Expect(out).NotTo(o.ContainSubstring("Global RunSuiteOptions"))
 		o.Expect(out).To(o.ContainSubstring("insecure-skip-tls-verify"))
 
 		// help for given command with --help flag must be consistent

@@ -3,6 +3,8 @@ package frontends
 import (
 	"context"
 
+	configv1 "github.com/openshift/api/config/v1"
+
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/origin/pkg/disruption/backend"
@@ -10,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/cluster"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -56,8 +57,8 @@ func StartAllIngressMonitoring(ctx context.Context, m monitor.Recorder, clusterC
 		}
 		// If the cluster does not know about the Console capability, it likely predates 4.12 and we can assume
 		// it has it by default. This is to catch possible future scenarios where we upgrade 4.11 no cap to 4.12 no cap.
-		if !cluster.KnowsCapability(clusterVersion, "Console") ||
-			cluster.HasCapability(clusterVersion, "Console") {
+		if !knowsCapability(clusterVersion, "Console") ||
+			hasCapability(clusterVersion, "Console") {
 			if err := CreateConsoleRouteAvailableWithNewConnections().StartEndpointMonitoring(ctx, m, nil); err != nil {
 				return err
 			}
@@ -68,6 +69,23 @@ func StartAllIngressMonitoring(ctx context.Context, m monitor.Recorder, clusterC
 	}
 
 	return nil
+}
+
+func hasCapability(clusterVersion *configv1.ClusterVersion, desiredCapability string) bool {
+	for _, ec := range clusterVersion.Status.Capabilities.EnabledCapabilities {
+		if string(ec) == desiredCapability {
+			return true
+		}
+	}
+	return false
+}
+func knowsCapability(clusterVersion *configv1.ClusterVersion, desiredCapability string) bool {
+	for _, ec := range clusterVersion.Status.Capabilities.KnownCapabilities {
+		if string(ec) == desiredCapability {
+			return true
+		}
+	}
+	return false
 }
 
 func isRouteAvailable(ctx context.Context, config *rest.Config, namespace, name string) (bool, error) {

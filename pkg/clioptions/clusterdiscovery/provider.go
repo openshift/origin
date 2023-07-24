@@ -1,4 +1,4 @@
-package main
+package clusterdiscovery
 
 import (
 	"encoding/json"
@@ -11,8 +11,6 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-	exutilcluster "github.com/openshift/origin/test/extended/util/cluster"
-
 	// Initialize baremetal as a provider
 	_ "github.com/openshift/origin/test/extended/util/baremetal"
 
@@ -33,7 +31,7 @@ import (
 	_ "k8s.io/kubernetes/test/e2e/lifecycle"
 )
 
-func initializeTestFramework(context *e2e.TestContextType, config *exutilcluster.ClusterConfiguration, dryRun bool) error {
+func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfiguration, dryRun bool) error {
 	// update context with loaded config
 	context.Provider = config.ProviderName
 	context.CloudConfig = e2e.CloudConfig{
@@ -75,10 +73,10 @@ func initializeTestFramework(context *e2e.TestContextType, config *exutilcluster
 	return nil
 }
 
-func decodeProvider(provider string, dryRun, discover bool, clusterState *exutilcluster.ClusterState) (*exutilcluster.ClusterConfiguration, error) {
+func DecodeProvider(provider string, dryRun, discover bool, clusterState *ClusterState) (*ClusterConfiguration, error) {
 	switch provider {
 	case "none":
-		config := &exutilcluster.ClusterConfiguration{
+		config := &ClusterConfiguration{
 			ProviderName: "skeleton",
 		}
 		// Add NoOptionalCapabilities for MicroShift
@@ -99,11 +97,11 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 	case "":
 		if _, ok := os.LookupEnv("KUBE_SSH_USER"); ok {
 			if _, ok := os.LookupEnv("LOCAL_SSH_KEY"); ok {
-				return &exutilcluster.ClusterConfiguration{ProviderName: "local"}, nil
+				return &ClusterConfiguration{ProviderName: "local"}, nil
 			}
 		}
 		if dryRun {
-			return &exutilcluster.ClusterConfiguration{ProviderName: "skeleton"}, nil
+			return &ClusterConfiguration{ProviderName: "skeleton"}, nil
 		}
 		fallthrough
 
@@ -113,12 +111,12 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 			if err != nil {
 				return nil, err
 			}
-			clusterState, err = exutilcluster.DiscoverClusterState(clientConfig)
+			clusterState, err = DiscoverClusterState(clientConfig)
 			if err != nil {
 				return nil, err
 			}
 		}
-		config, err := exutilcluster.LoadConfig(clusterState)
+		config, err := LoadConfig(clusterState)
 		if err != nil {
 			return nil, err
 		}
@@ -137,19 +135,19 @@ func decodeProvider(provider string, dryRun, discover bool, clusterState *exutil
 		if len(providerInfo.Type) == 0 {
 			return nil, fmt.Errorf("provider must be a JSON object with the 'type' key")
 		}
-		var config *exutilcluster.ClusterConfiguration
+		var config *ClusterConfiguration
 		if discover {
 			if clusterState == nil {
 				if clientConfig, err := e2e.LoadConfig(true); err == nil {
-					clusterState, _ = exutilcluster.DiscoverClusterState(clientConfig)
+					clusterState, _ = DiscoverClusterState(clientConfig)
 				}
 			}
 			if clusterState != nil {
-				config, _ = exutilcluster.LoadConfig(clusterState)
+				config, _ = LoadConfig(clusterState)
 			}
 		}
 		if config == nil {
-			config = &exutilcluster.ClusterConfiguration{}
+			config = &ClusterConfiguration{}
 		}
 
 		if err := json.Unmarshal([]byte(provider), config); err != nil {

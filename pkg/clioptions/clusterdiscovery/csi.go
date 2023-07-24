@@ -1,4 +1,4 @@
-package main
+package clusterdiscovery
 
 import (
 	"fmt"
@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	manifestEnvVar = "TEST_CSI_DRIVER_FILES"
+	CSIManifestEnvVar = "TEST_CSI_DRIVER_FILES"
 )
 
 // Initialize openshift/csi suite, i.e. define CSI tests from TEST_CSI_DRIVER_FILES.
 func initCSITests(dryRun bool) error {
-	manifestList := os.Getenv(manifestEnvVar)
+	manifestList := os.Getenv(CSIManifestEnvVar)
 	if manifestList != "" {
 		manifests := strings.Split(manifestList, ",")
 		for _, manifest := range manifests {
