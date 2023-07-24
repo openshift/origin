@@ -68,6 +68,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testConfigOperatorProbeErrorLivenessProbe(events)...)
 	tests = append(tests, testOauthApiserverProbeErrorReadiness(events)...)
 	tests = append(tests, testNoOVSVswitchdUnreasonablyLongPollIntervals(events)...)
+	tests = append(tests, testNoTooManyNetlinkEventLogs(events)...)
 	tests = append(tests, testOauthApiserverProbeErrorLiveness(events)...)
 	tests = append(tests, testOauthApiserverProbeErrorConnectionRefused(events)...)
 	tests = append(tests, testNodeHasNoDiskPressure(events)...)
@@ -135,6 +136,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testMultipleSingleSecondDisruptions(events)...)
 	tests = append(tests, testNoDNSLookupErrorsInDisruptionSamplers(events)...)
 	tests = append(tests, testNoOVSVswitchdUnreasonablyLongPollIntervals(events)...)
+	tests = append(tests, testNoTooManyNetlinkEventLogs(events)...)
 	tests = append(tests, TestAPIServerIPTablesAccessDisruption(events)...)
 
 	tests = append(tests, testNoExcessiveSecretGrowthDuringUpgrade()...)

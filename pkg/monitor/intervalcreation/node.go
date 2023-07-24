@@ -126,10 +126,19 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			}
 			newOVSEvents := eventsFromOVSVswitchdLogs(nodeName, ovsVswitchdLogs)
 
+			networkManagerLogs, err := nodedetails.GetNodeLog(ctx, kubeClient, nodeName, "NetworkManager")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting node NetworkManager logs from %s: %s", nodeName, err.Error())
+				errCh <- err
+				return
+			}
+			newNetworkManagerIntervals := intervalsFromNetworkManagerLogs(nodeName, networkManagerLogs)
+
 			lock.Lock()
 			defer lock.Unlock()
 			ret = append(ret, newEvents...)
 			ret = append(ret, newOVSEvents...)
+			ret = append(ret, newNetworkManagerIntervals...)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -237,6 +246,44 @@ func unreasonablyLongPollInterval(logLine, nodeLocator string) monitorapi.Interv
 }
 
 var unreasonablyLongPollIntervalRE = regexp.MustCompile(`Unreasonably long (\d+)ms poll interval`)
+
+// intervalsFromNetworkManagerLogs returns the produced intervals.  Any errors during this creation are logged, but
+// not returned because this is a best effort step
+func intervalsFromNetworkManagerLogs(nodeName string, ovsLogs []byte) monitorapi.Intervals {
+	locator := monitorapi.NewLocator().NodeFromName(nodeName)
+	ret := monitorapi.Intervals{}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(ovsLogs))
+	for scanner.Scan() {
+		currLine := scanner.Text()
+		ret = append(ret, tooManyNetlinkEvents(currLine, locator)...)
+	}
+
+	return ret
+}
+
+// tooManyNetlinkEvents searches for a failure associated with https://issues.redhat.com/browse/OCPBUGS-11591
+//
+// Apr 12 11:49:49.188086 ci-op-xs3rnrtc-2d4c7-4mhm7-worker-b-dwc7w NetworkManager[1155]:
+// <info> [1681300187.8326] platform-linux: netlink[rtnl]: read: too many netlink events.
+// Need to resynchronize platform cache
+func tooManyNetlinkEvents(logLine string, nodeLocator monitorapi.Locator) monitorapi.Intervals {
+	if !strings.Contains(logLine, "too many netlink events. Need to resynchronize platform cache") {
+		return nil
+	}
+
+	logTime := systemdJournalLogTime(logLine)
+
+	message := logLine[strings.Index(logLine, "NetworkManager"):]
+	return monitorapi.Intervals{
+		{
+			Condition: monitorapi.NewCondition(monitorapi.Warning).Locator(
+				nodeLocator).Message(monitorapi.NewMessage().HumanMessage(message)).Build(),
+			From: logTime,
+			To:   logTime,
+		},
+	}
+}
 
 type kubeletLogLineEventCreator func(logLine string) monitorapi.Intervals
 
