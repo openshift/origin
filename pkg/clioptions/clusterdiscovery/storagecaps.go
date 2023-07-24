@@ -1,4 +1,4 @@
-package main
+package clusterdiscovery
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"gopkg.in/yaml.v2"
 )
 
@@ -49,8 +48,8 @@ type YamlManifest struct {
 	DriverInfo    `yaml:"DriverInfo"`
 }
 
-func printStorageCapabilities(out io.Writer) {
-	manifestFilename := strings.Split(os.Getenv(clusterdiscovery.CSIManifestEnvVar), ",")[0]
+func PrintStorageCapabilities(out io.Writer) {
+	manifestFilename := strings.Split(os.Getenv(CSIManifestEnvVar), ",")[0]
 	if manifestFilename == "" {
 		fmt.Fprintln(out, "No manifest filename passed")
 		return

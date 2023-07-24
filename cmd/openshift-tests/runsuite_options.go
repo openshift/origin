@@ -14,8 +14,10 @@ import (
 	"k8s.io/klog/v2"
 )
 
+// TODO collapse this with cmd_runsuite
 type RunSuiteOptions struct {
 	GinkgoRunSuiteOptions *testginkgo.GinkgoRunSuiteOptions
+	AvailableSuites       []*testginkgo.TestSuite
 
 	FromRepository string
 	Provider       string
@@ -29,9 +31,10 @@ type RunSuiteOptions struct {
 	config *clusterdiscovery.ClusterConfiguration
 }
 
-func NewRunSuiteOptions(fromRepository string) *RunSuiteOptions {
+func NewRunSuiteOptions(fromRepository string, availableSuites []*testginkgo.TestSuite) *RunSuiteOptions {
 	return &RunSuiteOptions{
 		GinkgoRunSuiteOptions: testginkgo.NewGinkgoRunSuiteOptions(os.Stdout, os.Stderr),
+		AvailableSuites:       availableSuites,
 
 		FromRepository: fromRepository,
 	}
@@ -105,20 +108,12 @@ func (o *RunSuiteOptions) AsEnv() []string {
 	return args
 }
 
-func (o *RunSuiteOptions) SelectSuite(suites testSuites, args []string) (*testSuite, error) {
-	suite, err := o.GinkgoRunSuiteOptions.SelectSuite(suites.TestSuites(), args)
+func (o *RunSuiteOptions) SelectSuite(args []string) (*testginkgo.TestSuite, error) {
+	suite, err := o.GinkgoRunSuiteOptions.SelectSuite(o.AvailableSuites, args)
 	if err != nil {
 		return nil, err
 	}
-	for i := range suites {
-		if &suites[i].TestSuite == suite {
-			return &suites[i], nil
-		}
-	}
-	if len(o.Provider) > 0 {
-		return &testSuite{TestSuite: *suite, PreSuite: suiteWithProviderPreSuite}, nil
-	}
-	return &testSuite{TestSuite: *suite}, nil
+	return suite, nil
 }
 
 func (o *RunSuiteOptions) BindOptions(flags *pflag.FlagSet) {

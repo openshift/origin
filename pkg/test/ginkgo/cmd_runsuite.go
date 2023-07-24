@@ -634,3 +634,15 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
 }
+
+// TODO re-collapse
+// SuitesString returns a string with the provided suites formatted. Prefix is
+// printed at the beginning of the output.
+func SuitesString(suites []*TestSuite, prefix string) string {
+	buf := &bytes.Buffer{}
+	fmt.Fprintf(buf, prefix)
+	for _, suite := range suites {
+		fmt.Fprintf(buf, "%s\n  %s\n\n", suite.Name, suite.Description)
+	}
+	return buf.String()
+}

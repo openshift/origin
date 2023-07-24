@@ -94,7 +94,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, junitReportUsageLong+"\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, junitReportUsage+"\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, junitReportExamples+"\n", os.Args[0])
-		fmt.Fprintln(os.Stderr, "RunSuiteOptions:")
+		fmt.Fprintln(os.Stderr, "Options:")
 		flag.PrintDefaults()
 		os.Exit(2)
 	}

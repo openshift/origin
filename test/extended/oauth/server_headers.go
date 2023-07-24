@@ -55,14 +55,14 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.ope
 			allHeaders := http.Header{}
 			for key, val := range map[string]string{
 				// security related headers that we really care about, should not change
-				"Cache-Control":                  "no-cache, no-store, max-age=0, must-revalidate",
-				"Pragma":                         "no-cache",
-				"Expires":                        "0",
-				"Referrer-Policy":                "strict-origin-when-cross-origin",
-				"X-Frame-RunSuiteOptions":        "DENY",
-				"X-Content-Type-RunSuiteOptions": "nosniff",
-				"X-DNS-Prefetch-Control":         "off",
-				"X-XSS-Protection":               "1; mode=block",
+				"Cache-Control":          "no-cache, no-store, max-age=0, must-revalidate",
+				"Pragma":                 "no-cache",
+				"Expires":                "0",
+				"Referrer-Policy":        "strict-origin-when-cross-origin",
+				"X-Frame-Options":        "DENY",
+				"X-Content-Type-Options": "nosniff",
+				"X-DNS-Prefetch-Control": "off",
+				"X-XSS-Protection":       "1; mode=block",
 
 				// non-security headers, should not change
 				// adding items here should be validated to make sure they do not conflict with any security headers
