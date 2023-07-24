@@ -204,8 +204,9 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 }
 
 func getKubeVirtPodFromGuestNode(framework *e2e.Framework, node v1.Node) (*corev1.Pod, error) {
-
-	podList, err := framework.ClientSet.CoreV1().Pods(framework.Namespace.Name).List(context.Background(), metav1.ListOptions{})
+	podList, err := framework.ClientSet.CoreV1().Pods(framework.Namespace.Name).List(context.Background(), metav1.ListOptions{
+		LabelSelector: "kubevirt.io=virt-launcher",
+	})
 	Expect(err).NotTo(HaveOccurred())
 	for _, pod := range podList.Items {
 		if strings.Contains(pod.Name, node.Name) {
