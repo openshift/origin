@@ -549,6 +549,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 		return err
 	}
 	if len(o.JUnitDir) > 0 {
+		if err := o.MonitorEventsOptions.SerializeResults(ctx, o.JUnitDir, junitSuiteName); err != nil {
+			fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
+		}
 		if err := o.MonitorEventsOptions.WriteRunDataToArtifactsDir(o.JUnitDir, timeSuffix); err != nil {
 			fmt.Fprintf(o.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}

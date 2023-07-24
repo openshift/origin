@@ -3,7 +3,6 @@ package invariants
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -15,8 +14,6 @@ import (
 
 type invariantRegistry struct {
 	invariantTests map[string]*invariantItem
-
-	collectData sync.Once
 }
 
 type invariantItem struct {
@@ -90,35 +87,33 @@ func (r *invariantRegistry) CollectData(ctx context.Context, beginning, end time
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
-	r.collectData.Do(func() {
-		for _, invariant := range r.invariantTests {
-			testName := fmt.Sprintf("jira/%q invariant test %v collection", invariant.jiraComponent, invariant.name)
+	for _, invariant := range r.invariantTests {
+		testName := fmt.Sprintf("jira/%q invariant test %v collection", invariant.jiraComponent, invariant.name)
 
-			start := time.Now()
-			localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx, beginning, end)
-			junits = append(junits, localJunits...)
-			intervals = append(intervals, localIntervals...)
-			end := time.Now()
-			duration := end.Sub(start)
-			if err != nil {
-				errs = append(errs, err)
-				junits = append(junits, &junitapi.JUnitTestCase{
-					Name:     testName,
-					Duration: duration.Seconds(),
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("failed during collection\n%v", err),
-					},
-					SystemOut: fmt.Sprintf("failed during collection\n%v", err),
-				})
-				continue
-			}
-
+		start := time.Now()
+		localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx, beginning, end)
+		junits = append(junits, localJunits...)
+		intervals = append(intervals, localIntervals...)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
 				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during collection\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during collection\n%v", err),
 			})
+			continue
 		}
-	})
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
 
 	return intervals, junits, utilerrors.NewAggregate(errs)
 }
@@ -128,34 +123,32 @@ func (r *invariantRegistry) ConstructComputedIntervals(ctx context.Context, star
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
-	r.collectData.Do(func() {
-		for _, invariant := range r.invariantTests {
-			testName := fmt.Sprintf("jira/%q invariant test %v interval construction", invariant.jiraComponent, invariant.name)
+	for _, invariant := range r.invariantTests {
+		testName := fmt.Sprintf("jira/%q invariant test %v interval construction", invariant.jiraComponent, invariant.name)
 
-			start := time.Now()
-			localIntervals, err := invariant.invariantTest.ConstructComputedIntervals(ctx, startingIntervals, recordedResources, beginning, end)
-			intervals = append(intervals, localIntervals...)
-			end := time.Now()
-			duration := end.Sub(start)
-			if err != nil {
-				errs = append(errs, err)
-				junits = append(junits, &junitapi.JUnitTestCase{
-					Name:     testName,
-					Duration: duration.Seconds(),
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("failed during interval construction\n%v", err),
-					},
-					SystemOut: fmt.Sprintf("failed during interval construction\n%v", err),
-				})
-				continue
-			}
-
+		start := time.Now()
+		localIntervals, err := invariant.invariantTest.ConstructComputedIntervals(ctx, startingIntervals, recordedResources, beginning, end)
+		intervals = append(intervals, localIntervals...)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
 				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during interval construction\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during interval construction\n%v", err),
 			})
+			continue
 		}
-	})
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
 
 	return intervals, junits, utilerrors.NewAggregate(errs)
 }
@@ -164,34 +157,32 @@ func (r *invariantRegistry) EvaluateTestsFromConstructedIntervals(ctx context.Co
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
-	r.collectData.Do(func() {
-		for _, invariant := range r.invariantTests {
-			testName := fmt.Sprintf("jira/%q invariant test %v test evaluation", invariant.jiraComponent, invariant.name)
+	for _, invariant := range r.invariantTests {
+		testName := fmt.Sprintf("jira/%q invariant test %v test evaluation", invariant.jiraComponent, invariant.name)
 
-			start := time.Now()
-			localJunits, err := invariant.invariantTest.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
-			junits = append(junits, localJunits...)
-			end := time.Now()
-			duration := end.Sub(start)
-			if err != nil {
-				errs = append(errs, err)
-				junits = append(junits, &junitapi.JUnitTestCase{
-					Name:     testName,
-					Duration: duration.Seconds(),
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("failed during test evaluation\n%v", err),
-					},
-					SystemOut: fmt.Sprintf("failed during test evaluation\n%v", err),
-				})
-				continue
-			}
-
+		start := time.Now()
+		localJunits, err := invariant.invariantTest.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
+		junits = append(junits, localJunits...)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
 				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during test evaluation\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during test evaluation\n%v", err),
 			})
+			continue
 		}
-	})
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
 
 	return junits, utilerrors.NewAggregate(errs)
 }

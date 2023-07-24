@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
+func startEventMonitoring(ctx context.Context, m monitorapi.Recorder, client kubernetes.Interface) {
 	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
 	// filter out events written "now" but with significantly older start times (events
@@ -129,7 +129,7 @@ func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool
 
 func recordAddOrUpdateEvent(
 	ctx context.Context,
-	recorder Recorder,
+	recorder monitorapi.Recorder,
 	client kubernetes.Interface,
 	reMatchFirstQuote *regexp.Regexp,
 	significantlyBeforeNow time.Time,
