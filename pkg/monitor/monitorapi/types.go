@@ -176,12 +176,12 @@ const (
 
 type Message struct {
 	// TODO: reason/cause both fields and annotations...
-	Reason       IntervalReason
-	Cause        string
-	HumanMessage string
+	Reason       IntervalReason `json:"reason"`
+	Cause        string         `json:"cause"`
+	HumanMessage string         `json:"humanMessage"`
 
 	// annotations will include the Reason and Cause under their respective keys
-	Annotations map[AnnotationKey]string
+	Annotations map[AnnotationKey]string `json:"annotations"`
 }
 
 type Interval struct {
