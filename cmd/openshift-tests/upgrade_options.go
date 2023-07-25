@@ -16,14 +16,22 @@ type UpgradeOptions struct {
 }
 
 func NewUpgradeOptionsFromYAML(yaml string) (*UpgradeOptions, error) {
+	if len(yaml) == 0 {
+		return nil, nil
+	}
+
 	var opt UpgradeOptions
 	if err := json.Unmarshal([]byte(yaml), &opt); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse upgrade options from yaml: %w", err)
 	}
 	return &opt, nil
 }
 
 func (o *UpgradeOptions) ToEnv() string {
+	if o == nil {
+		return ""
+	}
+
 	out, err := json.Marshal(o)
 	if err != nil {
 		panic(err)
@@ -34,6 +42,11 @@ func (o *UpgradeOptions) ToEnv() string {
 // SetUpgradeGlobals uses variables set at suite execution time to prepare the upgrade
 // test environment in process (setting constants in the upgrade packages).
 func (o *UpgradeOptions) SetUpgradeGlobals() error {
+	// nothing to do
+	if o == nil {
+		return nil
+	}
+
 	if err := SetUpgradeGlobalsFromTestOptions(o.TestOptions); err != nil {
 		return err
 	}
