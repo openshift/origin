@@ -22,15 +22,15 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func WhenWasAlertFiring(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, namespace string) ([]monitorapi.EventInterval, error) {
+func WhenWasAlertFiring(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, namespace string) ([]monitorapi.Interval, error) {
 	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "firing", namespace)
 }
 
-func WhenWasAlertPending(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, namespace string) ([]monitorapi.EventInterval, error) {
+func WhenWasAlertPending(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, namespace string) ([]monitorapi.Interval, error) {
 	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "pending", namespace)
 }
 
-func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, alertState, namespace string) ([]monitorapi.EventInterval, error) {
+func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, alertState, namespace string) ([]monitorapi.Interval, error) {
 	if alertState != "pending" && alertState != "firing" {
 		return nil, fmt.Errorf("unrecognized alertState: %v", alertState)
 	}
@@ -68,7 +68,7 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 	}
 
 	if namespace == platformidentification.NamespaceOther {
-		ret = monitorapi.Intervals(ret).Filter(func(eventInterval monitorapi.EventInterval) bool {
+		ret = monitorapi.Intervals(ret).Filter(func(eventInterval monitorapi.Interval) bool {
 			namespace := monitorapi.NamespaceFromLocator(eventInterval.Locator)
 			return !platformidentification.KnownNamespaces.Has(namespace)
 		})
@@ -78,7 +78,7 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 }
 
 func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config,
-	startTime time.Time) ([]monitorapi.EventInterval, error) {
+	startTime time.Time) ([]monitorapi.Interval, error) {
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 
 	_, err = kubeClient.CoreV1().Namespaces().Get(ctx, "openshift-monitoring", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		return []monitorapi.EventInterval{}, nil
+		return []monitorapi.Interval{}, nil
 	}
 
 	prometheusClient, err := metrics.NewPrometheusClient(ctx, kubeClient, routeClient)
@@ -160,7 +160,7 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 	// broken up by firing, so the alert should not be listed as pending at the same time as it is firing in our intervals.
 	pendingAlerts = blackoutEvents(pendingAlerts, firingAlerts)
 
-	ret := []monitorapi.EventInterval{}
+	ret := []monitorapi.Interval{}
 	ret = append(ret, firingAlerts...)
 	ret = append(ret, pendingAlerts...)
 
@@ -170,8 +170,8 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 // blackoutEvents filters startingEvents and rewrites into potentially multiple events to avoid overlap with the blackoutWindows.
 // For instance, if startingEvents for locator/foo covers 1:00-1:45 and blackoutWindows for locator/Foo covers 1:10-1:15 and 1:40-1:50
 // the return has locator/foo 1:00-1:10, 1:15-1:40.
-func blackoutEvents(startingEvents, blackoutWindows []monitorapi.EventInterval) []monitorapi.EventInterval {
-	ret := []monitorapi.EventInterval{}
+func blackoutEvents(startingEvents, blackoutWindows []monitorapi.Interval) []monitorapi.Interval {
+	ret := []monitorapi.Interval{}
 
 	blackoutsByLocator := indexByLocator(blackoutWindows)
 	for i := range startingEvents {
@@ -273,7 +273,7 @@ type blackoutWindow struct {
 	To   time.Time
 }
 
-func nonOverlappingBlackoutWindowsFromEvents(blackoutWindows []monitorapi.EventInterval) []blackoutWindow {
+func nonOverlappingBlackoutWindowsFromEvents(blackoutWindows []monitorapi.Interval) []blackoutWindow {
 	sort.Sort(monitorapi.Intervals(blackoutWindows))
 
 	ret := []blackoutWindow{}
@@ -338,8 +338,8 @@ func nonOverlappingBlackoutWindowsFromEvents(blackoutWindows []monitorapi.EventI
 	return ret
 }
 
-func indexByLocator(events []monitorapi.EventInterval) map[string][]monitorapi.EventInterval {
-	ret := map[string][]monitorapi.EventInterval{}
+func indexByLocator(events []monitorapi.Interval) map[string][]monitorapi.Interval {
+	ret := map[string][]monitorapi.Interval{}
 	for i := range events {
 		event := events[i]
 		ret[event.Locator] = append(ret[event.Locator], event)
@@ -347,8 +347,8 @@ func indexByLocator(events []monitorapi.EventInterval) map[string][]monitorapi.E
 	return ret
 }
 
-func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.Value, startTime time.Time) ([]monitorapi.EventInterval, error) {
-	ret := []monitorapi.EventInterval{}
+func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.Value, startTime time.Time) ([]monitorapi.Interval, error) {
+	ret := []monitorapi.Interval{}
 
 	switch {
 	case alerts.Type() == prometheustypes.ValMatrix:
@@ -356,41 +356,35 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 		for _, alert := range matrixAlert {
 			alertName := alert.Metric[prometheustypes.AlertNameLabel]
 
-			locator := "alert/" + alertName
-			if node := alert.Metric["instance"]; len(node) > 0 {
-				locator += " node/" + node
-			}
-			if namespace := alert.Metric["namespace"]; len(namespace) > 0 {
-				locator += " ns/" + namespace
-			}
-			if pod := alert.Metric["pod"]; len(pod) > 0 {
-				locator += " pod/" + pod
-			}
-			if container := alert.Metric["container"]; len(container) > 0 {
-				locator += " container/" + container
-			}
+			lb := monitorapi.NewLocator().AlertFromNames(
+				string(alertName),
+				string(alert.Metric["instance"]),
+				string(alert.Metric["namespace"]),
+				string(alert.Metric["pod"]),
+				string(alert.Metric["container"]),
+			)
 
-			alertIntervalTemplate := monitorapi.EventInterval{
-				Condition: monitorapi.Condition{
-					Locator: string(locator),
-					Message: alert.Metric.String(),
-				},
-			}
+			var level monitorapi.ConditionLevel
 			switch {
 			// as I understand it, pending alerts are cases where the conditions except for "how long has been happening"
 			// are all met.  Pending alerts include what level the eventual alert will be, but they are not errors in and
 			// of themselves.  They are you useful to show in time to find patterns of "X fails concurrent with Y"
 			case alert.Metric["alertstate"] == "pending":
-				alertIntervalTemplate.Level = monitorapi.Info
+				level = monitorapi.Info
 
 			case alert.Metric["severity"] == "warning":
-				alertIntervalTemplate.Level = monitorapi.Warning
+				level = monitorapi.Warning
 			case alert.Metric["severity"] == "critical":
-				alertIntervalTemplate.Level = monitorapi.Error
+				level = monitorapi.Error
 			case alert.Metric["severity"] == "info":
-				alertIntervalTemplate.Level = monitorapi.Info
+				level = monitorapi.Info
 			default:
-				alertIntervalTemplate.Level = monitorapi.Error
+				level = monitorapi.Error
+			}
+			alertIntervalTemplate := monitorapi.Interval{
+				Condition: monitorapi.NewCondition(level).
+					Locator(lb).
+					Message(monitorapi.NewMessage().HumanMessage(alert.Metric.String())).Build(),
 			}
 
 			var alertStartTime *time.Time
@@ -435,12 +429,10 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 		}
 
 	default:
-		ret = append(ret, monitorapi.EventInterval{
-			Condition: monitorapi.Condition{
-				Level:   monitorapi.Error,
-				Locator: "alert/all",
-				Message: fmt.Sprintf("unhandled type: %v", alerts.Type()),
-			},
+		ret = append(ret, monitorapi.Interval{
+			Condition: monitorapi.NewCondition(monitorapi.Error).
+				Locator(monitorapi.NewLocator().AlertFromNames("all", "", "", "", "")).
+				Message(monitorapi.NewMessage().HumanMessagef("unhandled type: %v", alerts.Type())).Build(),
 			From: startTime,
 			To:   time.Now(),
 		})

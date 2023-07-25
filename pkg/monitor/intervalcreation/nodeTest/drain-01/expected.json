@@ -4,6 +4,16 @@
             "level": "Info",
             "locator": "node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
             "message": "constructed/node-lifecycle-constructor reason/NodeUpdate phase/Drain roles/worker drained node",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
             "from": "2023-07-17T22:58:52Z",
             "to": "2023-07-17T23:00:24Z"
         },
@@ -11,6 +21,16 @@
             "level": "Warning",
             "locator": "node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
             "message": "constructed/node-lifecycle-constructor reason/NodeUpdate role/worker state/OperatingSystemUpdate never completed",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
             "from": "2023-07-17T23:00:24Z",
             "to": "2023-07-17T23:58:52Z"
         }

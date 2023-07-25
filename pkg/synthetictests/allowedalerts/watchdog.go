@@ -70,8 +70,9 @@ func (a *watchdogAlertTest) TestAlert(ctx context.Context, prometheusClient prom
 	return nil
 }
 
-func IsWatchdogAlert(eventInterval monitorapi.EventInterval) bool {
-	return eventInterval.Locator == "alert/Watchdog ns/openshift-monitoring"
+func IsWatchdogAlert(eventInterval monitorapi.Interval) bool {
+	return eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey] == "Watchdog" &&
+		eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == "openshift-monitoring"
 }
 
 func (a *watchdogAlertTest) InvariantCheck(alertIntervals monitorapi.Intervals, _ monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
