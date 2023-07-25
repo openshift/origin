@@ -126,6 +126,12 @@ func (opt *RunMonitorOptions) Run() error {
 
 	<-ctx.Done()
 
+	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cleanupCancel()
+	if err := m.Stop(cleanupContext, time.Time{}, time.Time{}); err != nil {
+		fmt.Fprintf(os.Stderr, "error cleaning up, still reporting as best as possible: %v\n", err)
+	}
+
 	time.Sleep(150 * time.Millisecond)
 
 	// Store events to artifact directory

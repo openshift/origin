@@ -527,7 +527,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().
 		UTC().Format("20060102-150405"))
 
-	if err := opt.MonitorEventsOptions.End(ctx, restConfig, opt.JUnitDir); err != nil {
+	if err := opt.MonitorEventsOptions.Stop(ctx, restConfig, opt.JUnitDir); err != nil {
 		return err
 	}
 	if len(opt.JUnitDir) > 0 {
