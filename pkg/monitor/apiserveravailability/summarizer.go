@@ -22,10 +22,10 @@ func timeFromPodLogTime(line string) time.Time {
 	t, err := time.Parse(time.RFC3339Nano, timeString)
 	if err != nil {
 		klog.Error(err)
-		return t
+		return time.Now()
 	}
 
-	return time.Now()
+	return t
 }
 
 func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator monitorapi.Locator, line string) {
