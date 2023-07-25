@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/nodedetails"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -52,20 +51,12 @@ type MonitorEventsOptions struct {
 	// auditLogSummary is written during Stop
 	auditLogSummary *nodedetails.AuditLogSummary
 
-	RunDataWriters []RunDataWriter
-	Out            io.Writer
-	ErrOut         io.Writer
+	Out    io.Writer
+	ErrOut io.Writer
 }
 
 func NewMonitorEventsOptions(out io.Writer, errOut io.Writer) *MonitorEventsOptions {
 	return &MonitorEventsOptions{
-		RunDataWriters: []RunDataWriter{
-			RunDataWriterFunc(monitor.WriteEventsForJobRun),
-			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
-			RunDataWriterFunc(monitor.WriteBackendDisruptionForJobRun),
-			RunDataWriterFunc(allowedalerts.WriteAlertDataForJobRun),
-			RunDataWriterFunc(monitor.WriteClusterData),
-		},
 		Out:    out,
 		ErrOut: errOut,
 	}
@@ -251,13 +242,6 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 		events[i] = o.recordedEvents[i]
 	}
 	sort.Stable(monitorapi.ByTimeWithNamespacedPods(events))
-
-	for _, writer := range o.RunDataWriters {
-		currErr := writer.WriteRunData(artifactDir, o.recordedResources, events, timeSuffix)
-		if currErr != nil {
-			errs = append(errs, currErr)
-		}
-	}
 
 	// TODO: Re-sort for loki, where we need these to go    in chronologically, and based on the
 	// above comments that would not be the case otherwise.

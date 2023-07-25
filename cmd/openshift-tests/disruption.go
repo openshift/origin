@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -142,7 +144,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	}
 
 	timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
-	if err := monitor.WriteEventsForJobRun(eventDir, nil, intervals, timeSuffix); err != nil {
+	if err := monitorserialization.EventsToFile(filepath.Join(eventDir, fmt.Sprintf("e2e-events%s.json", timeSuffix)), intervals); err != nil {
 		fmt.Printf("Failed to write event data, err: %v\n", err)
 		return err
 	}
