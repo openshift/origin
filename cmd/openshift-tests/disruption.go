@@ -153,7 +153,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 
 // StartAPIAvailability monitors just the cluster availability
 func StartAPIAvailability(ctx context.Context, restConfig *rest.Config, lb backend.LoadBalancerType) (*monitor.Monitor, error) {
-	m := monitor.NewMonitor()
+	m := monitor.NewMonitor(restConfig, nil)
 	client, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
