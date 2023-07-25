@@ -14,7 +14,7 @@ type InvariantTest interface {
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.
 	// This allows us to know when setups fail.
-	StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.Recorder) error
+	StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error
 
 	// CollectData will only be called once near the end of execution, before all Intervals are inspected.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
@@ -30,6 +30,16 @@ type InvariantTest interface {
 	// junit tests for reporting purposes.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
 	EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error)
+
+	// WriteContentToStorage writes content to the storage directory that is collected by openshift CI.
+	// Do not write.
+	// 1. junits.  Those should be returned from EvaluateTestsFromConstructedIntervals
+	// 2. intervals.  Those should be returned from CollectData and ConstructComputedIntervals
+	// 3. tracked resources.  Those are written by some default invariantTests.
+	// You *may* choose to store state in CollectData that you later persist via this method. An example might be
+	// code that scans audit logs and reports summaries of top actors.
+	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
+	WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error
 
 	// Cleanup must be idempotent and it may be called multiple times in any scenario.  Multiple defers, multi-registered
 	// abort handlers, abort handler running concurrent to planned shutdown.  Make your cleanup callable multiple times.
@@ -47,7 +57,7 @@ type InvariantRegistry interface {
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.
 	// This allows us to know when setups fail.
-	StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.Recorder) ([]*junitapi.JUnitTestCase, error)
+	StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error)
 
 	// CollectData will only be called once near the end of execution, before all Intervals are inspected.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
@@ -63,6 +73,15 @@ type InvariantRegistry interface {
 	// junit tests for reporting purposes.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
 	EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error)
+
+	// WriteContentToStorage writes content to the storage directory that is collected by openshift CI.
+	// Do not write.
+	// 1. junits.  Those should be returned from EvaluateTestsFromConstructedIntervals
+	// 2. intervals.  Those should be returned from CollectData and ConstructComputedIntervals
+	// 3. tracked resources.  Those are written by some default invariantTests.
+	// You *may* choose to store state in CollectData that you later persist via this method. An example might be
+	// code that scans audit logs and reports summaries of top actors.
+	WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error)
 
 	// Cleanup must be idempotent and it may be called multiple times in any scenario.  Multiple defers, multi-registered
 	// abort handlers, abort handler running concurrent to planned shutdown.  Make your cleanup callable multiple times.

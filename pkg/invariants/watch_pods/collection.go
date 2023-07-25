@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func startPodMonitoring(ctx context.Context, m monitorapi.Recorder, client kubernetes.Interface) {
+func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderWriter, client kubernetes.Interface) {
 	podPendingFn := func(pod, oldPod *corev1.Pod) []monitorapi.Condition {
 		isCreate := oldPod == nil
 		oldPodIsPending := oldPod != nil && oldPod.Status.Phase == "Pending"
@@ -550,15 +550,15 @@ func startPodMonitoring(ctx context.Context, m monitorapi.Recorder, client kuber
 		toCreateFns(podCreatedFns),
 		toUpdateFns(podChangeFns),
 		toDeleteFns(podDeleteFns),
-		m,
-		m,
+		recorderWriter,
+		recorderWriter,
 	)
 	reflector := cache.NewReflector(listWatch, &corev1.Pod{}, customStore, 0)
 	go reflector.Run(ctx.Done())
 
 	// start controller to watch for shared pod IPs.
 	sharedInformers := informers.NewSharedInformerFactory(client, 24*time.Hour)
-	podIPController := podipcontroller.NewSimultaneousPodIPController(m, sharedInformers.Core().V1().Pods())
+	podIPController := podipcontroller.NewSimultaneousPodIPController(recorderWriter, sharedInformers.Core().V1().Pods())
 	go podIPController.Run(ctx)
 	go sharedInformers.Start(ctx.Done())
 
