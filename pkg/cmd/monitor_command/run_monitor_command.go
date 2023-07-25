@@ -133,13 +133,13 @@ func (opt *RunMonitorOptions) Run() error {
 
 	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cleanupCancel()
-	if err := m.Stop(cleanupContext, time.Time{}, time.Time{}); err != nil {
+	if err := m.Stop(cleanupContext); err != nil {
 		fmt.Fprintf(os.Stderr, "error cleaning up, still reporting as best as possible: %v\n", err)
 	}
 
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
-		if err := m.SerializeResults(ctx, opt.ArtifactDir, "invariants"); err != nil {
+		if err := m.SerializeResults(ctx, opt.ArtifactDir, "invariants", ""); err != nil {
 			return err
 		}
 	}
