@@ -129,13 +129,13 @@ func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool
 
 func recordAddOrUpdateEvent(
 	ctx context.Context,
-	m Recorder,
+	recorder Recorder,
 	client kubernetes.Interface,
 	reMatchFirstQuote *regexp.Regexp,
 	significantlyBeforeNow time.Time,
 	obj *corev1.Event) {
 
-	m.RecordResource("events", obj)
+	recorder.RecordResource("events", obj)
 
 	// Temporary hack by dgoodwin, we're missing events here that show up later in
 	// gather-extra/events.json. Adding some output to see if we can isolate what we saw
@@ -264,11 +264,11 @@ func recordAddOrUpdateEvent(
 		fmt.Printf("processed event: %+v\nresulting new interval: %s from: %s to %s\n", *obj, message, pathoFrom, to)
 
 		// Add the interval.
-		inter := m.StartInterval(pathoFrom, condition)
-		m.EndInterval(inter, to)
+		inter := recorder.StartInterval(pathoFrom, condition)
+		recorder.EndInterval(inter, to)
 
 	} else {
-		m.RecordAt(t, condition)
+		recorder.RecordAt(t, condition)
 	}
 }
 
