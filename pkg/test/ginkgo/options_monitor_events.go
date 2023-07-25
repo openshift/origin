@@ -50,18 +50,12 @@ type MonitorEventsOptions struct {
 	// auditLogSummary is written during End
 	auditLogSummary *nodedetails.AuditLogSummary
 
-	Recorders      []monitor.StartEventIntervalRecorderFunc
 	RunDataWriters []RunDataWriter
 	genericclioptions.IOStreams
 }
 
 func NewMonitorEventsOptions(streams genericclioptions.IOStreams) *MonitorEventsOptions {
 	return &MonitorEventsOptions{
-		Recorders: []monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAllAPIMonitoring,
-			controlplane.StartRemoteAPIMonitoring,
-			frontends.StartAllIngressMonitoring,
-		},
 		RunDataWriters: []RunDataWriter{
 			// these produce the various intervals.  Different intervals focused on inspecting different problem spaces.
 			intervalcreation.NewSpyglassEventIntervalRenderer("everything", intervalcreation.BelongsInEverything),
