@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -43,11 +44,11 @@ type MonitorEventsOptions struct {
 	monitor   *monitor.Monitor
 	startTime *time.Time
 	endTime   *time.Time
-	// recordedEvents is written during End
+	// recordedEvents is written during Stop
 	recordedEvents monitorapi.Intervals
-	// recordedResource is written during End
+	// recordedResource is written during Stop
 	recordedResources monitorapi.ResourcesMap
-	// auditLogSummary is written during End
+	// auditLogSummary is written during Stop
 	auditLogSummary *nodedetails.AuditLogSummary
 
 	RunDataWriters []RunDataWriter
@@ -144,8 +145,8 @@ func markMissedPathologicalEvents(events monitorapi.Intervals) {
 	}
 }
 
-// End mutates the method receiver so you shouldn't call it multiple times.
-func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config, artifactDir string) error {
+// Stop mutates the method receiver so you shouldn't call it multiple times.
+func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config, artifactDir string) error {
 	if o.monitor == nil {
 		return fmt.Errorf("not started")
 	}
@@ -159,6 +160,13 @@ func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config,
 
 	var err error
 	fromTime, endTime := *o.startTime, *o.endTime
+
+	cleanupContext, cleanupCancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cleanupCancel()
+	if err := o.monitor.Stop(cleanupContext, time.Time{}, time.Time{}); err != nil {
+		fmt.Fprintf(os.Stderr, "error cleaning up, still reporting as best as possible: %v\n", err)
+	}
+
 	events := o.monitor.Intervals(fromTime, endTime)
 
 	markMissedPathologicalEvents(events)

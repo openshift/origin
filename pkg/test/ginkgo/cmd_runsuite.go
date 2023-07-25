@@ -545,7 +545,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	timeSuffix := fmt.Sprintf("_%s", o.MonitorEventsOptions.GetStartTime().
 		UTC().Format("20060102-150405"))
 
-	if err := o.MonitorEventsOptions.End(ctx, restConfig, o.JUnitDir); err != nil {
+	if err := o.MonitorEventsOptions.Stop(ctx, restConfig, o.JUnitDir); err != nil {
 		return err
 	}
 	if len(o.JUnitDir) > 0 {
