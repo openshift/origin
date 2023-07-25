@@ -60,7 +60,9 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
 		waitForOperatorsToSettle()
 
+		framework.Logf("asserting post backup resources are still found...")
 		assertPostBackupResourcesAreStillFound(oc)
+		framework.Logf("asserting post backup resources are still functional...")
 		assertPostBackupResourcesAreStillFunctional(oc)
 	})
 })
@@ -134,14 +136,16 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		// we should come back with a single etcd static pod
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), 1)
 
-		err = runOVNRepairCommands(oc, recoveryNode, nonRecoveryNodes)
-		o.Expect(err).ToNot(o.HaveOccurred())
+		// TODO(thomas): since we're bumping resources, that should not be necessary anymore
+		// err = runOVNRepairCommands(oc, recoveryNode, nonRecoveryNodes)
+		// o.Expect(err).ToNot(o.HaveOccurred())
 
 		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
 		// CEO will bring back the other etcd static pods again
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
 		waitForOperatorsToSettle()
 
+		framework.Logf("asserting post backup resources are not found anymore...")
 		assertPostBackupResourcesAreNotFound(oc)
 	})
 })

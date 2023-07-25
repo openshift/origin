@@ -526,7 +526,7 @@ EOF
 }
 
 func runDeleteAndRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node, nonRecoveryNodes []*corev1.Node) error {
-	const name = "etcd-restore-pod"
+	const name = "bumping-etcd-restore-pod"
 	framework.Logf("running deletes and restore script on node: %v", restoreNode.Name)
 
 	backupInternalIp := internalIP(backupNode)
@@ -562,7 +562,8 @@ func runDeleteAndRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupN
          SNAPSHOT=\$(ls -vd /home/core/backup/snapshot*.db | tail -1)
          mv \$SNAPSHOT /home/core/backup/snapshot.db
          sudo rm -rf /var/lib/etcd
-         sudo /usr/local/bin/cluster-restore.sh /home/core/backup
+         
+         sudo ETCD_ETCDCTL_RESTORE_ENABLE_BUMP=true /usr/local/bin/cluster-restore.sh /home/core/backup
          # this will cause the pod to disappear effectively, must be the last statement
          sudo systemctl restart kubelet.service
 
@@ -741,6 +742,7 @@ func runPod(oc *exutil.CLI, pod *applycorev1.PodApplyConfiguration) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
+		framework.Logf("Applying pod [%s] in namespace [%s]...", *pod.Name, *pod.Namespace)
 		_, err = oc.AdminKubeClient().CoreV1().Pods(*pod.Namespace).Apply(ctx, pod, metav1.ApplyOptions{FieldManager: *pod.Name})
 		if err != nil {
 			framework.Logf("error while attempting to apply pod %s: %v", *pod.Name, err)
