@@ -1,4 +1,4 @@
-package monitor
+package disruption_serializer
 
 import (
 	"testing"
