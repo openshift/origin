@@ -181,7 +181,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			for _, message := range test.messages {
 
 				events = append(events,
-					monitorapi.EventInterval{
+					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
 						From:      time.Unix(872827200, 0),
 						To:        time.Unix(872827200, 0)},
@@ -201,13 +201,9 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			jUnitName := getJUnitName(testName, test.namespace)
 			for _, junit := range junits {
 				if (junit.Name == jUnitName) && (test.expectedMessage != "") {
-					if strings.Compare(junit.FailureOutput.Output, test.expectedMessage) != 0 {
-						t.Fatalf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junit.FailureOutput.Output)
-					}
+					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
-					if junit.FailureOutput != nil {
-						t.Fatalf("expected success, but got failure with output: %s.", junit.FailureOutput.Output)
-					}
+					assert.Nil(t, junit.FailureOutput, "expected success but got failure output")
 				}
 			}
 
@@ -311,7 +307,7 @@ func TestKnownBugEvents(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			events := monitorapi.Intervals{}
 			events = append(events,
-				monitorapi.EventInterval{
+				monitorapi.Interval{
 					Condition: monitorapi.Condition{Message: test.message},
 					From:      time.Unix(1, 0),
 					To:        time.Unix(1, 0)},
@@ -388,7 +384,7 @@ func TestKnownBugEventsGroup(t *testing.T) {
 			for _, message := range test.messages {
 
 				events = append(events,
-					monitorapi.EventInterval{
+					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
 						From:      time.Unix(872827200, 0),
 						To:        time.Unix(872827200, 0)},
@@ -477,7 +473,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			for _, message := range test.messages {
 
 				events = append(events,
-					monitorapi.EventInterval{
+					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
 						From:      time.Unix(1, 0),
 						To:        time.Unix(1, 0)},

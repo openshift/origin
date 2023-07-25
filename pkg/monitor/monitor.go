@@ -136,7 +136,7 @@ func (m *Monitor) Record(conditions ...monitorapi.Condition) {
 	defer m.lock.Unlock()
 	t := time.Now().UTC()
 	for _, condition := range conditions {
-		m.events = append(m.events, monitorapi.EventInterval{
+		m.events = append(m.events, monitorapi.Interval{
 			Condition: condition,
 			From:      t,
 			To:        t,
@@ -145,7 +145,7 @@ func (m *Monitor) Record(conditions ...monitorapi.Condition) {
 }
 
 // AddIntervals provides a mechanism to directly inject eventIntervals
-func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.EventInterval) {
+func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.Interval) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.events = append(m.events, eventIntervals...)
@@ -156,7 +156,7 @@ func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.EventInterval) {
 func (m *Monitor) StartInterval(t time.Time, condition monitorapi.Condition) int {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.unsortedEvents = append(m.unsortedEvents, monitorapi.EventInterval{
+	m.unsortedEvents = append(m.unsortedEvents, monitorapi.Interval{
 		Condition: condition,
 		From:      t,
 	})
@@ -184,7 +184,7 @@ func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	for _, condition := range conditions {
-		m.unsortedEvents = append(m.unsortedEvents, monitorapi.EventInterval{
+		m.unsortedEvents = append(m.unsortedEvents, monitorapi.Interval{
 			Condition: condition,
 			From:      t,
 			To:        t,

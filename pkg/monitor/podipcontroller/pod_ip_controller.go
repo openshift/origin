@@ -181,7 +181,8 @@ func (c *SimultaneousPodIPController) sync(ctx context.Context, key string) erro
 			c.recorder.Record(monitorapi.Condition{
 				Level:   monitorapi.Error,
 				Locator: podLocator,
-				Message: monitorapi.Message().Reason(monitorapi.PodIPReused).Messagef("podIP %v is currently assigned to multiple pods: %v", currPodIP, strings.Join(podNames.List(), ";")),
+				Message: monitorapi.NewMessage().Reason(monitorapi.PodIPReused).
+					HumanMessagef("podIP %v is currently assigned to multiple pods: %v", currPodIP, strings.Join(podNames.List(), ";")).BuildString(),
 			})
 		}
 	}

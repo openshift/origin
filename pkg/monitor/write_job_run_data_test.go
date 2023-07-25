@@ -19,7 +19,7 @@ func TestComputeDisruptionData(t *testing.T) {
 	}{
 		{
 			name: "no disruption",
-			intervals: []monitorapi.EventInterval{
+			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
@@ -42,7 +42,7 @@ func TestComputeDisruptionData(t *testing.T) {
 		},
 		{
 			name: "single backend single disruption",
-			intervals: []monitorapi.EventInterval{
+			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
@@ -82,7 +82,7 @@ func TestComputeDisruptionData(t *testing.T) {
 		},
 		{
 			name: "single backend multi disruption",
-			intervals: []monitorapi.EventInterval{
+			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
@@ -140,7 +140,7 @@ func TestComputeDisruptionData(t *testing.T) {
 		},
 		{
 			name: "multi backend single disruption",
-			intervals: []monitorapi.EventInterval{
+			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,

@@ -102,7 +102,7 @@ func combinedDuplicateEventPatterns() *regexp.Regexp {
 // and returns true if this event is an event we already know about.  Some functions
 // require a kubeconfig, but also handle the kubeconfig being nil (in case we cannot
 // successfully get a kubeconfig).
-func checkAllowedRepeatedEventOKFns(event monitorapi.EventInterval, times int32) bool {
+func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool {
 
 	kubeClient, err := GetMonitorRESTConfig()
 	if err != nil {
@@ -206,11 +206,13 @@ func recordAddOrUpdateEvent(
 	default:
 		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	}
+
 	condition := monitorapi.Condition{
 		Level:   monitorapi.Info,
 		Locator: locateEvent(obj),
 		Message: message,
 	}
+
 	if obj.Type == corev1.EventTypeWarning {
 		condition.Level = monitorapi.Warning
 	}
@@ -224,7 +226,7 @@ func recordAddOrUpdateEvent(
 	}
 	to := pathoFrom.Add(1 * time.Second)
 
-	event := monitorapi.EventInterval{
+	event := monitorapi.Interval{
 		Condition: condition,
 	}
 

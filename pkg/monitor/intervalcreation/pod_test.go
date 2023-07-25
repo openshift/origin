@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -103,10 +104,7 @@ func (p podIntervalTest) test(t *testing.T) {
 	}
 
 	resultJSON := string(resultBytes)
-	if p.results != resultJSON {
-		t.Log(p.results)
-		t.Fatal(resultJSON)
-	}
+	assert.Equal(t, strings.TrimSpace(p.results), resultJSON)
 }
 
 //go:embed podTest/*
