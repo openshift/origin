@@ -1,4 +1,4 @@
-package allowedalerts
+package alert_serializer
 
 import (
 	"encoding/json"
@@ -9,13 +9,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func WriteAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
+func writeAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
 	alertData := computeAlertData(events)
 	addMissingAlertsForLevel(alertData, WarningAlertLevel)
 	addMissingAlertsForLevel(alertData, CriticalAlertLevel)
@@ -25,7 +27,7 @@ func WriteAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, even
 
 func addMissingAlertsForLevel(alertList *AlertList, level AlertLevel) {
 	wellKnownAlerts := sets.NewString()
-	for _, alertTest := range AllAlertTests(&platformidentification.JobType{}, DefaultAllowances) {
+	for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{}, allowedalerts.DefaultAllowances) {
 		wellKnownAlerts.Insert(alertTest.AlertName())
 	}
 	alertsFound := sets.NewString()

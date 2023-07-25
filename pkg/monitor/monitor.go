@@ -192,12 +192,6 @@ func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteNa
 	}
 	m.junits = append(m.junits, invariantJunits...)
 
-	fmt.Fprintf(os.Stderr, "Writing events.\n")
-	if err := WriteEventsForJobRun(eventDir, finalResources, finalIntervals, timeSuffix); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to write event data, err: %v\n", err)
-		return err
-	}
-
 	fmt.Fprintf(os.Stderr, "Doing cleanup that needs to be moved.\n")
 	if err := sampler.TearDownInClusterMonitors(m.adminKubeConfig); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write events from in-cluster monitors, err: %v\n", err)
@@ -207,12 +201,6 @@ func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteNa
 	if err := UploadIntervalsToLoki(finalIntervals); err != nil {
 		// Best effort, we do not want to error out here:
 		logrus.WithError(err).Warn("unable to upload intervals to loki")
-	}
-
-	fmt.Fprintf(os.Stderr, "Writing tracked resources.\n")
-	if err := WriteTrackedResourcesForJobRun(eventDir, finalResources, finalIntervals, timeSuffix); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to write resource data, err: %v\n", err)
-		return err
 	}
 
 	fmt.Fprintf(os.Stderr, "Writing junits.\n")
