@@ -2,6 +2,8 @@ package monitor
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
@@ -22,6 +24,9 @@ type Monitor struct {
 	additionalEventIntervalRecorders []StartEventIntervalRecorderFunc
 
 	recorder Recorder
+
+	lock   sync.Mutex
+	stopFn context.CancelFunc
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
@@ -38,6 +43,14 @@ var _ Recorder = &Monitor{}
 
 // Start begins monitoring the cluster referenced by the default kube configuration until context is finished.
 func (m *Monitor) Start(ctx context.Context) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if m.stopFn != nil {
+		return fmt.Errorf("monitor already started")
+	}
+
+	ctx, m.stopFn = context.WithCancel(ctx)
+
 	client, err := kubernetes.NewForConfig(m.adminKubeConfig)
 	if err != nil {
 		return err
@@ -67,6 +80,25 @@ func (m *Monitor) Start(ctx context.Context) error {
 
 	// add interval creation at the same point where we add the monitors
 	startClusterOperatorMonitoring(ctx, m, configClient)
+	return nil
+}
+
+func (m *Monitor) Stop(ctx context.Context, beginning, end time.Time) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if m.stopFn == nil {
+		return fmt.Errorf("monitor not started")
+	}
+	m.stopFn()
+	m.stopFn = nil
+
+	// we don't want this method to return until all te additional recorders and invariants have completed processing.
+	// to do this correctly, we need closure channels or some kind of mechanism.
+	// rather than properly wire this through, we'll wait until the backend disruption consumers timeout after the producer
+	// close.
+	// TODO once we have converted the backendsamplers to invariant tests, we can properly wait for completion
+	time.Sleep(70 * time.Second)
+
 	return nil
 }
 

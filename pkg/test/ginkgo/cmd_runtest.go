@@ -104,7 +104,7 @@ func (opt *TestOptions) Run(args []string) error {
 	ginkgo.GetSuite().RunSpec(test.spec, ginkgo.Labels{}, "", ginkgo.GetFailer(), ginkgo.GetWriter(), suiteConfig)
 
 	if opt.EnableMonitor {
-		if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {
+		if err := opt.MonitorEventsOptions.Stop(ctx, restConfig, ""); err != nil {
 			return err
 		}
 		timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().

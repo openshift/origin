@@ -103,7 +103,7 @@ func (o *TimelineOptions) Bind(flagset *pflag.FlagSet) error {
 	flagset.StringVar(&o.TimelineType, "type", o.TimelineType, "type of timeline to produce: "+strings.Join(sets.StringKeySet(o.KnownTimelines).List(), ","))
 	flagset.StringVar(&o.PodResourceFilename, "known-pods", o.PodResourceFilename, "resource-pods_<timestamp>.zip filename from openshift-tests.")
 	flagset.StringSliceVarP(&o.LocatorMatchers, "locator", "l", o.LocatorMatchers, "key=value selector for monitor event locators (where value is a regex).  for instance -lpod=openshift-etcd-installer.  The same key listed multiple times means an OR.  Each separate key is logically ANDed.  Precede value with a dash for anti-match")
-	flagset.StringVarP(&o.EndDate, "end-date", "e", o.EndDate, fmt.Sprintf("End date (default is one hour after latest event) in RFC3399 format in UTC timezone: %s", time.RFC3339))
+	flagset.StringVarP(&o.EndDate, "end-date", "e", o.EndDate, fmt.Sprintf("Stop date (default is one hour after latest event) in RFC3399 format in UTC timezone: %s", time.RFC3339))
 
 	return nil
 }
