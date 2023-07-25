@@ -60,15 +60,6 @@ type MonitorEventsOptions struct {
 func NewMonitorEventsOptions(out io.Writer, errOut io.Writer) *MonitorEventsOptions {
 	return &MonitorEventsOptions{
 		RunDataWriters: []RunDataWriter{
-			// these produce the various intervals.  Different intervals focused on inspecting different problem spaces.
-			intervalcreation.NewSpyglassEventIntervalRenderer("everything", intervalcreation.BelongsInEverything),
-			intervalcreation.NewSpyglassEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass),
-			// TODO add visualization of individual apiserver containers and their readiness on this page
-			intervalcreation.NewSpyglassEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer),
-			intervalcreation.NewSpyglassEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout),
-			intervalcreation.NewPodEventIntervalRenderer(),
-			intervalcreation.NewIngressServicePodIntervalRenderer(),
-
 			RunDataWriterFunc(monitor.WriteEventsForJobRun),
 			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
 			RunDataWriterFunc(monitor.WriteBackendDisruptionForJobRun),
@@ -165,7 +156,7 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 
 	cleanupContext, cleanupCancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cleanupCancel()
-	if err := o.monitor.Stop(cleanupContext, time.Time{}, time.Time{}); err != nil {
+	if err := o.monitor.Stop(cleanupContext); err != nil {
 		fmt.Fprintf(os.Stderr, "error cleaning up, still reporting as best as possible: %v\n", err)
 	}
 
@@ -229,8 +220,8 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	return nil
 }
 
-func (m *MonitorEventsOptions) SerializeResults(ctx context.Context, storageDir, junitSuiteName string) error {
-	return m.monitor.SerializeResults(ctx, storageDir, junitSuiteName)
+func (m *MonitorEventsOptions) SerializeResults(ctx context.Context, storageDir, junitSuiteName, timeSuffix string) error {
+	return m.monitor.SerializeResults(ctx, storageDir, junitSuiteName, timeSuffix)
 }
 
 func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {

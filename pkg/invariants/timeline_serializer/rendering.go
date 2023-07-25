@@ -1,4 +1,4 @@
-package intervalcreation
+package timeline_serializer
 
 import (
 	"bytes"

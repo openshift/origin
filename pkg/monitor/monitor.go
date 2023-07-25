@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/sirupsen/logrus"
@@ -21,7 +23,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/shutdown"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -37,8 +38,10 @@ type Monitor struct {
 	recorder monitorapi.Recorder
 	junits   []*junitapi.JUnitTestCase
 
-	lock   sync.Mutex
-	stopFn context.CancelFunc
+	lock      sync.Mutex
+	stopFn    context.CancelFunc
+	startTime time.Time
+	stopTime  time.Time
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
@@ -61,6 +64,7 @@ func (m *Monitor) Start(ctx context.Context) error {
 		return fmt.Errorf("monitor already started")
 	}
 	ctx, m.stopFn = context.WithCancel(ctx)
+	m.startTime = time.Now()
 
 	localJunits, err := m.invariantRegistry.StartCollection(ctx, m.adminKubeConfig, m.recorder)
 	if err != nil {
@@ -78,7 +82,7 @@ func (m *Monitor) Start(ctx context.Context) error {
 	}
 
 	for _, additionalEventIntervalRecorder := range m.additionalEventIntervalRecorders {
-		if err := additionalEventIntervalRecorder(ctx, m, m.adminKubeConfig, backend.ExternalLoadBalancerType); err != nil {
+		if err := additionalEventIntervalRecorder(ctx, m.recorder, m.adminKubeConfig, backend.ExternalLoadBalancerType); err != nil {
 			return err
 		}
 	}
@@ -88,18 +92,18 @@ func (m *Monitor) Start(ctx context.Context) error {
 	if err != nil {
 		klog.Errorf("error reading initial apiserver availability: %v", err)
 	}
-	m.AddIntervals(intervals...)
+	m.recorder.AddIntervals(intervals...)
 
-	startNodeMonitoring(ctx, m, client)
-	startEventMonitoring(ctx, m, client)
-	shutdown.StartMonitoringGracefulShutdownEvents(ctx, m, client)
+	startNodeMonitoring(ctx, m.recorder, client)
+	startEventMonitoring(ctx, m.recorder, client)
+	shutdown.StartMonitoringGracefulShutdownEvents(ctx, m.recorder, client)
 
 	// add interval creation at the same point where we add the monitors
-	startClusterOperatorMonitoring(ctx, m, configClient)
+	startClusterOperatorMonitoring(ctx, m.recorder, configClient)
 	return nil
 }
 
-func (m *Monitor) Stop(ctx context.Context, beginning, end time.Time) error {
+func (m *Monitor) Stop(ctx context.Context) error {
 	fmt.Fprintf(os.Stderr, "Shutting down the monitor\n")
 
 	m.lock.Lock()
@@ -109,6 +113,7 @@ func (m *Monitor) Stop(ctx context.Context, beginning, end time.Time) error {
 	}
 	m.stopFn()
 	m.stopFn = nil
+	m.stopTime = time.Now()
 
 	// we don't want this method to return until all te additional recorders and invariants have completed processing.
 	// to do this correctly, we need closure channels or some kind of mechanism.
@@ -118,7 +123,7 @@ func (m *Monitor) Stop(ctx context.Context, beginning, end time.Time) error {
 	time.Sleep(70 * time.Second)
 
 	fmt.Fprintf(os.Stderr, "Collecting data.\n")
-	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, beginning, end)
+	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.startTime, m.stopTime)
 	if err != nil {
 		return err
 	}
@@ -128,10 +133,10 @@ func (m *Monitor) Stop(ctx context.Context, beginning, end time.Time) error {
 	fmt.Fprintf(os.Stderr, "Computing intervals.\n")
 	computedIntervals, computedJunit, err := m.invariantRegistry.ConstructComputedIntervals(
 		ctx,
-		m.recorder.Intervals(beginning, end),
+		m.recorder.Intervals(m.startTime, m.stopTime),
 		m.recorder.CurrentResourceState(),
-		beginning,
-		end)
+		m.startTime,
+		m.stopTime)
 	if err != nil {
 		return err
 	}
@@ -141,7 +146,7 @@ func (m *Monitor) Stop(ctx context.Context, beginning, end time.Time) error {
 	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
 	invariantJunits, err := m.invariantRegistry.EvaluateTestsFromConstructedIntervals(
 		ctx,
-		m.recorder.Intervals(beginning, end),
+		m.recorder.Intervals(m.startTime, m.stopTime),
 	)
 	if err != nil {
 		return err
@@ -158,12 +163,15 @@ func (m *Monitor) Stop(ctx context.Context, beginning, end time.Time) error {
 	return nil
 }
 
-func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteName string) error {
+func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteName, timeSuffix string) error {
 	fmt.Fprintf(os.Stderr, "Serializing results.\n")
+	m.lock.Lock()
+	defer m.lock.Unlock()
 
-	intervals := m.recorder.Intervals(time.Time{}, time.Time{})
-	recordedResources := m.CurrentResourceState()
-	timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
+	finalIntervals := m.recorder.Intervals(m.startTime, m.stopTime)
+	finalResources := m.recorder.CurrentResourceState()
+	// TODO stop taking timesuffix as an arg and make this authoritative.
+	//timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
 	eventDir := filepath.Join(storageDir, monitorapi.EventDir)
 	if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
@@ -171,8 +179,21 @@ func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteNa
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
+	invariantJunits, err := m.invariantRegistry.WriteContentToStorage(
+		ctx,
+		storageDir,
+		timeSuffix,
+		finalIntervals,
+		finalResources,
+	)
+	if err != nil {
+		return err
+	}
+	m.junits = append(m.junits, invariantJunits...)
+
 	fmt.Fprintf(os.Stderr, "Writing events.\n")
-	if err := WriteEventsForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
+	if err := WriteEventsForJobRun(eventDir, finalResources, finalIntervals, timeSuffix); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write event data, err: %v\n", err)
 		return err
 	}
@@ -183,13 +204,13 @@ func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteNa
 	}
 
 	fmt.Fprintf(os.Stderr, "Uploading to loki.\n")
-	if err := UploadIntervalsToLoki(intervals); err != nil {
+	if err := UploadIntervalsToLoki(finalIntervals); err != nil {
 		// Best effort, we do not want to error out here:
 		logrus.WithError(err).Warn("unable to upload intervals to loki")
 	}
 
 	fmt.Fprintf(os.Stderr, "Writing tracked resources.\n")
-	if err := WriteTrackedResourcesForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
+	if err := WriteTrackedResourcesForJobRun(eventDir, finalResources, finalIntervals, timeSuffix); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write resource data, err: %v\n", err)
 		return err
 	}

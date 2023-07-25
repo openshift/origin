@@ -13,12 +13,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+// TODO most consumers only need writers or readers.  switch.
 type Recorder interface {
+	RecorderReader
+	RecorderWriter
+}
+
+type RecorderReader interface {
 	// Intervals returns a sorted snapshot of intervals in the selected timeframe
 	Intervals(from, to time.Time) Intervals
 	// CurrentResourceState returns a list of all known resources of a given type at the instant called.
 	CurrentResourceState() ResourcesMap
+}
 
+type RecorderWriter interface {
 	// RecordResource stores a resource for later serialization.  Deletion is not tracked, so this can be used
 	// to determine the final state of resource that are deleted in a namespace.
 	// Annotations are added to indicate number of updates and the number of recreates.

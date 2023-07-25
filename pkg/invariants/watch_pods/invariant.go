@@ -18,7 +18,7 @@ func NewPodWatcher() invariants.InvariantTest {
 	return &podWatcher{}
 }
 
-func (w *podWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.Recorder) error {
+func (w *podWatcher) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
@@ -44,6 +44,10 @@ func (*podWatcher) ConstructComputedIntervals(ctx context.Context, startingInter
 
 func (*podWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	return nil, nil
+}
+
+func (*podWatcher) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	return nil
 }
 
 func (*podWatcher) Cleanup(ctx context.Context) error {
