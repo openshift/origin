@@ -66,7 +66,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 		// we have multiple failed samples with the same error
 		info = fmt.Sprintf("range=[%d-%d] %s", fs.ID, ts.ID, info)
 	}
-	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator().OldLocator(),
+	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator(),
 		h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", from.AggregateErr(), info), "no-audit-id")
 
 	framework.Logf(message)
@@ -74,8 +74,11 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()},
 		nil, v1.EventTypeWarning, string(eventReason), "detected", message)
 
-	condition := monitorapi.NewCondition(level).Locator(h.descriptor.DisruptionLocator()).
-		Message(monitorapi.NewMessage().HumanMessage(message)).Build()
+	condition := monitorapi.Condition{
+		Level:   level,
+		Locator: h.descriptor.DisruptionLocator(),
+		Message: message,
+	}
 	openIntervalID := h.monitor.StartInterval(fs.StartedAt, condition)
 	// TODO: unlikely in the real world, if from == to for some reason,
 	//  then we are recording a zero second unavailable window.
@@ -90,15 +93,17 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 //	   to the same sample in question.
 func (h *ciHandler) Available(from, to *backend.SampleResult) {
 	fs, ts := from.Sample, to.Sample
-	message := backenddisruption.DisruptionEndedMessage(h.descriptor.DisruptionLocator().OldLocator(),
-		h.descriptor.GetConnectionType())
+	message := backenddisruption.DisruptionEndedMessage(h.descriptor.DisruptionLocator(), h.descriptor.GetConnectionType())
 	framework.Logf(message)
 
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()}, nil,
 		v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
-	condition := monitorapi.NewCondition(monitorapi.Info).Locator(h.descriptor.DisruptionLocator()).
-		Message(monitorapi.NewMessage().HumanMessage(message)).Build()
+	condition := monitorapi.Condition{
+		Level:   monitorapi.Info,
+		Locator: h.descriptor.DisruptionLocator(),
+		Message: message,
+	}
 	openIntervalID := h.monitor.StartInterval(fs.StartedAt, condition)
 	h.monitor.EndInterval(openIntervalID, ts.StartedAt)
 }

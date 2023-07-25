@@ -46,7 +46,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	failures := []string{}
 	flakes := []string{}
 	operatorsProgressing := intervalcreation.IntervalsFromEvents_OperatorProgressing(events, nil, time.Time{}, time.Time{})
-	networkOperatorProgressing := operatorsProgressing.Filter(func(ev monitorapi.Interval) bool {
+	networkOperatorProgressing := operatorsProgressing.Filter(func(ev monitorapi.EventInterval) bool {
 		return ev.Locator == "clusteroperator/network" || ev.Locator == "clusteroperator/machine-config"
 	})
 	eventsForPods := getEventsByPodName(events)

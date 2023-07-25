@@ -21,7 +21,7 @@ type Sampler interface {
 	GetConnectionType() monitorapi.BackendConnectionType
 	GetProtocol() string
 	GetDisruptionBackendName() string
-	GetLocator() monitorapi.Locator
+	GetLocator() string
 	GetURL() (string, error)
 	RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
 	StartEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
@@ -60,7 +60,7 @@ func (bs *BackendSampler) GetDisruptionBackendName() string {
 	return bs.Name()
 }
 
-func (bs *BackendSampler) GetLocator() monitorapi.Locator {
+func (bs *BackendSampler) GetLocator() string {
 	return bs.DisruptionLocator()
 }
 

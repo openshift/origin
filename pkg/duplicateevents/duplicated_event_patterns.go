@@ -258,7 +258,7 @@ var KnownEventsBugs = []KnownProblem{
 // IsRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
 // This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
 // Use this to handle cases where, "if X is true, then the repeated event is ok".
-type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
+type IsRepeatedEventOKFunc func(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, times int) (bool, error)
 
 var AllowedRepeatedEventFns = []IsRepeatedEventOKFunc{
 	isConsoleReadinessDuringInstallation,
@@ -294,7 +294,7 @@ func StringPointer(testSuite string) *string {
 // we're looking for something like
 // > ns/openshift-console pod/console-7c6f797fd9-5m94j node/ip-10-0-158-106.us-west-2.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.129.0.49:8443/health": dial tcp 10.129.0.49:8443: connect: connection refused
 // with a firstTimestamp before the cluster completed the initial installation
-func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, _ int) (bool, error) {
+func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, _ int) (bool, error) {
 	if !strings.Contains(monitorEvent.Locator, "ns/openshift-console") {
 		return false, nil
 	}
@@ -318,7 +318,7 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kube
 // in the openshift-config-operator.
 // like this:
 // ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
+func isConfigOperatorReadinessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(ReadinessFailedMessageRegExpStr)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
 }
@@ -327,7 +327,7 @@ func isConfigOperatorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.C
 // in the openshift-config-operator.
 // like this:
 // reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorProbeErrorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
+func isConfigOperatorProbeErrorReadinessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(ProbeErrorReadinessMessageRegExpStr)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
 }
@@ -336,7 +336,7 @@ func isConfigOperatorProbeErrorReadinessFailed(monitorEvent monitorapi.Interval,
 // in the openshift-config-operator.
 // like this:
 // ...reason/ProbeError Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorProbeErrorLivenessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
+func isConfigOperatorProbeErrorLivenessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(ProbeErrorLivenessMessageRegExpStr)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
 }
@@ -345,7 +345,7 @@ func isConfigOperatorProbeErrorLivenessFailed(monitorEvent monitorapi.Interval, 
 // in the openshift-oauth-operator.
 // like this:
 // ...ns/openshift-oauth-apiserver pod/apiserver-65fd7ffc59-bt5sf node/q72hs3bx-ac890-4pxpm-master-2 - reason/ProbeError Readiness probe error: Get "https://10.129.0.8:8443/readyz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-func isOauthApiserverProbeErrorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
+func isOauthApiserverProbeErrorReadinessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(ProbeErrorReadinessMessageRegExpStr)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
 }
@@ -354,7 +354,7 @@ func isOauthApiserverProbeErrorReadinessFailed(monitorEvent monitorapi.Interval,
 // in the openshift-oauth-operator.
 // like this:
 // ...reason/ProbeError Liveness probe error: Get "https://10.130.0.68:8443/healthz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-func isOauthApiserverProbeErrorLivenessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
+func isOauthApiserverProbeErrorLivenessFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(ProbeErrorLivenessMessageRegExpStr)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
 }
@@ -363,38 +363,38 @@ func isOauthApiserverProbeErrorLivenessFailed(monitorEvent monitorapi.Interval, 
 // in the openshift-oauth-operator.
 // like this:
 // ...ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused
-func isOauthApiserverProbeErrorConnectionRefusedFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
+func isOauthApiserverProbeErrorConnectionRefusedFailed(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(ProbeErrorConnectionRefusedRegExpStr)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
 }
 
 // reason/ErrorReconcilingNode roles/worker [k8s.ovn.org/node-chassis-id annotation not found for node ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86, macAddress annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86" , k8s.ovn.org/l3-gateway-config annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86"]
-func isErrorReconcilingNode(monitorEvent monitorapi.Interval, _ *rest.Config, count int) (bool, error) {
+func isErrorReconcilingNode(monitorEvent monitorapi.EventInterval, _ *rest.Config, count int) (bool, error) {
 	regExp := regexp.MustCompile(ErrorReconcilingNode)
 	return regExp.MatchString(monitorEvent.String()) && count < DuplicateSingleNodeEventThreshold, nil
 }
 
 // reason/FailedScheduling 0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod anti-affinity rules, 2 node(s) were unschedulable. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling..
-func isFailedScheduling(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
+func isFailedScheduling(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(FailedScheduling)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-route-controller-manager", regExp), nil
 }
 
 // reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy" to "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: No unhealthy members found"
-func isOperatorStatusChanged(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
+func isOperatorStatusChanged(monitorEvent monitorapi.EventInterval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(OperatorStatusChanged)
 	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-etcd", regExp), nil
 }
 
 // isConnectionRefusedOnSingleNode returns true if the event matched has a connection refused message for single node events and is with in threshold.
-func isConnectionRefusedOnSingleNode(monitorEvent monitorapi.Interval, _ *rest.Config, count int) (bool, error) {
+func isConnectionRefusedOnSingleNode(monitorEvent monitorapi.EventInterval, _ *rest.Config, count int) (bool, error) {
 	regExp := regexp.MustCompile(SingleNodeErrorConnectionRefusedRegExpStr)
 	return regExp.MatchString(monitorEvent.String()) && count < DuplicateSingleNodeEventThreshold, nil
 }
 
 // IsOperatorMatchRegexMessage returns true if this monitorEvent is for the operator identified by the operatorName
 // and its message matches the given regex.
-func IsOperatorMatchRegexMessage(monitorEvent monitorapi.Interval, operatorName string, regExp *regexp.Regexp) bool {
+func IsOperatorMatchRegexMessage(monitorEvent monitorapi.EventInterval, operatorName string, regExp *regexp.Regexp) bool {
 	locatorParts := monitorapi.LocatorParts(monitorEvent.Locator)
 	if ns, ok := locatorParts["ns"]; ok {
 		if ns != operatorName {
@@ -415,7 +415,7 @@ func IsOperatorMatchRegexMessage(monitorEvent monitorapi.Interval, operatorName 
 // isEventDuringInstallation returns true if the monitorEvent represents a real event that happened after installation.
 // regExp defines the pattern of the monitorEvent message. Named match is used in the pattern using `(?P<>)`. The names are placed inside <>. See example below
 // `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$`
-func IsEventDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
+func IsEventDuringInstallation(monitorEvent monitorapi.EventInterval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
 	if kubeClientConfig == nil {
 		// default to OK
 		return true, nil

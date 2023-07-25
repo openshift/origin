@@ -22,7 +22,7 @@ func newSimpleMonitor() *simpleMonitor {
 func (m *simpleMonitor) StartInterval(t time.Time, condition monitorapi.Condition) int {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.unsortedEventIntervals = append(m.unsortedEventIntervals, monitorapi.Interval{
+	m.unsortedEventIntervals = append(m.unsortedEventIntervals, monitorapi.EventInterval{
 		Condition: condition,
 		From:      t,
 	})

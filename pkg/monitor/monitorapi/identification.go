@@ -144,7 +144,7 @@ func DisruptionTargetAPIFrom(locatorParts map[string]string) string {
 }
 
 func IsEventForLocator(locator string) EventIntervalMatchesFunc {
-	return func(eventInterval Interval) bool {
+	return func(eventInterval EventInterval) bool {
 		if eventInterval.Locator == locator {
 			return true
 		}

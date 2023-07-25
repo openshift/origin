@@ -4,16 +4,6 @@
             "level": "Info",
             "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
             "message": "constructed/node-lifecycle-constructor reason/NodeUpdate phase/Drain roles/worker drained node",
-            "tempStructuredLocator": {
-                "type": "",
-                "keys": null
-            },
-            "tempStructuredMessage": {
-                "reason": "",
-                "cause": "",
-                "humanMessage": "",
-                "annotations": null
-            },
             "from": "2023-07-18T16:40:16Z",
             "to": "2023-07-18T16:41:49Z"
         },
@@ -21,16 +11,6 @@
             "level": "Warning",
             "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
             "message": "constructed/node-lifecycle-constructor reason/NodeUpdate role/worker state/OperatingSystemUpdate never completed",
-            "tempStructuredLocator": {
-                "type": "",
-                "keys": null
-            },
-            "tempStructuredMessage": {
-                "reason": "",
-                "cause": "",
-                "humanMessage": "",
-                "annotations": null
-            },
             "from": "2023-07-18T16:41:49Z",
             "to": "2023-07-19T23:58:52Z"
         }

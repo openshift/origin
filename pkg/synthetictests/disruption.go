@@ -323,7 +323,7 @@ func testMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitap
 	return ret
 }
 
-func isOneSecondEvent(eventInterval monitorapi.Interval) bool {
+func isOneSecondEvent(eventInterval monitorapi.EventInterval) bool {
 	duration := eventInterval.To.Sub(eventInterval.From)
 	switch {
 	case duration <= 0:
@@ -338,8 +338,8 @@ func isOneSecondEvent(eventInterval monitorapi.Interval) bool {
 func testDNSOverlapDisruption(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-network] Disruption should not overlap with DNS problems in cluster running tests"
 	failures := []string{}
-	dnsIntervals := []monitorapi.Interval{}
-	disruptionIntervals := []monitorapi.Interval{}
+	dnsIntervals := []monitorapi.EventInterval{}
+	disruptionIntervals := []monitorapi.EventInterval{}
 	for _, event := range events {
 		// DNS outage
 		if reason := monitorapi.ReasonFrom(event.Message); reason == "DisruptionSamplerOutageBegan" {

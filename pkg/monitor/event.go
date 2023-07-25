@@ -102,7 +102,7 @@ func combinedDuplicateEventPatterns() *regexp.Regexp {
 // and returns true if this event is an event we already know about.  Some functions
 // require a kubeconfig, but also handle the kubeconfig being nil (in case we cannot
 // successfully get a kubeconfig).
-func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool {
+func checkAllowedRepeatedEventOKFns(event monitorapi.EventInterval, times int32) bool {
 
 	kubeClient, err := GetMonitorRESTConfig()
 	if err != nil {
@@ -129,13 +129,13 @@ func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool
 
 func recordAddOrUpdateEvent(
 	ctx context.Context,
-	recorder Recorder,
+	m Recorder,
 	client kubernetes.Interface,
 	reMatchFirstQuote *regexp.Regexp,
 	significantlyBeforeNow time.Time,
 	obj *corev1.Event) {
 
-	recorder.RecordResource("events", obj)
+	m.RecordResource("events", obj)
 
 	// Temporary hack by dgoodwin, we're missing events here that show up later in
 	// gather-extra/events.json. Adding some output to see if we can isolate what we saw
@@ -206,13 +206,11 @@ func recordAddOrUpdateEvent(
 	default:
 		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	}
-
 	condition := monitorapi.Condition{
 		Level:   monitorapi.Info,
 		Locator: locateEvent(obj),
 		Message: message,
 	}
-
 	if obj.Type == corev1.EventTypeWarning {
 		condition.Level = monitorapi.Warning
 	}
@@ -226,7 +224,7 @@ func recordAddOrUpdateEvent(
 	}
 	to := pathoFrom.Add(1 * time.Second)
 
-	event := monitorapi.Interval{
+	event := monitorapi.EventInterval{
 		Condition: condition,
 	}
 
@@ -264,11 +262,11 @@ func recordAddOrUpdateEvent(
 		fmt.Printf("processed event: %+v\nresulting new interval: %s from: %s to %s\n", *obj, message, pathoFrom, to)
 
 		// Add the interval.
-		inter := recorder.StartInterval(pathoFrom, condition)
-		recorder.EndInterval(inter, to)
+		inter := m.StartInterval(pathoFrom, condition)
+		m.EndInterval(inter, to)
 
 	} else {
-		recorder.RecordAt(t, condition)
+		m.RecordAt(t, condition)
 	}
 }
 

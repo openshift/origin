@@ -27,7 +27,7 @@ func TestIntervals_Duration(t *testing.T) {
 		{
 			name: "about-three-seconds",
 			intervals: Intervals{
-				Interval{
+				EventInterval{
 					Condition: Condition{
 						Level:   Info,
 						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
@@ -36,7 +36,7 @@ func TestIntervals_Duration(t *testing.T) {
 					From: start1,
 					To:   start2,
 				},
-				Interval{
+				EventInterval{
 					Condition: Condition{
 						Level:   Error,
 						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
@@ -45,7 +45,7 @@ func TestIntervals_Duration(t *testing.T) {
 					From: start2,
 					To:   start3,
 				},
-				Interval{
+				EventInterval{
 					Condition: Condition{
 						Level:   Info,
 						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
@@ -54,7 +54,7 @@ func TestIntervals_Duration(t *testing.T) {
 					From: start3,
 					To:   start4,
 				},
-				Interval{
+				EventInterval{
 					Condition: Condition{
 						Level:   Error,
 						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
@@ -63,7 +63,7 @@ func TestIntervals_Duration(t *testing.T) {
 					From: start4,
 					To:   start5,
 				},
-				Interval{
+				EventInterval{
 					Condition: Condition{
 						Level:   Info,
 						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
@@ -72,7 +72,7 @@ func TestIntervals_Duration(t *testing.T) {
 					From: start5,
 					To:   start6,
 				},
-				Interval{
+				EventInterval{
 					Condition: Condition{
 						Level:   Error,
 						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
@@ -81,7 +81,7 @@ func TestIntervals_Duration(t *testing.T) {
 					From: start6,
 					To:   start7,
 				},
-				Interval{
+				EventInterval{
 					Condition: Condition{
 						Level:   Info,
 						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",

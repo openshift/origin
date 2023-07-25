@@ -5,7 +5,7 @@ import (
 )
 
 // GetNodeRoles extract the node roles from the event message.
-func GetNodeRoles(event Interval) string {
+func GetNodeRoles(event EventInterval) string {
 	var roles string
 	if i := strings.Index(event.Message, "roles/"); i != -1 {
 		roles = event.Message[i+len("roles/"):]

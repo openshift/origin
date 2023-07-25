@@ -15,68 +15,68 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func StartAllAPIMonitoring(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
-	if err := startKubeAPIMonitoringWithNewConnections(ctx, recorder, clusterConfig); err != nil {
+func StartAllAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
+	if err := startKubeAPIMonitoringWithNewConnections(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startKubeAPIMonitoringWithNewConnectionsAgainstAPICache(ctx, recorder, clusterConfig); err != nil {
+	if err := startKubeAPIMonitoringWithNewConnectionsAgainstAPICache(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startOpenShiftAPIMonitoringWithNewConnections(ctx, recorder, clusterConfig); err != nil {
+	if err := startOpenShiftAPIMonitoringWithNewConnections(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startOpenShiftAPIMonitoringWithNewConnectionsAgainstAPICache(ctx, recorder, clusterConfig); err != nil {
+	if err := startOpenShiftAPIMonitoringWithNewConnectionsAgainstAPICache(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startOAuthAPIMonitoringWithNewConnections(ctx, recorder, clusterConfig); err != nil {
+	if err := startOAuthAPIMonitoringWithNewConnections(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startOAuthAPIMonitoringWithNewConnectionsAgainstAPICache(ctx, recorder, clusterConfig); err != nil {
+	if err := startOAuthAPIMonitoringWithNewConnectionsAgainstAPICache(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startKubeAPIMonitoringWithConnectionReuse(ctx, recorder, clusterConfig); err != nil {
+	if err := startKubeAPIMonitoringWithConnectionReuse(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startKubeAPIMonitoringWithConnectionReuseAgainstAPICache(ctx, recorder, clusterConfig); err != nil {
+	if err := startKubeAPIMonitoringWithConnectionReuseAgainstAPICache(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startOpenShiftAPIMonitoringWithConnectionReuse(ctx, recorder, clusterConfig); err != nil {
+	if err := startOpenShiftAPIMonitoringWithConnectionReuse(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startOpenShiftAPIMonitoringWithConnectionReuseAgainstAPICache(ctx, recorder, clusterConfig); err != nil {
+	if err := startOpenShiftAPIMonitoringWithConnectionReuseAgainstAPICache(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startOAuthAPIMonitoringWithConnectionReuse(ctx, recorder, clusterConfig); err != nil {
+	if err := startOAuthAPIMonitoringWithConnectionReuse(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := startOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(ctx, recorder, clusterConfig); err != nil {
+	if err := startOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(ctx, m, clusterConfig); err != nil {
 		return err
 	}
-	if err := StartAPIMonitoringUsingNewBackend(ctx, recorder, clusterConfig, lb); err != nil {
+	if err := StartAPIMonitoringUsingNewBackend(ctx, m, clusterConfig, lb); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func StartAPIMonitoringUsingNewBackend(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
+func StartAPIMonitoringUsingNewBackend(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
 	factory := disruptionci.NewDisruptionTestFactory(clusterConfig)
-	if err := startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx, recorder, factory, lb); err != nil {
+	if err := startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx, m, factory, lb); err != nil {
 		return err
 	}
-	if err := startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx, recorder, factory, lb); err != nil {
+	if err := startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx, m, factory, lb); err != nil {
 		return err
 	}
-	if err := startKubeAPIMonitoringWithNewConnectionsHTTP1(ctx, recorder, factory, lb); err != nil {
+	if err := startKubeAPIMonitoringWithNewConnectionsHTTP1(ctx, m, factory, lb); err != nil {
 		return err
 	}
-	if err := startKubeAPIMonitoringWithConnectionReuseHTTP1(ctx, recorder, factory, lb); err != nil {
+	if err := startKubeAPIMonitoringWithConnectionReuseHTTP1(ctx, m, factory, lb); err != nil {
 		return err
 	}
-	if err := startOpenShiftAPIMonitoringWithNewConnectionsHTTP2(ctx, recorder, factory, lb); err != nil {
+	if err := startOpenShiftAPIMonitoringWithNewConnectionsHTTP2(ctx, m, factory, lb); err != nil {
 		return err
 	}
-	if err := startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx, recorder, factory, lb); err != nil {
+	if err := startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx, m, factory, lb); err != nil {
 		return err
 	}
 	return nil
@@ -90,148 +90,148 @@ func StartRemoteAPIMonitoring(ctx context.Context, m monitor.Recorder, clusterCo
 	return nil
 }
 
-func startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, recorder monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+func startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
 	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx context.Context, recorder monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+func startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
 	backendSampler, err := createKubeAPIMonitoringWithConnectionReuseHTTP2(factory, lb)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startKubeAPIMonitoringWithNewConnectionsHTTP1(ctx context.Context, recorder monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+func startKubeAPIMonitoringWithNewConnectionsHTTP1(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
 	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP1(factory, lb)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startKubeAPIMonitoringWithConnectionReuseHTTP1(ctx context.Context, recorder monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+func startKubeAPIMonitoringWithConnectionReuseHTTP1(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
 	backendSampler, err := createKubeAPIMonitoringWithConnectionReuseHTTP1(factory, lb)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOpenShiftAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, recorder monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+func startOpenShiftAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
 	backendSampler, err := createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx context.Context, recorder monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+func startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx context.Context, m monitor.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
 	backendSampler, err := createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory, lb)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startKubeAPIMonitoringWithNewConnections(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startKubeAPIMonitoringWithNewConnections(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createKubeAPIMonitoringWithNewConnections(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startKubeAPIMonitoringWithNewConnectionsAgainstAPICache(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startKubeAPIMonitoringWithNewConnectionsAgainstAPICache(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsAgainstAPICache(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOpenShiftAPIMonitoringWithNewConnections(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startOpenShiftAPIMonitoringWithNewConnections(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createOpenShiftAPIMonitoringWithNewConnections(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOpenShiftAPIMonitoringWithNewConnectionsAgainstAPICache(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startOpenShiftAPIMonitoringWithNewConnectionsAgainstAPICache(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createOpenShiftAPIMonitoringWithNewConnectionsAgainstAPICache(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOAuthAPIMonitoringWithNewConnections(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startOAuthAPIMonitoringWithNewConnections(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createOAuthAPIMonitoringWithNewConnections(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOAuthAPIMonitoringWithNewConnectionsAgainstAPICache(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startOAuthAPIMonitoringWithNewConnectionsAgainstAPICache(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createOAuthAPIMonitoringWithNewConnectionsAgainstAPICache(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startKubeAPIMonitoringWithConnectionReuse(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startKubeAPIMonitoringWithConnectionReuse(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createKubeAPIMonitoringWithConnectionReuse(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startKubeAPIMonitoringWithConnectionReuseAgainstAPICache(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startKubeAPIMonitoringWithConnectionReuseAgainstAPICache(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createKubeAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOpenShiftAPIMonitoringWithConnectionReuse(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startOpenShiftAPIMonitoringWithConnectionReuse(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createOpenShiftAPIMonitoringWithConnectionReuse(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOpenShiftAPIMonitoringWithConnectionReuseAgainstAPICache(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startOpenShiftAPIMonitoringWithConnectionReuseAgainstAPICache(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createOpenShiftAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOAuthAPIMonitoringWithConnectionReuse(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startOAuthAPIMonitoringWithConnectionReuse(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createOAuthAPIMonitoringWithConnectionReuse(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(ctx context.Context, recorder monitor.Recorder, clusterConfig *rest.Config) error {
+func startOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler, err := createOAuthAPIMonitoringWithConnectionReuseAgainstAPICache(clusterConfig)
 	if err != nil {
 		return err
 	}
-	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
 func createKubeAPIMonitoringWithNewConnections(clusterConfig *rest.Config) (*backenddisruption.BackendSampler, error) {

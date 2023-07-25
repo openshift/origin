@@ -447,13 +447,13 @@ func (b *BackendSampler) Stop() {
 
 // StartEndpointMonitoring sets up a client for the given BackendSampler, starts checking the endpoint, and recording
 // success/failure edges into the monitorRecorder
-func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, recorder Recorder, eventRecorder events.EventRecorder) error {
-	if recorder == nil {
+func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, monitorRecorder Recorder, eventRecorder events.EventRecorder) error {
+	if monitorRecorder == nil {
 		return fmt.Errorf("monitor is required")
 	}
 
 	go func() {
-		err := b.RunEndpointMonitoring(ctx, recorder, eventRecorder)
+		err := b.RunEndpointMonitoring(ctx, monitorRecorder, eventRecorder)
 		if err != nil {
 			utilruntime.HandleError(err)
 		}

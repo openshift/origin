@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -28,6 +29,8 @@ type RunMonitorOptions struct {
 	Out, ErrOut io.Writer
 	ArtifactDir string
 
+	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
+
 	TimelineOptions TimelineOptions
 }
 
@@ -35,8 +38,14 @@ func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOpti
 	timelineOptions := NewTimelineOptions(ioStreams)
 
 	return &RunMonitorOptions{
-		Out:             ioStreams.Out,
-		ErrOut:          ioStreams.ErrOut,
+		Out:    ioStreams.Out,
+		ErrOut: ioStreams.ErrOut,
+		AdditionalEventIntervalRecorders: []monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAllAPIMonitoring,
+			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
+		},
+
 		TimelineOptions: *timelineOptions,
 	}
 }
@@ -91,12 +100,8 @@ func (opt *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	m := monitor.NewMonitor(restConfig, []monitor.StartEventIntervalRecorderFunc{
-		controlplane.StartAllAPIMonitoring,
-		frontends.StartAllIngressMonitoring,
-		externalservice.StartExternalServiceMonitoring,
-	})
-	if err := m.Start(ctx); err != nil {
+	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders, backend.ExternalLoadBalancerType)
+	if err != nil {
 		return err
 	}
 

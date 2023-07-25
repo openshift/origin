@@ -42,7 +42,7 @@ func TestPodLogScanner(t *testing.T) {
 		pod              *kapi.Pod
 		beginning        time.Time
 		end              time.Time
-		expectedInterval *monitorapi.Interval
+		expectedInterval *monitorapi.EventInterval
 	}{
 		{
 			name:             "no match",
@@ -56,7 +56,7 @@ func TestPodLogScanner(t *testing.T) {
 			pod:       buildFakePod("openshift-etcd", "etcd-1", "master-0", "fakeuuid"),
 			beginning: parseTimeOrDie("2023-03-03T00:00:00.871Z"),
 			end:       parseTimeOrDie("2023-03-03T03:00:00.871Z"),
-			expectedInterval: &monitorapi.Interval{
+			expectedInterval: &monitorapi.EventInterval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Warning,
 					Locator: "ns/openshift-etcd pod/etcd-1 node/master-0 uid/fakeuuid container/etcd src/podLog",
@@ -79,7 +79,7 @@ func TestPodLogScanner(t *testing.T) {
 	for _, test := range tests {
 		scanners := buildLogGatherers()
 		logger := logrus.WithField("test", test.name)
-		var interval *monitorapi.Interval
+		var interval *monitorapi.EventInterval
 		var err error
 		t.Run(test.name, func(t *testing.T) {
 			for _, scanner := range scanners {

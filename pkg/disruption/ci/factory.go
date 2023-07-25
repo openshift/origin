@@ -91,13 +91,13 @@ func (t TestDescriptor) Name() string {
 	return fmt.Sprintf("%s-%s-%s-%s-connections", t.TargetServer, t.Protocol, t.LoadBalancerType, t.ConnectionType)
 }
 
-func (t TestDescriptor) DisruptionLocator() monitorapi.Locator {
-	return monitorapi.NewLocator().Disruption(t.Name(), string(t.LoadBalancerType),
-		string(t.ConnectionType), string(t.Protocol), string(t.TargetServer))
+func (t TestDescriptor) DisruptionLocator() string {
+	return fmt.Sprintf("disruption/%s load-balancer/%s connection/%s protocol/%s target/%s",
+		t.Name(), t.LoadBalancerType, t.ConnectionType, t.Protocol, t.TargetServer)
 }
 
-func (t TestDescriptor) ShutdownLocator() monitorapi.Locator {
-	return monitorapi.NewLocator().APIServerShutdown(string(t.LoadBalancerType))
+func (t TestDescriptor) ShutdownLocator() string {
+	return fmt.Sprintf("shutdown/graceful server/kube-apiserver load-balancer/%s", t.LoadBalancerType)
 }
 
 func (t TestDescriptor) Validate() error {

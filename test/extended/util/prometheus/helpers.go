@@ -159,7 +159,7 @@ func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
 	return nil
 }
 
-func (c MetricConditions) MatchesInterval(alertInterval monitorapi.Interval) *MetricCondition {
+func (c MetricConditions) MatchesInterval(alertInterval monitorapi.EventInterval) *MetricCondition {
 
 	// Parse out the alertInterval:
 	checkAlertName := monitorapi.AlertFromLocator(alertInterval.Locator)
