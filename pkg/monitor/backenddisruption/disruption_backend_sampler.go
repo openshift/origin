@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -528,6 +529,7 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 		select {
 		case <-ticker.C:
 		case <-ctx.Done():
+			fmt.Fprintf(os.Stderr, "%v producer sampler context is done\n", b.backendSampler.locator)
 			return
 		}
 	}
@@ -545,6 +547,8 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 	// when we exit this function, we want to set a final duration of failure.  We don't actually know whether it ended
 	// or how long it took to ask
 	defer func() {
+		fmt.Fprintf(os.Stderr, "%v setting the intervals as done at time %v\n", b.backendSampler.locator, time.Now())
+
 		if previousIntervalID != -1 && previousSampleTime != nil {
 			monitorRecorder.EndInterval(previousIntervalID, previousSampleTime.Add(interval))
 		}
@@ -553,6 +557,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 1\n", b.backendSampler.locator)
 			return
 		default:
 		}
@@ -563,6 +568,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			case <-time.After(interval):
 				continue
 			case <-ctx.Done():
+				fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 2\n", b.backendSampler.locator)
 				return
 			}
 		}
@@ -571,6 +577,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 		select {
 		case <-currSample.finished:
 		case <-ctx.Done():
+			fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 3\n", b.backendSampler.locator)
 			return
 		}
 

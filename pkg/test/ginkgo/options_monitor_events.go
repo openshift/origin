@@ -156,13 +156,15 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	o.recordedResources = o.monitor.CurrentResourceState()
 
 	var err error
-	fromTime, endTime := *o.startTime, *o.endTime
 
 	cleanupContext, cleanupCancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cleanupCancel()
 	if err := o.monitor.Stop(cleanupContext, time.Time{}, time.Time{}); err != nil {
 		fmt.Fprintf(os.Stderr, "error cleaning up, still reporting as best as possible: %v\n", err)
 	}
+
+	// make sure that the end time is *after* the final availability samples.
+	fromTime, endTime := *o.startTime, *o.endTime
 
 	events := o.monitor.Intervals(fromTime, endTime)
 
