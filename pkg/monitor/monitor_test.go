@@ -72,10 +72,8 @@ func TestMonitor_Events(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Monitor{
-				recorder: &recorder{
-					events:            tt.events,
-					recordedResources: monitorapi.ResourcesMap{},
-				},
+				events:            tt.events,
+				recordedResources: monitorapi.ResourcesMap{},
 			}
 			if got := m.Intervals(tt.from, tt.to); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("%s", diff.ObjectReflectDiff(tt.want, got))

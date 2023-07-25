@@ -22,7 +22,7 @@ type BackendSampler interface {
 	GetDisruptionBackendName() string
 	GetLocator() string
 	GetURL() (string, error)
-	RunEndpointMonitoring(ctx context.Context, monitorRecorder backenddisruption.Recorder, eventRecorder events.EventRecorder) error
+	RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
 	Stop()
 }
 
@@ -144,10 +144,10 @@ func (t *backendDisruptionTest) Test(ctx context.Context, f *framework.Framework
 
 	endpointMonitoringContext, endpointMonitoringCancel := context.WithCancel(ctx)
 	defer endpointMonitoringCancel() // final backstop on closure
-	recorder := monitor.NewRecorder()
+	m := monitor.NewMonitor(f.ClientConfig(), nil)
 	disruptionErrCh := make(chan error, 1)
 	go func() {
-		err := t.backend.RunEndpointMonitoring(endpointMonitoringContext, recorder, eventRecorder)
+		err := t.backend.RunEndpointMonitoring(endpointMonitoringContext, m, eventRecorder)
 		disruptionErrCh <- err
 	}()
 	time.Sleep(1 * time.Second) // wait for some initial errors so we can fail early if it happens
@@ -180,7 +180,7 @@ func (t *backendDisruptionTest) Test(ctx context.Context, f *framework.Framework
 	end := time.Now()
 
 	fromTime, endTime := time.Time{}, time.Time{}
-	events := recorder.Intervals(fromTime, endTime)
+	events := m.Intervals(fromTime, endTime)
 	ginkgo.By(fmt.Sprintf("writing results: %s", t.backend.GetLocator()))
 	ExpectNoDisruptionForDuration(
 		f,
