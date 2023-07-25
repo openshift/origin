@@ -156,7 +156,7 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 		name            string
 		estimatedTime   time.Duration
 		produceSamples  func(ctx context.Context, backendSampler *disruptionSampler)
-		validateSamples func(t *testing.T, eventIntervals []monitorapi.Interval) error
+		validateSamples func(t *testing.T, eventIntervals []monitorapi.EventInterval) error
 	}{
 		{
 			name:          "in-order",
@@ -183,7 +183,7 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				fourthSample.setSampleError(fmt.Errorf("now fail"))
 				close(fourthSample.finished)
 			},
-			validateSamples: func(t *testing.T, eventIntervals []monitorapi.Interval) error {
+			validateSamples: func(t *testing.T, eventIntervals []monitorapi.EventInterval) error {
 				if len(eventIntervals) != 2 {
 					t.Fatal(eventIntervals)
 				}
@@ -228,7 +228,7 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				close(firstSample.finished)
 				close(thirdSample.finished)
 			},
-			validateSamples: func(t *testing.T, eventIntervals []monitorapi.Interval) error {
+			validateSamples: func(t *testing.T, eventIntervals []monitorapi.EventInterval) error {
 				if len(eventIntervals) != 2 {
 					t.Fatal(eventIntervals)
 				}
@@ -273,7 +273,7 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				close(firstSample.finished)
 				close(thirdSample.finished)
 			},
-			validateSamples: func(t *testing.T, eventIntervals []monitorapi.Interval) error {
+			validateSamples: func(t *testing.T, eventIntervals []monitorapi.EventInterval) error {
 				if len(eventIntervals) != 2 {
 					t.Fatal(eventIntervals)
 				}
@@ -314,7 +314,7 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				close(firstSample.finished)
 				close(thirdSample.finished)
 			},
-			validateSamples: func(t *testing.T, eventIntervals []monitorapi.Interval) error {
+			validateSamples: func(t *testing.T, eventIntervals []monitorapi.EventInterval) error {
 
 				if !assert.Equal(t, 3, len(eventIntervals)) {
 					return nil

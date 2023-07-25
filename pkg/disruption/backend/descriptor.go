@@ -38,8 +38,8 @@ func ParseStringToLoadBalancerType(input string) LoadBalancerType {
 // TestDescriptor describes a backend disruption test
 type TestDescriptor interface {
 	Name() string
-	DisruptionLocator() monitorapi.Locator
-	ShutdownLocator() monitorapi.Locator
+	DisruptionLocator() string
+	ShutdownLocator() string
 	GetLoadBalancerType() LoadBalancerType
 	GetProtocol() ProtocolType
 	GetConnectionType() monitorapi.BackendConnectionType

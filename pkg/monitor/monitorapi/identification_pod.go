@@ -56,7 +56,6 @@ func ContainerFrom(locator string) ContainerReference {
 	}
 }
 
-// TODO: delete all these
 type PodReference struct {
 	NamespacedReference
 }
@@ -112,6 +111,145 @@ func PhaseFrom(message string) string {
 	return annotations[AnnotationPodPhase]
 }
 
+type IntervalReason string
+
+const (
+	IPTablesNotPermitted IntervalReason = "iptables-operation-not-permitted"
+
+	DisruptionBeganEventReason              IntervalReason = "DisruptionBegan"
+	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
+	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
+
+	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
+
+	PodPendingReason               IntervalReason = "PodIsPending"
+	PodNotPendingReason            IntervalReason = "PodIsNotPending"
+	PodReasonCreated               IntervalReason = "Created"
+	PodReasonGracefulDeleteStarted IntervalReason = "GracefulDelete"
+	PodReasonForceDelete           IntervalReason = "ForceDelete"
+	PodReasonDeleted               IntervalReason = "Deleted"
+	PodReasonScheduled             IntervalReason = "Scheduled"
+
+	ContainerReasonContainerExit      IntervalReason = "ContainerExit"
+	ContainerReasonContainerStart     IntervalReason = "ContainerStart"
+	ContainerReasonContainerWait      IntervalReason = "ContainerWait"
+	ContainerReasonReadinessFailed    IntervalReason = "ReadinessFailed"
+	ContainerReasonReadinessErrored   IntervalReason = "ReadinessErrored"
+	ContainerReasonStartupProbeFailed IntervalReason = "StartupProbeFailed"
+	ContainerReasonReady              IntervalReason = "Ready"
+	ContainerReasonNotReady           IntervalReason = "NotReady"
+
+	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
+	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"
+
+	NodeUpdateReason   IntervalReason = "NodeUpdate"
+	NodeNotReadyReason IntervalReason = "NotReady"
+)
+
+type AnnotationKey string
+
+const (
+	AnnotationReason            AnnotationKey = "reason"
+	AnnotationContainerExitCode AnnotationKey = "code"
+	AnnotationCause             AnnotationKey = "cause"
+	AnnotationNode              AnnotationKey = "node"
+	AnnotationConstructed       AnnotationKey = "constructed"
+	AnnotationPodPhase          AnnotationKey = "phase"
+	AnnotationIsStaticPod       AnnotationKey = "mirrored"
+	// TODO this looks wrong. seems like it ought to be set in the to/from
+	AnnotationDuration       AnnotationKey = "duration"
+	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
+)
+
+type ConstructionOwner string
+
+const (
+	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
+	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
+)
+
+type MessageBuilder struct {
+	annotations     map[AnnotationKey]string
+	originalMessage string
+}
+
+func Message() *MessageBuilder {
+	return &MessageBuilder{
+		annotations: map[AnnotationKey]string{},
+	}
+}
+
+func ExpandMessage(prevMessage string) *MessageBuilder {
+	prevAnnotations := AnnotationsFromMessage(prevMessage)
+	prevNonAnnotationMessage := NonAnnotationMessage(prevMessage)
+	return &MessageBuilder{
+		annotations:     prevAnnotations,
+		originalMessage: prevNonAnnotationMessage,
+	}
+}
+
+func (m *MessageBuilder) Reason(reason IntervalReason) *MessageBuilder {
+	return m.WithAnnotation(AnnotationReason, string(reason))
+}
+
+func (m *MessageBuilder) Cause(cause string) *MessageBuilder {
+	return m.WithAnnotation(AnnotationCause, cause)
+}
+
+func (m *MessageBuilder) Node(node string) *MessageBuilder {
+	return m.WithAnnotation(AnnotationNode, node)
+}
+
+func (m *MessageBuilder) Constructed(constructedBy ConstructionOwner) *MessageBuilder {
+	return m.WithAnnotation(AnnotationConstructed, string(constructedBy))
+}
+
+func (m *MessageBuilder) WithAnnotation(name AnnotationKey, value string) *MessageBuilder {
+	m.annotations[name] = value
+	return m
+}
+
+func (m *MessageBuilder) WithAnnotations(annotations map[AnnotationKey]string) *MessageBuilder {
+	for k, v := range annotations {
+		m.annotations[k] = v
+	}
+	return m
+}
+
+func (m *MessageBuilder) NoDetails() string {
+	keys := sets.NewString()
+	for k := range m.annotations {
+		keys.Insert(string(k))
+	}
+
+	annotations := []string{}
+	for _, k := range keys.List() {
+		v := m.annotations[AnnotationKey(k)]
+		annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
+	}
+	annotationString := strings.Join(annotations, " ")
+	return m.appendPreviousMessage(annotationString)
+}
+
+func (m *MessageBuilder) Messagef(messageFormat string, args ...interface{}) string {
+	return m.Message(fmt.Sprintf(messageFormat, args...))
+}
+
+func (m *MessageBuilder) Message(message string) string {
+	if len(message) == 0 {
+		return m.NoDetails()
+	}
+	annotationString := m.NoDetails()
+	return m.appendPreviousMessage(fmt.Sprintf("%v %v", annotationString, message))
+}
+
+func (m *MessageBuilder) appendPreviousMessage(newMessage string) string {
+	if len(m.originalMessage) == 0 {
+		return newMessage
+	}
+	return fmt.Sprintf("%v %v", m.originalMessage, newMessage)
+}
+
 const (
 	// PodIPReused means the same pod IP is in use by two pods at the same time.
 	PodIPReused = "ReusedPodIP"
@@ -158,7 +296,7 @@ var (
 	)
 )
 
-type ByTimeWithNamespacedPods []Interval
+type ByTimeWithNamespacedPods []EventInterval
 
 func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
 	lhsIsPodConstructed := strings.Contains(intervals[i].Message, "constructed") && strings.Contains(intervals[i].Locator, "pod/")

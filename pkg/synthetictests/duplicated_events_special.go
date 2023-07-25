@@ -13,11 +13,11 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
-type eventRecognizerFunc func(event monitorapi.Interval) bool
+type eventRecognizerFunc func(event monitorapi.EventInterval) bool
 
 func matchEventForRegexOrDie(regex string) eventRecognizerFunc {
 	regExp := regexp.MustCompile(regex)
-	return func(e monitorapi.Interval) bool {
+	return func(e monitorapi.EventInterval) bool {
 		return regExp.MatchString(e.Message)
 	}
 }
@@ -181,14 +181,14 @@ func testOperatorStatusChanged(events monitorapi.Intervals) []*junitapi.JUnitTes
 
 func makeProbeTest(testName string, events monitorapi.Intervals, operatorName string, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	messageRegExp := regexp.MustCompile(regExStr)
-	return eventMatchThresholdTest(testName, events, func(event monitorapi.Interval) bool {
+	return eventMatchThresholdTest(testName, events, func(event monitorapi.EventInterval) bool {
 		return duplicateevents.IsOperatorMatchRegexMessage(event, operatorName, messageRegExp)
 	}, eventFlakeThreshold)
 }
 
 func eventExprMatchThresholdTest(testName string, events monitorapi.Intervals, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	messageRegExp := regexp.MustCompile(regExStr)
-	return eventMatchThresholdTest(testName, events, func(event monitorapi.Interval) bool { return messageRegExp.MatchString(event.Message) }, eventFlakeThreshold)
+	return eventMatchThresholdTest(testName, events, func(event monitorapi.EventInterval) bool { return messageRegExp.MatchString(event.Message) }, eventFlakeThreshold)
 }
 
 func eventMatchThresholdTest(testName string, events monitorapi.Intervals, eventMatch eventRecognizerFunc, eventFlakeThreshold int) []*junitapi.JUnitTestCase {

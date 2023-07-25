@@ -85,7 +85,7 @@ func (m *Monitor) Record(conditions ...monitorapi.Condition) {
 }
 
 // AddIntervals provides a mechanism to directly inject eventIntervals
-func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.Interval) {
+func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.EventInterval) {
 	m.recorder.AddIntervals(eventIntervals...)
 }
 

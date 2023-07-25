@@ -30,53 +30,47 @@ var DnsLookupRegex = regexp.MustCompile(`dial tcp: lookup.*: i/o timeout`)
 
 // DisruptionBegan examines the error received, attempts to determine if it looks like real disruption to the cluster under test,
 // or other problems possibly on the system running the tests/monitor, and returns an appropriate user message, event reason, and monitoring level.
-func DisruptionBegan(locator string, connectionType monitorapi.BackendConnectionType, err error, auditID string) (string, monitorapi.IntervalReason, monitorapi.ConditionLevel) {
+func DisruptionBegan(locator string, connectionType monitorapi.BackendConnectionType, err error, auditID string) (string, monitorapi.IntervalReason, monitorapi.EventLevel) {
 	if DnsLookupRegex.MatchString(err.Error()) {
 		switch connectionType {
 		case monitorapi.NewConnectionType:
-			return monitorapi.NewMessage().
+			return monitorapi.Message().
 					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
 					WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-					HumanMessagef("DNS lookup timeouts began for %s GET requests over new connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err).
-					BuildString(),
+					Messagef("DNS lookup timeouts began for %s GET requests over new connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err),
 				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		case monitorapi.ReusedConnectionType:
-			return monitorapi.NewMessage().
+			return monitorapi.Message().
 					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
 					WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-					HumanMessagef("DNS lookup timeouts began for %s GET requests over reused connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err).
-					BuildString(),
+					Messagef("DNS lookup timeouts began for %s GET requests over reused connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, err),
 				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		default:
-			return monitorapi.NewMessage().
+			return monitorapi.Message().
 					Reason(monitorapi.DisruptionSamplerOutageBeganEventReason).
 					WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-					HumanMessagef("DNS lookup timeouts began for %s GET requests over %v connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, "Unknown", err).
-					BuildString(),
+					Messagef("DNS lookup timeouts began for %s GET requests over %v connections: %v (likely a problem in cluster running tests, not the cluster under test)", locator, "Unknown", err),
 				monitorapi.DisruptionSamplerOutageBeganEventReason, monitorapi.Warning
 		}
 	}
 	switch connectionType {
 	case monitorapi.NewConnectionType:
-		return monitorapi.NewMessage().
+		return monitorapi.Message().
 				Reason(monitorapi.DisruptionBeganEventReason).
 				WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-				HumanMessagef("%s stopped responding to GET requests over new connections: %v", locator, err).
-				BuildString(),
+				Messagef("%s stopped responding to GET requests over new connections: %v", locator, err),
 			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	case monitorapi.ReusedConnectionType:
-		return monitorapi.NewMessage().
+		return monitorapi.Message().
 				Reason(monitorapi.DisruptionBeganEventReason).
 				WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-				HumanMessagef("%s stopped responding to GET requests over reused connections: %v", locator, err).
-				BuildString(),
+				Messagef("%s stopped responding to GET requests over reused connections: %v", locator, err),
 			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	default:
-		return monitorapi.NewMessage().
+		return monitorapi.Message().
 				Reason(monitorapi.DisruptionBeganEventReason).
 				WithAnnotation(monitorapi.AnnotationRequestAuditID, auditID).
-				HumanMessagef("%s stopped responding to GET requests over %v connections: %v", locator, "Unknown", err).
-				BuildString(),
+				Messagef("%s stopped responding to GET requests over %v connections: %v", locator, "Unknown", err),
 			monitorapi.DisruptionBeganEventReason, monitorapi.Error
 	}
 }

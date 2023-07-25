@@ -18,10 +18,6 @@ type EventInterval struct {
 	Locator string `json:"locator"`
 	Message string `json:"message"`
 
-	// TODO: we're hoping to move these to just locator/message when everything is ready.
-	StructuredLocator monitorapi.Locator `json:"tempStructuredLocator"`
-	StructuredMessage monitorapi.Message `json:"tempStructuredMessage"`
-
 	From metav1.Time `json:"from"`
 	To   metav1.Time `json:"to"`
 }
@@ -54,11 +50,11 @@ func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
 	}
 	events := make(monitorapi.Intervals, 0, len(list.Items))
 	for _, interval := range list.Items {
-		level, err := monitorapi.ConditionLevelFromString(interval.Level)
+		level, err := monitorapi.EventLevelFromString(interval.Level)
 		if err != nil {
 			return nil, err
 		}
-		events = append(events, monitorapi.Interval{
+		events = append(events, monitorapi.EventInterval{
 			Condition: monitorapi.Condition{
 				Level:   level,
 				Locator: interval.Locator,
@@ -106,13 +102,11 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 	return json.MarshalIndent(list, "", "    ")
 }
 
-func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
+func monitorEventIntervalToEventInterval(interval monitorapi.EventInterval) EventInterval {
 	ret := EventInterval{
-		Level:             fmt.Sprintf("%v", interval.Level),
-		Locator:           interval.Locator,
-		Message:           interval.Message,
-		StructuredLocator: interval.StructuredLocator,
-		StructuredMessage: interval.StructuredMessage,
+		Level:   fmt.Sprintf("%v", interval.Level),
+		Locator: interval.Locator,
+		Message: interval.Message,
 
 		From: metav1.Time{Time: interval.From},
 		To:   metav1.Time{Time: interval.To},

@@ -45,8 +45,8 @@ func (bs *RemoteSampler) GetDisruptionBackendName() string {
 	return ""
 }
 
-func (bs *RemoteSampler) GetLocator() monitorapi.Locator {
-	return monitorapi.Locator{}
+func (bs *RemoteSampler) GetLocator() string {
+	return ""
 }
 
 func (bs *RemoteSampler) GetURL() (string, error) {

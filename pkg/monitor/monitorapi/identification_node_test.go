@@ -4,11 +4,11 @@ import "testing"
 
 func TestGetNodeRoles(t *testing.T) {
 	var testCases = []struct {
-		event    Interval
+		event    EventInterval
 		expected string
 	}{
 		{
-			event: Interval{
+			event: EventInterval{
 				Condition: Condition{
 					Message: "",
 				},
@@ -16,7 +16,7 @@ func TestGetNodeRoles(t *testing.T) {
 			expected: "",
 		},
 		{
-			event: Interval{
+			event: EventInterval{
 				Condition: Condition{
 					Message: "roles/master",
 				},
@@ -24,7 +24,7 @@ func TestGetNodeRoles(t *testing.T) {
 			expected: "master",
 		},
 		{
-			event: Interval{
+			event: EventInterval{
 				Condition: Condition{
 					Message: "roles/worker",
 				},
@@ -32,7 +32,7 @@ func TestGetNodeRoles(t *testing.T) {
 			expected: "worker",
 		},
 		{
-			event: Interval{
+			event: EventInterval{
 				Condition: Condition{
 					Message: "roles/master,worker",
 				},

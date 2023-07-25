@@ -31,7 +31,7 @@ type Recorder interface {
 	Record(conditions ...monitorapi.Condition)
 	RecordAt(t time.Time, conditions ...monitorapi.Condition)
 
-	AddIntervals(eventIntervals ...monitorapi.Interval)
+	AddIntervals(eventIntervals ...monitorapi.EventInterval)
 	StartInterval(t time.Time, condition monitorapi.Condition) int
 	EndInterval(startedInterval int, t time.Time)
 }

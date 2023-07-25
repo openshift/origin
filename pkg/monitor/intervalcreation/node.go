@@ -65,7 +65,7 @@ func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		case "NotReady":
 			nodeStateTracker.openInterval(nodeLocator, notReadyState, event.From)
 		case "Ready":
-			message := monitorapi.NewMessage().Reason(monitorapi.NodeNotReadyReason).HumanMessagef("role/%v is not ready", roles).BuildString()
+			message := monitorapi.Message().Reason(monitorapi.NodeNotReadyReason).Messagef("role/%v is not ready", roles)
 			intervals = append(intervals, nodeStateTracker.closeInterval(nodeLocator, notReadyState, simpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Warning, monitorapi.NodeNotReadyReason, message), event.From)...)
 		case "MachineConfigChange":
 			nodeStateTracker.openInterval(nodeLocator, updateState, event.From)
@@ -161,19 +161,19 @@ func IntervalsFromAuditLogs(ctx context.Context, kubeClient kubernetes.Interface
 // eventsFromKubeletLogs returns the produced intervals.  Any errors during this creation are logged, but
 // not returned because this is a best effort step
 func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Intervals {
-	nodeLocator := monitorapi.NewLocator().NodeFromName(nodeName)
+	nodeLocator := monitorapi.NodeLocator(nodeName)
 	ret := monitorapi.Intervals{}
 
 	scanner := bufio.NewScanner(bytes.NewBuffer(kubeletLog))
 	for scanner.Scan() {
 		currLine := scanner.Text()
-		ret = append(ret, readinessFailure(nodeName, currLine)...)
-		ret = append(ret, readinessError(nodeName, currLine)...)
-		ret = append(ret, statusHttpClientConnectionLostError(nodeName, currLine)...)
-		ret = append(ret, reflectorHttpClientConnectionLostError(nodeName, currLine)...)
-		ret = append(ret, kubeletNodeHttpClientConnectionLostError(nodeName, currLine)...)
-		ret = append(ret, startupProbeError(nodeName, currLine)...)
-		ret = append(ret, errParsingSignature(nodeName, currLine)...)
+		ret = append(ret, readinessFailure(currLine)...)
+		ret = append(ret, readinessError(currLine)...)
+		ret = append(ret, statusHttpClientConnectionLostError(currLine)...)
+		ret = append(ret, reflectorHttpClientConnectionLostError(currLine)...)
+		ret = append(ret, kubeletNodeHttpClientConnectionLostError(currLine)...)
+		ret = append(ret, startupProbeError(currLine)...)
+		ret = append(ret, errParsingSignature(currLine)...)
 		ret = append(ret, failedToDeleteCGroupsPath(nodeLocator, currLine)...)
 		ret = append(ret, anonymousCertConnectionError(nodeLocator, currLine)...)
 		ret = append(ret, leaseUpdateError(nodeLocator, currLine)...)
@@ -242,7 +242,7 @@ type kubeletLogLineEventCreator func(logLine string) monitorapi.Intervals
 
 var lineToEvents = []kubeletLogLineEventCreator{}
 
-func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
+func readinessFailure(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `Probe failed`) {
 		return nil
 	}
@@ -266,17 +266,18 @@ func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
-				Locator(containerRef).
-				Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonReadinessFailed).Node(nodeName).HumanMessage(message)).
-				Build(),
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: containerRef.ToLocator(),
+				Message: monitorapi.Message().Reason(monitorapi.ContainerReasonReadinessFailed).Message(message),
+			},
 			From: failureTime,
 			To:   failureTime,
 		},
 	}
 }
 
-func readinessError(nodeName, logLine string) monitorapi.Intervals {
+func readinessError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `Probe errored`) {
 		return nil
 	}
@@ -296,21 +297,18 @@ func readinessError(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
-				Locator(containerRef).
-				Message(
-					monitorapi.NewMessage().
-						Reason(monitorapi.ContainerReasonReadinessErrored).
-						Node(nodeName).
-						HumanMessage(message),
-				).Build(),
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: containerRef.ToLocator(),
+				Message: monitorapi.Message().Reason(monitorapi.ContainerReasonReadinessErrored).Message(message),
+			},
 			From: failureTime,
 			To:   failureTime,
 		},
 	}
 }
 
-func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
+func errParsingSignature(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, "StartContainer") {
 		return nil
 	}
@@ -325,15 +323,11 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
-				Locator(containerRef).
-				Message(
-					monitorapi.NewMessage().
-						Reason(monitorapi.ContainerErrImagePull).
-						Cause(monitorapi.ContainerUnrecognizedSignatureFormat).
-						Node(nodeName),
-				).
-				Build(),
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: containerRef.ToLocator(),
+				Message: monitorapi.Message().Reason(monitorapi.ContainerErrImagePull).Cause(monitorapi.ContainerUnrecognizedSignatureFormat).NoDetails(),
+			},
 			From: failureTime,
 			To:   failureTime,
 		},
@@ -343,7 +337,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 // startupProbeError extracts locator information from kubelet logs of the form:
 // "Probe failed" probeType="Startup" pod="<some_ns>/<some_pod" podUID=<some_pod_uid> containerName="<some_container_name>" .* output="<some_output>"
 // and returns an Interval (which will show up in the junit/events...json file and the intervals chart).
-func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
+func startupProbeError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `Probe failed`) {
 		return nil
 	}
@@ -374,14 +368,11 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
-				Locator(containerRef).
-				Message(
-					monitorapi.NewMessage().
-						Reason(monitorapi.ContainerReasonStartupProbeFailed).
-						Node(nodeName).
-						HumanMessage(message),
-				).Build(),
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: containerRef.ToLocator(),
+				Message: monitorapi.Message().Reason(monitorapi.ContainerReasonStartupProbeFailed).Message(message),
+			},
 			From: failureTime,
 			To:   failureTime,
 		},
@@ -400,47 +391,44 @@ var startupFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="St
 // so we won't miss the event.
 var startupFailureMultiLineOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Startup".*output=\<(?P<OUTPUT>.*)`)
 
-func errImagePullToContainerReference(logLine string) monitorapi.Locator {
+func errImagePullToContainerReference(logLine string) monitorapi.ContainerReference {
 	// err="failed to \"StartContainer\" for \"oauth-proxy\"
 	return regexToContainerReference(logLine, imagePullContainerRefRegex)
 }
 
-func probeProblemToContainerReference(logLine string) monitorapi.Locator {
+func probeProblemToContainerReference(logLine string) monitorapi.ContainerReference {
 	return regexToContainerReference(logLine, containerRefRegex)
 }
 
-func regexToContainerReference(logLine string, containerReferenceMatch *regexp.Regexp) monitorapi.Locator {
+func regexToContainerReference(logLine string, containerReferenceMatch *regexp.Regexp) monitorapi.ContainerReference {
+	ret := monitorapi.ContainerReference{}
 	containerReferenceMatch.MatchString(logLine)
 	if !containerReferenceMatch.MatchString(logLine) {
-		return monitorapi.Locator{}
+		return ret
 	}
 
 	subMatches := containerReferenceMatch.FindStringSubmatch(logLine)
 	subNames := containerReferenceMatch.SubexpNames()
-	namespace := ""
-	podName := ""
-	uid := ""
-	containerName := ""
 	for i, name := range subNames {
 		switch name {
 		case "NS":
-			namespace = subMatches[i]
+			ret.Pod.Namespace = subMatches[i]
 		case "POD":
-			podName = subMatches[i]
+			ret.Pod.Name = subMatches[i]
 		case "PODUID":
-			uid = subMatches[i]
+			ret.Pod.UID = subMatches[i]
 		case "CONTAINER":
-			containerName = subMatches[i]
+			ret.ContainerName = subMatches[i]
 		}
 	}
 
-	return monitorapi.NewLocator().ContainerFromNames(namespace, podName, uid, containerName)
+	return ret
 }
 
 var reflectorRefRegex = regexp.MustCompile(`object-"(?P<NS>[a-z0-9.-]+)"\/"(?P<POD>[a-z0-9.-]+)"`)
 var reflectorOutputRegex = regexp.MustCompile(`error on the server \("(?P<OUTPUT>.+)"\)`)
 
-func reflectorHttpClientConnectionLostError(nodeName, logLine string) monitorapi.Intervals {
+func reflectorHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `http2: client connection lost`) {
 		return nil
 	}
@@ -449,16 +437,16 @@ func reflectorHttpClientConnectionLostError(nodeName, logLine string) monitorapi
 		return nil
 	}
 
-	return commonErrorInterval(nodeName, logLine, reflectorOutputRegex, monitorapi.HttpClientConnectionLost, func() monitorapi.Locator {
+	return commonErrorInterval(logLine, reflectorOutputRegex, monitorapi.HttpClientConnectionLost, func() string {
 		containerRef := regexToContainerReference(logLine, reflectorRefRegex)
-		return containerRef
+		return containerRef.ToLocator()
 	})
 }
 
 var statusRefRegex = regexp.MustCompile(`podUID=(?P<PODUID>[a-z0-9.-]+) pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)"`)
 var statusOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
 
-func statusHttpClientConnectionLostError(nodeName, logLine string) monitorapi.Intervals {
+func statusHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `http2: client connection lost`) {
 		return nil
 	}
@@ -467,13 +455,13 @@ func statusHttpClientConnectionLostError(nodeName, logLine string) monitorapi.In
 		return nil
 	}
 
-	return commonErrorInterval(nodeName, logLine, nodeOutputRegex, monitorapi.HttpClientConnectionLost, func() monitorapi.Locator {
+	return commonErrorInterval(logLine, nodeOutputRegex, monitorapi.HttpClientConnectionLost, func() string {
 		containerRef := regexToContainerReference(logLine, statusRefRegex)
-		return containerRef
+		return containerRef.ToLocator()
 	})
 }
 
-func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
+func failedToDeleteCGroupsPath(nodeLocator, logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, "Failed to delete cgroup paths") {
 		return nil
 	}
@@ -482,17 +470,18 @@ func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) m
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Error).
-				Locator(nodeLocator).
-				Message(monitorapi.NewMessage().Reason("FailedToDeleteCGroupsPath").HumanMessage(logLine)).
-				Build(),
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: nodeLocator,
+				Message: monitorapi.Message().Reason("FailedToDeleteCGroupsPath").Message(logLine),
+			},
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
 		},
 	}
 }
 
-func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
+func anonymousCertConnectionError(nodeLocator, logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, "User \"system:anonymous\"") {
 		return nil
 	}
@@ -501,10 +490,11 @@ func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Error).
-				Locator(nodeLocator).
-				Message(monitorapi.NewMessage().Reason("FailedToAuthenticateWithOpenShiftUser").HumanMessage(logLine)).
-				Build(),
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Error,
+				Locator: nodeLocator,
+				Message: monitorapi.Message().Reason("FailedToAuthenticateWithOpenShiftUser").Message(logLine),
+			},
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
 		},
@@ -517,7 +507,7 @@ var failedLeaseUpdateErrorRegex = regexp.MustCompile(`failed to update lease, er
 // upper 'F'ailed and 'err'
 var failedLeaseUpdateErrRegex = regexp.MustCompile(`Failed to update lease\" err\=\"Put \\\"(?P<URL>[a-z0-9.-:\/\-\?\=]+)\\\": (?P<MSG>[^\"]+)`)
 
-func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
+func leaseUpdateError(nodeLocator, logLine string) monitorapi.Intervals {
 
 	// Two cases, one upper F the other lower so substring match without the leading f
 	if !strings.Contains(logLine, "ailed to update lease") {
@@ -555,11 +545,11 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
-				Locator(nodeLocator).
-				Message(
-					monitorapi.NewMessage().Reason(monitorapi.NodeFailedLease).HumanMessage(fmt.Sprintf("%s - %s", url, msg)),
-				).Build(),
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: nodeLocator,
+				Message: monitorapi.Message().Reason("FailedToUpdateLease").Message(fmt.Sprintf("%s - %s", url, msg)),
+			},
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
 		},
@@ -569,7 +559,7 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
 var nodeOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
 
-func kubeletNodeHttpClientConnectionLostError(nodeName, logLine string) monitorapi.Intervals {
+func kubeletNodeHttpClientConnectionLostError(logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `http2: client connection lost`) {
 		return nil
 	}
@@ -578,13 +568,17 @@ func kubeletNodeHttpClientConnectionLostError(nodeName, logLine string) monitora
 		return nil
 	}
 
-	return commonErrorInterval(nodeName, logLine, statusOutputRegex, monitorapi.HttpClientConnectionLost, func() monitorapi.Locator {
-		return monitorapi.NewLocator().NodeFromName(nodeName)
+	return commonErrorInterval(logLine, statusOutputRegex, monitorapi.HttpClientConnectionLost, func() string {
+		nodeRefRegex.MatchString(logLine)
+		if !nodeRefRegex.MatchString(logLine) {
+			return ""
+		}
+		return "node/" + nodeRefRegex.FindStringSubmatch(logLine)[1]
 	})
 
 }
 
-func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, reason monitorapi.IntervalReason, locator func() monitorapi.Locator) monitorapi.Intervals {
+func commonErrorInterval(logLine string, messageExp *regexp.Regexp, reason monitorapi.IntervalReason, locator func() string) monitorapi.Intervals {
 	messageExp.MatchString(logLine)
 	if !messageExp.MatchString(logLine) {
 		return nil
@@ -600,11 +594,11 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
-				Locator(locator()).
-				Message(
-					monitorapi.NewMessage().Reason(reason).Node(nodeName).HumanMessage(message),
-				).Build(),
+			Condition: monitorapi.Condition{
+				Level:   monitorapi.Info,
+				Locator: locator(),
+				Message: monitorapi.Message().Reason(reason).Message(message),
+			},
 			From: failureTime,
 			To:   failureTime,
 		},

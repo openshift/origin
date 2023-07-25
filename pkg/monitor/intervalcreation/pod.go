@@ -58,11 +58,11 @@ func pendingPodCondition(locator string, from, to time.Time) (monitorapi.Conditi
 func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, startTime, endTime time.Time) monitorapi.Intervals {
 	sort.Stable(ByPodLifecycle(input))
 	// these *static* locators to events. These are NOT the same as the actual event locators because nodes are not consistently assigned.
-	podToStateTransitions := map[string][]monitorapi.Interval{}
-	allPodTransitions := map[string][]monitorapi.Interval{}
-	containerToLifecycleTransitions := map[string][]monitorapi.Interval{}
-	containerToReadinessTransitions := map[string][]monitorapi.Interval{}
-	containerToKubeletReadinessChecks := map[string][]monitorapi.Interval{}
+	podToStateTransitions := map[string][]monitorapi.EventInterval{}
+	allPodTransitions := map[string][]monitorapi.EventInterval{}
+	containerToLifecycleTransitions := map[string][]monitorapi.EventInterval{}
+	containerToReadinessTransitions := map[string][]monitorapi.EventInterval{}
+	containerToKubeletReadinessChecks := map[string][]monitorapi.EventInterval{}
 
 	for i := range input {
 		event := input[i]
@@ -133,12 +133,11 @@ func CreatePodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	// broken up and the timeline rendering logic we have
 	for locator, instantEvents := range containerToKubeletReadinessChecks {
 		for _, instantEvent := range instantEvents {
-			ret = append(ret, monitorapi.Interval{
+			ret = append(ret, monitorapi.EventInterval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).
-						HumanMessage(instantEvent.Message).BuildString(),
+					Message: monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Message(instantEvent.Message),
 				},
 				From: instantEvent.From,
 				To:   instantEvent.From.Add(1 * time.Second),
@@ -171,8 +170,8 @@ func (t simpleTimeBounder) getEndTime(locator string) time.Time {
 
 type podLifecycleTimeBounder struct {
 	delegate              timeBounder
-	podToStateTransitions map[string][]monitorapi.Interval
-	allPodTransitions     map[string][]monitorapi.Interval
+	podToStateTransitions map[string][]monitorapi.EventInterval
+	allPodTransitions     map[string][]monitorapi.EventInterval
 	recordedPods          monitorapi.InstanceMap
 }
 
@@ -349,7 +348,7 @@ func (t podLifecycleTimeBounder) getRunOnceContainerEnd(inLocator string) *time.
 
 type containerLifecycleTimeBounder struct {
 	delegate                             timeBounder
-	podToContainerToLifecycleTransitions map[string][]monitorapi.Interval
+	podToContainerToLifecycleTransitions map[string][]monitorapi.EventInterval
 	recordedPods                         monitorapi.InstanceMap
 }
 
@@ -457,7 +456,7 @@ func (t containerLifecycleTimeBounder) getContainerEnd(inLocator string) *time.T
 
 type containerReadinessTimeBounder struct {
 	delegate                             timeBounder
-	podToContainerToLifecycleTransitions map[string][]monitorapi.Interval
+	podToContainerToLifecycleTransitions map[string][]monitorapi.EventInterval
 }
 
 func (t containerReadinessTimeBounder) getStartTime(inLocator string) time.Time {
@@ -488,7 +487,7 @@ type timeBounder interface {
 	getEndTime(locator string) time.Time
 }
 
-func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Interval, startReason, endReason monitorapi.IntervalReason, timeBounder timeBounder) monitorapi.Intervals {
+func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.EventInterval, startReason, endReason monitorapi.IntervalReason, timeBounder timeBounder) monitorapi.Intervals {
 	ret := monitorapi.Intervals{}
 	// now step through each category and build the to/from interval
 	for locator, instantEvents := range locatorToConditions {
@@ -502,11 +501,11 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Int
 			prevAnnotations := monitorapi.AnnotationsFromMessage(prevEvent.Message)
 			prevBareMessage := monitorapi.NonAnnotationMessage(prevEvent.Message)
 
-			nextInterval := monitorapi.Interval{
+			nextInterval := monitorapi.EventInterval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).WithAnnotations(prevAnnotations).HumanMessage(prevBareMessage).BuildString(),
+					Message: monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).WithAnnotations(prevAnnotations).Message(prevBareMessage),
 				},
 				From: prevEvent.From,
 				To:   currEvent.From,
@@ -525,7 +524,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Int
 			case !hasPrev && currReason != startReason:
 				// we missed the startReason (it probably happened before the watch was established).
 				// adjust the message to indicate that we missed the start event for this locator
-				nextInterval.Message = monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Reason(startReason).HumanMessagef("missed real %q", startReason).BuildString()
+				nextInterval.Message = monitorapi.Message().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Reason(startReason).Messagef("missed real %q", startReason)
 			}
 
 			// if the current reason is a logical ending point, reset to an empty previous
@@ -537,11 +536,11 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Int
 			ret = append(ret, nextInterval)
 		}
 		if len(prevEvent.Message) > 0 {
-			nextInterval := monitorapi.Interval{
+			nextInterval := monitorapi.EventInterval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: locator,
-					Message: monitorapi.ExpandMessage(prevEvent.Message).Constructed(monitorapi.ConstructionOwnerPodLifecycle).BuildString(),
+					Message: monitorapi.ExpandMessage(prevEvent.Message).Constructed(monitorapi.ConstructionOwnerPodLifecycle).NoDetails(),
 				},
 				From: prevEvent.From,
 				To:   timeBounder.getEndTime(locator),
@@ -554,7 +553,7 @@ func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Int
 	return ret
 }
 
-func sanitizeTime(nextInterval monitorapi.Interval, startTime, endTime time.Time) monitorapi.Interval {
+func sanitizeTime(nextInterval monitorapi.EventInterval, startTime, endTime time.Time) monitorapi.EventInterval {
 	if !endTime.IsZero() && nextInterval.To.After(endTime) {
 		nextInterval.To = endTime
 	}
@@ -567,8 +566,8 @@ func sanitizeTime(nextInterval monitorapi.Interval, startTime, endTime time.Time
 	return nextInterval
 }
 
-func emptyEvent(startTime time.Time) monitorapi.Interval {
-	return monitorapi.Interval{
+func emptyEvent(startTime time.Time) monitorapi.EventInterval {
+	return monitorapi.EventInterval{
 		Condition: monitorapi.Condition{
 			Level: monitorapi.Info,
 		},

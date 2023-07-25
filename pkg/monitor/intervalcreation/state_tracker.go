@@ -20,12 +20,12 @@ type stateTracker struct {
 
 type conditionCreationFunc func(locator string, from, to time.Time) (monitorapi.Condition, bool)
 
-func simpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorapi.ConditionLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
+func simpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorapi.EventLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
 	return func(locator string, from, to time.Time) (monitorapi.Condition, bool) {
 		return monitorapi.Condition{
 			Level:   level,
 			Locator: locator,
-			Message: monitorapi.NewMessage().Reason(reason).Constructed(constructedBy).HumanMessage(message).BuildString(),
+			Message: monitorapi.Message().Reason(reason).Constructed(constructedBy).Message(message),
 		}, true
 	}
 }
@@ -96,7 +96,7 @@ func (t *stateTracker) openInterval(locator string, state stateInfo, from time.T
 
 	return false
 }
-func (t *stateTracker) closeIfOpenedInterval(locator string, state stateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.Interval {
+func (t *stateTracker) closeIfOpenedInterval(locator string, state stateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.EventInterval {
 	states := t.getStates(locator)
 	if _, ok := states[state]; !ok {
 		return nil
@@ -105,7 +105,7 @@ func (t *stateTracker) closeIfOpenedInterval(locator string, state stateInfo, co
 	return t.closeInterval(locator, state, conditionCreator, to)
 }
 
-func (t *stateTracker) closeInterval(locator string, state stateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.Interval {
+func (t *stateTracker) closeInterval(locator string, state stateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.EventInterval {
 	states := t.getStates(locator)
 
 	from, ok := states[state]
@@ -123,7 +123,7 @@ func (t *stateTracker) closeInterval(locator string, state stateInfo, conditionC
 	if !hasCondition {
 		return nil
 	}
-	return []monitorapi.Interval{
+	return []monitorapi.EventInterval{
 		{
 			Condition: condition,
 			From:      from,
@@ -132,8 +132,8 @@ func (t *stateTracker) closeInterval(locator string, state stateInfo, conditionC
 	}
 }
 
-func (t *stateTracker) closeAllIntervals(locatorToMessageAnnotations map[string]map[string]string, end time.Time) []monitorapi.Interval {
-	ret := []monitorapi.Interval{}
+func (t *stateTracker) closeAllIntervals(locatorToMessageAnnotations map[string]map[string]string, end time.Time) []monitorapi.EventInterval {
+	ret := []monitorapi.EventInterval{}
 	for locator, states := range t.locatorToStateMap {
 		annotationStrings := []string{}
 		for k, v := range locatorToMessageAnnotations[locator] {

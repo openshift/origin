@@ -20,7 +20,7 @@ import (
 // interval should have. (Info, Warning, Error)
 type SubStringLevel struct {
 	subString string
-	level     monitorapi.ConditionLevel
+	level     monitorapi.EventLevel
 }
 
 type PodLogIntervalGenerator struct {
@@ -32,10 +32,10 @@ type PodLogIntervalGenerator struct {
 	subStrings []SubStringLevel
 	// lineParser is called to convert a log line to an EventInterval. Function is only called if
 	// the line matches one of the substrings.
-	lineParser func(locator, line string, intervalLevel monitorapi.ConditionLevel, logger logrus.FieldLogger) (*monitorapi.Interval, error)
+	lineParser func(locator, line string, intervalLevel monitorapi.EventLevel, logger logrus.FieldLogger) (*monitorapi.EventInterval, error)
 }
 
-func (g PodLogIntervalGenerator) ScanLine(pod *kapiv1.Pod, line string, beginning, end time.Time, logger logrus.FieldLogger) (*monitorapi.Interval, error) {
+func (g PodLogIntervalGenerator) ScanLine(pod *kapiv1.Pod, line string, beginning, end time.Time, logger logrus.FieldLogger) (*monitorapi.EventInterval, error) {
 	for _, subStr := range g.subStrings {
 		if strings.Contains(line, subStr.subString) {
 			locator := monitorapi.LocatePodContainer(pod, g.container)
@@ -65,14 +65,14 @@ type etcdLogLine struct {
 // etcdLogParser handles etcd logs which are already nicely json formatted such as:
 //
 // {"level":"info","ts":"2023-03-03T18:09:01.471Z","caller":"mvcc/index.go:214","msg":"compact tree index","revision":738215}
-func etcdLogParser(locator, line string, level monitorapi.ConditionLevel, logger logrus.FieldLogger) (*monitorapi.Interval, error) {
+func etcdLogParser(locator, line string, level monitorapi.EventLevel, logger logrus.FieldLogger) (*monitorapi.EventInterval, error) {
 	parsedLine := etcdLogLine{}
 	err := json.Unmarshal([]byte(line), &parsedLine)
 	if err != nil {
 		logger.WithError(err).Errorf("error parsing matched log line: %s", line)
 		return nil, err
 	}
-	return &monitorapi.Interval{
+	return &monitorapi.EventInterval{
 		Condition: monitorapi.Condition{
 			Level:   level,
 			Locator: locator,

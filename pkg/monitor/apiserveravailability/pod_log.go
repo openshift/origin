@@ -113,7 +113,7 @@ func summarizeLogsForPod(ctx context.Context, client kubernetes.Interface, pod *
 			go func(ctx context.Context, previousContainer bool, containerName string) {
 				defer wg.Done()
 
-				locator := monitorapi.NewLocator().ContainerFromPod(pod, containerName)
+				locator := monitorapi.LocatePodContainer(pod, containerName)
 				currSummary := &APIServerClientAccessFailureSummary{}
 				logOptions := &corev1.PodLogOptions{
 					Container:                    containerName,
