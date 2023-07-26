@@ -1,4 +1,4 @@
-package sampler
+package incluster_disruption_serializer
 
 import (
 	"bytes"
@@ -7,14 +7,15 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"time"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/nodeaccess"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -50,100 +51,24 @@ var (
 	//go:embed manifests/ds-service-network.yaml
 	dsServiceNetworkYaml []byte
 	//go:embed manifests/ds-localhost.yaml
-	dsLocalhostYaml       []byte
+	dsLocalhostYaml []byte
+	//go:embed manifests/ds-cleanup.yaml
+	dsCleanupYaml         []byte
 	rbacPrivilegedCRBName string
 	rbacMonitorRoleName   string
 	rbacMonitorCRBName    string
 )
 
-func TearDownInClusterMonitors(config *rest.Config) error {
-	ctx := context.Background()
+func createInternalLBDS(ctx context.Context, clientset *kubernetes.Clientset, apiIntHost string) error {
+	dsObj := resourceread.ReadDaemonSetV1OrDie(dsInternalLBYaml)
+	dsObj.Namespace = namespace
+	dsObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
 
-	client, err := kubernetes.NewForConfig(config)
+	client := clientset.AppsV1().DaemonSets(namespace)
+	var err error
+	_, err = client.Create(ctx, dsObj, metav1.CreateOptions{})
 	if err != nil {
-		return err
-	}
-	deleteTestBed(ctx, client)
-
-	nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	var events monitorapi.Intervals
-	var errs []error
-	for _, node := range nodes.Items {
-		nodeEvents, err := fetchNodeInClusterEvents(ctx, client, &node)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		fmt.Fprintf(os.Stdout, "in-cluster monitors: found %d events for node %s\n", len(events), node.Name)
-		events = append(events, nodeEvents...)
-	}
-	if len(errs) > 0 {
-		fmt.Fprintf(os.Stdout, "found errors fetching in-cluster data: %+v\n", errs)
-	}
-	artifactPath := filepath.Join(os.Getenv("ARTIFACT_DIR"), inClusterEventsFile)
-	return monitorserialization.EventsToFile(artifactPath, events)
-}
-
-func StartInClusterMonitors(ctx context.Context, config *rest.Config) error {
-	kubeClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-	configClient, err := configclient.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
-	if err != nil {
-		return err
-	}
-	apiIntHost := internalAPI.Hostname()
-
-	err = createNamespace(ctx, kubeClient)
-	if err != nil {
-		return err
-	}
-	err = createServiceAccount(ctx, kubeClient)
-	if err != nil {
-		return err
-	}
-	err = createRBACPrivileged(ctx, kubeClient)
-	if err != nil {
-		return err
-	}
-	err = createMonitorRole(ctx, kubeClient)
-	if err != nil {
-		return err
-	}
-	err = createMonitorCRB(ctx, kubeClient)
-	if err != nil {
-		return err
-	}
-	err = createServiceNetworkDS(ctx, kubeClient)
-	if err != nil {
-		return err
-	}
-	err = createLocalhostDS(ctx, kubeClient)
-	if err != nil {
-		return err
-	}
-	return createInternalLBDS(ctx, kubeClient, apiIntHost)
-}
-
-func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error {
-	// Remove daemonsets first to avoid trailing false-positive disruption intervals
-	dsClient := kubeClient.AppsV1().DaemonSets(namespace)
-	err := dsClient.DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing daemonsets in namespace %s: %v", namespace, err)
+		return fmt.Errorf("error creating daemonset: %v", err)
 	}
 
 	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -151,46 +76,22 @@ func deleteTestBed(ctx context.Context, kubeClient *kubernetes.Clientset) error 
 
 	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
 		cache.NewListWatchFromClient(
-			kubeClient.AppsV1().RESTClient(), "daemonsets", namespace, fields.Everything()),
+			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", dsObj.Name)),
 		&appsv1.DaemonSet{},
 		nil,
 		func(event watch.Event) (bool, error) {
-			return event.Type == watch.Deleted, nil
+			ds := event.Object.(*appsv1.DaemonSet)
+			return ds.Status.NumberReady > 0, nil
 		},
 	); watchErr != nil {
-		return fmt.Errorf("daemonsets in namespace %s didn't get destroyed: %v", namespace, watchErr)
+		return fmt.Errorf("daemonset %s didn't roll out: %v", dsObj.Name, watchErr)
 	}
-
-	nsClient := kubeClient.CoreV1().Namespaces()
-	err = nsClient.Delete(ctx, namespace, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing namespace %s: %v", namespace, err)
-	}
-
-	crbClient := kubeClient.RbacV1().ClusterRoleBindings()
-	err = crbClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing cluster reader CRB: %v", err)
-	}
-
-	err = crbClient.Delete(ctx, rbacMonitorCRBName, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing monitor CRB: %v", err)
-	}
-
-	rolesClient := kubeClient.RbacV1().ClusterRoles()
-	err = rolesClient.Delete(ctx, rbacMonitorRoleName, metav1.DeleteOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing monitor role: %v", err)
-	}
-
 	return nil
 }
 
-func createInternalLBDS(ctx context.Context, clientset *kubernetes.Clientset, apiIntHost string) error {
-	dsObj := resourceread.ReadDaemonSetV1OrDie(dsInternalLBYaml)
+func createCleanupDS(ctx context.Context, clientset *kubernetes.Clientset) error {
+	dsObj := resourceread.ReadDaemonSetV1OrDie(dsCleanupYaml)
 	dsObj.Namespace = namespace
-	dsObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
 
 	client := clientset.AppsV1().DaemonSets(namespace)
 	var err error
@@ -345,6 +246,11 @@ func fetchNodeInClusterEvents(ctx context.Context, clientset *kubernetes.Clients
 	// Fetch a list of e2e data files
 	basePath := fmt.Sprintf("/%s/%s", disruptionDataFolder, monitorapi.EventDir)
 	allBytes, err := nodeaccess.GetNodeLogFile(ctx, clientset, node.Name, basePath)
+	if apierrors.IsNotFound(err) {
+		// event folder was not found
+		fmt.Fprintf(os.Stderr, "event folder on node %s was not found\n", node.Name)
+		return events, nil
+	}
 	if err != nil {
 		return events, fmt.Errorf("failed to list files in disruption event folder on node %s: %v", node.Name, err)
 	}
@@ -357,7 +263,7 @@ func fetchNodeInClusterEvents(ctx context.Context, clientset *kubernetes.Clients
 			continue
 		}
 		filePath := fmt.Sprintf("%s/%s", basePath, fileName)
-		fmt.Fprintf(os.Stdout, "Found events file %s on node %s\n", filePath, node.Name)
+		fmt.Fprintf(os.Stderr, "Found events file %s on node %s\n", filePath, node.Name)
 		fileEvents, err := fetchEventsFromFileOnNode(ctx, clientset, filePath, node.Name)
 		if err != nil {
 			errs = append(errs, err)
@@ -380,19 +286,181 @@ func fetchEventsFromFileOnNode(ctx context.Context, clientset *kubernetes.Client
 	if err != nil {
 		return filteredEvents, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
 	}
-	allEvents, err := monitorserialization.EventsFromJSON(allBytes)
+	events, err := monitorserialization.EventsFromJSON(allBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert file %s from node %s to intervals: %v", filePath, nodeName, err)
 	}
-	fmt.Fprintf(os.Stdout, "Fetched %d events from node %s\n", len(allEvents), nodeName)
-	// Keep only disruption events
-	for _, event := range allEvents {
-		backendDisruptionName := monitorapi.BackendDisruptionNameFrom(monitorapi.LocatorParts(event.Locator))
-		if len(backendDisruptionName) == 0 {
+	fmt.Fprintf(os.Stderr, "Fetched %d events from node %s\n", len(events), nodeName)
+	return events, err
+}
+
+type InvariantInClusterDisruption struct {
+	adminRESTConfig *rest.Config
+}
+
+func NewInvariantInClusterDisruption() monitortestframework.MonitorTest {
+	return &InvariantInClusterDisruption{}
+}
+
+func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
+	fmt.Fprintf(os.Stderr, "Starting in-cluster monitoring daemonsets\n")
+	i.adminRESTConfig = adminRESTConfig
+	kubeClient, err := kubernetes.NewForConfig(i.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	configClient, err := configclient.NewForConfig(i.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
+	if err != nil {
+		return err
+	}
+	apiIntHost := internalAPI.Hostname()
+
+	err = createNamespace(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	err = createServiceAccount(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	err = createRBACPrivileged(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	err = createMonitorRole(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	err = createMonitorCRB(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	err = createServiceNetworkDS(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	err = createLocalhostDS(ctx, kubeClient)
+	if err != nil {
+		return err
+	}
+	err = createInternalLBDS(ctx, kubeClient, apiIntHost)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) CollectData(ctx context.Context, storageDir string, beginning time.Time, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	fmt.Fprintf(os.Stderr, "Stopping in-cluster monitoring daemonsets\n")
+	client, err := kubernetes.NewForConfig(i.adminRESTConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Start watcher before daemonset removal request to make sure delete event is not skipped
+	c := make(chan error)
+	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	go func() {
+		_, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
+			cache.NewListWatchFromClient(
+				client.AppsV1().RESTClient(), "daemonsets", namespace, fields.Everything()),
+			&appsv1.DaemonSet{},
+			nil,
+			func(event watch.Event) (bool, error) {
+				return event.Type == watch.Deleted, nil
+			},
+		)
+		if watchErr != nil {
+			watchErr = fmt.Errorf("daemonsets in namespace %s didn't get destroyed: %v", namespace, watchErr)
+		}
+		c <- watchErr
+	}()
+
+	// Remove daemonsets first to avoid trailing false-positive disruption intervals
+	dsClient := client.AppsV1().DaemonSets(namespace)
+	err = dsClient.DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return nil, nil, fmt.Errorf("error removing daemonsets in namespace %s: %v", namespace, err)
+	}
+	if watchErr := <-c; watchErr != nil {
+		return nil, nil, watchErr
+	}
+
+	fmt.Fprintf(os.Stderr, "Fetching collected in-cluster disruption data\n")
+	nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, nil, err
+	}
+	var events monitorapi.Intervals
+	var errs []error
+	for _, node := range nodes.Items {
+		nodeEvents, err := fetchNodeInClusterEvents(ctx, client, &node)
+		if err != nil {
+			errs = append(errs, err)
 			continue
 		}
-		filteredEvents = append(filteredEvents, event)
+		fmt.Fprintf(os.Stderr, "in-cluster monitors: found %d events for node %s\n", len(events), node.Name)
+		events = append(events, nodeEvents...)
 	}
-	fmt.Fprintf(os.Stdout, "Found %d disruption events from node %s\n", len(filteredEvents), nodeName)
-	return filteredEvents, err
+
+	fmt.Fprintf(os.Stderr, "Cleaning up collected in-cluster disruption data on nodes\n")
+	createCleanupDS(ctx, client)
+
+	if len(errs) > 0 {
+		return events, nil, fmt.Errorf("found errors fetching in-cluster data: %+v", errs)
+	}
+	return events, nil, nil
+}
+
+func (i *InvariantInClusterDisruption) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning time.Time, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
+	return nil, nil
+}
+
+func (i *InvariantInClusterDisruption) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	return nil, nil
+}
+
+func (i *InvariantInClusterDisruption) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
+	fmt.Fprintf(os.Stderr, "Removing in-cluster monitoring namespace\n")
+	kubeClient, err := kubernetes.NewForConfig(i.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	nsClient := kubeClient.CoreV1().Namespaces()
+	err = nsClient.Delete(ctx, namespace, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing namespace %s: %v", namespace, err)
+	}
+
+	crbClient := kubeClient.RbacV1().ClusterRoleBindings()
+	err = crbClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing cluster reader CRB: %v", err)
+	}
+
+	err = crbClient.Delete(ctx, rbacMonitorCRBName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing monitor CRB: %v", err)
+	}
+
+	rolesClient := kubeClient.RbacV1().ClusterRoles()
+	err = rolesClient.Delete(ctx, rbacMonitorRoleName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing monitor role: %v", err)
+	}
+	return nil
 }
