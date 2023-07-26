@@ -2,6 +2,7 @@ package defaultinvariants
 
 import (
 	"github.com/openshift/origin/pkg/invariants"
+	"github.com/openshift/origin/pkg/invariants/additional_events_collector"
 	"github.com/openshift/origin/pkg/invariants/alert_serializer"
 	"github.com/openshift/origin/pkg/invariants/clusterinfo_serializer"
 	"github.com/openshift/origin/pkg/invariants/disruption_serializer"
@@ -22,6 +23,7 @@ func NewDefaultInvariants() invariants.InvariantRegistry {
 	invariantTests.AddInvariantOrDie("disruption-summary-serializer", "Test Framework", disruption_serializer.NewDisruptionSummarySerializer())
 	invariantTests.AddInvariantOrDie("alert-summary-serializer", "Test Framework", alert_serializer.NewAlertSummarySerializer())
 	invariantTests.AddInvariantOrDie("cluster-info-serializer", "Test Framework", clusterinfo_serializer.NewClusterInfoSerializer())
+	invariantTests.AddInvariantOrDie("additional-events-collector", "Test Framework", additional_events_collector.NewIntervalSerializer())
 
 	return invariantTests
 }

@@ -56,8 +56,6 @@ type GinkgoRunSuiteOptions struct {
 	// context into a failure.
 	SyntheticEventTests JUnitsForEvents
 
-	MonitorEventsOptions *MonitorEventsOptions
-
 	IncludeSuccessOutput bool
 
 	CommandEnv []string
@@ -71,9 +69,8 @@ type GinkgoRunSuiteOptions struct {
 
 func NewGinkgoRunSuiteOptions(out io.Writer, errOut io.Writer) *GinkgoRunSuiteOptions {
 	return &GinkgoRunSuiteOptions{
-		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
-		Out:                  out,
-		ErrOut:               errOut,
+		Out:    out,
+		ErrOut: errOut,
 	}
 }
 
@@ -332,7 +329,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	monitorEventRecorder, err := o.MonitorEventsOptions.Start(ctx, restConfig)
+	monitorEventsOptions := NewMonitorEventsOptions(o.Out, o.ErrOut, o.JUnitDir)
+
+	monitorEventRecorder, err := monitorEventsOptions.Start(ctx, restConfig)
 	if err != nil {
 		return err
 	}
@@ -539,27 +538,27 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 
-	timeSuffix := fmt.Sprintf("_%s", o.MonitorEventsOptions.GetStartTime().
+	timeSuffix := fmt.Sprintf("_%s", monitorEventsOptions.GetStartTime().
 		UTC().Format("20060102-150405"))
 
-	if err := o.MonitorEventsOptions.Stop(ctx, restConfig, o.JUnitDir); err != nil {
+	if err := monitorEventsOptions.Stop(ctx, restConfig, o.JUnitDir); err != nil {
 		return err
 	}
 	if len(o.JUnitDir) > 0 {
-		if err := o.MonitorEventsOptions.SerializeResults(ctx, o.JUnitDir, junitSuiteName, timeSuffix); err != nil {
+		if err := monitorEventsOptions.SerializeResults(ctx, junitSuiteName, timeSuffix); err != nil {
 			fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
 		}
-		if err := o.MonitorEventsOptions.WriteRunDataToArtifactsDir(o.JUnitDir, timeSuffix); err != nil {
+		if err := monitorEventsOptions.WriteRunDataToArtifactsDir(o.JUnitDir, timeSuffix); err != nil {
 			fmt.Fprintf(o.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}
 
 	// default is empty string as that is what entries prior to adding this will have
 	wasMasterNodeUpdated := ""
-	if events := o.MonitorEventsOptions.GetEvents(); len(events) > 0 {
+	if events := monitorEventsOptions.GetEvents(); len(events) > 0 {
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
-		currResState := o.MonitorEventsOptions.GetRecordedResources()
+		currResState := monitorEventsOptions.GetRecordedResources()
 		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
 		if !upgrade {

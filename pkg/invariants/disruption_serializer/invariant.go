@@ -29,8 +29,7 @@ func (w *disruptionSummarySerializer) StartCollection(ctx context.Context, admin
 	return nil
 }
 
-func (w *disruptionSummarySerializer) CollectData(ctx context.Context, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	// because we are sharing a recorder that we're streaming into, we don't need to have a separate data collection step.
+func (w *disruptionSummarySerializer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	return nil, nil, nil
 }
 

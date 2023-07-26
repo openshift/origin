@@ -27,8 +27,7 @@ func (e ExitError) Error() string {
 type TestOptions struct {
 	// EnableMonitor is an easy way to enable monitor gathering for a single e2e test.
 	// TODO if this is useful enough for general users, we can extend this into an arg, this just ensures the plumbing.
-	EnableMonitor        bool
-	MonitorEventsOptions *MonitorEventsOptions
+	EnableMonitor bool
 
 	DryRun bool
 	Out    io.Writer
@@ -39,9 +38,8 @@ var _ ginkgo.GinkgoTestingT = &TestOptions{}
 
 func NewTestOptions(out io.Writer, errOut io.Writer) *TestOptions {
 	return &TestOptions{
-		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
-		Out:                  out,
-		ErrOut:               errOut,
+		Out:    out,
+		ErrOut: errOut,
 	}
 }
 
@@ -78,8 +76,10 @@ func (opt *TestOptions) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	var monitorEventsOptions *MonitorEventsOptions
 	if opt.EnableMonitor {
-		_, err = opt.MonitorEventsOptions.Start(ctx, restConfig)
+		monitorEventsOptions = NewMonitorEventsOptions(opt.Out, opt.ErrOut, "")
+		_, err = monitorEventsOptions.Start(ctx, restConfig)
 		if err != nil {
 			return err
 		}
@@ -104,16 +104,16 @@ func (opt *TestOptions) Run(args []string) error {
 	ginkgo.GetSuite().RunSpec(test.spec, ginkgo.Labels{}, "", ginkgo.GetFailer(), ginkgo.GetWriter(), suiteConfig)
 
 	if opt.EnableMonitor {
-		if err := opt.MonitorEventsOptions.Stop(ctx, restConfig, ""); err != nil {
+		if err := monitorEventsOptions.Stop(ctx, restConfig, ""); err != nil {
 			return err
 		}
 
-		timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().
+		timeSuffix := fmt.Sprintf("_%s", monitorEventsOptions.GetStartTime().
 			UTC().Format("20060102-150405"))
-		if err := opt.MonitorEventsOptions.SerializeResults(ctx, "", "missing-junit-suite", timeSuffix); err != nil {
+		if err := monitorEventsOptions.SerializeResults(ctx, "missing-junit-suite", timeSuffix); err != nil {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to serialize run-data: %v\n", err)
 		}
-		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir("", timeSuffix); err != nil {
+		if err := monitorEventsOptions.WriteRunDataToArtifactsDir("", timeSuffix); err != nil {
 			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}

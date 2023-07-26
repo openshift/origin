@@ -2,8 +2,9 @@ package timeline_serializer
 
 import (
 	"context"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"time"
+
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -22,8 +23,7 @@ func (w *timelineSerializer) StartCollection(ctx context.Context, adminRESTConfi
 	return nil
 }
 
-func (w *timelineSerializer) CollectData(ctx context.Context, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	// because we are sharing a recorder that we're streaming into, we don't need to have a separate data collection step.
+func (w *timelineSerializer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	return nil, nil, nil
 }
 
