@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/incluster_disruption_serializer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/statefulsetsrecreation"
@@ -39,6 +40,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
+
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/knownimagechecker"
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
@@ -119,6 +121,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("external-azure-cloud-service-availability", "Test Framework", disruptionexternalazurecloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("pathological-event-analyzer", "Test Framework", pathologicaleventanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("incluster-disruption-serializer", "kube-apiserver", incluster_disruption_serializer.NewInvariantInClusterDisruption())
 
 	monitorTestRegistry.AddMonitorTestOrDie("monitoring-statefulsets-recreation", "Monitoring", statefulsetsrecreation.NewStatefulsetsChecker())
 	monitorTestRegistry.AddMonitorTestOrDie("metrics-api-availability", "Monitoring", disruptionmetricsapi.NewAvailabilityInvariant())
