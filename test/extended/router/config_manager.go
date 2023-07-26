@@ -391,7 +391,7 @@ http {
 					Containers: []corev1.Container{
 						{
 							Name:  "test",
-							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.43"),
+							Image: image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.45"),
 							Args:  []string{"netexec"},
 							Ports: []corev1.ContainerPort{
 								{
