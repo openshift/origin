@@ -44,12 +44,11 @@ func (r *testSuiteRunnerImpl) RunOneTest(ctx context.Context, test *testCase) {
 	// if we need to abort, then abort
 	defer r.maybeAbortOnFailureFn(testRunResult)
 
-	// record the test happening the monitor
-	r.testOutput.monitorRecorder.Record(monitorapi.Condition{
-		Level:   monitorapi.Info,
-		Locator: monitorapi.E2ETestLocator(test.name),
-		Message: "started",
-	})
+	// record the test happening with the monitor
+	r.testOutput.monitorRecorder.Record(monitorapi.NewInterval(monitorapi.SourceE2ETest, monitorapi.Info).
+		Locator(monitorapi.NewLocator().E2ETest(test.name)).
+		Message(monitorapi.NewMessage().HumanMessage("started")).BuildCondition())
+
 	defer recordTestResultInMonitor(testRunResult, r.testOutput.monitorRecorder)
 
 	// log the results to systemout
@@ -260,35 +259,37 @@ func recordTestResultInLog(testRunResult *testRunResultHandle, out io.Writer, in
 }
 
 func recordTestResultInMonitor(testRunResult *testRunResultHandle, monitorRecorder monitor.Recorder) {
-	eventMessage := "finishedStatus/Unknown reason/Unknown"
 	eventLevel := monitorapi.Warning
+
+	msg := monitorapi.NewMessage().HumanMessage("e2e test finished")
 
 	switch testRunResult.testState {
 	case TestFlaked:
-		eventMessage = "finishedStatus/Flaked"
 		eventLevel = monitorapi.Error
+		msg = msg.WithAnnotation(monitorapi.AnnotationStatus, "Flaked")
 	case TestSucceeded:
-		eventMessage = "finishedStatus/Passed"
 		eventLevel = monitorapi.Info
+		msg = msg.WithAnnotation(monitorapi.AnnotationStatus, "Passed")
 	case TestSkipped:
-		eventMessage = "finishedStatus/Skipped"
 		eventLevel = monitorapi.Info
+		msg = msg.WithAnnotation(monitorapi.AnnotationStatus, "Skipped")
 	case TestFailed:
-		eventMessage = "finishedStatus/Failed"
 		eventLevel = monitorapi.Error
+		msg = msg.WithAnnotation(monitorapi.AnnotationStatus, "Failed")
 	case TestFailedTimeout:
-		eventMessage = "finishedStatus/Failed  reason/Timeout"
 		eventLevel = monitorapi.Error
+		msg = msg.WithAnnotation(monitorapi.AnnotationStatus, "Failed").Reason(monitorapi.Timeout)
 	default:
-		eventMessage = fmt.Sprintf("finishedStatus/Failed  reason/%s", testRunResult.testState)
+		msg.HumanMessagef("with unexpected state: %s", testRunResult.testState)
 		eventLevel = monitorapi.Error
+		msg = msg.WithAnnotation(monitorapi.AnnotationStatus, "Unknown")
 	}
 
-	monitorRecorder.Record(monitorapi.Condition{
-		Level:   eventLevel,
-		Locator: monitorapi.E2ETestLocator(testRunResult.name),
-		Message: eventMessage,
-	})
+	// Record an interval indicating that the test finished. Another interval will be created that
+	// links the start/stop intervals and has the duration for the test run in e2etest.go.
+	monitorRecorder.Record(monitorapi.NewInterval(monitorapi.SourceE2ETest, eventLevel).
+		Locator(monitorapi.NewLocator().E2ETest(testRunResult.name)).
+		Message(msg.HumanMessage("finished")).BuildCondition())
 }
 
 // RunTestInNewProcess runs a test case in a different process and returns a result

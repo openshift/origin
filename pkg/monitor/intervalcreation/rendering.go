@@ -106,7 +106,7 @@ func BelongsInSpyglass(eventInterval monitorapi.Interval) bool {
 }
 
 func BelongsInOperatorRollout(eventInterval monitorapi.Interval) bool {
-	if monitorapi.IsE2ETest(eventInterval.Locator) {
+	if monitorapi.IsE2ETest(eventInterval.StructuredLocator) {
 		return false
 	}
 	if IsPodLifecycle(eventInterval) {
@@ -120,7 +120,7 @@ func BelongsInOperatorRollout(eventInterval monitorapi.Interval) bool {
 }
 
 func BelongsInKubeAPIServer(eventInterval monitorapi.Interval) bool {
-	if monitorapi.IsE2ETest(eventInterval.Locator) {
+	if monitorapi.IsE2ETest(eventInterval.StructuredLocator) {
 		return false
 	}
 	if isLessInterestingAlert(eventInterval) {

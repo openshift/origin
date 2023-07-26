@@ -307,7 +307,7 @@ func testOperatorState(interestingCondition configv1.ClusterStatusConditionType,
 			if overlap.Level == monitorapi.Info {
 				continue
 			}
-			e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.Locator)
+			e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.StructuredLocator)
 			if !ok {
 				continue
 			}

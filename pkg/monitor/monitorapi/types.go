@@ -80,6 +80,7 @@ const (
 	LocatorTypeOther             LocatorType = "Other"
 	LocatorTypeDisruption        LocatorType = "Disruption"
 	LocatorTypeKubeEvent         LocatorType = "KubeEvent"
+	LocatorTypeE2ETest           LocatorType = "E2ETest"
 	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
 )
 
@@ -150,6 +151,8 @@ const (
 	NodeUpdateReason   IntervalReason = "NodeUpdate"
 	NodeNotReadyReason IntervalReason = "NotReady"
 	NodeFailedLease    IntervalReason = "FailedToUpdateLease"
+
+	Timeout IntervalReason = "Timeout"
 )
 
 type AnnotationKey string
@@ -165,6 +168,7 @@ const (
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
 	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
+	AnnotationStatus         AnnotationKey = "status"
 )
 
 type ConstructionOwner string
@@ -190,6 +194,7 @@ const (
 	SourceAlert             IntervalSource = "Alert"
 	SourceAPIServerShutdown IntervalSource = "APIServerShutdown"
 	SourceDisruption        IntervalSource = "Disruption"
+	SourceE2ETest           IntervalSource = "E2ETest"
 	SourceNodeMonitor       IntervalSource = "NodeMonitor"
 	SourcePodLog            IntervalSource = "PodLog"
 	SourcePodMonitor        IntervalSource = "PodMonitor"
@@ -249,7 +254,11 @@ func (i Locator) OldLocator() string {
 	annotations := []string{}
 	for _, k := range keys.List() {
 		v := i.Keys[LocatorKey(k)]
-		annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
+		if LocatorKey(k) == LocatorE2ETestKey {
+			annotations = append(annotations, fmt.Sprintf("%v/%q", k, v))
+		} else {
+			annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
+		}
 	}
 	annotationString := strings.Join(annotations, " ")
 

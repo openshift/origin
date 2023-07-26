@@ -200,6 +200,12 @@ func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) Locator {
 	return b.Build()
 }
 
+func (b *LocatorBuilder) E2ETest(testName string) Locator {
+	b.targetType = LocatorTypeE2ETest
+	b.annotations[LocatorE2ETestKey] = testName
+	return b.Build()
+}
+
 func (b *LocatorBuilder) Build() Locator {
 	ret := Locator{
 		Type: b.targetType,
