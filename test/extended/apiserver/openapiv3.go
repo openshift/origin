@@ -13,7 +13,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	"github.com/golang/protobuf/proto"
-	openapi_v3 "github.com/google/gnostic/openapiv3"
+	openapi_v3 "github.com/google/gnostic-models/openapiv3"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/kube-openapi/pkg/handler3"
