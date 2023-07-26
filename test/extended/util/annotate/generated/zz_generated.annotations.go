@@ -1425,6 +1425,8 @@ var Annotations = map[string]string{
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads in non-annotated namespaces should not be allowed if CPUPartitioningMode = AllNodes": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation should have correct cpuset and cpushare set in crio containers": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-operator] OLM should be installed with catalogsources at version v1alpha1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",

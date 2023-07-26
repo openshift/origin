@@ -16,10 +16,15 @@ const (
 	resourceLabel            = "management.workload.openshift.io/cores"
 	namespaceAnnotationKey   = "workload.openshift.io/allowed"
 	workloadAnnotations      = "target.workload.openshift.io/management"
-	workloadAnnotationsRegex = "resources.workload.openshift.io/.*"
+	WorkloadAnnotationPrefix = "resources.workload.openshift.io"
+	workloadAnnotationsRegex = WorkloadAnnotationPrefix + "/.*"
 
 	expectedMessage    = "expected to"
 	notExpectedMessage = "expected not to"
+
+	namespaceMachineConfigOperator = "openshift-machine-config-operator"
+	nodeWorkerLabel                = "node-role.kubernetes.io/worker"
+	nodeMasterLabel                = "node-role.kubernetes.io/master"
 )
 
 var (
