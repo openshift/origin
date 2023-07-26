@@ -1,35 +1,38 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: localhost-monitor
+  name: internal-lb-monitor
   namespace: e2e-disruption-monitor
 spec:
   selector:
     matchLabels:
-      app: localhost-monitor
+      app: internal-lb-monitor
   template:
     metadata:
       labels:
-        app: localhost-monitor
+        app: internal-lb-monitor
     spec:
       containers:
-      - name: localhost
+      - name: internal-lb
         command:
         - bash
         - -c
         - |
           trap 'kill "${child_pid}"; wait "${child_pid}"' SIGINT SIGTERM
           CMD="sleep infinity"
-          LB="localhost"
           if openshift-tests --help | grep "run-disruption"; then
-            CMD="openshift-tests run-disruption --artifact-dir /var/log/disruption-data --lb-type ${LB} --extra-message $(EXTRA_MESSAGE)"
+            CMD="openshift-tests run-disruption --artifact-dir /var/log/disruption-data --lb-type ${LOAD_BALANCER} --extra-message $(EXTRA_MESSAGE)"
           fi
           ${CMD}&
           child_pid="$!"
           wait "${child_pid}"
         env:
-        - name: KUBECONFIG
-          value: "/kubeconfigs/localhost.kubeconfig"
+        - name: KUBERNETES_SERVICE_HOST
+          value: api-int.foo.bar
+        - name: KUBERNETES_SERVICE_PORT
+          value: "6443"
+        - name: LOAD_BALANCER
+          value: "internal-lb"
         - name: EXTRA_MESSAGE
           valueFrom:
             fieldRef:
@@ -39,24 +42,17 @@ spec:
         volumeMounts:
         - mountPath: /var/log/disruption-data
           name: artifacts
-        - mountPath: /kubeconfigs
-          name: node-kubeconfigs
-      nodeSelector:
-          node-role.kubernetes.io/control-plane: ''
       hostNetwork: true
       serviceAccountName: disruption-monitor-sa
       securityContext:
         privileged: true
         runAsUser: 0
+      terminationGracePeriodSeconds: 90
       volumes:
       - hostPath:
           path: /var/log/disruption-data
           type: DirectoryOrCreate
         name: artifacts
-      - hostPath:
-          path: /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs
-          type: Directory
-        name: node-kubeconfigs
       tolerations:
       - key: node-role.kubernetes.io/master
         effect: NoSchedule

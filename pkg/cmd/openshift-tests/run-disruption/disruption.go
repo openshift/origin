@@ -78,6 +78,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	}
 
 	lb := backend.ParseStringToLoadBalancerType(opt.LoadBalancerType)
+	var recorder monitorapi.Recorder
 
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
@@ -85,8 +86,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	go func() {
 		<-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating\n")
-		// Give some time to store intervals on disk
-		time.Sleep(5 * time.Second)
+		opt.writeDataToDisk(recorder)
 		cancelFn()
 		sig := <-abortCh
 		fmt.Fprintf(opt.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
@@ -99,7 +99,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	recorder, err := StartAPIAvailability(ctx, restConfig, lb)
+	recorder, err = StartAPIAvailability(ctx, restConfig, lb)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,11 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	}()
 
 	<-ctx.Done()
+	opt.writeDataToDisk(recorder)
+	return nil
+}
 
+func (opt *RunAPIDisruptionMonitorOptions) writeDataToDisk(recorder monitorapi.Recorder) error {
 	// Store intervals to artifact directory
 	intervals := recorder.Intervals(time.Time{}, time.Time{})
 	if len(opt.ExtraMessage) > 0 {
@@ -146,12 +150,12 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	}
 
 	timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
-	if err := monitorserialization.EventsToFile(filepath.Join(eventDir, fmt.Sprintf("e2e-events%s.json", timeSuffix)), intervals); err != nil {
+	fileName := filepath.Join(eventDir, fmt.Sprintf("e2e-events%s.json", timeSuffix))
+	if err := monitorserialization.EventsToFile(fileName, intervals); err != nil {
 		fmt.Printf("Failed to write event data, err: %v\n", err)
 		return err
 	}
-	fmt.Fprintf(opt.Out, "\nEvent data written, exiting\n")
-
+	fmt.Fprintf(opt.Out, "\nEvent data written to %s, exiting\n", fileName)
 	return nil
 }
 
