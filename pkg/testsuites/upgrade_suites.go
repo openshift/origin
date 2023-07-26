@@ -1,4 +1,4 @@
-package test_suite_definition
+package testsuites
 
 import (
 	"strings"

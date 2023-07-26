@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/test_suite_definition"
+	"github.com/openshift/origin/pkg/testsuites"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 
@@ -221,7 +221,7 @@ func newImagesCommand() *cobra.Command {
 }
 
 func newRunCommand() *cobra.Command {
-	o := NewRunSuiteOptions(defaultTestImageMirrorLocation, test_suite_definition.StandardTestSuites())
+	o := NewRunSuiteOptions(defaultTestImageMirrorLocation, testsuites.StandardTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
@@ -237,7 +237,7 @@ func newRunCommand() *cobra.Command {
 		command with the --file argument. You may also pipe a list of test names, one per line, on
 		standard input by passing "-f -".
 
-		`) + test_suite_definition.SuitesString(test_suite_definition.StandardTestSuites(), "\n\nAvailable test suites:\n\n"),
+		`) + testsuites.SuitesString(testsuites.StandardTestSuites(), "\n\nAvailable test suites:\n\n"),
 
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -276,7 +276,7 @@ func newRunCommand() *cobra.Command {
 }
 
 func newRunUpgradeCommand() *cobra.Command {
-	o := NewRunSuiteOptions(defaultTestImageMirrorLocation, test_suite_definition.UpgradeTestSuites())
+	o := NewRunSuiteOptions(defaultTestImageMirrorLocation, testsuites.UpgradeTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run-upgrade SUITE",
@@ -298,7 +298,7 @@ func newRunUpgradeCommand() *cobra.Command {
 		the reboot will allow the node to shut down services in an orderly fashion. If set to 'force' the
 		machine will terminate immediately without clean shutdown.
 
-		`) + test_suite_definition.SuitesString(test_suite_definition.UpgradeTestSuites(), "\n\nAvailable upgrade suites:\n\n"),
+		`) + testsuites.SuitesString(testsuites.UpgradeTestSuites(), "\n\nAvailable upgrade suites:\n\n"),
 
 		SilenceUsage:  true,
 		SilenceErrors: true,
