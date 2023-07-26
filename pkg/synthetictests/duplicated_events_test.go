@@ -2,7 +2,6 @@ package synthetictests
 
 import (
 	_ "embed"
-	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -315,9 +314,9 @@ func TestKnownBugEvents(t *testing.T) {
 			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
 
 			if test.match {
-				assert.Contains(t, junits[0].FailureOutput.Output, "1 events with known BZs", "Expected case to match, but it didn't: %s", test.name)
+				assert.Contains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
 			} else {
-				assert.NotContains(t, junits[0].FailureOutput.Output, "1 events with known BZs", "Expected case to not match, but it did: %s", test.name)
+				assert.NotContains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
 			}
 
 		})
@@ -392,7 +391,7 @@ func TestKnownBugEventsGroup(t *testing.T) {
 			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
 			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
 
-			assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output, fmt.Sprintf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junits[0].FailureOutput.Output))
+			assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
 
 		})
 	}
@@ -477,7 +476,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			assert.GreaterOrEqual(t, len(junits), 1, "Didn't get junit for duplicated event")
 
 			if test.match {
-				assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output, "Expected case to match, but it didn't: %s. Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junits[0].FailureOutput.Output)
+				assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
 			} else {
 				assert.Nil(t, junits[0].FailureOutput, "expected case to not match, but it did: %s", test.name)
 			}
