@@ -20,14 +20,15 @@ spec:
         - |
           trap 'kill "${child_pid}"; wait "${child_pid}"' SIGINT SIGTERM
           CMD="sleep infinity"
-          LB="service-network"
           if openshift-tests --help | grep "run-disruption"; then
-            CMD="openshift-tests run-disruption --artifact-dir /var/log/disruption-data --lb-type ${LB} --extra-message $(EXTRA_MESSAGE)"
+            CMD="openshift-tests run-disruption --artifact-dir /var/log/disruption-data --lb-type ${LOAD_BALANCER} --extra-message $(EXTRA_MESSAGE)"
           fi
           ${CMD}&
           child_pid="$!"
           wait "${child_pid}"
         env:
+        - name: LOAD_BALANCER
+          value: service-network
         - name: EXTRA_MESSAGE
           valueFrom:
             fieldRef:
@@ -43,6 +44,7 @@ spec:
       securityContext:
         privileged: true
         runAsUser: 0
+      terminationGracePeriodSeconds: 90
       volumes:
       - hostPath:
           path: /var/log/disruption-data

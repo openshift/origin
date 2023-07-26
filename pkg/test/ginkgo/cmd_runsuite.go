@@ -19,7 +19,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
-	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/riskanalysis"
@@ -240,7 +239,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	go func() {
 		<-abortCh
 		fmt.Fprintf(o.ErrOut, "Interrupted, terminating tests\n")
-		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 		sig := <-abortCh
 		fmt.Fprintf(o.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
@@ -455,11 +453,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
 
 		}
-	}
-
-	// Fetch data from in-cluster monitors if available
-	if err = sampler.TearDownInClusterMonitors(restConfig); err != nil {
-		fmt.Printf("Failed to write events from in-cluster monitors, err: %v\n", err)
 	}
 
 	// monitor the cluster while the tests are running and report any detected anomalies
