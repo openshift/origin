@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 		type result struct {
 			Paths []string
 		}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var got result

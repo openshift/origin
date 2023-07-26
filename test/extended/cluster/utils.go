@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"net"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -43,7 +42,7 @@ func ParsePods(file string) (kapiv1.Pod, error) {
 		return configStruct, nil
 	}
 
-	configFile, err := ioutil.ReadFile(file)
+	configFile, err := os.ReadFile(file)
 	if err != nil {
 		return configStruct, err
 	}
@@ -601,7 +600,7 @@ func CreateSimpleTemplates(oc *exutil.CLI, nsName string, template ClusterLoader
 	}
 	e2e.Logf("We're loading file %v: ", templateFile)
 
-	data, err := ioutil.ReadFile(templateFile)
+	data, err := os.ReadFile(templateFile)
 	if err != nil {
 		return err
 	}

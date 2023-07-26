@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -74,7 +74,7 @@ func pushBatch(client *http.Client, bearerToken string, lokiData LokiData) error
 			}
 			defer response.Body.Close()
 
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			if err != nil {
 				logrus.WithError(err).Error("error reading response body")
 				return err
@@ -279,7 +279,7 @@ func obtainSSOBearerToken(clientID, clientSecret string) (string, error) {
 	}
 	defer response.Body.Close()
 
-	responseBody, err := ioutil.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		logrus.WithError(err).Error("error reading bearer token HTTP request body for bearer token")
 		return "", err

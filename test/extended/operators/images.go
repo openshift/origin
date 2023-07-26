@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -26,7 +25,7 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 		}
 
 		// cache file to local temp location
-		imagePullFile, err := ioutil.TempFile("", "image-pull-secret")
+		imagePullFile, err := os.CreateTemp("", "image-pull-secret")
 		if err != nil {
 			e2e.Failf("unable to create a temporary file: %v", err)
 		}

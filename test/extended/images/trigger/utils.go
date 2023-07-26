@@ -3,7 +3,7 @@ package trigger
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/ghodss/yaml"
@@ -16,7 +16,7 @@ import (
 )
 
 func readDeploymentFixture(path string) (*appsv1.Deployment, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

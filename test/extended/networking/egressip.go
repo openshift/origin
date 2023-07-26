@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -85,7 +84,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 
 		g.By("Creating a temp directory")
 		var err error
-		tmpDirEgressIP, err = ioutil.TempDir("", "egressip-e2e")
+		tmpDirEgressIP, err = os.MkdirTemp("", "egressip-e2e")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Getting the kubernetes clientset")
@@ -728,7 +727,7 @@ func ovnKubernetesCreateEgressIPObject(oc *exutil.CLI, egressIPYamlPath, egressI
 			fmt.Sprintf("kubernetes.io/metadata.name: %s", egressIPNamespace), // namespace selector
 		)
 	}
-	err = ioutil.WriteFile(egressIPYamlPath, []byte(egressIPConfig), 0644)
+	err = os.WriteFile(egressIPYamlPath, []byte(egressIPConfig), 0644)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	return egressIPYamlPath

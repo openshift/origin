@@ -3,7 +3,6 @@ package util
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -43,7 +42,7 @@ const (
 // ldapsearch against it. It returns the ldapserver host and the ldap CA, or an error.
 func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []byte, err error) {
 	deploy, ldapService, ldif, scripts := ReadLDAPServerTestData()
-	certDir, err := ioutil.TempDir("", "testca")
+	certDir, err := os.MkdirTemp("", "testca")
 	if err != nil {
 		return "", "", "", nil, err
 	}

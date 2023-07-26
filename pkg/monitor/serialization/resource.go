@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -71,5 +71,5 @@ func InstanceMapToFile(filename string, resourceType string, instances monitorap
 		return err
 	}
 
-	return ioutil.WriteFile(filename, byteBuffer.Bytes(), 0644)
+	return os.WriteFile(filename, byteBuffer.Bytes(), 0644)
 }

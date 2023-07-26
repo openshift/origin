@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -246,7 +245,7 @@ func finalizeTest(start time.Time, testName, className string, ts *junitapi.JUni
 		// Find out if these are used by anything, but it looks like we should find a way to silence TestSummaries
 		// of type flakeSummary.
 		filePath := filepath.Join(framework.TestContext.ReportDir, fmt.Sprintf("%s_%s_%s.json", summary.SummaryKind(), filesystemSafeName(testName), now.Format(time.RFC3339)))
-		if err := ioutil.WriteFile(filePath, []byte(summary.PrintJSON()), 0644); err != nil {
+		if err := os.WriteFile(filePath, []byte(summary.PrintJSON()), 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "error: Failed to write file %v with test data: %v\n", filePath, err)
 		}
 	}

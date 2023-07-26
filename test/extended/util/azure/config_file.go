@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,7 +68,7 @@ func getAuthFile() (*file, error) {
 		return nil, errors.New("environment variable AZURE_AUTH_LOCATION is not set")
 	}
 
-	contents, err := ioutil.ReadFile(fileLocation)
+	contents, err := os.ReadFile(fileLocation)
 	if err != nil {
 		return nil, err
 	}

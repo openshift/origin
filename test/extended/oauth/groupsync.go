@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -60,13 +59,13 @@ var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 		e2e.Logf("command output: %s", output)
 
 		ldapAddress := "127.0.0.1:30389"
-		tmpDir, err := ioutil.TempDir("", "staging")
+		tmpDir, err := os.MkdirTemp("", "staging")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		defer os.Remove(tmpDir)
 
 		// Write ldap CA and kubeconfig to temporary files, and copy them in.
 		ldapCAPath := path.Join(tmpDir, "ca.crt")
-		err = ioutil.WriteFile(ldapCAPath, ca, 0644)
+		err = os.WriteFile(ldapCAPath, ca, 0644)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// restore all the files from bindata to a temporary folder
@@ -91,7 +90,7 @@ var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 					fileContent = []byte(strings.ReplaceAll(string(fileContent), "LDAP_CA", ldapCAPath))
 				}
 
-				err = ioutil.WriteFile(currentTmpFilePath, fileContent, 0644)
+				err = os.WriteFile(currentTmpFilePath, fileContent, 0644)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
@@ -102,10 +101,10 @@ var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 			currentDir := path.Join(tmpDir, schema)
 
 			// load OpenShift and LDAP group UIDs, needed for literal whitelists
-			groupUIDContents, err := ioutil.ReadFile(path.Join(currentDir, "ldapgroupuids.txt"))
+			groupUIDContents, err := os.ReadFile(path.Join(currentDir, "ldapgroupuids.txt"))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			osGroupUIDContents, err := ioutil.ReadFile(path.Join(currentDir, "osgroupuids.txt"))
+			osGroupUIDContents, err := os.ReadFile(path.Join(currentDir, "osgroupuids.txt"))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			groupUIDs := strings.Split(string(groupUIDContents), "\n")
@@ -372,7 +371,7 @@ func compareAndCleanup(oc *exutil.CLI, validationFileName string) {
 		}
 	}()
 
-	validationContent, err := ioutil.ReadFile(validationFileName)
+	validationContent, err := os.ReadFile(validationFileName)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	groups, err := oc.AdminUserClient().UserV1().Groups().List(context.Background(), metav1.ListOptions{})

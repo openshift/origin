@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -43,7 +42,7 @@ func GetNodeLog(ctx context.Context, client kubernetes.Interface, nodeName, syst
 	}
 	defer in.Close()
 
-	return ioutil.ReadAll(in)
+	return io.ReadAll(in)
 }
 
 func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface) (*AuditLogSummary, error) {
@@ -218,7 +217,7 @@ func GetNodeLogFile(ctx context.Context, client kubernetes.Interface, nodeName, 
 	}
 	defer in.Close()
 
-	return ioutil.ReadAll(in)
+	return io.ReadAll(in)
 }
 
 func getAuditLogFilenames(ctx context.Context, client kubernetes.Interface, nodeName, apiserverName string) ([]string, error) {

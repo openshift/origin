@@ -7,7 +7,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -189,7 +188,7 @@ func BuildAndPushImageOfSizeWithBuilder(
 		}
 	}
 
-	tempDir, err := ioutil.TempDir("", "name-build")
+	tempDir, err := os.MkdirTemp("", "name-build")
 	if err != nil {
 		return err
 	}
@@ -205,7 +204,7 @@ func BuildAndPushImageOfSizeWithBuilder(
 		}
 		lines[i] = fmt.Sprintf("COPY %s /%s", blobName, blobName)
 	}
-	if err := ioutil.WriteFile(path.Join(tempDir, "Dockerfile"), []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
+	if err := os.WriteFile(path.Join(tempDir, "Dockerfile"), []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
 		return err
 	}
 
@@ -324,7 +323,7 @@ func buildImageOfSizeWithDocker(
 	if err != nil {
 		return "", nil, err
 	}
-	tempDir, err := ioutil.TempDir("", "name-build")
+	tempDir, err := os.MkdirTemp("", "name-build")
 	if err != nil {
 		return "", nil, err
 	}
@@ -340,7 +339,7 @@ func buildImageOfSizeWithDocker(
 		}
 		lines[i] = fmt.Sprintf("COPY %s /%s", blobName, blobName)
 	}
-	if err := ioutil.WriteFile(path.Join(tempDir, "Dockerfile"), []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
+	if err := os.WriteFile(path.Join(tempDir, "Dockerfile"), []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
 		return "", nil, err
 	}
 

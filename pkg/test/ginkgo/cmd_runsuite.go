@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -114,12 +113,12 @@ func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite,
 		var in []byte
 		var err error
 		if opt.TestFile == "-" {
-			in, err = ioutil.ReadAll(os.Stdin)
+			in, err = io.ReadAll(os.Stdin)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			in, err = ioutil.ReadFile(opt.TestFile)
+			in, err = os.ReadFile(opt.TestFile)
 		}
 		if err != nil {
 			return nil, err
@@ -427,12 +426,12 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		if err != nil {
 			fmt.Fprintf(opt.ErrOut, "Unable to dump pod placement data: %v\n", err)
 		} else {
-			if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(opt.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
 				fmt.Fprintf(opt.ErrOut, "Unable to write pod placement data: %v\n", err)
 			}
 		}
 		chains := pc.PodDisplacements().Dump(minChainLen)
-		if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(opt.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
 			fmt.Fprintf(opt.ErrOut, "Unable to write pod placement data: %v\n", err)
 		}
 	}
@@ -580,7 +579,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		// we only write the buffer if we have an artifact location
 		if len(opt.JUnitDir) > 0 {
 			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", opt.StartTime.UTC().Format("20060102-150405"))
-			if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
+			if err := os.WriteFile(filepath.Join(opt.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
 				fmt.Fprintf(opt.ErrOut, "error: Failed to write monitor data: %v\n", err)
 			}
 		}

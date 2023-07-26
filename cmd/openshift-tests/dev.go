@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"time"
 
@@ -129,7 +129,7 @@ func readIntervalsFromFile(intervalsFile string) (monitorapi.Intervals, error) {
 	}
 	defer jsonFile.Close()
 
-	jsonBytes, err := ioutil.ReadAll(jsonFile)
+	jsonBytes, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return nil, err
 	}

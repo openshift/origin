@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,7 +52,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 	g.Describe("using a watch", func() {
 		g.It("should watch for changes and rsync them", func() {
 			g.By("Creating a local temporary directory")
-			tempDir, err := ioutil.TempDir("", "rsync")
+			tempDir, err := os.MkdirTemp("", "rsync")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating a subdirectory in that temp directory")
@@ -217,7 +216,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 				o.Expect(result).NotTo(o.ContainSubstring("image-streams-centos7.json"))
 
 				g.By("Creating a local temporary directory")
-				tempDir, err := ioutil.TempDir("", "rsync")
+				tempDir, err := os.MkdirTemp("", "rsync")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By(fmt.Sprintf("Copying files from container to local directory: oc rsync %s:/tmp/image-streams/ %s --strategy=%s", podName, tempDir, strategy))
@@ -228,7 +227,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("Verifying that files were copied to the local directory")
-				files, err := ioutil.ReadDir(tempDir)
+				files, err := os.ReadDir(tempDir)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				found := false
 				for _, f := range files {
@@ -256,7 +255,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 				// and the file with 'originalName' should have been restored.
 				foundOriginal := false
 				foundModified := false
-				files, err = ioutil.ReadDir(tempDir)
+				files, err = os.ReadDir(tempDir)
 				for _, f := range files {
 					if strings.Contains(f.Name(), originalName) {
 						foundOriginal = true
@@ -367,7 +366,7 @@ var _ = g.Describe("[sig-cli][Slow] can use rsync to upload files to pods [apigr
 
 		g.It("should honor the --no-perms flag", func() {
 			g.By("Creating a temporary destination directory")
-			tempDir, err := ioutil.TempDir("", "rsync")
+			tempDir, err := os.MkdirTemp("", "rsync")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("Copying the mariadb directory from the pod to the temp directory: oc rsync %s:/var/lib/mysql %s", podName, tempDir))

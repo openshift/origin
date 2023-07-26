@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -325,7 +324,7 @@ func waitHTTPGetStatus(hostname string, statusCode int, timeout time.Duration) e
 			return false, nil // could be 503 if service not ready
 		}
 		defer resp.Body.Close()
-		io.Copy(ioutil.Discard, resp.Body)
+		io.Copy(io.Discard, resp.Body)
 		e2e.Logf("GET#%v %q status=%v", attempt, url, resp.StatusCode)
 		return resp.StatusCode == statusCode, nil
 	})

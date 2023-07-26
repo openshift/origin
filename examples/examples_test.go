@@ -1,7 +1,6 @@
 package examples
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -37,7 +36,7 @@ func walkJSONFiles(inDir string, fn func(name, path string, data []byte)) error 
 			return nil
 		}
 		klog.Infof("testing %s", path)
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
@@ -131,7 +130,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 
 func TestReadme(t *testing.T) {
 	path := "../README.md"
-	_, err := ioutil.ReadFile(path)
+	_, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Unable to read file: %v", err)
 	}

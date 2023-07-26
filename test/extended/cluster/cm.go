@@ -3,7 +3,7 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"log"
 	"strings"
 
@@ -150,7 +150,7 @@ var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Mirror 
 		}
 
 		// Write to file
-		err = ioutil.WriteFile(filename, d, 0644)
+		err = os.WriteFile(filename, d, 0644)
 		if err != nil {
 			log.Fatalf("error: %v", err)
 		}

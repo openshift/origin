@@ -5,7 +5,6 @@ import (
 	"log"
 )
 
-import "io/ioutil"
 import "os"
 
 func main() {
@@ -13,7 +12,7 @@ func main() {
 		log.Fatal("Usage: jsonformat.go <filename>")
 	}
 
-	byt, err := ioutil.ReadFile(os.Args[1])
+	byt, err := os.ReadFile(os.Args[1])
 	if err != nil {
 		log.Fatalf("ERROR: Unable to read file: %v\n", os.Args[1])
 	}

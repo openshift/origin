@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"net/http"
 	"net/url"
 	"strings"
@@ -213,12 +213,12 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 		if err != nil {
 			return nil, err
 		}
-		tmpFile, err := ioutil.TempFile("", "e2e-*")
+		tmpFile, err := os.CreateTemp("", "e2e-*")
 		if err != nil {
 			return nil, err
 		}
 		tmpFile.Close()
-		if err := ioutil.WriteFile(tmpFile.Name(), data, 0600); err != nil {
+		if err := os.WriteFile(tmpFile.Name(), data, 0600); err != nil {
 			return nil, err
 		}
 		config.ConfigFile = tmpFile.Name()

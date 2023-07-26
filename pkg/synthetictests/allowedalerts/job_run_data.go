@@ -3,7 +3,7 @@ package allowedalerts
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -111,7 +111,7 @@ func writeAlertData(filename string, alertData *AlertList) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, jsonContent, 0644)
+	return os.WriteFile(filename, jsonContent, 0644)
 }
 
 func getAlertLevelFromEvent(event monitorapi.Interval) AlertLevel {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -54,7 +53,7 @@ func printStorageCapabilities(out io.Writer) {
 		return
 	}
 
-	yamlFile, err := ioutil.ReadFile(manifestFilename)
+	yamlFile, err := os.ReadFile(manifestFilename)
 	if err != nil {
 		fmt.Fprintln(out, "Failed to", err)
 		return

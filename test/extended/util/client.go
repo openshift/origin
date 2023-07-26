@@ -12,7 +12,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -233,7 +232,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 		FatalErr(err)
 	}
 
-	f, err := ioutil.TempFile("", "configfile")
+	f, err := os.CreateTemp("", "configfile")
 	if err != nil {
 		FatalErr(err)
 	}
@@ -902,7 +901,7 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 		return "", err
 	}
 	path := filepath.Join(framework.TestContext.OutputDir, c.Namespace()+"-"+filename)
-	return path, ioutil.WriteFile(path, []byte(content), 0644)
+	return path, os.WriteFile(path, []byte(content), 0644)
 }
 
 // Execute executes the current command and return error if the execution failed
@@ -1066,7 +1065,7 @@ func WaitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizati
 }
 
 func GetClientConfig(kubeConfigFile string) (*rest.Config, error) {
-	kubeConfigBytes, err := ioutil.ReadFile(kubeConfigFile)
+	kubeConfigBytes, err := os.ReadFile(kubeConfigFile)
 	if err != nil {
 		return nil, err
 	}

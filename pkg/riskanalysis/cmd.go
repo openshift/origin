@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -124,7 +123,7 @@ func (opt *Options) Run() error {
 	}
 	defer resp.Body.Close()
 
-	riskAnalysisBytes, err := ioutil.ReadAll(resp.Body)
+	riskAnalysisBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Fprintf(opt.Out, "Error reading risk analysis request body from sippy: %v", err)
 		return nil
@@ -132,7 +131,7 @@ func (opt *Options) Run() error {
 	fmt.Println("response Body:", string(riskAnalysisBytes))
 
 	outputFile := filepath.Join(opt.JUnitDir, "risk-analysis.json")
-	err = ioutil.WriteFile(outputFile, riskAnalysisBytes, 0644)
+	err = os.WriteFile(outputFile, riskAnalysisBytes, 0644)
 	if err != nil {
 		fmt.Fprintf(opt.Out, "Error writing risk analysis json artifact: %v", err)
 		return nil
@@ -144,7 +143,7 @@ func (opt *Options) Run() error {
 	html := bytes.ReplaceAll(riskAnalysisHTMLTemplate, []byte("TEST_RISK_ANALYSIS_SIPPY_URL_GOES_HERE"), []byte(sippyURL))
 	html = bytes.ReplaceAll(html, []byte("TEST_RISK_ANALYSIS_JSON_GOES_HERE"), riskAnalysisBytes)
 	path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s.html", "test-risk-analysis"))
-	if err := ioutil.WriteFile(path, html, 0644); err != nil {
+	if err := os.WriteFile(path, html, 0644); err != nil {
 		fmt.Fprintf(opt.Out, "Error writing output file: %v", err)
 		return nil
 	}

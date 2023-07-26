@@ -3,7 +3,7 @@ package monitorserialization
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sort"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -36,11 +36,11 @@ func EventsToFile(filename string, events monitorapi.Intervals) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, json, 0644)
+	return os.WriteFile(filename, json, 0644)
 }
 
 func EventsFromFile(filename string) (monitorapi.Intervals, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func EventsIntervalsToFile(filename string, events monitorapi.Intervals) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, json, 0644)
+	return os.WriteFile(filename, json, 0644)
 }
 
 func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
