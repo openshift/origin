@@ -13,11 +13,10 @@ import (
 	"syscall"
 	"time"
 
-	"k8s.io/kubernetes/test/e2e/framework"
-
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	exutilcluster "github.com/openshift/origin/test/extended/util/cluster"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 type testSuiteRunner interface {
@@ -362,11 +361,11 @@ func updateEnvVars(envs []string) []string {
 	}
 	// copied from provider.go
 	// TODO: add error handling, and maybe turn this into sharable helper?
-	config := &exutilcluster.ClusterConfiguration{}
+	config := &clusterdiscovery.ClusterConfiguration{}
 	clientConfig, _ := framework.LoadConfig(true)
-	clusterState, _ := exutilcluster.DiscoverClusterState(clientConfig)
+	clusterState, _ := clusterdiscovery.DiscoverClusterState(clientConfig)
 	if clusterState != nil {
-		config, _ = exutilcluster.LoadConfig(clusterState)
+		config, _ = clusterdiscovery.LoadConfig(clusterState)
 	}
 	if len(config.ProviderName) == 0 {
 		config.ProviderName = "skeleton"

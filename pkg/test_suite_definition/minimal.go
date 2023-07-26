@@ -1,4 +1,4 @@
-package main
+package test_suite_definition
 
 // This file is updated via the output from https://sippy.ci.openshift.org/api/canary?release=$VERSION
 var (

@@ -1,7 +1,6 @@
 package ginkgo
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -199,15 +198,4 @@ func testNames(tests []*testCase) []string {
 		names = append(names, t.name)
 	}
 	return names
-}
-
-// SuitesString returns a string with the provided suites formatted. Prefix is
-// printed at the beginning of the output.
-func SuitesString(suites []*TestSuite, prefix string) string {
-	buf := &bytes.Buffer{}
-	fmt.Fprintf(buf, prefix)
-	for _, suite := range suites {
-		fmt.Fprintf(buf, "%s\n  %s\n\n", suite.Name, suite.Description)
-	}
-	return buf.String()
 }

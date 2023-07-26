@@ -1,12 +1,13 @@
-package main
+package clusterdiscovery
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 // Manifest yaml structs
@@ -47,8 +48,8 @@ type YamlManifest struct {
 	DriverInfo    `yaml:"DriverInfo"`
 }
 
-func printStorageCapabilities(out io.Writer) {
-	manifestFilename := strings.Split(os.Getenv(manifestEnvVar), ",")[0]
+func PrintStorageCapabilities(out io.Writer) {
+	manifestFilename := strings.Split(os.Getenv(CSIManifestEnvVar), ",")[0]
 	if manifestFilename == "" {
 		fmt.Fprintln(out, "No manifest filename passed")
 		return

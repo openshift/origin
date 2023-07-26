@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -35,9 +36,9 @@ const (
 	postUpgradeEvent = "PostUpgrade"
 )
 
-// Options is used to run a suite of tests by invoking each test
+// GinkgoRunSuiteOptions is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
-type Options struct {
+type GinkgoRunSuiteOptions struct {
 	Parallelism int
 	Count       int
 	FailFast    bool
@@ -68,32 +69,46 @@ type Options struct {
 	StartTime time.Time
 }
 
-func NewOptions(out io.Writer, errOut io.Writer) *Options {
-	return &Options{
+func NewGinkgoRunSuiteOptions(out io.Writer, errOut io.Writer) *GinkgoRunSuiteOptions {
+	return &GinkgoRunSuiteOptions{
 		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
 		Out:                  out,
 		ErrOut:               errOut,
 	}
 }
 
-func (opt *Options) AsEnv() []string {
+func (o *GinkgoRunSuiteOptions) BindTestOptions(flags *pflag.FlagSet) {
+	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
+	flags.BoolVar(&o.PrintCommands, "print-commands", o.PrintCommands, "Print the sub-commands that would be executed instead.")
+	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
+	flags.StringVarP(&o.TestFile, "file", "f", o.TestFile, "Create a suite from the newline-delimited test names in this file.")
+	flags.StringVar(&o.Regex, "run", o.Regex, "Regular expression of tests to run.")
+	flags.StringVarP(&o.OutFile, "output-file", "o", o.OutFile, "Write all test output to this file.")
+	flags.IntVar(&o.Count, "count", o.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
+	flags.BoolVar(&o.FailFast, "fail-fast", o.FailFast, "If a test fails, exit immediately.")
+	flags.DurationVar(&o.Timeout, "timeout", o.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
+	flags.BoolVar(&o.IncludeSuccessOutput, "include-success", o.IncludeSuccessOutput, "Print output from successful tests.")
+	flags.IntVar(&o.Parallelism, "max-parallel-tests", o.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
+}
+
+func (o *GinkgoRunSuiteOptions) AsEnv() []string {
 	var args []string
-	args = append(args, fmt.Sprintf("TEST_SUITE_START_TIME=%d", opt.StartTime.Unix()))
-	args = append(args, opt.CommandEnv...)
+	args = append(args, fmt.Sprintf("TEST_SUITE_START_TIME=%d", o.StartTime.Unix()))
+	args = append(args, o.CommandEnv...)
 	return args
 }
 
-func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {
+func (o *GinkgoRunSuiteOptions) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {
 	var suite *TestSuite
 
 	// If a test file was provided with no suite, use the "files" suite.
-	if len(opt.TestFile) > 0 && len(args) == 0 {
+	if len(o.TestFile) > 0 && len(args) == 0 {
 		suite = &TestSuite{
 			Name: "files",
 		}
 	}
 	if suite == nil && len(args) == 0 {
-		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+		fmt.Fprintf(o.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
 		return nil, fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), suites[0].Name)
 	}
 	if suite == nil && len(args) > 0 {
@@ -105,21 +120,21 @@ func (opt *Options) SelectSuite(suites []*TestSuite, args []string) (*TestSuite,
 		}
 	}
 	if suite == nil {
-		fmt.Fprintf(opt.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
+		fmt.Fprintf(o.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
 		return nil, fmt.Errorf("suite %q does not exist", args[0])
 	}
 	// If a test file was provided, override the Matches function
 	// to match the tests from both the suite and the file.
-	if len(opt.TestFile) > 0 {
+	if len(o.TestFile) > 0 {
 		var in []byte
 		var err error
-		if opt.TestFile == "-" {
+		if o.TestFile == "-" {
 			in, err = ioutil.ReadAll(os.Stdin)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			in, err = ioutil.ReadFile(opt.TestFile)
+			in, err = ioutil.ReadFile(o.TestFile)
 		}
 		if err != nil {
 			return nil, err
@@ -139,23 +154,23 @@ func max(a, b int) int {
 	return b
 }
 
-func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) error {
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upgrade bool) error {
 	ctx := context.Background()
 
-	if len(opt.Regex) > 0 {
-		if err := filterWithRegex(suite, opt.Regex); err != nil {
+	if len(o.Regex) > 0 {
+		if err := filterWithRegex(suite, o.Regex); err != nil {
 			return err
 		}
 	}
-	if opt.MatchFn != nil {
+	if o.MatchFn != nil {
 		original := suite.Matches
 		suite.Matches = func(name string) bool {
-			return original(name) && opt.MatchFn(name)
+			return original(name) && o.MatchFn(name)
 		}
 	}
 
 	syntheticEventTests := JUnitsForAllEvents{
-		opt.SyntheticEventTests,
+		o.SyntheticEventTests,
 		suite.SyntheticEventTests,
 	}
 
@@ -196,13 +211,13 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 				},
 			})
 		}
-		fmt.Fprintf(opt.Out, buf.String())
+		fmt.Fprintf(o.Out, buf.String())
 		fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
 			Name:      "[sig-arch] External binary usage",
 			SystemOut: buf.String(),
 		})
 	} else {
-		fmt.Fprintf(opt.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
+		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
 	}
 
 	// this ensures the tests are always run in random order to avoid
@@ -213,15 +228,15 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 
 	discoveryClient, err := getDiscoveryClient()
 	if err != nil {
-		if opt.DryRun {
-			fmt.Fprintf(opt.ErrOut, "Unable to get discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
+		if o.DryRun {
+			fmt.Fprintf(o.ErrOut, "Unable to get discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
 		} else {
 			return err
 		}
 	} else {
 		if _, err := discoveryClient.ServerVersion(); err != nil {
-			if opt.DryRun {
-				fmt.Fprintf(opt.ErrOut, "Unable to get server version through discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
+			if o.DryRun {
+				fmt.Fprintf(o.ErrOut, "Unable to get server version through discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
 			} else {
 				return err
 			}
@@ -243,17 +258,17 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
 	}
 
-	count := opt.Count
+	count := o.Count
 	if count == 0 {
 		count = suite.Count
 	}
 
 	start := time.Now()
-	if opt.StartTime.IsZero() {
-		opt.StartTime = start
+	if o.StartTime.IsZero() {
+		o.StartTime = start
 	}
 
-	timeout := opt.Timeout
+	timeout := o.Timeout
 	if timeout == 0 {
 		timeout = suite.TestTimeout
 	}
@@ -261,31 +276,31 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		timeout = 15 * time.Minute
 	}
 
-	testRunnerContext := newCommandContext(opt.AsEnv(), timeout)
+	testRunnerContext := newCommandContext(o.AsEnv(), timeout)
 
-	if opt.PrintCommands {
-		newParallelTestQueue(testRunnerContext).OutputCommands(ctx, tests, opt.Out)
+	if o.PrintCommands {
+		newParallelTestQueue(testRunnerContext).OutputCommands(ctx, tests, o.Out)
 		return nil
 	}
-	if opt.DryRun {
+	if o.DryRun {
 		for _, test := range sortedTests(tests) {
-			fmt.Fprintf(opt.Out, "%q\n", test.name)
+			fmt.Fprintf(o.Out, "%q\n", test.name)
 		}
 		return nil
 	}
 
-	if len(opt.JUnitDir) > 0 {
-		if _, err := os.Stat(opt.JUnitDir); err != nil {
+	if len(o.JUnitDir) > 0 {
+		if _, err := os.Stat(o.JUnitDir); err != nil {
 			if !os.IsNotExist(err) {
 				return fmt.Errorf("could not access --junit-dir: %v", err)
 			}
-			if err := os.MkdirAll(opt.JUnitDir, 0755); err != nil {
+			if err := os.MkdirAll(o.JUnitDir, 0755); err != nil {
 				return fmt.Errorf("could not create --junit-dir: %v", err)
 			}
 		}
 	}
 
-	parallelism := opt.Parallelism
+	parallelism := o.Parallelism
 	if parallelism == 0 {
 		parallelism = suite.Parallelism
 	}
@@ -303,11 +318,11 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
-		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating tests\n")
+		fmt.Fprintf(o.ErrOut, "Interrupted, terminating tests\n")
 		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 		sig := <-abortCh
-		fmt.Fprintf(opt.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
+		fmt.Fprintf(o.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
 		switch sig {
 		case syscall.SIGINT:
 			os.Exit(130)
@@ -317,7 +332,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	monitorEventRecorder, err := opt.MonitorEventsOptions.Start(ctx, restConfig)
+	monitorEventRecorder, err := o.MonitorEventsOptions.Start(ctx, restConfig)
 	if err != nil {
 		return err
 	}
@@ -331,12 +346,12 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	pc.Run(ctx)
 
 	// if we run a single test, always include success output
-	includeSuccess := opt.IncludeSuccessOutput
+	includeSuccess := o.IncludeSuccessOutput
 	if len(tests) == 1 && count == 1 {
 		includeSuccess = true
 	}
 	testOutputLock := &sync.Mutex{}
-	testOutputConfig := newTestOutputConfig(testOutputLock, opt.Out, monitorEventRecorder, includeSuccess)
+	testOutputConfig := newTestOutputConfig(testOutputLock, o.Out, monitorEventRecorder, includeSuccess)
 
 	early, notEarly := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Early]")
@@ -377,7 +392,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 
 	abortFn := neverAbort
 	testCtx := ctx
-	if opt.FailFast {
+	if o.FailFast {
 		abortFn, testCtx = abortOnFailure(ctx)
 	}
 
@@ -421,19 +436,19 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	tests = append(tests, late...)
 
 	// TODO: will move to the monitor
-	if len(opt.JUnitDir) > 0 {
+	if len(o.JUnitDir) > 0 {
 		pc.ComputePodTransitions()
 		data, err := pc.JsonDump()
 		if err != nil {
-			fmt.Fprintf(opt.ErrOut, "Unable to dump pod placement data: %v\n", err)
+			fmt.Fprintf(o.ErrOut, "Unable to dump pod placement data: %v\n", err)
 		} else {
-			if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
-				fmt.Fprintf(opt.ErrOut, "Unable to write pod placement data: %v\n", err)
+			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-placement-data.json"), data, 0644); err != nil {
+				fmt.Fprintf(o.ErrOut, "Unable to write pod placement data: %v\n", err)
 			}
 		}
 		chains := pc.PodDisplacements().Dump(minChainLen)
-		if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
-			fmt.Fprintf(opt.ErrOut, "Unable to write pod placement data: %v\n", err)
+		if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, "pod-transitions.txt"), []byte(chains), 0644); err != nil {
+			fmt.Fprintf(o.ErrOut, "Unable to write pod placement data: %v\n", err)
 		}
 	}
 
@@ -462,7 +477,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 			}
 		}
 
-		fmt.Fprintf(opt.Out, "Retry count: %d\n", len(retries))
+		fmt.Fprintf(o.Out, "Retry count: %d\n", len(retries))
 
 		// Run the tests in the retries list.
 		q := newParallelTestQueue(testRunnerContext)
@@ -484,7 +499,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		for _, retry := range retries {
 			if retry.flake {
 				// Retry tests that flaked are omitted so that the original test is counted as a failure.
-				fmt.Fprintf(opt.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
+				fmt.Fprintf(o.Out, "Ignoring retry that returned a flake, original failure is authoritative for test: %s\n", retry.name)
 				continue
 			}
 			tests = append(tests, retry)
@@ -492,7 +507,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		if len(flaky) > 0 {
 			failing = repeatFailures
 			sort.Strings(flaky)
-			fmt.Fprintf(opt.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
+			fmt.Fprintf(o.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
 		}
 		if len(skipped) > 0 {
 			// If a retry test got skipped, it means we very likely failed a precondition in the first failure, so
@@ -510,7 +525,7 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 			tests = withoutPreconditionFailures
 			failing = repeatFailures
 			sort.Strings(skipped)
-			fmt.Fprintf(opt.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
+			fmt.Fprintf(o.Out, "Skipped tests that failed a precondition:\n\n%s\n\n", strings.Join(skipped, "\n"))
 
 		}
 	}
@@ -524,24 +539,24 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 
-	timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().
+	timeSuffix := fmt.Sprintf("_%s", o.MonitorEventsOptions.GetStartTime().
 		UTC().Format("20060102-150405"))
 
-	if err := opt.MonitorEventsOptions.End(ctx, restConfig, opt.JUnitDir); err != nil {
+	if err := o.MonitorEventsOptions.End(ctx, restConfig, o.JUnitDir); err != nil {
 		return err
 	}
-	if len(opt.JUnitDir) > 0 {
-		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir(opt.JUnitDir, timeSuffix); err != nil {
-			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
+	if len(o.JUnitDir) > 0 {
+		if err := o.MonitorEventsOptions.WriteRunDataToArtifactsDir(o.JUnitDir, timeSuffix); err != nil {
+			fmt.Fprintf(o.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}
 
 	// default is empty string as that is what entries prior to adding this will have
 	wasMasterNodeUpdated := ""
-	if events := opt.MonitorEventsOptions.GetEvents(); len(events) > 0 {
+	if events := o.MonitorEventsOptions.GetEvents(); len(events) > 0 {
 		var buf *bytes.Buffer
 		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
-		currResState := opt.MonitorEventsOptions.GetRecordedResources()
+		currResState := o.MonitorEventsOptions.GetRecordedResources()
 		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
 		if !upgrade {
@@ -578,10 +593,10 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		}
 
 		// we only write the buffer if we have an artifact location
-		if len(opt.JUnitDir) > 0 {
-			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", opt.StartTime.UTC().Format("20060102-150405"))
-			if err := ioutil.WriteFile(filepath.Join(opt.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
-				fmt.Fprintf(opt.ErrOut, "error: Failed to write monitor data: %v\n", err)
+		if len(o.JUnitDir) > 0 {
+			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", o.StartTime.UTC().Format("20060102-150405"))
+			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
+				fmt.Fprintf(o.ErrOut, "error: Failed to write monitor data: %v\n", err)
 			}
 		}
 
@@ -591,17 +606,17 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 	// report the outcome of the test
 	if len(failing) > 0 {
 		names := sets.NewString(testNames(failing)...).List()
-		fmt.Fprintf(opt.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
+		fmt.Fprintf(o.Out, "Failing tests:\n\n%s\n\n", strings.Join(names, "\n"))
 	}
 
-	if len(opt.JUnitDir) > 0 {
+	if len(o.JUnitDir) > 0 {
 		finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, duration, tests, syntheticTestResults...)
-		if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, opt.JUnitDir, opt.ErrOut); err != nil {
-			fmt.Fprintf(opt.Out, "error: Unable to write e2e JUnit xml results: %v", err)
+		if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, o.JUnitDir, o.ErrOut); err != nil {
+			fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 		}
 
-		if err := riskanalysis.WriteJobRunTestFailureSummary(opt.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated); err != nil {
-			fmt.Fprintf(opt.Out, "error: Unable to write e2e job run failures summary: %v", err)
+		if err := riskanalysis.WriteJobRunTestFailureSummary(o.JUnitDir, timeSuffix, finalSuiteResults, wasMasterNodeUpdated); err != nil {
+			fmt.Fprintf(o.Out, "error: Unable to write e2e job run failures summary: %v", err)
 		}
 	}
 
@@ -609,13 +624,25 @@ func (opt *Options) Run(suite *TestSuite, junitSuiteName string, upgrade bool) e
 		if len(failing) > 0 || suite.MaximumAllowedFlakes == 0 {
 			return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
 		}
-		fmt.Fprintf(opt.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
+		fmt.Fprintf(o.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)
 	}
 
 	if syntheticFailure {
 		return fmt.Errorf("failed because an invariant was violated, %d pass, %d skip (%s)\n", pass, skip, duration)
 	}
 
-	fmt.Fprintf(opt.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
+	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
+}
+
+// TODO re-collapse
+// SuitesString returns a string with the provided suites formatted. Prefix is
+// printed at the beginning of the output.
+func SuitesString(suites []*TestSuite, prefix string) string {
+	buf := &bytes.Buffer{}
+	fmt.Fprintf(buf, prefix)
+	for _, suite := range suites {
+		fmt.Fprintf(buf, "%s\n  %s\n\n", suite.Name, suite.Description)
+	}
+	return buf.String()
 }

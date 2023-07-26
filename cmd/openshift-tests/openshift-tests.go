@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -13,6 +12,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/test_suite_definition"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/monitor_command"
@@ -21,7 +24,6 @@ import (
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/cluster"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -146,7 +148,7 @@ type imagesOptions struct {
 }
 
 func newImagesCommand() *cobra.Command {
-	opt := &imagesOptions{}
+	o := &imagesOptions{}
 	cmd := &cobra.Command{
 		Use:   "images",
 		Short: "Gather images required for testing",
@@ -176,11 +178,11 @@ func newImagesCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if opt.Verify {
+			if o.Verify {
 				return verifyImages()
 			}
 
-			repository := opt.Repository
+			repository := o.Repository
 			var prefix string
 			for _, validPrefix := range []string{"file://", "s3://"} {
 				if strings.HasPrefix(repository, validPrefix) {
@@ -200,7 +202,7 @@ func newImagesCommand() *cobra.Command {
 			if err := verifyImages(); err != nil {
 				return err
 			}
-			lines, err := createImageMirrorForInternalImages(prefix, ref, !opt.Upstream)
+			lines, err := createImageMirrorForInternalImages(prefix, ref, !o.Upstream)
 			if err != nil {
 				return err
 			}
@@ -210,85 +212,16 @@ func newImagesCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().BoolVar(&opt.Upstream, "upstream", opt.Upstream, "Retrieve images from the default upstream location")
-	cmd.Flags().StringVar(&opt.Repository, "to-repository", opt.Repository, "A container image repository to mirror to.")
+	cmd.Flags().BoolVar(&o.Upstream, "upstream", o.Upstream, "Retrieve images from the default upstream location")
+	cmd.Flags().StringVar(&o.Repository, "to-repository", o.Repository, "A container image repository to mirror to.")
 	// this is a private flag for debugging only
-	cmd.Flags().BoolVar(&opt.Verify, "verify", opt.Verify, "Verify the contents of the image mappings")
+	cmd.Flags().BoolVar(&o.Verify, "verify", o.Verify, "Verify the contents of the image mappings")
 	cmd.Flags().MarkHidden("verify")
 	return cmd
 }
 
-type runOptions struct {
-	*testginkgo.Options
-
-	FromRepository string
-	Provider       string
-
-	// Passed to the test process if set
-	UpgradeSuite string
-	ToImage      string
-	TestOptions  []string
-
-	// Shared by initialization code
-	config *cluster.ClusterConfiguration
-}
-
-func NewRunOptions(fromRepository string) *runOptions {
-	return &runOptions{
-		Options: testginkgo.NewOptions(os.Stdout, os.Stderr),
-
-		FromRepository: fromRepository,
-	}
-}
-
-func (opt *runOptions) AsEnv() []string {
-	var args []string
-	args = append(args, "KUBE_TEST_REPO_LIST=") // explicitly prevent selective override
-	args = append(args, fmt.Sprintf("KUBE_TEST_REPO=%s", opt.FromRepository))
-	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", opt.Provider))
-	args = append(args, fmt.Sprintf("TEST_JUNIT_DIR=%s", opt.JUnitDir))
-	for i := 10; i > 0; i-- {
-		if klog.V(klog.Level(i)).Enabled() {
-			args = append(args, fmt.Sprintf("TEST_LOG_LEVEL=%d", i))
-			break
-		}
-	}
-
-	if len(opt.UpgradeSuite) > 0 {
-		data, err := json.Marshal(UpgradeOptions{
-			Suite:       opt.UpgradeSuite,
-			ToImage:     opt.ToImage,
-			TestOptions: opt.TestOptions,
-		})
-		if err != nil {
-			panic(err)
-		}
-		args = append(args, fmt.Sprintf("TEST_UPGRADE_OPTIONS=%s", string(data)))
-	} else {
-		args = append(args, "TEST_UPGRADE_OPTIONS=")
-	}
-
-	return args
-}
-
-func (opt *runOptions) SelectSuite(suites testSuites, args []string) (*testSuite, error) {
-	suite, err := opt.Options.SelectSuite(suites.TestSuites(), args)
-	if err != nil {
-		return nil, err
-	}
-	for i := range suites {
-		if &suites[i].TestSuite == suite {
-			return &suites[i], nil
-		}
-	}
-	if len(opt.Provider) > 0 {
-		return &testSuite{TestSuite: *suite, PreSuite: suiteWithProviderPreSuite}, nil
-	}
-	return &testSuite{TestSuite: *suite}, nil
-}
-
 func newRunCommand() *cobra.Command {
-	opt := NewRunOptions(defaultTestImageMirrorLocation)
+	o := NewRunSuiteOptions(defaultTestImageMirrorLocation, test_suite_definition.StandardTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
@@ -304,47 +237,46 @@ func newRunCommand() *cobra.Command {
 		command with the --file argument. You may also pipe a list of test names, one per line, on
 		standard input by passing "-f -".
 
-		`) + testginkgo.SuitesString(staticSuites.TestSuites(), "\n\nAvailable test suites:\n\n"),
+		`) + test_suite_definition.SuitesString(test_suite_definition.StandardTestSuites(), "\n\nAvailable test suites:\n\n"),
 
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mirrorToFile(opt.Options, func() error {
+			return mirrorToFile(o.GinkgoRunSuiteOptions, func() error {
 				if err := verifyImages(); err != nil {
 					return err
 				}
-				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
+				o.GinkgoRunSuiteOptions.SyntheticEventTests = pulledInvalidImages(o.FromRepository)
 
-				suite, err := opt.SelectSuite(staticSuites, args)
+				suite, err := o.SelectSuite(args)
 				if err != nil {
 					return err
 				}
-				if suite.PreSuite != nil {
-					if err := suite.PreSuite(opt); err != nil {
-						return err
-					}
+				if err := o.SuiteWithKubeTestInitializationPreSuite(); err != nil {
+					return err
 				}
-				opt.CommandEnv = opt.AsEnv()
-				if !opt.DryRun {
+
+				o.GinkgoRunSuiteOptions.CommandEnv = o.AsEnv()
+				if !o.GinkgoRunSuiteOptions.DryRun {
 					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 				}
-				err = opt.Run(&suite.TestSuite, "openshift-tests", false)
+				err = o.GinkgoRunSuiteOptions.Run(suite, "openshift-tests", false)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
 				}
-				if suite.PostSuite != nil {
-					suite.PostSuite(opt)
-				}
+
+				// Special debugging carve-outs for teams is likely to age poorly.
+				clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
 				return err
 			})
 		},
 	}
-	bindOptions(opt, cmd.Flags())
+	o.BindOptions(cmd.Flags())
 	return cmd
 }
 
 func newRunUpgradeCommand() *cobra.Command {
-	opt := NewRunOptions(defaultTestImageMirrorLocation)
+	o := NewRunSuiteOptions(defaultTestImageMirrorLocation, test_suite_definition.UpgradeTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run-upgrade SUITE",
@@ -366,48 +298,48 @@ func newRunUpgradeCommand() *cobra.Command {
 		the reboot will allow the node to shut down services in an orderly fashion. If set to 'force' the
 		machine will terminate immediately without clean shutdown.
 
-		`) + testginkgo.SuitesString(upgradeSuites.TestSuites(), "\n\nAvailable upgrade suites:\n\n"),
+		`) + test_suite_definition.SuitesString(test_suite_definition.UpgradeTestSuites(), "\n\nAvailable upgrade suites:\n\n"),
 
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mirrorToFile(opt.Options, func() error {
-				if len(opt.ToImage) == 0 {
+			return mirrorToFile(o.GinkgoRunSuiteOptions, func() error {
+				if len(o.ToImage) == 0 {
 					return fmt.Errorf("--to-image must be specified to run an upgrade test")
 				}
 				if err := verifyImages(); err != nil {
 					return err
 				}
-				opt.SyntheticEventTests = pulledInvalidImages(opt.FromRepository)
+				o.GinkgoRunSuiteOptions.SyntheticEventTests = pulledInvalidImages(o.FromRepository)
 
-				suite, err := opt.SelectSuite(upgradeSuites, args)
+				suite, err := o.SelectSuite(args)
 				if err != nil {
 					return err
 				}
-				opt.UpgradeSuite = suite.Name
-				if suite.PreSuite != nil {
-					if err := suite.PreSuite(opt); err != nil {
-						return err
-					}
+				o.UpgradeSuite = suite.Name
+				if err := o.UpgradeTestPreSuite(); err != nil {
+					return err
 				}
-				opt.CommandEnv = opt.AsEnv()
-				if !opt.DryRun {
+
+				o.GinkgoRunSuiteOptions.CommandEnv = o.AsEnv()
+				if !o.GinkgoRunSuiteOptions.DryRun {
 					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 				}
-				err = opt.Run(&suite.TestSuite, "openshift-tests-upgrade", true)
+				err = o.GinkgoRunSuiteOptions.Run(suite, "openshift-tests-upgrade", true)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
 				}
-				if suite.PostSuite != nil {
-					suite.PostSuite(opt)
-				}
+
+				// Special debugging carve-outs for teams is likely to age poorly.
+				clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
+
 				return err
 			})
 		},
 	}
 
-	bindOptions(opt, cmd.Flags())
-	bindUpgradeOptions(opt, cmd.Flags())
+	o.BindOptions(cmd.Flags())
+	o.BindUpgradeOptions(cmd.Flags())
 	return cmd
 }
 
@@ -435,11 +367,11 @@ func newRunTestCommand() *cobra.Command {
 				return err
 			}
 
-			config, err := decodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
+			config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
 			if err != nil {
 				return err
 			}
-			if err := initializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
+			if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
 				return err
 			}
 			klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
@@ -448,7 +380,12 @@ func newRunTestCommand() *cobra.Command {
 
 			// allow upgrade test to pass some parameters here, although this may be
 			// better handled as an env var within the test itself in the future
-			if err := upgradeTestPreTest(); err != nil {
+			upgradeOptionsYAML := os.Getenv("TEST_UPGRADE_OPTIONS")
+			upgradeOptions, err := NewUpgradeOptionsFromYAML(upgradeOptionsYAML)
+			if err != nil {
+				return err
+			}
+			if err := upgradeOptions.SetUpgradeGlobals(); err != nil {
 				return err
 			}
 
@@ -463,7 +400,7 @@ func newRunTestCommand() *cobra.Command {
 // mirrorToFile ensures a copy of all output goes to the provided OutFile, including
 // any error returned from fn. The function returns fn() or any error encountered while
 // attempting to open the file.
-func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
+func mirrorToFile(opt *testginkgo.GinkgoRunSuiteOptions, fn func() error) error {
 	if len(opt.OutFile) == 0 {
 		return fn()
 	}
@@ -482,24 +419,4 @@ func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
 		fmt.Fprintf(opt.ErrOut, "error: Unable to close output file\n")
 	}
 	return exitErr
-}
-
-func bindOptions(opt *runOptions, flags *pflag.FlagSet) {
-	flags.StringVar(&opt.FromRepository, "from-repository", opt.FromRepository, "A container image repository to retrieve test images from.")
-	flags.StringVar(&opt.Provider, "provider", opt.Provider, "The cluster infrastructure provider. Will automatically default to the correct value.")
-	bindTestOptions(opt.Options, flags)
-}
-
-func bindTestOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
-	flags.BoolVar(&opt.DryRun, "dry-run", opt.DryRun, "Print the tests to run without executing them.")
-	flags.BoolVar(&opt.PrintCommands, "print-commands", opt.PrintCommands, "Print the sub-commands that would be executed instead.")
-	flags.StringVar(&opt.JUnitDir, "junit-dir", opt.JUnitDir, "The directory to write test reports to.")
-	flags.StringVarP(&opt.TestFile, "file", "f", opt.TestFile, "Create a suite from the newline-delimited test names in this file.")
-	flags.StringVar(&opt.Regex, "run", opt.Regex, "Regular expression of tests to run.")
-	flags.StringVarP(&opt.OutFile, "output-file", "o", opt.OutFile, "Write all test output to this file.")
-	flags.IntVar(&opt.Count, "count", opt.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
-	flags.BoolVar(&opt.FailFast, "fail-fast", opt.FailFast, "If a test fails, exit immediately.")
-	flags.DurationVar(&opt.Timeout, "timeout", opt.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
-	flags.BoolVar(&opt.IncludeSuccessOutput, "include-success", opt.IncludeSuccessOutput, "Print output from successful tests.")
-	flags.IntVar(&opt.Parallelism, "max-parallel-tests", opt.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
 }
