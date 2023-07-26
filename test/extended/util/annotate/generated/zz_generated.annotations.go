@@ -235,8 +235,6 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] OAuth server has the correct token and certificate fallback semantics [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] OAuthClientWithRedirectURIs must validate request URIs according to oauth-client definition": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the authorize URL": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io] expected headers returned from the grant URL": " [Suite:openshift/conformance/parallel]",
@@ -263,7 +261,9 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] [Token Expiration] Using a OAuth client with a non-default token max age [apigroup:oauth.openshift.io] to generate tokens that expire shortly works as expected when using a token authorization flow [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-auth][Feature:OAuthServer] well-known endpoint should be reachable [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-auth][Feature:OAuthServer] [apigroup:oauth.openshift.io] OAuthClientWithRedirectURIs must validate request URIs according to oauth-client definition": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-auth][Feature:OAuthServer] well-known endpoint should be reachable [apigroup:route.openshift.io] [apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleBindingEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1317,9 +1317,9 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:MultiNetworkPolicy][Serial] should enforce a network policies on secondary network IPv4": " [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io] should enforce a network policies on secondary network IPv4": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network][Feature:MultiNetworkPolicy][Serial] should enforce a network policies on secondary network IPv6": " [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io] should enforce a network policies on secondary network IPv6": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:Multus] should use multus to create net1 device from network-attachment-definition [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
@@ -1495,11 +1495,11 @@ var Annotations = map[string]string{
 
 	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
 
-	"[sig-storage][Feature:DisableStorageClass][Serial] should not reconcile the StorageClass when StorageClassState is Unmanaged": " [Suite:openshift/conformance/serial]",
+	"[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io] should not reconcile the StorageClass when StorageClassState is Unmanaged": " [Suite:openshift/conformance/serial]",
 
-	"[sig-storage][Feature:DisableStorageClass][Serial] should reconcile the StorageClass when StorageClassState is Managed": " [Suite:openshift/conformance/serial]",
+	"[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io] should reconcile the StorageClass when StorageClassState is Managed": " [Suite:openshift/conformance/serial]",
 
-	"[sig-storage][Feature:DisableStorageClass][Serial] should remove the StorageClass when StorageClassState is Removed": " [Suite:openshift/conformance/serial]",
+	"[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io] should remove the StorageClass when StorageClassState is Removed": " [Suite:openshift/conformance/serial]",
 
 	"[sig-storage][Late] Metrics should report short attach times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 

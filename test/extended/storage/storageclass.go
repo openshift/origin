@@ -29,7 +29,7 @@ const (
 )
 
 // This is [Serial] because it modifies the default ClusterCSIDriver and StorageClass
-var _ = g.Describe("[sig-storage][Feature:DisableStorageClass][Serial]", func() {
+var _ = g.Describe("[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc           = exutil.NewCLIWithPodSecurityLevel("disable-sc-test", admissionapi.LevelPrivileged)

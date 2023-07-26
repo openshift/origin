@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func()
 		oauthNamespace = "openshift-authentication"
 	)
 
-	g.It("should be reachable [apigroup:route.openshift.io]", func() {
+	g.It("should be reachable [apigroup:route.openshift.io] [apigroup:oauth.openshift.io]", func() {
 		metadataJSON, err := oc.Run("get").Args("--raw", "/.well-known/oauth-authorization-server").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

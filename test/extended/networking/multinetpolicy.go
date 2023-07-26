@@ -28,7 +28,7 @@ type podAddressSet struct {
 	C *net.IPNet
 }
 
-var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial]", func() {
+var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io]", func() {
 
 	oc := exutil.NewCLIWithPodSecurityLevel("multinetpol-e2e", admissionapi.LevelBaseline)
 	f := oc.KubeFramework()
