@@ -219,11 +219,15 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string, dr
 
 func intervalToLogLine(i monitorapi.EventInterval, timeSuffix string) (string, map[string]string, error) {
 
+	// TODO: temporary hack while we wait for structured locators to become the norm.
+	// Clear out the unstructured locator, the e2e-test ones are serializing in a way that breaks loki's json parsing.
+	i.Locator = ""
+
 	ib, err := json.Marshal(i)
 	if err != nil {
 		return "", map[string]string{}, err
 	}
-	jsonStr := string(ib[:])
+	jsonStr := string(ib)
 
 	logLine := map[string]string{
 		"_entry":   jsonStr,
