@@ -18,7 +18,8 @@ type InvariantTest interface {
 
 	// CollectData will only be called once near the end of execution, before all Intervals are inspected.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
-	CollectData(ctx context.Context, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
+	// storageDir is for gathering data only, not for writing in this stage.  To store data, use WriteContentToStorage
+	CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
 
 	// ConstructComputedIntervals is called after all InvariantTests have produced raw Intervals.
 	// Order of ConstructComputedIntervals across different InvariantTests is not guaranteed.
@@ -61,7 +62,7 @@ type InvariantRegistry interface {
 
 	// CollectData will only be called once near the end of execution, before all Intervals are inspected.
 	// Errors reported will be indicated as junit test failure and will cause job runs to fail.
-	CollectData(ctx context.Context, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
+	CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error)
 
 	// ConstructComputedIntervals is called after all InvariantTests have produced raw Intervals.
 	// Order of ConstructComputedIntervals across different InvariantTests is not guaranteed.

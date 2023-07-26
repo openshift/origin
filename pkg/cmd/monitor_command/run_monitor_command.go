@@ -94,6 +94,7 @@ func (opt *RunMonitorOptions) Run() error {
 
 	m := monitor.NewMonitor(
 		restConfig,
+		opt.ArtifactDir,
 		[]monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAllAPIMonitoring,
 			frontends.StartAllIngressMonitoring,
@@ -139,7 +140,7 @@ func (opt *RunMonitorOptions) Run() error {
 
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
-		if err := m.SerializeResults(ctx, opt.ArtifactDir, "invariants", ""); err != nil {
+		if err := m.SerializeResults(ctx, "invariants", ""); err != nil {
 			return err
 		}
 	}

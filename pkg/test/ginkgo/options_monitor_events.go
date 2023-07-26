@@ -3,9 +3,7 @@ package ginkgo
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -17,7 +15,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/nodedetails"
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -49,11 +46,13 @@ type MonitorEventsOptions struct {
 	auditLogSummary *nodedetails.AuditLogSummary
 
 	genericclioptions.IOStreams
+	storageDir string
 }
 
-func NewMonitorEventsOptions(streams genericclioptions.IOStreams) *MonitorEventsOptions {
+func NewMonitorEventsOptions(streams genericclioptions.IOStreams, storageDir string) *MonitorEventsOptions {
 	return &MonitorEventsOptions{
-		IOStreams: streams,
+		IOStreams:  streams,
+		storageDir: storageDir,
 	}
 }
 
@@ -66,6 +65,7 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 
 	m := monitor.NewMonitor(
 		restConfig,
+		o.storageDir,
 		[]monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAllAPIMonitoring,
 			frontends.StartAllIngressMonitoring,
@@ -170,38 +170,6 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	events = append(events, alertEventIntervals...)
 	events = intervalcreation.InsertCalculatedIntervals(events, o.recordedResources, fromTime, endTime)
 
-	// read events from other test processes (individual tests for instance) that happened during this run.
-	// this happens during upgrade tests to pass information back to the main monitor.
-	if len(artifactDir) > 0 {
-		var additionalEvents monitorapi.Intervals
-		filepath.WalkDir(artifactDir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			if d.IsDir() {
-				return nil
-			}
-			// upstream framework starting in 1.26 fixed how the AfterEach is
-			// invoked, now it's always invoked and that results in more files
-			// than we anticipated before, see here:
-			// https://github.com/kubernetes/kubernetes/blob/v1.26.0/test/e2e/framework/framework.go#L382
-			// our files have double underscore whereas upstream has only single
-			// so for now we'll skip everything else for summaries
-			//
-			// TODO: TRT will need to double check this longterm what they want
-			// to do with these extra files
-			if !strings.HasPrefix(d.Name(), "AdditionalEvents__") {
-				return nil
-			}
-			saved, _ := monitorserialization.EventsFromFile(path)
-			additionalEvents = append(additionalEvents, saved...)
-			return nil
-		})
-		if len(additionalEvents) > 0 {
-			events = append(events, additionalEvents.Cut(*o.startTime, *o.endTime)...)
-		}
-	}
-
 	sort.Sort(events)
 	events.Clamp(*o.startTime, *o.endTime)
 
@@ -210,8 +178,8 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	return nil
 }
 
-func (m *MonitorEventsOptions) SerializeResults(ctx context.Context, storageDir, junitSuiteName, timeSuffix string) error {
-	return m.monitor.SerializeResults(ctx, storageDir, junitSuiteName, timeSuffix)
+func (m *MonitorEventsOptions) SerializeResults(ctx context.Context, junitSuiteName, timeSuffix string) error {
+	return m.monitor.SerializeResults(ctx, junitSuiteName, timeSuffix)
 }
 
 func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {

@@ -82,7 +82,7 @@ func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig
 	return junits, utilerrors.NewAggregate(errs)
 }
 
-func (r *invariantRegistry) CollectData(ctx context.Context, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+func (r *invariantRegistry) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	intervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
@@ -91,7 +91,7 @@ func (r *invariantRegistry) CollectData(ctx context.Context, beginning, end time
 		testName := fmt.Sprintf("jira/%q invariant test %v collection", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx, beginning, end)
+		localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx, storageDir, beginning, end)
 		junits = append(junits, localJunits...)
 		intervals = append(intervals, localIntervals...)
 		end := time.Now()

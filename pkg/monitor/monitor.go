@@ -34,6 +34,7 @@ type Monitor struct {
 	adminKubeConfig                  *rest.Config
 	additionalEventIntervalRecorders []StartEventIntervalRecorderFunc
 	invariantRegistry                invariants.InvariantRegistry
+	storageDir                       string
 
 	recorder monitorapi.Recorder
 	junits   []*junitapi.JUnitTestCase
@@ -45,12 +46,13 @@ type Monitor struct {
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
-func NewMonitor(adminKubeConfig *rest.Config, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc, invariantRegistry invariants.InvariantRegistry) *Monitor {
+func NewMonitor(adminKubeConfig *rest.Config, storageDir string, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc, invariantRegistry invariants.InvariantRegistry) *Monitor {
 	return &Monitor{
 		adminKubeConfig:                  adminKubeConfig,
 		additionalEventIntervalRecorders: additionalEventIntervalRecorders,
 		recorder:                         NewRecorder(),
 		invariantRegistry:                invariantRegistry,
+		storageDir:                       storageDir,
 	}
 }
 
@@ -125,7 +127,7 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	m.stopTime = time.Now()
 
 	fmt.Fprintf(os.Stderr, "Collecting data.\n")
-	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, time.Time{}, time.Time{}) // collect data for all the time.
+	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, time.Time{}, time.Time{}) // collect data for all the time.
 	if err != nil {
 		return err
 	}
@@ -165,7 +167,7 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteName, timeSuffix string) error {
+func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuffix string) error {
 	fmt.Fprintf(os.Stderr, "Serializing results.\n")
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -176,7 +178,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteNa
 	// TODO stop taking timesuffix as an arg and make this authoritative.
 	//timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
 
-	eventDir := filepath.Join(storageDir, monitorapi.EventDir)
+	eventDir := filepath.Join(m.storageDir, monitorapi.EventDir)
 	if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create monitor-events directory, err: %v\n", err)
 		return err
@@ -185,7 +187,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteNa
 	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
 	invariantJunits, err := m.invariantRegistry.WriteContentToStorage(
 		ctx,
-		storageDir,
+		m.storageDir,
 		timeSuffix,
 		finalIntervals,
 		finalResources,
@@ -207,7 +209,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteNa
 	}
 
 	fmt.Fprintf(os.Stderr, "Writing junits.\n")
-	if err := m.serializeJunit(ctx, storageDir, junitSuiteName, timeSuffix); err != nil {
+	if err := m.serializeJunit(ctx, m.storageDir, junitSuiteName, timeSuffix); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write junit xml, err: %v\n", err)
 		return err
 	}
