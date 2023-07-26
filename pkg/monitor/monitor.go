@@ -113,7 +113,6 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	}
 	m.stopFn()
 	m.stopFn = nil
-	m.stopTime = time.Now()
 
 	// we don't want this method to return until all te additional recorders and invariants have completed processing.
 	// to do this correctly, we need closure channels or some kind of mechanism.
@@ -122,8 +121,11 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	// TODO once we have converted the backendsamplers to invariant tests, we can properly wait for completion
 	time.Sleep(70 * time.Second)
 
+	// set the stop time for after we finished.
+	m.stopTime = time.Now()
+
 	fmt.Fprintf(os.Stderr, "Collecting data.\n")
-	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.startTime, m.stopTime)
+	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, time.Time{}, time.Time{}) // collect data for all the time.
 	if err != nil {
 		return err
 	}
@@ -133,10 +135,10 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	fmt.Fprintf(os.Stderr, "Computing intervals.\n")
 	computedIntervals, computedJunit, err := m.invariantRegistry.ConstructComputedIntervals(
 		ctx,
-		m.recorder.Intervals(m.startTime, m.stopTime),
+		m.recorder.Intervals(time.Time{}, time.Time{}), // compute intervals based on *all* the intervals.
 		m.recorder.CurrentResourceState(),
-		m.startTime,
-		m.stopTime)
+		m.startTime, // still allow computation to understand the begining and end for bounding.  TODO: Maybe we don't need this?
+		m.stopTime)  // still allow computation to understand the begining and end for bounding.  TODO: Maybe we don't need this?
 	if err != nil {
 		return err
 	}
@@ -146,7 +148,7 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
 	invariantJunits, err := m.invariantRegistry.EvaluateTestsFromConstructedIntervals(
 		ctx,
-		m.recorder.Intervals(m.startTime, m.stopTime),
+		m.recorder.Intervals(time.Time{}, time.Time{}), // evaluate the tests on *all* the intervals.
 	)
 	if err != nil {
 		return err
@@ -168,7 +170,8 @@ func (m *Monitor) SerializeResults(ctx context.Context, storageDir, junitSuiteNa
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	finalIntervals := m.recorder.Intervals(m.startTime, m.stopTime)
+	// don't bound the intervals that we return
+	finalIntervals := m.recorder.Intervals(time.Time{}, time.Time{})
 	finalResources := m.recorder.CurrentResourceState()
 	// TODO stop taking timesuffix as an arg and make this authoritative.
 	//timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
