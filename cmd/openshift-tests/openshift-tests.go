@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"math/rand"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -21,7 +21,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
-	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -220,7 +219,7 @@ func newImagesCommand() *cobra.Command {
 }
 
 func newRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewRunSuiteOptions(streams, defaultTestImageMirrorLocation, testsuites.StandardTestSuites())
+	f := NewRunSuiteFlags(streams, defaultTestImageMirrorLocation, testsuites.StandardTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
@@ -241,39 +240,27 @@ func newRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := verifyImages(); err != nil {
-				return err
-			}
-			o.GinkgoRunSuiteOptions.SyntheticEventTests = pulledInvalidImages(o.FromRepository)
-
-			suite, err := o.SelectSuite(args)
+			o, err := f.ToOptions(args)
 			if err != nil {
-				return err
-			}
-			if err := o.SuiteWithKubeTestInitializationPreSuite(); err != nil {
+				fmt.Fprintf(f.IOStreams.ErrOut, "error converting to options: %v", err)
 				return err
 			}
 
-			o.GinkgoRunSuiteOptions.CommandEnv = o.AsEnv()
-			if !o.GinkgoRunSuiteOptions.DryRun {
-				fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if err := o.Run(ctx); err != nil {
+				fmt.Fprintf(f.IOStreams.ErrOut, "error running options: %v", err)
+				return err
 			}
-			err = o.GinkgoRunSuiteOptions.Run(suite, "openshift-tests", false)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
-			}
-
-			// Special debugging carve-outs for teams is likely to age poorly.
-			clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
-			return err
+			return nil
 		},
 	}
-	o.BindOptions(cmd.Flags())
+	f.BindOptions(cmd.Flags())
 	return cmd
 }
 
 func newRunUpgradeCommand(streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewRunSuiteOptions(streams, defaultTestImageMirrorLocation, testsuites.UpgradeTestSuites())
+	f := NewRunUpgradeSuiteFlags(streams, defaultTestImageMirrorLocation, testsuites.UpgradeTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run-upgrade SUITE",
@@ -300,41 +287,23 @@ func newRunUpgradeCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(o.ToImage) == 0 {
-				return fmt.Errorf("--to-image must be specified to run an upgrade test")
-			}
-			if err := verifyImages(); err != nil {
-				return err
-			}
-			o.GinkgoRunSuiteOptions.SyntheticEventTests = pulledInvalidImages(o.FromRepository)
-
-			suite, err := o.SelectSuite(args)
+			o, err := f.ToOptions(args)
 			if err != nil {
-				return err
-			}
-			o.UpgradeSuite = suite.Name
-			if err := o.UpgradeTestPreSuite(); err != nil {
+				fmt.Fprintf(f.IOStreams.ErrOut, "error converting to options: %v", err)
 				return err
 			}
 
-			o.GinkgoRunSuiteOptions.CommandEnv = o.AsEnv()
-			if !o.GinkgoRunSuiteOptions.DryRun {
-				fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if err := o.Run(ctx); err != nil {
+				fmt.Fprintf(f.IOStreams.ErrOut, "error running options: %v", err)
+				return err
 			}
-			err = o.GinkgoRunSuiteOptions.Run(suite, "openshift-tests-upgrade", true)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
-			}
-
-			// Special debugging carve-outs for teams is likely to age poorly.
-			clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
-
-			return err
+			return nil
 		},
 	}
 
-	o.BindOptions(cmd.Flags())
-	o.BindUpgradeOptions(cmd.Flags())
+	f.BindOptions(cmd.Flags())
 	return cmd
 }
 
