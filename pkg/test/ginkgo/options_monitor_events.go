@@ -46,13 +46,15 @@ type MonitorEventsOptions struct {
 	auditLogSummary *nodedetails.AuditLogSummary
 
 	genericclioptions.IOStreams
-	storageDir string
+	storageDir                 string
+	clusterStabilityDuringTest defaultinvariants.ClusterStabilityDuringTest
 }
 
-func NewMonitorEventsOptions(streams genericclioptions.IOStreams, storageDir string) *MonitorEventsOptions {
+func NewMonitorEventsOptions(streams genericclioptions.IOStreams, storageDir string, clusterStabilityDuringTest defaultinvariants.ClusterStabilityDuringTest) *MonitorEventsOptions {
 	return &MonitorEventsOptions{
-		IOStreams:  streams,
-		storageDir: storageDir,
+		IOStreams:                  streams,
+		storageDir:                 storageDir,
+		clusterStabilityDuringTest: clusterStabilityDuringTest,
 	}
 }
 
@@ -71,7 +73,7 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring,
 		},
-		defaultinvariants.NewDefaultInvariants(),
+		defaultinvariants.NewInvariantsFor(o.clusterStabilityDuringTest),
 	)
 	err := m.Start(ctx)
 	if err != nil {

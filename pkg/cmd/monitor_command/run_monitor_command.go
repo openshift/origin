@@ -100,7 +100,7 @@ func (opt *RunMonitorOptions) Run() error {
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring,
 		},
-		defaultinvariants.NewDefaultInvariants(),
+		defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
 	)
 	if err := m.Start(ctx); err != nil {
 		return err

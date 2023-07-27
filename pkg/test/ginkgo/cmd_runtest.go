@@ -7,13 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
-
+	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type ExitError struct {
@@ -77,7 +76,8 @@ func (o *TestOptions) Run(args []string) error {
 	}
 	var monitorEventsOptions *MonitorEventsOptions
 	if o.EnableMonitor {
-		monitorEventsOptions = NewMonitorEventsOptions(o.IOStreams, "")
+		// individual tests are always stable, it's the jobs that aren't.
+		monitorEventsOptions = NewMonitorEventsOptions(o.IOStreams, "", defaultinvariants.Stable)
 		_, err = monitorEventsOptions.Start(ctx, restConfig)
 		if err != nil {
 			return err

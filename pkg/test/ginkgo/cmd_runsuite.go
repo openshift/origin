@@ -15,17 +15,15 @@ import (
 	"syscall"
 	"time"
 
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
 	"github.com/onsi/ginkgo/v2"
-	"github.com/spf13/pflag"
-
-	"k8s.io/apimachinery/pkg/util/sets"
-
+	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 const (
@@ -56,6 +54,8 @@ type GinkgoRunSuiteOptions struct {
 	// context into a failure.
 	SyntheticEventTests JUnitsForEvents
 
+	ClusterStabilityDuringTest string
+
 	IncludeSuccessOutput bool
 
 	CommandEnv []string
@@ -69,13 +69,15 @@ type GinkgoRunSuiteOptions struct {
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
 	return &GinkgoRunSuiteOptions{
-		IOStreams: streams,
+		IOStreams:                  streams,
+		ClusterStabilityDuringTest: string(Stable),
 	}
 }
 
 func (o *GinkgoRunSuiteOptions) BindTestOptions(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
 	flags.BoolVar(&o.PrintCommands, "print-commands", o.PrintCommands, "Print the sub-commands that would be executed instead.")
+	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive")
 	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
 	flags.StringVarP(&o.TestFile, "file", "f", o.TestFile, "Create a suite from the newline-delimited test names in this file.")
 	flags.StringVar(&o.Regex, "run", o.Regex, "Regular expression of tests to run.")
@@ -84,6 +86,15 @@ func (o *GinkgoRunSuiteOptions) BindTestOptions(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.Timeout, "timeout", o.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&o.IncludeSuccessOutput, "include-success", o.IncludeSuccessOutput, "Print output from successful tests.")
 	flags.IntVar(&o.Parallelism, "max-parallel-tests", o.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
+}
+
+func (o *GinkgoRunSuiteOptions) Validate() error {
+	switch o.ClusterStabilityDuringTest {
+	case string(Stable), string(Disruptive):
+	default:
+		return fmt.Errorf("unknown --cluster-stability, %q, expected Stable or Disruptive", o.ClusterStabilityDuringTest)
+	}
+	return nil
 }
 
 func (o *GinkgoRunSuiteOptions) AsEnv() []string {
@@ -331,7 +342,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	monitorEventsOptions := NewMonitorEventsOptions(o.IOStreams, o.JUnitDir)
+	monitorEventsOptions := NewMonitorEventsOptions(o.IOStreams, o.JUnitDir, defaultinvariants.ClusterStabilityDuringTest(o.ClusterStabilityDuringTest))
 
 	monitorEventRecorder, err := monitorEventsOptions.Start(ctx, restConfig)
 	if err != nil {

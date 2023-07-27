@@ -33,7 +33,7 @@ type InvariantTest interface {
 	EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error)
 
 	// WriteContentToStorage writes content to the storage directory that is collected by openshift CI.
-	// Do not write.
+	// Do not write junits, intervals, or tracked resources.
 	// 1. junits.  Those should be returned from EvaluateTestsFromConstructedIntervals
 	// 2. intervals.  Those should be returned from CollectData and ConstructComputedIntervals
 	// 3. tracked resources.  Those are written by some default invariantTests.

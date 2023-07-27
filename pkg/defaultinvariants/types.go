@@ -1,6 +1,8 @@
 package defaultinvariants
 
 import (
+	"fmt"
+
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/additionaleventscollector"
 	"github.com/openshift/origin/pkg/invariants/alertserializer"
@@ -15,10 +17,33 @@ import (
 	"github.com/openshift/origin/pkg/invariants/watchpods"
 )
 
-func NewDefaultInvariants() invariants.InvariantRegistry {
+type ClusterStabilityDuringTest string
+
+var (
+	// Stable means that at no point during testing do we expect a component to take downtime and upgrades are not happening.
+	Stable ClusterStabilityDuringTest = "Stable"
+	// TODO only bring this back if we have some reason to collect Upgrade specific information.  I can't think of reason.
+	// TODO please contact @deads2k for vetting if you think you found something
+	//Upgrade    ClusterStabilityDuringTest = "Upgrade"
+	// Disruptive means that the suite is expected to induce outages to the cluster.
+	Disruptive ClusterStabilityDuringTest = "Disruptive"
+)
+
+func NewInvariantsFor(clusterStabilityDuringTest ClusterStabilityDuringTest) invariants.InvariantRegistry {
+	switch clusterStabilityDuringTest {
+	case Stable:
+		return newDefaultInvariants()
+	case Disruptive:
+		return newDisruptiveInvariants()
+	default:
+		panic(fmt.Sprintf("unknown cluster stability level: %q", clusterStabilityDuringTest))
+	}
+}
+
+func newDefaultInvariants() invariants.InvariantRegistry {
 	invariantTests := invariants.NewInvariantRegistry()
 
-	invariantTests.AddRegistryOrDie(NewUniversalInvariants())
+	invariantTests.AddRegistryOrDie(newUniversalInvariants())
 
 	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 
@@ -29,10 +54,10 @@ func NewDefaultInvariants() invariants.InvariantRegistry {
 	return invariantTests
 }
 
-func NewDisruptiveInvariants() invariants.InvariantRegistry {
+func newDisruptiveInvariants() invariants.InvariantRegistry {
 	invariantTests := invariants.NewInvariantRegistry()
 
-	invariantTests.AddRegistryOrDie(NewUniversalInvariants())
+	invariantTests.AddRegistryOrDie(newUniversalInvariants())
 
 	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
 
@@ -43,7 +68,7 @@ func NewDisruptiveInvariants() invariants.InvariantRegistry {
 	return invariantTests
 }
 
-func NewUniversalInvariants() invariants.InvariantRegistry {
+func newUniversalInvariants() invariants.InvariantRegistry {
 	invariantTests := invariants.NewInvariantRegistry()
 
 	// TODO add invariantTests here
