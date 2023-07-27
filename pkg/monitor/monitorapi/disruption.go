@@ -18,7 +18,7 @@ func BackendDisruptionSeconds(locator string, events Intervals) (time.Duration, 
 	disruptionMessages := disruptionEvents.Strings()
 	connectionType := DisruptionConnectionTypeFrom(LocatorParts(locator))
 
-	return disruptionEvents.Duration(1 * time.Second).Round(time.Second), disruptionMessages, connectionType
+	return disruptionEvents.Duration(1 * time.Millisecond).Round(500 * time.Millisecond), disruptionMessages, connectionType
 }
 
 func IsDisruptionEvent(eventInterval Interval) bool {

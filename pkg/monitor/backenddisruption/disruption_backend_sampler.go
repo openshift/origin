@@ -211,7 +211,7 @@ func (b *BackendSampler) GetConnectionType() monitorapi.BackendConnectionType {
 
 func (b *BackendSampler) getTimeout() time.Duration {
 	if b.timeout == nil {
-		return 20 * time.Second
+		return 5 * time.Second
 	}
 	return *b.timeout
 }
@@ -407,7 +407,7 @@ func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecor
 		eventRecorder = fakeEventRecorder
 	}
 
-	interval := 1 * time.Second
+	interval := time.Second / 2
 	disruptionSampler := newDisruptionSampler(b)
 	go disruptionSampler.produceSamples(producerContext, interval)
 	go disruptionSampler.consumeSamples(consumerContext, interval, monitorRecorder, eventRecorder)

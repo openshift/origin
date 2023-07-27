@@ -360,15 +360,15 @@ func ExpectNoDisruptionForDuration(f *framework.Framework, testName string, allo
 	}
 
 	errorEvents := events.Filter(monitorapi.IsErrorEvent)
-	disruptionDuration := errorEvents.Duration(1 * time.Second)
-	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
+	disruptionDuration := errorEvents.Duration(500 * time.Millisecond)
+	roundedAllowedDisruption := allowedDisruption.Round(500 * time.Millisecond)
 	if allowedDisruption.Milliseconds() == DefaultAllowedDisruption {
 		// don't round if we're using the default value so we can find this.
 		roundedAllowedDisruption = *allowedDisruption
 	}
-	roundedDisruptionDuration := disruptionDuration.Round(time.Second)
+	roundedDisruptionDuration := disruptionDuration.Round(500 * time.Millisecond)
 	if roundedDisruptionDuration > roundedAllowedDisruption {
-		framework.Failf("%s for at least %s of %s (maxAllowed=%s):\n\n%s", reason, roundedDisruptionDuration, total.Round(time.Second), roundedAllowedDisruption, strings.Join(describe, "\n"))
+		framework.Failf("%s for at least %s of %s (maxAllowed=%s):\n\n%s", reason, roundedDisruptionDuration, total.Round(500*time.Millisecond), roundedAllowedDisruption, strings.Join(describe, "\n"))
 	}
 }
 
