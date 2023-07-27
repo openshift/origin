@@ -1,10 +1,11 @@
 package cpu_partitioning
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -20,11 +21,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 )
 
 // This collection script queries CRIO for all it's containers, that data is then filtered down to only a subset
@@ -140,7 +139,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 
 		for _, node := range nodes.Items {
 			// Collect the container data from the node
-			crioData, err := collectContainerInfo(ctx, oc.AdminConfig(), oc.AsAdmin().KubeFramework().ClientSet, node)
+			crioData, err := collectContainerInfo(ctx, oc, node)
 			o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("error getting crio container data from node %s", node.Name))
 
 			// When the cluster is CPU Partitioned there should always be pods with workload annotations. However,
@@ -259,14 +258,14 @@ func getExpectedCPUSetConstraints(ctx context.Context, oc *exutil.CLI, isCluster
 
 // Execute collection script on machine-config-daemon of every node. Marshal the results to get a list of containers
 // running in the cluster.
-func collectContainerInfo(ctx context.Context, cfg *rest.Config, c kubernetes.Interface, node corev1.Node) ([]crioContainerData, error) {
+func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node) ([]crioContainerData, error) {
 
 	listOptions := metav1.ListOptions{
 		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String(),
 		LabelSelector: labels.SelectorFromSet(labels.Set{"k8s-app": "machine-config-daemon"}).String(),
 	}
 
-	pods, err := c.CoreV1().Pods(namespaceMachineConfigOperator).List(ctx, listOptions)
+	pods, err := oc.KubeFramework().ClientSet.CoreV1().Pods(namespaceMachineConfigOperator).List(ctx, listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -276,63 +275,68 @@ func collectContainerInfo(ctx context.Context, cfg *rest.Config, c kubernetes.In
 	}
 
 	pod := &pods.Items[0]
+	podName := pod.Name
+	podNamespace := pod.Namespace
+	containerName := pod.Spec.Containers[0].Name
 
-	var out []byte
 	getInfo := []string{
 		"chroot",
 		"/rootfs",
 		"/bin/bash",
 		"-c", collectionScript}
 
-	if err := wait.PollWithContext(ctx, 15*time.Second, time.Minute, func(context.Context) (done bool, err error) {
-		out, err = execCommandOnPod(cfg, c, pod, getInfo)
-		if err != nil {
-			return false, err
-		}
+	backoff := wait.Backoff{
+		Duration: 2 * time.Second,
+		Steps:    5,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}
 
-		return len(out) != 0, nil
-	}); err != nil {
-		return nil, err
+	execOptions := e2epod.ExecOptions{
+		Command:            getInfo,
+		PodName:            podName,
+		Namespace:          podNamespace,
+		ContainerName:      containerName,
+		Stdin:              nil,
+		CaptureStdout:      true,
+		CaptureStderr:      true,
+		PreserveWhitespace: false,
 	}
 
 	info := []crioContainerData{}
-	if err := json.Unmarshal(out, &info); err != nil {
-		return nil, fmt.Errorf("error parsing container output to json: %w", err)
-	}
+	err = retry.OnError(backoff, shouldRetryExec,
+		func() error {
+			out, _, execErr := e2epod.ExecWithOptions(oc.KubeFramework(), execOptions)
+			if execErr != nil {
+				return execErr
+			}
+			if err := json.Unmarshal([]byte(out), &info); err != nil {
+				return fmt.Errorf("error parsing container output to json: %w", err)
+			}
+			return nil
+		})
 
-	return info, nil
+	return info, err
 }
 
-func execCommandOnPod(cfg *rest.Config, c kubernetes.Interface, pod *corev1.Pod, command []string) ([]byte, error) {
-	var outputBuf bytes.Buffer
-	var errorBuf bytes.Buffer
-
-	req := c.CoreV1().RESTClient().
-		Post().
-		Namespace(pod.Namespace).
-		Resource("pods").
-		Name(pod.Name).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: pod.Spec.Containers[0].Name,
-			Command:   command,
-			Stdout:    true,
-			Stderr:    true,
-		}, scheme.ParameterCodec)
-
-	exec, err := remotecommand.NewSPDYExecutor(cfg, "POST", req.URL())
-	if err != nil {
-		return nil, err
+// Due to cluster activity, sometimes execing against a pod can be flakey.
+// We retry if the below errors are received during node queries.
+//
+// JSON Syntax error:
+//
+//	This typically means that something interrupted the stream of json coming back, so we need to do the query again.
+//
+// Dialing timeout:
+//
+//	Some sort of disruption is happening causing the exec to time out, retry.
+func shouldRetryExec(err error) bool {
+	var parseErr *json.SyntaxError
+	switch {
+	case errors.As(err, &parseErr):
+		return true
+	case strings.Contains(err.Error(), "error dialing backend: dial tcp"):
+		return true
+	default:
+		return false
 	}
-
-	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
-		Stdout: &outputBuf,
-		Stderr: &errorBuf,
-		Tty:    false,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to run command %v: output %q; error %q; %w", command, outputBuf.String(), errorBuf.String(), err)
-	}
-
-	return outputBuf.Bytes(), nil
 }
