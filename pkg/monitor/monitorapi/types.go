@@ -59,16 +59,6 @@ func ConditionLevelFromString(s string) (ConditionLevel, error) {
 
 }
 
-type Condition struct {
-	Level ConditionLevel
-
-	// TODO: Goal here is to drop Locator/Message, and rename the structured variants to Locator/Message
-	Locator           string
-	StructuredLocator Locator
-	Message           string
-	StructuredMessage Message
-}
-
 type LocatorType string
 
 const (
@@ -184,8 +174,30 @@ type Message struct {
 	Annotations map[AnnotationKey]string `json:"annotations"`
 }
 
+type IntervalCategory string
+
+const (
+	IntervalCategoryAlert              IntervalCategory = "alert"
+	IntervalCategoryPodLog             IntervalCategory = "pod-log"
+	IntervalCategoryContainerLifecycle IntervalCategory = "container-lifecycle"
+	// TODO: view actually would split this into operator-available and operator-degraded....
+	// This would imply categories can be subdivided in the UI.
+	IntervalCategoryOperatorStatus IntervalCategory = "operator-status"
+)
+
 type Interval struct {
-	Condition
+	Level ConditionLevel
+
+	// Category is an indicator of what the interval contains and where it came from. It is used by the UI
+	// to group intervals into sections in the charts, but often with additional view specific
+	// filtering applied. Some types may be split into sub-categories for display.
+	Category IntervalCategory
+
+	// TODO: Goal here is to drop Locator/Message, and rename the structured variants to Locator/Message
+	Locator           string
+	StructuredLocator Locator
+	Message           string
+	StructuredMessage Message
 
 	From time.Time
 	To   time.Time

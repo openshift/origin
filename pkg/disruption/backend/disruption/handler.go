@@ -74,7 +74,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()},
 		nil, v1.EventTypeWarning, string(eventReason), "detected", message)
 
-	condition := monitorapi.NewCondition(level).Locator(h.descriptor.DisruptionLocator()).
+	condition := monitorapi.NewInterval(level).Locator(h.descriptor.DisruptionLocator()).
 		Message(monitorapi.NewMessage().HumanMessage(message)).Build()
 	openIntervalID := h.monitor.StartInterval(fs.StartedAt, condition)
 	// TODO: unlikely in the real world, if from == to for some reason,
@@ -97,7 +97,7 @@ func (h *ciHandler) Available(from, to *backend.SampleResult) {
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()}, nil,
 		v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
-	condition := monitorapi.NewCondition(monitorapi.Info).Locator(h.descriptor.DisruptionLocator()).
+	condition := monitorapi.NewInterval(monitorapi.Info).Locator(h.descriptor.DisruptionLocator()).
 		Message(monitorapi.NewMessage().HumanMessage(message)).Build()
 	openIntervalID := h.monitor.StartInterval(fs.StartedAt, condition)
 	h.monitor.EndInterval(openIntervalID, ts.StartedAt)

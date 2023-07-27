@@ -8,21 +8,24 @@ import (
 	"k8s.io/kube-openapi/pkg/util/sets"
 )
 
-type ConditionBuilder struct {
+type IntervalBuilder struct {
 	level             ConditionLevel
+	category          IntervalCategory
 	structuredLocator Locator
 	structuredMessage Message
 }
 
-func NewCondition(level ConditionLevel) *ConditionBuilder {
-	return &ConditionBuilder{
-		level: level,
+func NewInterval(cat IntervalCategory, level ConditionLevel) *IntervalBuilder {
+	return &IntervalBuilder{
+		level:    level,
+		category: cat,
 	}
 }
 
-func (b *ConditionBuilder) Build() Condition {
-	ret := Condition{
+func (b *IntervalBuilder) Build() Interval {
+	ret := Interval{
 		Level:             b.level,
+		Category:          b.category,
 		Locator:           b.structuredLocator.OldLocator(),
 		StructuredLocator: b.structuredLocator,
 		Message:           b.structuredMessage.OldMessage(),
@@ -32,12 +35,12 @@ func (b *ConditionBuilder) Build() Condition {
 	return ret
 }
 
-func (b *ConditionBuilder) Message(mb *MessageBuilder) *ConditionBuilder {
+func (b *IntervalBuilder) Message(mb *MessageBuilder) *IntervalBuilder {
 	b.structuredMessage = mb.build()
 	return b
 }
 
-func (b *ConditionBuilder) Locator(locator Locator) *ConditionBuilder {
+func (b *IntervalBuilder) Locator(locator Locator) *IntervalBuilder {
 	b.structuredLocator = locator
 	return b
 }

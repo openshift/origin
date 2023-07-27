@@ -33,7 +33,7 @@ func (s *APIServerClientAccessFailureSummary) SummarizeLine(locator monitorapi.L
 		timeOfLog := timeFromPodLogTime(line)
 		// TODO collapse all in the same second into a single interval
 		event := monitorapi.Interval{
-			Condition: monitorapi.NewCondition(monitorapi.Warning).
+			Condition: monitorapi.NewInterval(monitorapi.Warning).
 				Locator(locator).
 				Message(monitorapi.NewMessage().Reason(monitorapi.IPTablesNotPermitted).HumanMessage(line)).
 				Build(),

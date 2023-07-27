@@ -381,11 +381,10 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 			default:
 				level = monitorapi.Error
 			}
-			alertIntervalTemplate := monitorapi.Interval{
-				Condition: monitorapi.NewCondition(level).
-					Locator(lb).
-					Message(monitorapi.NewMessage().HumanMessage(alert.Metric.String())).Build(),
-			}
+			alertIntervalTemplate := monitorapi.NewInterval(monitorapi.IntervalCategoryAlert, level).
+				Locator(lb).
+				Message(monitorapi.NewMessage().
+					HumanMessage(alert.Metric.String())).Build()
 
 			var alertStartTime *time.Time
 			var lastTime *time.Time
@@ -430,7 +429,7 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 
 	default:
 		ret = append(ret, monitorapi.Interval{
-			Condition: monitorapi.NewCondition(monitorapi.Error).
+			Condition: monitorapi.NewInterval(monitorapi.Error).
 				Locator(monitorapi.NewLocator().AlertFromNames("all", "", "", "", "")).
 				Message(monitorapi.NewMessage().HumanMessagef("unhandled type: %v", alerts.Type())).Build(),
 			From: startTime,

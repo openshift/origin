@@ -150,8 +150,8 @@ func Test_blackoutEvents(t *testing.T) {
 		startingEvents  []monitorapi.Interval
 		blackoutWindows []monitorapi.Interval
 	}
-	conditionFoo := monitorapi.NewCondition(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Build()
-	conditionBar := monitorapi.NewCondition(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("bar")).Build()
+	conditionFoo := monitorapi.NewInterval(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Build()
+	conditionBar := monitorapi.NewInterval(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("bar")).Build()
 	tests := []struct {
 		name string
 		args args
