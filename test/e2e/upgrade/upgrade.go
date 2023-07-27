@@ -38,7 +38,6 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
-	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -61,8 +60,6 @@ func AllTests() []upgrades.Test {
 		// These two tests require complex setup and thus are a poor fit for our current invariant/synthetic
 		// disruption tests, so they remain separate. They output AdditionalEvents json files as artifacts which
 		// are merged into our main e2e-events.
-		service.NewServiceLoadBalancerWithNewConnectionsTest(),
-		service.NewServiceLoadBalancerWithReusedConnectionsTest(),
 		imageregistry.NewImageRegistryAvailableWithNewConnectionsTest(),
 		imageregistry.NewImageRegistryAvailableWithReusedConnectionsTest(),
 
