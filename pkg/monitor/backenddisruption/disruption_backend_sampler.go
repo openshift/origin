@@ -455,7 +455,7 @@ func (b *BackendSampler) Stop() {
 	b.stopRunning = nil
 
 	for {
-		fmt.Printf("waiting for consumer to finish...")
+		fmt.Printf("waiting for consumer to finish %v...\n", b.locator)
 		select {
 		case <-b.consumptionFinished:
 			return
