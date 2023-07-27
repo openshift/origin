@@ -103,18 +103,16 @@ func NewSimpleBackend(host, disruptionBackendName, path string, connectionType m
 	return ret
 }
 
-// NewBackend constructs a BackendSampler suitable for use against a generic server, with a late binding HostGetter that
-// allows for later mutation
-func NewBackend(hostGetter HostGetter, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
+// NewRouteBackend constructs a BackendSampler suitable for use against a routes.route.openshift.io
+func NewSimpleBackendWithLocator(locator, host, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
 	ret := &BackendSampler{
 		connectionType:        connectionType,
-		locator:               monitorapi.LocateDisruptionCheck(disruptionBackendName, connectionType),
+		locator:               locator,
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
-		hostGetter:            hostGetter,
+		hostGetter:            NewSimpleHostGetter(host),
 		consumptionFinished:   make(chan struct{}),
 	}
-
 	return ret
 }
 

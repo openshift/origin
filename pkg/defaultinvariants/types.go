@@ -4,6 +4,7 @@ import (
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/additional_events_collector"
 	"github.com/openshift/origin/pkg/invariants/alert_serializer"
+	"github.com/openshift/origin/pkg/invariants/availability_image_registry"
 	"github.com/openshift/origin/pkg/invariants/availability_service_loadbalancer"
 	"github.com/openshift/origin/pkg/invariants/clusterinfo_serializer"
 	"github.com/openshift/origin/pkg/invariants/disruption_serializer"
@@ -27,6 +28,8 @@ func NewDefaultInvariants() invariants.InvariantRegistry {
 	invariantTests.AddInvariantOrDie("additional-events-collector", "Test Framework", additional_events_collector.NewIntervalSerializer())
 
 	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", availability_service_loadbalancer.NewAvailabilityInvariant())
+
+	invariantTests.AddInvariantOrDie("image-registry-availability", "Image Registry", availability_image_registry.NewAvailabilityInvariant())
 
 	return invariantTests
 }
