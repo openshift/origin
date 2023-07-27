@@ -96,7 +96,7 @@ func (opt *RunMonitorOptions) Run() error {
 		restConfig,
 		opt.ArtifactDir,
 		[]monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAllAPIMonitoring,
+			controlplane.StartAPIMonitoringUsingNewBackend,
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring,
 		},

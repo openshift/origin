@@ -9,24 +9,19 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
-
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-	"github.com/openshift/origin/test/extended/util/disruption"
-
-	utilnet "k8s.io/apimachinery/pkg/util/net"
-
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+	"github.com/openshift/origin/pkg/invariantlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/invariants"
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -53,34 +48,31 @@ func init() {
 }
 
 type availability struct {
-	namespaceName                     string
-	notSupportedReason                string
-	kubeClient                        kubernetes.Interface
-	newConnectionDisruptionSampler    *backenddisruption.BackendSampler
-	reusedConnectionDisruptionSampler *backenddisruption.BackendSampler
+	namespaceName      string
+	notSupportedReason string
+	kubeClient         kubernetes.Interface
 
-	// TODO stop storing this and use clients so we can unit test if we want
-	adminRESTConfig *rest.Config
+	disruptionChecker *disruptionlibrary.Availability
+	suppressJunit     bool
 }
 
 func NewAvailabilityInvariant() invariants.InvariantTest {
 	return &availability{}
 }
 
+func NewRecordAvailabilityOnly() invariants.InvariantTest {
+	return &availability{
+		suppressJunit: true,
+	}
+}
+
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 
-	w.adminRESTConfig = adminRESTConfig
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
-
-	actualNamespace, err := w.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
-	if err != nil {
-		return err
-	}
-	w.namespaceName = actualNamespace.Name
 
 	configClient, err := configclient.NewForConfig(adminRESTConfig)
 	if err != nil {
@@ -101,6 +93,12 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	if len(w.notSupportedReason) > 0 {
 		return nil
 	}
+
+	actualNamespace, err := w.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	w.namespaceName = actualNamespace.Name
 
 	serviceName := "service-test"
 	jig := service.NewTestJig(w.kubeClient, w.namespaceName, serviceName)
@@ -175,25 +173,24 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return fmt.Errorf("could not reach %v reliably: %w", url, err)
 	}
 
-	w.newConnectionDisruptionSampler =
-		backenddisruption.NewSimpleBackend(
-			baseURL,
-			"service-load-balancer-with-pdb",
-			path,
-			monitorapi.NewConnectionType).
-			WithExpectedBody("hello")
+	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+		baseURL,
+		"service-load-balancer-with-pdb",
+		path,
+		monitorapi.NewConnectionType).
+		WithExpectedBody("hello")
+	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+		baseURL,
+		"service-load-balancer-with-pdb",
+		path,
+		monitorapi.ReusedConnectionType).
+		WithExpectedBody("hello")
 
-	w.reusedConnectionDisruptionSampler =
-		backenddisruption.NewSimpleBackend(
-			baseURL,
-			"service-load-balancer-with-pdb",
-			path,
-			monitorapi.ReusedConnectionType).
-			WithExpectedBody("hello")
-	if err := w.newConnectionDisruptionSampler.StartEndpointMonitoring(ctx, recorder, nil); err != nil {
-		return err
-	}
-	if err := w.reusedConnectionDisruptionSampler.StartEndpointMonitoring(ctx, recorder, nil); err != nil {
+	w.disruptionChecker = disruptionlibrary.NewAvailabilityInvariant(
+		newConnectionTestName, reusedConnectionTestName,
+		newConnectionDisruptionSampler, reusedConnectionDisruptionSampler,
+	)
+	if err := w.disruptionChecker.StartCollection(ctx, adminRESTConfig, recorder); err != nil {
 		return err
 	}
 
@@ -205,114 +202,22 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 		return nil, nil, nil
 	}
 
-	// when it is time to collect data, we need to stop the collectors.  they both  have to drain, so stop in parallel
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		w.newConnectionDisruptionSampler.Stop()
-	}()
-	go func() {
-		defer wg.Done()
-		w.reusedConnectionDisruptionSampler.Stop()
-	}()
-	wg.Wait()
-
-	return nil, nil, nil
+	return w.disruptionChecker.CollectData(ctx)
 }
 
 func (*availability) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
 	return nil, nil
 }
 
-func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails, locator string, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
-	// Indicates there is no entry in the query_results.json data file, nor a valid fallback,
-	// we do not wish to run the test. (this likely implies we do not have the required number of
-	// runs in 3 weeks to do a reliable P99)
-	if allowedDisruption == nil {
-		return &junitapi.JUnitTestCase{
-			Name: testName,
-			SkipMessage: &junitapi.SkipMessage{
-				Message: "No historical data to calculate allowedDisruption",
-			},
-		}
-	}
-
-	if *allowedDisruption < 1*time.Second {
-		t := 1 * time.Second
-		allowedDisruption = &t
-		disruptionDetails = "always allow at least one second"
-	}
-
-	disruptionDuration := disruptedIntervals.Duration(1 * time.Second)
-	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
-	roundedDisruptionDuration := disruptionDuration.Round(time.Second)
-
-	if roundedDisruptionDuration <= roundedAllowedDisruption {
-		return &junitapi.JUnitTestCase{
-			Name: testName,
-		}
-	}
-
-	reason := fmt.Sprintf("%s was unreachable during disruption: %v", locator, disruptionDetails)
-	describe := disruptedIntervals.Strings()
-	failureMessage := fmt.Sprintf("%s for at least %s (maxAllowed=%s):\n\n%s", reason, roundedDisruptionDuration, roundedAllowedDisruption, strings.Join(describe, "\n"))
-
-	return &junitapi.JUnitTestCase{
-		Name: testName,
-		FailureOutput: &junitapi.FailureOutput{
-			Output: failureMessage,
-		},
-		SystemOut: failureMessage,
-	}
-}
-
 func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	if len(w.notSupportedReason) == 0 {
 		return nil, nil
 	}
-
-	junits := []*junitapi.JUnitTestCase{}
-
-	// If someone feels motivated to DRY out further, find a way to abstract for ALL disruption.  I don't see it yet.
-	// DO NOT MERGE something that just makes new and reused look the same.  That's a waste of time and willmake drift worse.
-	{ // block to prevent cross-contamination.
-		newConnectionAllowed, newConnectionDisruptionDetails, err := disruption.HistoricalAllowedDisruption(ctx, w.newConnectionDisruptionSampler, w.adminRESTConfig)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get new allowed disruption: %w", err)
-		}
-		junits = append(junits,
-			createDisruptionJunit(
-				newConnectionTestName, newConnectionAllowed, newConnectionDisruptionDetails, w.newConnectionDisruptionSampler.GetLocator(),
-				finalIntervals.Filter(
-					monitorapi.And(
-						monitorapi.IsEventForLocator(w.newConnectionDisruptionSampler.GetLocator()),
-						monitorapi.IsErrorEvent,
-					),
-				),
-			),
-		)
+	if w.suppressJunit {
+		return nil, nil
 	}
 
-	{ // block to prevent cross-contamination
-		reusedConnectionAllowed, reusedConnectionDisruptionDetails, err := disruption.HistoricalAllowedDisruption(ctx, w.reusedConnectionDisruptionSampler, w.adminRESTConfig)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get reused allowed disruption: %w", err)
-		}
-		junits = append(junits,
-			createDisruptionJunit(
-				reusedConnectionTestName, reusedConnectionAllowed, reusedConnectionDisruptionDetails, w.reusedConnectionDisruptionSampler.GetLocator(),
-				finalIntervals.Filter(
-					monitorapi.And(
-						monitorapi.IsEventForLocator(w.reusedConnectionDisruptionSampler.GetLocator()),
-						monitorapi.IsErrorEvent,
-					),
-				),
-			),
-		)
-	}
-
-	return junits, nil
+	return w.disruptionChecker.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
 }
 
 func (*availability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
@@ -320,7 +225,7 @@ func (*availability) WriteContentToStorage(ctx context.Context, storageDir, time
 }
 
 func (w *availability) Cleanup(ctx context.Context) error {
-	if len(w.namespaceName) > 0 {
+	if len(w.namespaceName) > 0 && w.kubeClient != nil {
 		if err := w.kubeClient.CoreV1().Namespaces().Delete(ctx, w.namespaceName, metav1.DeleteOptions{}); err != nil {
 			return err
 		}

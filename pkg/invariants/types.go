@@ -49,6 +49,8 @@ type InvariantTest interface {
 }
 
 type InvariantRegistry interface {
+	AddRegistryOrDie(registry InvariantRegistry)
+
 	// AddInvariant adds an invariant test with a particular name, the name will be used to create a testsuite.
 	// The jira component will be forced into every JunitTestCase.
 	AddInvariant(name, jiraComponent string, invariantTest InvariantTest) error
@@ -88,4 +90,6 @@ type InvariantRegistry interface {
 	// abort handlers, abort handler running concurrent to planned shutdown.  Make your cleanup callable multiple times.
 	// Errors reported will cause job runs to fail to ensure cleanup functions work reliably.
 	Cleanup(ctx context.Context) ([]*junitapi.JUnitTestCase, error)
+
+	getInvariantTests() map[string]*invariantItem
 }

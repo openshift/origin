@@ -67,7 +67,7 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 		restConfig,
 		o.storageDir,
 		[]monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAllAPIMonitoring,
+			controlplane.StartAPIMonitoringUsingNewBackend,
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring,
 		},

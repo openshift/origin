@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/client-go/rest"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -91,15 +89,15 @@ func alwaysAllowOneSecond(delegateFn AllowedDisruptionFunc) AllowedDisruptionFun
 }
 
 func (t *backendDisruptionTest) historicalAllowedDisruption(f *framework.Framework) (*time.Duration, string, error) {
-	return HistoricalAllowedDisruption(context.TODO(), t.backend, f.ClientConfig())
-}
-
-func HistoricalAllowedDisruption(ctx context.Context, backend BackendSampler, adminKubeConfig *rest.Config) (*time.Duration, string, error) {
-	backendName := backend.GetDisruptionBackendName() + "-" + string(backend.GetConnectionType()) + "-connections"
-	jobType, err := platformidentification.GetJobType(ctx, adminKubeConfig)
+	jobType, err := platformidentification.GetJobType(context.TODO(), f.ClientConfig())
 	if err != nil {
 		return nil, "", err
 	}
+	return HistoricalAllowedDisruption(context.TODO(), t.backend, jobType)
+}
+
+func HistoricalAllowedDisruption(ctx context.Context, backend BackendSampler, jobType *platformidentification.JobType) (*time.Duration, string, error) {
+	backendName := backend.GetDisruptionBackendName() + "-" + string(backend.GetConnectionType()) + "-connections"
 
 	return allowedbackenddisruption.GetAllowedDisruption(backendName, *jobType)
 }
