@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
@@ -29,14 +31,17 @@ type RunSuiteOptions struct {
 
 	// Shared by initialization code
 	config *clusterdiscovery.ClusterConfiguration
+
+	genericclioptions.IOStreams
 }
 
-func NewRunSuiteOptions(fromRepository string, availableSuites []*testginkgo.TestSuite) *RunSuiteOptions {
+func NewRunSuiteOptions(streams genericclioptions.IOStreams, fromRepository string, availableSuites []*testginkgo.TestSuite) *RunSuiteOptions {
 	return &RunSuiteOptions{
-		GinkgoRunSuiteOptions: testginkgo.NewGinkgoRunSuiteOptions(os.Stdout, os.Stderr),
+		GinkgoRunSuiteOptions: testginkgo.NewGinkgoRunSuiteOptions(streams),
 		AvailableSuites:       availableSuites,
 
 		FromRepository: fromRepository,
+		IOStreams:      streams,
 	}
 }
 
@@ -131,7 +136,7 @@ func (o *RunSuiteOptions) BindUpgradeOptions(flags *pflag.FlagSet) {
 // related tests.
 func (o *RunSuiteOptions) UpgradeTestPreSuite() error {
 	if !o.GinkgoRunSuiteOptions.DryRun {
-		testOpt := ginkgo.NewTestOptions(os.Stdout, os.Stderr)
+		testOpt := ginkgo.NewTestOptions(o.IOStreams)
 		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
 		if err != nil {
 			return err

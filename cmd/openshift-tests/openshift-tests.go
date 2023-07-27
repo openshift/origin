@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -75,10 +74,10 @@ func main() {
 	}
 
 	root.AddCommand(
-		newRunCommand(),
-		newRunUpgradeCommand(),
+		newRunCommand(ioStreams),
+		newRunUpgradeCommand(ioStreams),
 		newImagesCommand(),
-		newRunTestCommand(),
+		newRunTestCommand(ioStreams),
 		newDevCommand(),
 		monitor_command.NewRunMonitorCommand(ioStreams),
 		monitor_command.NewMonitorCommand(),
@@ -220,8 +219,8 @@ func newImagesCommand() *cobra.Command {
 	return cmd
 }
 
-func newRunCommand() *cobra.Command {
-	o := NewRunSuiteOptions(defaultTestImageMirrorLocation, testsuites.StandardTestSuites())
+func newRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRunSuiteOptions(streams, defaultTestImageMirrorLocation, testsuites.StandardTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
@@ -242,41 +241,39 @@ func newRunCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mirrorToFile(o.GinkgoRunSuiteOptions, func() error {
-				if err := verifyImages(); err != nil {
-					return err
-				}
-				o.GinkgoRunSuiteOptions.SyntheticEventTests = pulledInvalidImages(o.FromRepository)
-
-				suite, err := o.SelectSuite(args)
-				if err != nil {
-					return err
-				}
-				if err := o.SuiteWithKubeTestInitializationPreSuite(); err != nil {
-					return err
-				}
-
-				o.GinkgoRunSuiteOptions.CommandEnv = o.AsEnv()
-				if !o.GinkgoRunSuiteOptions.DryRun {
-					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
-				}
-				err = o.GinkgoRunSuiteOptions.Run(suite, "openshift-tests", false)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
-				}
-
-				// Special debugging carve-outs for teams is likely to age poorly.
-				clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
+			if err := verifyImages(); err != nil {
 				return err
-			})
+			}
+			o.GinkgoRunSuiteOptions.SyntheticEventTests = pulledInvalidImages(o.FromRepository)
+
+			suite, err := o.SelectSuite(args)
+			if err != nil {
+				return err
+			}
+			if err := o.SuiteWithKubeTestInitializationPreSuite(); err != nil {
+				return err
+			}
+
+			o.GinkgoRunSuiteOptions.CommandEnv = o.AsEnv()
+			if !o.GinkgoRunSuiteOptions.DryRun {
+				fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+			}
+			err = o.GinkgoRunSuiteOptions.Run(suite, "openshift-tests", false)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
+			}
+
+			// Special debugging carve-outs for teams is likely to age poorly.
+			clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
+			return err
 		},
 	}
 	o.BindOptions(cmd.Flags())
 	return cmd
 }
 
-func newRunUpgradeCommand() *cobra.Command {
-	o := NewRunSuiteOptions(defaultTestImageMirrorLocation, testsuites.UpgradeTestSuites())
+func newRunUpgradeCommand(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewRunSuiteOptions(streams, defaultTestImageMirrorLocation, testsuites.UpgradeTestSuites())
 
 	cmd := &cobra.Command{
 		Use:   "run-upgrade SUITE",
@@ -303,38 +300,36 @@ func newRunUpgradeCommand() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return mirrorToFile(o.GinkgoRunSuiteOptions, func() error {
-				if len(o.ToImage) == 0 {
-					return fmt.Errorf("--to-image must be specified to run an upgrade test")
-				}
-				if err := verifyImages(); err != nil {
-					return err
-				}
-				o.GinkgoRunSuiteOptions.SyntheticEventTests = pulledInvalidImages(o.FromRepository)
-
-				suite, err := o.SelectSuite(args)
-				if err != nil {
-					return err
-				}
-				o.UpgradeSuite = suite.Name
-				if err := o.UpgradeTestPreSuite(); err != nil {
-					return err
-				}
-
-				o.GinkgoRunSuiteOptions.CommandEnv = o.AsEnv()
-				if !o.GinkgoRunSuiteOptions.DryRun {
-					fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
-				}
-				err = o.GinkgoRunSuiteOptions.Run(suite, "openshift-tests-upgrade", true)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
-				}
-
-				// Special debugging carve-outs for teams is likely to age poorly.
-				clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
-
+			if len(o.ToImage) == 0 {
+				return fmt.Errorf("--to-image must be specified to run an upgrade test")
+			}
+			if err := verifyImages(); err != nil {
 				return err
-			})
+			}
+			o.GinkgoRunSuiteOptions.SyntheticEventTests = pulledInvalidImages(o.FromRepository)
+
+			suite, err := o.SelectSuite(args)
+			if err != nil {
+				return err
+			}
+			o.UpgradeSuite = suite.Name
+			if err := o.UpgradeTestPreSuite(); err != nil {
+				return err
+			}
+
+			o.GinkgoRunSuiteOptions.CommandEnv = o.AsEnv()
+			if !o.GinkgoRunSuiteOptions.DryRun {
+				fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+			}
+			err = o.GinkgoRunSuiteOptions.Run(suite, "openshift-tests-upgrade", true)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", err.Error())
+			}
+
+			// Special debugging carve-outs for teams is likely to age poorly.
+			clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
+
+			return err
 		},
 	}
 
@@ -343,8 +338,8 @@ func newRunUpgradeCommand() *cobra.Command {
 	return cmd
 }
 
-func newRunTestCommand() *cobra.Command {
-	testOpt := testginkgo.NewTestOptions(os.Stdout, os.Stderr)
+func newRunTestCommand(streams genericclioptions.IOStreams) *cobra.Command {
+	testOpt := testginkgo.NewTestOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:   "run-test NAME",
@@ -395,28 +390,4 @@ func newRunTestCommand() *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&testOpt.DryRun, "dry-run", testOpt.DryRun, "Print the test to run without executing them.")
 	return cmd
-}
-
-// mirrorToFile ensures a copy of all output goes to the provided OutFile, including
-// any error returned from fn. The function returns fn() or any error encountered while
-// attempting to open the file.
-func mirrorToFile(opt *testginkgo.GinkgoRunSuiteOptions, fn func() error) error {
-	if len(opt.OutFile) == 0 {
-		return fn()
-	}
-
-	f, err := os.OpenFile(opt.OutFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)
-	if err != nil {
-		return err
-	}
-	opt.Out = io.MultiWriter(opt.Out, f)
-	opt.ErrOut = io.MultiWriter(opt.ErrOut, f)
-	exitErr := fn()
-	if exitErr != nil {
-		fmt.Fprintf(f, "error: %s", exitErr)
-	}
-	if err := f.Close(); err != nil {
-		fmt.Fprintf(opt.ErrOut, "error: Unable to close output file\n")
-	}
-	return exitErr
 }

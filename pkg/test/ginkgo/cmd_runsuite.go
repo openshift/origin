@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -15,6 +14,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/spf13/pflag"
@@ -45,7 +46,6 @@ type GinkgoRunSuiteOptions struct {
 	Timeout     time.Duration
 	JUnitDir    string
 	TestFile    string
-	OutFile     string
 
 	// Regex allows a selection of a subset of tests
 	Regex string
@@ -64,16 +64,15 @@ type GinkgoRunSuiteOptions struct {
 
 	DryRun        bool
 	PrintCommands bool
-	Out, ErrOut   io.Writer
+	genericclioptions.IOStreams
 
 	StartTime time.Time
 }
 
-func NewGinkgoRunSuiteOptions(out io.Writer, errOut io.Writer) *GinkgoRunSuiteOptions {
+func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
 	return &GinkgoRunSuiteOptions{
-		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
-		Out:                  out,
-		ErrOut:               errOut,
+		MonitorEventsOptions: NewMonitorEventsOptions(streams),
+		IOStreams:            streams,
 	}
 }
 
@@ -83,7 +82,6 @@ func (o *GinkgoRunSuiteOptions) BindTestOptions(flags *pflag.FlagSet) {
 	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
 	flags.StringVarP(&o.TestFile, "file", "f", o.TestFile, "Create a suite from the newline-delimited test names in this file.")
 	flags.StringVar(&o.Regex, "run", o.Regex, "Regular expression of tests to run.")
-	flags.StringVarP(&o.OutFile, "output-file", "o", o.OutFile, "Write all test output to this file.")
 	flags.IntVar(&o.Count, "count", o.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
 	flags.BoolVar(&o.FailFast, "fail-fast", o.FailFast, "If a test fails, exit immediately.")
 	flags.DurationVar(&o.Timeout, "timeout", o.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
@@ -96,6 +94,10 @@ func (o *GinkgoRunSuiteOptions) AsEnv() []string {
 	args = append(args, fmt.Sprintf("TEST_SUITE_START_TIME=%d", o.StartTime.Unix()))
 	args = append(args, o.CommandEnv...)
 	return args
+}
+
+func (o *GinkgoRunSuiteOptions) SetIOStreams(streams genericclioptions.IOStreams) {
+	o.IOStreams = streams
 }
 
 func (o *GinkgoRunSuiteOptions) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {

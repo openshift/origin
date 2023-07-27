@@ -3,13 +3,14 @@ package ginkgo
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/fs"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/sirupsen/logrus"
 
@@ -52,11 +53,10 @@ type MonitorEventsOptions struct {
 
 	Recorders      []monitor.StartEventIntervalRecorderFunc
 	RunDataWriters []RunDataWriter
-	Out            io.Writer
-	ErrOut         io.Writer
+	genericclioptions.IOStreams
 }
 
-func NewMonitorEventsOptions(out io.Writer, errOut io.Writer) *MonitorEventsOptions {
+func NewMonitorEventsOptions(streams genericclioptions.IOStreams) *MonitorEventsOptions {
 	return &MonitorEventsOptions{
 		Recorders: []monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAllAPIMonitoring,
@@ -79,8 +79,7 @@ func NewMonitorEventsOptions(out io.Writer, errOut io.Writer) *MonitorEventsOpti
 			RunDataWriterFunc(allowedalerts.WriteAlertDataForJobRun),
 			RunDataWriterFunc(monitor.WriteClusterData),
 		},
-		Out:    out,
-		ErrOut: errOut,
+		IOStreams: streams,
 	}
 }
 
