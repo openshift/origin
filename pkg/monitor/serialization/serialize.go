@@ -24,6 +24,14 @@ type EventInterval struct {
 
 	From metav1.Time `json:"from"`
 	To   metav1.Time `json:"to"`
+
+	ViewHints *ViewHints `json:"viewHints"`
+}
+
+type ViewHints struct {
+	Group    string
+	HexColor string
+	// Row would be represented by locator?
 }
 
 // EventList is not an interval.  It is an instant.  The instant removes any ambiguity about "when"
@@ -100,6 +108,19 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 		}
 		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
 	}
+
+	// Here we would case by Interval.Category, and decide if an interval should get ViewHints
+	// or not. ViewHints could sub-categorize (i.e. break apart ClusterOperator Available status
+	// to only specify ViewHint if the condition is False)
+	//
+	// Should the UI be able to "optionally" show intervals that do not have ViewHints?
+	//
+	// Or should we limit what we display to only those that this code said to? The problem there
+	// of course is that we're mixing view logic into our model, and the result is that we could
+	// not retroactively decide to display something in old job runs.
+	//
+	// It would however mean that origin authors writing new intervals could, in the same PR,
+	// specify that they should be displayed and how.
 
 	sort.Sort(byTime(outputEvents))
 	list := EventIntervalList{Items: outputEvents}
