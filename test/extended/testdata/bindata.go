@@ -452,6 +452,7 @@
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/stable-busybox.yaml
+// test/extended/testdata/storage/csi-secret-store/e2e-provider-secretproviderclass.yaml
 // test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml
 // test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml
 // test/extended/testdata/storage/inline/csi-sharedsecret.yaml
@@ -50562,6 +50563,38 @@ func testExtendedTestdataStableBusyboxYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataStorageCsiSecretStoreE2eProviderSecretproviderclassYaml = []byte(`apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: e2e-provider
+spec:
+  provider: e2e-provider
+  parameters:
+    objects: |
+      array:
+        - |
+          objectName: foo
+          objectVersion: v1
+        - |
+          objectName: fookey
+          objectVersion: v1
+`)
+
+func testExtendedTestdataStorageCsiSecretStoreE2eProviderSecretproviderclassYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataStorageCsiSecretStoreE2eProviderSecretproviderclassYaml, nil
+}
+
+func testExtendedTestdataStorageCsiSecretStoreE2eProviderSecretproviderclassYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataStorageCsiSecretStoreE2eProviderSecretproviderclassYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/storage/csi-secret-store/e2e-provider-secretproviderclass.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataStorageInlineCsiSharedresourceroleYaml = []byte(`apiVersion: authorization.openshift.io/v1
 kind: Role
 metadata:
@@ -54440,6 +54473,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf":                                    testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml":                                                         testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/stable-busybox.yaml":                                                             testExtendedTestdataStableBusyboxYaml,
+	"test/extended/testdata/storage/csi-secret-store/e2e-provider-secretproviderclass.yaml":                  testExtendedTestdataStorageCsiSecretStoreE2eProviderSecretproviderclassYaml,
 	"test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml":                                      testExtendedTestdataStorageInlineCsiSharedresourceroleYaml,
 	"test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml":                               testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml,
 	"test/extended/testdata/storage/inline/csi-sharedsecret.yaml":                                            testExtendedTestdataStorageInlineCsiSharedsecretYaml,
@@ -55198,6 +55232,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"signer-buildconfig.yaml": {testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"stable-busybox.yaml":     {testExtendedTestdataStableBusyboxYaml, map[string]*bintree{}},
 				"storage": {nil, map[string]*bintree{
+					"csi-secret-store": {nil, map[string]*bintree{
+						"e2e-provider-secretproviderclass.yaml": {testExtendedTestdataStorageCsiSecretStoreE2eProviderSecretproviderclassYaml, map[string]*bintree{}},
+					}},
 					"inline": {nil, map[string]*bintree{
 						"csi-sharedresourcerole.yaml":        {testExtendedTestdataStorageInlineCsiSharedresourceroleYaml, map[string]*bintree{}},
 						"csi-sharedresourcerolebinding.yaml": {testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml, map[string]*bintree{}},

@@ -1501,6 +1501,8 @@ var Annotations = map[string]string{
 
 	"[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io] should remove the StorageClass when StorageClassState is Removed": " [Suite:openshift/conformance/serial]",
 
+	"[sig-storage][Feature:SecretsStore][Serial] should allow pods to mount inline volumes from secret provider": " [Suite:openshift/conformance/serial]",
+
 	"[sig-storage][Late] Metrics should report short attach times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-storage][Late] Metrics should report short mount times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",

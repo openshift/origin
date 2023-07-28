@@ -365,7 +365,10 @@ func updateEnvVars(envs []string) []string {
 	clientConfig, _ := framework.LoadConfig(true)
 	clusterState, _ := clusterdiscovery.DiscoverClusterState(clientConfig)
 	if clusterState != nil {
-		config, _ = clusterdiscovery.LoadConfig(clusterState)
+		clusterConfig, _ := clusterdiscovery.LoadConfig(clusterState)
+		if clusterConfig != nil {
+			config = clusterConfig
+		}
 	}
 	if len(config.ProviderName) == 0 {
 		config.ProviderName = "skeleton"
