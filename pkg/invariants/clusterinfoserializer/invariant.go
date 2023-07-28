@@ -1,4 +1,4 @@
-package clusterinfo_serializer
+package clusterinfoserializer
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package disruption_serializer
+package disruptionserializer
 
 import (
 	"context"

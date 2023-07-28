@@ -1,4 +1,4 @@
-package availability_image_registry
+package disruptionimageregistry
 
 import (
 	"context"

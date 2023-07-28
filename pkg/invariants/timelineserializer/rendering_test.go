@@ -1,4 +1,4 @@
-package timeline_serializer
+package timelineserializer
 
 import (
 	_ "embed"

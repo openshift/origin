@@ -1,4 +1,4 @@
-package interval_serializer
+package intervalserializer
 
 import (
 	"context"

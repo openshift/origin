@@ -1,4 +1,4 @@
-package availability_service_loadbalancer
+package disruptionserviceloadbalancer
 
 import (
 	"context"

@@ -54,7 +54,7 @@ func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig
 	errs := []error{}
 
 	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("jira/%q invariant test %v setup", invariant.jiraComponent, invariant.name)
+		testName := fmt.Sprintf("[Jira/%q] invariant test %v setup", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
 		err := invariant.invariantTest.StartCollection(ctx, adminRESTConfig, recorder)
@@ -88,7 +88,7 @@ func (r *invariantRegistry) CollectData(ctx context.Context, storageDir string, 
 	errs := []error{}
 
 	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("jira/%q invariant test %v collection", invariant.jiraComponent, invariant.name)
+		testName := fmt.Sprintf("[Jira/%q] invariant test %v collection", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
 		localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx, storageDir, beginning, end)
@@ -124,7 +124,7 @@ func (r *invariantRegistry) ConstructComputedIntervals(ctx context.Context, star
 	errs := []error{}
 
 	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("jira/%q invariant test %v interval construction", invariant.jiraComponent, invariant.name)
+		testName := fmt.Sprintf("[Jira/%q] invariant test %v interval construction", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
 		localIntervals, err := invariant.invariantTest.ConstructComputedIntervals(ctx, startingIntervals, recordedResources, beginning, end)
@@ -158,7 +158,7 @@ func (r *invariantRegistry) EvaluateTestsFromConstructedIntervals(ctx context.Co
 	errs := []error{}
 
 	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("jira/%q invariant test %v test evaluation", invariant.jiraComponent, invariant.name)
+		testName := fmt.Sprintf("[Jira/%q] invariant test %v test evaluation", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
 		localJunits, err := invariant.invariantTest.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
@@ -192,7 +192,7 @@ func (r *invariantRegistry) WriteContentToStorage(ctx context.Context, storageDi
 	errs := []error{}
 
 	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("jira/%q invariant test %v writing to storage", invariant.jiraComponent, invariant.name)
+		testName := fmt.Sprintf("[Jira/%q] invariant test %v writing to storage", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
 		err := invariant.invariantTest.WriteContentToStorage(ctx, storageDir, timeSuffix, finalIntervals, finalResourceState)
@@ -225,7 +225,7 @@ func (r *invariantRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTestC
 	errs := []error{}
 
 	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("jira/%q invariant test %v cleanup", invariant.jiraComponent, invariant.name)
+		testName := fmt.Sprintf("[Jira/%q] invariant test %v cleanup", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
 		err := invariant.invariantTest.Cleanup(ctx)

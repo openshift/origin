@@ -1,4 +1,4 @@
-package additional_events_collector
+package additionaleventscollector
 
 import (
 	"context"

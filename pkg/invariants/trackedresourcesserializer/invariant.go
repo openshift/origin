@@ -1,4 +1,4 @@
-package trackedresources_serializer
+package trackedresourcesserializer
 
 import (
 	"context"

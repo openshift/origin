@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/invariants/timeline_serializer"
+	"github.com/openshift/origin/pkg/invariants/timelineserializer"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -56,11 +56,11 @@ func NewTimelineOptions(ioStreams genericclioptions.IOStreams) *TimelineOptions 
 			"html": renderHTML,
 		},
 		KnownTimelines: map[string]monitorapi.EventIntervalMatchesFunc{
-			"everything":    timeline_serializer.BelongsInEverything,
-			"operators":     timeline_serializer.BelongsInOperatorRollout,
-			"apiserver":     timeline_serializer.BelongsInKubeAPIServer,
-			"spyglass":      timeline_serializer.BelongsInSpyglass,
-			"pod-lifecycle": timeline_serializer.IsOriginalPodEvent,
+			"everything":    timelineserializer.BelongsInEverything,
+			"operators":     timelineserializer.BelongsInOperatorRollout,
+			"apiserver":     timelineserializer.BelongsInKubeAPIServer,
+			"spyglass":      timelineserializer.BelongsInSpyglass,
+			"pod-lifecycle": timelineserializer.IsOriginalPodEvent,
 		},
 	}
 }

@@ -1,4 +1,4 @@
-package alert_serializer
+package alertserializer
 
 import (
 	"context"
