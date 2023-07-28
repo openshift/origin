@@ -365,4 +365,17 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		TestTimeout: 30 * time.Minute,
 	},
+	{
+		Name: "openshift/nodes/realtime/latency",
+		Description: templates.LongDesc(`
+		This test suite runs tests to validate realtime latency on nodes.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/nodes/realtime/latency")
+		},
+		TestTimeout: 30 * time.Minute,
+	},
 }

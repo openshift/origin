@@ -21,21 +21,18 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real 
 		startRtTestPod(oc)
 	})
 
-	g.It("pi_stress to run successfully with the default algorithm", func() {
-		args := []string{rtPodName, "--", "pi_stress", "--duration=600", "--groups=1"}
-		_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	g.It("pi_stress to run successfully with the fifo algorithm", func() {
+		err := runPiStressFifo(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running pi_stress with the fifo algorithm")
 	})
 
 	g.It("pi_stress to run successfully with the round robin algorithm", func() {
-		args := []string{rtPodName, "--", "pi_stress", "--duration=600", "--groups=1", "--rr"}
-		_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+		err := runPiStressRR(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running pi_stress with the round robin algorithm")
 	})
 
 	g.It("deadline_test to run successfully", func() {
-		args := []string{rtPodName, "--", "deadline_test"}
-		_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+		err := runDeadlineTest(oc)
 		o.Expect(err).NotTo(o.HaveOccurred(), "error occured running deadline_test")
 	})
 
@@ -46,5 +43,4 @@ var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real 
 	g.AfterAll(func() {
 		cleanupRealtimeTestEnvironment(oc)
 	})
-
 })
