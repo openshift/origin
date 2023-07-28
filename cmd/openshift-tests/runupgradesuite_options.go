@@ -10,6 +10,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
@@ -29,6 +30,8 @@ type RunUpgradeSuiteOptions struct {
 	//CloudProviderJSON string
 
 	TestOptions []string
+
+	CloseFn iooptions.CloseFunc
 
 	genericclioptions.IOStreams
 }
@@ -79,6 +82,8 @@ func (o *RunUpgradeSuiteOptions) UpgradeTestPreSuite() error {
 }
 
 func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
+	defer o.CloseFn()
+
 	if err := verifyImages(); err != nil {
 		return err
 	}

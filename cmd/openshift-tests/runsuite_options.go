@@ -6,12 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/klog/v2"
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog/v2"
 )
 
 // TODO collapse this with cmd_runsuite
@@ -22,6 +23,7 @@ type RunSuiteOptions struct {
 	FromRepository    string
 	CloudProviderJSON string
 
+	CloseFn iooptions.CloseFunc
 	genericclioptions.IOStreams
 }
 
@@ -43,6 +45,8 @@ func (o *RunSuiteOptions) TestCommandEnvironment() []string {
 }
 
 func (o *RunSuiteOptions) Run(ctx context.Context) error {
+	defer o.CloseFn()
+
 	if err := verifyImages(); err != nil {
 		return err
 	}

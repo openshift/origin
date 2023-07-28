@@ -106,6 +106,10 @@ func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Confi
 	return m, nil
 }
 
+func (o *MonitorEventsOptions) SetIOStreams(streams genericclioptions.IOStreams) {
+	o.IOStreams = streams
+}
+
 var removeNTimes = regexp.MustCompile(`\s+\(\d+ times\)`)
 var removeHmsg = regexp.MustCompile(`\s+(hmsg/[0-9a-f]+)`)
 

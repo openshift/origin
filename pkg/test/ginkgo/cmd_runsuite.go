@@ -98,6 +98,7 @@ func (o *GinkgoRunSuiteOptions) AsEnv() []string {
 
 func (o *GinkgoRunSuiteOptions) SetIOStreams(streams genericclioptions.IOStreams) {
 	o.IOStreams = streams
+	o.MonitorEventsOptions.SetIOStreams(streams)
 }
 
 func (o *GinkgoRunSuiteOptions) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {

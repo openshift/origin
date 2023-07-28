@@ -6,6 +6,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/spf13/pflag"
 )
@@ -13,6 +14,7 @@ import (
 // TODO collapse this with cmd_runsuite
 type RunUpgradeSuiteFlags struct {
 	GinkgoRunSuiteOptions *testginkgo.GinkgoRunSuiteOptions
+	OutputFlags           *iooptions.OutputFlags
 	AvailableSuites       []*testginkgo.TestSuite
 
 	FromRepository     string
@@ -32,6 +34,7 @@ type RunUpgradeSuiteFlags struct {
 func NewRunUpgradeSuiteFlags(streams genericclioptions.IOStreams, fromRepository string, availableSuites []*testginkgo.TestSuite) *RunUpgradeSuiteFlags {
 	return &RunUpgradeSuiteFlags{
 		GinkgoRunSuiteOptions: testginkgo.NewGinkgoRunSuiteOptions(streams),
+		OutputFlags:           iooptions.NewOutputOptions(),
 		AvailableSuites:       availableSuites,
 
 		FromRepository: fromRepository,
@@ -45,9 +48,20 @@ func (f *RunUpgradeSuiteFlags) BindOptions(flags *pflag.FlagSet) {
 	flags.StringVar(&f.ToImage, "to-image", f.ToImage, "Specify the image to test an upgrade to.")
 	flags.StringSliceVar(&f.TestOptions, "options", f.TestOptions, "A set of KEY=VALUE options to control the test. See the help text.")
 	f.GinkgoRunSuiteOptions.BindTestOptions(flags)
+	f.OutputFlags.BindFlags(flags)
+}
+
+func (f *RunUpgradeSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams) {
+	f.IOStreams = streams
+	f.GinkgoRunSuiteOptions.SetIOStreams(streams)
 }
 
 func (f *RunUpgradeSuiteFlags) ToOptions(args []string) (*RunUpgradeSuiteOptions, error) {
+	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
+	if err != nil {
+		return nil, err
+	}
+
 	// shallow copy to mutate
 	ginkgoOptions := f.GinkgoRunSuiteOptions
 	ginkgoOptions.SyntheticEventTests = pulledInvalidImages(f.FromRepository)
@@ -70,6 +84,7 @@ func (f *RunUpgradeSuiteFlags) ToOptions(args []string) (*RunUpgradeSuiteOptions
 		ToImage:               f.ToImage,
 		FromRepository:        f.FromRepository,
 		TestOptions:           f.TestOptions,
+		CloseFn:               closeFn,
 		IOStreams:             f.IOStreams,
 	}
 
