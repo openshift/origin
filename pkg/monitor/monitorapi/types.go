@@ -24,15 +24,15 @@ const (
 	ObservedRecreationCountAnnotation = "monitor.openshift.io/observed-recreation-count"
 )
 
-type ConditionLevel int
+type IntervalLevel int
 
 const (
-	Info ConditionLevel = iota
+	Info IntervalLevel = iota
 	Warning
 	Error
 )
 
-func (e ConditionLevel) String() string {
+func (e IntervalLevel) String() string {
 	switch e {
 	case Info:
 		return "Info"
@@ -45,7 +45,7 @@ func (e ConditionLevel) String() string {
 	}
 }
 
-func ConditionLevelFromString(s string) (ConditionLevel, error) {
+func ConditionLevelFromString(s string) (IntervalLevel, error) {
 	switch s {
 	case "Info":
 		return Info, nil
@@ -60,7 +60,7 @@ func ConditionLevelFromString(s string) (ConditionLevel, error) {
 }
 
 type Condition struct {
-	Level ConditionLevel
+	Level IntervalLevel
 
 	// TODO: Goal here is to drop Locator/Message, and rename the structured variants to Locator/Message
 	Locator           string
@@ -184,8 +184,26 @@ type Message struct {
 	Annotations map[AnnotationKey]string `json:"annotations"`
 }
 
+type IntervalSource string
+
+const (
+	SourceAlert             IntervalSource = "Alert"
+	SourceAPIServerShutdown IntervalSource = "APIServerShutdown"
+	SourceDisruption        IntervalSource = "Disruption"
+	SourceNodeMonitor       IntervalSource = "NodeMonitor"
+	SourcePodLog            IntervalSource = "PodLog"
+	SourcePodMonitor        IntervalSource = "PodMonitor"
+	SourceTestData          IntervalSource = "TestData" // some tests have no real source to assign
+)
+
 type Interval struct {
+	// Deprecated: We hope to fold this into Interval itself.
 	Condition
+	Source IntervalSource
+
+	// Display is a very coarse hint to any UI that this event was considered important enough to *possibly* be displayed by the source that produced it.
+	// UI may apply further filtering.
+	Display bool
 
 	From time.Time
 	To   time.Time

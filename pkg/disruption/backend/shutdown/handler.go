@@ -67,9 +67,9 @@ func (h *ciShutdownIntervalHandler) Handle(shutdown *shutdownInterval) {
 			&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()},
 			nil, v1.EventTypeWarning, reason, "detected", message)
 	}
-	condition := monitorapi.NewCondition(level).
-		Locator(h.descriptor.ShutdownLocator()).
-		Message(monitorapi.NewMessage().HumanMessage(message)).Build()
+	condition := monitorapi.NewInterval(monitorapi.SourceAPIServerShutdown, level).
+		Locator(h.descriptor.ShutdownLocator()).Display().
+		Message(monitorapi.NewMessage().HumanMessage(message).Reason(reason)).BuildCondition()
 	intervalID := h.monitor.StartInterval(shutdown.From, condition)
 	h.monitor.EndInterval(intervalID, shutdown.To)
 }

@@ -266,10 +266,10 @@ func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
 				Locator(containerRef).
 				Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonReadinessFailed).Node(nodeName).HumanMessage(message)).
-				Build(),
+				BuildCondition(),
 			From: failureTime,
 			To:   failureTime,
 		},
@@ -296,14 +296,14 @@ func readinessError(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
 				Locator(containerRef).
 				Message(
 					monitorapi.NewMessage().
 						Reason(monitorapi.ContainerReasonReadinessErrored).
 						Node(nodeName).
 						HumanMessage(message),
-				).Build(),
+				).BuildCondition(),
 			From: failureTime,
 			To:   failureTime,
 		},
@@ -325,7 +325,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
 				Locator(containerRef).
 				Message(
 					monitorapi.NewMessage().
@@ -333,7 +333,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 						Cause(monitorapi.ContainerUnrecognizedSignatureFormat).
 						Node(nodeName),
 				).
-				Build(),
+				BuildCondition(),
 			From: failureTime,
 			To:   failureTime,
 		},
@@ -374,14 +374,14 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
 				Locator(containerRef).
 				Message(
 					monitorapi.NewMessage().
 						Reason(monitorapi.ContainerReasonStartupProbeFailed).
 						Node(nodeName).
 						HumanMessage(message),
-				).Build(),
+				).BuildCondition(),
 			From: failureTime,
 			To:   failureTime,
 		},
@@ -482,10 +482,10 @@ func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) m
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Error).
+			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Error).
 				Locator(nodeLocator).
 				Message(monitorapi.NewMessage().Reason("FailedToDeleteCGroupsPath").HumanMessage(logLine)).
-				Build(),
+				BuildCondition(),
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
 		},
@@ -501,10 +501,10 @@ func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Error).
+			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Error).
 				Locator(nodeLocator).
 				Message(monitorapi.NewMessage().Reason("FailedToAuthenticateWithOpenShiftUser").HumanMessage(logLine)).
-				Build(),
+				BuildCondition(),
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
 		},
@@ -555,11 +555,11 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
 				Locator(nodeLocator).
 				Message(
 					monitorapi.NewMessage().Reason(monitorapi.NodeFailedLease).HumanMessage(fmt.Sprintf("%s - %s", url, msg)),
-				).Build(),
+				).BuildCondition(),
 			From: failureTime,
 			To:   failureTime.Add(1 * time.Second),
 		},
@@ -600,11 +600,11 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewCondition(monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
 				Locator(locator()).
 				Message(
 					monitorapi.NewMessage().Reason(reason).Node(nodeName).HumanMessage(message),
-				).Build(),
+				).BuildCondition(),
 			From: failureTime,
 			To:   failureTime,
 		},

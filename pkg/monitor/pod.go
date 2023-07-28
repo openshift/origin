@@ -92,17 +92,17 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 
 			// always produce conditions during create
 			if (isCreate && !newContainerReady) || (oldContainerReady && !newContainerReady) {
-				conditions = append(conditions, monitorapi.NewCondition(monitorapi.Warning).
+				conditions = append(conditions, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonNotReady)).
-					Build())
+					BuildCondition())
 			}
 			if (isCreate && newContainerReady) || (!oldContainerReady && newContainerReady) {
-				conditions = append(conditions, monitorapi.NewCondition(monitorapi.Info).
+				conditions = append(conditions, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(
 						monitorapi.NewMessage().Reason(monitorapi.ContainerReasonReady),
-					).Build())
+					).BuildCondition())
 			}
 		}
 
@@ -202,11 +202,11 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			}
 
 			if oldContainerStatus != nil && oldContainerStatus.LastTerminationState.Terminated != nil && containerStatus.LastTerminationState.Terminated == nil {
-				conditions = append(conditions, monitorapi.NewCondition(monitorapi.Error).
+				conditions = append(conditions, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(
 						monitorapi.NewMessage().Reason(monitorapi.TerminationStateCleared).HumanMessage("lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
-					).Build())
+					).BuildCondition())
 			}
 
 			// if this container is not terminated, then we don't need to compute an event for it.
@@ -226,25 +226,25 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				// if we are transitioning to a terminated state
 				if containerStatus.LastTerminationState.Terminated.ExitCode != 0 {
 					conditions = append(conditions,
-						monitorapi.NewCondition(monitorapi.Error).
+						monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
 							Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 							Message(monitorapi.NewMessage().
 								Reason(monitorapi.ContainerReasonContainerExit).
 								WithAnnotation(monitorapi.AnnotationContainerExitCode, fmt.Sprintf("%d", containerStatus.LastTerminationState.Terminated.ExitCode)).
 								Cause(containerStatus.LastTerminationState.Terminated.Reason).
 								HumanMessage(containerStatus.LastTerminationState.Terminated.Message),
-							).Build(),
+							).BuildCondition(),
 					)
 				} else {
 					conditions = append(conditions,
-						monitorapi.NewCondition(monitorapi.Info).
+						monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 							Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 							Message(monitorapi.NewMessage().
 								Reason(monitorapi.ContainerReasonContainerExit).
 								WithAnnotation(monitorapi.AnnotationContainerExitCode, "0").
 								Cause(containerStatus.LastTerminationState.Terminated.Reason).
 								HumanMessage(containerStatus.LastTerminationState.Terminated.Message)).
-							Build(),
+							BuildCondition(),
 					)
 				}
 
@@ -252,7 +252,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				// if we are transitioning to a terminated state
 				if containerStatus.State.Terminated.ExitCode != 0 {
 					conditions = append(conditions,
-						monitorapi.NewCondition(monitorapi.Error).
+						monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
 							Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 							Message(monitorapi.NewMessage().
 								Reason(monitorapi.ContainerReasonContainerExit).
@@ -260,11 +260,11 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 								Cause(containerStatus.State.Terminated.Reason).
 								HumanMessage(containerStatus.State.Terminated.Message),
 							).
-							Build(),
+							BuildCondition(),
 					)
 				} else {
 					conditions = append(conditions,
-						monitorapi.NewCondition(monitorapi.Error).
+						monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
 							Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 							Message(monitorapi.NewMessage().
 								Reason(monitorapi.ContainerReasonContainerExit).
@@ -272,7 +272,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 								Cause(containerStatus.State.Terminated.Reason).
 								HumanMessage(containerStatus.State.Terminated.Message),
 							).
-							Build(),
+							BuildCondition(),
 					)
 				}
 			}
@@ -303,11 +303,11 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 			}
 
 			if containerStatus.RestartCount != oldContainerStatus.RestartCount {
-				conditions = append(conditions, monitorapi.NewCondition(monitorapi.Warning).
+				conditions = append(conditions, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(
 						monitorapi.NewMessage().Reason(monitorapi.ContainerReasonRestarted),
-					).Build())
+					).BuildCondition())
 			}
 		}
 
@@ -620,10 +620,10 @@ func lastContainerTimeFromStatus(current *corev1.ContainerStatus) time.Time {
 
 func conditionsForTransitioningContainer(pod *corev1.Pod, current *corev1.ContainerStatus, reason monitorapi.IntervalReason, cause, message string) []monitorapi.Condition {
 	return []monitorapi.Condition{
-		monitorapi.NewCondition(monitorapi.Info).
+		monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 			Locator(monitorapi.NewLocator().ContainerFromPod(pod, current.Name)).
 			Message(monitorapi.NewMessage().Reason(reason).Cause(cause).HumanMessage(message)).
-			Build(),
+			BuildCondition(),
 	}
 }
 

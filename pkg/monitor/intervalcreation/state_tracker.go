@@ -20,7 +20,7 @@ type stateTracker struct {
 
 type conditionCreationFunc func(locator string, from, to time.Time) (monitorapi.Condition, bool)
 
-func simpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorapi.ConditionLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
+func simpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorapi.IntervalLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
 	return func(locator string, from, to time.Time) (monitorapi.Condition, bool) {
 		return monitorapi.Condition{
 			Level:   level,

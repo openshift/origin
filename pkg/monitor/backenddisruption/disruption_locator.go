@@ -30,7 +30,7 @@ var DnsLookupRegex = regexp.MustCompile(`dial tcp: lookup.*: i/o timeout`)
 
 // DisruptionBegan examines the error received, attempts to determine if it looks like real disruption to the cluster under test,
 // or other problems possibly on the system running the tests/monitor, and returns an appropriate user message, event reason, and monitoring level.
-func DisruptionBegan(locator string, connectionType monitorapi.BackendConnectionType, err error, auditID string) (string, monitorapi.IntervalReason, monitorapi.ConditionLevel) {
+func DisruptionBegan(locator string, connectionType monitorapi.BackendConnectionType, err error, auditID string) (string, monitorapi.IntervalReason, monitorapi.IntervalLevel) {
 	if DnsLookupRegex.MatchString(err.Error()) {
 		switch connectionType {
 		case monitorapi.NewConnectionType:

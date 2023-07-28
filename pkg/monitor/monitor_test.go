@@ -18,8 +18,8 @@ func TestMonitor_Newlines(t *testing.T) {
 }
 
 func TestMonitor_Events(t *testing.T) {
-	condition1 := monitorapi.NewCondition(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Message(monitorapi.NewMessage().HumanMessage("1")).Build()
-	condition2 := monitorapi.NewCondition(monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Message(monitorapi.NewMessage().HumanMessage("2")).Build()
+	condition1 := monitorapi.NewInterval(monitorapi.SourceTestData, monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Message(monitorapi.NewMessage().HumanMessage("1")).BuildCondition()
+	condition2 := monitorapi.NewInterval(monitorapi.SourceTestData, monitorapi.Info).Locator(monitorapi.NewLocator().NodeFromName("foo")).Message(monitorapi.NewMessage().HumanMessage("2")).BuildCondition()
 	tests := []struct {
 		name   string
 		events monitorapi.Intervals

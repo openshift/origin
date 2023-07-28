@@ -364,7 +364,7 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 				string(alert.Metric["container"]),
 			)
 
-			var level monitorapi.ConditionLevel
+			var level monitorapi.IntervalLevel
 			switch {
 			// as I understand it, pending alerts are cases where the conditions except for "how long has been happening"
 			// are all met.  Pending alerts include what level the eventual alert will be, but they are not errors in and
@@ -381,11 +381,10 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 			default:
 				level = monitorapi.Error
 			}
-			alertIntervalTemplate := monitorapi.Interval{
-				Condition: monitorapi.NewCondition(level).
+			alertIntervalTemplate :=
+				monitorapi.NewInterval(monitorapi.SourceAlert, level).
 					Locator(lb).
-					Message(monitorapi.NewMessage().HumanMessage(alert.Metric.String())).Build(),
-			}
+					Message(monitorapi.NewMessage().HumanMessage(alert.Metric.String())).Build()
 
 			var alertStartTime *time.Time
 			var lastTime *time.Time
@@ -429,13 +428,10 @@ func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 		}
 
 	default:
-		ret = append(ret, monitorapi.Interval{
-			Condition: monitorapi.NewCondition(monitorapi.Error).
-				Locator(monitorapi.NewLocator().AlertFromNames("all", "", "", "", "")).
-				Message(monitorapi.NewMessage().HumanMessagef("unhandled type: %v", alerts.Type())).Build(),
-			From: startTime,
-			To:   time.Now(),
-		})
+		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceAlert, monitorapi.Error).
+			Locator(monitorapi.NewLocator().AlertFromNames("all", "", "", "", "")).
+			Message(monitorapi.NewMessage().HumanMessagef("unhandled type: %v", alerts.Type())).
+			From(startTime).To(time.Now()).Build())
 	}
 
 	return ret, nil
