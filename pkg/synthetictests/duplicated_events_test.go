@@ -3,7 +3,6 @@ package synthetictests
 import (
 	_ "embed"
 	"regexp"
-	"strings"
 	"testing"
 	"time"
 
@@ -94,9 +93,7 @@ func TestEventRegexExcluder(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actual := allowedRepeatedEventsRegex.MatchString(test.message)
-			if !actual {
-				t.Fatal("did not match")
-			}
+			assert.True(t, actual, "did not match")
 		})
 	}
 
@@ -183,8 +180,8 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 				events = append(events,
 					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(872827200, 0),
-						To:        time.Unix(872827200, 0)},
+						From:      time.Unix(872827200, 0).In(time.UTC),
+						To:        time.Unix(872827200, 0).In(time.UTC)},
 				)
 			}
 
@@ -194,9 +191,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			testName := "events should not repeat"
 			junits := evaluator.testDuplicatedEvents(testName, false, events, nil, false)
 			namespaces := getNamespacesForJUnits()
-			if len(junits) != len(namespaces) {
-				t.Fatalf("didn't get junits for all known namespaces, expect %d, got %d", len(namespaces), len(junits))
-			}
+			assert.Equal(t, len(namespaces), len(junits), "didn't get junits for all known namespaces")
 
 			jUnitName := getJUnitName(testName, test.namespace)
 			for _, junit := range junits {
@@ -309,22 +304,21 @@ func TestKnownBugEvents(t *testing.T) {
 			events = append(events,
 				monitorapi.Interval{
 					Condition: monitorapi.Condition{Message: test.message},
-					From:      time.Unix(1, 0),
-					To:        time.Unix(1, 0)},
+					From:      time.Unix(1, 0).In(time.UTC),
+					To:        time.Unix(1, 0).In(time.UTC)},
 			)
 			evaluator.platform = test.platform
 			evaluator.topology = test.topology
 
 			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
-			if len(junits) < 1 {
-				t.Fatal("didn't get junit for duplicated event")
+			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
+
+			if test.match {
+				assert.Contains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
+			} else {
+				assert.NotContains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
 			}
-			if test.match && !strings.Contains(junits[0].FailureOutput.Output, "1 events with known BZs") {
-				t.Fatalf("expected case to match, but it didn't: %s", test.name)
-			}
-			if !test.match && strings.Contains(junits[0].FailureOutput.Output, "1 events with known BZs") {
-				t.Fatalf("expected case to not match, but it did: %s", test.name)
-			}
+
 		})
 	}
 }
@@ -386,8 +380,8 @@ func TestKnownBugEventsGroup(t *testing.T) {
 				events = append(events,
 					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(872827200, 0),
-						To:        time.Unix(872827200, 0)},
+						From:      time.Unix(872827200, 0).In(time.UTC),
+						To:        time.Unix(872827200, 0).In(time.UTC)},
 				)
 			}
 
@@ -395,13 +389,10 @@ func TestKnownBugEventsGroup(t *testing.T) {
 			evaluator.topology = test.topology
 
 			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
-			if len(junits) < 1 {
-				t.Fatal("didn't get junit for duplicated event")
-			}
+			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
 
-			if strings.Compare(junits[0].FailureOutput.Output, test.expectedMessage) != 0 {
-				t.Fatalf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junits[0].FailureOutput.Output)
-			}
+			assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
+
 		})
 	}
 }
@@ -475,24 +466,21 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 				events = append(events,
 					monitorapi.Interval{
 						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(1, 0),
-						To:        time.Unix(1, 0)},
+						From:      time.Unix(1, 0).In(time.UTC),
+						To:        time.Unix(1, 0).In(time.UTC)},
 				)
 			}
 
 			junits := makeProbeTest("test test", events, test.operator, test.regEx, duplicateevents.DuplicateEventThreshold)
 
-			if len(junits) < 1 {
-				t.Fatal("didn't get junit for duplicated event")
+			assert.GreaterOrEqual(t, len(junits), 1, "Didn't get junit for duplicated event")
+
+			if test.match {
+				assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
+			} else {
+				assert.Nil(t, junits[0].FailureOutput, "expected case to not match, but it did: %s", test.name)
 			}
 
-			if test.match && strings.Compare(junits[0].FailureOutput.Output, test.expectedMessage) != 0 {
-				t.Fatalf("expected case to match, but it didn't: %s.  Expected:\n%s\nReceived:\n%s\n", test.name, test.expectedMessage, junits[0].FailureOutput.Output)
-			}
-
-			if !test.match && junits[0].FailureOutput != nil {
-				t.Fatalf("expected case to not match, but it did: %s", test.name)
-			}
 		})
 	}
 }
