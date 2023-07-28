@@ -3,24 +3,48 @@ package monitorapi
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 )
 
-type ConditionBuilder struct {
-	level             ConditionLevel
+type IntervalBuilder struct {
+	level             IntervalLevel
+	source            IntervalSource
+	display           bool
 	structuredLocator Locator
 	structuredMessage Message
+	from              time.Time
+	to                time.Time
 }
 
-func NewCondition(level ConditionLevel) *ConditionBuilder {
-	return &ConditionBuilder{
-		level: level,
+func NewInterval(source IntervalSource, level IntervalLevel) *IntervalBuilder {
+	return &IntervalBuilder{
+		level:  level,
+		source: source,
 	}
 }
 
-func (b *ConditionBuilder) Build() Condition {
+// Display is a coarse grained hint that any UI should display this interval to a user.
+func (b *IntervalBuilder) Display() *IntervalBuilder {
+	b.display = true
+	return b
+}
+
+func (b *IntervalBuilder) From(from time.Time) *IntervalBuilder {
+	b.from = from
+	return b
+}
+
+func (b *IntervalBuilder) To(to time.Time) *IntervalBuilder {
+	b.to = to
+	return b
+}
+
+// Deprecated: Use Build for a full Interval, we hope to remove Condition entirely and bubble it up into Interval
+// directly.
+func (b *IntervalBuilder) BuildCondition() Condition {
 	ret := Condition{
 		Level:             b.level,
 		Locator:           b.structuredLocator.OldLocator(),
@@ -32,12 +56,21 @@ func (b *ConditionBuilder) Build() Condition {
 	return ret
 }
 
-func (b *ConditionBuilder) Message(mb *MessageBuilder) *ConditionBuilder {
+func (b *IntervalBuilder) Build() Interval {
+	ret := Interval{
+		Condition: b.BuildCondition(),
+		Display:   b.display,
+	}
+
+	return ret
+}
+
+func (b *IntervalBuilder) Message(mb *MessageBuilder) *IntervalBuilder {
 	b.structuredMessage = mb.build()
 	return b
 }
 
-func (b *ConditionBuilder) Locator(locator Locator) *ConditionBuilder {
+func (b *IntervalBuilder) Locator(locator Locator) *IntervalBuilder {
 	b.structuredLocator = locator
 	return b
 }

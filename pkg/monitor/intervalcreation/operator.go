@@ -20,7 +20,7 @@ func IntervalsFromEvents_OperatorDegraded(intervals monitorapi.Intervals, _ moni
 	return intervalsFromEvents_OperatorStatus(intervals, beginning, end, configv1.OperatorDegraded, configv1.ConditionFalse, monitorapi.Error)
 }
 
-func intervalsFromEvents_OperatorStatus(intervals monitorapi.Intervals, beginning, end time.Time, conditionType configv1.ClusterStatusConditionType, conditionGoodState configv1.ConditionStatus, level monitorapi.ConditionLevel) monitorapi.Intervals {
+func intervalsFromEvents_OperatorStatus(intervals monitorapi.Intervals, beginning, end time.Time, conditionType configv1.ClusterStatusConditionType, conditionGoodState configv1.ConditionStatus, level monitorapi.IntervalLevel) monitorapi.Intervals {
 	ret := monitorapi.Intervals{}
 	operatorToInterestingBadCondition := map[string]*configv1.ClusterOperatorStatusCondition{}
 
