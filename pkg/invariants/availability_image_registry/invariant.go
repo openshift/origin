@@ -55,8 +55,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 
-	routeName := "test-disruption"
-	w.imageRegistryRoute, err = imageregistryutil.ExposeImageRegistry(ctx, w.routeClient, routeName)
+	w.imageRegistryRoute, err = imageregistryutil.ExposeImageRegistryGenerateName(ctx, w.routeClient, "test-disruption-")
 	if err != nil {
 		return err
 	}
