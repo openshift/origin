@@ -192,6 +192,7 @@ const (
 	SourceDisruption        IntervalSource = "Disruption"
 	SourceNodeMonitor       IntervalSource = "NodeMonitor"
 	SourcePodLog            IntervalSource = "PodLog"
+	SourceNetworkManagerLog IntervalSource = "NetworkMangerLog"
 	SourcePodMonitor        IntervalSource = "PodMonitor"
 	SourceTestData          IntervalSource = "TestData" // some tests have no real source to assign
 )

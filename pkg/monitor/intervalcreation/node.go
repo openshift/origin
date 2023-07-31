@@ -276,12 +276,10 @@ func tooManyNetlinkEvents(logLine string, nodeLocator monitorapi.Locator) monito
 
 	message := logLine[strings.Index(logLine, "NetworkManager"):]
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewCondition(monitorapi.Warning).Locator(
-				nodeLocator).Message(monitorapi.NewMessage().HumanMessage(message)).Build(),
-			From: logTime,
-			To:   logTime,
-		},
+		monitorapi.NewInterval(monitorapi.SourceNetworkManagerLog, monitorapi.Warning).Locator(
+			nodeLocator).Message(monitorapi.NewMessage().HumanMessage(message)).
+			From(logTime).
+			To(logTime.Add(1 * time.Second)).Build(),
 	}
 }
 
