@@ -60,6 +60,9 @@ func (b *IntervalBuilder) Build() Interval {
 	ret := Interval{
 		Condition: b.BuildCondition(),
 		Display:   b.display,
+		From:      b.from,
+		To:        b.to,
+		Source:    b.source,
 	}
 
 	return ret
