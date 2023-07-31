@@ -38,8 +38,6 @@ var _ = g.Describe("[sig-storage][Feature:DisableStorageClass][Serial][apigroup:
 	)
 
 	g.BeforeEach(func() {
-		exutil.PreTestDump()
-
 		// find default storage class, skip if not found
 		sc := FindDefaultStorageClass(oc)
 		if sc == nil {

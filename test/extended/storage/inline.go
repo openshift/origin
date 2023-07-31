@@ -39,7 +39,6 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 			if !exutil.IsTechPreviewNoUpgrade(oc) {
 				g.Skip("this test is only expected to work with TechPreviewNoUpgrade clusters")
 			}
-			exutil.PreTestDump()
 
 			// create the secret to share in a new namespace
 			g.By("creating a secret")

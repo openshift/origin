@@ -35,8 +35,6 @@ var _ = g.Describe("[sig-storage][Feature:SecretsStore][Serial]", func() {
 	)
 
 	g.BeforeEach(func() {
-		exutil.PreTestDump()
-
 		// check if the CSIDriver exists, skip if not found
 		_, err := oc.AdminKubeClient().StorageV1().CSIDrivers().Get(ctx, csiSecretsStoreDriver, metav1.GetOptions{})
 		if err != nil {
