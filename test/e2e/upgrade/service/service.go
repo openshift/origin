@@ -132,7 +132,7 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 	ctx := context.Background()
 
 	ginkgo.By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + ns.Name)
-	tcpService, err := jig.CreateTCPService(ctx, func(s *v1.Service) {
+	tcpService, err := jig.CreateTCPServiceWithPort(ctx, func(s *v1.Service) {
 		s.Spec.Type = v1.ServiceTypeLoadBalancer
 		// ServiceExternalTrafficPolicyTypeCluster performs during disruption, Local does not
 		s.Spec.ExternalTrafficPolicy = v1.ServiceExternalTrafficPolicyTypeCluster
@@ -148,7 +148,7 @@ func (t *serviceLoadBalancerUpgradeTest) loadBalancerSetup(f *framework.Framewor
 		// - Azure is hardcoded to 15s (2 failed with 5s interval in 1.17) and is sufficient
 		// - GCP has a non-configurable interval of 32s (3 failed health checks with 8s interval in 1.17)
 		//   - thus pods need to stay up for > 32s, so pod shutdown period will will be 45s
-	})
+	}, 1337)
 	framework.ExpectNoError(err)
 	tcpService, err = jig.WaitForLoadBalancer(ctx, service.GetServiceLoadBalancerCreationTimeout(ctx, cs))
 	framework.ExpectNoError(err)
