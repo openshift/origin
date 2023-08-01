@@ -1,13 +1,12 @@
-package main
+package run
 
 import (
-	"github.com/openshift/origin/pkg/clioptions/iooptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/spf13/pflag"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // TODO collapse this with cmd_runsuite
@@ -82,7 +81,6 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 	if err != nil {
 		return nil, err
 	}
-	ginkgoOptions.SyntheticEventTests = pulledInvalidImages(f.FromRepository)
 
 	providerConfig, err := f.SuiteWithKubeTestInitializationPreSuite()
 	if err != nil {
