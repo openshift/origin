@@ -47,7 +47,7 @@ func IntervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 		delete(testNameToLastStart, testName)
 		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceE2ETest, level).Locator(event.StructuredLocator).
 			Message(monitorapi.NewMessage().
-				HumanMessagef("e2e test finished as %q", testStatus).
+				HumanMessagef("e2e test finished As %q", testStatus).
 				WithAnnotation(monitorapi.AnnotationStatus, testStatus)).
 			From(from).To(event.From).Build())
 	}
