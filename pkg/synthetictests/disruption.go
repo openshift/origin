@@ -175,25 +175,6 @@ func TestAPIServerIPTablesAccessDisruption(events monitorapi.Intervals) []*junit
 
 }
 
-func TestAllAPIBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, jobType *platformidentification.JobType) []*junitapi.JUnitTestCase {
-	disruptLocators := sets.String{}
-	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
-	for _, eventInterval := range allDisruptionEventsIntervals {
-		backend := monitorapi.DisruptionFrom(monitorapi.LocatorParts(eventInterval.Locator))
-		if strings.HasSuffix(backend, "-api") {
-			disruptLocators.Insert(eventInterval.Locator)
-		}
-	}
-	logrus.Infof("filtered %d intervals down to %d relevant to disruption", len(events), len(allDisruptionEventsIntervals))
-
-	ret := []*junitapi.JUnitTestCase{}
-	for _, locator := range disruptLocators.List() {
-		ret = append(ret, testServerAvailability("sig-api-machinery", locator, allDisruptionEventsIntervals, jobRunDuration, jobType)...)
-	}
-
-	return ret
-}
-
 func TestAllIngressBackendsForDisruption(events monitorapi.Intervals, jobRunDuration time.Duration, jobType *platformidentification.JobType) []*junitapi.JUnitTestCase {
 	disruptLocators := sets.String{}
 	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)

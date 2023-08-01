@@ -24,7 +24,7 @@ const (
 	oauthRouteName      = "oauth-openshift"
 )
 
-func StartAllIngressMonitoring(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config, _ backend.LoadBalancerType) error {
+func StartAllIngressMonitoring(ctx context.Context, m monitorapi.Recorder, clusterConfig *rest.Config, _ backend.LoadBalancerType) error {
 	// Ingress monitoring checks for oauth and console routes to monitor healthz endpoints. Check availability
 	// before setting up any monitors.
 	routeAvailable, err := isRouteAvailable(ctx, clusterConfig, oauthRouteNamespace, oauthRouteName)
