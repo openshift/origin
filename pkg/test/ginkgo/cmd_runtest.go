@@ -3,10 +3,11 @@ package ginkgo
 import (
 	"context"
 	"fmt"
-	"io"
 	"regexp"
 	"strings"
 	"time"
+
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
@@ -31,17 +32,15 @@ type TestOptions struct {
 	MonitorEventsOptions *MonitorEventsOptions
 
 	DryRun bool
-	Out    io.Writer
-	ErrOut io.Writer
+	genericclioptions.IOStreams
 }
 
 var _ ginkgo.GinkgoTestingT = &TestOptions{}
 
-func NewTestOptions(out io.Writer, errOut io.Writer) *TestOptions {
+func NewTestOptions(streams genericclioptions.IOStreams) *TestOptions {
 	return &TestOptions{
-		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
-		Out:                  out,
-		ErrOut:               errOut,
+		MonitorEventsOptions: NewMonitorEventsOptions(streams),
+		IOStreams:            streams,
 	}
 }
 
