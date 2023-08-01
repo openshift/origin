@@ -53,7 +53,7 @@ var staticSuites = []ginkgo.TestSuite{
 			if isDisabled(name) {
 				return false
 			}
-			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
+			return strings.Contains(name, "NodeLease NodeLease should have OwnerReferences set")
 		},
 		Parallelism:          30,
 		MaximumAllowedFlakes: 15,
