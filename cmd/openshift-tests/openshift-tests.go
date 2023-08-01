@@ -11,17 +11,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/testsuites"
-
-	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
-
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/cmd/monitor_command"
 	"github.com/openshift/origin/pkg/cmd/monitor_command/timeline"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
+	"github.com/openshift/origin/pkg/testsuites"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

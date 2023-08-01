@@ -147,6 +147,9 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		// 80 second delay was found to not show disruption in testing
 		rc.Spec.Template.Spec.Containers[0].Args = append(rc.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=80")
 
+		// force the image to use the "normal" global mapping.
+		//rc.Spec.Template.Spec.Containers[0].Image = image.LocationFor(rc.Spec.Template.Spec.Containers[0].Image)
+
 		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
 		minuteAndAHalf := int64(90)
 		rc.Spec.Template.Spec.TerminationGracePeriodSeconds = &minuteAndAHalf
