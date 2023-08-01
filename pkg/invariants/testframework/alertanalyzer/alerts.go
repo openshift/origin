@@ -326,7 +326,7 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 			alertIntervalTemplate :=
 				monitorapi.NewInterval(monitorapi.SourceAlert, level).
 					Locator(lb).
-					Message(monitorapi.NewMessage().HumanMessage(alert.Metric.String())).Build()
+					Message(monitorapi.NewMessage().HumanMessage(alert.Metric.String()))
 
 			var alertStartTime *time.Time
 			var lastTime *time.Time
@@ -346,10 +346,7 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 				}
 
 				// if it has been more than five seconds, consider this the start of a new occurrence and add the interval
-				currAlertInterval := alertIntervalTemplate // shallow copy
-				currAlertInterval.From = *alertStartTime
-				currAlertInterval.To = *lastTime
-				ret = append(ret, currAlertInterval)
+				ret = append(ret, alertIntervalTemplate.Build(*alertStartTime, *lastTime))
 
 				// now reset the tracking
 				alertStartTime = &currTime
@@ -363,17 +360,14 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 				t := alertStartTime.Add(5 * time.Second)
 				lastTime = &t
 			}
-			currAlertInterval := alertIntervalTemplate // shallow copy
-			currAlertInterval.From = *alertStartTime
-			currAlertInterval.To = *lastTime
-			ret = append(ret, currAlertInterval)
+			ret = append(ret, alertIntervalTemplate.Build(*alertStartTime, *lastTime))
 		}
 
 	default:
 		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceAlert, monitorapi.Error).
 			Locator(monitorapi.NewLocator().AlertFromNames("all", "", "", "", "")).
 			Message(monitorapi.NewMessage().HumanMessagef("unhandled type: %v", alerts.Type())).
-			From(startTime).To(time.Now()).Build())
+			Build(startTime, time.Now()))
 	}
 
 	return ret, nil
