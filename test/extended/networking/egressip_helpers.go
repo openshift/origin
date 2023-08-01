@@ -201,7 +201,7 @@ func findPacketSnifferInterfaceOnNode(oc *exutil.CLI, networkPlugin, nodeName st
 		return findDefaultInterfaceForOpenShiftSDN(oc, nodeName)
 	}
 	if networkPlugin == OVNKubernetesPluginName {
-		return findBridgePhysicalInterface(oc, nodeName, "br-ex")
+		return runFindBridgePhysicalInterfaceWithRetry(oc, nodeName, "br-ex")
 	}
 	return "", fmt.Errorf("Invalid network plugin name: '%s'", networkPlugin)
 }
@@ -253,6 +253,29 @@ func findDefaultInterfaceForOpenShiftSDN(oc *exutil.CLI, nodeName string) (strin
 	// Return the first default route in the list, ip route show default should correctly order routes
 	// by metric.
 	return defaultRoutes[0].Dev, nil
+}
+
+// runFindBridgePhysicalInterfaceWithRetry runs findBridgePhysicalInterface at most 5 times in case of error, after which it gives up.
+// If ever a previous test modified a CNO parameter, resulting in an ovnk rollout, findBridgePhysicalInterface
+// can fail when retrieving the name of an ovnk-node pod and later running commands on that pod, since the pod
+// in question can be subject to a rolling update.
+func runFindBridgePhysicalInterfaceWithRetry(oc *exutil.CLI, nodeName, bridgeName string) (string, error) {
+	var err error
+	var output string
+	maxRetries := 5
+
+	for numRetries := 0; numRetries < maxRetries; numRetries++ {
+		if numRetries > 0 {
+			framework.Logf("Retrying findBridgePhysicalInterface (retry count=%v/%v)", numRetries+1, maxRetries)
+		}
+
+		output, err = findBridgePhysicalInterface(oc, nodeName, bridgeName)
+		if err == nil {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return output, err
 }
 
 // findBridgePhysicalInterface returns the name of the physical interface that belogs to <bridgeName> on node <nodeName>.
