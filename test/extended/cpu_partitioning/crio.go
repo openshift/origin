@@ -139,7 +139,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 
 		for _, node := range nodes.Items {
 			// Collect the container data from the node
-			crioData, err := collectContainerInfo(ctx, oc, node)
+			crioData, err := collectContainerInfo(ctx, oc, node, isClusterCPUPartitioned)
 			o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("error getting crio container data from node %s", node.Name))
 
 			// When the cluster is CPU Partitioned there should always be pods with workload annotations. However,
@@ -258,7 +258,7 @@ func getExpectedCPUSetConstraints(ctx context.Context, oc *exutil.CLI, isCluster
 
 // Execute collection script on machine-config-daemon of every node. Marshal the results to get a list of containers
 // running in the cluster.
-func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node) ([]crioContainerData, error) {
+func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node, isClusterCPUPartitioned bool) ([]crioContainerData, error) {
 
 	listOptions := metav1.ListOptions{
 		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String(),
@@ -312,6 +312,9 @@ func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node)
 			}
 			if outStdErr != "" {
 				return fmt.Errorf("err execing command %s", outStdErr)
+			}
+			if isClusterCPUPartitioned && len(out) == 0 {
+				return fmt.Errorf("err execing command, script result was empty but expected values")
 			}
 			if err := json.Unmarshal([]byte(out), &info); err != nil {
 				return fmt.Errorf("error parsing container output to json: %w", err)
