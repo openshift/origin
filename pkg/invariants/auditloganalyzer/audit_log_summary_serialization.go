@@ -1,4 +1,4 @@
-package nodedetails
+package auditloganalyzer
 
 import (
 	"sort"

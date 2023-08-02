@@ -6,8 +6,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
@@ -40,12 +38,12 @@ func CalculateMoreIntervals(startingIntervals []monitorapi.Interval, recordedRes
 }
 
 // IntervalsFromCluster contacts the cluster, retrieves information deemed pertinent, and creates intervals for them.
-func IntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, from, to time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
+func IntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, from, to time.Time) (monitorapi.Intervals, error) {
 	ret := monitorapi.Intervals{}
 
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		return nil, ret, err
+		return ret, err
 	}
 
 	allErrors := []error{}
@@ -62,11 +60,5 @@ func IntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, from, to
 	}
 	ret = append(ret, apiserverAvailabilityIntervals...)
 
-	auditLogSummary, auditEvents, err := IntervalsFromAuditLogs(ctx, kubeClient, from, to)
-	if err != nil {
-		allErrors = append(allErrors, err)
-	}
-	ret = append(ret, auditEvents...)
-
-	return auditLogSummary, ret, utilerrors.NewAggregate(allErrors)
+	return ret, utilerrors.NewAggregate(allErrors)
 }

@@ -1,14 +1,11 @@
 package intervalcreation
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -82,17 +79,4 @@ func IntervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 	intervals = append(intervals, nodeStateTracker.CloseAllIntervals(locatorToMessageAnnotations, end)...)
 
 	return intervals
-}
-
-func IntervalsFromAuditLogs(ctx context.Context, kubeClient kubernetes.Interface, beginning, end time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
-	ret := monitorapi.Intervals{}
-
-	// TODO honor begin and end times.  maybe
-	auditLogSummary, err := nodedetails.GetKubeAuditLogSummary(ctx, kubeClient)
-	if err != nil {
-		// TODO report the error AND the best possible summary we have
-		return auditLogSummary, nil, err
-	}
-
-	return auditLogSummary, ret, nil
 }

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/client/nodedetails"
+
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,7 +29,6 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 )
 

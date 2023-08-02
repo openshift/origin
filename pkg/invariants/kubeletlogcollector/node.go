@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strconv"
@@ -15,13 +16,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/client-go/kubernetes"
 )
 
-func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface, beginning, end time.Time) (monitorapi.Intervals, error) {
+func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface, beginning, end time.Time) (monitorapi.Intervals, error) {
 	ret := monitorapi.Intervals{}
 
 	allNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
@@ -39,7 +38,7 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			defer wg.Done()
 
 			// TODO limit by begin/end here instead of post-processing
-			nodeLogs, err := nodedetails.GetNodeLog(ctx, kubeClient, nodeName, "kubelet")
+			nodeLogs, err := getNodeLog(ctx, kubeClient, nodeName, "kubelet")
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error getting node logs from %s: %s", nodeName, err.Error())
 				errCh <- err
@@ -47,7 +46,7 @@ func IntervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			}
 			newEvents := eventsFromKubeletLogs(nodeName, nodeLogs)
 
-			ovsVswitchdLogs, err := nodedetails.GetNodeLog(ctx, kubeClient, nodeName, "ovs-vswitchd")
+			ovsVswitchdLogs, err := getNodeLog(ctx, kubeClient, nodeName, "ovs-vswitchd")
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error getting node ovs-vswitchd logs from %s: %s", nodeName, err.Error())
 				errCh <- err
@@ -562,4 +561,25 @@ func systemdJournalLogTime(logLine string) time.Time {
 	}
 
 	return ret
+}
+
+// getNodeLog returns logs for a particular systemd service on a given node.
+// We're count on these logs to fit into some reasonable memory size.
+func getNodeLog(ctx context.Context, client kubernetes.Interface, nodeName, systemdServiceName string) ([]byte, error) {
+	path := client.CoreV1().RESTClient().Get().
+		Namespace("").Name(nodeName).
+		Resource("nodes").SubResource("proxy", "logs").Suffix("journal").URL().Path
+
+	req := client.CoreV1().RESTClient().Get().RequestURI(path).
+		SetHeader("Accept", "text/plain, */*")
+	req.Param("since", "-1d")
+	req.Param("unit", systemdServiceName)
+
+	in, err := req.Stream(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer in.Close()
+
+	return ioutil.ReadAll(in)
 }

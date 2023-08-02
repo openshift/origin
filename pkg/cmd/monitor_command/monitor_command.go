@@ -1,8 +1,8 @@
 package monitor_command
 
 import (
+	summarize_audit_logs "github.com/openshift/origin/pkg/cmd/monitor_command/summarize-audit-logs"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +12,7 @@ func NewMonitorCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 	cmd.AddCommand(
-		nodedetails.AuditLogSummaryCommand(),
+		summarize_audit_logs.AuditLogSummaryCommand(),
 		apiserveravailability.LogSummaryCommand(),
 	)
 	return cmd

@@ -29,7 +29,7 @@ func (w *kubeletLogCollector) CollectData(ctx context.Context, storageDir string
 	if err != nil {
 		return nil, nil, err
 	}
-	intervals, err := IntervalsFromNodeLogs(ctx, kubeClient, beginning, end)
+	intervals, err := intervalsFromNodeLogs(ctx, kubeClient, beginning, end)
 	return intervals, nil, err
 }
 

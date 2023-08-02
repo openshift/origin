@@ -1,8 +1,10 @@
-package nodedetails
+package summarize_audit_logs
 
 import (
 	"context"
 	"os"
+
+	"github.com/openshift/origin/pkg/invariants/auditloganalyzer"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -53,12 +55,12 @@ func (o auditLogSummaryOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	auditLogSummary, err := GetKubeAuditLogSummary(ctx, kubeClient)
+	auditLogSummary, err := auditloganalyzer.GetKubeAuditLogSummary(ctx, kubeClient)
 	if err != nil {
 		return err
 	}
 
-	if err := WriteAuditLogSummary(o.ArtifactDir, "", auditLogSummary); err != nil {
+	if err := auditloganalyzer.WriteAuditLogSummary(o.ArtifactDir, "", auditLogSummary); err != nil {
 		return err
 	}
 

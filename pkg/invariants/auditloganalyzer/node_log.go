@@ -1,4 +1,4 @@
-package nodedetails
+package auditloganalyzer
 
 import (
 	"bufio"
@@ -6,45 +6,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"github.com/openshift/origin/pkg/client/nodedetails"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 )
-
-// GetNodeLog returns logs for a particular systemd service on a given node.
-// We're count on these logs to fit into some reasonable memory size.
-func GetNodeLog(ctx context.Context, client kubernetes.Interface, nodeName, systemdServiceName string) ([]byte, error) {
-	path := client.CoreV1().RESTClient().Get().
-		Namespace("").Name(nodeName).
-		Resource("nodes").SubResource("proxy", "logs").Suffix("journal").URL().Path
-
-	req := client.CoreV1().RESTClient().Get().RequestURI(path).
-		SetHeader("Accept", "text/plain, */*")
-	req.Param("since", "-1d")
-	req.Param("unit", systemdServiceName)
-
-	in, err := req.Stream(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer in.Close()
-
-	return ioutil.ReadAll(in)
-}
 
 func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface) (*AuditLogSummary, error) {
 	masterOnly, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Exists, nil)
@@ -119,7 +94,7 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 		go func(ctx context.Context, auditLogFilename string) {
 			defer wg.Done()
 
-			auditStream, err := streamNodeLogFile(ctx, client, nodeName, filepath.Join(apiserver, auditLogFilename))
+			auditStream, err := nodedetails.StreamNodeLogFile(ctx, client, nodeName, filepath.Join(apiserver, auditLogFilename))
 			if err != nil {
 				errCh <- err
 				return
@@ -166,68 +141,13 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 	return fullSummary, utilerrors.NewAggregate(errs)
 }
 
-// this is copy/pasted from the oc node logs impl
-func GetDirectoryListing(in io.Reader) ([]string, error) {
-	filenames := []string{}
-	bufferSize := 4096
-	buf := bufio.NewReaderSize(in, bufferSize)
-
-	// turn href links into lines of output
-	content, _ := buf.Peek(bufferSize)
-	if bytes.HasPrefix(content, []byte("<pre>")) {
-		reLink := regexp.MustCompile(`href="([^"]+)"`)
-		s := bufio.NewScanner(buf)
-		s.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-			matches := reLink.FindSubmatchIndex(data)
-			if matches == nil {
-				advance = bytes.LastIndex(data, []byte("\n"))
-				if advance == -1 {
-					advance = 0
-				}
-				return advance, nil, nil
-			}
-			advance = matches[1]
-			token = data[matches[2]:matches[3]]
-			return advance, token, nil
-		})
-		for s.Scan() {
-			filename := s.Text()
-			filenames = append(filenames, filename)
-		}
-		return filenames, s.Err()
-	}
-
-	return nil, fmt.Errorf("not a directory listing")
-}
-
-func streamNodeLogFile(ctx context.Context, client kubernetes.Interface, nodeName, filename string) (io.ReadCloser, error) {
-	path := client.CoreV1().RESTClient().Get().
-		Namespace("").Name(nodeName).
-		Resource("nodes").SubResource("proxy", "logs").Suffix(filename).URL().Path
-
-	req := client.CoreV1().RESTClient().Get().RequestURI(path).
-		SetHeader("Accept", "text/plain, */*")
-
-	return req.Stream(ctx)
-}
-
-func GetNodeLogFile(ctx context.Context, client kubernetes.Interface, nodeName, filename string) ([]byte, error) {
-	in, err := streamNodeLogFile(ctx, client, nodeName, filename)
-	if err != nil {
-		return nil, err
-	}
-	defer in.Close()
-
-	return ioutil.ReadAll(in)
-}
-
 func getAuditLogFilenames(ctx context.Context, client kubernetes.Interface, nodeName, apiserverName string) ([]string, error) {
-	allBytes, err := GetNodeLogFile(ctx, client, nodeName, apiserverName)
+	allBytes, err := nodedetails.GetNodeLogFile(ctx, client, nodeName, apiserverName)
 	if err != nil {
 		return nil, err
 	}
 
-	filenames, err := GetDirectoryListing(bytes.NewBuffer(allBytes))
+	filenames, err := nodedetails.GetDirectoryListing(bytes.NewBuffer(allBytes))
 	if err != nil {
 		return nil, err
 	}

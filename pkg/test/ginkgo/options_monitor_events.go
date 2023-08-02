@@ -13,7 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
@@ -27,8 +26,15 @@ type MonitorEventsOptions struct {
 	monitor   *monitor.Monitor
 	startTime *time.Time
 	endTime   *time.Time
+<<<<<<< HEAD
 	// auditLogSummary is written during Stop
 	auditLogSummary *nodedetails.AuditLogSummary
+=======
+	// recordedEvents is written during Stop
+	recordedEvents monitorapi.Intervals
+	// recordedResource is written during Stop
+	recordedResources monitorapi.ResourcesMap
+>>>>>>> e52ba7cb9d (move audit log collection to invariantTest)
 
 	genericclioptions.IOStreams
 	storageDir                 string
@@ -141,7 +147,7 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 
 	// this happens before calculation because events collected here could be used to drive later calculations
 	var newEvents monitorapi.Intervals
-	o.auditLogSummary, newEvents, err = intervalcreation.IntervalsFromCluster(ctx, restConfig, fromTime, endTime)
+	newEvents, err = intervalcreation.IntervalsFromCluster(ctx, restConfig, fromTime, endTime)
 	if err != nil {
 		fmt.Fprintf(o.ErrOut, "IntervalsFromCluster error but continuing processing: %v", err)
 	}
@@ -176,12 +182,6 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 	}
 
 	errs := []error{}
-
-	if o.auditLogSummary != nil {
-		if currErr := nodedetails.WriteAuditLogSummary(artifactDir, timeSuffix, o.auditLogSummary); currErr != nil {
-			errs = append(errs, currErr)
-		}
-	}
 
 	return utilerrors.NewAggregate(errs)
 }
