@@ -3,6 +3,8 @@ package defaultinvariants
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/invariants/kubeletlogcollector"
+
 	"github.com/openshift/origin/pkg/invariants/uploadtolokiserializer"
 
 	"github.com/openshift/origin/pkg/invariants"
@@ -84,6 +86,8 @@ func newUniversalInvariants() invariants.InvariantRegistry {
 	invariantTests.AddInvariantOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
 	invariantTests.AddInvariantOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
 	invariantTests.AddInvariantOrDie("upload-to-loki-serializer", "Test Framework", uploadtolokiserializer.NewUploadSerializer())
+
+	invariantTests.AddInvariantOrDie("kubelet-log-collector", "Node", kubeletlogcollector.NewKubeletLogCollector())
 
 	return invariantTests
 }

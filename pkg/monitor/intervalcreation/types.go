@@ -49,11 +49,6 @@ func IntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, from, to
 	}
 
 	allErrors := []error{}
-	nodeIntervals, err := IntervalsFromNodeLogs(ctx, kubeClient, from, to)
-	if err != nil {
-		allErrors = append(allErrors, err)
-	}
-	ret = append(ret, nodeIntervals...)
 
 	podLogIntervals, err := IntervalsFromPodLogs(kubeClient, from, to)
 	if err != nil {

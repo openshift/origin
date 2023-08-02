@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -177,15 +176,6 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 	}
 
 	errs := []error{}
-
-	// use custom sorting here so that we can prioritize the sort order to make the intervals html page as readable
-	// as possible. This makes the events *not* sorted by time.
-	finalEvents := o.monitor.Intervals(*o.startTime, *o.endTime)
-	events := make([]monitorapi.Interval, len(finalEvents))
-	for i := range finalEvents {
-		events[i] = finalEvents[i]
-	}
-	sort.Stable(monitorapi.ByTimeWithNamespacedPods(events))
 
 	if o.auditLogSummary != nil {
 		if currErr := nodedetails.WriteAuditLogSummary(artifactDir, timeSuffix, o.auditLogSummary); currErr != nil {
