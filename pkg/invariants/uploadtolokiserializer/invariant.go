@@ -1,7 +1,8 @@
-package monitor
+package uploadtolokiserializer
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,11 +14,53 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/util/retry"
 
+	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 )
+
+type lokiSerializer struct {
+}
+
+func NewUploadSerializer() invariants.InvariantTest {
+	return &lokiSerializer{}
+}
+
+func (w *lokiSerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	return nil
+}
+
+func (w *lokiSerializer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	return nil, nil, nil
+}
+
+func (*lokiSerializer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	return nil, nil
+}
+
+func (*lokiSerializer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	return nil, nil
+}
+
+func (*lokiSerializer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	fmt.Fprintf(os.Stderr, "Uploading to loki.\n")
+	if err := UploadIntervalsToLoki(finalIntervals); err != nil {
+		// Best effort, we do not want to error out here:
+		// TODO do we need to have a junit return option from this function to allow us to find failures?
+		logrus.WithError(err).Warn("unable to upload intervals to loki")
+	}
+
+	return nil
+}
+
+func (*lokiSerializer) Cleanup(ctx context.Context) error {
+	// TODO wire up the start to a context we can kill here
+	return nil
+}
 
 const (
 	batchSize = 500

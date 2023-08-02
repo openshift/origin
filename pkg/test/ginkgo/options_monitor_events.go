@@ -24,16 +24,6 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type RunDataWriter interface {
-	WriteRunData(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error
-}
-
-type RunDataWriterFunc func(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error
-
-func (fn RunDataWriterFunc) WriteRunData(artifactDir string, recordedResources monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
-	return fn(artifactDir, recordedResources, events, timeSuffix)
-}
-
 type MonitorEventsOptions struct {
 	monitor   *monitor.Monitor
 	startTime *time.Time
@@ -196,15 +186,6 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 		events[i] = finalEvents[i]
 	}
 	sort.Stable(monitorapi.ByTimeWithNamespacedPods(events))
-
-	// TODO: Re-sort for loki, where we need these to go    in chronologically, and based on the
-	// above comments that would not be the case otherwise.
-	sort.Sort(monitorapi.Intervals(events))
-	err := monitor.UploadIntervalsToLoki(events)
-	if err != nil {
-		// Best effort, we do not want to error out here:
-		logrus.WithError(err).Warn("unable to upload intervals to loki")
-	}
 
 	if o.auditLogSummary != nil {
 		if currErr := nodedetails.WriteAuditLogSummary(artifactDir, timeSuffix, o.auditLogSummary); currErr != nil {

@@ -13,7 +13,6 @@ import (
 
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/invariants"
 
@@ -205,12 +204,6 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 	fmt.Fprintf(os.Stderr, "Doing cleanup that needs to be moved.\n")
 	if err := sampler.TearDownInClusterMonitors(m.adminKubeConfig); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write events from in-cluster monitors, err: %v\n", err)
-	}
-
-	fmt.Fprintf(os.Stderr, "Uploading to loki.\n")
-	if err := UploadIntervalsToLoki(finalIntervals); err != nil {
-		// Best effort, we do not want to error out here:
-		logrus.WithError(err).Warn("unable to upload intervals to loki")
 	}
 
 	fmt.Fprintf(os.Stderr, "Writing junits.\n")
