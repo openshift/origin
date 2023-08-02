@@ -93,6 +93,7 @@ var (
 		"cluster-autoscaler",
 		"config-operator",
 		"console",
+		"control-plane-machine-set",
 		"csi-snapshot-controller",
 		"dns",
 		"etcd",
@@ -135,6 +136,7 @@ func init() {
 	utilruntime.Must(addOperatorMapping("cluster-autoscaler", "Cloud Compute"))
 	utilruntime.Must(addOperatorMapping("config-operator", "config-operator"))
 	utilruntime.Must(addOperatorMapping("console", "Management Console"))
+	utilruntime.Must(addOperatorMapping("control-plane-machine-set", "Cloud Compute"))
 	utilruntime.Must(addOperatorMapping("csi-snapshot-controller", "Storage"))
 	utilruntime.Must(addOperatorMapping("dns", "DNS"))
 	utilruntime.Must(addOperatorMapping("etcd", "Etcd"))

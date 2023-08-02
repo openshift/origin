@@ -14,7 +14,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 )
 
@@ -39,11 +38,10 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	}
 	duration := stop.Sub(start).Seconds()
 
-	knownOperators := sets.NewString(platformidentification.KnownOperators.List()...)
 	eventsByOperator := getEventsByOperator(events)
 	e2eEventIntervals := monitor.E2ETestEventIntervals(events)
 	for _, condition := range conditionTypes {
-		for _, operatorName := range knownOperators.List() {
+		for _, operatorName := range platformidentification.KnownOperators.List() {
 			bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
 			if bzComponent == "Unknown" {
 				bzComponent = operatorName
