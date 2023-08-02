@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func startNodeMonitoring(ctx context.Context, m monitorapi.Recorder, client kubernetes.Interface) {
+func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
 	nodeReadyFn := func(node, oldNode *corev1.Node) []monitorapi.Condition {
 		isCreate := false
 		if oldNode == nil {

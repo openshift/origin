@@ -123,18 +123,6 @@ func (t *testCase) Retry() *testCase {
 	return copied
 }
 
-type ClusterStabilityDuringTest string
-
-var (
-	// Stable means that at no point during testing do we expect a component to take downtime and upgrades are not happening.
-	Stable ClusterStabilityDuringTest = "Stable"
-	// TODO only bring this back if we have some reason to collect Upgrade specific information.  I can't think of reason.
-	// TODO please contact @deads2k for vetting if you think you found something
-	//Upgrade    ClusterStabilityDuringTest = "Upgrade"
-	// Disruptive means that the suite is expected to induce outages to the cluster.
-	Disruptive ClusterStabilityDuringTest = "Disruptive"
-)
-
 type TestSuite struct {
 	Name        string
 	Description string
@@ -150,8 +138,6 @@ type TestSuite struct {
 
 	// SyntheticEventTests is a set of suite level synthetics applied
 	SyntheticEventTests JUnitsForEvents
-
-	ClusterStabilityDuringTest ClusterStabilityDuringTest
 
 	TestTimeout time.Duration
 }

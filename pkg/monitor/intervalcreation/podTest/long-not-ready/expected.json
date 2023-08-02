@@ -1,0 +1,140 @@
+{
+    "items": [
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+            "message": "constructed/pod-lifecycle-constructor reason/Created",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-22T18:48:41Z",
+            "to": "2022-03-22T19:00:26Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/fix-audit-permissions",
+            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-22T18:48:41Z",
+            "to": "2022-03-22T18:49:50Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver",
+            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-22T18:48:41Z",
+            "to": "2022-03-22T19:00:26Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver-check-endpoints",
+            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-22T18:48:41Z",
+            "to": "2022-03-22T19:00:26Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/fix-audit-permissions",
+            "message": "constructed/pod-lifecycle-constructor reason/Ready",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-22T18:49:50Z",
+            "to": "2022-03-22T18:49:50Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-142-23.us-east-2.compute.internal reason/Scheduled",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-22T19:00:26Z",
+            "to": "2022-03-22T19:11:18Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver",
+            "message": "constructed/pod-lifecycle-constructor reason/Ready",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-22T19:00:26Z",
+            "to": "2022-03-22T19:11:18Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver-check-endpoints",
+            "message": "constructed/pod-lifecycle-constructor reason/Ready",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-22T19:00:26Z",
+            "to": "2022-03-22T19:11:18Z"
+        }
+    ]
+}

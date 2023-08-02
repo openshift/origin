@@ -101,7 +101,7 @@ func (c *consumer) Consume(event *corev1.Event) {
 	condition := complete(start, end)
 	// these logs can be useful to debug if the windows are not displayed correctly
 	framework.Logf("GracefulShutdownEvent - Start: %+v", start)
-	framework.Logf("GracefulShutdownEvent - Stop: %+v", end)
+	framework.Logf("GracefulShutdownEvent - End: %+v", end)
 	framework.Logf(condition.Message)
 	intervalID := c.monitor.StartInterval(timeOf(start), condition)
 	c.monitor.EndInterval(intervalID, timeOf(end))

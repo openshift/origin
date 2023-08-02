@@ -1,0 +1,72 @@
+{
+    "items": [
+        {
+            "level": "Info",
+            "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+            "message": "constructed/pod-lifecycle-constructor reason/Created",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-08T23:17:18Z",
+            "to": "2022-03-08T23:17:18Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-231-18.us-east-2.compute.internal reason/Scheduled",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-08T23:17:18Z",
+            "to": "2022-03-10T23:00:00Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
+            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-08T23:17:18Z",
+            "to": "2022-03-08T23:17:18Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
+            "message": "constructed/pod-lifecycle-constructor reason/Ready",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-08T23:17:18Z",
+            "to": "2022-03-10T23:00:00Z"
+        }
+    ]
+}
