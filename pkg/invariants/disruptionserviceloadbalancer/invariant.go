@@ -84,7 +84,11 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 	// ovirt does not support service type loadbalancer because it doesn't program a cloud.
-	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType || infra.Status.PlatformStatus.Type == configv1.KubevirtPlatformType || infra.Status.PlatformStatus.Type == configv1.LibvirtPlatformType || infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType || infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
+	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType ||
+		infra.Status.PlatformStatus.Type == configv1.KubevirtPlatformType ||
+		infra.Status.PlatformStatus.Type == configv1.LibvirtPlatformType ||
+		infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType ||
+		infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
 		w.notSupportedReason = fmt.Sprintf("platform %q is not supported", infra.Status.PlatformStatus.Type)
 	}
 	// single node clusters are not supported because the replication controller has 2 replicas with anti-affinity for running on the same node.
@@ -205,7 +209,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 }
 
 func (w *availability) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	if len(w.notSupportedReason) == 0 {
+	if len(w.notSupportedReason) > 0 {
 		return nil, nil, nil
 	}
 
@@ -217,7 +221,7 @@ func (*availability) ConstructComputedIntervals(ctx context.Context, startingInt
 }
 
 func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	if len(w.notSupportedReason) == 0 {
+	if len(w.notSupportedReason) > 0 {
 		return nil, nil
 	}
 	if w.suppressJunit {
