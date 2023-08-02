@@ -26,15 +26,6 @@ type MonitorEventsOptions struct {
 	monitor   *monitor.Monitor
 	startTime *time.Time
 	endTime   *time.Time
-<<<<<<< HEAD
-	// auditLogSummary is written during Stop
-	auditLogSummary *nodedetails.AuditLogSummary
-=======
-	// recordedEvents is written during Stop
-	recordedEvents monitorapi.Intervals
-	// recordedResource is written during Stop
-	recordedResources monitorapi.ResourcesMap
->>>>>>> e52ba7cb9d (move audit log collection to invariantTest)
 
 	genericclioptions.IOStreams
 	storageDir                 string
@@ -144,14 +135,6 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 
 	// make sure that the end time is *after* the final availability samples.
 	fromTime, endTime := *o.startTime, *o.endTime
-
-	// this happens before calculation because events collected here could be used to drive later calculations
-	var newEvents monitorapi.Intervals
-	newEvents, err = intervalcreation.IntervalsFromCluster(ctx, restConfig, fromTime, endTime)
-	if err != nil {
-		fmt.Fprintf(o.ErrOut, "IntervalsFromCluster error but continuing processing: %v", err)
-	}
-	o.monitor.AddIntervals(newEvents...) // add intervals to the recorded events, not just the random copy
 
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, *o.startTime)

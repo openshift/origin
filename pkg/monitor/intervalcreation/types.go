@@ -1,15 +1,9 @@
 package intervalcreation
 
 import (
-	"context"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type simpleIntervalCreationFunc func(intervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals
@@ -35,24 +29,4 @@ func CalculateMoreIntervals(startingIntervals []monitorapi.Interval, recordedRes
 	}
 
 	return ret
-}
-
-// IntervalsFromCluster contacts the cluster, retrieves information deemed pertinent, and creates intervals for them.
-func IntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, from, to time.Time) (monitorapi.Intervals, error) {
-	ret := monitorapi.Intervals{}
-
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		return ret, err
-	}
-
-	allErrors := []error{}
-
-	apiserverAvailabilityIntervals, err := apiserveravailability.APIServerAvailabilityIntervalsFromCluster(kubeClient, from, to)
-	if err != nil {
-		allErrors = append(allErrors, err)
-	}
-	ret = append(ret, apiserverAvailabilityIntervals...)
-
-	return ret, utilerrors.NewAggregate(allErrors)
 }
