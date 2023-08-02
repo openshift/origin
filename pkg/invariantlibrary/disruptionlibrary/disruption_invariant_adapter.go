@@ -58,22 +58,17 @@ func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, [
 	// when it is time to collect data, we need to stop the collectors.  they both  have to drain, so stop in parallel
 	wg := sync.WaitGroup{}
 
-	if w.newConnectionDisruptionSampler != nil {
-		wg.Add(1)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.newConnectionDisruptionSampler.Stop()
+	}()
 
-		go func() {
-			defer wg.Done()
-			w.newConnectionDisruptionSampler.Stop()
-		}()
-	}
-	if w.reusedConnectionDisruptionSampler != nil {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-			w.reusedConnectionDisruptionSampler.Stop()
-		}()
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		w.reusedConnectionDisruptionSampler.Stop()
+	}()
 
 	wg.Wait()
 

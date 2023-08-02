@@ -57,7 +57,7 @@ func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig
 		testName := fmt.Sprintf("[Jira:%q] invariant test %v setup", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		err := invariant.invariantTest.StartCollection(ctx, adminRESTConfig, recorder)
+		err := startCollectionWithPanicProtection(ctx, invariant.invariantTest, adminRESTConfig, recorder)
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
@@ -91,7 +91,7 @@ func (r *invariantRegistry) CollectData(ctx context.Context, storageDir string, 
 		testName := fmt.Sprintf("[Jira:%q] invariant test %v collection", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx, storageDir, beginning, end)
+		localIntervals, localJunits, err := collectDataWithPanicProtection(ctx, invariant.invariantTest, storageDir, beginning, end)
 		junits = append(junits, localJunits...)
 		intervals = append(intervals, localIntervals...)
 		end := time.Now()
@@ -127,7 +127,7 @@ func (r *invariantRegistry) ConstructComputedIntervals(ctx context.Context, star
 		testName := fmt.Sprintf("[Jira:%q] invariant test %v interval construction", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		localIntervals, err := invariant.invariantTest.ConstructComputedIntervals(ctx, startingIntervals, recordedResources, beginning, end)
+		localIntervals, err := constructComputedIntervalsWithPanicProtection(ctx, invariant.invariantTest, startingIntervals, recordedResources, beginning, end)
 		intervals = append(intervals, localIntervals...)
 		end := time.Now()
 		duration := end.Sub(start)
@@ -161,7 +161,7 @@ func (r *invariantRegistry) EvaluateTestsFromConstructedIntervals(ctx context.Co
 		testName := fmt.Sprintf("[Jira:%q] invariant test %v test evaluation", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		localJunits, err := invariant.invariantTest.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
+		localJunits, err := evaluateTestsFromConstructedIntervalsWithPanicProtection(ctx, invariant.invariantTest, finalIntervals)
 		junits = append(junits, localJunits...)
 		end := time.Now()
 		duration := end.Sub(start)
@@ -195,7 +195,7 @@ func (r *invariantRegistry) WriteContentToStorage(ctx context.Context, storageDi
 		testName := fmt.Sprintf("[Jira:%q] invariant test %v writing to storage", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		err := invariant.invariantTest.WriteContentToStorage(ctx, storageDir, timeSuffix, finalIntervals, finalResourceState)
+		err := writeContentToStorageWithPanicProtection(ctx, invariant.invariantTest, storageDir, timeSuffix, finalIntervals, finalResourceState)
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
@@ -228,7 +228,7 @@ func (r *invariantRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTestC
 		testName := fmt.Sprintf("[Jira:%q] invariant test %v cleanup", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		err := invariant.invariantTest.Cleanup(ctx)
+		err := cleanupWithPanicProtection(ctx, invariant.invariantTest)
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {

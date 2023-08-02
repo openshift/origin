@@ -129,7 +129,8 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	fmt.Fprintf(os.Stderr, "Collecting data.\n")
 	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, time.Time{}, time.Time{}) // collect data for all the time.
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error collecting data, continuing, junit will reflect this. %v\n", err)
 	}
 	m.recorder.AddIntervals(collectedIntervals...)
 	m.junits = append(m.junits, collectionJunits...)
@@ -142,7 +143,8 @@ func (m *Monitor) Stop(ctx context.Context) error {
 		m.startTime, // still allow computation to understand the begining and end for bounding.  TODO: Maybe we don't need this?
 		m.stopTime)  // still allow computation to understand the begining and end for bounding.  TODO: Maybe we don't need this?
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error computing intervals, continuing, junit will reflect this. %v\n", err)
 	}
 	m.recorder.AddIntervals(computedIntervals...)
 	m.junits = append(m.junits, computedJunit...)
@@ -153,14 +155,16 @@ func (m *Monitor) Stop(ctx context.Context) error {
 		m.recorder.Intervals(time.Time{}, time.Time{}), // evaluate the tests on *all* the intervals.
 	)
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error evaluating tests, continuing, junit will reflect this. %v\n", err)
 	}
 	m.junits = append(m.junits, invariantJunits...)
 
 	fmt.Fprintf(os.Stderr, "Cleaning up.\n")
 	cleanupJunits, err := m.invariantRegistry.Cleanup(ctx)
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error cleaning up, continuing, junit will reflect this. %v\n", err)
 	}
 	m.junits = append(m.junits, cleanupJunits...)
 
@@ -184,7 +188,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
+	fmt.Fprintf(os.Stderr, "Writing to storage.\n")
 	invariantJunits, err := m.invariantRegistry.WriteContentToStorage(
 		ctx,
 		m.storageDir,
@@ -193,7 +197,8 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 		finalResources,
 	)
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error writing to storage, continuing, junit will reflect this. %v\n", err)
 	}
 	m.junits = append(m.junits, invariantJunits...)
 
