@@ -38,6 +38,10 @@ func NewAvailabilityInvariant(
 }
 
 func (w *Availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	if w == nil {
+		return fmt.Errorf("unable to start collection because instance is nil")
+	}
+
 	var err error
 	w.jobType, err = platformidentification.GetJobType(ctx, adminRESTConfig)
 	if err != nil {
@@ -55,6 +59,10 @@ func (w *Availability) StartCollection(ctx context.Context, adminRESTConfig *res
 }
 
 func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if w == nil {
+		return nil, nil, fmt.Errorf("unable to collected data because instance is nil")
+	}
+
 	// when it is time to collect data, we need to stop the collectors.  they both  have to drain, so stop in parallel
 	wg := sync.WaitGroup{}
 
@@ -152,6 +160,9 @@ func (w *Availability) junitForReusedConnections(ctx context.Context, finalInter
 }
 
 func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if w == nil {
+		return nil, fmt.Errorf("unable to evaluate tests because instance is nil")
+	}
 
 	newConnectionJunit, err := w.junitForNewConnections(ctx, finalIntervals)
 	if err != nil {

@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/service"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
@@ -165,7 +164,9 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 
 	fmt.Fprintf(os.Stderr, "creating a PodDisruptionBudget to cover the ReplicationController\n")
 	_, err = jig.CreatePDB(ctx, rc)
-	framework.ExpectNoError(err)
+	if err != nil {
+		return fmt.Errorf("error creating PDB: %w", err)
+	}
 
 	// Hit it once before considering ourselves ready
 	fmt.Fprintf(os.Stderr, "hitting pods through the service's LoadBalancer\n")
