@@ -39,7 +39,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	}
 	duration := stop.Sub(start).Seconds()
 
-	knownOperators := allOperators(events)
+	knownOperators := sets.NewString(platformidentification.KnownOperators.List()...)
 	eventsByOperator := getEventsByOperator(events)
 	e2eEventIntervals := monitor.E2ETestEventIntervals(events)
 	for _, condition := range conditionTypes {
@@ -256,21 +256,6 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 	}
 
 	return []*junitapi.JUnitTestCase{success}
-}
-
-func allOperators(events monitorapi.Intervals) sets.String {
-	// start with a list of known values
-	knownOperators := sets.NewString(platformidentification.KnownOperators.List()...)
-
-	// now add all the operators we see in the events.
-	for _, event := range events {
-		operatorName, ok := monitorapi.OperatorFromLocator(event.Locator)
-		if !ok {
-			continue
-		}
-		knownOperators.Insert(operatorName)
-	}
-	return knownOperators
 }
 
 // getEventsByOperator returns map keyed by operator locator with all events associated with it.
