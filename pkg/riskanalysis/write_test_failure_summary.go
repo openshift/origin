@@ -38,14 +38,10 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 	// If we can't parse this, we submit without it, it is not required.
 	jobRunID, _ := strconv.Atoi(os.Getenv("BUILD_ID"))
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
 	jr := ProwJobRun{
 		ID:          jobRunID,
 		ProwJob:     ProwJob{Name: os.Getenv("JOB_NAME")},
-		ClusterData: monitor.CollectClusterData(restConfig, wasMasterNodeUpdated),
+		ClusterData: monitor.CollectClusterData(wasMasterNodeUpdated),
 		Tests:       []ProwJobRunTest{},
 		TestCount:   len(tests),
 	}

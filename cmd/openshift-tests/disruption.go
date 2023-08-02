@@ -10,8 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -97,7 +95,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	recorder, err := StartAPIAvailability(ctx, restConfig, lb)
+	m, err := StartAPIAvailability(ctx, restConfig, lb)
 	if err != nil {
 		return err
 	}
@@ -113,7 +111,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 			case <-ctx.Done():
 				done = true
 			}
-			events := recorder.Intervals(last, time.Time{})
+			events := m.Intervals(last, time.Time{})
 			if len(events) > 0 {
 				for _, event := range events {
 					if !event.From.Equal(event.To) {
@@ -129,7 +127,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	<-ctx.Done()
 
 	// Store intervals to artifact directory
-	intervals := recorder.Intervals(time.Time{}, time.Time{})
+	intervals := m.Intervals(time.Time{}, time.Time{})
 	if len(opt.ExtraMessage) > 0 {
 		fmt.Fprintf(opt.Out, "\nAppending %s to recorded event message\n", opt.ExtraMessage)
 		for i, event := range intervals {
@@ -144,7 +142,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	}
 
 	timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
-	if err := monitorserialization.EventsToFile(filepath.Join(eventDir, fmt.Sprintf("e2e-events%s.json", timeSuffix)), intervals); err != nil {
+	if err := monitor.WriteEventsForJobRun(eventDir, nil, intervals, timeSuffix); err != nil {
 		fmt.Printf("Failed to write event data, err: %v\n", err)
 		return err
 	}
@@ -154,14 +152,13 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 }
 
 // StartAPIAvailability monitors just the cluster availability
-func StartAPIAvailability(ctx context.Context, restConfig *rest.Config, lb backend.LoadBalancerType) (monitorapi.Recorder, error) {
-	recorder := monitor.NewRecorder()
-
+func StartAPIAvailability(ctx context.Context, restConfig *rest.Config, lb backend.LoadBalancerType) (*monitor.Monitor, error) {
+	m := monitor.NewMonitor()
 	client, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
 	}
-	if err := controlplane.StartAPIMonitoringUsingNewBackend(ctx, recorder, restConfig, lb); err != nil {
+	if err := controlplane.StartAPIMonitoringUsingNewBackend(ctx, m, restConfig, lb); err != nil {
 		return nil, err
 	}
 
@@ -170,6 +167,6 @@ func StartAPIAvailability(ctx context.Context, restConfig *rest.Config, lb backe
 	if err != nil {
 		klog.Errorf("error reading initial apiserver availability: %v", err)
 	}
-	recorder.AddIntervals(intervals...)
-	return recorder, nil
+	m.AddIntervals(intervals...)
+	return m, nil
 }

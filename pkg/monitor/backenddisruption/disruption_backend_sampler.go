@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -78,8 +77,6 @@ type BackendSampler struct {
 	runningLock sync.Mutex
 	// stopRunning is a context cancel for the localContext used to run
 	stopRunning context.CancelFunc
-	// consumptionFinished is closed when the consumer is done
-	consumptionFinished chan struct{}
 }
 
 type routeCoordinates struct {
@@ -97,22 +94,22 @@ func NewSimpleBackend(host, disruptionBackendName, path string, connectionType m
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
 		hostGetter:            NewSimpleHostGetter(host),
-		consumptionFinished:   make(chan struct{}),
 	}
 
 	return ret
 }
 
-// NewRouteBackend constructs a BackendSampler suitable for use against a routes.route.openshift.io
-func NewSimpleBackendWithLocator(locator, host, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
+// NewBackend constructs a BackendSampler suitable for use against a generic server, with a late binding HostGetter that
+// allows for later mutation
+func NewBackend(hostGetter HostGetter, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
 	ret := &BackendSampler{
 		connectionType:        connectionType,
-		locator:               locator,
+		locator:               monitorapi.LocateDisruptionCheck(disruptionBackendName, connectionType),
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
-		hostGetter:            NewSimpleHostGetter(host),
-		consumptionFinished:   make(chan struct{}),
+		hostGetter:            hostGetter,
 	}
+
 	return ret
 }
 
@@ -137,7 +134,6 @@ func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path 
 		tlsConfig:             tlsConfig,
 		bearerToken:           kubeTransportConfig.BearerToken,
 		bearerTokenFile:       kubeTransportConfig.BearerTokenFile,
-		consumptionFinished:   make(chan struct{}),
 	}
 
 	return ret, nil
@@ -151,7 +147,6 @@ func NewRouteBackend(clientConfig *rest.Config, namespace, name, disruptionBacke
 		disruptionBackendName: disruptionBackendName,
 		path:                  path,
 		hostGetter:            NewRouteHostGetter(clientConfig, namespace, name),
-		consumptionFinished:   make(chan struct{}),
 	}
 }
 
@@ -415,11 +410,12 @@ func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecor
 	interval := 1 * time.Second
 	disruptionSampler := newDisruptionSampler(b)
 	go disruptionSampler.produceSamples(producerContext, interval)
-	go disruptionSampler.consumeSamples(consumerContext, b.consumptionFinished, interval, monitorRecorder, eventRecorder)
+	go disruptionSampler.consumeSamples(consumerContext, interval, monitorRecorder, eventRecorder)
 
 	<-producerContext.Done()
 	<-consumerContext.Done()
-	<-b.consumptionFinished
+
+	time.Sleep(1 * time.Second) // give the consumerContext just a little time to finish its work
 
 	if disruptionSampler.numberOfSamples(ctx) > 0 {
 		return fmt.Errorf("not finished writing all samples (%d remaining), but we're told to close", disruptionSampler.numberOfSamples(ctx))
@@ -440,37 +436,24 @@ func (b *BackendSampler) setCancelForRun(cancelFunc context.CancelFunc) {
 	b.stopRunning = cancelFunc
 }
 
-// Stop stops the produce and consumer and blocks until the consumer is finished consuming.
 func (b *BackendSampler) Stop() {
 	b.runningLock.Lock()
 	defer b.runningLock.Unlock()
-	if b.stopRunning == nil {
-		return
-	}
 	if b.stopRunning != nil {
 		b.stopRunning()
 	}
 	b.stopRunning = nil
-
-	for {
-		fmt.Printf("waiting for consumer to finish %v...\n", b.locator)
-		select {
-		case <-b.consumptionFinished:
-			return
-		case <-time.After(10 * time.Second):
-		}
-	}
 }
 
 // StartEndpointMonitoring sets up a client for the given BackendSampler, starts checking the endpoint, and recording
 // success/failure edges into the monitorRecorder
-func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, recorder Recorder, eventRecorder events.EventRecorder) error {
-	if recorder == nil {
+func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, monitorRecorder Recorder, eventRecorder events.EventRecorder) error {
+	if monitorRecorder == nil {
 		return fmt.Errorf("monitor is required")
 	}
 
 	go func() {
-		err := b.RunEndpointMonitoring(ctx, recorder, eventRecorder)
+		err := b.RunEndpointMonitoring(ctx, monitorRecorder, eventRecorder)
 		if err != nil {
 			utilruntime.HandleError(err)
 		}
@@ -527,16 +510,13 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 		select {
 		case <-ticker.C:
 		case <-ctx.Done():
-			fmt.Fprintf(os.Stderr, "%v producer sampler context is done\n", b.backendSampler.locator)
 			return
 		}
 	}
 }
 
 // consumeSamples only exits when the ctx is closed
-func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh chan struct{}, interval time.Duration, monitorRecorder Recorder, eventRecorder events.EventRecorder) {
-	defer close(consumerDoneCh)
-
+func (b *disruptionSampler) consumeSamples(ctx context.Context, interval time.Duration, monitorRecorder Recorder, eventRecorder events.EventRecorder) {
 	firstSample := true
 	previousError := fmt.Errorf("never checked before")
 	previousIntervalID := -1
@@ -545,8 +525,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 	// when we exit this function, we want to set a final duration of failure.  We don't actually know whether it ended
 	// or how long it took to ask
 	defer func() {
-		fmt.Fprintf(os.Stderr, "%v setting the intervals as done at time %v\n", b.backendSampler.locator, time.Now())
-
 		if previousIntervalID != -1 && previousSampleTime != nil {
 			monitorRecorder.EndInterval(previousIntervalID, previousSampleTime.Add(interval))
 		}
@@ -555,7 +533,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 1\n", b.backendSampler.locator)
 			return
 		default:
 		}
@@ -566,7 +543,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			case <-time.After(interval):
 				continue
 			case <-ctx.Done():
-				fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 2\n", b.backendSampler.locator)
 				return
 			}
 		}
@@ -575,7 +551,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 		select {
 		case <-currSample.finished:
 		case <-ctx.Done():
-			fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 3\n", b.backendSampler.locator)
 			return
 		}
 
