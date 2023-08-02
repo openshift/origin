@@ -57,15 +57,24 @@ func (w *Availability) StartCollection(ctx context.Context, adminRESTConfig *res
 func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	// when it is time to collect data, we need to stop the collectors.  they both  have to drain, so stop in parallel
 	wg := sync.WaitGroup{}
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		w.newConnectionDisruptionSampler.Stop()
-	}()
-	go func() {
-		defer wg.Done()
-		w.reusedConnectionDisruptionSampler.Stop()
-	}()
+
+	if w.newConnectionDisruptionSampler != nil {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			w.newConnectionDisruptionSampler.Stop()
+		}()
+	}
+	if w.reusedConnectionDisruptionSampler != nil {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			w.reusedConnectionDisruptionSampler.Stop()
+		}()
+	}
+
 	wg.Wait()
 
 	return nil, nil, nil
