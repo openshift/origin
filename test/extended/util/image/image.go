@@ -4,18 +4,19 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 var (
-	initializeImages sync.Once
-	images           map[string]string
+	initializationLock sync.RWMutex
+	initialized        bool
+	images             map[string]string
 
 	allowedImages = map[string]k8simage.ImageID{
 		// used by jenkins tests
@@ -45,17 +46,39 @@ var (
 )
 
 func getImages() map[string]string {
-	if len(images) == 0 {
-		// initialization of last resort, but if you find this line of code, find a spot to use InitializeImages instead.
-		InitializeImages(os.Getenv("KUBE_TEST_REPO"))
+	initializationLock.RLock()
+	if !initialized {
+		fmt.Printf("Called getImages before initialization, starting wait.")
+		initializationLock.RUnlock()
+
+		for {
+			time.Sleep(5 * time.Second)
+
+			done := func() bool {
+				initializationLock.RLock()
+				defer initializationLock.RUnlock()
+
+				if initialized {
+					return true
+				}
+				return false
+			}()
+			if done {
+				break
+			}
+
+			fmt.Printf("getImages still not initialized, waiting more.")
+		}
 	}
 	return images
 }
 
 func InitializeImages(repo string) {
-	initializeImages.Do(func() {
-		images = GetMappedImages(allowedImages, repo)
-	})
+	initializationLock.Lock()
+	defer initializationLock.Unlock()
+
+	initialized = true
+	images = GetMappedImages(allowedImages, repo)
 }
 
 // ReplaceContents ensures that the provided yaml or json has the

@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util/image"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/service"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 var (
@@ -148,7 +150,8 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		rc.Spec.Template.Spec.Containers[0].Args = append(rc.Spec.Template.Spec.Containers[0].Args, "--delay-shutdown=80")
 
 		// force the image to use the "normal" global mapping.
-		//rc.Spec.Template.Spec.Containers[0].Image = image.LocationFor(rc.Spec.Template.Spec.Containers[0].Image)
+		originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
+		rc.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
 
 		// ensure the pod is not forcibly deleted at 30s, but waits longer than the graceful sleep
 		minuteAndAHalf := int64(90)
