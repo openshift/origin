@@ -8,12 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
-
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/disruption"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 )
 
@@ -58,21 +58,35 @@ func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, [
 	// when it is time to collect data, we need to stop the collectors.  they both  have to drain, so stop in parallel
 	wg := sync.WaitGroup{}
 
+	var newRecoverErr error
 	wg.Add(1)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				newRecoverErr = fmt.Errorf("panic in stop: %v", r)
+			}
+		}()
+
 		defer wg.Done()
 		w.newConnectionDisruptionSampler.Stop()
 	}()
 
+	var reusedRecoverErr error
 	wg.Add(1)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				reusedRecoverErr = fmt.Errorf("panic in stop: %v", r)
+			}
+		}()
+
 		defer wg.Done()
 		w.reusedConnectionDisruptionSampler.Stop()
 	}()
 
 	wg.Wait()
 
-	return nil, nil, nil
+	return nil, nil, utilerrors.NewAggregate([]error{newRecoverErr, reusedRecoverErr})
 }
 
 func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails, locator string, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
