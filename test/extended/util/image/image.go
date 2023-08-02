@@ -7,12 +7,16 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
-func init() {
+var (
+	initializeImages sync.Once
+	images           map[string]string
+
 	allowedImages = map[string]k8simage.ImageID{
 		// used by jenkins tests
 		"quay.io/redhat-developer/nfs-server:1.1": -1,
@@ -38,14 +42,21 @@ func init() {
 		"registry.k8s.io/e2e-test-images/agnhost:2.43": 1,
 		"registry.k8s.io/e2e-test-images/nginx:1.15-4": 22,
 	}
+)
 
-	images = GetMappedImages(allowedImages, os.Getenv("KUBE_TEST_REPO"))
+func getImages() map[string]string {
+	if len(images) == 0 {
+		// initialization of last resort, but if you find this line of code, find a spot to use InitializeImages instead.
+		InitializeImages(os.Getenv("KUBE_TEST_REPO"))
+	}
+	return images
 }
 
-var (
-	images        map[string]string
-	allowedImages map[string]k8simage.ImageID
-)
+func InitializeImages(repo string) {
+	initializeImages.Do(func() {
+		images = GetMappedImages(allowedImages, repo)
+	})
+}
 
 // ReplaceContents ensures that the provided yaml or json has the
 // correct embedded image content.
@@ -54,7 +65,7 @@ func ReplaceContents(data []byte) ([]byte, error) {
 	const exactImageFormat = `\b%s\b`
 
 	patterns := make(map[string]*regexp.Regexp)
-	for from, to := range images {
+	for from, to := range getImages() {
 		pattern := fmt.Sprintf(exactImageFormat, regexp.QuoteMeta(from))
 		re, err := regexp.Compile(pattern)
 		if err != nil {
@@ -82,7 +93,7 @@ func MustReplaceContents(data []byte) []byte {
 
 // LocationFor returns the appropriate URL for the provided image.
 func LocationFor(image string) string {
-	pull, ok := images[image]
+	pull, ok := getImages()[image]
 	if !ok {
 		panic(fmt.Sprintf(`The image %q is not one of the pre-approved test images.
 
@@ -140,15 +151,6 @@ var Exceptions = sets.NewString(
 	// by quay.io, this has to be manually mirrored with --filter-by-os=linux.*
 	"registry.k8s.io/pause:3.8",
 )
-
-// Images returns a map of all images known to the test package.
-func Images() map[string]struct{} {
-	copied := make(map[string]struct{})
-	for k := range images {
-		copied[k] = struct{}{}
-	}
-	return copied
-}
 
 // GetMappedImages returns the images if they were mapped to the provided
 // image repository. The keys of the returned map are the same as the keys

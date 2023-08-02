@@ -6,18 +6,18 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/disruption/backend"
+	"github.com/openshift/origin/pkg/cmd/monitor_command/timeline"
+
+	"github.com/openshift/origin/pkg/defaultinvariants"
+
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -29,23 +29,15 @@ type RunMonitorOptions struct {
 	Out, ErrOut io.Writer
 	ArtifactDir string
 
-	AdditionalEventIntervalRecorders []monitor.StartEventIntervalRecorderFunc
-
-	TimelineOptions TimelineOptions
+	TimelineOptions timeline.TimelineOptions
 }
 
 func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOptions {
-	timelineOptions := NewTimelineOptions(ioStreams)
+	timelineOptions := timeline.NewTimelineOptions(ioStreams)
 
 	return &RunMonitorOptions{
-		Out:    ioStreams.Out,
-		ErrOut: ioStreams.ErrOut,
-		AdditionalEventIntervalRecorders: []monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAllAPIMonitoring,
-			frontends.StartAllIngressMonitoring,
-			externalservice.StartExternalServiceMonitoring,
-		},
-
+		Out:             ioStreams.Out,
+		ErrOut:          ioStreams.ErrOut,
 		TimelineOptions: *timelineOptions,
 	}
 }
@@ -100,8 +92,17 @@ func (opt *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	m, err := monitor.Start(ctx, restConfig, opt.AdditionalEventIntervalRecorders, backend.ExternalLoadBalancerType)
-	if err != nil {
+	m := monitor.NewMonitor(
+		restConfig,
+		opt.ArtifactDir,
+		[]monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAPIMonitoringUsingNewBackend,
+			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
+		},
+		defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
+	)
+	if err := m.Start(ctx); err != nil {
 		return err
 	}
 
@@ -131,60 +132,15 @@ func (opt *RunMonitorOptions) Run() error {
 
 	<-ctx.Done()
 
-	time.Sleep(150 * time.Millisecond)
+	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cleanupCancel()
+	if err := m.Stop(cleanupContext); err != nil {
+		fmt.Fprintf(os.Stderr, "error cleaning up, still reporting as best as possible: %v\n", err)
+	}
 
 	// Store events to artifact directory
 	if len(opt.ArtifactDir) != 0 {
-		intervals := m.Intervals(time.Time{}, time.Time{})
-		recordedResources := m.CurrentResourceState()
-		timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
-
-		eventDir := filepath.Join(opt.ArtifactDir, monitorapi.EventDir)
-		if err := os.MkdirAll(eventDir, os.ModePerm); err != nil {
-			fmt.Printf("Failed to create monitor-events directory, err: %v\n", err)
-			return err
-		}
-
-		if err := monitor.WriteEventsForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
-			fmt.Printf("Failed to write event data, err: %v\n", err)
-			return err
-		}
-
-		if err = sampler.TearDownInClusterMonitors(restConfig); err != nil {
-			fmt.Printf("Failed to write events from in-cluster monitors, err: %v\n", err)
-		}
-
-		err = monitor.UploadIntervalsToLoki(intervals)
-		if err != nil {
-			// Best effort, we do not want to error out here:
-			logrus.WithError(err).Warn("unable to upload intervals to loki")
-		}
-
-		if err := monitor.WriteTrackedResourcesForJobRun(eventDir, recordedResources, intervals, timeSuffix); err != nil {
-			fmt.Printf("Failed to write resource data, err: %v\n", err)
-			return err
-		}
-		// we know these names because the methods above use known file locations
-		eventJSONFilename := filepath.Join(eventDir, fmt.Sprintf("e2e-events%s.json", timeSuffix))
-		podResourceFilename := filepath.Join(eventDir, fmt.Sprintf("resource-pods%s.json", timeSuffix))
-
-		// override specifics for our use-case
-		t := opt.TimelineOptions
-		timelineOptions := &t
-		timelineOptions.MonitorEventFilename = eventJSONFilename
-		timelineOptions.PodResourceFilename = podResourceFilename
-		timelineOptions.TimelineType = "everything"
-		timelineOptions.OutputType = "html"
-		if err := t.Complete(); err != nil {
-			fmt.Printf("Failed to complete timeline options, err: %v\n", err)
-			return err
-		}
-		if err := t.Validate(); err != nil {
-			fmt.Printf("Failed to validate timeline options, err: %v\n", err)
-			return err
-		}
-		if err := t.ToTimeline().Run(); err != nil {
-			fmt.Printf("Failed to run timeline, err: %v\n", err)
+		if err := m.SerializeResults(ctx, "invariants", ""); err != nil {
 			return err
 		}
 	}

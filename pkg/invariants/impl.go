@@ -3,7 +3,6 @@ package invariants
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -15,8 +14,6 @@ import (
 
 type invariantRegistry struct {
 	invariantTests map[string]*invariantItem
-
-	collectData sync.Once
 }
 
 type invariantItem struct {
@@ -52,15 +49,15 @@ func (r *invariantRegistry) AddInvariantOrDie(name, jiraComponent string, invari
 	}
 }
 
-func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config) ([]*junitapi.JUnitTestCase, error) {
+func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error) {
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
 	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("jira/%q invariant test %v setup", invariant.jiraComponent, invariant.name)
+		testName := fmt.Sprintf("[Jira:%q] invariant test %v setup", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
-		err := invariant.invariantTest.StartCollection(ctx, adminRESTConfig)
+		err := invariant.invariantTest.StartCollection(ctx, adminRESTConfig, recorder)
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
@@ -85,77 +82,73 @@ func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig
 	return junits, utilerrors.NewAggregate(errs)
 }
 
-func (r *invariantRegistry) CollectData(ctx context.Context) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+func (r *invariantRegistry) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	intervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
-	r.collectData.Do(func() {
-		for _, invariant := range r.invariantTests {
-			testName := fmt.Sprintf("jira/%q invariant test %v collection", invariant.jiraComponent, invariant.name)
+	for _, invariant := range r.invariantTests {
+		testName := fmt.Sprintf("[Jira:%q] invariant test %v collection", invariant.jiraComponent, invariant.name)
 
-			start := time.Now()
-			localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx)
-			junits = append(junits, localJunits...)
-			intervals = append(intervals, localIntervals...)
-			end := time.Now()
-			duration := end.Sub(start)
-			if err != nil {
-				errs = append(errs, err)
-				junits = append(junits, &junitapi.JUnitTestCase{
-					Name:     testName,
-					Duration: duration.Seconds(),
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("failed during collection\n%v", err),
-					},
-					SystemOut: fmt.Sprintf("failed during collection\n%v", err),
-				})
-				continue
-			}
-
+		start := time.Now()
+		localIntervals, localJunits, err := invariant.invariantTest.CollectData(ctx, storageDir, beginning, end)
+		junits = append(junits, localJunits...)
+		intervals = append(intervals, localIntervals...)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
 				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during collection\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during collection\n%v", err),
 			})
+			continue
 		}
-	})
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
 
 	return intervals, junits, utilerrors.NewAggregate(errs)
 }
 
-func (r *invariantRegistry) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+func (r *invariantRegistry) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	intervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
-	r.collectData.Do(func() {
-		for _, invariant := range r.invariantTests {
-			testName := fmt.Sprintf("jira/%q invariant test %v interval construction", invariant.jiraComponent, invariant.name)
+	for _, invariant := range r.invariantTests {
+		testName := fmt.Sprintf("[Jira:%q] invariant test %v interval construction", invariant.jiraComponent, invariant.name)
 
-			start := time.Now()
-			localIntervals, err := invariant.invariantTest.ConstructComputedIntervals(ctx, startingIntervals)
-			intervals = append(intervals, localIntervals...)
-			end := time.Now()
-			duration := end.Sub(start)
-			if err != nil {
-				errs = append(errs, err)
-				junits = append(junits, &junitapi.JUnitTestCase{
-					Name:     testName,
-					Duration: duration.Seconds(),
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("failed during interval construction\n%v", err),
-					},
-					SystemOut: fmt.Sprintf("failed during interval construction\n%v", err),
-				})
-				continue
-			}
-
+		start := time.Now()
+		localIntervals, err := invariant.invariantTest.ConstructComputedIntervals(ctx, startingIntervals, recordedResources, beginning, end)
+		intervals = append(intervals, localIntervals...)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
 				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during interval construction\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during interval construction\n%v", err),
 			})
+			continue
 		}
-	})
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
 
 	return intervals, junits, utilerrors.NewAggregate(errs)
 }
@@ -164,34 +157,65 @@ func (r *invariantRegistry) EvaluateTestsFromConstructedIntervals(ctx context.Co
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 
-	r.collectData.Do(func() {
-		for _, invariant := range r.invariantTests {
-			testName := fmt.Sprintf("jira/%q invariant test %v test evaluation", invariant.jiraComponent, invariant.name)
+	for _, invariant := range r.invariantTests {
+		testName := fmt.Sprintf("[Jira:%q] invariant test %v test evaluation", invariant.jiraComponent, invariant.name)
 
-			start := time.Now()
-			localJunits, err := invariant.invariantTest.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
-			junits = append(junits, localJunits...)
-			end := time.Now()
-			duration := end.Sub(start)
-			if err != nil {
-				errs = append(errs, err)
-				junits = append(junits, &junitapi.JUnitTestCase{
-					Name:     testName,
-					Duration: duration.Seconds(),
-					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("failed during test evaluation\n%v", err),
-					},
-					SystemOut: fmt.Sprintf("failed during test evaluation\n%v", err),
-				})
-				continue
-			}
-
+		start := time.Now()
+		localJunits, err := invariant.invariantTest.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
+		junits = append(junits, localJunits...)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
 				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during test evaluation\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during test evaluation\n%v", err),
 			})
+			continue
 		}
-	})
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
+
+	return junits, utilerrors.NewAggregate(errs)
+}
+
+func (r *invariantRegistry) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
+	junits := []*junitapi.JUnitTestCase{}
+	errs := []error{}
+
+	for _, invariant := range r.invariantTests {
+		testName := fmt.Sprintf("[Jira:%q] invariant test %v writing to storage", invariant.jiraComponent, invariant.name)
+
+		start := time.Now()
+		err := invariant.invariantTest.WriteContentToStorage(ctx, storageDir, timeSuffix, finalIntervals, finalResourceState)
+		end := time.Now()
+		duration := end.Sub(start)
+		if err != nil {
+			errs = append(errs, err)
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:     testName,
+				Duration: duration.Seconds(),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("failed during test evaluation\n%v", err),
+				},
+				SystemOut: fmt.Sprintf("failed during test evaluation\n%v", err),
+			})
+			continue
+		}
+
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name:     testName,
+			Duration: duration.Seconds(),
+		})
+	}
 
 	return junits, utilerrors.NewAggregate(errs)
 }
@@ -201,7 +225,7 @@ func (r *invariantRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTestC
 	errs := []error{}
 
 	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("jira/%q invariant test %v cleanup", invariant.jiraComponent, invariant.name)
+		testName := fmt.Sprintf("[Jira:%q] invariant test %v cleanup", invariant.jiraComponent, invariant.name)
 
 		start := time.Now()
 		err := invariant.invariantTest.Cleanup(ctx)
@@ -227,4 +251,14 @@ func (r *invariantRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTestC
 	}
 
 	return junits, utilerrors.NewAggregate(errs)
+}
+
+func (r *invariantRegistry) AddRegistryOrDie(registry InvariantRegistry) {
+	for _, v := range registry.getInvariantTests() {
+		r.AddInvariantOrDie(v.name, v.jiraComponent, v.invariantTest)
+	}
+}
+
+func (r *invariantRegistry) getInvariantTests() map[string]*invariantItem {
+	return r.invariantTests
 }
