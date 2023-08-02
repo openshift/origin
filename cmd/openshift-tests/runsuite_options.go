@@ -1,91 +1,38 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
-	"github.com/openshift/origin/pkg/test/ginkgo"
+	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
-	"github.com/openshift/origin/test/e2e/upgrade"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/pkg/errors"
-	"github.com/spf13/pflag"
+	"github.com/openshift/origin/pkg/version"
+	"github.com/openshift/origin/test/extended/util/image"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 // TODO collapse this with cmd_runsuite
 type RunSuiteOptions struct {
 	GinkgoRunSuiteOptions *testginkgo.GinkgoRunSuiteOptions
-	AvailableSuites       []*testginkgo.TestSuite
+	Suite                 *testginkgo.TestSuite
 
-	FromRepository string
-	Provider       string
+	FromRepository    string
+	CloudProviderJSON string
 
-	// Passed to the test process if set
-	UpgradeSuite string
-	ToImage      string
-	TestOptions  []string
-
-	// Shared by initialization code
-	config *clusterdiscovery.ClusterConfiguration
+	CloseFn iooptions.CloseFunc
+	genericclioptions.IOStreams
 }
 
-func NewRunSuiteOptions(fromRepository string, availableSuites []*testginkgo.TestSuite) *RunSuiteOptions {
-	return &RunSuiteOptions{
-		GinkgoRunSuiteOptions: testginkgo.NewGinkgoRunSuiteOptions(os.Stdout, os.Stderr),
-		AvailableSuites:       availableSuites,
-
-		FromRepository: fromRepository,
-	}
-}
-
-// SuiteWithInitializedProviderPreSuite loads the provider info, but does not
-// exclude any tests specific to that provider.
-func (o *RunSuiteOptions) SuiteWithInitializedProviderPreSuite() error {
-	config, err := clusterdiscovery.DecodeProvider(o.Provider, o.GinkgoRunSuiteOptions.DryRun, true, nil)
-	if err != nil {
-		return err
-	}
-	o.config = config
-
-	o.Provider = config.ToJSONString()
-	return nil
-}
-
-// SuiteWithProviderPreSuite ensures that the suite filters out tests from providers
-// that aren't relevant (see exutilcluster.ClusterConfig.MatchFn) by loading the
-// provider info from the cluster or flags.
-func (o *RunSuiteOptions) SuiteWithProviderPreSuite() error {
-	if err := o.SuiteWithInitializedProviderPreSuite(); err != nil {
-		return err
-	}
-	o.GinkgoRunSuiteOptions.MatchFn = o.config.MatchFn()
-	return nil
-}
-
-// SuiteWithNoProviderPreSuite blocks out provider settings from being passed to
-// child tests. Used with suites that should not have cloud specific behavior.
-func (o *RunSuiteOptions) SuiteWithNoProviderPreSuite() error {
-	o.Provider = `none`
-	return o.SuiteWithProviderPreSuite()
-}
-
-// SuiteWithKubeTestInitializationPreSuite invokes the Kube suite in order to populate
-// data from the environment for the CSI suite. Other suites should use
-// suiteWithProviderPreSuite.
-func (o *RunSuiteOptions) SuiteWithKubeTestInitializationPreSuite() error {
-	if err := o.SuiteWithProviderPreSuite(); err != nil {
-		return err
-	}
-	return clusterdiscovery.InitializeTestFramework(exutil.TestContext, o.config, o.GinkgoRunSuiteOptions.DryRun)
-}
-
-func (o *RunSuiteOptions) AsEnv() []string {
+func (o *RunSuiteOptions) TestCommandEnvironment() []string {
 	var args []string
 	args = append(args, "KUBE_TEST_REPO_LIST=") // explicitly prevent selective override
 	args = append(args, fmt.Sprintf("KUBE_TEST_REPO=%s", o.FromRepository))
-	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", o.Provider))
+	args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", o.CloudProviderJSON))
 	args = append(args, fmt.Sprintf("TEST_JUNIT_DIR=%s", o.GinkgoRunSuiteOptions.JUnitDir))
 	for i := 10; i > 0; i-- {
 		if klog.V(klog.Level(i)).Enabled() {
@@ -93,61 +40,43 @@ func (o *RunSuiteOptions) AsEnv() []string {
 			break
 		}
 	}
-
-	if len(o.UpgradeSuite) > 0 {
-		upgradeOptions := UpgradeOptions{
-			Suite:       o.UpgradeSuite,
-			ToImage:     o.ToImage,
-			TestOptions: o.TestOptions,
-		}
-		args = append(args, fmt.Sprintf("TEST_UPGRADE_OPTIONS=%s", upgradeOptions.ToEnv()))
-	} else {
-		args = append(args, "TEST_UPGRADE_OPTIONS=")
-	}
+	args = append(args, "TEST_UPGRADE_OPTIONS=")
 
 	return args
 }
 
-func (o *RunSuiteOptions) SelectSuite(args []string) (*testginkgo.TestSuite, error) {
-	suite, err := o.GinkgoRunSuiteOptions.SelectSuite(o.AvailableSuites, args)
-	if err != nil {
-		return nil, err
+func (o *RunSuiteOptions) Run(ctx context.Context) error {
+	defer o.CloseFn()
+
+	// set globals so that helpers will create pods with the mapped images if we create them from this process.
+	// this must be before `verifyImages` to ensure that the argument takes precedence over the env var.
+	// we cannot eliminate the env var usage until we convert run-test, which we may be able to do in a followup.
+	image.InitializeImages(o.FromRepository)
+
+	if err := verifyImages(); err != nil {
+		return err
 	}
-	return suite, nil
-}
 
-func (o *RunSuiteOptions) BindOptions(flags *pflag.FlagSet) {
-	flags.StringVar(&o.FromRepository, "from-repository", o.FromRepository, "A container image repository to retrieve test images from.")
-	flags.StringVar(&o.Provider, "provider", o.Provider, "The cluster infrastructure provider. Will automatically default to the correct value.")
-	o.GinkgoRunSuiteOptions.BindTestOptions(flags)
-}
+	// this env var must be set to trigger the upstream code to resolve images in this binary.  See usage here
+	// https://github.com/kubernetes/kubernetes/blob/99190634ab252604a4496882912ac328542d649d/test/utils/image/manifest.go#L282-L284
+	if err := os.Setenv("KUBE_TEST_REPO", o.FromRepository); err != nil {
+		return err
+	}
+	// we now re-trigger the upstream image determination since one of the env vars is set with our repo value.
+	// this will re-write the images to be used.
+	// TODO fix the the upstream so that the AfterReadingAllFlags will properly check for either of the inputs having values.
+	k8simage.Init("")
 
-func (o *RunSuiteOptions) BindUpgradeOptions(flags *pflag.FlagSet) {
-	flags.StringVar(&o.ToImage, "to-image", o.ToImage, "Specify the image to test an upgrade to.")
-	flags.StringSliceVar(&o.TestOptions, "options", o.TestOptions, "A set of KEY=VALUE options to control the test. See the help text.")
-}
-
-// UpgradeTestPreSuite validates the test options and gathers data useful prior to launching the upgrade and it's
-// related tests.
-func (o *RunSuiteOptions) UpgradeTestPreSuite() error {
+	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
 	if !o.GinkgoRunSuiteOptions.DryRun {
-		testOpt := ginkgo.NewTestOptions(os.Stdout, os.Stderr)
-		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
-		if err != nil {
-			return err
-		}
-		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
-			return err
-		}
-		klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
-
-		if err := upgrade.GatherPreUpgradeResourceCounts(); err != nil {
-			return errors.Wrap(err, "error gathering preupgrade resource counts")
-		}
+		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
+	}
+	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", false)
+	if exitErr != nil {
+		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}
 
-	// Upgrade test output is important for debugging because it shows linear progress
-	// and when the CVO hangs.
-	o.GinkgoRunSuiteOptions.IncludeSuccessOutput = true
-	return SetUpgradeGlobalsFromTestOptions(o.TestOptions)
+	// Special debugging carve-outs for teams is likely to age poorly.
+	clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
+	return exitErr
 }

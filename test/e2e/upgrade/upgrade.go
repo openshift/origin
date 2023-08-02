@@ -38,11 +38,9 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
-	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
@@ -57,14 +55,6 @@ func AllTests() []upgrades.Test {
 		&adminack.UpgradeTest{},
 		&manifestdelete.UpgradeTest{},
 		&alert.UpgradeTest{},
-
-		// These two tests require complex setup and thus are a poor fit for our current invariant/synthetic
-		// disruption tests, so they remain separate. They output AdditionalEvents json files as artifacts which
-		// are merged into our main e2e-events.
-		service.NewServiceLoadBalancerWithNewConnectionsTest(),
-		service.NewServiceLoadBalancerWithReusedConnectionsTest(),
-		imageregistry.NewImageRegistryAvailableWithNewConnectionsTest(),
-		imageregistry.NewImageRegistryAvailableWithReusedConnectionsTest(),
 
 		&node.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
@@ -412,15 +402,20 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		Network  string
 	}
 	var upgradeDurationLimits = map[limitLocator]float64{
-		{configv1.AWSPlatformType, OVN}:       85,
+		// NOTE: The OVNAWSPlatformType and OVNGCPPlatformType upgrade times are originally 85 and 90 minutes each.
+		// The OVNBareMetalPlatformType and OVNVSpherePlatformType upgrade times are originally 80 and 95 each.
+		// Due to well-known reasons (https://issues.redhat.com/browse/SDN-4042), these numbers are increased to
+		// 100 minutes only for the 4.13->4.14 upgrades - same as OVNAzurePlatformType. These numbers will be brought
+		// down to their original values in OCP 4.15 (https://issues.redhat.com/browse/OTA-999)
+		{configv1.AWSPlatformType, OVN}:       100,
 		{configv1.AWSPlatformType, SDN}:       95,
 		{configv1.AzurePlatformType, OVN}:     100,
 		{configv1.AzurePlatformType, SDN}:     100,
-		{configv1.GCPPlatformType, OVN}:       90,
+		{configv1.GCPPlatformType, OVN}:       100,
 		{configv1.GCPPlatformType, SDN}:       75,
-		{configv1.BareMetalPlatformType, OVN}: 80,
+		{configv1.BareMetalPlatformType, OVN}: 100,
 		{configv1.BareMetalPlatformType, SDN}: 70,
-		{configv1.VSpherePlatformType, OVN}:   95,
+		{configv1.VSpherePlatformType, OVN}:   100,
 		{configv1.VSpherePlatformType, SDN}:   70,
 	}
 
