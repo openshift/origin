@@ -54,19 +54,6 @@ type TelemeterClientConfig struct {
 var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
-	// These alerts are known to be missing the summary and/or description
-	// annotations.  Bugzillas have been filed, and are linked here.  These
-	// should be fixed one-by-one and removed from this list.
-	descriptionExceptions := sets.NewString(
-		// Repo: openshift/machine-config-operator
-		// https://issues.redhat.com/browse/OCPBUGS-14185
-		"KubeletHealthState",
-		"MCCDrainError",
-		"MCDPivotError",
-		"MCDRebootError",
-		"SystemMemoryExceedsReservation",
-	)
-
 	criticalAlertsMissingRunbookURLExceptions := sets.NewString(
 		// Repository: https://github.com/openshift/cluster-network-operator
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14062
@@ -157,11 +144,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have description and summary annotations", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
-			if descriptionExceptions.Has(alert.Name) {
-				framework.Logf("Alerting rule %q is known to have missing annotations.", alert.Name)
-				return nil
-			}
-
 			violations := sets.NewString()
 
 			if _, found := alert.Annotations["description"]; !found {
