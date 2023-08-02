@@ -1,4 +1,4 @@
-package intervalcreation
+package etcdloganalyzer
 
 import (
 	"bufio"
@@ -16,26 +16,26 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// SubStringLevel defines a sub-string we'll scan pod log lines for, and the level the resulting
+// subStringLevel defines a sub-string we'll scan pod log lines for, and the level the resulting
 // interval should have. (Info, Warning, Error)
-type SubStringLevel struct {
+type subStringLevel struct {
 	subString string
 	level     monitorapi.IntervalLevel
 }
 
-type PodLogIntervalGenerator struct {
+type podLogIntervalGenerator struct {
 	namespace string
 	// selector is a label selector for which pods to gather from. (i.e. app=etcd)
 	selector  string
 	container string
 	// subStrings are matched against every log line to see what we should generate an interval for.
-	subStrings []SubStringLevel
+	subStrings []subStringLevel
 	// lineParser is called to convert a log line to an EventInterval. Function is only called if
 	// the line matches one of the substrings.
 	lineParser func(locator, line string, intervalLevel monitorapi.IntervalLevel, logger logrus.FieldLogger) (*monitorapi.Interval, error)
 }
 
-func (g PodLogIntervalGenerator) ScanLine(pod *kapiv1.Pod, line string, beginning, end time.Time, logger logrus.FieldLogger) (*monitorapi.Interval, error) {
+func (g podLogIntervalGenerator) ScanLine(pod *kapiv1.Pod, line string, beginning, end time.Time, logger logrus.FieldLogger) (*monitorapi.Interval, error) {
 	for _, subStr := range g.subStrings {
 		if strings.Contains(line, subStr.subString) {
 			locator := monitorapi.LocatePodContainer(pod, g.container)
@@ -83,13 +83,13 @@ func etcdLogParser(locator, line string, level monitorapi.IntervalLevel, logger 
 	}, nil
 }
 
-func buildLogGatherers() []PodLogIntervalGenerator {
-	return []PodLogIntervalGenerator{
+func buildLogGatherers() []podLogIntervalGenerator {
+	return []podLogIntervalGenerator{
 		{
 			namespace: "openshift-etcd",
 			selector:  "app=etcd",
 			container: "etcd",
-			subStrings: []SubStringLevel{
+			subStrings: []subStringLevel{
 				{"slow fdatasync", monitorapi.Warning},
 				{"dropped internal Raft message since sending buffer is full", monitorapi.Warning},
 				{"waiting for ReadIndex response took too long, retrying", monitorapi.Warning},
@@ -100,13 +100,13 @@ func buildLogGatherers() []PodLogIntervalGenerator {
 	}
 }
 
-// IntervalsFromPodLogs fetches pod logs for a hardcoded set of namespace, label selector, and container. Each line is
+// intervalsFromPodLogs fetches pod logs for a hardcoded set of namespace, label selector, and container. Each line is
 // then checked for a match of certain substrings and if found, passed to a function to parse the line to a
 // monitorapi.EventInterval, which will then be included in the main list of intervals.
 // Beginning and end times are specified so we only build intervals for the phase of testing we're interested in.
 // A single cluster in an upgrade job will have separate intervals for the upgrade phase and the conformance testing
 // phase.
-func IntervalsFromPodLogs(kubeClient kubernetes.Interface, beginning, end time.Time) (monitorapi.Intervals, error) {
+func intervalsFromPodLogs(kubeClient kubernetes.Interface, beginning, end time.Time) (monitorapi.Intervals, error) {
 
 	intervals := monitorapi.Intervals{}
 	gatherers := buildLogGatherers()

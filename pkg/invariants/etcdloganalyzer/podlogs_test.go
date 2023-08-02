@@ -1,4 +1,4 @@
-package intervalcreation
+package etcdloganalyzer
 
 import (
 	"testing"

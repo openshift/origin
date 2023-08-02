@@ -3,6 +3,8 @@ package defaultinvariants
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/invariants/etcdloganalyzer"
+
 	"github.com/openshift/origin/pkg/invariants/auditloganalyzer"
 
 	"github.com/openshift/origin/pkg/invariants/kubeletlogcollector"
@@ -92,6 +94,7 @@ func newUniversalInvariants() invariants.InvariantRegistry {
 	invariantTests.AddInvariantOrDie("kubelet-log-collector", "Node", kubeletlogcollector.NewKubeletLogCollector())
 
 	invariantTests.AddInvariantOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer())
+	invariantTests.AddInvariantOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
 
 	return invariantTests
 }
