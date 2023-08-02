@@ -3,7 +3,7 @@ package defaultinvariants
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/invariants/testframework/disruptionexternalservicemonitoring"
+	"github.com/openshift/origin/pkg/invariants/disruptionpodnetwork"
 
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/authentication/legacyauthenticationinvariants"
@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/invariants/testframework/additionaleventscollector"
 	"github.com/openshift/origin/pkg/invariants/testframework/alertanalyzer"
 	"github.com/openshift/origin/pkg/invariants/testframework/clusterinfoserializer"
+	"github.com/openshift/origin/pkg/invariants/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/invariants/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/invariants/testframework/e2etestanalyzer"
 	"github.com/openshift/origin/pkg/invariants/testframework/intervalserializer"
@@ -63,6 +64,8 @@ func NewInvariantsFor(clusterStabilityDuringTest ClusterStabilityDuringTest) inv
 
 func newDefaultInvariants() invariants.InvariantRegistry {
 	invariantTests := invariants.NewInvariantRegistry()
+
+	invariantTests.AddInvariantOrDie(disruptionpodnetwork.InvariantName, disruptionpodnetwork.JIRAOwner, disruptionpodnetwork.NewPodNetworkAvalibilityInvariant())
 
 	invariantTests.AddRegistryOrDie(newUniversalInvariants())
 

@@ -55,6 +55,7 @@ func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig
 
 	for _, invariant := range r.invariantTests {
 		testName := fmt.Sprintf("[Jira:%q] invariant test %v setup", invariant.jiraComponent, invariant.name)
+		fmt.Printf("  Starting %v for %v\n", invariant.name, invariant.jiraComponent)
 
 		start := time.Now()
 		err := startCollectionWithPanicProtection(ctx, invariant.invariantTest, adminRESTConfig, recorder)
