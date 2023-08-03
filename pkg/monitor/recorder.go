@@ -201,7 +201,7 @@ func (m *recorder) snapshot() monitorapi.Intervals {
 // is a copy of the monitor's state and is safe to update.
 func (m *recorder) Intervals(from, to time.Time) monitorapi.Intervals {
 	events := m.snapshot()
+	// we must sort *before*, we use the slice function
 	sort.Sort(events)
-
 	return events.Slice(from, to)
 }

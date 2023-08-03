@@ -610,33 +610,6 @@ func (intervals Intervals) Cut(from, to time.Time) Intervals {
 	return copied
 }
 
-// CopyAndSort assumes intervals is unsorted and returns a sorted copy of intervals
-// for all intervals between from and to.
-func (intervals Intervals) CopyAndSort(from, to time.Time) Intervals {
-	copied := make(Intervals, 0, len(intervals))
-
-	if from.IsZero() && to.IsZero() {
-		for _, e := range intervals {
-			copied = append(copied, e)
-		}
-		sort.Sort(copied)
-		return copied
-	}
-
-	for _, e := range intervals {
-		if !e.From.After(from) {
-			continue
-		}
-		if !to.IsZero() && !e.From.Before(to) {
-			continue
-		}
-		copied = append(copied, e)
-	}
-	sort.Sort(copied)
-	return copied
-
-}
-
 // Slice works on a sorted Intervals list and returns the set of intervals
 // The intervals start from the first Interval that ends AFTER the argument.From.
 // The last interval is one before the first Interval that starts before the argument.To
@@ -650,7 +623,7 @@ func (intervals Intervals) Slice(from, to time.Time) Intervals {
 	// assume that the from is always before the to in an interval,
 	// Then we want to start when the interval.TO is after the argument.From
 	first := sort.Search(len(intervals), func(i int) bool {
-		return intervals[i].To.After(from)
+		return !intervals[i].To.Before(from) // equal to or after
 	})
 	if first == -1 {
 		return nil
@@ -669,10 +642,13 @@ func (intervals Intervals) Slice(from, to time.Time) Intervals {
 // Clamp sets all zero value From or To fields to from or to.
 func (intervals Intervals) Clamp(from, to time.Time) {
 	for i := range intervals {
-		if intervals[i].From.IsZero() {
+		if intervals[i].From.Before(from) {
 			intervals[i].From = from
 		}
 		if intervals[i].To.IsZero() {
+			intervals[i].To = to
+		}
+		if intervals[i].To.After(to) {
 			intervals[i].To = to
 		}
 	}

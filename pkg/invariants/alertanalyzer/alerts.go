@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
-
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -22,55 +20,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, alertState, namespace string) ([]monitorapi.Interval, error) {
-	if alertState != "pending" && alertState != "firing" {
-		return nil, fmt.Errorf("unrecognized alertState: %v", alertState)
-	}
-
-	// Prometheus has a hardcoded maximum resolution of 11,000 points per timeseries.  The "Step"
-	// used to be 1 second but if a query exceeded 3 hours, this query would fail.  A resolution of
-	// 2 seconds is fine because the query will work for up to 6 hours and ALERTS change every 30s
-	// at most.
-	timeRange := prometheusv1.Range{
-		Start: startTime,
-		End:   time.Now(),
-		Step:  2 * time.Second,
-	}
-	query := ""
-	switch {
-	case len(namespace) == 0:
-		query = fmt.Sprintf(`ALERTS{alertstate="%s",alertname=%q}`, alertState, alertName)
-	case namespace == platformidentification.NamespaceOther:
-		query = fmt.Sprintf(`ALERTS{alertstate="%s",alertname=%q}`, alertState, alertName)
-	default:
-		query = fmt.Sprintf(`ALERTS{alertstate="%s",alertname=%q,namespace=%q}`, alertState, alertName, namespace)
-	}
-
-	alerts, warningsForQuery, err := prometheusClient.QueryRange(ctx, query, timeRange)
-	if err != nil {
-		return nil, err
-	}
-	if len(warningsForQuery) > 0 {
-		fmt.Printf("#### warnings \n\t%v\n", strings.Join(warningsForQuery, "\n\t"))
-	}
-
-	ret, err := createEventIntervalsForAlerts(ctx, alerts, startTime)
-	if err != nil {
-		return nil, err
-	}
-
-	if namespace == platformidentification.NamespaceOther {
-		ret = monitorapi.Intervals(ret).Filter(func(eventInterval monitorapi.Interval) bool {
-			namespace := monitorapi.NamespaceFromLocator(eventInterval.Locator)
-			return !platformidentification.KnownNamespaces.Has(namespace)
-		})
-	}
-
-	return ret, nil
-}
-
-func fetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config,
-	startTime time.Time) ([]monitorapi.Interval, error) {
+func fetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config, startTime time.Time) ([]monitorapi.Interval, error) {
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
