@@ -186,10 +186,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 
 	jobStability := defaultinvariants.ClusterStabilityDuringTest(o.ClusterStabilityDuringTest)
 
-	syntheticEventTests := JUnitsForAllEvents{
-		suite.SyntheticEventTests,
-	}
-
 	tests, err := testsForSuite()
 	if err != nil {
 		return fmt.Errorf("failed reading origin test suites: %w", err)
@@ -579,9 +575,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	wasMasterNodeUpdated := ""
 	if events := monitorEventRecorder.Intervals(start, end); len(events) > 0 {
 		buf := &bytes.Buffer{}
-		currResState := monitorEventRecorder.CurrentResourceState()
-		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
-		syntheticTestResults = append(syntheticTestResults, testCases...)
 		if !upgrade {
 			// the current mechanism for external binaries does not support upgrade
 			// tests, so don't report information there at all

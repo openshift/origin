@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/kubectl/pkg/util/templates"
 )
@@ -31,8 +30,7 @@ var upgradeSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 		},
-		TestTimeout:         240 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemUpgradeEventInvariants),
+		TestTimeout: 240 * time.Minute,
 	},
 	{
 		Name: "platform",
@@ -45,8 +43,7 @@ var upgradeSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 		},
-		TestTimeout:         240 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemUpgradeEventInvariants),
+		TestTimeout: 240 * time.Minute,
 	},
 	{
 		Name: "none",
@@ -59,7 +56,6 @@ var upgradeSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Feature:ClusterUpgrade]") && !strings.Contains(name, "[Suite:k8s]")
 		},
-		TestTimeout:         240 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemUpgradeEventInvariants),
+		TestTimeout: 240 * time.Minute,
 	},
 }

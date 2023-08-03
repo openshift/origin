@@ -8,9 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
+
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"

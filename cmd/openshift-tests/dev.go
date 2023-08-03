@@ -5,15 +5,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/openshift/origin/pkg/invariants/uploadtolokiserializer"
-
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/alerts"
+	"github.com/openshift/origin/pkg/invariantlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/invariants/network/legacynetworkinvariants"
+	"github.com/openshift/origin/pkg/invariants/testframework/legacytestframeworkinvariants"
+	"github.com/openshift/origin/pkg/invariants/uploadtolokiserializer"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-	"github.com/openshift/origin/pkg/synthetictests"
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -76,13 +76,13 @@ a running cluster.
 			}
 
 			logrus.Info("running tests")
-			testCases := synthetictests.RunAlertTests(
+			testCases := legacytestframeworkinvariants.RunAlertTests(
 				jobType,
 				alerts.AllowedAlertsDuringUpgrade, // NOTE: may someway want a cli flag for conformance variant
 				configv1.Default,
 				allowedalerts.DefaultAllowances,
 				intervals,
-				&monitorapi.ResourcesMap{})
+				monitorapi.ResourcesMap{})
 			for _, tc := range testCases {
 				if tc.FailureOutput != nil {
 					logrus.Warnf("FAIL: %s\n\n%s\n\n", tc.Name, tc.FailureOutput.Output)
@@ -175,8 +175,8 @@ a running cluster.
 			// this isn't used for much, just the duration each test "ran":
 			duration := 3 * time.Hour
 
-			testCases := synthetictests.TestAllIngressBackendsForDisruption(intervals, duration, jobType)
-			testCases = append(testCases, synthetictests.TestExternalBackendsForDisruption(intervals, duration, jobType)...)
+			testCases := legacynetworkinvariants.TestAllIngressBackendsForDisruption(intervals, duration, jobType)
+			testCases = append(testCases, legacynetworkinvariants.TestExternalBackendsForDisruption(intervals, duration, jobType)...)
 
 			for _, tc := range testCases {
 				if tc.FailureOutput != nil {

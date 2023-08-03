@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -489,44 +488,6 @@ func NodeUpdate(eventInterval Interval) bool {
 	return NodeUpdateReason == reason
 }
 
-func AlertFiringInNamespace(alertName, namespace string) EventIntervalMatchesFunc {
-	return func(eventInterval Interval) bool {
-		return And(
-			func(eventInterval Interval) bool {
-				locatorParts := LocatorParts(eventInterval.Locator)
-				eventAlertName := AlertFrom(locatorParts)
-				if eventAlertName != alertName {
-					return false
-				}
-				if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
-					return true
-				}
-				return false
-			},
-			InNamespace(namespace),
-		)(eventInterval)
-	}
-}
-
-func AlertPendingInNamespace(alertName, namespace string) EventIntervalMatchesFunc {
-	return func(eventInterval Interval) bool {
-		return And(
-			func(eventInterval Interval) bool {
-				locatorParts := LocatorParts(eventInterval.Locator)
-				eventAlertName := AlertFrom(locatorParts)
-				if eventAlertName != alertName {
-					return false
-				}
-				if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
-					return true
-				}
-				return false
-			},
-			InNamespace(namespace),
-		)(eventInterval)
-	}
-}
-
 func AlertFiring() EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
 		if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
@@ -542,23 +503,6 @@ func AlertPending() EventIntervalMatchesFunc {
 			return true
 		}
 		return false
-	}
-}
-
-// InNamespace if namespace == "", then every event matches, same as kube-api
-func InNamespace(namespace string) func(event Interval) bool {
-	return func(event Interval) bool {
-		switch {
-		case len(namespace) == 0:
-			return true
-
-		case namespace == platformidentification.NamespaceOther:
-			eventNamespace := NamespaceFromLocator(event.Locator)
-			return !platformidentification.KnownNamespaces.Has(eventNamespace)
-		default:
-			eventNamespace := NamespaceFromLocator(event.Locator)
-			return eventNamespace == namespace
-		}
 	}
 }
 
