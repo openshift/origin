@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -48,7 +49,10 @@ func (w *newAPIServerDisruptionChecker) WriteContentToStorage(ctx context.Contex
 	return nil
 }
 
-func (*newAPIServerDisruptionChecker) Cleanup(ctx context.Context) error {
-	// TODO wire up the start to a context we can kill here
+func (w *newAPIServerDisruptionChecker) Cleanup(ctx context.Context) error {
+	if err := sampler.TearDownInClusterMonitors(w.adminRESTConfig); err != nil {
+		return err
+	}
+
 	return nil
 }

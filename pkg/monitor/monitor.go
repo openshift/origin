@@ -16,7 +16,6 @@ import (
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/disruption/backend"
-	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/shutdown"
@@ -203,11 +202,6 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 		fmt.Fprintf(os.Stderr, "Error writing to storage, continuing, junit will reflect this. %v\n", err)
 	}
 	m.junits = append(m.junits, invariantJunits...)
-
-	fmt.Fprintf(os.Stderr, "Doing cleanup that needs to be moved.\n")
-	if err := sampler.TearDownInClusterMonitors(m.adminKubeConfig); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to write events from in-cluster monitors, err: %v\n", err)
-	}
 
 	fmt.Fprintf(os.Stderr, "Writing junits.\n")
 	if err := m.serializeJunit(ctx, m.storageDir, junitSuiteName, timeSuffix); err != nil {
