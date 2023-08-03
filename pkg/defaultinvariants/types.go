@@ -113,6 +113,7 @@ func newUniversalInvariants() invariants.InvariantRegistry {
 	invariantTests.AddInvariantOrDie("legacy-networking-invariants", "Networking", legacynetworkinvariants.NewLegacyTests())
 	invariantTests.AddInvariantOrDie("legacy-authentication-invariants", "Authentication", legacyauthenticationinvariants.NewLegacyTests())
 	invariantTests.AddInvariantOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiserverinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("legacy-resource-growth-invariants", "kube-apiserver", legacykubeapiserverinvariants.NewResourceGrowthTests())
 	invariantTests.AddInvariantOrDie("legacy-etcd-invariants", "etcd", legacyetcdinvariants.NewLegacyTests())
 	invariantTests.AddInvariantOrDie("legacy-test-framework-invariants", "Test Framework", legacytestframeworkinvariants.NewLegacyTests())
 	invariantTests.AddInvariantOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvoinvariants.NewLegacyTests())

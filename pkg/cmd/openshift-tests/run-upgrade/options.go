@@ -13,10 +13,8 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
-	"github.com/openshift/origin/test/e2e/upgrade"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
-	"github.com/pkg/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
@@ -75,10 +73,6 @@ func (o *RunUpgradeSuiteOptions) UpgradeTestPreSuite() error {
 			return err
 		}
 		klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
-
-		if err := upgrade.GatherPreUpgradeResourceCounts(); err != nil {
-			return errors.Wrap(err, "error gathering preupgrade resource counts")
-		}
 	}
 
 	// TODO this is called from run-upgrade and run-test.  At least one of these ought not need it.

@@ -35,8 +35,6 @@ func (w *legacyInvariantTests) EvaluateTestsFromConstructedIntervals(ctx context
 	junits := []*junitapi.JUnitTestCase{}
 	junits = append(junits, testPodNodeNameIsImmutable(finalIntervals)...)
 	junits = append(junits, testStaticPodLifecycleFailure(finalIntervals, w.adminRESTConfig)...)
-	junits = append(junits, testNoExcessiveSecretGrowthDuringUpgrade()...)
-	junits = append(junits, testNoExcessiveConfigMapGrowthDuringUpgrade()...)
 	junits = append(junits, testAPIServerIPTablesAccessDisruption(finalIntervals)...)
 
 	return junits, nil

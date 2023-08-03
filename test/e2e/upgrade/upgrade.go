@@ -314,37 +314,6 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
-// PreUpgradeResourceCounts stores a map of resource type to a count of the number of
-// resources of that type in the entire cluster, gathered prior to launching the upgrade.
-var PreUpgradeResourceCounts = map[string]int{}
-
-func GatherPreUpgradeResourceCounts() error {
-	config, err := framework.LoadConfig(true)
-	if err != nil {
-		return err
-	}
-	kubeClient := kubernetes.NewForConfigOrDie(config)
-	// Store resource counts we're interested in monitoring from before upgrade to after.
-	// Used to test for excessive resource growth during upgrade in the invariants.
-	ctx := context.Background()
-	secrets, err := kubeClient.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	PreUpgradeResourceCounts["secrets"] = len(secrets.Items)
-	framework.Logf("found %d Secrets prior to upgrade at %s\n", len(secrets.Items),
-		time.Now().UTC().Format(time.RFC3339))
-
-	configMaps, err := kubeClient.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	PreUpgradeResourceCounts["configmaps"] = len(configMaps.Items)
-	framework.Logf("found %d ConfigMaps prior to upgrade at %s\n", len(configMaps.Items),
-		time.Now().UTC().Format(time.RFC3339))
-	return nil
-}
-
 func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
