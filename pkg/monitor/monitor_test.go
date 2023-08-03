@@ -79,7 +79,7 @@ func TestMonitor_Events(t *testing.T) {
 					recordedResources: monitorapi.ResourcesMap{},
 				},
 			}
-			if got := m.Intervals(tt.from, tt.to); !reflect.DeepEqual(got, tt.want) {
+			if got := m.recorder.Intervals(tt.from, tt.to); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("%s", diff.ObjectReflectDiff(tt.want, got))
 			}
 		})

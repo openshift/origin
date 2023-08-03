@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
@@ -45,11 +43,16 @@ type Monitor struct {
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
-func NewMonitor(adminKubeConfig *rest.Config, storageDir string, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc, invariantRegistry invariants.InvariantRegistry) *Monitor {
+func NewMonitor(
+	recorder monitorapi.Recorder,
+	adminKubeConfig *rest.Config,
+	storageDir string,
+	additionalEventIntervalRecorders []StartEventIntervalRecorderFunc,
+	invariantRegistry invariants.InvariantRegistry) Interface {
 	return &Monitor{
 		adminKubeConfig:                  adminKubeConfig,
 		additionalEventIntervalRecorders: additionalEventIntervalRecorders,
-		recorder:                         NewRecorder(),
+		recorder:                         recorder,
 		invariantRegistry:                invariantRegistry,
 		storageDir:                       storageDir,
 	}
@@ -246,49 +249,4 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 	path := filepath.Join(storageDir, fmt.Sprintf("%s_%s.xml", filePrefix, fileSuffix))
 	fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
 	return os.WriteFile(path, test.StripANSI(out), 0640)
-}
-
-func (m *Monitor) CurrentResourceState() monitorapi.ResourcesMap {
-	return m.recorder.CurrentResourceState()
-}
-
-func (m *Monitor) RecordResource(resourceType string, obj runtime.Object) {
-	m.recorder.RecordResource(resourceType, obj)
-}
-
-// Record captures one or more conditions at the current time. All conditions are recorded
-// in monotonic order as EventInterval objects.
-func (m *Monitor) Record(conditions ...monitorapi.Condition) {
-	m.recorder.Record(conditions...)
-}
-
-// AddIntervals provides a mechanism to directly inject eventIntervals
-func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.Interval) {
-	m.recorder.AddIntervals(eventIntervals...)
-}
-
-// StartInterval inserts a record at time t with the provided condition and returns an opaque
-// locator to the interval. The caller may close the sample at any point by invoking EndInterval().
-func (m *Monitor) StartInterval(t time.Time, condition monitorapi.Condition) int {
-	return m.recorder.StartInterval(t, condition)
-}
-
-// EndInterval updates the To of the interval started by StartInterval if it is greater than
-// the from.
-func (m *Monitor) EndInterval(startedInterval int, t time.Time) {
-	m.recorder.EndInterval(startedInterval, t)
-}
-
-// RecordAt captures one or more conditions at the provided time. All conditions are recorded
-// as EventInterval objects.
-func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
-	m.recorder.RecordAt(t, conditions...)
-}
-
-// Intervals returns all events that occur between from and to, including
-// any sampled conditions that were encountered during that period.
-// Intervals are returned in order of their occurrence. The returned slice
-// is a copy of the monitor's state and is safe to update.
-func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
-	return m.recorder.Intervals(from, to)
 }

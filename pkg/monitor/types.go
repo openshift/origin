@@ -12,6 +12,7 @@ import (
 type Interface interface {
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
+	SerializeResults(ctx context.Context, junitSuiteName, timeSuffix string) error
 }
 
 // StartEventIntervalRecorder is non-blocking and must stop on a context cancel.  It is expected to call the recorder

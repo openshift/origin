@@ -21,7 +21,7 @@ type recorder struct {
 }
 
 // NewRecorder creates a recorder that can  be used to store events
-func NewRecorder() *recorder {
+func NewRecorder() monitorapi.Recorder {
 	return &recorder{
 		recordedResources: monitorapi.ResourcesMap{},
 	}
