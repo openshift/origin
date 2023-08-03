@@ -1,4 +1,4 @@
-package intervalcreation
+package operatorstateanalyzer
 
 import (
 	"testing"
@@ -38,7 +38,7 @@ func TestIntervalsFromEvents_OperatorProgressing(t *testing.T) {
 		},
 	)
 
-	actual := IntervalsFromEvents_OperatorProgressing(intervals, nil, time.Time{}, time.Time{})
+	actual := intervalsFromEvents_OperatorProgressing(intervals, nil, time.Time{}, time.Time{})
 	expectedSummary := `Mar 29 15:56:00.000 - 11s   W clusteroperator/network condition/Progressing status/True reason/Deployment \"openshift-network-diagnostics/network-check-source\" is not available (awaiting 1 nodes)`
 	if actual[0].String() != expectedSummary {
 		t.Fatal(spew.Sdump(actual))

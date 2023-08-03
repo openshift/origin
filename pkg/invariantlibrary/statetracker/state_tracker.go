@@ -1,4 +1,4 @@
-package intervalcreation
+package statetracker
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ type stateTracker struct {
 
 type conditionCreationFunc func(locator string, from, to time.Time) (monitorapi.Condition, bool)
 
-func simpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorapi.IntervalLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
+func SimpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorapi.IntervalLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
 	return func(locator string, from, to time.Time) (monitorapi.Condition, bool) {
 		return monitorapi.Condition{
 			Level:   level,
@@ -142,7 +142,7 @@ func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]
 
 		for stateName := range states {
 			message := fmt.Sprintf("%v state/%v never completed", strings.Join(annotationStrings, " "), stateName.stateName)
-			ret = append(ret, t.CloseInterval(locator, stateName, simpleCondition(t.constructedBy, monitorapi.Warning, stateName.reason, message), end)...)
+			ret = append(ret, t.CloseInterval(locator, stateName, SimpleCondition(t.constructedBy, monitorapi.Warning, stateName.reason, message), end)...)
 		}
 	}
 

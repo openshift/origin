@@ -7,14 +7,12 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"k8s.io/client-go/rest"
 )
 
@@ -45,13 +43,22 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 
 	failures := []string{}
 	flakes := []string{}
-	operatorsProgressing := intervalcreation.IntervalsFromEvents_OperatorProgressing(events, nil, time.Time{}, time.Time{})
-	networkOperatorProgressing := operatorsProgressing.Filter(func(ev monitorapi.Interval) bool {
-		return ev.Locator == "clusteroperator/network" || ev.Locator == "clusteroperator/machine-config"
+	networkOperatorProgressing := events.Filter(func(ev monitorapi.Interval) bool {
+		annotations := monitorapi.AnnotationsFromMessage(ev.Message)
+		if annotations[monitorapi.AnnotationCondition] != string(configv1.OperatorProgressing) {
+			return false
+		}
+		locatorParts := monitorapi.LocatorParts(ev.Locator)
+		isNetwork := locatorParts[string(monitorapi.LocatorClusterOperatorKey)] == "network"
+		isMCO := locatorParts[string(monitorapi.LocatorClusterOperatorKey)] == "machine-config"
+		if isNetwork || isMCO {
+			return true
+		}
+		return false
 	})
 	eventsForPods := getEventsByPodName(events)
 
-	var platform v1.PlatformType
+	var platform configv1.PlatformType
 	configClient, err := configclient.NewForConfig(clientConfig)
 	if err != nil {
 		failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
@@ -104,7 +111,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			continue
 		}
 		if strings.Contains(event.Message, "pinging container registry") && strings.Contains(event.Message, "i/o timeout") {
-			if platform == v1.AzurePlatformType {
+			if platform == configv1.AzurePlatformType {
 				flakes = append(flakes, fmt.Sprintf("%v - i/o timeout common flake when pinging container registry on azure - %v", event.Locator, event.Message))
 				continue
 			}

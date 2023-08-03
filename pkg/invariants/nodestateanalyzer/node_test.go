@@ -1,4 +1,4 @@
-package intervalcreation
+package nodestateanalyzer
 
 import (
 	"embed"
@@ -16,7 +16,7 @@ func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	changes := IntervalsFromEvents_NodeChanges(intervals, nil, time.Time{}, time.Now())
+	changes := intervalsFromEvents_NodeChanges(intervals, nil, time.Time{}, time.Now())
 	out, _ := monitorserialization.EventsIntervalsToJSON(changes)
 	if len(changes) != 3 {
 		t.Fatalf("unexpected changes: %s", string(out))
@@ -87,7 +87,7 @@ func (p nodeIntervalTest) test(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := IntervalsFromEvents_NodeChanges(inputIntervals, nil, startTime, endTime)
+	result := intervalsFromEvents_NodeChanges(inputIntervals, nil, startTime, endTime)
 
 	resultBytes, err := monitorserialization.EventsToJSON(result)
 	if err != nil {

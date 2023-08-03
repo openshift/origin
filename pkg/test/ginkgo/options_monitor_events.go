@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
@@ -141,10 +140,6 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 		fmt.Fprintf(o.ErrOut, "FetchEventIntervalsForAllAlerts error but continuing processing: %v", err)
 	}
 	o.monitor.AddIntervals(alertEventIntervals...) // add intervals to the recorded events, not just the random copy
-	o.monitor.AddIntervals(intervalcreation.CalculateMoreIntervals(
-		o.monitor.Intervals(fromTime, endTime),
-		o.monitor.CurrentResourceState(),
-		fromTime, endTime)...)
 
 	return nil
 }

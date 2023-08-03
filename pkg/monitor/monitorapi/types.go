@@ -192,6 +192,7 @@ const (
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
 	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
+	AnnotationCondition      AnnotationKey = "condition"
 )
 
 type ConstructionOwner string

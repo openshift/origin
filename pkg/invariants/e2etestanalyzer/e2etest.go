@@ -1,4 +1,4 @@
-package intervalcreation
+package e2etestanalyzer
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func IntervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
+func intervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
 	ret := monitorapi.Intervals{}
 	testNameToLastStart := map[string]time.Time{}
 
