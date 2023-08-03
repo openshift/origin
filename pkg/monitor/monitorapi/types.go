@@ -215,13 +215,14 @@ type Message struct {
 type IntervalSource string
 
 const (
-	SourceAlert             IntervalSource = "Alert"
-	SourceAPIServerShutdown IntervalSource = "APIServerShutdown"
-	SourceDisruption        IntervalSource = "Disruption"
-	SourceNodeMonitor       IntervalSource = "NodeMonitor"
-	SourcePodLog            IntervalSource = "PodLog"
-	SourcePodMonitor        IntervalSource = "PodMonitor"
-	SourceTestData          IntervalSource = "TestData" // some tests have no real source to assign
+	SourceAlert                   IntervalSource = "Alert"
+	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
+	SourceDisruption              IntervalSource = "Disruption"
+	SourceNodeMonitor             IntervalSource = "NodeMonitor"
+	SourcePodLog                  IntervalSource = "PodLog"
+	SourcePodMonitor              IntervalSource = "PodMonitor"
+	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
+	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 )
 
 type Interval struct {

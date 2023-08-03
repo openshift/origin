@@ -3,6 +3,8 @@ package defaultinvariants
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/invariants/pathologicaleventanalyzer"
+
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/additionaleventscollector"
 	"github.com/openshift/origin/pkg/invariants/alertanalyzer"
@@ -92,6 +94,7 @@ func newUniversalInvariants() invariants.InvariantRegistry {
 	invariantTests.AddInvariantOrDie("upload-to-loki-serializer", "Test Framework", uploadtolokiserializer.NewUploadSerializer())
 	invariantTests.AddInvariantOrDie("operator-state-analyzer", "Test Framework", operatorstateanalyzer.NewAnalyzer())
 	invariantTests.AddInvariantOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
+	invariantTests.AddInvariantOrDie("pathological-event-analyzer", "Test Framework", pathologicaleventanalyzer.NewAnalyzer())
 
 	invariantTests.AddInvariantOrDie("kubelet-log-collector", "Node", kubeletlogcollector.NewKubeletLogCollector())
 	invariantTests.AddInvariantOrDie("node-state-analyzer", "Node", nodestateanalyzer.NewAnalyzer())
