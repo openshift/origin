@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitor/podipcontroller"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
@@ -558,7 +557,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 
 	// start controller to watch for shared pod IPs.
 	sharedInformers := informers.NewSharedInformerFactory(client, 24*time.Hour)
-	podIPController := podipcontroller.NewSimultaneousPodIPController(recorderWriter, sharedInformers.Core().V1().Pods())
+	podIPController := NewSimultaneousPodIPController(recorderWriter, sharedInformers.Core().V1().Pods())
 	go podIPController.Run(ctx)
 	go sharedInformers.Start(ctx.Done())
 

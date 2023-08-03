@@ -1,4 +1,4 @@
-package main
+package run_disruption
 
 import (
 	"context"

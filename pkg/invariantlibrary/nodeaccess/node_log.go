@@ -1,4 +1,4 @@
-package nodedetails
+package nodeaccess
 
 import (
 	"bufio"

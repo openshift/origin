@@ -6,9 +6,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/openshift/origin/pkg/resourcewatch/controller/configmonitor"
+	"github.com/openshift/origin/pkg/resourcewatch/storage"
+
 	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/pkg/monitor/resourcewatch/controller/configmonitor"
-	"github.com/openshift/origin/pkg/monitor/resourcewatch/storage"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"

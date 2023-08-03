@@ -7,7 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/origin/pkg/duplicateevents"
+	"github.com/openshift/origin/pkg/invariantlibrary/pathologicaleventlibrary"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/testdata"
@@ -83,7 +84,7 @@ func BelongsInEverything(eventInterval monitorapi.Interval) bool {
 }
 
 func isInterestingOrPathological(eventInterval monitorapi.Interval) bool {
-	if strings.Contains(eventInterval.Locator, duplicateevents.InterestingMark) || strings.Contains(eventInterval.Locator, duplicateevents.PathologicalMark) {
+	if strings.Contains(eventInterval.Locator, pathologicaleventlibrary.InterestingMark) || strings.Contains(eventInterval.Locator, pathologicaleventlibrary.PathologicalMark) {
 		return true
 	}
 	return false

@@ -10,14 +10,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/openshift/origin/pkg/client/nodedetails"
-
+	"github.com/openshift/origin/pkg/invariantlibrary/nodeaccess"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
-
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -94,7 +92,7 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 		go func(ctx context.Context, auditLogFilename string) {
 			defer wg.Done()
 
-			auditStream, err := nodedetails.StreamNodeLogFile(ctx, client, nodeName, filepath.Join(apiserver, auditLogFilename))
+			auditStream, err := nodeaccess.StreamNodeLogFile(ctx, client, nodeName, filepath.Join(apiserver, auditLogFilename))
 			if err != nil {
 				errCh <- err
 				return
@@ -142,12 +140,12 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 }
 
 func getAuditLogFilenames(ctx context.Context, client kubernetes.Interface, nodeName, apiserverName string) ([]string, error) {
-	allBytes, err := nodedetails.GetNodeLogFile(ctx, client, nodeName, apiserverName)
+	allBytes, err := nodeaccess.GetNodeLogFile(ctx, client, nodeName, apiserverName)
 	if err != nil {
 		return nil, err
 	}
 
-	filenames, err := nodedetails.GetDirectoryListing(bytes.NewBuffer(allBytes))
+	filenames, err := nodeaccess.GetDirectoryListing(bytes.NewBuffer(allBytes))
 	if err != nil {
 		return nil, err
 	}

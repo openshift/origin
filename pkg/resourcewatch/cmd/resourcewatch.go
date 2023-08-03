@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/openshift/origin/pkg/monitor/resourcewatch/operator"
+	"github.com/openshift/origin/pkg/resourcewatch/operator"
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 )

@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/defaultinvariants"
+	"github.com/openshift/origin/pkg/invariants/testframework/timelineserializer"
 
-	"github.com/openshift/origin/pkg/invariants/timelineserializer"
+	"github.com/openshift/origin/pkg/defaultinvariants"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 

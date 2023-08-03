@@ -1,4 +1,4 @@
-package duplicateevents
+package pathologicaleventlibrary
 
 import (
 	"context"

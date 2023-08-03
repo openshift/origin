@@ -7,7 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/duplicateevents"
+	"github.com/openshift/origin/pkg/invariantlibrary/pathologicaleventlibrary"
+
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -61,12 +62,12 @@ func markMissedPathologicalEvents(events monitorapi.Intervals) monitorapi.Interv
 	amPathoEvents := map[string]string{}
 
 	for _, pathologicalEvent := range events {
-		if !strings.Contains(pathologicalEvent.Message, duplicateevents.PathologicalMark) {
+		if !strings.Contains(pathologicalEvent.Message, pathologicaleventlibrary.PathologicalMark) {
 			// TODO make a single pathlogical marker to watch, this will require consruction here
 			// We only are interested in those EventIntervals with pathological/true
 			continue
 		}
-		if strings.Contains(pathologicalEvent.Message, duplicateevents.InterestingMark) {
+		if strings.Contains(pathologicalEvent.Message, pathologicaleventlibrary.InterestingMark) {
 			// TODO make a single pathlogical marker to watch, this will require consruction here
 			// If this message is known, we don't need to process it because we already
 			// created an interval when it came in initially.
@@ -84,12 +85,12 @@ func markMissedPathologicalEvents(events monitorapi.Intervals) monitorapi.Interv
 	logrus.Infof("Number of pathological keys: %d", len(amPathoEvents))
 
 	for i, scannedEvent := range events {
-		msgWithPathoMark := fmt.Sprintf("%s %s", duplicateevents.PathologicalMark, removeNTimes.ReplaceAllString(scannedEvent.Message, ""))
+		msgWithPathoMark := fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, removeNTimes.ReplaceAllString(scannedEvent.Message, ""))
 		if pLocator, ok := amPathoEvents[msgWithPathoMark+scannedEvent.Locator]; ok {
 			constructedEventCopy := events[i].DeepCopy()
 
 			// This is a match, so update the event with the pathological/true mark and locator that contains the hmsg (message hash).
-			constructedEventCopy.Message = fmt.Sprintf("%s %s", duplicateevents.PathologicalMark, scannedEvent.Message)
+			constructedEventCopy.Message = fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, scannedEvent.Message)
 			constructedEventCopy.Locator = pLocator
 			logrus.Infof("Found a times match: Locator=%s Message=%s", events[i].Locator, events[i].Message)
 		}

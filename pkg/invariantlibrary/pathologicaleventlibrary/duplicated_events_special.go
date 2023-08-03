@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
@@ -89,14 +88,14 @@ func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Interv
 	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers in e2e namespaces"
 
 	// always flake for now
-	return NewSingleEventCheckRegex(testName, duplicateevents.BackoffRestartingFailedRegEx, math.MaxInt, duplicateevents.BackoffRestartingFlakeThreshold).
+	return NewSingleEventCheckRegex(testName, BackoffRestartingFailedRegEx, math.MaxInt, BackoffRestartingFlakeThreshold).
 		Test(events.Filter(monitorapi.IsInE2ENamespace))
 }
 
 func MakeProbeTest(testName string, events monitorapi.Intervals, operatorName string, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	messageRegExp := regexp.MustCompile(regExStr)
 	return eventMatchThresholdTest(testName, events, func(event monitorapi.Interval) bool {
-		return duplicateevents.IsOperatorMatchRegexMessage(event, operatorName, messageRegExp)
+		return IsOperatorMatchRegexMessage(event, operatorName, messageRegExp)
 	}, eventFlakeThreshold)
 }
 

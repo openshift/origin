@@ -1,4 +1,4 @@
-package monitor_command
+package run
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/cmd/monitor_command/timeline"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
 
 	"github.com/openshift/origin/pkg/defaultinvariants"
 
@@ -42,10 +42,19 @@ func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOpti
 	}
 }
 
+// TODO remove
 func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command {
+	return newRunCommand("run-monitor", ioStreams)
+}
+
+func NewRunCommand(ioStreams genericclioptions.IOStreams) *cobra.Command {
+	return newRunCommand("run", ioStreams)
+}
+
+func newRunCommand(name string, ioStreams genericclioptions.IOStreams) *cobra.Command {
 	monitorOpt := NewRunMonitorOptions(ioStreams)
 	cmd := &cobra.Command{
-		Use:   "run-monitor",
+		Use:   name,
 		Short: "Continuously verify the cluster is functional",
 		Long: templates.LongDesc(`
 		Run a continuous verification process

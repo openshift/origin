@@ -1,9 +1,11 @@
-package main
+package dev
 
 import (
 	"io/ioutil"
 	"os"
 	"time"
+
+	"github.com/openshift/origin/pkg/invariants/testframework/uploadtolokiserializer"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/alerts"
@@ -11,7 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/invariants/network/legacynetworkinvariants"
 	"github.com/openshift/origin/pkg/invariants/testframework/legacytestframeworkinvariants"
-	"github.com/openshift/origin/pkg/invariants/uploadtolokiserializer"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/sirupsen/logrus"
@@ -19,7 +20,7 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 )
 
-func newDevCommand() *cobra.Command {
+func NewDevCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "dev",

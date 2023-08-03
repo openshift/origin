@@ -1,7 +1,6 @@
 package legacynodeinvariants
 
 import (
-	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/invariantlibrary/pathologicaleventlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
@@ -10,5 +9,5 @@ import (
 
 func testMarketplaceStartupProbeFailure(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] openshift-marketplace pods should not get excessive startupProbe failures"
-	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, duplicateevents.MarketplaceStartupProbeFailureRegExpStr, duplicateevents.DuplicateEventThreshold)
+	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.MarketplaceStartupProbeFailureRegExpStr, pathologicaleventlibrary.DuplicateEventThreshold)
 }

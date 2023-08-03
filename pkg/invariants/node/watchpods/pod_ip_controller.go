@@ -1,4 +1,4 @@
-package podipcontroller
+package watchpods
 
 import (
 	"context"
