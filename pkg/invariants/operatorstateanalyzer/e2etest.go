@@ -1,4 +1,4 @@
-package monitor
+package operatorstateanalyzer
 
 import (
 	"time"
