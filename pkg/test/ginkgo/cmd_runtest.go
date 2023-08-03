@@ -112,9 +112,6 @@ func (o *TestOptions) Run(args []string) error {
 		if err := monitorEventsOptions.SerializeResults(ctx, "missing-junit-suite", timeSuffix); err != nil {
 			fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
 		}
-		if err := monitorEventsOptions.WriteRunDataToArtifactsDir("", timeSuffix); err != nil {
-			fmt.Fprintf(o.ErrOut, "error: Failed to write run-data: %v\n", err)
-		}
 	}
 
 	var summary types.SpecReport

@@ -17,7 +17,6 @@ import (
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/sirupsen/logrus"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/rest"
 )
@@ -156,15 +155,4 @@ func (m *MonitorEventsOptions) SerializeResults(ctx context.Context, junitSuiteN
 
 func (o *MonitorEventsOptions) GetStartTime() *time.Time {
 	return o.startTime
-}
-
-// WriteRunDataToArtifactsDir attempts to write useful run data to the specified directory.
-func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, timeSuffix string) error {
-	if o.endTime == nil {
-		return fmt.Errorf("not ended")
-	}
-
-	errs := []error{}
-
-	return utilerrors.NewAggregate(errs)
 }

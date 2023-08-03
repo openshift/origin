@@ -560,9 +560,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 		if err := monitorEventsOptions.SerializeResults(ctx, junitSuiteName, timeSuffix); err != nil {
 			fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
 		}
-		if err := monitorEventsOptions.WriteRunDataToArtifactsDir(o.JUnitDir, timeSuffix); err != nil {
-			fmt.Fprintf(o.ErrOut, "error: Failed to write run-data: %v\n", err)
-		}
 	}
 
 	// default is empty string as that is what entries prior to adding this will have
