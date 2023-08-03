@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -247,7 +248,9 @@ func (o *Timeline) Run() error {
 		to = *o.EndDate
 	}
 
-	filteredEvents = intervalcreation.InsertCalculatedIntervals(filteredEvents, recordedResources, from, to)
+	filteredEvents = append(filteredEvents, intervalcreation.CalculateMoreIntervals(filteredEvents, recordedResources, from, to)...)
+	// we must sort the result
+	sort.Sort(monitorapi.Intervals(filteredEvents))
 
 	output, err := o.Renderer(filteredEvents)
 	if err != nil {
