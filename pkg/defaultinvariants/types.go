@@ -5,7 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/additionaleventscollector"
-	"github.com/openshift/origin/pkg/invariants/alertserializer"
+	"github.com/openshift/origin/pkg/invariants/alertanalyzer"
 	"github.com/openshift/origin/pkg/invariants/auditloganalyzer"
 	"github.com/openshift/origin/pkg/invariants/clusterinfoserializer"
 	"github.com/openshift/origin/pkg/invariants/disruptionimageregistry"
@@ -85,7 +85,7 @@ func newUniversalInvariants() invariants.InvariantRegistry {
 	invariantTests.AddInvariantOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
 	invariantTests.AddInvariantOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
 	invariantTests.AddInvariantOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
-	invariantTests.AddInvariantOrDie("alert-summary-serializer", "Test Framework", alertserializer.NewAlertSummarySerializer())
+	invariantTests.AddInvariantOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
 	invariantTests.AddInvariantOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
 	invariantTests.AddInvariantOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
 	invariantTests.AddInvariantOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())

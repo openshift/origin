@@ -1,4 +1,4 @@
-package alertserializer
+package alertanalyzer
 
 import (
 	"encoding/json"

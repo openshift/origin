@@ -1,4 +1,4 @@
-package alertserializer
+package alertanalyzer
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 )
 
 type alertSummarySerializer struct {
+	adminRESTConfig *rest.Config
 }
 
 func NewAlertSummarySerializer() invariants.InvariantTest {
@@ -18,11 +19,13 @@ func NewAlertSummarySerializer() invariants.InvariantTest {
 }
 
 func (w *alertSummarySerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	w.adminRESTConfig = adminRESTConfig
 	return nil
 }
 
 func (w *alertSummarySerializer) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	return nil, nil, nil
+	intervals, err := fetchEventIntervalsForAllAlerts(ctx, w.adminRESTConfig, beginning)
+	return intervals, nil, err
 }
 
 func (*alertSummarySerializer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {

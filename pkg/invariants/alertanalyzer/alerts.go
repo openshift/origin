@@ -1,4 +1,4 @@
-package monitor
+package alertanalyzer
 
 import (
 	"context"
@@ -21,14 +21,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
-
-func WhenWasAlertFiring(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, namespace string) ([]monitorapi.Interval, error) {
-	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "firing", namespace)
-}
-
-func WhenWasAlertPending(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, namespace string) ([]monitorapi.Interval, error) {
-	return whenWasAlertInState(ctx, prometheusClient, startTime, alertName, "pending", namespace)
-}
 
 func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API, startTime time.Time, alertName, alertState, namespace string) ([]monitorapi.Interval, error) {
 	if alertState != "pending" && alertState != "firing" {
@@ -62,7 +54,7 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 		fmt.Printf("#### warnings \n\t%v\n", strings.Join(warningsForQuery, "\n\t"))
 	}
 
-	ret, err := CreateEventIntervalsForAlerts(ctx, alerts, startTime)
+	ret, err := createEventIntervalsForAlerts(ctx, alerts, startTime)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +69,7 @@ func whenWasAlertInState(ctx context.Context, prometheusClient prometheusv1.API,
 	return ret, nil
 }
 
-func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config,
+func fetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Config,
 	startTime time.Time) ([]monitorapi.Interval, error) {
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
@@ -139,7 +131,7 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 		fmt.Printf("#### warnings \n\t%v\n", strings.Join(warningsForQuery, "\n\t"))
 	}
 
-	firingAlerts, err := CreateEventIntervalsForAlerts(ctx, alerts, startTime)
+	firingAlerts, err := createEventIntervalsForAlerts(ctx, alerts, startTime)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +143,7 @@ func FetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 	if len(warningsForQuery) > 0 {
 		fmt.Printf("#### warnings \n\t%v\n", strings.Join(warningsForQuery, "\n\t"))
 	}
-	pendingAlerts, err := CreateEventIntervalsForAlerts(ctx, alerts, startTime)
+	pendingAlerts, err := createEventIntervalsForAlerts(ctx, alerts, startTime)
 	if err != nil {
 		return nil, err
 	}
@@ -347,7 +339,7 @@ func indexByLocator(events []monitorapi.Interval) map[string][]monitorapi.Interv
 	return ret
 }
 
-func CreateEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.Value, startTime time.Time) ([]monitorapi.Interval, error) {
+func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.Value, startTime time.Time) ([]monitorapi.Interval, error) {
 	ret := []monitorapi.Interval{}
 
 	switch {

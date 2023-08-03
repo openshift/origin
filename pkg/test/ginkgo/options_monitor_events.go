@@ -123,8 +123,6 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	t := time.Now()
 	o.endTime = &t
 
-	var err error
-
 	cleanupContext, cleanupCancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cleanupCancel()
 	if err := o.monitor.Stop(cleanupContext); err != nil {
@@ -133,13 +131,6 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 
 	// make sure that the end time is *after* the final availability samples.
 	fromTime, endTime := *o.startTime, *o.endTime
-
-	// add events from alerts so we can create the intervals
-	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, *o.startTime)
-	if err != nil {
-		fmt.Fprintf(o.ErrOut, "FetchEventIntervalsForAllAlerts error but continuing processing: %v", err)
-	}
-	o.monitor.AddIntervals(alertEventIntervals...) // add intervals to the recorded events, not just the random copy
 
 	return nil
 }
