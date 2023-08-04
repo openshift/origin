@@ -569,7 +569,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	wasMasterNodeUpdated := ""
 	if events := monitorEventsOptions.monitor.Intervals(o.StartTime, end); len(events) > 0 {
 		var buf *bytes.Buffer
-		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
 		currResState := monitorEventsOptions.monitor.CurrentResourceState()
 		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
