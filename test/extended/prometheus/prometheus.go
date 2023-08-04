@@ -78,10 +78,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"OVNKubernetesSouthboundDatabaseMultipleLeadersError",
 		"OVNKubernetesNorthdInactive",
 
-		// Repository: https://github.com/openshift/cluster-kube-scheduler-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14052
-		"KubeSchedulerDown",
-
 		// Repository; https://github.com/openshift/cluster-storage-operator
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14053
 		"MultipleDefaultStorageClasses",
