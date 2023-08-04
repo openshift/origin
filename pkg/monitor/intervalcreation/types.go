@@ -2,7 +2,6 @@ package intervalcreation
 
 import (
 	"context"
-	"sort"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
@@ -40,10 +39,9 @@ func CalculateMoreIntervals(startingIntervals []monitorapi.Interval, recordedRes
 	return ret
 }
 
-// InsertIntervalsFromCluster contacts the cluster, retrieves information deemed pertinent, and creates intervals for them.
-func InsertIntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, startingIntervals []monitorapi.Interval, recordedResources monitorapi.ResourcesMap, from, to time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
-	ret := make([]monitorapi.Interval, len(startingIntervals))
-	copy(ret, startingIntervals)
+// IntervalsFromCluster contacts the cluster, retrieves information deemed pertinent, and creates intervals for them.
+func IntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, from, to time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
+	ret := monitorapi.Intervals{}
 
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
@@ -74,9 +72,6 @@ func InsertIntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, st
 		allErrors = append(allErrors, err)
 	}
 	ret = append(ret, auditEvents...)
-
-	// we must sort the result
-	sort.Sort(monitorapi.Intervals(ret))
 
 	return auditLogSummary, ret, utilerrors.NewAggregate(allErrors)
 }

@@ -150,13 +150,11 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	// make sure that the end time is *after* the final availability samples.
 	fromTime, endTime := *o.startTime, *o.endTime
 
-	nearlyFinishedRecordedResources := o.monitor.CurrentResourceState()
-
 	// this happens before calculation because events collected here could be used to drive later calculations
 	var newEvents monitorapi.Intervals
-	o.auditLogSummary, newEvents, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, o.monitor.Intervals(fromTime, endTime), nearlyFinishedRecordedResources, fromTime, endTime)
+	o.auditLogSummary, newEvents, err = intervalcreation.IntervalsFromCluster(ctx, restConfig, fromTime, endTime)
 	if err != nil {
-		fmt.Fprintf(o.ErrOut, "InsertIntervalsFromCluster error but continuing processing: %v", err)
+		fmt.Fprintf(o.ErrOut, "IntervalsFromCluster error but continuing processing: %v", err)
 	}
 	o.monitor.AddIntervals(newEvents...) // add intervals to the recorded events, not just the random copy
 
