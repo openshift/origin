@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
@@ -618,6 +620,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", o.StartTime.UTC().Format("20060102-150405"))
 			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
 				fmt.Fprintf(o.ErrOut, "error: Failed to write monitor data: %v\n", err)
+			}
+
+			filename = fmt.Sprintf("events_used_for_junits_%s.json", o.StartTime.UTC().Format("20060102-150405"))
+			if err := monitorserialization.EventsToFile(filepath.Join(o.JUnitDir, filename), events); err != nil {
+				fmt.Fprintf(o.ErrOut, "error: Failed to junit event info: %v\n", err)
 			}
 		}
 
