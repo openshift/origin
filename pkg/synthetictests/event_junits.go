@@ -35,6 +35,7 @@ func StableSystemEventInvariants(events monitorapi.Intervals, duration time.Dura
 	tests = append(tests, testPodSandboxCreation(events, kubeClientConfig)...)
 	tests = append(tests, testOvnNodeReadinessProbe(events, kubeClientConfig)...)
 
+	tests = append(tests, TestAllAPIBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, TestAllIngressBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, TestExternalBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, TestAPIServerIPTablesAccessDisruption(events)...)
@@ -128,6 +129,7 @@ func SystemUpgradeEventInvariants(events monitorapi.Intervals, duration time.Dur
 	tests = append(tests, testAPIQuotaEvents(events)...)
 	tests = append(tests, testErrorUpdatingEndpointSlices(events)...)
 
+	tests = append(tests, TestAllAPIBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, TestAllIngressBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, TestExternalBackendsForDisruption(events, duration, jobType)...)
 	tests = append(tests, testMultipleSingleSecondDisruptions(events)...)

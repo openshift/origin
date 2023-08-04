@@ -1,0 +1,55 @@
+{
+    "items": [
+        {
+            "level": "Info",
+            "locator": "ns/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9",
+            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-214-214.us-west-1.compute.internal reason/Scheduled",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-21T16:43:14Z",
+            "to": "2022-03-21T16:43:14Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9",
+            "message": "constructed/pod-lifecycle-constructor reason/Created",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-21T16:43:14Z",
+            "to": "2022-03-21T16:43:14Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9 container/pruner",
+            "message": "constructed/pod-lifecycle-constructor reason/NotReady",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-21T16:43:14Z",
+            "to": "2022-03-21T16:43:14Z"
+        }
+    ]
+}

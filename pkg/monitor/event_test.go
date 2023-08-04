@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -84,7 +83,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 
 	type args struct {
 		ctx                    context.Context
-		m                      monitorapi.Recorder
+		m                      *Monitor
 		client                 kubernetes.Interface
 		reMatchFirstQuote      *regexp.Regexp
 		significantlyBeforeNow time.Time
@@ -103,7 +102,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			name: "Single Event test",
 			args: args{
 				ctx:                    context.TODO(),
-				m:                      NewRecorder(),
+				m:                      NewMonitor(),
 				client:                 nil,
 				reMatchFirstQuote:      regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`),
 				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
@@ -116,7 +115,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			skip: true, // skip since we use this only for interactive debugging
 			args: args{
 				ctx:               context.TODO(),
-				m:                 NewRecorder(),
+				m:                 NewMonitor(),
 				client:            clientSet,
 				reMatchFirstQuote: regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`),
 

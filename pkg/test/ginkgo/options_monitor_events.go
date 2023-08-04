@@ -3,25 +3,31 @@ package ginkgo
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/fs"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/defaultinvariants"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
+	"github.com/sirupsen/logrus"
+
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/nodedetails"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
 	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"github.com/sirupsen/logrus"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
 )
 
 type RunDataWriter interface {
@@ -38,44 +44,60 @@ type MonitorEventsOptions struct {
 	monitor   *monitor.Monitor
 	startTime *time.Time
 	endTime   *time.Time
-	// recordedEvents is written during Stop
+	// recordedEvents is written during End
 	recordedEvents monitorapi.Intervals
-	// recordedResource is written during Stop
+	// recordedResource is written during End
 	recordedResources monitorapi.ResourcesMap
-	// auditLogSummary is written during Stop
+	// auditLogSummary is written during End
 	auditLogSummary *nodedetails.AuditLogSummary
 
+	Recorders      []monitor.StartEventIntervalRecorderFunc
+	RunDataWriters []RunDataWriter
 	genericclioptions.IOStreams
-	storageDir                 string
-	clusterStabilityDuringTest defaultinvariants.ClusterStabilityDuringTest
 }
 
-func NewMonitorEventsOptions(streams genericclioptions.IOStreams, storageDir string, clusterStabilityDuringTest defaultinvariants.ClusterStabilityDuringTest) *MonitorEventsOptions {
+func NewMonitorEventsOptions(streams genericclioptions.IOStreams) *MonitorEventsOptions {
 	return &MonitorEventsOptions{
-		IOStreams:                  streams,
-		storageDir:                 storageDir,
-		clusterStabilityDuringTest: clusterStabilityDuringTest,
+		Recorders: []monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAllAPIMonitoring,
+			controlplane.StartRemoteAPIMonitoring,
+			frontends.StartAllIngressMonitoring,
+		},
+		RunDataWriters: []RunDataWriter{
+			// these produce the various intervals.  Different intervals focused on inspecting different problem spaces.
+			intervalcreation.NewSpyglassEventIntervalRenderer("everything", intervalcreation.BelongsInEverything),
+			intervalcreation.NewSpyglassEventIntervalRenderer("spyglass", intervalcreation.BelongsInSpyglass),
+			// TODO add visualization of individual apiserver containers and their readiness on this page
+			intervalcreation.NewSpyglassEventIntervalRenderer("kube-apiserver", intervalcreation.BelongsInKubeAPIServer),
+			intervalcreation.NewSpyglassEventIntervalRenderer("operators", intervalcreation.BelongsInOperatorRollout),
+			intervalcreation.NewPodEventIntervalRenderer(),
+			intervalcreation.NewIngressServicePodIntervalRenderer(),
+
+			RunDataWriterFunc(monitor.WriteEventsForJobRun),
+			RunDataWriterFunc(monitor.WriteTrackedResourcesForJobRun),
+			RunDataWriterFunc(monitor.WriteBackendDisruptionForJobRun),
+			RunDataWriterFunc(allowedalerts.WriteAlertDataForJobRun),
+			RunDataWriterFunc(monitor.WriteClusterData),
+		},
+		IOStreams: streams,
 	}
 }
 
-func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Config) (monitorapi.Recorder, error) {
+func (o *MonitorEventsOptions) Start(ctx context.Context, restConfig *rest.Config) (monitor.Recorder, error) {
 	if o.monitor != nil {
 		return nil, fmt.Errorf("already started")
 	}
 	t := time.Now()
 	o.startTime = &t
 
-	m := monitor.NewMonitor(
-		restConfig,
-		o.storageDir,
+	m, err := monitor.Start(ctx, restConfig,
 		[]monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAPIMonitoringUsingNewBackend,
+			controlplane.StartAllAPIMonitoring,
 			frontends.StartAllIngressMonitoring,
 			externalservice.StartExternalServiceMonitoring,
 		},
-		defaultinvariants.NewInvariantsFor(o.clusterStabilityDuringTest),
+		backend.ExternalLoadBalancerType,
 	)
-	err := m.Start(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +153,8 @@ func markMissedPathologicalEvents(events monitorapi.Intervals) {
 	}
 }
 
-// Stop mutates the method receiver so you shouldn't call it multiple times.
-func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config, artifactDir string) error {
+// End mutates the method receiver so you shouldn't call it multiple times.
+func (o *MonitorEventsOptions) End(ctx context.Context, restConfig *rest.Config, artifactDir string) error {
 	if o.monitor == nil {
 		return fmt.Errorf("not started")
 	}
@@ -145,16 +167,7 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	o.recordedResources = o.monitor.CurrentResourceState()
 
 	var err error
-
-	cleanupContext, cleanupCancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cleanupCancel()
-	if err := o.monitor.Stop(cleanupContext); err != nil {
-		fmt.Fprintf(os.Stderr, "error cleaning up, still reporting as best as possible: %v\n", err)
-	}
-
-	// make sure that the end time is *after* the final availability samples.
 	fromTime, endTime := *o.startTime, *o.endTime
-
 	events := o.monitor.Intervals(fromTime, endTime)
 
 	markMissedPathologicalEvents(events)
@@ -164,15 +177,45 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	if err != nil {
 		fmt.Fprintf(o.ErrOut, "InsertIntervalsFromCluster error but continuing processing: %v", err)
 	}
-	o.monitor.AddIntervals(events...) // add intervals to the recorded events, not just the random copy
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, *o.startTime)
 	if err != nil {
 		fmt.Fprintf(o.ErrOut, "FetchEventIntervalsForAllAlerts error but continuing processing: %v", err)
 	}
 	events = append(events, alertEventIntervals...)
-	o.monitor.AddIntervals(alertEventIntervals...) // add intervals to the recorded events, not just the random copy
-	o.monitor.AddIntervals(intervalcreation.CalculateMoreIntervals(events, o.recordedResources, fromTime, endTime)...)
+	events = intervalcreation.InsertCalculatedIntervals(events, o.recordedResources, fromTime, endTime)
+
+	// read events from other test processes (individual tests for instance) that happened during this run.
+	// this happens during upgrade tests to pass information back to the main monitor.
+	if len(artifactDir) > 0 {
+		var additionalEvents monitorapi.Intervals
+		filepath.WalkDir(artifactDir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+			if d.IsDir() {
+				return nil
+			}
+			// upstream framework starting in 1.26 fixed how the AfterEach is
+			// invoked, now it's always invoked and that results in more files
+			// than we anticipated before, see here:
+			// https://github.com/kubernetes/kubernetes/blob/v1.26.0/test/e2e/framework/framework.go#L382
+			// our files have double underscore whereas upstream has only single
+			// so for now we'll skip everything else for summaries
+			//
+			// TODO: TRT will need to double check this longterm what they want
+			// to do with these extra files
+			if !strings.HasPrefix(d.Name(), "AdditionalEvents__") {
+				return nil
+			}
+			saved, _ := monitorserialization.EventsFromFile(path)
+			additionalEvents = append(additionalEvents, saved...)
+			return nil
+		})
+		if len(additionalEvents) > 0 {
+			events = append(events, additionalEvents.Cut(*o.startTime, *o.endTime)...)
+		}
+	}
 
 	sort.Sort(events)
 	events.Clamp(*o.startTime, *o.endTime)
@@ -180,10 +223,6 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	o.recordedEvents = events
 
 	return nil
-}
-
-func (m *MonitorEventsOptions) SerializeResults(ctx context.Context, junitSuiteName, timeSuffix string) error {
-	return m.monitor.SerializeResults(ctx, junitSuiteName, timeSuffix)
 }
 
 func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {
@@ -213,6 +252,13 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 		events[i] = o.recordedEvents[i]
 	}
 	sort.Stable(monitorapi.ByTimeWithNamespacedPods(events))
+
+	for _, writer := range o.RunDataWriters {
+		currErr := writer.WriteRunData(artifactDir, o.recordedResources, events, timeSuffix)
+		if currErr != nil {
+			errs = append(errs, currErr)
+		}
+	}
 
 	// TODO: Re-sort for loki, where we need these to go    in chronologically, and based on the
 	// above comments that would not be the case otherwise.

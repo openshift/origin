@@ -17,7 +17,7 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
 
-func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.Recorder, client configclientset.Interface) {
+func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client configclientset.Interface) {
 	coInformer := cache.NewSharedIndexInformer(
 		NewErrorRecordingListWatcher(m, &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
