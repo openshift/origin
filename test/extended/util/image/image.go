@@ -4,15 +4,21 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
-func init() {
+var (
+	initializationLock sync.RWMutex
+	initialized        bool
+	fromRepository     string
+	images             map[string]string
+
 	allowedImages = map[string]k8simage.ImageID{
 		// used by jenkins tests
 		"quay.io/redhat-developer/nfs-server:1.1": -1,
@@ -38,14 +44,51 @@ func init() {
 		"registry.k8s.io/e2e-test-images/agnhost:2.43": 1,
 		"registry.k8s.io/e2e-test-images/nginx:1.15-4": 22,
 	}
+)
 
-	images = GetMappedImages(allowedImages, os.Getenv("KUBE_TEST_REPO"))
+func getImages() map[string]string {
+	initializationLock.RLock()
+	if !initialized {
+		fmt.Printf("Called getImages before initialization, starting wait.")
+		initializationLock.RUnlock()
+
+		for {
+			time.Sleep(5 * time.Second)
+
+			done := func() bool {
+				initializationLock.RLock()
+				defer initializationLock.RUnlock()
+
+				if initialized {
+					return true
+				}
+				return false
+			}()
+			if done {
+				break
+			}
+
+			fmt.Printf("getImages still not initialized, waiting more.")
+		}
+	}
+	return images
 }
 
-var (
-	images        map[string]string
-	allowedImages map[string]k8simage.ImageID
-)
+func InitializeImages(repo string) {
+	initializationLock.Lock()
+	defer initializationLock.Unlock()
+
+	if initialized {
+		panic(fmt.Sprintf("attempt to double initialize from %q to %q", fromRepository, repo))
+	}
+	initialized = true
+	fromRepository = repo
+	images = GetMappedImages(allowedImages, repo)
+}
+
+func GetGlobalFromRepository() string {
+	return fromRepository
+}
 
 // ReplaceContents ensures that the provided yaml or json has the
 // correct embedded image content.
@@ -54,7 +97,7 @@ func ReplaceContents(data []byte) ([]byte, error) {
 	const exactImageFormat = `\b%s\b`
 
 	patterns := make(map[string]*regexp.Regexp)
-	for from, to := range images {
+	for from, to := range getImages() {
 		pattern := fmt.Sprintf(exactImageFormat, regexp.QuoteMeta(from))
 		re, err := regexp.Compile(pattern)
 		if err != nil {
@@ -82,7 +125,7 @@ func MustReplaceContents(data []byte) []byte {
 
 // LocationFor returns the appropriate URL for the provided image.
 func LocationFor(image string) string {
-	pull, ok := images[image]
+	pull, ok := getImages()[image]
 	if !ok {
 		panic(fmt.Sprintf(`The image %q is not one of the pre-approved test images.
 
@@ -140,15 +183,6 @@ var Exceptions = sets.NewString(
 	// by quay.io, this has to be manually mirrored with --filter-by-os=linux.*
 	"registry.k8s.io/pause:3.8",
 )
-
-// Images returns a map of all images known to the test package.
-func Images() map[string]struct{} {
-	copied := make(map[string]struct{})
-	for k := range images {
-		copied[k] = struct{}{}
-	}
-	return copied
-}
 
 // GetMappedImages returns the images if they were mapped to the provided
 // image repository. The keys of the returned map are the same as the keys

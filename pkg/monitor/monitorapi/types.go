@@ -13,6 +13,33 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+// TODO most consumers only need writers or readers.  switch.
+type Recorder interface {
+	RecorderReader
+	RecorderWriter
+}
+
+type RecorderReader interface {
+	// Intervals returns a sorted snapshot of intervals in the selected timeframe
+	Intervals(from, to time.Time) Intervals
+	// CurrentResourceState returns a list of all known resources of a given type at the instant called.
+	CurrentResourceState() ResourcesMap
+}
+
+type RecorderWriter interface {
+	// RecordResource stores a resource for later serialization.  Deletion is not tracked, so this can be used
+	// to determine the final state of resource that are deleted in a namespace.
+	// Annotations are added to indicate number of updates and the number of recreates.
+	RecordResource(resourceType string, obj runtime.Object)
+
+	Record(conditions ...Condition)
+	RecordAt(t time.Time, conditions ...Condition)
+
+	AddIntervals(eventIntervals ...Interval)
+	StartInterval(t time.Time, condition Condition) int
+	EndInterval(startedInterval int, t time.Time)
+}
+
 const (
 	// ObservedUpdateCountAnnotation is an annotation added locally (in the monitor only), that tracks how many updates
 	// we've seen to this resource.  This is useful during post-processing for determining if we have a hot resource.
@@ -609,16 +636,19 @@ func (intervals Intervals) CopyAndSort(from, to time.Time) Intervals {
 }
 
 // Slice works on a sorted Intervals list and returns the set of intervals
-// that start after from and start before to (if to is set). The zero value will
-// return all elements. If intervals is unsorted the result is undefined. This
+// The intervals start from the first Interval that ends AFTER the argument.From.
+// The last interval is one before the first Interval that starts before the argument.To
+// The zero value will return all elements. If intervals is unsorted the result is undefined. This
 // runs in O(n).
 func (intervals Intervals) Slice(from, to time.Time) Intervals {
 	if from.IsZero() && to.IsZero() {
 		return intervals
 	}
 
+	// assume that the from is always before the to in an interval,
+	// Then we want to start when the interval.TO is after the argument.From
 	first := sort.Search(len(intervals), func(i int) bool {
-		return intervals[i].From.After(from)
+		return intervals[i].To.After(from)
 	})
 	if first == -1 {
 		return nil

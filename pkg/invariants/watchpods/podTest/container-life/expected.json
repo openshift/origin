@@ -1,0 +1,106 @@
+{
+    "items": [
+        {
+            "level": "Info",
+            "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+            "message": "constructed/pod-lifecycle-constructor reason/Created",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-07T18:41:46Z",
+            "to": "2022-03-07T18:41:46Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-141-9.us-west-2.compute.internal reason/Scheduled",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-07T18:41:46Z",
+            "to": "2022-03-07T18:41:54Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
+            "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-07T18:41:46Z",
+            "to": "2022-03-07T18:41:52Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
+            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-07T18:41:52Z",
+            "to": "2022-03-07T18:41:52Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
+            "message": "cause/ constructed/pod-lifecycle-constructor duration/6.00s reason/ContainerStart",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-07T18:41:52Z",
+            "to": "2022-03-07T18:41:54Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
+            "message": "constructed/pod-lifecycle-constructor reason/Ready",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-07T18:41:52Z",
+            "to": "2022-03-07T18:41:54Z"
+        }
+    ]
+}

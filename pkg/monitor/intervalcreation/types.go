@@ -2,7 +2,6 @@ package intervalcreation
 
 import (
 	"context"
-	"sort"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
@@ -24,15 +23,12 @@ func defaultIntervalCreationFns() []simpleIntervalCreationFunc {
 		IntervalsFromEvents_OperatorDegraded,
 		IntervalsFromEvents_E2ETests,
 		IntervalsFromEvents_NodeChanges,
-		CreatePodIntervalsFromInstants,
-		IntervalsFromEvents_PodChanges,
 	}
 }
 
-// InsertCalculatedIntervals calculates intervals from the currently known interval set and saves them into the same list
-func InsertCalculatedIntervals(startingIntervals []monitorapi.Interval, recordedResources monitorapi.ResourcesMap, from, to time.Time) monitorapi.Intervals {
-	ret := make([]monitorapi.Interval, len(startingIntervals))
-	copy(ret, startingIntervals)
+// CalculateMoreIntervals calculates intervals from the currently known interval set and saves them into the same list
+func CalculateMoreIntervals(startingIntervals []monitorapi.Interval, recordedResources monitorapi.ResourcesMap, from, to time.Time) monitorapi.Intervals {
+	ret := []monitorapi.Interval{}
 
 	intervalCreationFns := defaultIntervalCreationFns()
 	// create additional intervals from events
@@ -40,16 +36,12 @@ func InsertCalculatedIntervals(startingIntervals []monitorapi.Interval, recorded
 		ret = append(ret, createIntervals(startingIntervals, recordedResources, from, to)...)
 	}
 
-	// we must sort the result
-	sort.Sort(monitorapi.Intervals(ret))
-
 	return ret
 }
 
-// InsertIntervalsFromCluster contacts the cluster, retrieves information deemed pertinent, and creates intervals for them.
-func InsertIntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, startingIntervals []monitorapi.Interval, recordedResources monitorapi.ResourcesMap, from, to time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
-	ret := make([]monitorapi.Interval, len(startingIntervals))
-	copy(ret, startingIntervals)
+// IntervalsFromCluster contacts the cluster, retrieves information deemed pertinent, and creates intervals for them.
+func IntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, from, to time.Time) (*nodedetails.AuditLogSummary, monitorapi.Intervals, error) {
+	ret := monitorapi.Intervals{}
 
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
@@ -80,9 +72,6 @@ func InsertIntervalsFromCluster(ctx context.Context, kubeConfig *rest.Config, st
 		allErrors = append(allErrors, err)
 	}
 	ret = append(ret, auditEvents...)
-
-	// we must sort the result
-	sort.Sort(monitorapi.Intervals(ret))
 
 	return auditLogSummary, ret, utilerrors.NewAggregate(allErrors)
 }
