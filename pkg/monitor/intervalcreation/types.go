@@ -27,15 +27,19 @@ func defaultIntervalCreationFns() []simpleIntervalCreationFunc {
 	}
 }
 
-// CalculateMoreIntervals calculates intervals from the currently known interval set and saves them into the same list
-func CalculateMoreIntervals(startingIntervals []monitorapi.Interval, recordedResources monitorapi.ResourcesMap, from, to time.Time) monitorapi.Intervals {
-	ret := []monitorapi.Interval{}
+// InsertCalculatedIntervals calculates intervals from the currently known interval set and saves them into the same list
+func InsertCalculatedIntervals(startingIntervals []monitorapi.Interval, recordedResources monitorapi.ResourcesMap, from, to time.Time) monitorapi.Intervals {
+	ret := make([]monitorapi.Interval, len(startingIntervals))
+	copy(ret, startingIntervals)
 
 	intervalCreationFns := defaultIntervalCreationFns()
 	// create additional intervals from events
 	for _, createIntervals := range intervalCreationFns {
 		ret = append(ret, createIntervals(startingIntervals, recordedResources, from, to)...)
 	}
+
+	// we must sort the result
+	sort.Sort(monitorapi.Intervals(ret))
 
 	return ret
 }

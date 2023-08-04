@@ -164,15 +164,13 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	if err != nil {
 		fmt.Fprintf(o.ErrOut, "InsertIntervalsFromCluster error but continuing processing: %v", err)
 	}
-	o.monitor.AddIntervals(events...) // add intervals to the recorded events, not just the random copy
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, *o.startTime)
 	if err != nil {
 		fmt.Fprintf(o.ErrOut, "FetchEventIntervalsForAllAlerts error but continuing processing: %v", err)
 	}
 	events = append(events, alertEventIntervals...)
-	o.monitor.AddIntervals(alertEventIntervals...) // add intervals to the recorded events, not just the random copy
-	o.monitor.AddIntervals(intervalcreation.CalculateMoreIntervals(events, o.recordedResources, fromTime, endTime)...)
+	events = intervalcreation.InsertCalculatedIntervals(events, o.recordedResources, fromTime, endTime)
 
 	sort.Sort(events)
 	events.Clamp(*o.startTime, *o.endTime)
