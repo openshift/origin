@@ -10,14 +10,17 @@ import (
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 type availability struct {
 	disruptionCheckers []*disruptionlibrary.Availability
 
-	suppressJunit bool
+	notSupportedReason string
+	suppressJunit      bool
 }
 
 func NewAvailabilityInvariant() invariants.InvariantTest {
@@ -144,6 +147,20 @@ func newDisruptionCheckerForOAuthCached(adminRESTConfig *rest.Config) (*disrupti
 
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
+
+	coreClient, err := e2e.LoadClientset(true)
+	if err != nil {
+		return fmt.Errorf("unable to load client set: %v", err)
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(coreClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		w.notSupportedReason = "Platform MicroShift not supported"
+		return nil
+	}
+
 	var curr *disruptionlibrary.Availability
 
 	curr, err = newDisruptionCheckerForKubeAPI(adminRESTConfig)
