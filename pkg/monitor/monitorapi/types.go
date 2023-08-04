@@ -636,16 +636,19 @@ func (intervals Intervals) CopyAndSort(from, to time.Time) Intervals {
 }
 
 // Slice works on a sorted Intervals list and returns the set of intervals
-// that start after from and start before to (if to is set). The zero value will
-// return all elements. If intervals is unsorted the result is undefined. This
+// The intervals start from the first Interval that ends AFTER the argument.From.
+// The last interval is one before the first Interval that starts before the argument.To
+// The zero value will return all elements. If intervals is unsorted the result is undefined. This
 // runs in O(n).
 func (intervals Intervals) Slice(from, to time.Time) Intervals {
 	if from.IsZero() && to.IsZero() {
 		return intervals
 	}
 
+	// assume that the from is always before the to in an interval,
+	// Then we want to start when the interval.TO is after the argument.From
 	first := sort.Search(len(intervals), func(i int) bool {
-		return intervals[i].From.After(from)
+		return intervals[i].To.After(from)
 	})
 	if first == -1 {
 		return nil
