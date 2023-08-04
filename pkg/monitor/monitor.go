@@ -127,7 +127,7 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	m.stopTime = time.Now()
 
 	fmt.Fprintf(os.Stderr, "Collecting data.\n")
-	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, time.Time{}, time.Time{}) // collect data for all the time.
+	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, m.startTime, m.stopTime)
 	if err != nil {
 		// these errors are represented as junit, always continue to the next step
 		fmt.Fprintf(os.Stderr, "Error collecting data, continuing, junit will reflect this. %v\n", err)
@@ -140,8 +140,8 @@ func (m *Monitor) Stop(ctx context.Context) error {
 		ctx,
 		m.recorder.Intervals(time.Time{}, time.Time{}), // compute intervals based on *all* the intervals.
 		m.recorder.CurrentResourceState(),
-		m.startTime, // still allow computation to understand the begining and end for bounding.  TODO: Maybe we don't need this?
-		m.stopTime)  // still allow computation to understand the begining and end for bounding.  TODO: Maybe we don't need this?
+		m.startTime, // still allow computation to understand the begining and end for bounding.
+		m.stopTime)  // still allow computation to understand the begining and end for bounding.
 	if err != nil {
 		// these errors are represented as junit, always continue to the next step
 		fmt.Fprintf(os.Stderr, "Error computing intervals, continuing, junit will reflect this. %v\n", err)
@@ -152,7 +152,7 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
 	invariantJunits, err := m.invariantRegistry.EvaluateTestsFromConstructedIntervals(
 		ctx,
-		m.recorder.Intervals(time.Time{}, time.Time{}), // evaluate the tests on *all* the intervals.
+		m.recorder.Intervals(m.startTime, m.stopTime), // evaluate the tests on the intervals during our active time.
 	)
 	if err != nil {
 		// these errors are represented as junit, always continue to the next step

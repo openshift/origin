@@ -38,10 +38,6 @@ type MonitorEventsOptions struct {
 	monitor   *monitor.Monitor
 	startTime *time.Time
 	endTime   *time.Time
-	// recordedEvents is written during Stop
-	recordedEvents monitorapi.Intervals
-	// recordedResource is written during Stop
-	recordedResources monitorapi.ResourcesMap
 	// auditLogSummary is written during Stop
 	auditLogSummary *nodedetails.AuditLogSummary
 
@@ -142,7 +138,6 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 
 	t := time.Now()
 	o.endTime = &t
-	o.recordedResources = o.monitor.CurrentResourceState()
 
 	var err error
 
@@ -155,43 +150,32 @@ func (o *MonitorEventsOptions) Stop(ctx context.Context, restConfig *rest.Config
 	// make sure that the end time is *after* the final availability samples.
 	fromTime, endTime := *o.startTime, *o.endTime
 
-	events := o.monitor.Intervals(fromTime, endTime)
-
-	markMissedPathologicalEvents(events)
+	nearlyFinishedRecordedResources := o.monitor.CurrentResourceState()
 
 	// this happens before calculation because events collected here could be used to drive later calculations
-	o.auditLogSummary, events, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, events, o.recordedResources, fromTime, endTime)
+	var newEvents monitorapi.Intervals
+	o.auditLogSummary, newEvents, err = intervalcreation.InsertIntervalsFromCluster(ctx, restConfig, o.monitor.Intervals(fromTime, endTime), nearlyFinishedRecordedResources, fromTime, endTime)
 	if err != nil {
 		fmt.Fprintf(o.ErrOut, "InsertIntervalsFromCluster error but continuing processing: %v", err)
 	}
-	o.monitor.AddIntervals(events...) // add intervals to the recorded events, not just the random copy
+	o.monitor.AddIntervals(newEvents...) // add intervals to the recorded events, not just the random copy
+
 	// add events from alerts so we can create the intervals
 	alertEventIntervals, err := monitor.FetchEventIntervalsForAllAlerts(ctx, restConfig, *o.startTime)
 	if err != nil {
 		fmt.Fprintf(o.ErrOut, "FetchEventIntervalsForAllAlerts error but continuing processing: %v", err)
 	}
-	events = append(events, alertEventIntervals...)
 	o.monitor.AddIntervals(alertEventIntervals...) // add intervals to the recorded events, not just the random copy
-	o.monitor.AddIntervals(intervalcreation.CalculateMoreIntervals(events, o.recordedResources, fromTime, endTime)...)
-
-	sort.Sort(events)
-	events.Clamp(*o.startTime, *o.endTime)
-
-	o.recordedEvents = events
+	o.monitor.AddIntervals(intervalcreation.CalculateMoreIntervals(
+		o.monitor.Intervals(fromTime, endTime),
+		o.monitor.CurrentResourceState(),
+		fromTime, endTime)...)
 
 	return nil
 }
 
 func (m *MonitorEventsOptions) SerializeResults(ctx context.Context, junitSuiteName, timeSuffix string) error {
 	return m.monitor.SerializeResults(ctx, junitSuiteName, timeSuffix)
-}
-
-func (o *MonitorEventsOptions) GetEvents() monitorapi.Intervals {
-	return o.recordedEvents
-}
-
-func (o *MonitorEventsOptions) GetRecordedResources() monitorapi.ResourcesMap {
-	return o.recordedResources
 }
 
 func (o *MonitorEventsOptions) GetStartTime() *time.Time {
@@ -208,9 +192,10 @@ func (o *MonitorEventsOptions) WriteRunDataToArtifactsDir(artifactDir string, ti
 
 	// use custom sorting here so that we can prioritize the sort order to make the intervals html page as readable
 	// as possible. This makes the events *not* sorted by time.
-	events := make([]monitorapi.Interval, len(o.recordedEvents))
-	for i := range o.recordedEvents {
-		events[i] = o.recordedEvents[i]
+	finalEvents := o.monitor.Intervals(*o.startTime, *o.endTime)
+	events := make([]monitorapi.Interval, len(finalEvents))
+	for i := range finalEvents {
+		events[i] = finalEvents[i]
 	}
 	sort.Stable(monitorapi.ByTimeWithNamespacedPods(events))
 
