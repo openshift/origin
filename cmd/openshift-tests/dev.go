@@ -174,7 +174,8 @@ a running cluster.
 			// this isn't used for much, just the duration each test "ran":
 			duration := 3 * time.Hour
 
-			testCases := synthetictests.TestAllIngressBackendsForDisruption(intervals, duration, jobType)
+			testCases := synthetictests.TestAllAPIBackendsForDisruption(intervals, duration, jobType)
+			testCases = append(testCases, synthetictests.TestAllIngressBackendsForDisruption(intervals, duration, jobType)...)
 			testCases = append(testCases, synthetictests.TestExternalBackendsForDisruption(intervals, duration, jobType)...)
 
 			for _, tc := range testCases {

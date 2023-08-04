@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/openshift/origin/pkg/disruption/backend"
+	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/client-go/rest"
@@ -18,7 +19,7 @@ const (
 // running the tests can reach and external service. This is used to compare to disruption observed against the
 // ephemeral cluster under test, and compare to see if the build cluster where the tests are running is having
 // network issues, or if we're seeing real disruption.
-func StartExternalServiceMonitoring(ctx context.Context, m monitorapi.Recorder, clusterConfig *rest.Config, _ backend.LoadBalancerType) error {
+func StartExternalServiceMonitoring(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config, _ backend.LoadBalancerType) error {
 	if err := startExternalServiceMonitoringWithNewConnections(ctx, m, clusterConfig); err != nil {
 		return err
 	}
@@ -28,7 +29,7 @@ func StartExternalServiceMonitoring(ctx context.Context, m monitorapi.Recorder, 
 	return nil
 }
 
-func startExternalServiceMonitoringWithNewConnections(ctx context.Context, m monitorapi.Recorder, clusterConfig *rest.Config) error {
+func startExternalServiceMonitoringWithNewConnections(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler := backenddisruption.NewSimpleBackend(
 		externalServiceURL,
 		LivenessProbeBackend,
@@ -37,7 +38,7 @@ func startExternalServiceMonitoringWithNewConnections(ctx context.Context, m mon
 	return backendSampler.StartEndpointMonitoring(ctx, m, nil)
 }
 
-func startExternalServiceMonitoringWithReusedConnections(ctx context.Context, m monitorapi.Recorder, clusterConfig *rest.Config) error {
+func startExternalServiceMonitoringWithReusedConnections(ctx context.Context, m monitor.Recorder, clusterConfig *rest.Config) error {
 	backendSampler := backenddisruption.NewSimpleBackend(
 		externalServiceURL,
 		LivenessProbeBackend,

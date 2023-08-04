@@ -11,17 +11,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/test/extended/util/image"
+	"github.com/openshift/origin/pkg/testsuites"
+
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/cmd/monitor_command"
-	"github.com/openshift/origin/pkg/cmd/monitor_command/timeline"
 	"github.com/openshift/origin/pkg/monitor/resourcewatch/cmd"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
-	"github.com/openshift/origin/pkg/testsuites"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -83,7 +82,7 @@ func main() {
 		monitor_command.NewMonitorCommand(),
 		newTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
-		timeline.NewTimelineCommand(ioStreams),
+		monitor_command.NewTimelineCommand(ioStreams),
 		NewRunInClusterDisruptionMonitorCommand(ioStreams),
 	)
 
@@ -327,10 +326,6 @@ func newRunTestCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			if v := os.Getenv("TEST_LOG_LEVEL"); len(v) > 0 {
 				cmd.Flags().Lookup("v").Value.Set(v)
 			}
-
-			// set globals so that helpers will create pods with the mapped images if we create them from this process.
-			// we cannot eliminate the env var usage until we convert run-test, which we may be able to do in a followup.
-			image.InitializeImages(os.Getenv("KUBE_TEST_REPO"))
 
 			if err := verifyImagesWithoutEnv(); err != nil {
 				return err

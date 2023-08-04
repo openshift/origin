@@ -171,13 +171,11 @@ func verifyImagesWithoutEnv() error {
 		if existing.GetE2EImage() != originalPullSpec {
 			return fmt.Errorf("image %q defines index %d but is defined upstream as %q, must be fixed in test/extended/util/image.  Upstream mappings are:\n%v", originalPullSpec, index, existing.GetE2EImage(), defaults)
 		}
-		// TODO remove after 2025 if still commented
-		// We don't know what this code is for, but in case we discover that reason before 2025, I'm leaving this here
-		//mirror := image.LocationFor(originalPullSpec)
-		//upstreamMirror := k8simage.GetE2EImage(index)
-		//if mirror != upstreamMirror {
-		//	return fmt.Errorf("image %q defines index %d and mirror %q but is mirrored upstream as %q, must be fixed in test/extended/util/image.  Upstream mappings are:\n%v", originalPullSpec, index, mirror, upstreamMirror, defaults)
-		//}
+		mirror := image.LocationFor(originalPullSpec)
+		upstreamMirror := k8simage.GetE2EImage(index)
+		if mirror != upstreamMirror {
+			return fmt.Errorf("image %q defines index %d and mirror %q but is mirrored upstream as %q, must be fixed in test/extended/util/image.  Upstream mappings are:\n%v", originalPullSpec, index, mirror, upstreamMirror, defaults)
+		}
 	}
 
 	return nil

@@ -340,16 +340,15 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 			interval := 1 * time.Second
 			monitor := newSimpleMonitor()
 			fakeEventRecorder := events.NewFakeRecorder(100)
-			consumptionDone := make(chan struct{})
 			go func() {
-				backendSampler.consumeSamples(ctx, consumptionDone, interval, monitor, fakeEventRecorder)
+				backendSampler.consumeSamples(ctx, interval, monitor, fakeEventRecorder)
 			}()
 
 			// now we start supplying the samples
 			tt.produceSamples(ctx, backendSampler)
 			time.Sleep(2 * time.Second) // wait just a bit for the consumption to happen before cancelling. this must be longer than the interval above
 			cancel()
-			<-consumptionDone
+			time.Sleep(1 * time.Second) // wait just a bit for the consumption finish and complete the deferal
 
 			tt.validateSamples(t, monitor.Intervals(time.Time{}, time.Time{}))
 		})
