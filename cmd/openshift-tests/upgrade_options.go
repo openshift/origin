@@ -1,4 +1,4 @@
-package upgradeoptions
+package main
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-package imagesetup
+package main
 
 import (
 	"bytes"
@@ -10,12 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/image"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -39,17 +40,124 @@ import (
 //
 // See test/extended/util/image/README.md for a description of the process of adding a new image.
 
-// DefaultTestImageMirrorLocation is where all Kube test inputs are sourced.
-const DefaultTestImageMirrorLocation = "quay.io/openshift/community-e2e-images"
+// defaultTestImageMirrorLocation is where all Kube test inputs are sourced.
+const defaultTestImageMirrorLocation = "quay.io/openshift/community-e2e-images"
 
-func VerifyTestImageRepoEnvVarUnset() error {
+// createImageMirrorForInternalImages returns a list of 'oc image mirror' mappings from source to
+// target or returns an error. If mirrored is true the images are assumed to have already been copied
+// from their upstream location into our official mirror, in the REPO:TAG format where TAG is a hash
+// of the original internal name and the index of the image in the array. Otherwise the mappings will
+// be set to mirror the location as defined in the test code into our official mirror, where the target
+// TAG is the hash described above.
+func createImageMirrorForInternalImages(prefix string, ref reference.DockerImageReference, mirrored bool) ([]string, error) {
+	source := ref.Exact()
+
+	initialDefaults := k8simage.GetOriginalImageConfigs()
+	exceptions := image.Exceptions.List()
+	defaults := map[k8simage.ImageID]k8simage.Config{}
+
+imageLoop:
+	for i, config := range initialDefaults {
+		for _, exception := range exceptions {
+			if strings.Contains(config.GetE2EImage(), exception) {
+				continue imageLoop
+			}
+		}
+		defaults[i] = config
+	}
+
+	updated := k8simage.GetMappedImageConfigs(defaults, ref.Exact())
+	openshiftDefaults := image.OriginalImages()
+	openshiftUpdated := image.GetMappedImages(openshiftDefaults, defaultTestImageMirrorLocation)
+
+	// if we've mirrored, then the source is going to be our repo, not upstream's
+	if mirrored {
+		baseRef, err := reference.Parse(defaultTestImageMirrorLocation)
+		if err != nil {
+			return nil, fmt.Errorf("invalid default mirror location: %v", err)
+		}
+
+		// calculate the mapping of upstream images by setting defaults to baseRef
+		covered := sets.NewString()
+		for i, config := range updated {
+			defaultConfig := defaults[i]
+			pullSpec := config.GetE2EImage()
+			if pullSpec == defaultConfig.GetE2EImage() {
+				continue
+			}
+			if covered.Has(pullSpec) {
+				continue
+			}
+			covered.Insert(pullSpec)
+			e2eRef, err := reference.Parse(pullSpec)
+			if err != nil {
+				return nil, fmt.Errorf("invalid test image: %s: %v", pullSpec, err)
+			}
+			if len(e2eRef.Tag) == 0 {
+				return nil, fmt.Errorf("invalid test image: %s: no tag", pullSpec)
+			}
+			config.SetRegistry(baseRef.Registry)
+			config.SetName(baseRef.RepositoryName())
+			config.SetVersion(e2eRef.Tag)
+			defaults[i] = config
+		}
+
+		// calculate the mapping for openshift images by populating openshiftUpdated
+		openshiftUpdated = make(map[string]string)
+		sourceMappings := image.GetMappedImages(openshiftDefaults, defaultTestImageMirrorLocation)
+		targetMappings := image.GetMappedImages(openshiftDefaults, source)
+
+		for from, to := range targetMappings {
+			if from == to {
+				continue
+			}
+			if covered.Has(to) {
+				continue
+			}
+			covered.Insert(to)
+			from := sourceMappings[from]
+			openshiftUpdated[from] = to
+		}
+	}
+
+	covered := sets.NewString()
+	var lines []string
+	for i := range updated {
+		a, b := defaults[i], updated[i]
+		from, to := a.GetE2EImage(), b.GetE2EImage()
+		if from == to {
+			continue
+		}
+		if covered.Has(from) {
+			continue
+		}
+		covered.Insert(from)
+		lines = append(lines, fmt.Sprintf("%s %s%s", from, prefix, to))
+	}
+
+	for from, to := range openshiftUpdated {
+		if from == to {
+			continue
+		}
+		if covered.Has(from) {
+			continue
+		}
+		covered.Insert(from)
+		lines = append(lines, fmt.Sprintf("%s %s%s", from, prefix, to))
+	}
+
+	sort.Strings(lines)
+	return lines, nil
+}
+
+func verifyImages() error {
 	if len(os.Getenv("KUBE_TEST_REPO")) > 0 {
 		return fmt.Errorf("KUBE_TEST_REPO may not be specified when this command is run")
 	}
-	return nil
+	return verifyImagesWithoutEnv()
 }
 
-func VerifyImages() error {
+func verifyImagesWithoutEnv() error {
 	defaults := k8simage.GetOriginalImageConfigs()
 
 	for originalPullSpec, index := range image.OriginalImages() {

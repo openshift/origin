@@ -16,7 +16,6 @@ import (
 var (
 	initializationLock sync.RWMutex
 	initialized        bool
-	fromRepository     string
 	images             map[string]string
 
 	allowedImages = map[string]k8simage.ImageID{
@@ -78,16 +77,8 @@ func InitializeImages(repo string) {
 	initializationLock.Lock()
 	defer initializationLock.Unlock()
 
-	if initialized {
-		panic(fmt.Sprintf("attempt to double initialize from %q to %q", fromRepository, repo))
-	}
 	initialized = true
-	fromRepository = repo
 	images = GetMappedImages(allowedImages, repo)
-}
-
-func GetGlobalFromRepository() string {
-	return fromRepository
 }
 
 // ReplaceContents ensures that the provided yaml or json has the

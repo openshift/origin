@@ -180,6 +180,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	}
 
 	syntheticEventTests := JUnitsForAllEvents{
+		o.SyntheticEventTests,
 		suite.SyntheticEventTests,
 	}
 
