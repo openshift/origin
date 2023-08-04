@@ -620,14 +620,29 @@ func (intervals Intervals) Slice(from, to time.Time) Intervals {
 		return intervals
 	}
 
-	// assume that the from is always before the to in an interval,
-	// Then we want to start when the interval.TO is after the argument.From
-	first := sort.Search(len(intervals), func(i int) bool {
-		return !intervals[i].To.Before(from) // equal to or after
-	})
-	if first == -1 {
-		return nil
+	// forget being fancy, just iterate from the beginning.
+	first := -1
+	if from.IsZero() {
+		first = 0
+	} else {
+		for i := range intervals {
+			curr := intervals[i]
+			if curr.To.IsZero() {
+				if curr.From.After(from) || curr.From == from {
+					first = i
+					break
+				}
+			}
+			if curr.To.After(from) || curr.To == from {
+				first = i
+				break
+			}
+		}
 	}
+	if first == -1 || len(intervals) == 0 {
+		return Intervals{}
+	}
+
 	if to.IsZero() {
 		return intervals[first:]
 	}
