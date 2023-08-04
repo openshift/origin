@@ -22,7 +22,7 @@ type BackendSampler interface {
 	GetDisruptionBackendName() string
 	GetLocator() string
 	GetURL() (string, error)
-	RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
+	RunEndpointMonitoring(ctx context.Context, monitorRecorder backenddisruption.Recorder, eventRecorder events.EventRecorder) error
 	Stop()
 }
 
@@ -89,12 +89,15 @@ func alwaysAllowOneSecond(delegateFn AllowedDisruptionFunc) AllowedDisruptionFun
 }
 
 func (t *backendDisruptionTest) historicalAllowedDisruption(f *framework.Framework) (*time.Duration, string, error) {
-	backendName := t.backend.GetDisruptionBackendName() + "-" + string(t.backend.GetConnectionType()) + "-connections"
 	jobType, err := platformidentification.GetJobType(context.TODO(), f.ClientConfig())
 	if err != nil {
 		return nil, "", err
 	}
-	framework.Logf("checking allowed disruption for job type: %+v", *jobType)
+	return HistoricalAllowedDisruption(context.TODO(), t.backend, jobType)
+}
+
+func HistoricalAllowedDisruption(ctx context.Context, backend BackendSampler, jobType *platformidentification.JobType) (*time.Duration, string, error) {
+	backendName := backend.GetDisruptionBackendName() + "-" + string(backend.GetConnectionType()) + "-connections"
 
 	return allowedbackenddisruption.GetAllowedDisruption(backendName, *jobType)
 }
@@ -144,10 +147,10 @@ func (t *backendDisruptionTest) Test(ctx context.Context, f *framework.Framework
 
 	endpointMonitoringContext, endpointMonitoringCancel := context.WithCancel(ctx)
 	defer endpointMonitoringCancel() // final backstop on closure
-	m := monitor.NewMonitor()
+	recorder := monitor.NewRecorder()
 	disruptionErrCh := make(chan error, 1)
 	go func() {
-		err := t.backend.RunEndpointMonitoring(endpointMonitoringContext, m, eventRecorder)
+		err := t.backend.RunEndpointMonitoring(endpointMonitoringContext, recorder, eventRecorder)
 		disruptionErrCh <- err
 	}()
 	time.Sleep(1 * time.Second) // wait for some initial errors so we can fail early if it happens
@@ -180,7 +183,7 @@ func (t *backendDisruptionTest) Test(ctx context.Context, f *framework.Framework
 	end := time.Now()
 
 	fromTime, endTime := time.Time{}, time.Time{}
-	events := m.Intervals(fromTime, endTime)
+	events := recorder.Intervals(fromTime, endTime)
 	ginkgo.By(fmt.Sprintf("writing results: %s", t.backend.GetLocator()))
 	ExpectNoDisruptionForDuration(
 		f,

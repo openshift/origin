@@ -91,8 +91,9 @@ var staticSuites = []ginkgo.TestSuite{
 
 		},
 		// Duration of the quorum restore test exceeds 60 minutes.
-		TestTimeout:         90 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemEventInvariants),
+		TestTimeout:                90 * time.Minute,
+		SyntheticEventTests:        ginkgo.JUnitForEventsFunc(synthetictests.SystemEventInvariants),
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
 		Name: "kubernetes/conformance",
@@ -349,8 +350,9 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/etcd/recovery") || strings.Contains(name, "[Feature:EtcdRecovery]") || isStandardEarlyOrLateTest(name)
 		},
 		// etcd's restore test can take a while for apiserver rollouts to stabilize
-		TestTimeout:         120 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.SystemEventInvariants),
+		TestTimeout:                120 * time.Minute,
+		SyntheticEventTests:        ginkgo.JUnitForEventsFunc(synthetictests.SystemEventInvariants),
+		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
 		Name: "openshift/nodes/realtime",

@@ -1,0 +1,55 @@
+{
+    "items": [
+        {
+            "level": "Info",
+            "locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
+            "message": "constructed/pod-lifecycle-constructor reason/Created",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-10T22:46:20Z",
+            "to": "2022-03-10T22:46:20Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
+            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-136-132.us-west-2.compute.internal reason/Scheduled",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-10T22:46:20Z",
+            "to": "2022-03-14T15:00:00Z"
+        },
+        {
+            "level": "Info",
+            "locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9 container/installer",
+            "message": "constructed/pod-lifecycle-constructor reason/NotReady",
+            "tempStructuredLocator": {
+                "type": "",
+                "keys": null
+            },
+            "tempStructuredMessage": {
+                "reason": "",
+                "cause": "",
+                "humanMessage": "",
+                "annotations": null
+            },
+            "from": "2022-03-10T22:46:20Z",
+            "to": "2022-03-14T15:00:00Z"
+        }
+    ]
+}
