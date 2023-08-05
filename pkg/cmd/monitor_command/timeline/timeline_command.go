@@ -3,13 +3,16 @@ package timeline
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
+
+	"github.com/openshift/origin/pkg/defaultinvariants"
 
 	"github.com/openshift/origin/pkg/invariants/timelineserializer"
 
@@ -18,7 +21,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/testdata"
@@ -248,9 +250,18 @@ func (o *Timeline) Run() error {
 		to = *o.EndDate
 	}
 
-	filteredEvents = append(filteredEvents, intervalcreation.CalculateMoreIntervals(filteredEvents, recordedResources, from, to)...)
-	// we must sort the result
-	sort.Sort(monitorapi.Intervals(filteredEvents))
+	invariantRegistry := defaultinvariants.NewInvariantsFor(defaultinvariants.Stable)
+	computedIntervals, _, err := invariantRegistry.ConstructComputedIntervals(
+		context.TODO(),
+		filteredEvents,
+		recordedResources,
+		from,
+		to)
+	if err != nil {
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error computing intervals, continuing, junit will reflect this. %v\n", err)
+	}
+	filteredEvents = append(filteredEvents, computedIntervals...)
 
 	output, err := o.Renderer(filteredEvents)
 	if err != nil {

@@ -4,16 +4,17 @@ import (
 	"sort"
 	"time"
 
+	"github.com/openshift/origin/pkg/invariantlibrary/statetracker"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/monitor/intervalcreation"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
-	podStateTracker := intervalcreation.NewStateTracker(monitorapi.ConstructionOwnerPodLifecycle, beginning)
+	podStateTracker := statetracker.NewStateTracker(monitorapi.ConstructionOwnerPodLifecycle, beginning)
 	locatorToMessageAnnotations := map[string]map[string]string{}
 
 	for _, event := range events {
@@ -29,7 +30,7 @@ func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end 
 		}
 
 		podLocator := pod.ToLocator()
-		podPendingState := intervalcreation.State("Pending", "PodWasPending")
+		podPendingState := statetracker.State("Pending", "PodWasPending")
 
 		switch reason {
 		case monitorapi.PodPendingReason:

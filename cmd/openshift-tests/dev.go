@@ -5,9 +5,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/openshift/origin/pkg/invariants/uploadtolokiserializer"
+
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/alerts"
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/synthetictests"
@@ -236,7 +237,7 @@ func newUploadIntervalsCommand() *cobra.Command {
 			}
 			logrus.Infof("loaded %d intervals", len(intervals))
 
-			err = monitor.UploadIntervalsToLoki(intervals)
+			err = uploadtolokiserializer.UploadIntervalsToLoki(intervals)
 			if err != nil {
 				logrus.WithError(err).Fatal("error uploading intervals to loki")
 			}

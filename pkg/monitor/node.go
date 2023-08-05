@@ -191,3 +191,17 @@ func nodeRoles(node *corev1.Node) string {
 	sort.Strings(roles)
 	return strings.Join(roles, ",")
 }
+
+func findNodeCondition(status []corev1.NodeCondition, name corev1.NodeConditionType, position int) *corev1.NodeCondition {
+	if position < len(status) {
+		if status[position].Type == name {
+			return &status[position]
+		}
+	}
+	for i := range status {
+		if status[i].Type == name {
+			return &status[i]
+		}
+	}
+	return nil
+}

@@ -7,6 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	"github.com/openshift/origin/pkg/defaultinvariants"
@@ -48,6 +52,8 @@ func (o *TestOptions) Run(args []string) error {
 		return fmt.Errorf("only a single test name may be passed")
 	}
 
+	start := time.Now()
+
 	// Ignore the upstream suite behavior within test execution
 	ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
 	tests, err := testsForSuite()
@@ -74,12 +80,22 @@ func (o *TestOptions) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	var monitorEventsOptions *MonitorEventsOptions
+	var m monitor.Interface
 	if o.EnableMonitor {
 		// individual tests are always stable, it's the jobs that aren't.
-		monitorEventsOptions = NewMonitorEventsOptions(o.IOStreams, "", defaultinvariants.Stable)
-		_, err = monitorEventsOptions.Start(ctx, restConfig)
-		if err != nil {
+		monitorEventRecorder := monitor.NewRecorder()
+		m = monitor.NewMonitor(
+			monitorEventRecorder,
+			restConfig,
+			"",
+			[]monitor.StartEventIntervalRecorderFunc{
+				controlplane.StartAPIMonitoringUsingNewBackend,
+				frontends.StartAllIngressMonitoring,
+				externalservice.StartExternalServiceMonitoring,
+			},
+			defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
+		)
+		if err := m.Start(ctx); err != nil {
 			return err
 		}
 	}
@@ -102,18 +118,14 @@ func (o *TestOptions) Run(args []string) error {
 	ginkgo.SetReporterConfig(reporterConfig)
 	ginkgo.GetSuite().RunSpec(test.spec, ginkgo.Labels{}, "", ginkgo.GetFailer(), ginkgo.GetWriter(), suiteConfig)
 
-	if o.EnableMonitor {
-		if err := monitorEventsOptions.Stop(ctx, restConfig, ""); err != nil {
+	if m != nil {
+		if err := m.Stop(ctx); err != nil {
 			return err
 		}
 
-		timeSuffix := fmt.Sprintf("_%s", monitorEventsOptions.GetStartTime().
-			UTC().Format("20060102-150405"))
-		if err := monitorEventsOptions.SerializeResults(ctx, "missing-junit-suite", timeSuffix); err != nil {
+		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
+		if err := m.SerializeResults(ctx, "missing-junit-suite", timeSuffix); err != nil {
 			fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
-		}
-		if err := monitorEventsOptions.WriteRunDataToArtifactsDir("", timeSuffix); err != nil {
-			fmt.Fprintf(o.ErrOut, "error: Failed to write run-data: %v\n", err)
 		}
 	}
 

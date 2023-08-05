@@ -46,6 +46,18 @@ func TestMonitor_Events(t *testing.T) {
 			},
 			from: time.Unix(1, 0),
 			want: monitorapi.Intervals{
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+			},
+		},
+		{
+			name: "two-a",
+			events: monitorapi.Intervals{
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+			},
+			from: time.Unix(2, 0),
+			want: monitorapi.Intervals{
 				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 		},
@@ -58,6 +70,21 @@ func TestMonitor_Events(t *testing.T) {
 			from: time.Unix(1, 0),
 			to:   time.Unix(2, 0),
 			want: monitorapi.Intervals{
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+			},
+		},
+		{
+			name: "three-a",
+			events: monitorapi.Intervals{
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
+				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
+				{Condition: condition2, From: time.Unix(3, 0), To: time.Unix(3, 0)},
+			},
+			from: time.Unix(1, 0),
+			to:   time.Unix(2, 0),
+			want: monitorapi.Intervals{
+				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
 				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
 		},
@@ -67,7 +94,7 @@ func TestMonitor_Events(t *testing.T) {
 				{Condition: condition1, From: time.Unix(1, 0), To: time.Unix(1, 0)},
 				{Condition: condition2, From: time.Unix(2, 0), To: time.Unix(2, 0)},
 			},
-			from: time.Unix(2, 0),
+			from: time.Unix(3, 0),
 			want: monitorapi.Intervals{},
 		},
 	}
@@ -79,7 +106,7 @@ func TestMonitor_Events(t *testing.T) {
 					recordedResources: monitorapi.ResourcesMap{},
 				},
 			}
-			if got := m.Intervals(tt.from, tt.to); !reflect.DeepEqual(got, tt.want) {
+			if got := m.recorder.Intervals(tt.from, tt.to); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("%s", diff.ObjectReflectDiff(tt.want, got))
 			}
 		})

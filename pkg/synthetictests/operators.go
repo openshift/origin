@@ -6,14 +6,11 @@ import (
 	"strings"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/invariants/operatorstateanalyzer"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-
-	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/monitor"
-
 	"k8s.io/client-go/rest"
 )
 
@@ -39,7 +36,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	duration := stop.Sub(start).Seconds()
 
 	eventsByOperator := getEventsByOperator(events)
-	e2eEventIntervals := monitor.E2ETestEventIntervals(events)
+	e2eEventIntervals := operatorstateanalyzer.E2ETestEventIntervals(events)
 	for _, condition := range conditionTypes {
 		for _, operatorName := range platformidentification.KnownOperators.List() {
 			bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
@@ -284,7 +281,7 @@ func testOperatorState(interestingCondition configv1.ClusterStatusConditionType,
 		// if there was any switch, it was wrong/unexpected at some point
 		failures = append(failures, fmt.Sprintf("%v", eventInterval))
 
-		overlappingE2EIntervals := monitor.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
+		overlappingE2EIntervals := operatorstateanalyzer.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
 		concurrentE2E := []string{}
 		for _, overlap := range overlappingE2EIntervals {
 			if overlap.Level == monitorapi.Info {

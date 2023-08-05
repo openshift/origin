@@ -92,7 +92,9 @@ func (opt *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
+	recorder := monitor.NewRecorder()
 	m := monitor.NewMonitor(
+		recorder,
 		restConfig,
 		opt.ArtifactDir,
 		[]monitor.StartEventIntervalRecorderFunc{
@@ -117,7 +119,7 @@ func (opt *RunMonitorOptions) Run() error {
 			case <-ctx.Done():
 				done = true
 			}
-			events := m.Intervals(last, time.Time{})
+			events := recorder.Intervals(last, time.Time{})
 			if len(events) > 0 {
 				for _, event := range events {
 					if !event.From.Equal(event.To) {

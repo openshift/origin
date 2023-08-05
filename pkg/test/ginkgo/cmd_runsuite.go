@@ -15,12 +15,17 @@ import (
 	"syscall"
 	"time"
 
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
+	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
+	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -178,6 +183,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 			return original(name) && o.MatchFn(name)
 		}
 	}
+
+	jobStability := defaultinvariants.ClusterStabilityDuringTest(o.ClusterStabilityDuringTest)
 
 	syntheticEventTests := JUnitsForAllEvents{
 		suite.SyntheticEventTests,
@@ -341,10 +348,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	monitorEventsOptions := NewMonitorEventsOptions(o.IOStreams, o.JUnitDir, defaultinvariants.ClusterStabilityDuringTest(o.ClusterStabilityDuringTest))
-
-	monitorEventRecorder, err := monitorEventsOptions.Start(ctx, restConfig)
-	if err != nil {
+	monitorEventRecorder := monitor.NewRecorder()
+	m := monitor.NewMonitor(
+		monitorEventRecorder,
+		restConfig,
+		o.JUnitDir,
+		[]monitor.StartEventIntervalRecorderFunc{
+			controlplane.StartAPIMonitoringUsingNewBackend,
+			frontends.StartAllIngressMonitoring,
+			externalservice.StartExternalServiceMonitoring,
+		},
+		defaultinvariants.NewInvariantsFor(jobStability),
+	)
+	if err := m.Start(ctx); err != nil {
 		return err
 	}
 
@@ -550,27 +566,20 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 
-	timeSuffix := fmt.Sprintf("_%s", monitorEventsOptions.GetStartTime().
-		UTC().Format("20060102-150405"))
+	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
-	if err := monitorEventsOptions.Stop(ctx, restConfig, o.JUnitDir); err != nil {
+	if err := m.Stop(ctx); err != nil {
 		return err
 	}
-	if len(o.JUnitDir) > 0 {
-		if err := monitorEventsOptions.SerializeResults(ctx, junitSuiteName, timeSuffix); err != nil {
-			fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
-		}
-		if err := monitorEventsOptions.WriteRunDataToArtifactsDir(o.JUnitDir, timeSuffix); err != nil {
-			fmt.Fprintf(o.ErrOut, "error: Failed to write run-data: %v\n", err)
-		}
+	if err := m.SerializeResults(ctx, junitSuiteName, timeSuffix); err != nil {
+		fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
 	}
 
 	// default is empty string as that is what entries prior to adding this will have
 	wasMasterNodeUpdated := ""
-	if events := monitorEventsOptions.monitor.Intervals(o.StartTime, end); len(events) > 0 {
-		var buf *bytes.Buffer
-		syntheticTestResults, buf, _ = createSyntheticTestsFromMonitor(events, duration)
-		currResState := monitorEventsOptions.monitor.CurrentResourceState()
+	if events := monitorEventRecorder.Intervals(start, end); len(events) > 0 {
+		buf := &bytes.Buffer{}
+		currResState := monitorEventRecorder.CurrentResourceState()
 		testCases := syntheticEventTests.JUnitsForEvents(events, duration, restConfig, suite.Name, &currResState)
 		syntheticTestResults = append(syntheticTestResults, testCases...)
 		if !upgrade {
@@ -611,6 +620,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", o.StartTime.UTC().Format("20060102-150405"))
 			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
 				fmt.Fprintf(o.ErrOut, "error: Failed to write monitor data: %v\n", err)
+			}
+
+			filename = fmt.Sprintf("events_used_for_junits_%s.json", o.StartTime.UTC().Format("20060102-150405"))
+			if err := monitorserialization.EventsToFile(filepath.Join(o.JUnitDir, filename), events); err != nil {
+				fmt.Fprintf(o.ErrOut, "error: Failed to junit event info: %v\n", err)
 			}
 		}
 

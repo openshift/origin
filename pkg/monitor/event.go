@@ -286,3 +286,16 @@ func eventForContainer(fieldPath string) (string, bool) {
 		return "", false
 	}
 }
+
+func locateEvent(event *corev1.Event) string {
+	if len(event.InvolvedObject.Namespace) > 0 {
+		if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+		}
+		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+	}
+	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+	}
+	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+}

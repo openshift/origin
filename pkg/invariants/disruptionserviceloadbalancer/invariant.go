@@ -87,6 +87,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.KubevirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.LibvirtPlatformType ||
+		infra.Status.PlatformStatus.Type == configv1.NutanixPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
 		w.notSupportedReason = fmt.Sprintf("platform %q is not supported", infra.Status.PlatformStatus.Type)
@@ -94,6 +95,13 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	// single node clusters are not supported because the replication controller has 2 replicas with anti-affinity for running on the same node.
 	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
 		w.notSupportedReason = fmt.Sprintf("topology %q is not supported", infra.Status.ControlPlaneTopology)
+	}
+	nodeList, err := w.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	if len(nodeList.Items) < 2 {
+		w.notSupportedReason = fmt.Sprintf("insufficient nodes for service load balancers")
 	}
 	if len(w.notSupportedReason) > 0 {
 		return nil

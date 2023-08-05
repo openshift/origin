@@ -2,6 +2,7 @@ package timelineserializer
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -39,28 +40,36 @@ func (*timelineSerializer) WriteContentToStorage(ctx context.Context, storageDir
 	errs := []error{}
 	var err error
 
+	// use custom sorting here so that we can prioritize the sort order to make the intervals html page as readable
+	// as possible. This makes the events *not* sorted by time.
+	customOrderedEvents := make([]monitorapi.Interval, len(finalIntervals))
+	for i := range finalIntervals {
+		customOrderedEvents[i] = finalIntervals[i]
+	}
+	sort.Stable(monitorapi.ByTimeWithNamespacedPods(customOrderedEvents))
+
 	// these produce the various intervals.  Different intervals focused on inspecting different problem spaces.
-	err = NewSpyglassEventIntervalRenderer("everything", BelongsInEverything).WriteRunData(storageDir, nil, finalIntervals, timeSuffix)
+	err = NewSpyglassEventIntervalRenderer("everything", BelongsInEverything).WriteRunData(storageDir, nil, customOrderedEvents, timeSuffix)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	err = NewSpyglassEventIntervalRenderer("spyglass", BelongsInSpyglass).WriteRunData(storageDir, nil, finalIntervals, timeSuffix)
+	err = NewSpyglassEventIntervalRenderer("spyglass", BelongsInSpyglass).WriteRunData(storageDir, nil, customOrderedEvents, timeSuffix)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	err = NewSpyglassEventIntervalRenderer("kube-apiserver", BelongsInKubeAPIServer).WriteRunData(storageDir, nil, finalIntervals, timeSuffix)
+	err = NewSpyglassEventIntervalRenderer("kube-apiserver", BelongsInKubeAPIServer).WriteRunData(storageDir, nil, customOrderedEvents, timeSuffix)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	err = NewSpyglassEventIntervalRenderer("operators", BelongsInOperatorRollout).WriteRunData(storageDir, nil, finalIntervals, timeSuffix)
+	err = NewSpyglassEventIntervalRenderer("operators", BelongsInOperatorRollout).WriteRunData(storageDir, nil, customOrderedEvents, timeSuffix)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	err = NewPodEventIntervalRenderer().WriteRunData(storageDir, nil, finalIntervals, timeSuffix)
+	err = NewPodEventIntervalRenderer().WriteRunData(storageDir, nil, customOrderedEvents, timeSuffix)
 	if err != nil {
 		errs = append(errs, err)
 	}
-	err = NewIngressServicePodIntervalRenderer().WriteRunData(storageDir, nil, finalIntervals, timeSuffix)
+	err = NewIngressServicePodIntervalRenderer().WriteRunData(storageDir, nil, customOrderedEvents, timeSuffix)
 	if err != nil {
 		errs = append(errs, err)
 	}

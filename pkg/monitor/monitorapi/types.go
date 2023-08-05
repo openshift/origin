@@ -192,6 +192,7 @@ const (
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
 	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
+	AnnotationCondition      AnnotationKey = "condition"
 )
 
 type ConstructionOwner string
@@ -214,13 +215,14 @@ type Message struct {
 type IntervalSource string
 
 const (
-	SourceAlert             IntervalSource = "Alert"
-	SourceAPIServerShutdown IntervalSource = "APIServerShutdown"
-	SourceDisruption        IntervalSource = "Disruption"
-	SourceNodeMonitor       IntervalSource = "NodeMonitor"
-	SourcePodLog            IntervalSource = "PodLog"
-	SourcePodMonitor        IntervalSource = "PodMonitor"
-	SourceTestData          IntervalSource = "TestData" // some tests have no real source to assign
+	SourceAlert                   IntervalSource = "Alert"
+	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
+	SourceDisruption              IntervalSource = "Disruption"
+	SourceNodeMonitor             IntervalSource = "NodeMonitor"
+	SourcePodLog                  IntervalSource = "PodLog"
+	SourcePodMonitor              IntervalSource = "PodMonitor"
+	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
+	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 )
 
 type Interval struct {
@@ -608,33 +610,6 @@ func (intervals Intervals) Cut(from, to time.Time) Intervals {
 	return copied
 }
 
-// CopyAndSort assumes intervals is unsorted and returns a sorted copy of intervals
-// for all intervals between from and to.
-func (intervals Intervals) CopyAndSort(from, to time.Time) Intervals {
-	copied := make(Intervals, 0, len(intervals))
-
-	if from.IsZero() && to.IsZero() {
-		for _, e := range intervals {
-			copied = append(copied, e)
-		}
-		sort.Sort(copied)
-		return copied
-	}
-
-	for _, e := range intervals {
-		if !e.From.After(from) {
-			continue
-		}
-		if !to.IsZero() && !e.From.Before(to) {
-			continue
-		}
-		copied = append(copied, e)
-	}
-	sort.Sort(copied)
-	return copied
-
-}
-
 // Slice works on a sorted Intervals list and returns the set of intervals
 // The intervals start from the first Interval that ends AFTER the argument.From.
 // The last interval is one before the first Interval that starts before the argument.To
@@ -645,14 +620,29 @@ func (intervals Intervals) Slice(from, to time.Time) Intervals {
 		return intervals
 	}
 
-	// assume that the from is always before the to in an interval,
-	// Then we want to start when the interval.TO is after the argument.From
-	first := sort.Search(len(intervals), func(i int) bool {
-		return intervals[i].To.After(from)
-	})
-	if first == -1 {
-		return nil
+	// forget being fancy, just iterate from the beginning.
+	first := -1
+	if from.IsZero() {
+		first = 0
+	} else {
+		for i := range intervals {
+			curr := intervals[i]
+			if curr.To.IsZero() {
+				if curr.From.After(from) || curr.From == from {
+					first = i
+					break
+				}
+			}
+			if curr.To.After(from) || curr.To == from {
+				first = i
+				break
+			}
+		}
 	}
+	if first == -1 || len(intervals) == 0 {
+		return Intervals{}
+	}
+
 	if to.IsZero() {
 		return intervals[first:]
 	}
@@ -667,10 +657,13 @@ func (intervals Intervals) Slice(from, to time.Time) Intervals {
 // Clamp sets all zero value From or To fields to from or to.
 func (intervals Intervals) Clamp(from, to time.Time) {
 	for i := range intervals {
-		if intervals[i].From.IsZero() {
+		if intervals[i].From.Before(from) {
 			intervals[i].From = from
 		}
 		if intervals[i].To.IsZero() {
+			intervals[i].To = to
+		}
+		if intervals[i].To.After(to) {
 			intervals[i].To = to
 		}
 	}

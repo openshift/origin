@@ -21,7 +21,7 @@ type recorder struct {
 }
 
 // NewRecorder creates a recorder that can  be used to store events
-func NewRecorder() *recorder {
+func NewRecorder() monitorapi.Recorder {
 	return &recorder{
 		recordedResources: monitorapi.ResourcesMap{},
 	}
@@ -201,7 +201,7 @@ func (m *recorder) snapshot() monitorapi.Intervals {
 // is a copy of the monitor's state and is safe to update.
 func (m *recorder) Intervals(from, to time.Time) monitorapi.Intervals {
 	events := m.snapshot()
+	// we must sort *before*, we use the slice function
 	sort.Sort(events)
-
 	return events.Slice(from, to)
 }
