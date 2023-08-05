@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
+	allowedalerts2 "github.com/openshift/origin/pkg/invariantlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -27,7 +27,7 @@ func writeAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, even
 
 func addMissingAlertsForLevel(alertList *AlertList, level AlertLevel) {
 	wellKnownAlerts := sets.NewString()
-	for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{}, allowedalerts.DefaultAllowances) {
+	for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{}, allowedalerts2.DefaultAllowances) {
 		wellKnownAlerts.Insert(alertTest.AlertName())
 	}
 	alertsFound := sets.NewString()

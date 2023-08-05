@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
@@ -151,9 +153,14 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	m.junits = append(m.junits, computedJunit...)
 
 	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
+	finalEvents := m.recorder.Intervals(m.startTime, m.stopTime)
+	filename := fmt.Sprintf("events_used_for_junits_%s.json", m.startTime.UTC().Format("20060102-150405"))
+	if err := monitorserialization.EventsToFile(filepath.Join(m.storageDir, filename), finalEvents); err != nil {
+		fmt.Fprintf(os.Stderr, "error: Failed to junit event info: %v\n", err)
+	}
 	invariantJunits, err := m.invariantRegistry.EvaluateTestsFromConstructedIntervals(
 		ctx,
-		m.recorder.Intervals(m.startTime, m.stopTime), // evaluate the tests on the intervals during our active time.
+		finalEvents, // evaluate the tests on the intervals during our active time.
 	)
 	if err != nil {
 		// these errors are represented as junit, always continue to the next step

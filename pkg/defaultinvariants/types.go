@@ -3,25 +3,31 @@ package defaultinvariants
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/invariants/pathologicaleventanalyzer"
-
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/additionaleventscollector"
 	"github.com/openshift/origin/pkg/invariants/alertanalyzer"
 	"github.com/openshift/origin/pkg/invariants/auditloganalyzer"
+	"github.com/openshift/origin/pkg/invariants/authentication/legacyauthenticationinvariants"
 	"github.com/openshift/origin/pkg/invariants/clusterinfoserializer"
+	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/legacycvoinvariants"
 	"github.com/openshift/origin/pkg/invariants/disruptionimageregistry"
 	"github.com/openshift/origin/pkg/invariants/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/invariants/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/invariants/disruptionserializer"
 	"github.com/openshift/origin/pkg/invariants/disruptionserviceloadbalancer"
 	"github.com/openshift/origin/pkg/invariants/e2etestanalyzer"
+	"github.com/openshift/origin/pkg/invariants/etcd/legacyetcdinvariants"
 	"github.com/openshift/origin/pkg/invariants/etcdloganalyzer"
 	"github.com/openshift/origin/pkg/invariants/intervalserializer"
 	"github.com/openshift/origin/pkg/invariants/knownimagechecker"
+	"github.com/openshift/origin/pkg/invariants/kubeapiserver/legacykubeapiserverinvariants"
 	"github.com/openshift/origin/pkg/invariants/kubeletlogcollector"
+	"github.com/openshift/origin/pkg/invariants/network/legacynetworkinvariants"
+	"github.com/openshift/origin/pkg/invariants/node/legacynodeinvariants"
 	"github.com/openshift/origin/pkg/invariants/nodestateanalyzer"
 	"github.com/openshift/origin/pkg/invariants/operatorstateanalyzer"
+	"github.com/openshift/origin/pkg/invariants/pathologicaleventanalyzer"
+	"github.com/openshift/origin/pkg/invariants/testframework/legacytestframeworkinvariants"
 	"github.com/openshift/origin/pkg/invariants/timelineserializer"
 	"github.com/openshift/origin/pkg/invariants/trackedresourcesserializer"
 	"github.com/openshift/origin/pkg/invariants/uploadtolokiserializer"
@@ -102,6 +108,15 @@ func newUniversalInvariants() invariants.InvariantRegistry {
 	invariantTests.AddInvariantOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer())
 	invariantTests.AddInvariantOrDie("apiserver-new-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
 	invariantTests.AddInvariantOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
+
+	invariantTests.AddInvariantOrDie("legacy-node-invariants", "Node", legacynodeinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("legacy-networking-invariants", "Networking", legacynetworkinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("legacy-authentication-invariants", "Authentication", legacyauthenticationinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiserverinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("legacy-resource-growth-invariants", "kube-apiserver", legacykubeapiserverinvariants.NewResourceGrowthTests())
+	invariantTests.AddInvariantOrDie("legacy-etcd-invariants", "etcd", legacyetcdinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("legacy-test-framework-invariants", "Test Framework", legacytestframeworkinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvoinvariants.NewLegacyTests())
 
 	return invariantTests
 }
