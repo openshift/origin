@@ -14,7 +14,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 )
 
@@ -39,11 +38,10 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	}
 	duration := stop.Sub(start).Seconds()
 
-	knownOperators := allOperators(events)
 	eventsByOperator := getEventsByOperator(events)
 	e2eEventIntervals := monitor.E2ETestEventIntervals(events)
 	for _, condition := range conditionTypes {
-		for _, operatorName := range knownOperators.List() {
+		for _, operatorName := range platformidentification.KnownOperators.List() {
 			bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
 			if bzComponent == "Unknown" {
 				bzComponent = operatorName
@@ -256,21 +254,6 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 	}
 
 	return []*junitapi.JUnitTestCase{success}
-}
-
-func allOperators(events monitorapi.Intervals) sets.String {
-	// start with a list of known values
-	knownOperators := sets.NewString(platformidentification.KnownOperators.List()...)
-
-	// now add all the operators we see in the events.
-	for _, event := range events {
-		operatorName, ok := monitorapi.OperatorFromLocator(event.Locator)
-		if !ok {
-			continue
-		}
-		knownOperators.Insert(operatorName)
-	}
-	return knownOperators
 }
 
 // getEventsByOperator returns map keyed by operator locator with all events associated with it.
