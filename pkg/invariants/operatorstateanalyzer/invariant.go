@@ -31,7 +31,7 @@ func (*operatorStateChecker) ConstructComputedIntervals(ctx context.Context, sta
 	ret = append(ret, intervalsFromEvents_OperatorProgressing(startingIntervals, nil, beginning, end)...)
 	ret = append(ret, intervalsFromEvents_OperatorDegraded(startingIntervals, nil, beginning, end)...)
 
-	return nil, nil
+	return ret, nil
 }
 
 func (*operatorStateChecker) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {

@@ -29,7 +29,7 @@ func (*e2eTestAnalyzer) ConstructComputedIntervals(ctx context.Context, starting
 	ret := monitorapi.Intervals{}
 	ret = append(ret, intervalsFromEvents_E2ETests(startingIntervals, nil, beginning, end)...)
 
-	return nil, nil
+	return ret, nil
 }
 
 func (*e2eTestAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
