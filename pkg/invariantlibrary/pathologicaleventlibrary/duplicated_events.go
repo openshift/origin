@@ -14,7 +14,6 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
-	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,13 +25,13 @@ import (
 
 func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	allowedPatterns := []*regexp.Regexp{}
-	allowedPatterns = append(allowedPatterns, duplicateevents.AllowedRepeatedEventPatterns...)
-	allowedPatterns = append(allowedPatterns, duplicateevents.AllowedUpgradeRepeatedEventPatterns...)
+	allowedPatterns = append(allowedPatterns, AllowedRepeatedEventPatterns...)
+	allowedPatterns = append(allowedPatterns, AllowedUpgradeRepeatedEventPatterns...)
 
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: allowedPatterns,
-		allowedRepeatedEventFns:      duplicateevents.AllowedRepeatedEventFns,
-		knownRepeatedEventsBugs:      duplicateevents.KnownEventsBugs,
+		allowedRepeatedEventFns:      AllowedRepeatedEventFns,
+		knownRepeatedEventsBugs:      KnownEventsBugs,
 	}
 
 	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
@@ -40,7 +39,7 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 	}
 
 	if evaluator.topology == v1.SingleReplicaTopologyMode {
-		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, duplicateevents.AllowedSingleNodeRepeatedEventFns...)
+		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, AllowedSingleNodeRepeatedEventFns...)
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -52,9 +51,9 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: duplicateevents.AllowedRepeatedEventPatterns,
-		allowedRepeatedEventFns:      duplicateevents.AllowedRepeatedEventFns,
-		knownRepeatedEventsBugs:      duplicateevents.KnownEventsBugs,
+		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
+		allowedRepeatedEventFns:      AllowedRepeatedEventFns,
+		knownRepeatedEventsBugs:      KnownEventsBugs,
 	}
 
 	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
@@ -72,7 +71,7 @@ func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 	}
 
 	if evaluator.topology == v1.SingleReplicaTopologyMode {
-		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, duplicateevents.AllowedSingleNodeRepeatedEventFns...)
+		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, AllowedSingleNodeRepeatedEventFns...)
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -94,10 +93,10 @@ func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
 
 type duplicateEventsEvaluator struct {
 	allowedRepeatedEventPatterns []*regexp.Regexp
-	allowedRepeatedEventFns      []duplicateevents.IsRepeatedEventOKFunc
+	allowedRepeatedEventFns      []IsRepeatedEventOKFunc
 
 	// knownRepeatedEventsBugs are duplicates that are considered bugs and should flake, but not  fail a Test
-	knownRepeatedEventsBugs []duplicateevents.KnownProblem
+	knownRepeatedEventsBugs []KnownProblem
 
 	// platform contains the current platform of the cluster under Test.
 	platform v1.PlatformType
@@ -227,11 +226,11 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 	displayToCount := map[string]*pathologicalEvents{}
 	for _, event := range events {
 		eventDisplayMessage, times := GetTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
-		if times > duplicateevents.DuplicateEventThreshold {
+		if times > DuplicateEventThreshold {
 
 			// If we marked this message earlier in recordAddOrUpdateEvent as interesting/true, we know it matched one of
 			// the existing patterns or one of the AllowedRepeatedEventFns functions returned true.
-			if strings.Contains(eventDisplayMessage, duplicateevents.InterestingMark) {
+			if strings.Contains(eventDisplayMessage, InterestingMark) {
 				continue
 			}
 
@@ -297,7 +296,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 }
 
 func GetTimesAnEventHappened(message string) (string, int) {
-	matches := duplicateevents.EventCountExtractor.FindAllStringSubmatch(message, -1)
+	matches := EventCountExtractor.FindAllStringSubmatch(message, -1)
 	if len(matches) != 1 { // not present or weird
 		return "", 0
 	}

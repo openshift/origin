@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/operatorstateanalyzer"
+
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
-	"github.com/openshift/origin/pkg/invariants/operatorstateanalyzer"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/client-go/rest"

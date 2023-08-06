@@ -8,7 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/duplicateevents"
+	"github.com/openshift/origin/pkg/invariantlibrary/pathologicaleventlibrary"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,19 +78,19 @@ var allRepeatedEventPatterns = combinedDuplicateEventPatterns()
 
 func combinedDuplicateEventPatterns() *regexp.Regexp {
 	s := ""
-	for _, r := range duplicateevents.AllowedRepeatedEventPatterns {
+	for _, r := range pathologicaleventlibrary.AllowedRepeatedEventPatterns {
 		if s != "" {
 			s += "|"
 		}
 		s += r.String()
 	}
-	for _, r := range duplicateevents.AllowedUpgradeRepeatedEventPatterns {
+	for _, r := range pathologicaleventlibrary.AllowedUpgradeRepeatedEventPatterns {
 		if s != "" {
 			s += "|"
 		}
 		s += r.String()
 	}
-	for _, r := range duplicateevents.KnownEventsBugs {
+	for _, r := range pathologicaleventlibrary.KnownEventsBugs {
 		if s != "" {
 			s += "|"
 		}
@@ -111,7 +112,7 @@ func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool
 		fmt.Printf("error getting kubeclient: [%v] when processing event %s - %s\n", err, event.Locator, event.Message)
 		kubeClient = nil
 	}
-	for _, isRepeatedEventOKFuncList := range [][]duplicateevents.IsRepeatedEventOKFunc{duplicateevents.AllowedRepeatedEventFns, duplicateevents.AllowedSingleNodeRepeatedEventFns} {
+	for _, isRepeatedEventOKFuncList := range [][]pathologicaleventlibrary.IsRepeatedEventOKFunc{pathologicaleventlibrary.AllowedRepeatedEventFns, pathologicaleventlibrary.AllowedSingleNodeRepeatedEventFns} {
 		for _, allowRepeatedEventFn := range isRepeatedEventOKFuncList {
 			allowed, err := allowRepeatedEventFn(event, kubeClient, int(times))
 			if err != nil {
@@ -238,16 +239,16 @@ func recordAddOrUpdateEvent(
 		updatedMessage := event.Message
 		if allRepeatedEventPatterns.MatchString(eventDisplayMessage) || checkAllowedRepeatedEventOKFns(event, obj.Count) {
 			// This is a repeated event that we know about
-			updatedMessage = fmt.Sprintf("%s %s", duplicateevents.InterestingMark, updatedMessage)
+			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, updatedMessage)
 		}
 
-		if obj.Count > duplicateevents.DuplicateEventThreshold && duplicateevents.EventCountExtractor.MatchString(eventDisplayMessage) {
+		if obj.Count > pathologicaleventlibrary.DuplicateEventThreshold && pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage) {
 			// This is a repeated event that exceeds threshold
-			updatedMessage = fmt.Sprintf("%s %s", duplicateevents.PathologicalMark, updatedMessage)
+			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, updatedMessage)
 		}
 
 		condition.Message = updatedMessage
-		if strings.Contains(condition.Message, duplicateevents.InterestingMark) || strings.Contains(condition.Message, duplicateevents.PathologicalMark) {
+		if strings.Contains(condition.Message, pathologicaleventlibrary.InterestingMark) || strings.Contains(condition.Message, pathologicaleventlibrary.PathologicalMark) {
 
 			// Remove the "(n times)" portion of the message, and get the first 10 characters of the hash of the message
 			// so we can add it to the locator. This incorporates the message into the locator without the resulting

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/duplicateevents"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,7 +53,7 @@ func TestEventCountExtractor(t *testing.T) {
 }
 
 func TestEventRegexExcluder(t *testing.T) {
-	allowedRepeatedEventsRegex := combinedRegexp(duplicateevents.AllowedRepeatedEventPatterns...)
+	allowedRepeatedEventsRegex := combinedRegexp(AllowedRepeatedEventPatterns...)
 
 	tests := []struct {
 		name    string
@@ -100,7 +99,7 @@ func TestEventRegexExcluder(t *testing.T) {
 }
 
 func TestUpgradeEventRegexExcluder(t *testing.T) {
-	allowedRepeatedEventsRegex := combinedRegexp(duplicateevents.AllowedUpgradeRepeatedEventPatterns...)
+	allowedRepeatedEventsRegex := combinedRegexp(AllowedUpgradeRepeatedEventPatterns...)
 
 	tests := []struct {
 		name    string
@@ -125,8 +124,8 @@ func TestUpgradeEventRegexExcluder(t *testing.T) {
 
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: duplicateevents.AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs:      []duplicateevents.KnownProblem{},
+		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
+		knownRepeatedEventsBugs:      []KnownProblem{},
 	}
 
 	tests := []struct {
@@ -208,8 +207,8 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 
 func TestKnownBugEvents(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: duplicateevents.AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs: []duplicateevents.KnownProblem{
+		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
+		knownRepeatedEventsBugs: []KnownProblem{
 			{
 				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
 				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
@@ -217,27 +216,27 @@ func TestKnownBugEvents(t *testing.T) {
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent2.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Topology: duplicateevents.TopologyPointer(v1.SingleReplicaTopologyMode),
+				Topology: TopologyPointer(v1.SingleReplicaTopologyMode),
 			},
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent3.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: duplicateevents.PlatformPointer(v1.AWSPlatformType),
+				Platform: PlatformPointer(v1.AWSPlatformType),
 			},
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent4.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Topology: duplicateevents.TopologyPointer(v1.HighlyAvailableTopologyMode),
+				Topology: TopologyPointer(v1.HighlyAvailableTopologyMode),
 			},
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent5.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: duplicateevents.PlatformPointer(v1.GCPPlatformType),
+				Platform: PlatformPointer(v1.GCPPlatformType),
 			},
 			{
 				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent6.*"),
 				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: duplicateevents.PlatformPointer(""),
+				Platform: PlatformPointer(""),
 			},
 		},
 	}
@@ -325,8 +324,8 @@ func TestKnownBugEvents(t *testing.T) {
 
 func TestKnownBugEventsGroup(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: duplicateevents.AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs: []duplicateevents.KnownProblem{
+		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
+		knownRepeatedEventsBugs: []KnownProblem{
 			{
 				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
 				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
@@ -412,7 +411,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
 			match:           true,
 			operator:        "e2e",
-			regEx:           duplicateevents.ProbeErrorLivenessMessageRegExpStr,
+			regEx:           ProbeErrorLivenessMessageRegExpStr,
 			expectedMessage: "00:00:01 ns/e2e - reason/ProbeError foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
 		},
 		{
@@ -420,7 +419,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
 			match:           false,
 			operator:        "e2e",
-			regEx:           duplicateevents.ProbeErrorConnectionRefusedRegExpStr,
+			regEx:           ProbeErrorConnectionRefusedRegExpStr,
 			expectedMessage: "",
 		},
 		{
@@ -428,7 +427,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			regEx:           duplicateevents.ProbeErrorConnectionRefusedRegExpStr,
+			regEx:           ProbeErrorConnectionRefusedRegExpStr,
 			expectedMessage: "00:00:01 ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)\n",
 		},
 		{
@@ -436,7 +435,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			regEx:           duplicateevents.ProbeErrorLivenessMessageRegExpStr,
+			regEx:           ProbeErrorLivenessMessageRegExpStr,
 			expectedMessage: "",
 		},
 		{
@@ -444,7 +443,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			regEx:           duplicateevents.ProbeErrorReadinessMessageRegExpStr,
+			regEx:           ProbeErrorReadinessMessageRegExpStr,
 			expectedMessage: "00:00:01 reason/ProbeError Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
 		},
 		{
@@ -452,7 +451,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			regEx:           duplicateevents.ProbeErrorConnectionRefusedRegExpStr,
+			regEx:           ProbeErrorConnectionRefusedRegExpStr,
 			expectedMessage: "",
 		},
 	}
@@ -471,7 +470,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 				)
 			}
 
-			junits := MakeProbeTest("Test Test", events, test.operator, test.regEx, duplicateevents.DuplicateEventThreshold)
+			junits := MakeProbeTest("Test Test", events, test.operator, test.regEx, DuplicateEventThreshold)
 
 			assert.GreaterOrEqual(t, len(junits), 1, "Didn't get junit for duplicated event")
 
