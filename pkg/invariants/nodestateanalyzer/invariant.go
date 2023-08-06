@@ -29,7 +29,7 @@ func (*nodeStateAnalyzer) ConstructComputedIntervals(ctx context.Context, starti
 	ret := monitorapi.Intervals{}
 	ret = append(ret, intervalsFromEvents_NodeChanges(startingIntervals, nil, beginning, end)...)
 
-	return nil, nil
+	return ret, nil
 }
 
 func (*nodeStateAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
