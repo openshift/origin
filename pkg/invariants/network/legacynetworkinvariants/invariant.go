@@ -56,7 +56,6 @@ func (w *legacyInvariantTests) EvaluateTestsFromConstructedIntervals(ctx context
 	junits = append(junits, testMultipleSingleSecondDisruptions(finalIntervals)...)
 	junits = append(junits, testDNSOverlapDisruption(finalIntervals)...)
 	junits = append(junits, TestAllIngressBackendsForDisruption(finalIntervals, w.duration, jobType)...)
-	junits = append(junits, TestExternalBackendsForDisruption(finalIntervals, w.duration, jobType)...)
 
 	return junits, nil
 }

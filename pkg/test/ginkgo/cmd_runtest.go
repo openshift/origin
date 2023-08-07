@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 
 	"github.com/onsi/ginkgo/v2"
@@ -91,7 +90,6 @@ func (o *TestOptions) Run(args []string) error {
 			[]monitor.StartEventIntervalRecorderFunc{
 				controlplane.StartAPIMonitoringUsingNewBackend,
 				frontends.StartAllIngressMonitoring,
-				externalservice.StartExternalServiceMonitoring,
 			},
 			defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
 		)

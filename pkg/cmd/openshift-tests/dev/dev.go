@@ -177,7 +177,6 @@ a running cluster.
 			duration := 3 * time.Hour
 
 			testCases := legacynetworkinvariants.TestAllIngressBackendsForDisruption(intervals, duration, jobType)
-			testCases = append(testCases, legacynetworkinvariants.TestExternalBackendsForDisruption(intervals, duration, jobType)...)
 
 			for _, tc := range testCases {
 				if tc.FailureOutput != nil {

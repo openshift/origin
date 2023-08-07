@@ -24,7 +24,6 @@ import (
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -352,7 +351,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 		[]monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAPIMonitoringUsingNewBackend,
 			frontends.StartAllIngressMonitoring,
-			externalservice.StartExternalServiceMonitoring,
 		},
 		defaultinvariants.NewInvariantsFor(jobStability),
 	)

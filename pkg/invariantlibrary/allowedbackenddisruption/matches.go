@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
-
-	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 )
 
 const (
@@ -21,10 +19,5 @@ const (
 // GetAllowedDisruption uses the backend and information about the cluster to choose the best historical p95 to operate against.
 // We enforce "don't get worse" for disruption by watching the aggregate data in CI over many runs.
 func GetAllowedDisruption(backendName string, jobType platformidentification.JobType) (*time.Duration, string, error) {
-	// Special case for the liveness probe to external service:
-	if backendName == externalservice.LivenessProbeBackend {
-		aed := allowedExternalDisruption
-		return &aed, "forgiving limit for disruption to an external service", nil
-	}
 	return getCurrentResults().BestMatchP99(backendName, jobType)
 }

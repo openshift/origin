@@ -16,7 +16,6 @@ import (
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
 	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -109,7 +108,6 @@ func (opt *RunMonitorOptions) Run() error {
 		[]monitor.StartEventIntervalRecorderFunc{
 			controlplane.StartAPIMonitoringUsingNewBackend,
 			frontends.StartAllIngressMonitoring,
-			externalservice.StartExternalServiceMonitoring,
 		},
 		defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
 	)
