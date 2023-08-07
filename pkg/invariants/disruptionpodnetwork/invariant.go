@@ -9,10 +9,13 @@ import (
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	imageutils "k8s.io/kubernetes/test/utils/image"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -53,6 +56,53 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 	pna.namespaceName = actualNamespace.Name
+
+	depLabels := map[string]string{
+		"app": "pod-disruption-test",
+		"pod": "server",
+	}
+
+	// deploys server listening on 8080
+	serverDeployment := &appv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod-disruption-server",
+			Namespace: pna.namespaceName,
+			Labels:    depLabels,
+		},
+		Spec: appv1.DeploymentSpec{
+			Replicas: pointer.Int32(int32(1)),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: depLabels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: depLabels,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "pod-disruption-server",
+							Image: imageutils.GetE2EImage(imageutils.Agnhost),
+							Command: []string{
+								"/agnhost",
+								"netexec",
+								"--http-port=8080",
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 8080,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	_, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), serverDeployment, metav1.CreateOption{})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
