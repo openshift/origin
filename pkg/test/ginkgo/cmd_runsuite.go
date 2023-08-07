@@ -48,12 +48,6 @@ type GinkgoRunSuiteOptions struct {
 	FailFast    bool
 	Timeout     time.Duration
 	JUnitDir    string
-	TestFile    string
-
-	// Regex allows a selection of a subset of tests
-	Regex string
-	// MatchFn if set is also used to filter the suite contents
-	MatchFn func(name string) bool
 
 	// SyntheticEventTests allows the caller to translate events or outside
 	// context into a failure.
@@ -79,13 +73,11 @@ func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSui
 	}
 }
 
-func (o *GinkgoRunSuiteOptions) BindTestOptions(flags *pflag.FlagSet) {
+func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
 	flags.BoolVar(&o.PrintCommands, "print-commands", o.PrintCommands, "Print the sub-commands that would be executed instead.")
 	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive")
 	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
-	flags.StringVarP(&o.TestFile, "file", "f", o.TestFile, "Create a suite from the newline-delimited test names in this file.")
-	flags.StringVar(&o.Regex, "run", o.Regex, "Regular expression of tests to run.")
 	flags.IntVar(&o.Count, "count", o.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
 	flags.BoolVar(&o.FailFast, "fail-fast", o.FailFast, "If a test fails, exit immediately.")
 	flags.DurationVar(&o.Timeout, "timeout", o.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
@@ -113,55 +105,6 @@ func (o *GinkgoRunSuiteOptions) SetIOStreams(streams genericclioptions.IOStreams
 	o.IOStreams = streams
 }
 
-func (o *GinkgoRunSuiteOptions) SelectSuite(suites []*TestSuite, args []string) (*TestSuite, error) {
-	var suite *TestSuite
-
-	// If a test file was provided with no suite, use the "files" suite.
-	if len(o.TestFile) > 0 && len(args) == 0 {
-		suite = &TestSuite{
-			Name: "files",
-		}
-	}
-	if suite == nil && len(args) == 0 {
-		fmt.Fprintf(o.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
-		return nil, fmt.Errorf("specify a test suite to run, for example: %s run %s", filepath.Base(os.Args[0]), suites[0].Name)
-	}
-	if suite == nil && len(args) > 0 {
-		for _, s := range suites {
-			if s.Name == args[0] {
-				suite = s
-				break
-			}
-		}
-	}
-	if suite == nil {
-		fmt.Fprintf(o.ErrOut, SuitesString(suites, "Select a test suite to run against the server:\n\n"))
-		return nil, fmt.Errorf("suite %q does not exist", args[0])
-	}
-	// If a test file was provided, override the Matches function
-	// to match the tests from both the suite and the file.
-	if len(o.TestFile) > 0 {
-		var in []byte
-		var err error
-		if o.TestFile == "-" {
-			in, err = ioutil.ReadAll(os.Stdin)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			in, err = ioutil.ReadFile(o.TestFile)
-		}
-		if err != nil {
-			return nil, err
-		}
-		err = matchTestsFromFile(suite, in)
-		if err != nil {
-			return nil, fmt.Errorf("could not read test suite from input: %v", err)
-		}
-	}
-	return suite, nil
-}
-
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -171,18 +114,6 @@ func max(a, b int) int {
 
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upgrade bool) error {
 	ctx := context.Background()
-
-	if len(o.Regex) > 0 {
-		if err := filterWithRegex(suite, o.Regex); err != nil {
-			return err
-		}
-	}
-	if o.MatchFn != nil {
-		original := suite.Matches
-		suite.Matches = func(name string) bool {
-			return original(name) && o.MatchFn(name)
-		}
-	}
 
 	jobStability := defaultinvariants.ClusterStabilityDuringTest(o.ClusterStabilityDuringTest)
 
@@ -654,16 +585,4 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 
 	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
-}
-
-// TODO re-collapse
-// SuitesString returns a string with the provided suites formatted. Prefix is
-// printed at the beginning of the output.
-func SuitesString(suites []*TestSuite, prefix string) string {
-	buf := &bytes.Buffer{}
-	fmt.Fprintf(buf, prefix)
-	for _, suite := range suites {
-		fmt.Fprintf(buf, "%s\n  %s\n\n", suite.Name, suite.Description)
-	}
-	return buf.String()
 }

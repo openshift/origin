@@ -48,6 +48,6 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 			return nil
 		},
 	}
-	f.BindOptions(cmd.Flags())
+	f.BindFlags(cmd.Flags())
 	return cmd
 }

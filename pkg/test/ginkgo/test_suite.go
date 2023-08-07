@@ -3,8 +3,6 @@ package ginkgo
 import (
 	"fmt"
 	"regexp"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -139,7 +137,7 @@ type TestSuite struct {
 	Name        string
 	Description string
 
-	Matches func(name string) bool
+	Matches TestMatchFunc
 
 	// The number of times to execute each test in this suite.
 	Count int
@@ -153,6 +151,8 @@ type TestSuite struct {
 	TestTimeout time.Duration
 }
 
+type TestMatchFunc func(name string) bool
+
 func (s *TestSuite) Filter(tests []*testCase) []*testCase {
 	matches := make([]*testCase, 0, len(tests))
 	for _, test := range tests {
@@ -164,43 +164,19 @@ func (s *TestSuite) Filter(tests []*testCase) []*testCase {
 	return matches
 }
 
-func matchTestsFromFile(suite *TestSuite, contents []byte) error {
-	tests := make(map[string]int)
-	for _, line := range strings.Split(string(contents), "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "\"") {
-			var err error
-			line, err = strconv.Unquote(line)
-			if err != nil {
-				return err
-			}
-			tests[line]++
-		}
+func (s *TestSuite) AddRequiredMatchFunc(matchFn TestMatchFunc) {
+	if matchFn == nil {
+		return
 	}
-	match := suite.Matches
-	suite.Matches = func(name string) bool {
-		// If there is an existing Matches function for the suite,
-		// require the test to pass the existing match and also
-		// be in the file contents.
-		if match != nil && !match(name) {
-			return false
-		}
-		_, ok := tests[name]
-		return ok
+	if s.Matches == nil {
+		s.Matches = matchFn
+		return
 	}
-	return nil
-}
 
-func filterWithRegex(suite *TestSuite, regex string) error {
-	re, err := regexp.Compile(regex)
-	if err != nil {
-		return err
+	originalMatchFn := s.Matches
+	s.Matches = func(name string) bool {
+		return originalMatchFn(name) && matchFn(name)
 	}
-	origMatches := suite.Matches
-	suite.Matches = func(name string) bool {
-		return origMatches(name) && re.MatchString(name)
-	}
-	return nil
 }
 
 func testNames(tests []*testCase) []string {
