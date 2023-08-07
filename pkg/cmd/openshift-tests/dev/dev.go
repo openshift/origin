@@ -1,9 +1,9 @@
 package dev
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/openshift/origin/pkg/invariants/testframework/uploadtolokiserializer"
 
@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/invariantlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
-	"github.com/openshift/origin/pkg/invariants/network/legacynetworkinvariants"
 	"github.com/openshift/origin/pkg/invariants/testframework/legacytestframeworkinvariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
@@ -153,6 +152,9 @@ a running cluster.
 `),
 
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if true {
+				return fmt.Errorf("this command got nerfed")
+			}
 			logrus.Info("running disruption invariant tests")
 
 			logrus.WithField("intervalsFile", opts.intervalsFile).Info("loading e2e intervals")
@@ -162,29 +164,8 @@ a running cluster.
 			}
 			logrus.Infof("loaded %d intervals", len(intervals))
 
-			jobType := &platformidentification.JobType{
-				Release:      opts.release,
-				FromRelease:  opts.fromRelease,
-				Platform:     opts.platform,
-				Architecture: opts.architecture,
-				Network:      opts.network,
-				Topology:     opts.topology,
-			}
-
 			logrus.Info("running tests")
 
-			// this isn't used for much, just the duration each test "ran":
-			duration := 3 * time.Hour
-
-			testCases := legacynetworkinvariants.TestAllIngressBackendsForDisruption(intervals, duration, jobType)
-
-			for _, tc := range testCases {
-				if tc.FailureOutput != nil {
-					logrus.Warnf("FAIL: %s\n\n%s\n\n", tc.Name, tc.FailureOutput.Output)
-				} else {
-					logrus.Infof("PASS: %s", tc.Name)
-				}
-			}
 			return nil
 		},
 	}

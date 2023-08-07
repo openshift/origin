@@ -4,10 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -38,12 +34,6 @@ func (*legacyInvariantTests) ConstructComputedIntervals(ctx context.Context, sta
 }
 
 func (w *legacyInvariantTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	jobType, err := platformidentification.GetJobType(context.TODO(), w.adminRESTConfig)
-	if err != nil {
-		// JobType will be nil here, but we want test cases to all fail if this is the case, so we rely on them to nil check
-		logrus.WithError(err).Warn("ERROR: unable to determine job type for alert testing, jobType will be nil")
-	}
-
 	junits := []*junitapi.JUnitTestCase{}
 	junits = append(junits, testPodSandboxCreation(finalIntervals, w.adminRESTConfig)...)
 	junits = append(junits, testOvnNodeReadinessProbe(finalIntervals, w.adminRESTConfig)...)
@@ -55,7 +45,6 @@ func (w *legacyInvariantTests) EvaluateTestsFromConstructedIntervals(ctx context
 	junits = append(junits, testErrorUpdatingEndpointSlices(finalIntervals)...)
 	junits = append(junits, testMultipleSingleSecondDisruptions(finalIntervals)...)
 	junits = append(junits, testDNSOverlapDisruption(finalIntervals)...)
-	junits = append(junits, TestAllIngressBackendsForDisruption(finalIntervals, w.duration, jobType)...)
 
 	return junits, nil
 }

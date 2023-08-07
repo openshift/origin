@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/invariants/network/disruptioningress"
+
 	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -41,7 +43,6 @@ import (
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
@@ -324,7 +325,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		"[bz-Routing] console is not available via ingress",
 		func() (error, bool) {
 			pollErr := wait.PollImmediateWithContext(context.TODO(), 1*time.Second, 10*time.Minute, func(ctx context.Context) (bool, error) {
-				consoleSampler := frontends.CreateConsoleRouteAvailableWithNewConnections()
+				consoleSampler := disruptioningress.CreateConsoleRouteAvailableWithNewConnections(config)
 				_, err := consoleSampler.CheckConnection(ctx)
 				if err == nil {
 					return true, nil
