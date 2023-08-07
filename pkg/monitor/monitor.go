@@ -17,22 +17,16 @@ import (
 	"github.com/openshift/origin/pkg/invariants"
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/disruption/backend"
-	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/shutdown"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/v2"
 )
 
-// Monitor records events that have occurred in memory and can also periodically
-// sample results.
 type Monitor struct {
-	adminKubeConfig                  *rest.Config
-	additionalEventIntervalRecorders []StartEventIntervalRecorderFunc
-	invariantRegistry                invariants.InvariantRegistry
-	storageDir                       string
+	adminKubeConfig   *rest.Config
+	invariantRegistry invariants.InvariantRegistry
+	storageDir        string
 
 	recorder monitorapi.Recorder
 	junits   []*junitapi.JUnitTestCase
@@ -48,14 +42,12 @@ func NewMonitor(
 	recorder monitorapi.Recorder,
 	adminKubeConfig *rest.Config,
 	storageDir string,
-	additionalEventIntervalRecorders []StartEventIntervalRecorderFunc,
 	invariantRegistry invariants.InvariantRegistry) Interface {
 	return &Monitor{
-		adminKubeConfig:                  adminKubeConfig,
-		additionalEventIntervalRecorders: additionalEventIntervalRecorders,
-		recorder:                         recorder,
-		invariantRegistry:                invariantRegistry,
-		storageDir:                       storageDir,
+		adminKubeConfig:   adminKubeConfig,
+		recorder:          recorder,
+		invariantRegistry: invariantRegistry,
+		storageDir:        storageDir,
 	}
 }
 
@@ -85,19 +77,6 @@ func (m *Monitor) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	for _, additionalEventIntervalRecorder := range m.additionalEventIntervalRecorders {
-		if err := additionalEventIntervalRecorder(ctx, m.recorder, m.adminKubeConfig, backend.ExternalLoadBalancerType); err != nil {
-			return err
-		}
-	}
-
-	// read the state of the cluster apiserver client access issues *before* any test (like upgrade) begins
-	intervals, err := apiserveravailability.APIServerAvailabilityIntervalsFromCluster(client, time.Time{}, time.Time{})
-	if err != nil {
-		klog.Errorf("error reading initial apiserver availability: %v", err)
-	}
-	m.recorder.AddIntervals(intervals...)
 
 	startNodeMonitoring(ctx, m.recorder, client)
 	startEventMonitoring(ctx, m.recorder, client)
