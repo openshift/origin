@@ -47,8 +47,23 @@ func (o *UpgradeOptions) SetUpgradeGlobals() error {
 		return nil
 	}
 
-	if err := SetUpgradeGlobalsFromTestOptions(o.TestOptions); err != nil {
-		return err
+	for _, opt := range o.TestOptions {
+		parts := strings.SplitN(opt, "=", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("expected option of the form KEY=VALUE instead of %q", opt)
+		}
+		switch parts[0] {
+		case "abort-at":
+			if err := upgrade.SetUpgradeAbortAt(parts[1]); err != nil {
+				return err
+			}
+		case "disrupt-reboot":
+			if err := upgrade.SetUpgradeDisruptReboot(parts[1]); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unrecognized upgrade option: %s", parts[0])
+		}
 	}
 
 	upgrade.SetToImage(o.ToImage)
@@ -72,27 +87,5 @@ func filterUpgrade(tests []upgrades.Test, match func(string) bool) error {
 		}
 	}
 	upgrade.SetTests(scope)
-	return nil
-}
-
-func SetUpgradeGlobalsFromTestOptions(testOptions []string) error {
-	for _, opt := range testOptions {
-		parts := strings.SplitN(opt, "=", 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("expected option of the form KEY=VALUE instead of %q", opt)
-		}
-		switch parts[0] {
-		case "abort-at":
-			if err := upgrade.SetUpgradeAbortAt(parts[1]); err != nil {
-				return err
-			}
-		case "disrupt-reboot":
-			if err := upgrade.SetUpgradeDisruptReboot(parts[1]); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("unrecognized upgrade option: %s", parts[0])
-		}
-	}
 	return nil
 }

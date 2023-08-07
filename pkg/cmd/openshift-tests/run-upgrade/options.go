@@ -10,7 +10,6 @@ import (
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/clioptions/upgradeoptions"
-	"github.com/openshift/origin/pkg/test/ginkgo"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -63,20 +62,16 @@ func (o *RunUpgradeSuiteOptions) TestCommandEnvironment() []string {
 // UpgradeTestPreSuite validates the test options and gathers data useful prior to launching the upgrade and it's
 // related tests.
 func (o *RunUpgradeSuiteOptions) UpgradeTestPreSuite() error {
-	if !o.GinkgoRunSuiteOptions.DryRun {
-		testOpt := ginkgo.NewTestOptions(o.IOStreams)
-		config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), testOpt.DryRun, false, nil)
-		if err != nil {
-			return err
-		}
-		if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, testOpt.DryRun); err != nil {
-			return err
-		}
-		klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
+	config, err := clusterdiscovery.DecodeProvider(os.Getenv("TEST_PROVIDER"), o.GinkgoRunSuiteOptions.DryRun, false, nil)
+	if err != nil {
+		return err
 	}
+	if err := clusterdiscovery.InitializeTestFramework(exutil.TestContext, config, o.GinkgoRunSuiteOptions.DryRun); err != nil {
+		return err
+	}
+	klog.V(4).Infof("Loaded test configuration: %#v", exutil.TestContext)
 
-	// TODO this is called from run-upgrade and run-test.  At least one of these ought not need it.
-	return upgradeoptions.SetUpgradeGlobalsFromTestOptions(o.TestOptions)
+	return nil
 }
 
 func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
