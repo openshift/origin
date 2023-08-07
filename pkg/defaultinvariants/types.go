@@ -4,20 +4,13 @@ import (
 	"fmt"
 
 	"github.com/openshift/origin/pkg/invariants"
-	"github.com/openshift/origin/pkg/invariants/additionaleventscollector"
 	"github.com/openshift/origin/pkg/invariants/authentication/legacyauthenticationinvariants"
-	"github.com/openshift/origin/pkg/invariants/clusterinfoserializer"
 	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/legacycvoinvariants"
 	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/operatorstateanalyzer"
-	"github.com/openshift/origin/pkg/invariants/disruptionimageregistry"
-	"github.com/openshift/origin/pkg/invariants/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/invariants/disruptionpodnetwork"
-	"github.com/openshift/origin/pkg/invariants/disruptionserializer"
-	"github.com/openshift/origin/pkg/invariants/disruptionserviceloadbalancer"
 	"github.com/openshift/origin/pkg/invariants/etcd/etcdloganalyzer"
 	"github.com/openshift/origin/pkg/invariants/etcd/legacyetcdinvariants"
 	"github.com/openshift/origin/pkg/invariants/imageregistry/disruptionimageregistry"
-	"github.com/openshift/origin/pkg/invariants/intervalserializer"
 	"github.com/openshift/origin/pkg/invariants/kubeapiserver/auditloganalyzer"
 	"github.com/openshift/origin/pkg/invariants/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/invariants/kubeapiserver/disruptionnewapiserver"
@@ -41,9 +34,6 @@ import (
 	"github.com/openshift/origin/pkg/invariants/testframework/timelineserializer"
 	"github.com/openshift/origin/pkg/invariants/testframework/trackedresourcesserializer"
 	"github.com/openshift/origin/pkg/invariants/testframework/uploadtolokiserializer"
-	"github.com/openshift/origin/pkg/invariants/timelineserializer"
-	"github.com/openshift/origin/pkg/invariants/trackedresourcesserializer"
-	"github.com/openshift/origin/pkg/invariants/watchpods"
 )
 
 type ClusterStabilityDuringTest string
