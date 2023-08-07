@@ -1173,7 +1173,7 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should provide named network metrics [apigroup:project.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should report telemetry [Late]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should report telemetry [Serial] [Late]": " [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
 	"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 

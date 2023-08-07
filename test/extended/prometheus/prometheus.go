@@ -316,7 +316,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 	})
 
 	g.Describe("when installed on the cluster", func() {
-		g.It("should report telemetry [Late]", func() {
+		g.It("should report telemetry [Serial] [Late]", func() {
 			if enabledErr, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
 				e2e.Failf("could not determine if Telemetry is enabled: %v", err)
 			} else if enabledErr != nil {
