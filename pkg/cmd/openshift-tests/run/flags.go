@@ -3,6 +3,7 @@ package run
 import (
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
+	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
 	"github.com/openshift/origin/pkg/clioptions/suiteselection"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -73,6 +74,11 @@ func (f *RunSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams) {
 }
 
 func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
+	adminRESTConfig, err := kubeconfig.GetStaticRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
 	if err != nil {
 		return nil, err
@@ -85,7 +91,13 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 	if err != nil {
 		return nil, err
 	}
-	suite, err := f.TestSuiteSelectionFlags.SelectSuite(f.AvailableSuites, args, providerConfig.MatchFn())
+	suite, err := f.TestSuiteSelectionFlags.SelectSuite(
+		f.AvailableSuites,
+		args,
+		kubeconfig.NewDiscoveryGetter(adminRESTConfig),
+		f.GinkgoRunSuiteOptions.DryRun,
+		providerConfig.MatchFn(),
+	)
 	if err != nil {
 		return nil, err
 	}

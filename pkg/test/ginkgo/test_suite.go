@@ -1,7 +1,6 @@
 package ginkgo
 
 import (
-	"fmt"
 	"regexp"
 	"time"
 
@@ -56,15 +55,6 @@ func newTestCaseFromGinkgoSpec(spec types.TestSpec) (*testCase, error) {
 		spec:      spec,
 	}
 
-	matches := regexp.MustCompile(`\[apigroup:([^]]*)\]`).FindAllStringSubmatch(name, -1)
-	for _, match := range matches {
-		if len(match) < 2 {
-			return nil, fmt.Errorf("regexp match %v is invalid: len(match) < 2", match)
-		}
-		apigroup := match[1]
-		tc.apigroups = append(tc.apigroups, apigroup)
-	}
-
 	if match := re.FindStringSubmatch(name); match != nil {
 		testTimeOut, err := time.ParseDuration(match[1])
 		if err != nil {
@@ -87,7 +77,6 @@ type testCase struct {
 	binaryName string
 	spec       types.TestSpec
 	locations  []types.CodeLocation
-	apigroups  []string
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string

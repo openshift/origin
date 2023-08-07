@@ -10,11 +10,17 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/client-go/discovery"
+
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
+
+type DiscoveryClientGetter interface {
+	GetDiscoveryClient() (discovery.AggregatedDiscoveryInterface, error)
+}
 
 // TestSuiteSelectionFlags is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
@@ -49,7 +55,13 @@ func (f *TestSuiteSelectionFlags) SetIOStreams(streams genericclioptions.IOStrea
 }
 
 // SelectSuite returns the defined suite plus the requested modifications to the suite in order to select the specified tests
-func (f *TestSuiteSelectionFlags) SelectSuite(suites []*testginkgo.TestSuite, args []string, additionalMatchFn testginkgo.TestMatchFunc) (*testginkgo.TestSuite, error) {
+func (f *TestSuiteSelectionFlags) SelectSuite(
+	suites []*testginkgo.TestSuite,
+	args []string,
+	discoveryClientGetter DiscoveryClientGetter,
+	dryRun bool,
+	additionalMatchFn testginkgo.TestMatchFunc,
+) (*testginkgo.TestSuite, error) {
 	var suite *testginkgo.TestSuite
 
 	// If a test file was provided with no suite, use the "files" suite.
@@ -91,6 +103,32 @@ func (f *TestSuiteSelectionFlags) SelectSuite(suites []*testginkgo.TestSuite, ar
 
 	suite.AddRequiredMatchFunc(f.MatchFn)
 	suite.AddRequiredMatchFunc(additionalMatchFn)
+
+	// Skip tests with [apigroup:GROUP] labels for apigroups which are not
+	// served by a cluster. E.g. MicroShift is not serving most of the openshift.io
+	// apigroups. Other installations might be serving only a subset of the api groups.
+	discoveryClient, err := discoveryClientGetter.GetDiscoveryClient()
+	switch {
+	case err != nil && dryRun:
+		fmt.Fprintf(f.ErrOut, "Unable to get discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
+	case err != nil && !dryRun:
+		return nil, fmt.Errorf("unable to get discovery client, skipping apigroup check in the dry-run mode: %w", err)
+
+	default:
+		_, serverVersionErr := discoveryClient.ServerVersion()
+		switch {
+		case serverVersionErr != nil && dryRun:
+			fmt.Fprintf(f.ErrOut, "Unable to get server version through discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
+		case serverVersionErr != nil && !dryRun:
+			return nil, fmt.Errorf("unable to get server version through discovery client, skipping apigroup check in the dry-run mode: %w", err)
+		default:
+			apiGroupFilter, err := newApiGroupFilter(discoveryClient)
+			if err != nil {
+				return nil, fmt.Errorf("unable to build api group filter: %w", err)
+			}
+			suite.AddRequiredMatchFunc(apiGroupFilter.includeTest)
+		}
+	}
 
 	return suite, nil
 }

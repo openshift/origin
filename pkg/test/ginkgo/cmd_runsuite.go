@@ -169,33 +169,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 	r := rand.New(rand.NewSource(suiteConfig.RandomSeed))
 	r.Shuffle(len(tests), func(i, j int) { tests[i], tests[j] = tests[j], tests[i] })
 
-	discoveryClient, err := getDiscoveryClient()
-	if err != nil {
-		if o.DryRun {
-			fmt.Fprintf(o.ErrOut, "Unable to get discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
-		} else {
-			return err
-		}
-	} else {
-		if _, err := discoveryClient.ServerVersion(); err != nil {
-			if o.DryRun {
-				fmt.Fprintf(o.ErrOut, "Unable to get server version through discovery client, skipping apigroup check in the dry-run mode: %v\n", err)
-			} else {
-				return err
-			}
-		} else {
-			apiGroupFilter, err := newApiGroupFilter(discoveryClient)
-			if err != nil {
-				return fmt.Errorf("unable to build api group filter: %v", err)
-			}
-
-			// Skip tests with [apigroup:GROUP] labels for apigroups which are not
-			// served by a cluster. E.g. MicroShift is not serving most of the openshift.io
-			// apigroups. Other installations might be serving only a subset of the api groups.
-			apiGroupFilter.markSkippedWhenAPIGroupNotServed(tests)
-		}
-	}
-
 	tests = suite.Filter(tests)
 	if len(tests) == 0 {
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
