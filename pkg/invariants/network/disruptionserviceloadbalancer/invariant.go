@@ -89,7 +89,8 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		infra.Status.PlatformStatus.Type == configv1.LibvirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.NutanixPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType ||
-		infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
+		infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType ||
+		infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType {
 		w.notSupportedReason = fmt.Sprintf("platform %q is not supported", infra.Status.PlatformStatus.Type)
 	}
 	// single node clusters are not supported because the replication controller has 2 replicas with anti-affinity for running on the same node.
