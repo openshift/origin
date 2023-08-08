@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/service"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
@@ -72,22 +71,17 @@ func NewRecordAvailabilityOnly() invariants.InvariantTest {
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 
-	coreClient, err := e2e.LoadClientset(true)
+	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
-		return fmt.Errorf("unable to load client set: %v", err)
+		return err
 	}
-	isMicroShift, err := exutil.IsMicroShiftCluster(coreClient)
+	isMicroShift, err := exutil.IsMicroShiftCluster(w.kubeClient)
 	if err != nil {
 		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
 	}
 	if isMicroShift {
-		w.notSupportedReason = "Platform MicroShift not supported"
+		w.notSupportedReason = "platform MicroShift not supported"
 		return nil
-	}
-
-	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
-	if err != nil {
-		return err
 	}
 
 	configClient, err := configclient.NewForConfig(adminRESTConfig)
