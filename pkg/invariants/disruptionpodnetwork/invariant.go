@@ -62,6 +62,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		"pod": "server",
 	}
 
+	// TODO make this a manifest
 	// deploys server listening on 8080
 	serverDeployment := &appv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -99,7 +100,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 			},
 		},
 	}
-	_, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), serverDeployment, metav1.CreateOption{})
+	_, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), serverDeployment, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

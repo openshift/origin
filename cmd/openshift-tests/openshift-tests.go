@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
+
 	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
 
 	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
@@ -83,6 +85,7 @@ func main() {
 		run_test.NewRunTestCommand(ioStreams),
 		dev.NewDevCommand(),
 		run2.NewRunMonitorCommand(ioStreams),
+		disruption.NewDisruptionCommand(ioStreams),
 		monitor_command.NewMonitorCommand(ioStreams),
 		risk_analysis.NewTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
