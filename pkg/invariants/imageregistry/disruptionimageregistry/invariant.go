@@ -14,12 +14,11 @@ import (
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/imageregistryutil"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 const (
@@ -50,23 +49,22 @@ func NewRecordAvailabilityOnly() invariants.InvariantTest {
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 
-	coreClient, err := e2e.LoadClientset(true)
-	if err != nil {
-		return fmt.Errorf("unable to load client set: %v", err)
-	}
-	isMicroShift, err := exutil.IsMicroShiftCluster(coreClient)
-	if err != nil {
-		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
-	}
-	if isMicroShift {
-		w.notSupportedReason = "Platform MicroShift not supported"
-		return nil
-	}
+	namespace := "openshift-image-registry"
 
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
+
+	_, err = w.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		w.notSupportedReason = "namespace openshift-image-registry not present"
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
 	w.routeClient, err = routeclient.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
@@ -78,7 +76,6 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	}
 
 	baseURL := fmt.Sprintf("https://%s", w.imageRegistryRoute.Status.Ingress[0].Host)
-	namespace := "openshift-image-registry"
 	disruptionBackendName := "image-registry"
 	path := "/healthz"
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendWithLocator(
