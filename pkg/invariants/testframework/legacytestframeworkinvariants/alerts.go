@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
@@ -24,6 +23,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func testAlerts(events monitorapi.Intervals,
@@ -60,20 +60,13 @@ func testAlerts(events monitorapi.Intervals,
 		if err != nil {
 			panic(err)
 		}
-	}
-
-	if kubeClient == nil {
-		kubeClient, err = framework.LoadClientset(true)
+		_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-monitoring", metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return []*junitapi.JUnitTestCase{}
+		}
 		if err != nil {
 			panic(err)
 		}
-	}
-	nsExist, err := exutil.IsNamespaceExist(kubeClient, "openshift-monitoring")
-	if err != nil {
-		panic(err)
-	}
-	if !nsExist {
-		return []*junitapi.JUnitTestCase{}
 	}
 
 	ret := RunAlertTests(jobType, allowancesFunc, featureSet, etcdAllowance, events, recordedResource)
