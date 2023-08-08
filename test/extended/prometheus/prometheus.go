@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -244,6 +245,16 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("prometheus")
 	)
+
+	g.BeforeEach(func() {
+		kubeClient, err := kubernetes.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		nsExist, err := exutil.IsNamespaceExist(kubeClient, "openshift-monitoring")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !nsExist {
+			g.Skip("openshift-monitoring namespace does not exist, skipping")
+		}
+	})
 
 	g.It("shouldn't report any unexpected alerts in firing or pending state", func() {
 		// we only consider samples since the beginning of the test
