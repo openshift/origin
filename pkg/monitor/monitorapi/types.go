@@ -179,6 +179,9 @@ const (
 	NodeFailedLease    IntervalReason = "FailedToUpdateLease"
 
 	Timeout IntervalReason = "Timeout"
+
+	E2ETestStarted  IntervalReason = "E2ETestStarted"
+	E2ETestFinished IntervalReason = "E2ETestFinished"
 )
 
 type AnnotationKey string

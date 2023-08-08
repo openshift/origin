@@ -46,7 +46,7 @@ func (r *testSuiteRunnerImpl) RunOneTest(ctx context.Context, test *testCase) {
 	// record the test happening with the monitor
 	r.testOutput.monitorRecorder.Record(monitorapi.NewInterval(monitorapi.SourceE2ETest, monitorapi.Info).
 		Locator(monitorapi.NewLocator().E2ETest(test.name)).
-		Message(monitorapi.NewMessage().HumanMessage("started")).BuildCondition())
+		Message(monitorapi.NewMessage().HumanMessage("started").Reason(monitorapi.E2ETestStarted)).BuildCondition())
 
 	defer recordTestResultInMonitor(testRunResult, r.testOutput.monitorRecorder)
 
@@ -288,7 +288,7 @@ func recordTestResultInMonitor(testRunResult *testRunResultHandle, monitorRecord
 	// links the start/stop intervals and has the duration for the test run in e2etest.go.
 	monitorRecorder.Record(monitorapi.NewInterval(monitorapi.SourceE2ETest, eventLevel).
 		Locator(monitorapi.NewLocator().E2ETest(testRunResult.name)).
-		Message(msg.HumanMessage("finished")).BuildCondition())
+		Message(msg.HumanMessage("finished").Reason(monitorapi.E2ETestFinished)).BuildCondition())
 }
 
 // RunTestInNewProcess runs a test case in a different process and returns a result

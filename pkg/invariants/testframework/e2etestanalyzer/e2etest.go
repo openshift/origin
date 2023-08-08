@@ -15,7 +15,7 @@ func intervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 		if !ok {
 			continue
 		}
-		if event.Message == "started" {
+		if event.StructuredMessage.Reason == monitorapi.E2ETestStarted {
 			testNameToLastStart[testName] = event.From
 			continue
 		}
