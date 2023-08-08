@@ -225,6 +225,11 @@ var (
 			`\[sig-storage\]\[Late\] Metrics should report short attach times`,
 			`\[sig-storage\]\[Late\] Metrics should report short mount times`,
 		},
+		// tests that don't pass under OVN Kubernetes
+		"[Skipped:Network/OVNKubernetes]": {
+			// https://issues.redhat.com/browse/OCPBUGS-17455: OVN-K bug in IC mode
+			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:operator.openshift.io\] \[external-targets\]\[apigroup:user.openshift.io\]\[apigroup:security.openshift.io\] pods should keep the assigned EgressIPs when being rescheduled to another node`,
+		},
 		"[Skipped:ibmroks]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)
 			// https://bugzilla.redhat.com/show_bug.cgi?id=1825009 - e2e: skip Glusterfs-related tests upstream for rhel7 worker nodes
