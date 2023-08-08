@@ -459,8 +459,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 
 	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
 
-	if err := m.Stop(ctx); err != nil {
-		return err
+	monitorTestResultState, err := m.Stop(ctx)
+	if err != nil {
+		fmt.Fprintf(o.ErrOut, "error: Failed to stop monitor test: %v\n", err)
+		monitorTestResultState = monitor.Failed
 	}
 	if err := m.SerializeResults(ctx, junitSuiteName, timeSuffix); err != nil {
 		fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
@@ -545,6 +547,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 
 	if syntheticFailure {
 		return fmt.Errorf("failed because an invariant was violated, %d pass, %d skip (%s)\n", pass, skip, duration)
+	}
+	if monitorTestResultState != monitor.Succeeded {
+		return fmt.Errorf("failed due to a MonitorTest failure")
 	}
 
 	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)

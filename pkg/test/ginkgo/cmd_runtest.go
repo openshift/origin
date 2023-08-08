@@ -110,7 +110,8 @@ func (o *TestOptions) Run(args []string) error {
 	ginkgo.GetSuite().RunSpec(test.spec, ginkgo.Labels{}, "", ginkgo.GetFailer(), ginkgo.GetWriter(), suiteConfig)
 
 	if m != nil {
-		if err := m.Stop(ctx); err != nil {
+		// ignore the resultstate of the monitor tests because we're only focused on a single one.
+		if _, err := m.Stop(ctx); err != nil {
 			return err
 		}
 

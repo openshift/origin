@@ -135,7 +135,8 @@ func (opt *RunMonitorOptions) Run() error {
 
 	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cleanupCancel()
-	if err := m.Stop(cleanupContext); err != nil {
+	// ignore the ResultState because we're interested in whether we collected, not whether what we collected passed.
+	if _, err := m.Stop(cleanupContext); err != nil {
 		fmt.Fprintf(os.Stderr, "error cleaning up, still reporting as best as possible: %v\n", err)
 	}
 
