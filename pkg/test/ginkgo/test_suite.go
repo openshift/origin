@@ -2,6 +2,7 @@ package ginkgo
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -33,6 +34,9 @@ func testsForSuite() ([]*testCase, error) {
 		if append, ok := k8sgenerated.Annotations[name]; ok {
 			spec.AppendText(append)
 		}
+		if append := extras(name); len(append) > 0 {
+			spec.AppendText(append)
+		}
 		tc, err := newTestCaseFromGinkgoSpec(spec)
 		if err != nil {
 			errs = append(errs, err)
@@ -43,6 +47,15 @@ func testsForSuite() ([]*testCase, error) {
 		return nil, errors.NewAggregate(errs)
 	}
 	return tests, nil
+}
+
+func extras(name string) string {
+	// https://issues.redhat.com/browse/OCPBUGS-16166
+	if strings.Contains(name, "[Feature:StatefulSetStartOrdinal]") ||
+		strings.Contains(name, "Daemon set [Serial] should rollback without unnecessary restarts") {
+		return " [Disabled:Broken]"
+	}
+	return ""
 }
 
 var re = regexp.MustCompile(`.*\[Timeout:(.[^\]]*)\]`)
