@@ -3,6 +3,8 @@ package defaultinvariants
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/invariants/testframework/disruptionexternalservicemonitoring"
+
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/authentication/legacyauthenticationinvariants"
 	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/legacycvoinvariants"
@@ -14,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/invariants/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/invariants/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/invariants/kubeapiserver/legacykubeapiserverinvariants"
+	"github.com/openshift/origin/pkg/invariants/network/disruptioningress"
 	"github.com/openshift/origin/pkg/invariants/network/disruptionserviceloadbalancer"
 	"github.com/openshift/origin/pkg/invariants/network/legacynetworkinvariants"
 	"github.com/openshift/origin/pkg/invariants/node/kubeletlogcollector"
@@ -63,11 +66,14 @@ func newDefaultInvariants() invariants.InvariantRegistry {
 
 	invariantTests.AddRegistryOrDie(newUniversalInvariants())
 
-	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewAvailabilityInvariant())
-
 	invariantTests.AddInvariantOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
 
 	invariantTests.AddInvariantOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewAvailabilityInvariant())
+
+	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewAvailabilityInvariant())
+	invariantTests.AddInvariantOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewAvailabilityInvariant())
+
+	invariantTests.AddInvariantOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewAvailabilityInvariant())
 
 	return invariantTests
 }
@@ -77,11 +83,14 @@ func newDisruptiveInvariants() invariants.InvariantRegistry {
 
 	invariantTests.AddRegistryOrDie(newUniversalInvariants())
 
-	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
-
 	invariantTests.AddInvariantOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewRecordAvailabilityOnly())
 
 	invariantTests.AddInvariantOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewRecordAvailabilityOnly())
+
+	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
+	invariantTests.AddInvariantOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewRecordAvailabilityOnly())
+
+	invariantTests.AddInvariantOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewRecordAvailabilityOnly())
 
 	return invariantTests
 }

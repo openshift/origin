@@ -15,17 +15,13 @@ import (
 	"syscall"
 	"time"
 
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -349,11 +345,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 		monitorEventRecorder,
 		restConfig,
 		o.JUnitDir,
-		[]monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAPIMonitoringUsingNewBackend,
-			frontends.StartAllIngressMonitoring,
-			externalservice.StartExternalServiceMonitoring,
-		},
 		defaultinvariants.NewInvariantsFor(jobStability),
 	)
 	if err := m.Start(ctx); err != nil {

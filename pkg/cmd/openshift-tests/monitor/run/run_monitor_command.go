@@ -10,14 +10,9 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
-
 	"github.com/openshift/origin/pkg/defaultinvariants"
-
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
-	"github.com/openshift/origin/test/extended/util/disruption/controlplane"
-	"github.com/openshift/origin/test/extended/util/disruption/externalservice"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -106,11 +101,6 @@ func (opt *RunMonitorOptions) Run() error {
 		recorder,
 		restConfig,
 		opt.ArtifactDir,
-		[]monitor.StartEventIntervalRecorderFunc{
-			controlplane.StartAPIMonitoringUsingNewBackend,
-			frontends.StartAllIngressMonitoring,
-			externalservice.StartExternalServiceMonitoring,
-		},
 		defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
 	)
 	if err := m.Start(ctx); err != nil {
