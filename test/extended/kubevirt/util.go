@@ -112,6 +112,10 @@ func checkConnectivityToHostWithCLI(f *e2e.Framework, oc *exutil.CLI, nodeName s
 
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
 	execPod := exutil.CreateExecPodOrFail(f.ClientSet, namespace, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+		if pod.GenerateName == "" {
+			pod.GenerateName = pod.Name
+			pod.Name = ""
+		}
 		pod.Spec.NodeName = nodeName
 		pod.Spec.HostNetwork = hostNetwork
 	})
@@ -174,6 +178,10 @@ func platformType(configClient configv1client.Interface) (configv1.PlatformType,
 func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, host string, timeout time.Duration, hostNetwork bool) error {
 	e2e.Logf("Creating an exec pod on node %v", nodeName)
 	execPod := exutil.CreateExecPodOrFail(f.ClientSet, f.Namespace.Name, fmt.Sprintf("execpod-sourceip-%s", nodeName), func(pod *corev1.Pod) {
+		if pod.GenerateName == "" {
+			pod.GenerateName = pod.Name
+			pod.Name = ""
+		}
 		pod.Spec.NodeName = nodeName
 		pod.Spec.HostNetwork = hostNetwork
 	})
