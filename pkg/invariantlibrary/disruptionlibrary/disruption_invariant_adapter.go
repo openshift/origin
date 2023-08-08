@@ -8,12 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
+	"github.com/openshift/origin/pkg/invariantlibrary/allowedbackenddisruption"
+	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/openshift/origin/test/extended/util/disruption"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 )
 
@@ -38,6 +39,10 @@ func NewAvailabilityInvariant(
 }
 
 func (w *Availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	if w == nil {
+		return fmt.Errorf("unable to start collection because instance is nil")
+	}
+
 	var err error
 	w.jobType, err = platformidentification.GetJobType(ctx, adminRESTConfig)
 	if err != nil {
@@ -55,20 +60,42 @@ func (w *Availability) StartCollection(ctx context.Context, adminRESTConfig *res
 }
 
 func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if w == nil {
+		return nil, nil, fmt.Errorf("unable to collected data because instance is nil")
+	}
+
 	// when it is time to collect data, we need to stop the collectors.  they both  have to drain, so stop in parallel
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+
+	var newRecoverErr error
+	wg.Add(1)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				newRecoverErr = fmt.Errorf("panic in stop: %v", r)
+			}
+		}()
+
 		defer wg.Done()
 		w.newConnectionDisruptionSampler.Stop()
 	}()
+
+	var reusedRecoverErr error
+	wg.Add(1)
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				reusedRecoverErr = fmt.Errorf("panic in stop: %v", r)
+			}
+		}()
+
 		defer wg.Done()
 		w.reusedConnectionDisruptionSampler.Stop()
 	}()
+
 	wg.Wait()
 
-	return nil, nil, nil
+	return nil, nil, utilerrors.NewAggregate([]error{newRecoverErr, reusedRecoverErr})
 }
 
 func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails, locator string, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
@@ -114,7 +141,7 @@ func createDisruptionJunit(testName string, allowedDisruption *time.Duration, di
 }
 
 func (w *Availability) junitForNewConnections(ctx context.Context, finalIntervals monitorapi.Intervals) (*junitapi.JUnitTestCase, error) {
-	newConnectionAllowed, newConnectionDisruptionDetails, err := disruption.HistoricalAllowedDisruption(ctx, w.newConnectionDisruptionSampler, w.jobType)
+	newConnectionAllowed, newConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.newConnectionDisruptionSampler, w.jobType)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get new allowed disruption: %w", err)
 	}
@@ -131,7 +158,7 @@ func (w *Availability) junitForNewConnections(ctx context.Context, finalInterval
 }
 
 func (w *Availability) junitForReusedConnections(ctx context.Context, finalIntervals monitorapi.Intervals) (*junitapi.JUnitTestCase, error) {
-	reusedConnectionAllowed, reusedConnectionDisruptionDetails, err := disruption.HistoricalAllowedDisruption(ctx, w.reusedConnectionDisruptionSampler, w.jobType)
+	reusedConnectionAllowed, reusedConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.reusedConnectionDisruptionSampler, w.jobType)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get reused allowed disruption: %w", err)
 	}
@@ -147,7 +174,16 @@ func (w *Availability) junitForReusedConnections(ctx context.Context, finalInter
 		nil
 }
 
+func historicalAllowedDisruption(ctx context.Context, backend *backenddisruption.BackendSampler, jobType *platformidentification.JobType) (*time.Duration, string, error) {
+	backendName := backend.GetDisruptionBackendName() + "-" + string(backend.GetConnectionType()) + "-connections"
+
+	return allowedbackenddisruption.GetAllowedDisruption(backendName, *jobType)
+}
+
 func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if w == nil {
+		return nil, fmt.Errorf("unable to evaluate tests because instance is nil")
+	}
 
 	newConnectionJunit, err := w.junitForNewConnections(ctx, finalIntervals)
 	if err != nil {

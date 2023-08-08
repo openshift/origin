@@ -4,17 +4,35 @@ import (
 	"fmt"
 
 	"github.com/openshift/origin/pkg/invariants"
-	"github.com/openshift/origin/pkg/invariants/additionaleventscollector"
-	"github.com/openshift/origin/pkg/invariants/alertserializer"
-	"github.com/openshift/origin/pkg/invariants/clusterinfoserializer"
-	"github.com/openshift/origin/pkg/invariants/disruptionimageregistry"
-	"github.com/openshift/origin/pkg/invariants/disruptionlegacyapiservers"
-	"github.com/openshift/origin/pkg/invariants/disruptionserializer"
-	"github.com/openshift/origin/pkg/invariants/disruptionserviceloadbalancer"
-	"github.com/openshift/origin/pkg/invariants/intervalserializer"
-	"github.com/openshift/origin/pkg/invariants/timelineserializer"
-	"github.com/openshift/origin/pkg/invariants/trackedresourcesserializer"
-	"github.com/openshift/origin/pkg/invariants/watchpods"
+	"github.com/openshift/origin/pkg/invariants/authentication/legacyauthenticationinvariants"
+	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/legacycvoinvariants"
+	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/operatorstateanalyzer"
+	"github.com/openshift/origin/pkg/invariants/etcd/etcdloganalyzer"
+	"github.com/openshift/origin/pkg/invariants/etcd/legacyetcdinvariants"
+	"github.com/openshift/origin/pkg/invariants/imageregistry/disruptionimageregistry"
+	"github.com/openshift/origin/pkg/invariants/kubeapiserver/auditloganalyzer"
+	"github.com/openshift/origin/pkg/invariants/kubeapiserver/disruptionlegacyapiservers"
+	"github.com/openshift/origin/pkg/invariants/kubeapiserver/disruptionnewapiserver"
+	"github.com/openshift/origin/pkg/invariants/kubeapiserver/legacykubeapiserverinvariants"
+	"github.com/openshift/origin/pkg/invariants/network/disruptionserviceloadbalancer"
+	"github.com/openshift/origin/pkg/invariants/network/legacynetworkinvariants"
+	"github.com/openshift/origin/pkg/invariants/node/kubeletlogcollector"
+	"github.com/openshift/origin/pkg/invariants/node/legacynodeinvariants"
+	"github.com/openshift/origin/pkg/invariants/node/nodestateanalyzer"
+	"github.com/openshift/origin/pkg/invariants/node/watchpods"
+	"github.com/openshift/origin/pkg/invariants/storage/legacystorageinvariants"
+	"github.com/openshift/origin/pkg/invariants/testframework/additionaleventscollector"
+	"github.com/openshift/origin/pkg/invariants/testframework/alertanalyzer"
+	"github.com/openshift/origin/pkg/invariants/testframework/clusterinfoserializer"
+	"github.com/openshift/origin/pkg/invariants/testframework/disruptionserializer"
+	"github.com/openshift/origin/pkg/invariants/testframework/e2etestanalyzer"
+	"github.com/openshift/origin/pkg/invariants/testframework/intervalserializer"
+	"github.com/openshift/origin/pkg/invariants/testframework/knownimagechecker"
+	"github.com/openshift/origin/pkg/invariants/testframework/legacytestframeworkinvariants"
+	"github.com/openshift/origin/pkg/invariants/testframework/pathologicaleventanalyzer"
+	"github.com/openshift/origin/pkg/invariants/testframework/timelineserializer"
+	"github.com/openshift/origin/pkg/invariants/testframework/trackedresourcesserializer"
+	"github.com/openshift/origin/pkg/invariants/testframework/uploadtolokiserializer"
 )
 
 type ClusterStabilityDuringTest string
@@ -71,15 +89,39 @@ func newDisruptiveInvariants() invariants.InvariantRegistry {
 func newUniversalInvariants() invariants.InvariantRegistry {
 	invariantTests := invariants.NewInvariantRegistry()
 
-	// TODO add invariantTests here
-	invariantTests.AddInvariantOrDie("pod-lifecycle", "Test Framework", watchpods.NewPodWatcher())
+	invariantTests.AddInvariantOrDie("legacy-authentication-invariants", "Authentication", legacyauthenticationinvariants.NewLegacyTests())
+
+	invariantTests.AddInvariantOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvoinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
+
+	invariantTests.AddInvariantOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
+	invariantTests.AddInvariantOrDie("legacy-etcd-invariants", "etcd", legacyetcdinvariants.NewLegacyTests())
+
+	invariantTests.AddInvariantOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer())
+	invariantTests.AddInvariantOrDie("apiserver-new-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
+	invariantTests.AddInvariantOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiserverinvariants.NewLegacyTests())
+
+	invariantTests.AddInvariantOrDie("legacy-networking-invariants", "Networking", legacynetworkinvariants.NewLegacyTests())
+
+	invariantTests.AddInvariantOrDie("kubelet-log-collector", "Node", kubeletlogcollector.NewKubeletLogCollector())
+	invariantTests.AddInvariantOrDie("legacy-node-invariants", "Node", legacynodeinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("node-state-analyzer", "Node", nodestateanalyzer.NewAnalyzer())
+	invariantTests.AddInvariantOrDie("pod-lifecycle", "Node", watchpods.NewPodWatcher())
+
+	invariantTests.AddInvariantOrDie("legacy-storage-invariants", "Storage", legacystorageinvariants.NewLegacyTests())
+
+	invariantTests.AddInvariantOrDie("legacy-test-framework-invariants", "Test Framework", legacytestframeworkinvariants.NewLegacyTests())
+	invariantTests.AddInvariantOrDie("pathological-event-analyzer", "Test Framework", pathologicaleventanalyzer.NewAnalyzer())
 	invariantTests.AddInvariantOrDie("timeline-serializer", "Test Framework", timelineserializer.NewTimelineSerializer())
 	invariantTests.AddInvariantOrDie("interval-serializer", "Test Framework", intervalserializer.NewIntervalSerializer())
 	invariantTests.AddInvariantOrDie("tracked-resources-serializer", "Test Framework", trackedresourcesserializer.NewTrackedResourcesSerializer())
 	invariantTests.AddInvariantOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
-	invariantTests.AddInvariantOrDie("alert-summary-serializer", "Test Framework", alertserializer.NewAlertSummarySerializer())
+	invariantTests.AddInvariantOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
 	invariantTests.AddInvariantOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
 	invariantTests.AddInvariantOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
+	invariantTests.AddInvariantOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
+	invariantTests.AddInvariantOrDie("upload-to-loki-serializer", "Test Framework", uploadtolokiserializer.NewUploadSerializer())
+	invariantTests.AddInvariantOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
 
 	return invariantTests
 }

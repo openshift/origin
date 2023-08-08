@@ -1,13 +1,13 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 reviewers:
+- bertinatto
 - ingvagabund
 - soltysh
-- sttts
 - tkashem
 approvers:
+- bertinatto
 - ingvagabund
 - soltysh
-- sttts
 - tkashem
 labels:
 - "e2e-images-update"

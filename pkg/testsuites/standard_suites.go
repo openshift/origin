@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests"
 	"github.com/openshift/origin/pkg/test/ginkgo"
 	"k8s.io/kubectl/pkg/util/templates"
 
@@ -41,8 +40,7 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Suite:openshift/conformance/")
 		},
-		Parallelism:         30,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		Parallelism: 30,
 	},
 	{
 		Name: "openshift/conformance/parallel",
@@ -57,7 +55,6 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		Parallelism:          30,
 		MaximumAllowedFlakes: 15,
-		SyntheticEventTests:  ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 	},
 	{
 		Name: "openshift/conformance/serial",
@@ -70,8 +67,7 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Suite:openshift/conformance/serial") || isStandardEarlyOrLateTest(name)
 		},
-		TestTimeout:         40 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		TestTimeout: 40 * time.Minute,
 	},
 	{
 		Name: "openshift/disruptive",
@@ -92,7 +88,6 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		// Duration of the quorum restore test exceeds 60 minutes.
 		TestTimeout:                90 * time.Minute,
-		SyntheticEventTests:        ginkgo.JUnitForEventsFunc(synthetictests.SystemEventInvariants),
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
@@ -106,8 +101,7 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Suite:k8s]") && strings.Contains(name, "[Conformance]")
 		},
-		Parallelism:         30,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		Parallelism: 30,
 	},
 	{
 		Name: "openshift/build",
@@ -124,8 +118,7 @@ var staticSuites = []ginkgo.TestSuite{
 		// TODO: Builds are really flaky right now, remove when we land perf updates and fix io on workers
 		MaximumAllowedFlakes: 3,
 		// Jenkins tests can take a really long time
-		TestTimeout:         60 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		TestTimeout: 60 * time.Minute,
 	},
 	{
 		Name: "openshift/templates",
@@ -138,8 +131,7 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Feature:Templates]") || isStandardEarlyOrLateTest(name)
 		},
-		Parallelism:         1,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		Parallelism: 1,
 	},
 	{
 		Name: "openshift/image-registry",
@@ -152,7 +144,6 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[sig-imageregistry]") || isStandardEarlyOrLateTest(name)
 		},
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 	},
 	{
 		Name: "openshift/image-ecosystem",
@@ -165,9 +156,8 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Feature:ImageEcosystem]") || isStandardEarlyOrLateTest(name)
 		},
-		Parallelism:         7,
-		TestTimeout:         20 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		Parallelism: 7,
+		TestTimeout: 20 * time.Minute,
 	},
 	{
 		Name: "openshift/jenkins-e2e",
@@ -180,9 +170,8 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Feature:Jenkins]") || isStandardEarlyOrLateTest(name)
 		},
-		Parallelism:         4,
-		TestTimeout:         20 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		Parallelism: 4,
+		TestTimeout: 20 * time.Minute,
 	},
 	{
 		Name: "openshift/jenkins-e2e-rhel-only",
@@ -195,9 +184,8 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Feature:JenkinsRHELImagesOnly]") || isStandardEarlyOrLateTest(name)
 		},
-		Parallelism:         4,
-		TestTimeout:         20 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		Parallelism: 4,
+		TestTimeout: 20 * time.Minute,
 	},
 	{
 		Name: "openshift/scalability",
@@ -224,7 +212,6 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return !strings.Contains(name, "[Suite:openshift/conformance/")
 		},
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 	},
 	{
 		Name: "openshift/test-cmd",
@@ -237,7 +224,6 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Feature:LegacyCommandTests]") || isStandardEarlyOrLateTest(name)
 		},
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 	},
 	{
 		Name: "openshift/csi",
@@ -259,7 +245,6 @@ var staticSuites = []ginkgo.TestSuite{
 
 			return strings.Contains(name, "External Storage [Driver:") && !strings.Contains(name, "[Disruptive]")
 		},
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 	},
 	{
 		Name: "openshift/network/stress",
@@ -280,10 +265,9 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return (strings.Contains(name, "[Suite:openshift/conformance/") && strings.Contains(name, "[sig-network]")) || isStandardEarlyOrLateTest(name)
 		},
-		Parallelism:         60,
-		Count:               12,
-		TestTimeout:         20 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		Parallelism: 60,
+		Count:       12,
+		TestTimeout: 20 * time.Minute,
 	},
 	{
 		Name: "openshift/network/third-party",
@@ -312,7 +296,6 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		Parallelism:          20,
 		MaximumAllowedFlakes: 15,
-		SyntheticEventTests:  ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
 	},
 	{
 		Name: "all",
@@ -335,8 +318,7 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/etcd/scaling") || strings.Contains(name, "[Feature:EtcdVerticalScaling]") || isStandardEarlyOrLateTest(name)
 		},
 		// etcd's vertical scaling test can take a while for apiserver rollouts to stabilize on the same revision
-		TestTimeout:         60 * time.Minute,
-		SyntheticEventTests: ginkgo.JUnitForEventsFunc(synthetictests.StableSystemEventInvariants),
+		TestTimeout: 60 * time.Minute,
 	},
 	{
 		Name: "openshift/etcd/recovery",
@@ -351,7 +333,6 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		// etcd's restore test can take a while for apiserver rollouts to stabilize
 		TestTimeout:                120 * time.Minute,
-		SyntheticEventTests:        ginkgo.JUnitForEventsFunc(synthetictests.SystemEventInvariants),
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
 	},
 	{
@@ -364,6 +345,19 @@ var staticSuites = []ginkgo.TestSuite{
 				return false
 			}
 			return strings.Contains(name, "[Suite:openshift/nodes/realtime")
+		},
+		TestTimeout: 30 * time.Minute,
+	},
+	{
+		Name: "openshift/nodes/realtime/latency",
+		Description: templates.LongDesc(`
+		This test suite runs tests to validate realtime latency on nodes.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/nodes/realtime/latency")
 		},
 		TestTimeout: 30 * time.Minute,
 	},

@@ -11,24 +11,21 @@ import (
 	"strings"
 	"time"
 
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+	"github.com/openshift/origin/pkg/invariantlibrary/nodeaccess"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
-	watchtools "k8s.io/client-go/tools/watch"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
-
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
-
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitor/nodedetails"
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+	watchtools "k8s.io/client-go/tools/watch"
 )
 
 const (
@@ -348,11 +345,11 @@ func fetchNodeInClusterEvents(ctx context.Context, clientset *kubernetes.Clients
 
 	// Fetch a list of e2e data files
 	basePath := fmt.Sprintf("/%s/%s", disruptionDataFolder, monitorapi.EventDir)
-	allBytes, err := nodedetails.GetNodeLogFile(ctx, clientset, node.Name, basePath)
+	allBytes, err := nodeaccess.GetNodeLogFile(ctx, clientset, node.Name, basePath)
 	if err != nil {
 		return events, fmt.Errorf("failed to list files in disruption event folder on node %s: %v", node.Name, err)
 	}
-	fileList, err := nodedetails.GetDirectoryListing(bytes.NewBuffer(allBytes))
+	fileList, err := nodeaccess.GetDirectoryListing(bytes.NewBuffer(allBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +377,7 @@ func fetchEventsFromFileOnNode(ctx context.Context, clientset *kubernetes.Client
 	var filteredEvents monitorapi.Intervals
 	var err error
 
-	allBytes, err := nodedetails.GetNodeLogFile(ctx, clientset, nodeName, filePath)
+	allBytes, err := nodeaccess.GetNodeLogFile(ctx, clientset, nodeName, filePath)
 	if err != nil {
 		return filteredEvents, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
 	}

@@ -2,11 +2,9 @@ package monitor
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -23,47 +21,6 @@ func GetMonitorRESTConfig() (*rest.Config, error) {
 	}
 
 	return clusterConfig, nil
-}
-
-func findContainerStatus(status []corev1.ContainerStatus, name string, position int) *corev1.ContainerStatus {
-	if position < len(status) {
-		if status[position].Name == name {
-			return &status[position]
-		}
-	}
-	for i := range status {
-		if status[i].Name == name {
-			return &status[i]
-		}
-	}
-	return nil
-}
-
-func findNodeCondition(status []corev1.NodeCondition, name corev1.NodeConditionType, position int) *corev1.NodeCondition {
-	if position < len(status) {
-		if status[position].Type == name {
-			return &status[position]
-		}
-	}
-	for i := range status {
-		if status[i].Type == name {
-			return &status[i]
-		}
-	}
-	return nil
-}
-
-func locateEvent(event *corev1.Event) string {
-	if len(event.InvolvedObject.Namespace) > 0 {
-		if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
-			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
-		}
-		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-	}
-	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
-		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
-	}
-	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 }
 
 type errorRecordingListWatcher struct {

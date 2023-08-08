@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	monitor2 "github.com/openshift/origin/pkg/monitor"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
 
@@ -338,7 +340,7 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 			parent := NewSimpleBackend("host", "backend", "path", monitorapi.NewConnectionType)
 			backendSampler := newDisruptionSampler(parent)
 			interval := 1 * time.Second
-			monitor := newSimpleMonitor()
+			monitor := monitor2.NewRecorder()
 			fakeEventRecorder := events.NewFakeRecorder(100)
 			consumptionDone := make(chan struct{})
 			go func() {

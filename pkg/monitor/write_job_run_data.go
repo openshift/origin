@@ -4,11 +4,12 @@ import (
 	"context"
 	"strings"
 
+	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
+
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 )
 
 // TODO these don't belong here. They should move to a clioptions package about cluster info

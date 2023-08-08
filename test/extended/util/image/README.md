@@ -27,6 +27,12 @@ When adding a new image, first make the code changes and compile the `openshift-
 
     openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
 
+Note: The `registry.k8s.io/pause:3.9` image (and possibly others) contains uncompressed layers which quay.io does not allow.  The `oc image mirror` command always
+mirrors the layers as is and thus fails to mirror that image.  You can use skopeo instead which will successfully mirror the image, but changes the 
+digests due to switching the layer format.  This command will mirror the `registry.k8s.io/pause:3.9` image and can be adapted for other images as needed:
+
+    skopeo copy --all --format oci docker://registry.k8s.io/pause:3.9 docker://quay.io/openshift/community-e2e-images:e2e-27-registry-k8s-io-pause-3-9-p9APyPDU5GsW02Rk
+
 To become an OWNER in this directory you must be given permission to push to this repo by another OWNER.
 
 ### Kube exceptions:
@@ -50,6 +56,8 @@ When a new version of Kubernetes is introduced new images will likely need to be
 3. Notify an OWNER in this file, who will run:
 
         openshift-tests images --upstream --to-repository quay.io/openshift/community-e2e-images | oc image mirror -f - --filter-by-os=.*
+
+  Note: see above information about using skopeo to mirror images that contain uncompressed layers, such as the `pause` image.
 
 4. Retest the PR, which should pass or identify new failures
 5. If an upstream image is removed that OpenShift tests depend on, those tests should be refactored to use the appropriate equivalent.

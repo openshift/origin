@@ -139,7 +139,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 
 		for _, node := range nodes.Items {
 			// Collect the container data from the node
-			crioData, err := collectContainerInfo(ctx, oc, node)
+			crioData, err := collectContainerInfo(ctx, oc, node, isClusterCPUPartitioned)
 			o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("error getting crio container data from node %s", node.Name))
 
 			// When the cluster is CPU Partitioned there should always be pods with workload annotations. However,
@@ -258,7 +258,7 @@ func getExpectedCPUSetConstraints(ctx context.Context, oc *exutil.CLI, isCluster
 
 // Execute collection script on machine-config-daemon of every node. Marshal the results to get a list of containers
 // running in the cluster.
-func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node) ([]crioContainerData, error) {
+func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node, isClusterCPUPartitioned bool) ([]crioContainerData, error) {
 
 	listOptions := metav1.ListOptions{
 		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node.Name}).String(),
@@ -306,9 +306,15 @@ func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node)
 	info := []crioContainerData{}
 	err = retry.OnError(backoff, shouldRetryExec,
 		func() error {
-			out, _, execErr := e2epod.ExecWithOptions(oc.KubeFramework(), execOptions)
+			out, outStdErr, execErr := e2epod.ExecWithOptions(oc.KubeFramework(), execOptions)
 			if execErr != nil {
 				return execErr
+			}
+			if outStdErr != "" {
+				return fmt.Errorf("err execing command %s", outStdErr)
+			}
+			if isClusterCPUPartitioned && len(out) == 0 {
+				return fmt.Errorf("err execing command, script result was empty but expected values")
 			}
 			if err := json.Unmarshal([]byte(out), &info); err != nil {
 				return fmt.Errorf("error parsing container output to json: %w", err)
@@ -321,22 +327,29 @@ func collectContainerInfo(ctx context.Context, oc *exutil.CLI, node corev1.Node)
 
 // Due to cluster activity, sometimes execing against a pod can be flakey.
 // We retry if the below errors are received during node queries.
-//
-// JSON Syntax error:
-//
-//	This typically means that something interrupted the stream of json coming back, so we need to do the query again.
-//
-// Dialing timeout:
-//
-//	Some sort of disruption is happening causing the exec to time out, retry.
 func shouldRetryExec(err error) bool {
 	var parseErr *json.SyntaxError
+	substringErrors := []string{
+		"error dialing backend: dial tcp", // Some sort of disruption is happening causing the exec to time out, retry.
+		"container not found",             // On occasion there might be situations where the machine-config-daemon isn't running yet.
+		"err execing command",             // Error when running the command in the container
+	}
 	switch {
+	// This typically means that something interrupted the stream of json coming back, so we need to do the query again.
 	case errors.As(err, &parseErr):
 		return true
-	case strings.Contains(err.Error(), "error dialing backend: dial tcp"):
+	case substringSliceContains(substringErrors, err.Error()):
 		return true
 	default:
 		return false
 	}
+}
+
+func substringSliceContains(slice []string, s string) bool {
+	for _, substring := range slice {
+		if strings.Contains(s, substring) {
+			return true
+		}
+	}
+	return false
 }

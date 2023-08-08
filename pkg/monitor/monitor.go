@@ -9,17 +9,15 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/invariants"
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/disruption/backend"
-	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/shutdown"
@@ -46,11 +44,16 @@ type Monitor struct {
 }
 
 // NewMonitor creates a monitor with the default sampling interval.
-func NewMonitor(adminKubeConfig *rest.Config, storageDir string, additionalEventIntervalRecorders []StartEventIntervalRecorderFunc, invariantRegistry invariants.InvariantRegistry) *Monitor {
+func NewMonitor(
+	recorder monitorapi.Recorder,
+	adminKubeConfig *rest.Config,
+	storageDir string,
+	additionalEventIntervalRecorders []StartEventIntervalRecorderFunc,
+	invariantRegistry invariants.InvariantRegistry) Interface {
 	return &Monitor{
 		adminKubeConfig:                  adminKubeConfig,
 		additionalEventIntervalRecorders: additionalEventIntervalRecorders,
-		recorder:                         NewRecorder(),
+		recorder:                         recorder,
 		invariantRegistry:                invariantRegistry,
 		storageDir:                       storageDir,
 	}
@@ -127,9 +130,10 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	m.stopTime = time.Now()
 
 	fmt.Fprintf(os.Stderr, "Collecting data.\n")
-	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, time.Time{}, time.Time{}) // collect data for all the time.
+	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, m.startTime, m.stopTime)
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error collecting data, continuing, junit will reflect this. %v\n", err)
 	}
 	m.recorder.AddIntervals(collectedIntervals...)
 	m.junits = append(m.junits, collectionJunits...)
@@ -139,28 +143,36 @@ func (m *Monitor) Stop(ctx context.Context) error {
 		ctx,
 		m.recorder.Intervals(time.Time{}, time.Time{}), // compute intervals based on *all* the intervals.
 		m.recorder.CurrentResourceState(),
-		m.startTime, // still allow computation to understand the begining and end for bounding.  TODO: Maybe we don't need this?
-		m.stopTime)  // still allow computation to understand the begining and end for bounding.  TODO: Maybe we don't need this?
+		m.startTime, // still allow computation to understand the begining and end for bounding.
+		m.stopTime)  // still allow computation to understand the begining and end for bounding.
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error computing intervals, continuing, junit will reflect this. %v\n", err)
 	}
 	m.recorder.AddIntervals(computedIntervals...)
 	m.junits = append(m.junits, computedJunit...)
 
 	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
+	finalEvents := m.recorder.Intervals(m.startTime, m.stopTime)
+	filename := fmt.Sprintf("events_used_for_junits_%s.json", m.startTime.UTC().Format("20060102-150405"))
+	if err := monitorserialization.EventsToFile(filepath.Join(m.storageDir, filename), finalEvents); err != nil {
+		fmt.Fprintf(os.Stderr, "error: Failed to junit event info: %v\n", err)
+	}
 	invariantJunits, err := m.invariantRegistry.EvaluateTestsFromConstructedIntervals(
 		ctx,
-		m.recorder.Intervals(time.Time{}, time.Time{}), // evaluate the tests on *all* the intervals.
+		finalEvents, // evaluate the tests on the intervals during our active time.
 	)
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error evaluating tests, continuing, junit will reflect this. %v\n", err)
 	}
 	m.junits = append(m.junits, invariantJunits...)
 
 	fmt.Fprintf(os.Stderr, "Cleaning up.\n")
 	cleanupJunits, err := m.invariantRegistry.Cleanup(ctx)
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error cleaning up, continuing, junit will reflect this. %v\n", err)
 	}
 	m.junits = append(m.junits, cleanupJunits...)
 
@@ -184,7 +196,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
+	fmt.Fprintf(os.Stderr, "Writing to storage.\n")
 	invariantJunits, err := m.invariantRegistry.WriteContentToStorage(
 		ctx,
 		m.storageDir,
@@ -193,20 +205,10 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 		finalResources,
 	)
 	if err != nil {
-		return err
+		// these errors are represented as junit, always continue to the next step
+		fmt.Fprintf(os.Stderr, "Error writing to storage, continuing, junit will reflect this. %v\n", err)
 	}
 	m.junits = append(m.junits, invariantJunits...)
-
-	fmt.Fprintf(os.Stderr, "Doing cleanup that needs to be moved.\n")
-	if err := sampler.TearDownInClusterMonitors(m.adminKubeConfig); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to write events from in-cluster monitors, err: %v\n", err)
-	}
-
-	fmt.Fprintf(os.Stderr, "Uploading to loki.\n")
-	if err := UploadIntervalsToLoki(finalIntervals); err != nil {
-		// Best effort, we do not want to error out here:
-		logrus.WithError(err).Warn("unable to upload intervals to loki")
-	}
 
 	fmt.Fprintf(os.Stderr, "Writing junits.\n")
 	if err := m.serializeJunit(ctx, m.storageDir, junitSuiteName, timeSuffix); err != nil {
@@ -248,49 +250,4 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 	path := filepath.Join(storageDir, fmt.Sprintf("%s_%s.xml", filePrefix, fileSuffix))
 	fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
 	return os.WriteFile(path, test.StripANSI(out), 0640)
-}
-
-func (m *Monitor) CurrentResourceState() monitorapi.ResourcesMap {
-	return m.recorder.CurrentResourceState()
-}
-
-func (m *Monitor) RecordResource(resourceType string, obj runtime.Object) {
-	m.recorder.RecordResource(resourceType, obj)
-}
-
-// Record captures one or more conditions at the current time. All conditions are recorded
-// in monotonic order as EventInterval objects.
-func (m *Monitor) Record(conditions ...monitorapi.Condition) {
-	m.recorder.Record(conditions...)
-}
-
-// AddIntervals provides a mechanism to directly inject eventIntervals
-func (m *Monitor) AddIntervals(eventIntervals ...monitorapi.Interval) {
-	m.recorder.AddIntervals(eventIntervals...)
-}
-
-// StartInterval inserts a record at time t with the provided condition and returns an opaque
-// locator to the interval. The caller may close the sample at any point by invoking EndInterval().
-func (m *Monitor) StartInterval(t time.Time, condition monitorapi.Condition) int {
-	return m.recorder.StartInterval(t, condition)
-}
-
-// EndInterval updates the To of the interval started by StartInterval if it is greater than
-// the from.
-func (m *Monitor) EndInterval(startedInterval int, t time.Time) {
-	m.recorder.EndInterval(startedInterval, t)
-}
-
-// RecordAt captures one or more conditions at the provided time. All conditions are recorded
-// as EventInterval objects.
-func (m *Monitor) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
-	m.recorder.RecordAt(t, conditions...)
-}
-
-// Intervals returns all events that occur between from and to, including
-// any sampled conditions that were encountered during that period.
-// Intervals are returned in order of their occurrence. The returned slice
-// is a copy of the monitor's state and is safe to update.
-func (m *Monitor) Intervals(from, to time.Time) monitorapi.Intervals {
-	return m.recorder.Intervals(from, to)
 }
