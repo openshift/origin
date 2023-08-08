@@ -15,8 +15,9 @@ import (
 type EventInterval struct {
 	Level string `json:"level"`
 
-	Locator string `json:"locator"`
-	Message string `json:"message"`
+	Locator string                    `json:"locator"`
+	Message string                    `json:"message"`
+	Source  monitorapi.IntervalSource `json:"source"`
 
 	// TODO: we're hoping to move these to just locator/message when everything is ready.
 	StructuredLocator monitorapi.Locator `json:"tempStructuredLocator"`
@@ -108,6 +109,7 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 
 func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
 	ret := EventInterval{
+		Source:            interval.Source,
 		Level:             fmt.Sprintf("%v", interval.Level),
 		Locator:           interval.Locator,
 		Message:           interval.Message,
