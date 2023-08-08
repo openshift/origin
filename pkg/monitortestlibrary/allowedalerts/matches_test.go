@@ -208,14 +208,14 @@ func TestAlertDataFileParsing(t *testing.T) {
 			foundMetalOVN = true
 		}
 	}
-
+	currentRelease = historicaldata.CurrentReleaseFromMap(releasesInQueryResults)
 	assert.Greater(t, dataOver100Runs, 5,
 		"expected at least 5 entries in query_results.json to have over 100 runs")
 	assert.True(t, foundAWSOVN, "no aws ovn job data in query_results.json")
 	assert.True(t, foundGCPOVN, "no gcp ovn job data in query_results.json")
 	assert.True(t, foundAzureOVN, "no azure ovn job data in query_results.json")
 	assert.True(t, foundMetalOVN, "no metal ovn job data in query_results.json")
-	assert.Equal(t, 1, len(releasesInQueryResults),
+	assert.Equal(t, 2, len(releasesInQueryResults),
 		"expected only one Release in query_results.json")
 
 	// Check that we get a real value for something we know should be there for every release. This alert

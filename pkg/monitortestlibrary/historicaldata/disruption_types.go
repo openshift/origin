@@ -95,26 +95,28 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 	}
 	logrus.WithField("backend", name).Infof("searching for bestMatch for %+v", jobType)
 	logrus.Infof("historicalData has %d entries", len(b.HistoricalData))
+	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok {
+		if percentiles.JobRuns > minJobRuns {
+			logrus.Infof("found exact match: %+v", percentiles)
+			return percentiles, "", nil
+		}
 
-	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok && percentiles.JobRuns > minJobRuns {
-		logrus.Infof("found exact match: %+v", percentiles)
-		return percentiles, "", nil
+		percentiles, matchReason, err := b.evaluateBestGuesser(name, PreviousReleaseUpgrade, exactMatchKey, jobType)
+		if err != nil {
+			return DisruptionStatisticalData{}, "", err
+		}
+		if percentiles != (DisruptionStatisticalData{}) {
+			return percentiles, matchReason, nil
+		}
 	}
-
 	// tested in TestGetClosestP99Value in allowedbackendisruption.  Should get a local test at some point.
 	for _, nextBestGuesser := range nextBestGuessers {
-		nextBestJobType, ok := nextBestGuesser(jobType)
-		if !ok {
-			continue
+		percentiles, matchReason, err := b.evaluateBestGuesser(name, nextBestGuesser, exactMatchKey, jobType)
+		if err != nil {
+			return DisruptionStatisticalData{}, "", err
 		}
-		nextBestMatchKey := DataKey{
-			BackendName: name,
-			JobType:     nextBestJobType,
-		}
-		if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns > minJobRuns {
-			logrus.Infof("no exact match fell back to %#v", nextBestMatchKey)
-			logrus.Infof("found inexact match: %+v", percentiles)
-			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
+		if percentiles != (DisruptionStatisticalData{}) {
+			return percentiles, matchReason, nil
 		}
 	}
 
@@ -129,6 +131,23 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 	return DisruptionStatisticalData{},
 		fmt.Sprintf("(no exact or fuzzy match for jobType=%#v)", jobType),
 		nil
+}
+
+func (b *DisruptionBestMatcher) evaluateBestGuesser(name string, nextBestGuesser NextBestKey, exactMatchKey DataKey, jobType platformidentification.JobType) (DisruptionStatisticalData, string, error) {
+	nextBestJobType, ok := nextBestGuesser(jobType)
+	if !ok {
+		return DisruptionStatisticalData{}, "", nil
+	}
+	nextBestMatchKey := DataKey{
+		BackendName: name,
+		JobType:     nextBestJobType,
+	}
+	if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns > minJobRuns {
+		logrus.Infof("no exact match fell back to %#v", nextBestMatchKey)
+		logrus.Infof("found inexact match: %+v", percentiles)
+		return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
+	}
+	return DisruptionStatisticalData{}, "", nil
 }
 
 // BestMatchDuration returns the best possible match for this historical data.  It attempts an exact match first, then
