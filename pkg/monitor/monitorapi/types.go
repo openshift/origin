@@ -270,7 +270,7 @@ func (i Message) OldMessage() string {
 		return annotationString
 	}
 
-	return fmt.Sprintf("%v %v", annotationString, i.HumanMessage)
+	return strings.TrimSpace(fmt.Sprintf("%v %v", annotationString, i.HumanMessage))
 }
 
 func (i Locator) OldLocator() string {
