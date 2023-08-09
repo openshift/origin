@@ -67,10 +67,6 @@ func newDefaultInvariants() invariants.InvariantRegistry {
 
 	invariantTests.AddInvariantOrDie(disruptionpodnetwork.InvariantName, disruptionpodnetwork.JIRAOwner, disruptionpodnetwork.NewPodNetworkAvalibilityInvariant())
 
-	if true {
-		return invariantTests
-	}
-
 	invariantTests.AddRegistryOrDie(newUniversalInvariants())
 
 	invariantTests.AddInvariantOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
