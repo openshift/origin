@@ -21,7 +21,7 @@ spec:
             - --output-file=disruption.jsonl
               --disruption-backend-prefix=pod-to-pod-
               --disruption-target-service-name=pod-network-service
-          image: registry.k8s.io/e2e-test-images/agnhost:2.43
+          image: docker.io/deads2k/openshift-tests
           imagePullPolicy: IfNotPresent
           name: disruption-poller
           terminationMessagePolicy: FallbackToLogsOnError
