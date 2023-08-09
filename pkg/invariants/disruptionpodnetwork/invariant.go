@@ -9,13 +9,13 @@ import (
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	appv1 "k8s.io/api/apps/v1"
+	"github.com/openshift/origin/test/extended/util/image"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	imageutils "k8s.io/kubernetes/test/utils/image"
-	"k8s.io/utils/pointer"
+	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
 const (
@@ -28,10 +28,20 @@ var (
 	//go:embed namespace.yaml
 	namespaceYaml []byte
 	namespace     *corev1.Namespace
+
+	//go:embed pod-network-deployment.yaml
+	podNetworkDeploymentYaml []byte
+	podNetworkDeployment     *appsv1.Deployment
+
+	//go:embed pod-network-service.yaml
+	podNetworkServiceYaml []byte
+	podNetworkService     *corev1.Service
 )
 
 func init() {
 	namespace = resourceread.ReadNamespaceV1OrDie(namespaceYaml)
+	podNetworkDeployment = resourceread.ReadDeploymentV1OrDie(podNetworkDeploymentYaml)
+	podNetworkService = resourceread.ReadServiceV1OrDie(podNetworkServiceYaml)
 }
 
 type podNetworkAvalibility struct {
@@ -57,51 +67,14 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 	pna.namespaceName = actualNamespace.Name
 
-	depLabels := map[string]string{
-		"app": "pod-disruption-test",
-		"pod": "server",
+	// force the image to use the "normal" global mapping.
+	originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
+	podNetworkDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
+	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkDeployment, metav1.CreateOptions{}); err != nil {
+		return err
 	}
 
-	// TODO make this a manifest
-	// deploys server listening on 8080
-	serverDeployment := &appv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "pod-disruption-server",
-			Namespace: pna.namespaceName,
-			Labels:    depLabels,
-		},
-		Spec: appv1.DeploymentSpec{
-			Replicas: pointer.Int32(int32(1)),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: depLabels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: depLabels,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "pod-disruption-server",
-							Image: imageutils.GetE2EImage(imageutils.Agnhost),
-							Command: []string{
-								"/agnhost",
-								"netexec",
-								"--http-port=8080",
-							},
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 8080,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	_, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), serverDeployment, metav1.CreateOptions{})
-	if err != nil {
+	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkService, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 

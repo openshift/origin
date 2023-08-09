@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    network.openshift.io/disruption-target: pod-network
+  name: pod-network-disruption-server
+spec:
+  # to be overridden by the number of nodes
+  replicas: 1
+  selector:
+    matchLabels:
+      network.openshift.io/disruption-target: pod-network
+  template:
+    metadata:
+      labels:
+        network.openshift.io/disruption-target: pod-network
+    spec:
+      containers:
+        - command:
+            - /agnhost
+            - netexec
+            - --http-port=8080
+            - --delay-shutdown=30
+          image: registry.k8s.io/e2e-test-images/agnhost:2.43
+          imagePullPolicy: IfNotPresent
+          name: pod-disruption-server
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              port: 8080
+              path: /readyz
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60

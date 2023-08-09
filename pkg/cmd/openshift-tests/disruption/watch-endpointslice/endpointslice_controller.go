@@ -25,9 +25,9 @@ import (
 )
 
 type EndpointSliceController struct {
-	backendPrefix    string
-	targetLabelValue string
-	recorder         monitorapi.RecorderWriter
+	backendPrefix string
+	serviceName   string
+	recorder      monitorapi.RecorderWriter
 
 	endpointSliceLister  discoverylisters.EndpointSliceLister
 	endpointSlicesSynced cache.InformerSynced
@@ -49,20 +49,22 @@ type watcher struct {
 
 func NewEndpointWatcher(
 	backendPrefix string,
-	targetLabelValue string,
+	serviceName string,
 	recorder monitorapi.RecorderWriter,
 
 	endpointSliceInformer discoveryinformers.EndpointSliceInformer,
 ) *EndpointSliceController {
 	c := &EndpointSliceController{
-		backendPrefix:    backendPrefix,
-		targetLabelValue: targetLabelValue,
-		recorder:         recorder,
+		backendPrefix: backendPrefix,
+		serviceName:   serviceName,
+		recorder:      recorder,
 
 		endpointSliceLister:  endpointSliceInformer.Lister(),
 		endpointSlicesSynced: endpointSliceInformer.Informer().HasSynced,
 
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ClusterRoleAggregator"),
+		watchers: map[string]*watcher{},
+
+		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "EndpointWatcher"),
 	}
 	c.syncHandler = c.syncEndpointSlice
 
@@ -81,7 +83,7 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 	}
 	endpointSlice, err := c.endpointSliceLister.EndpointSlices(namespace).Get(name)
 	if errors.IsNotFound(err) {
-		// TODO remove all watchers
+		c.removeAllWatchers()
 		return nil
 	}
 	if err != nil {
@@ -144,23 +146,7 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 	return err
 }
 
-// Run starts the controller and blocks until stopCh is closed.
-func (c *EndpointSliceController) Run(ctx context.Context) {
-	defer utilruntime.HandleCrash()
-	defer c.queue.ShutDown()
-
-	logger := klog.FromContext(ctx)
-	logger.Info("Starting ClusterRoleAggregator controller")
-	defer logger.Info("Shutting down ClusterRoleAggregator controller")
-
-	if !cache.WaitForNamedCacheSync("ClusterRoleAggregator", ctx.Done(), c.endpointSlicesSynced) {
-		return
-	}
-
-	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
-
-	<-ctx.Done()
-
+func (c *EndpointSliceController) removeAllWatchers() {
 	c.watcherLock.Lock()
 	defer c.watcherLock.Unlock()
 
@@ -169,6 +155,26 @@ func (c *EndpointSliceController) Run(ctx context.Context) {
 		watcherToDelete.reusedConnectionSampler.Stop()
 	}
 	c.watchers = map[string]*watcher{}
+}
+
+// Run starts the controller and blocks until stopCh is closed.
+func (c *EndpointSliceController) Run(ctx context.Context) {
+	defer utilruntime.HandleCrash()
+	defer c.queue.ShutDown()
+
+	logger := klog.FromContext(ctx)
+	logger.Info("Starting EndpointWatcher controller")
+	defer logger.Info("Shutting down EndpointWatcher controller")
+
+	if !cache.WaitForNamedCacheSync("EndpointWatcher", ctx.Done(), c.endpointSlicesSynced) {
+		return
+	}
+
+	go wait.UntilWithContext(ctx, c.runWorker, time.Second)
+
+	<-ctx.Done()
+
+	c.removeAllWatchers()
 }
 
 func (c *EndpointSliceController) runWorker(ctx context.Context) {
@@ -197,7 +203,7 @@ func (c *EndpointSliceController) processNextWorkItem(ctx context.Context) bool 
 
 func (c *EndpointSliceController) addEndpointSlice(obj interface{}) {
 	endpointSlice := obj.(*discoveryv1.EndpointSlice)
-	if endpointSlice.Labels["target-label"] != c.targetLabelValue {
+	if endpointSlice.Labels["kubernetes.io/service-name"] != c.serviceName {
 		return
 	}
 
@@ -206,7 +212,7 @@ func (c *EndpointSliceController) addEndpointSlice(obj interface{}) {
 
 func (c *EndpointSliceController) updateEndpointSlice(old, cur interface{}) {
 	endpointSlice := cur.(*discoveryv1.EndpointSlice)
-	if endpointSlice.Labels["target-label"] != c.targetLabelValue {
+	if endpointSlice.Labels["kubernetes.io/service-name"] != c.serviceName {
 		return
 	}
 
@@ -227,7 +233,7 @@ func (c *EndpointSliceController) deleteEndpointSlice(obj interface{}) {
 			return
 		}
 	}
-	if endpointSlice.Labels["target-label"] != c.targetLabelValue {
+	if endpointSlice.Labels["kubernetes.io/service-name"] != c.serviceName {
 		return
 	}
 	c.enqueueEndpointSlice(endpointSlice)

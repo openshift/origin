@@ -8,7 +8,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/test/extended/util/image"
 
 	"github.com/spf13/pflag"
 
@@ -107,6 +109,7 @@ type RunMonitorOptions struct {
 func (f *RunMonitorOptions) Run() error {
 	fmt.Fprintf(f.Out, "Starting the monitor.\n")
 
+	image.InitializeImages(imagesetup.DefaultTestImageMirrorLocation)
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	if err != nil {
 		return err

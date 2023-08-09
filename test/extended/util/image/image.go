@@ -49,7 +49,7 @@ var (
 func getImages() map[string]string {
 	initializationLock.RLock()
 	if !initialized {
-		fmt.Printf("Called getImages before initialization, starting wait.")
+		fmt.Printf("Called getImages before initialization, starting wait.\n")
 		initializationLock.RUnlock()
 
 		for {
