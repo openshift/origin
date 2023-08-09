@@ -18,12 +18,12 @@ import (
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 func testAlerts(events monitorapi.Intervals,
