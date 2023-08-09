@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
 	"github.com/openshift/origin/pkg/test"
@@ -87,13 +89,13 @@ func (m *Monitor) Start(ctx context.Context) error {
 	return nil
 }
 
-func (m *Monitor) Stop(ctx context.Context) error {
+func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 	fmt.Fprintf(os.Stderr, "Shutting down the monitor\n")
 
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	if m.stopFn == nil {
-		return fmt.Errorf("monitor not started")
+		return Failed, fmt.Errorf("monitor not started")
 	}
 	m.stopFn()
 	m.stopFn = nil
@@ -155,7 +157,22 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	}
 	m.junits = append(m.junits, cleanupJunits...)
 
-	return nil
+	successfulTestNames := sets.NewString()
+	failedTestNames := sets.NewString()
+	resultState := Succeeded
+	for _, junit := range m.junits {
+		if junit.FailureOutput != nil {
+			failedTestNames.Insert(junit.Name)
+			continue
+		}
+		successfulTestNames.Insert(junit.Name)
+	}
+	onlyFailingTests := failedTestNames.Difference(successfulTestNames)
+	if len(onlyFailingTests) > 0 {
+		resultState = Failed
+	}
+
+	return resultState, nil
 }
 
 func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuffix string) error {
