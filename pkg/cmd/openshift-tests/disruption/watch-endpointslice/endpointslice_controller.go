@@ -3,6 +3,8 @@ package watch_endpointslice
 import (
 	"context"
 	"fmt"
+	"io"
+	"net"
 	"sync"
 	"time"
 
@@ -28,6 +30,7 @@ type EndpointSliceController struct {
 	backendPrefix string
 	serviceName   string
 	recorder      monitorapi.RecorderWriter
+	outFile       io.Writer
 
 	endpointSliceLister  discoverylisters.EndpointSliceLister
 	endpointSlicesSynced cache.InformerSynced
@@ -51,6 +54,7 @@ func NewEndpointWatcher(
 	backendPrefix string,
 	serviceName string,
 	recorder monitorapi.RecorderWriter,
+	outFile io.Writer,
 
 	endpointSliceInformer discoveryinformers.EndpointSliceInformer,
 ) *EndpointSliceController {
@@ -58,6 +62,7 @@ func NewEndpointWatcher(
 		backendPrefix: backendPrefix,
 		serviceName:   serviceName,
 		recorder:      recorder,
+		outFile:       outFile,
 
 		endpointSliceLister:  endpointSliceInformer.Lister(),
 		endpointSlicesSynced: endpointSliceInformer.Informer().HasSynced,
@@ -91,11 +96,18 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 	}
 
 	watchersForCurrEndpoints := map[string]*watcher{}
+	port := ""
+	for _, currPort := range endpointSlice.Ports {
+		if currPort.Port == nil {
+			continue
+		}
+		port = fmt.Sprintf("%d", *currPort.Port)
+	}
 	for _, endpoint := range endpointSlice.Endpoints {
 		for _, address := range endpoint.Addresses {
 			watchersForCurrEndpoints[address] = &watcher{
 				address: address,
-				port:    "???",
+				port:    port,
 			}
 			if endpoint.NodeName != nil {
 				watchersForCurrEndpoints[address].nodeName = *endpoint.NodeName
@@ -114,6 +126,7 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 		}
 	}
 	for watcherKey, watcherToDelete := range watchersToDelete {
+		fmt.Fprintf(c.outFile, "Stopping and removing: %v for node/%v\n", watcherToDelete.address, watcherToDelete.nodeName)
 		watcherToDelete.newConnectionSampler.Stop()
 		watcherToDelete.reusedConnectionSampler.Stop()
 		delete(c.watchers, watcherKey)
@@ -124,16 +137,18 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 			continue
 		}
 		newWatcher := watchersForCurrEndpoints[watcherKey]
+		url := fmt.Sprintf("http://%s", net.JoinHostPort(newWatcher.address, newWatcher.port))
+		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, newWatcher.nodeName)
 
 		newWatcher.newConnectionSampler = backenddisruption.NewSimpleBackend(
-			fmt.Sprintf("http://%s", newWatcher.address),
+			url,
 			fmt.Sprintf("%s-new-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
 			"",
 			monitorapi.NewConnectionType,
 		)
 		newWatcher.newConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
 		newWatcher.reusedConnectionSampler = backenddisruption.NewSimpleBackend(
-			fmt.Sprintf("http://%s", newWatcher.address),
+			url,
 			fmt.Sprintf("%s-reused-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
 			"",
 			monitorapi.ReusedConnectionType,
@@ -141,6 +156,8 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 		newWatcher.reusedConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
 
 		c.watchers[watcherKey] = newWatcher
+
+		fmt.Fprintf(c.outFile, "Successfully started: %v on node/%v\n", url, newWatcher.nodeName)
 	}
 
 	return err
@@ -151,16 +168,21 @@ func (c *EndpointSliceController) removeAllWatchers() {
 	defer c.watcherLock.Unlock()
 
 	for _, watcherToDelete := range c.watchers {
+		fmt.Fprintf(c.outFile, "Stopping and removing: %v for node/%v\n", watcherToDelete.address, watcherToDelete.nodeName)
+
 		watcherToDelete.newConnectionSampler.Stop()
 		watcherToDelete.reusedConnectionSampler.Stop()
 	}
+
+	fmt.Fprintf(c.outFile, "Stopped all watchers\n")
 	c.watchers = map[string]*watcher{}
 }
 
 // Run starts the controller and blocks until stopCh is closed.
-func (c *EndpointSliceController) Run(ctx context.Context) {
+func (c *EndpointSliceController) Run(ctx context.Context, finishedCleanup chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
+	defer close(finishedCleanup)
 
 	logger := klog.FromContext(ctx)
 	logger.Info("Starting EndpointWatcher controller")
@@ -175,6 +197,7 @@ func (c *EndpointSliceController) Run(ctx context.Context) {
 	<-ctx.Done()
 
 	c.removeAllWatchers()
+
 }
 
 func (c *EndpointSliceController) runWorker(ctx context.Context) {

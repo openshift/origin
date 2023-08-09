@@ -83,12 +83,20 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
+	nodes, err := pna.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	numNodes := int32(len(nodes.Items))
+
+	podNetworkPollerDeployment.Spec.Replicas = &numNodes
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
 	// force the image to use the "normal" global mapping.
 	originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
+	podNetworkTargetDeployment.Spec.Replicas = &numNodes
 	podNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err

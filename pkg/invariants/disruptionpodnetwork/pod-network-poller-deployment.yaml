@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: pod-network-disruption-poller
 spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 34%
+      maxSurge: 0
   # to be overridden by the number of nodes
   replicas: 1
   selector:
@@ -17,10 +22,12 @@ spec:
     spec:
       containers:
         - command:
-            - /openshift-tests disruption watch-endpoint-slice
+            - /openshift-tests
+            - disruption
+            - watch-endpoint-slice
             - --output-file=disruption.jsonl
-              --disruption-backend-prefix=pod-to-pod-
-              --disruption-target-service-name=pod-network-service
+            - --disruption-backend-prefix=pod-to-pod-
+            - --disruption-target-service-name=pod-network-service
           image: docker.io/deads2k/openshift-tests
           imagePullPolicy: IfNotPresent
           name: disruption-poller

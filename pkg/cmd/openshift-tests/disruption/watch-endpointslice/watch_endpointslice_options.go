@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitor"
@@ -48,12 +47,14 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 	kubeInformers := informers.NewSharedInformerFactory(o.KubeClient, 0)
 	namespaceScopedEndpointSliceInformers := discoveryinformers.New(kubeInformers, o.Namespace, nil)
 
+	cleanupFinished := make(chan struct{})
 	podToPodChecker := NewEndpointWatcher(
 		o.BackendPrefix,
 		o.ServiceName,
 		recorder,
+		o.IOStreams.Out,
 		namespaceScopedEndpointSliceInformers.EndpointSlices())
-	go podToPodChecker.Run(ctx)
+	go podToPodChecker.Run(ctx, cleanupFinished)
 
 	go kubeInformers.Start(ctx.Done())
 
@@ -62,8 +63,9 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 	<-ctx.Done()
 
 	// now wait for the watchers to shut down
-	fmt.Fprintf(o.Out, "Waiting 10s for watchers to close....\n")
-	time.Sleep(10 * time.Second)
+	fmt.Fprintf(o.Out, "Waiting for watchers to close....\n")
+	// TODO add time interrupt too
+	<-cleanupFinished
 	fmt.Fprintf(o.Out, "Exiting....\n")
 
 	return nil

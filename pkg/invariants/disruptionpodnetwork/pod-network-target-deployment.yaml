@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: pod-network-disruption-target
 spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 34%
+      maxSurge: 0
   # to be overridden by the number of nodes
   replicas: 1
   selector:
