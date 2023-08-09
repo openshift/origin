@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor"
+
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
@@ -86,11 +88,11 @@ func TestBackendSampler(t *testing.T) {
 
 	monitorErrCh1, monitorErrCh2 := make(chan error, 1), make(chan error, 1)
 	go func() {
-		err := bs1.RunEndpointMonitoring(parent, &fakeMonitor{}, &fakeRecorder{})
+		err := bs1.RunEndpointMonitoring(parent, monitor.NewRecorder(), &fakeRecorder{})
 		monitorErrCh1 <- err
 	}()
 	go func() {
-		err := bs2.RunEndpointMonitoring(parent, &fakeMonitor{}, &fakeRecorder{})
+		err := bs2.RunEndpointMonitoring(parent, monitor.NewRecorder(), &fakeRecorder{})
 		monitorErrCh2 <- err
 	}()
 
@@ -166,11 +168,6 @@ func (c fakeCollector) Collect(s backend.SampleResult) {
 	}
 	c.t.Logf("(%s): %s", s.Sample, s.RequestResponse)
 }
-
-type fakeMonitor struct{}
-
-func (fakeMonitor) StartInterval(t time.Time, condition monitorapi.Condition) int { return 0 }
-func (fakeMonitor) EndInterval(startedInterval int, t time.Time)                  {}
 
 // EventRecorder knows how to record events on behalf of an EventSource.
 type fakeRecorder struct {

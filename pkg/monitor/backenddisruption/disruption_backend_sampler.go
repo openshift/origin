@@ -373,7 +373,7 @@ func (b *BackendSampler) CheckConnection(ctx context.Context) (string, error) {
 
 // RunEndpointMonitoring sets up a client for the given BackendSampler, starts checking the endpoint, and recording
 // success/failure edges into the monitorRecorder, and blocks until the context is closed or the sampler is closed.
-func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecorder Recorder, eventRecorder events.EventRecorder) error {
+func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
 	if b.isRunning() {
 		return fmt.Errorf("cannot monitor twice at the same time")
 	}
@@ -464,13 +464,13 @@ func (b *BackendSampler) Stop() {
 
 // StartEndpointMonitoring sets up a client for the given BackendSampler, starts checking the endpoint, and recording
 // success/failure edges into the monitorRecorder
-func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, recorder Recorder, eventRecorder events.EventRecorder) error {
-	if recorder == nil {
+func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
+	if monitorRecorder == nil {
 		return fmt.Errorf("monitor is required")
 	}
 
 	go func() {
-		err := b.RunEndpointMonitoring(ctx, recorder, eventRecorder)
+		err := b.RunEndpointMonitoring(ctx, monitorRecorder, eventRecorder)
 		if err != nil {
 			utilruntime.HandleError(err)
 		}
@@ -534,7 +534,7 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 }
 
 // consumeSamples only exits when the ctx is closed
-func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh chan struct{}, interval time.Duration, monitorRecorder Recorder, eventRecorder events.EventRecorder) {
+func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh chan struct{}, interval time.Duration, monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) {
 	defer close(consumerDoneCh)
 
 	firstSample := true

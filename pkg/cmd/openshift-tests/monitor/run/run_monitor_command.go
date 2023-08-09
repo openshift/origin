@@ -42,7 +42,7 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 }
 
 func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Command {
-	monitorOpt := NewRunMonitorOptions(streams)
+	o := NewRunMonitorOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:   name,
@@ -55,11 +55,11 @@ func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Comm
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return monitorOpt.Run()
+			return o.Run()
 		},
 	}
-	cmd.Flags().StringVar(&monitorOpt.ArtifactDir,
-		"artifact-dir", monitorOpt.ArtifactDir,
+	cmd.Flags().StringVar(&o.ArtifactDir,
+		"artifact-dir", o.ArtifactDir,
 		"The directory where monitor events will be stored.")
 	return cmd
 }
@@ -67,7 +67,7 @@ func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Comm
 // Run starts monitoring the cluster by invoking Start, periodically printing the
 // events accumulated to Out. When the user hits CTRL+C or signals termination the
 // condition intervals (all non-instantaneous events) are reported to Out.
-func (opt *RunMonitorOptions) Run() error {
+func (o *RunMonitorOptions) Run() error {
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	if err != nil {
 		return err
@@ -78,11 +78,12 @@ func (opt *RunMonitorOptions) Run() error {
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
-		fmt.Fprintf(opt.ErrOut, "Interrupted, terminating\n")
+		fmt.Fprintf(o.ErrOut, "Interrupted, terminating\n")
 		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
+
 		sig := <-abortCh
-		fmt.Fprintf(opt.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
+		fmt.Fprintf(o.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
 		switch sig {
 		case syscall.SIGINT:
 			os.Exit(130)
@@ -92,11 +93,11 @@ func (opt *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	recorder := monitor.NewRecorder()
+	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.IOStreams.Out)
 	m := monitor.NewMonitor(
 		recorder,
 		restConfig,
-		opt.ArtifactDir,
+		o.ArtifactDir,
 		defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
 	)
 	if err := m.Start(ctx); err != nil {
@@ -120,7 +121,7 @@ func (opt *RunMonitorOptions) Run() error {
 					if !event.From.Equal(event.To) {
 						continue
 					}
-					fmt.Fprintln(opt.Out, event.String())
+					fmt.Fprintln(o.Out, event.String())
 				}
 				last = events[len(events)-1].From
 			}
@@ -136,10 +137,9 @@ func (opt *RunMonitorOptions) Run() error {
 	}
 
 	// Store events to artifact directory
-	if len(opt.ArtifactDir) != 0 {
-		if err := m.SerializeResults(ctx, "invariants", ""); err != nil {
-			return err
-		}
+	if err := m.SerializeResults(ctx, "invariants", ""); err != nil {
+		return err
 	}
+
 	return nil
 }

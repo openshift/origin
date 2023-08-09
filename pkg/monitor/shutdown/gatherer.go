@@ -3,6 +3,8 @@ package shutdown
 import (
 	"context"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
@@ -16,7 +18,7 @@ type Consumer interface {
 	Done()
 }
 
-func StartMonitoringGracefulShutdownEvents(stop context.Context, recorder Monitor, client kubernetes.Interface) {
+func StartMonitoringGracefulShutdownEvents(stop context.Context, recorder monitorapi.RecorderWriter, client kubernetes.Interface) {
 	consumer := newConsumer(recorder)
 	for namespace := range namespaceToServer {
 		startGatheringByNamespace(stop, client, namespace, consumer)

@@ -1,6 +1,7 @@
 package monitorserialization
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -71,6 +72,21 @@ func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
 	}
 
 	return events, nil
+}
+
+func IntervalToOneLineJSON(interval monitorapi.Interval) ([]byte, error) {
+	outputEvent := monitorEventIntervalToEventInterval(interval)
+
+	spacedBytes, err := json.Marshal(outputEvent)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := &bytes.Buffer{}
+	if err := json.Compact(buf, spacedBytes); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 func EventsToJSON(events monitorapi.Intervals) ([]byte, error) {

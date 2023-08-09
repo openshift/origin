@@ -21,23 +21,23 @@ import (
 //	locator: the CI locator assigned to this disruption test
 //	name: name of the disruption test
 //	connType: user specified BackendConnectionType used in this test
-func newCIHandler(descriptor backend.TestDescriptor, monitor backend.Monitor, eventRecorder events.EventRecorder) *ciHandler {
+func newCIHandler(descriptor backend.TestDescriptor, monitor monitorapi.RecorderWriter, eventRecorder events.EventRecorder) *ciHandler {
 	return &ciHandler{
-		descriptor:     descriptor,
-		monitor:        monitor,
-		eventRecorder:  eventRecorder,
-		openIntervalID: -1,
+		descriptor:      descriptor,
+		monitorRecorder: monitor,
+		eventRecorder:   eventRecorder,
+		openIntervalID:  -1,
 	}
 }
 
 var _ intervalHandler = &ciHandler{}
-var _ backend.WantEventRecorderAndMonitor = &ciHandler{}
+var _ backend.WantEventRecorderAndMonitorRecorder = &ciHandler{}
 
 // ciHandler records the availability and unavailability interval in CI
 type ciHandler struct {
-	descriptor    backend.TestDescriptor
-	monitor       backend.Monitor
-	eventRecorder events.EventRecorder
+	descriptor      backend.TestDescriptor
+	monitorRecorder monitorapi.RecorderWriter
+	eventRecorder   events.EventRecorder
 
 	openIntervalID int
 	last           backend.SampleResult
@@ -49,8 +49,8 @@ func (h *ciHandler) SetEventRecorder(recorder events.EventRecorder) {
 }
 
 // SetMonitor sets the interval recorder provided by the monitor API
-func (h *ciHandler) SetMonitor(monitor backend.Monitor) {
-	h.monitor = monitor
+func (h *ciHandler) SetMonitorRecorder(monitorRecorder monitorapi.RecorderWriter) {
+	h.monitorRecorder = monitorRecorder
 }
 
 // Unavailable is called for a disruption interval when we see
@@ -76,10 +76,10 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 
 	condition := monitorapi.NewInterval(monitorapi.SourceDisruption, level).Locator(h.descriptor.DisruptionLocator()).
 		Message(monitorapi.NewMessage().HumanMessage(message).Reason(eventReason)).BuildCondition()
-	openIntervalID := h.monitor.StartInterval(fs.StartedAt, condition)
+	openIntervalID := h.monitorRecorder.StartInterval(fs.StartedAt, condition)
 	// TODO: unlikely in the real world, if from == to for some reason,
 	//  then we are recording a zero second unavailable window.
-	h.monitor.EndInterval(openIntervalID, ts.StartedAt)
+	h.monitorRecorder.EndInterval(openIntervalID, ts.StartedAt)
 }
 
 // Available is called when a disruption interval ends and we see
@@ -99,6 +99,6 @@ func (h *ciHandler) Available(from, to *backend.SampleResult) {
 		v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
 	condition := monitorapi.NewInterval(monitorapi.SourceDisruption, monitorapi.Info).Locator(h.descriptor.DisruptionLocator()).
 		Message(monitorapi.NewMessage().HumanMessage(message).Reason(monitorapi.DisruptionEndedEventReason)).BuildCondition()
-	openIntervalID := h.monitor.StartInterval(fs.StartedAt, condition)
-	h.monitor.EndInterval(openIntervalID, ts.StartedAt)
+	openIntervalID := h.monitorRecorder.StartInterval(fs.StartedAt, condition)
+	h.monitorRecorder.EndInterval(openIntervalID, ts.StartedAt)
 }
