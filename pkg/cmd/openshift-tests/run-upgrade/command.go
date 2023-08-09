@@ -55,6 +55,6 @@ func NewRunUpgradeCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		},
 	}
 
-	f.BindOptions(cmd.Flags())
+	f.BindFlags(cmd.Flags())
 	return cmd
 }

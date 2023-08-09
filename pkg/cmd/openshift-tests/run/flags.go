@@ -3,6 +3,8 @@ package run
 import (
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
+	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
+	"github.com/openshift/origin/pkg/clioptions/suiteselection"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/spf13/pflag"
@@ -11,9 +13,10 @@ import (
 
 // TODO collapse this with cmd_runsuite
 type RunSuiteFlags struct {
-	GinkgoRunSuiteOptions *testginkgo.GinkgoRunSuiteOptions
-	OutputFlags           *iooptions.OutputFlags
-	AvailableSuites       []*testginkgo.TestSuite
+	GinkgoRunSuiteOptions   *testginkgo.GinkgoRunSuiteOptions
+	TestSuiteSelectionFlags *suiteselection.TestSuiteSelectionFlags
+	OutputFlags             *iooptions.OutputFlags
+	AvailableSuites         []*testginkgo.TestSuite
 
 	FromRepository     string
 	ProviderTypeOrJSON string
@@ -31,9 +34,10 @@ type RunSuiteFlags struct {
 
 func NewRunSuiteFlags(streams genericclioptions.IOStreams, fromRepository string, availableSuites []*testginkgo.TestSuite) *RunSuiteFlags {
 	return &RunSuiteFlags{
-		GinkgoRunSuiteOptions: testginkgo.NewGinkgoRunSuiteOptions(streams),
-		OutputFlags:           iooptions.NewOutputOptions(),
-		AvailableSuites:       availableSuites,
+		GinkgoRunSuiteOptions:   testginkgo.NewGinkgoRunSuiteOptions(streams),
+		TestSuiteSelectionFlags: suiteselection.NewTestSuiteSelectionFlags(streams),
+		OutputFlags:             iooptions.NewOutputOptions(),
+		AvailableSuites:         availableSuites,
 
 		FromRepository: fromRepository,
 		IOStreams:      streams,
@@ -56,10 +60,11 @@ func (f *RunSuiteFlags) SuiteWithKubeTestInitializationPreSuite() (*clusterdisco
 	return providerConfig, nil
 }
 
-func (f *RunSuiteFlags) BindOptions(flags *pflag.FlagSet) {
+func (f *RunSuiteFlags) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&f.FromRepository, "from-repository", f.FromRepository, "A container image repository to retrieve test images from.")
 	flags.StringVar(&f.ProviderTypeOrJSON, "provider", f.ProviderTypeOrJSON, "The cluster infrastructure provider. Will automatically default to the correct value.")
-	f.GinkgoRunSuiteOptions.BindTestOptions(flags)
+	f.GinkgoRunSuiteOptions.BindFlags(flags)
+	f.TestSuiteSelectionFlags.BindFlags(flags)
 	f.OutputFlags.BindFlags(flags)
 }
 
@@ -69,6 +74,11 @@ func (f *RunSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams) {
 }
 
 func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
+	adminRESTConfig, err := kubeconfig.GetStaticRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
 	if err != nil {
 		return nil, err
@@ -77,16 +87,20 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 	// shallow copy to mutate
 	ginkgoOptions := f.GinkgoRunSuiteOptions
 
-	suite, err := f.GinkgoRunSuiteOptions.SelectSuite(f.AvailableSuites, args)
-	if err != nil {
-		return nil, err
-	}
-
 	providerConfig, err := f.SuiteWithKubeTestInitializationPreSuite()
 	if err != nil {
 		return nil, err
 	}
-	f.GinkgoRunSuiteOptions.MatchFn = providerConfig.MatchFn()
+	suite, err := f.TestSuiteSelectionFlags.SelectSuite(
+		f.AvailableSuites,
+		args,
+		kubeconfig.NewDiscoveryGetter(adminRESTConfig),
+		f.GinkgoRunSuiteOptions.DryRun,
+		providerConfig.MatchFn(),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	o := &RunSuiteOptions{
 		GinkgoRunSuiteOptions: ginkgoOptions,

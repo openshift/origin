@@ -5,6 +5,8 @@ import (
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
+	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
+	"github.com/openshift/origin/pkg/clioptions/suiteselection"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -12,9 +14,10 @@ import (
 
 // TODO collapse this with cmd_runsuite
 type RunUpgradeSuiteFlags struct {
-	GinkgoRunSuiteOptions *testginkgo.GinkgoRunSuiteOptions
-	OutputFlags           *iooptions.OutputFlags
-	AvailableSuites       []*testginkgo.TestSuite
+	GinkgoRunSuiteOptions   *testginkgo.GinkgoRunSuiteOptions
+	TestSuiteSelectionFlags *suiteselection.TestSuiteSelectionFlags
+	OutputFlags             *iooptions.OutputFlags
+	AvailableSuites         []*testginkgo.TestSuite
 
 	FromRepository     string
 	ProviderTypeOrJSON string
@@ -32,21 +35,23 @@ type RunUpgradeSuiteFlags struct {
 
 func NewRunUpgradeSuiteFlags(streams genericclioptions.IOStreams, fromRepository string, availableSuites []*testginkgo.TestSuite) *RunUpgradeSuiteFlags {
 	return &RunUpgradeSuiteFlags{
-		GinkgoRunSuiteOptions: testginkgo.NewGinkgoRunSuiteOptions(streams),
-		OutputFlags:           iooptions.NewOutputOptions(),
-		AvailableSuites:       availableSuites,
+		GinkgoRunSuiteOptions:   testginkgo.NewGinkgoRunSuiteOptions(streams),
+		TestSuiteSelectionFlags: suiteselection.NewTestSuiteSelectionFlags(streams),
+		OutputFlags:             iooptions.NewOutputOptions(),
+		AvailableSuites:         availableSuites,
 
 		FromRepository: fromRepository,
 		IOStreams:      streams,
 	}
 }
 
-func (f *RunUpgradeSuiteFlags) BindOptions(flags *pflag.FlagSet) {
+func (f *RunUpgradeSuiteFlags) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&f.FromRepository, "from-repository", f.FromRepository, "A container image repository to retrieve test images from.")
 	flags.StringVar(&f.ProviderTypeOrJSON, "provider", f.ProviderTypeOrJSON, "The cluster infrastructure provider. Will automatically default to the correct value.")
 	flags.StringVar(&f.ToImage, "to-image", f.ToImage, "Specify the image to test an upgrade to.")
 	flags.StringSliceVar(&f.TestOptions, "options", f.TestOptions, "A set of KEY=VALUE options to control the test. See the help text.")
-	f.GinkgoRunSuiteOptions.BindTestOptions(flags)
+	f.GinkgoRunSuiteOptions.BindFlags(flags)
+	f.TestSuiteSelectionFlags.BindFlags(flags)
 	f.OutputFlags.BindFlags(flags)
 }
 
@@ -56,6 +61,11 @@ func (f *RunUpgradeSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams)
 }
 
 func (f *RunUpgradeSuiteFlags) ToOptions(args []string) (*RunUpgradeSuiteOptions, error) {
+	adminRESTConfig, err := kubeconfig.GetStaticRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
 	if err != nil {
 		return nil, err
@@ -71,7 +81,13 @@ func (f *RunUpgradeSuiteFlags) ToOptions(args []string) (*RunUpgradeSuiteOptions
 		return nil, fmt.Errorf("--to-image must be specified to run an upgrade test")
 	}
 
-	suite, err := f.GinkgoRunSuiteOptions.SelectSuite(f.AvailableSuites, args)
+	suite, err := f.TestSuiteSelectionFlags.SelectSuite(
+		f.AvailableSuites,
+		args,
+		kubeconfig.NewDiscoveryGetter(adminRESTConfig),
+		f.GinkgoRunSuiteOptions.DryRun,
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
