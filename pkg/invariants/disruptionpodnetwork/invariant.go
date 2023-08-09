@@ -2,8 +2,11 @@ package disruptionpodnetwork
 
 import (
 	"context"
+	"embed"
 	_ "embed"
 	"time"
+
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/origin/pkg/invariants"
@@ -20,33 +23,37 @@ import (
 
 const (
 	// openshift-ovn-kubernetes will be supported ongoing so that is the JIRA owner for now
+	// TODO move out of this package so that ownership cannot be put to another team
 	JIRAOwner     = "Network / ovn-kubernetes"
 	InvariantName = "pod-network-avalibility"
 )
 
 var (
-	//go:embed namespace.yaml
-	namespaceYaml []byte
-	namespace     *corev1.Namespace
+	//go:embed *.yaml
+	yamls embed.FS
 
-	//go:embed pod-network-poller-deployment.yaml
-	podNetworkPollerDeploymentYaml []byte
-	podNetworkPollerDeployment     *appsv1.Deployment
-
-	//go:embed pod-network-target-deployment.yaml
-	podNetworkTargetDeploymentYaml []byte
-	podNetworkTargetDeployment     *appsv1.Deployment
-
-	//go:embed pod-network-target-service.yaml
-	podNetworkTargetServiceYaml []byte
-	podNetworkTargetService     *corev1.Service
+	namespace                  *corev1.Namespace
+	pollerRoleBinding          *rbacv1.RoleBinding
+	podNetworkPollerDeployment *appsv1.Deployment
+	podNetworkTargetDeployment *appsv1.Deployment
+	podNetworkTargetService    *corev1.Service
 )
 
+func yamlOrDie(name string) []byte {
+	ret, err := yamls.ReadFile(name)
+	if err != nil {
+		panic(err)
+	}
+
+	return ret
+}
+
 func init() {
-	namespace = resourceread.ReadNamespaceV1OrDie(namespaceYaml)
-	podNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(podNetworkPollerDeploymentYaml)
-	podNetworkTargetDeployment = resourceread.ReadDeploymentV1OrDie(podNetworkTargetDeploymentYaml)
-	podNetworkTargetService = resourceread.ReadServiceV1OrDie(podNetworkTargetServiceYaml)
+	namespace = resourceread.ReadNamespaceV1OrDie(yamlOrDie("namespace.yaml"))
+	pollerRoleBinding = resourceread.ReadRoleBindingV1OrDie(yamlOrDie("poller-rolebinding.yaml"))
+	podNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-poller-deployment.yaml"))
+	podNetworkTargetDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-target-deployment.yaml"))
+	podNetworkTargetService = resourceread.ReadServiceV1OrDie(yamlOrDie("pod-network-target-service.yaml"))
 }
 
 type podNetworkAvalibility struct {
@@ -71,6 +78,10 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 	pna.namespaceName = actualNamespace.Name
+
+	if _, err = pna.kubeClient.RbacV1().RoleBindings(pna.namespaceName).Create(context.Background(), pollerRoleBinding, metav1.CreateOptions{}); err != nil {
+		return err
+	}
 
 	// force the image to use the "normal" global mapping.
 	originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
