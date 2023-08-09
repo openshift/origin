@@ -18,6 +18,7 @@ import (
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
@@ -48,13 +49,21 @@ func testAlerts(events monitorapi.Intervals,
 	var etcdAllowance allowedalerts2.AlertTestAllowanceCalculator
 	etcdAllowance = allowedalerts2.DefaultAllowances
 	// if we have a restConfig,  use it.
+	var kubeClient *kubernetes.Clientset
 	if restConfig != nil {
-		kubeClient, err := kubernetes.NewForConfig(restConfig)
+		kubeClient, err = kubernetes.NewForConfig(restConfig)
 		if err != nil {
 			panic(err)
 		}
 		etcdAllowance, err = allowedalerts2.NewAllowedWhenEtcdRevisionChange(context.TODO(),
 			kubeClient, duration)
+		if err != nil {
+			panic(err)
+		}
+		_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-monitoring", metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return []*junitapi.JUnitTestCase{}
+		}
 		if err != nil {
 			panic(err)
 		}

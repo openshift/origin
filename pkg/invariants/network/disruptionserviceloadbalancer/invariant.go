@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,11 +75,20 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	if err != nil {
 		return err
 	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(w.kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		w.notSupportedReason = "platform MicroShift not supported"
+		return nil
+	}
 
 	configClient, err := configclient.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
+
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return err

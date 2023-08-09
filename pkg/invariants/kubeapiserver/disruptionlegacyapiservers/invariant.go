@@ -10,14 +10,18 @@ import (
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 type availability struct {
 	disruptionCheckers []*disruptionlibrary.Availability
 
-	suppressJunit bool
+	notSupportedReason string
+	suppressJunit      bool
 }
 
 func NewAvailabilityInvariant() invariants.InvariantTest {
@@ -144,6 +148,29 @@ func newDisruptionCheckerForOAuthCached(adminRESTConfig *rest.Config) (*disrupti
 
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
+
+	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+
+	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), " openshift-apiserver", metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		w.notSupportedReason = "namespace openshift-apiserver not present"
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), " openshift-oauth-apiserver", metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		w.notSupportedReason = "namespace openshift-oauth-apiserver not present"
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
 	var curr *disruptionlibrary.Availability
 
 	curr, err = newDisruptionCheckerForKubeAPI(adminRESTConfig)

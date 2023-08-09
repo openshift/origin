@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/imageregistryutil"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -30,8 +31,9 @@ type availability struct {
 	routeClient        routeclient.Interface
 	imageRegistryRoute *routev1.Route
 
-	disruptionChecker *disruptionlibrary.Availability
-	suppressJunit     bool
+	disruptionChecker  *disruptionlibrary.Availability
+	notSupportedReason string
+	suppressJunit      bool
 }
 
 func NewAvailabilityInvariant() invariants.InvariantTest {
@@ -47,10 +49,22 @@ func NewRecordAvailabilityOnly() invariants.InvariantTest {
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	var err error
 
+	namespace := "openshift-image-registry"
+
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
+
+	_, err = w.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		w.notSupportedReason = "namespace openshift-image-registry not present"
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
 	w.routeClient, err = routeclient.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
@@ -62,7 +76,6 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	}
 
 	baseURL := fmt.Sprintf("https://%s", w.imageRegistryRoute.Status.Ingress[0].Host)
-	namespace := "openshift-image-registry"
 	disruptionBackendName := "image-registry"
 	path := "/healthz"
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendWithLocator(
@@ -91,6 +104,9 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 }
 
 func (w *availability) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if len(w.notSupportedReason) > 0 {
+		return nil, nil, nil
+	}
 	return w.disruptionChecker.CollectData(ctx)
 }
 
@@ -99,6 +115,9 @@ func (*availability) ConstructComputedIntervals(ctx context.Context, startingInt
 }
 
 func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if len(w.notSupportedReason) > 0 {
+		return nil, nil
+	}
 	if w.suppressJunit {
 		return nil, nil
 	}
