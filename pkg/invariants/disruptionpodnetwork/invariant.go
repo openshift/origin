@@ -1,10 +1,19 @@
 package disruptionpodnetwork
 
 import (
+	"bufio"
 	"context"
 	"embed"
 	_ "embed"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/wait"
+
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -98,7 +107,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
 	podNetworkTargetDeployment.Spec.Replicas = &numNodes
 	podNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
+	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -110,7 +119,72 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 }
 
 func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	return nil, nil, nil
+	// delete the target pods so that the watcher will be stopped and we'll have log messages
+	if err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Delete(context.Background(), podNetworkTargetDeployment.Name, metav1.DeleteOptions{}); err != nil {
+		return nil, nil, err
+	}
+	targerLabel, err := labels.NewRequirement("network.openshift.io/disruption-actor", selection.Equals, []string{"target"})
+	if err != nil {
+		return nil, nil, err
+	}
+	var lastErr error
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 2*time.Minute, true, func(ctx context.Context) (done bool, err error) {
+		targetPods, err := pna.kubeClient.CoreV1().Pods(pna.namespaceName).List(ctx, metav1.ListOptions{
+			LabelSelector: labels.NewSelector().Add(*targerLabel).String(),
+		})
+		if err != nil {
+			lastErr = err
+			return false, nil
+		}
+		if len(targetPods.Items) == 0 {
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		return nil, nil, lastErr
+	}
+
+	pollerLabel, err := labels.NewRequirement("network.openshift.io/disruption-actor", selection.Equals, []string{"poller"})
+	if err != nil {
+		return nil, nil, err
+	}
+	pollerPods, err := pna.kubeClient.CoreV1().Pods(pna.namespaceName).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*pollerLabel).String(),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	retIntervals := monitorapi.Intervals{}
+	errs := []error{}
+	for _, pollerPod := range pollerPods.Items {
+		req := pna.kubeClient.CoreV1().Pods(pna.namespaceName).GetLogs(pollerPod.Name, &corev1.PodLogOptions{})
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		logStream, err := req.Stream(ctx)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		scanner := bufio.NewScanner(logStream)
+		for scanner.Scan() {
+			line := scanner.Bytes()
+			if len(line) == 0 {
+				continue
+			}
+
+			// not all lines are json, ignore errors.
+			if currInterval, err := monitorserialization.IntervalFromJSON(line); err == nil {
+				retIntervals = append(retIntervals, *currInterval)
+			}
+		}
+	}
+
+	return retIntervals, nil, utilerrors.NewAggregate(errs)
 }
 
 func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
