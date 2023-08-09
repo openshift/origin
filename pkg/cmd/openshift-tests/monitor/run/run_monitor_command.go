@@ -9,7 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
 	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
@@ -24,30 +23,27 @@ type RunMonitorOptions struct {
 	Out, ErrOut io.Writer
 	ArtifactDir string
 
-	TimelineOptions timeline.TimelineOptions
+	genericclioptions.IOStreams
 }
 
-func NewRunMonitorOptions(ioStreams genericclioptions.IOStreams) *RunMonitorOptions {
-	timelineOptions := timeline.NewTimelineOptions(ioStreams)
-
+func NewRunMonitorOptions(streams genericclioptions.IOStreams) *RunMonitorOptions {
 	return &RunMonitorOptions{
-		Out:             ioStreams.Out,
-		ErrOut:          ioStreams.ErrOut,
-		TimelineOptions: *timelineOptions,
+		IOStreams: streams,
 	}
 }
 
 // TODO remove
-func NewRunMonitorCommand(ioStreams genericclioptions.IOStreams) *cobra.Command {
-	return newRunCommand("run-monitor", ioStreams)
+func NewRunMonitorCommand(streams genericclioptions.IOStreams) *cobra.Command {
+	return newRunCommand("run-monitor", streams)
 }
 
-func NewRunCommand(ioStreams genericclioptions.IOStreams) *cobra.Command {
-	return newRunCommand("run", ioStreams)
+func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
+	return newRunCommand("run", streams)
 }
 
-func newRunCommand(name string, ioStreams genericclioptions.IOStreams) *cobra.Command {
-	monitorOpt := NewRunMonitorOptions(ioStreams)
+func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Command {
+	monitorOpt := NewRunMonitorOptions(streams)
+
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Continuously verify the cluster is functional",

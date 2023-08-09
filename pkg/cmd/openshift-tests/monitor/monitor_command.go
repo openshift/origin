@@ -1,4 +1,4 @@
-package monitor_command
+package monito
 
 import (
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
