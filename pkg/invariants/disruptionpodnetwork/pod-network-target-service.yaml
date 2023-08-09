@@ -5,6 +5,7 @@ metadata:
 spec:
   selector:
     network.openshift.io/disruption-target: pod-network
+    network.openshift.io/disruption-actor: target
   ports:
     - protocol: TCP
       port: 80

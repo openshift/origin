@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    network.openshift.io/disruption-target: pod-network
-  name: pod-network-disruption-server
+  name: pod-network-disruption-target
 spec:
   # to be overridden by the number of nodes
   replicas: 1
   selector:
     matchLabels:
       network.openshift.io/disruption-target: pod-network
+      network.openshift.io/disruption-actor: target
   template:
     metadata:
       labels:
         network.openshift.io/disruption-target: pod-network
+        network.openshift.io/disruption-actor: target
     spec:
       containers:
         - command:
@@ -27,9 +27,7 @@ spec:
           ports:
             - containerPort: 8080
               protocol: TCP
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
+          terminationMessagePolicy: FallbackToLogsOnError
           readinessProbe:
             httpGet:
               scheme: HTTP
@@ -37,3 +35,11 @@ spec:
               path: /readyz
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  network.openshift.io/disruption-target: pod-network
+                  network.openshift.io/disruption-actor: target

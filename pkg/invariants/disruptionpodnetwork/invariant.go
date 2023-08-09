@@ -29,19 +29,24 @@ var (
 	namespaceYaml []byte
 	namespace     *corev1.Namespace
 
-	//go:embed pod-network-deployment.yaml
-	podNetworkDeploymentYaml []byte
-	podNetworkDeployment     *appsv1.Deployment
+	//go:embed pod-network-poller-deployment.yaml
+	podNetworkPollerDeploymentYaml []byte
+	podNetworkPollerDeployment     *appsv1.Deployment
 
-	//go:embed pod-network-service.yaml
-	podNetworkServiceYaml []byte
-	podNetworkService     *corev1.Service
+	//go:embed pod-network-target-deployment.yaml
+	podNetworkTargetDeploymentYaml []byte
+	podNetworkTargetDeployment     *appsv1.Deployment
+
+	//go:embed pod-network-target-service.yaml
+	podNetworkTargetServiceYaml []byte
+	podNetworkTargetService     *corev1.Service
 )
 
 func init() {
 	namespace = resourceread.ReadNamespaceV1OrDie(namespaceYaml)
-	podNetworkDeployment = resourceread.ReadDeploymentV1OrDie(podNetworkDeploymentYaml)
-	podNetworkService = resourceread.ReadServiceV1OrDie(podNetworkServiceYaml)
+	podNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(podNetworkPollerDeploymentYaml)
+	podNetworkTargetDeployment = resourceread.ReadDeploymentV1OrDie(podNetworkTargetDeploymentYaml)
+	podNetworkTargetService = resourceread.ReadServiceV1OrDie(podNetworkTargetServiceYaml)
 }
 
 type podNetworkAvalibility struct {
@@ -69,12 +74,12 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 
 	// force the image to use the "normal" global mapping.
 	originalAgnhost := k8simage.GetOriginalImageConfigs()[k8simage.Agnhost]
-	podNetworkDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkDeployment, metav1.CreateOptions{}); err != nil {
+	podNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
+	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
-	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkService, metav1.CreateOptions{}); err != nil {
+	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkTargetService, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
