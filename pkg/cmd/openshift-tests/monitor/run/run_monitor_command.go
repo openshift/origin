@@ -3,11 +3,14 @@ package run
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
+	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
@@ -17,18 +20,17 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 )
 
-// RunMonitorOptions is used to run a monitoring process against the provided server as
-// a command line interaction.
-type RunMonitorOptions struct {
-	Out, ErrOut io.Writer
-	ArtifactDir string
+type RunMonitorFlags struct {
+	ArtifactDir    string
+	DisplayFromNow bool
 
 	genericclioptions.IOStreams
 }
 
-func NewRunMonitorOptions(streams genericclioptions.IOStreams) *RunMonitorOptions {
-	return &RunMonitorOptions{
-		IOStreams: streams,
+func NewRunMonitorOptions(streams genericclioptions.IOStreams) *RunMonitorFlags {
+	return &RunMonitorFlags{
+		DisplayFromNow: true,
+		IOStreams:      streams,
 	}
 }
 
@@ -42,7 +44,7 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 }
 
 func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewRunMonitorOptions(streams)
+	f := NewRunMonitorOptions(streams)
 
 	cmd := &cobra.Command{
 		Use:   name,
@@ -55,19 +57,56 @@ func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Comm
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			o, err := f.ToOptions()
+			if err != nil {
+				return err
+			}
 			return o.Run()
 		},
 	}
-	cmd.Flags().StringVar(&o.ArtifactDir,
-		"artifact-dir", o.ArtifactDir,
-		"The directory where monitor events will be stored.")
+
+	f.BindFlags(cmd.Flags())
+
 	return cmd
+}
+
+func (f *RunMonitorFlags) BindFlags(flags *pflag.FlagSet) {
+	flags.StringVar(&f.ArtifactDir, "artifact-dir", f.ArtifactDir, "The directory where monitor events will be stored.")
+	flags.BoolVar(&f.DisplayFromNow, "display-from-now", f.DisplayFromNow, "Only display intervals from at or after this comand was started.")
+}
+
+func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
+	var displayFilterFn monitorapi.EventIntervalMatchesFunc
+	if f.DisplayFromNow {
+		now := time.Now()
+		displayFilterFn = func(eventInterval monitorapi.Interval) bool {
+			if eventInterval.From.IsZero() {
+				return true
+			}
+			return eventInterval.From.After(now)
+		}
+	}
+
+	return &RunMonitorOptions{
+		ArtifactDir:     f.ArtifactDir,
+		DisplayFilterFn: displayFilterFn,
+		IOStreams:       f.IOStreams,
+	}, nil
+}
+
+type RunMonitorOptions struct {
+	ArtifactDir     string
+	DisplayFilterFn monitorapi.EventIntervalMatchesFunc
+
+	genericclioptions.IOStreams
 }
 
 // Run starts monitoring the cluster by invoking Start, periodically printing the
 // events accumulated to Out. When the user hits CTRL+C or signals termination the
 // condition intervals (all non-instantaneous events) are reported to Out.
-func (o *RunMonitorOptions) Run() error {
+func (f *RunMonitorOptions) Run() error {
+	fmt.Fprintf(f.Out, "Starting the monitor.\n")
+
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	if err != nil {
 		return err
@@ -78,12 +117,12 @@ func (o *RunMonitorOptions) Run() error {
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
-		fmt.Fprintf(o.ErrOut, "Interrupted, terminating\n")
+		fmt.Fprintf(f.ErrOut, "Interrupted, terminating\n")
 		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 
 		sig := <-abortCh
-		fmt.Fprintf(o.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
+		fmt.Fprintf(f.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
 		switch sig {
 		case syscall.SIGINT:
 			os.Exit(130)
@@ -93,42 +132,21 @@ func (o *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.IOStreams.Out)
+	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), f.Out, f.DisplayFilterFn)
 	m := monitor.NewMonitor(
 		recorder,
 		restConfig,
-		o.ArtifactDir,
+		f.ArtifactDir,
 		defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
 	)
 	if err := m.Start(ctx); err != nil {
 		return err
 	}
-
-	go func() {
-		ticker := time.NewTicker(100 * time.Millisecond)
-		defer ticker.Stop()
-		var last time.Time
-		done := false
-		for !done {
-			select {
-			case <-ticker.C:
-			case <-ctx.Done():
-				done = true
-			}
-			events := recorder.Intervals(last, time.Time{})
-			if len(events) > 0 {
-				for _, event := range events {
-					if !event.From.Equal(event.To) {
-						continue
-					}
-					fmt.Fprintln(o.Out, event.String())
-				}
-				last = events[len(events)-1].From
-			}
-		}
-	}()
+	fmt.Fprintf(f.Out, "Monitor started, waiting for ctrl+C to stop...\n")
 
 	<-ctx.Done()
+
+	fmt.Fprintf(f.Out, "Monitor shutting down, this may take up to five minutes...\n")
 
 	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cleanupCancel()

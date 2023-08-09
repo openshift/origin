@@ -13,15 +13,17 @@ import (
 )
 
 type jsonlRecorder struct {
-	delegate monitorapi.Recorder
+	delegate              monitorapi.Recorder
+	intervalDisplayFilter monitorapi.EventIntervalMatchesFunc
 
 	outfile io.Writer
 }
 
-func WrapWithJSONLRecorder(delegate monitorapi.Recorder, outfile io.Writer) monitorapi.Recorder {
+func WrapWithJSONLRecorder(delegate monitorapi.Recorder, outfile io.Writer, intervalDisplayFilter monitorapi.EventIntervalMatchesFunc) monitorapi.Recorder {
 	return &jsonlRecorder{
-		delegate: delegate,
-		outfile:  outfile,
+		delegate:              delegate,
+		outfile:               outfile,
+		intervalDisplayFilter: intervalDisplayFilter,
 	}
 }
 
@@ -68,6 +70,10 @@ func (m *jsonlRecorder) writeInterval(interval *monitorapi.Interval) {
 	if interval == nil {
 		return
 	}
+	if m.intervalDisplayFilter != nil && !m.intervalDisplayFilter(*interval) {
+		return
+	}
+
 	intervalJSON, err := monitorserialization.IntervalToOneLineJSON(*interval)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error serializing: %v\n", err)

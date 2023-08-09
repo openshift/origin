@@ -3,13 +3,14 @@ package disruption
 import (
 	"fmt"
 
+	"k8s.io/klog/v2"
+
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/events"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 // newCIHandler returns a new intervalHandler instance
@@ -69,7 +70,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 	message, eventReason, level := backenddisruption.DisruptionBegan(h.descriptor.DisruptionLocator().OldLocator(),
 		h.descriptor.GetConnectionType(), fmt.Errorf("%w - %s", from.AggregateErr(), info), "no-audit-id")
 
-	framework.Logf(message)
+	klog.V(4).Info(message)
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()},
 		nil, v1.EventTypeWarning, string(eventReason), "detected", message)
@@ -92,7 +93,7 @@ func (h *ciHandler) Available(from, to *backend.SampleResult) {
 	fs, ts := from.Sample, to.Sample
 	message := backenddisruption.DisruptionEndedMessage(h.descriptor.DisruptionLocator().OldLocator(),
 		h.descriptor.GetConnectionType())
-	framework.Logf(message)
+	klog.V(4).Info(message)
 
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()}, nil,

@@ -3,14 +3,14 @@ package shutdown
 import (
 	"context"
 
+	"k8s.io/klog/v2"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 type Consumer interface {
@@ -59,9 +59,9 @@ func startGatheringByNamespace(stop context.Context, client kubernetes.Interface
 	}
 	reflector := cache.NewReflector(lw, &corev1.Event{}, store, 0)
 	go func() {
-		framework.Logf("GracefulShutdownEvent: watching events namespace=%s", namespace)
+		klog.V(4).Infof("GracefulShutdownEvent: watching events namespace=%s", namespace)
 		reflector.Run(stop.Done())
-		framework.Logf("GracefulShutdownEvent: event watch ended namespace=%s", namespace)
+		klog.V(4).Infof("GracefulShutdownEvent: event watch ended namespace=%s", namespace)
 		consumer.Done()
 	}()
 }

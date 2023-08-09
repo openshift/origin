@@ -65,7 +65,7 @@ func exposeImageRegistryGenerateName(ctx context.Context, routeClient routeclien
 
 	// in CI we observe a gap between the route having status and the route actually being exposed consistently.
 	// this results in a 503 for 4 seconds observed so far.  I'm choosing 30 seconds more or less at random.
-	time.Sleep(30 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	return route, nil
 }

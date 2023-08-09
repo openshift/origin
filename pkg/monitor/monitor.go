@@ -68,6 +68,7 @@ func (m *Monitor) Start(ctx context.Context) error {
 		return err
 	}
 	m.junits = append(m.junits, localJunits...)
+	fmt.Printf("All invariants started.\n")
 
 	client, err := kubernetes.NewForConfig(m.adminKubeConfig)
 	if err != nil {
@@ -103,7 +104,7 @@ func (m *Monitor) Stop(ctx context.Context) error {
 	// rather than properly wire this through, we'll wait until the backend disruption consumers timeout after the producer
 	// close.
 	// TODO once we have converted the backendsamplers to invariant tests, we can properly wait for completion
-	time.Sleep(70 * time.Second)
+	time.Sleep(7 * time.Second)
 
 	// set the stop time for after we finished.
 	m.stopTime = time.Now()
