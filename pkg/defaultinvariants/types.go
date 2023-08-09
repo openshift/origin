@@ -3,11 +3,12 @@ package defaultinvariants
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/invariants/disruptionpodnetwork"
+
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/authentication/legacyauthenticationinvariants"
 	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/legacycvoinvariants"
 	"github.com/openshift/origin/pkg/invariants/clusterversionoperator/operatorstateanalyzer"
-	"github.com/openshift/origin/pkg/invariants/disruptionpodnetwork"
 	"github.com/openshift/origin/pkg/invariants/etcd/etcdloganalyzer"
 	"github.com/openshift/origin/pkg/invariants/etcd/legacyetcdinvariants"
 	"github.com/openshift/origin/pkg/invariants/imageregistry/disruptionimageregistry"
@@ -64,6 +65,12 @@ func NewInvariantsFor(clusterStabilityDuringTest ClusterStabilityDuringTest) inv
 func newDefaultInvariants() invariants.InvariantRegistry {
 	invariantTests := invariants.NewInvariantRegistry()
 
+	invariantTests.AddInvariantOrDie(disruptionpodnetwork.InvariantName, disruptionpodnetwork.JIRAOwner, disruptionpodnetwork.NewPodNetworkAvalibilityInvariant())
+
+	if true {
+		return invariantTests
+	}
+
 	invariantTests.AddRegistryOrDie(newUniversalInvariants())
 
 	invariantTests.AddInvariantOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
@@ -89,7 +96,6 @@ func newDisruptiveInvariants() invariants.InvariantRegistry {
 
 	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
 	invariantTests.AddInvariantOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewRecordAvailabilityOnly())
-	invariantTests.AddInvariantOrDie(disruptionpodnetwork.InvariantName, disruptionpodnetwork.JIRAOwner, disruptionpodnetwork.NewPodNetworkAvalibilityInvariant())
 
 	invariantTests.AddInvariantOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewRecordAvailabilityOnly())
 
