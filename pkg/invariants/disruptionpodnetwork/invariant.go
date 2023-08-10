@@ -92,7 +92,10 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
-	nodes, err := pna.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	//only get the worker nodes since we con only schedual there to begin with
+	nodes, err := pna.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		LabelSelector: "node-role.kubernetes.io/worker",
+	})
 	if err != nil {
 		return err
 	}
