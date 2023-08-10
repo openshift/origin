@@ -1,8 +1,6 @@
 package e2etestanalyzer
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -13,15 +11,16 @@ func intervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 	testNameToLastStart := map[string]time.Time{}
 
 	for _, event := range events {
-		testName, ok := monitorapi.E2ETestFromLocator(event.Locator)
+		testName, ok := monitorapi.E2ETestFromLocator(event.StructuredLocator)
 		if !ok {
 			continue
 		}
-		if event.Message == "started" {
+		if event.StructuredMessage.Reason == monitorapi.E2ETestStarted {
 			testNameToLastStart[testName] = event.From
 			continue
 		}
-		if !strings.Contains(event.Message, "finishedStatus/") {
+		testStatus, ok := event.StructuredMessage.Annotations[monitorapi.AnnotationStatus]
+		if !ok {
 			continue
 		}
 
@@ -30,47 +29,37 @@ func intervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 			from = lastStart
 		}
 		level := monitorapi.Info
-		endState := "MISSING"
-		switch {
-		case strings.Contains(event.Message, "finishedStatus/Flaked"):
+		switch testStatus {
+		case "Flaked":
 			level = monitorapi.Warning
-			endState = "Flaked"
-		case strings.Contains(event.Message, "finishedStatus/Failed"):
+		case "Failed":
 			level = monitorapi.Error
-			endState = "Failed"
-		case strings.Contains(event.Message, "finishedStatus/Skipped"):
+		case "Skipped":
 			level = monitorapi.Info
-			endState = "Skipped"
-		case strings.Contains(event.Message, "finishedStatus/Passed"):
+		case "Passed":
 			level = monitorapi.Info
-			endState = "Passed"
-		case strings.Contains(event.Message, "finishedStatus/Unknown"):
+		case "Unknown":
 			level = monitorapi.Warning
-			endState = "Unknown"
+		default:
+			level = monitorapi.Warning
 		}
 
 		delete(testNameToLastStart, testName)
-		ret = append(ret, monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Level:   level,
-				Locator: event.Locator,
-				Message: fmt.Sprintf("e2e test finished As %q", endState),
-			},
-			From: from,
-			To:   event.From,
-		})
+		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceE2ETest, level).Locator(event.StructuredLocator).
+			Message(monitorapi.NewMessage().
+				HumanMessagef("e2e test finished As %q", testStatus).
+				WithAnnotation(monitorapi.AnnotationStatus, testStatus)).
+			From(from).To(event.From).Build())
 	}
 
 	for testName, testStart := range testNameToLastStart {
-		ret = append(ret, monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Level:   monitorapi.Warning,
-				Locator: monitorapi.E2ETestLocator(testName),
-				Message: fmt.Sprintf("e2e test did not finish %q", "DidNotFinish"),
-			},
-			From: testStart,
-			To:   end,
-		})
+		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceE2ETest, monitorapi.Warning).
+			Locator(monitorapi.NewLocator().E2ETest(testName)).
+			Message(monitorapi.NewMessage().
+				HumanMessagef("e2e test did not finish %q", "DidNotFinish").
+				WithAnnotation(monitorapi.AnnotationStatus, "DidNotFinish")).
+			From(testStart).
+			To(end).Build())
 	}
 
 	return ret

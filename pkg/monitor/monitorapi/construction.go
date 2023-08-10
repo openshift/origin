@@ -60,6 +60,9 @@ func (b *IntervalBuilder) Build() Interval {
 	ret := Interval{
 		Condition: b.BuildCondition(),
 		Display:   b.display,
+		From:      b.from,
+		To:        b.to,
+		Source:    b.source,
 	}
 
 	return ret
@@ -197,6 +200,12 @@ func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) Locator {
 		b.annotations[LocatorMirrorUIDKey] = mirrorUID
 	}
 
+	return b.Build()
+}
+
+func (b *LocatorBuilder) E2ETest(testName string) Locator {
+	b.targetType = LocatorTypeE2ETest
+	b.annotations[LocatorE2ETestKey] = testName
 	return b.Build()
 }
 
