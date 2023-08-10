@@ -127,5 +127,8 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 // runImageExtract extracts src from specified image to dst
 func runImageExtract(image, src, dst string) error {
 	cmd := exec.Command("oc", "--kubeconfig="+util.KubeConfigPath(), "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm")
-	return cmd.Run()
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("err: %w, out: %s", err, output)
+	}
+	return nil
 }
