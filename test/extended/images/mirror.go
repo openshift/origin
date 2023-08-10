@@ -27,79 +27,6 @@ import (
 
 const podStartupTimeout = 3 * time.Minute
 
-var testPod1 = fmt.Sprintf(
-	`kind: Pod
-id: oc-image-mirror-test-1
-apiVersion: v1
-metadata:
-  name: oc-image-mirror-test-1
-  labels:
-    name: oc-image-mirror-test-1
-spec:
-  containers:
-  - name: registry-1
-    image: %[1]s
-    env:
-    - name: REGISTRY_HTTP_ADDR
-      value: :5001
-    - name: REGISTRY_HTTP_NET
-      value: tcp
-    - name: REGISTRY_LOGLEVEL
-      value: debug
-    - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
-      value: /tmp
-  - name: shell
-    image: %[2]s
-    command:
-    - /bin/sleep
-    - infinity
-`,
-	image.LocationFor("docker.io/library/registry:2.8.0-beta.1"),
-	image.ShellImage(),
-)
-
-var testPod2 = fmt.Sprintf(
-	`kind: Pod
-id: oc-image-mirror-test-2
-apiVersion: v1
-metadata:
-  name: oc-image-mirror-test-2
-  labels:
-    name: oc-image-mirror-test-2
-spec:
-  containers:
-  - name: registry-1
-    image: %[1]s
-    env:
-    - name: REGISTRY_HTTP_ADDR
-      value: :5002
-    - name: REGISTRY_HTTP_NET
-      value: tcp
-    - name: REGISTRY_LOGLEVEL
-      value: debug
-    - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
-      value: /tmp
-  - name: registry-2
-    image: %[1]s
-    env:
-    - name: REGISTRY_HTTP_ADDR
-      value: :5003
-    - name: REGISTRY_HTTP_NET
-      value: tcp
-    - name: REGISTRY_LOGLEVEL
-      value: debug
-    - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
-      value: /tmp
-  - name: shell
-    image: %[2]s
-    command:
-    - /bin/sleep
-    - infinity
-`,
-	image.LocationFor("docker.io/library/registry:2.8.0-beta.1"),
-	image.ShellImage(),
-)
-
 func getRandName() string {
 	c := 20
 	b := make([]byte, c)
@@ -289,6 +216,36 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageMirror][Slow] Image mirror"
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Set up and fetch the URL of external registry server")
+		var testPod1 = fmt.Sprintf(
+			`kind: Pod
+id: oc-image-mirror-test-1
+apiVersion: v1
+metadata:
+  name: oc-image-mirror-test-1
+  labels:
+    name: oc-image-mirror-test-1
+spec:
+  containers:
+  - name: registry-1
+    image: %[1]s
+    env:
+    - name: REGISTRY_HTTP_ADDR
+      value: :5001
+    - name: REGISTRY_HTTP_NET
+      value: tcp
+    - name: REGISTRY_LOGLEVEL
+      value: debug
+    - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+      value: /tmp
+  - name: shell
+    image: %[2]s
+    command:
+    - /bin/sleep
+    - infinity
+`,
+			image.LocationFor("docker.io/library/registry:2.8.0-beta.1"),
+			image.ShellImage(),
+		)
 		pod := NewTestPod(oc, "oc-image-mirror-test-1", testPod1).Run()
 
 		g.By("get the protocol of integrated registry server")
@@ -335,6 +292,47 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageMirror][Slow] Image mirror"
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Set up and fetch the URL of external registry server")
+		var testPod2 = fmt.Sprintf(
+			`kind: Pod
+id: oc-image-mirror-test-2
+apiVersion: v1
+metadata:
+  name: oc-image-mirror-test-2
+  labels:
+    name: oc-image-mirror-test-2
+spec:
+  containers:
+  - name: registry-1
+    image: %[1]s
+    env:
+    - name: REGISTRY_HTTP_ADDR
+      value: :5002
+    - name: REGISTRY_HTTP_NET
+      value: tcp
+    - name: REGISTRY_LOGLEVEL
+      value: debug
+    - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+      value: /tmp
+  - name: registry-2
+    image: %[1]s
+    env:
+    - name: REGISTRY_HTTP_ADDR
+      value: :5003
+    - name: REGISTRY_HTTP_NET
+      value: tcp
+    - name: REGISTRY_LOGLEVEL
+      value: debug
+    - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+      value: /tmp
+  - name: shell
+    image: %[2]s
+    command:
+    - /bin/sleep
+    - infinity
+`,
+			image.LocationFor("docker.io/library/registry:2.8.0-beta.1"),
+			image.ShellImage(),
+		)
 		pod := NewTestPod(oc, "oc-image-mirror-test-2", testPod2).Run()
 
 		g.By("get the protocol of integrated registry server")

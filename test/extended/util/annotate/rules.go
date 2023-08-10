@@ -195,7 +195,7 @@ var (
 			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster should have non-Pod host cAdvisor metrics`,
 			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster should provide ingress metrics`,
 			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster should provide named network metrics`,
-			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster should report telemetry \[Late\]`,
+			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster should report telemetry \[Serial\] \[Late\]`,
 			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster should start and expose a secured proxy and unsecured metrics`,
 			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster shouldn't have failing rules evaluation`,
 			`\[sig-instrumentation\] Prometheus \[apigroup:image.openshift.io\] when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured \[Early\]`,
@@ -224,6 +224,11 @@ var (
 			`\[sig-node\] Managed cluster should report ready nodes the entire duration of the test run`,
 			`\[sig-storage\]\[Late\] Metrics should report short attach times`,
 			`\[sig-storage\]\[Late\] Metrics should report short mount times`,
+		},
+		// tests that don't pass under OVN Kubernetes
+		"[Skipped:Network/OVNKubernetes]": {
+			// https://issues.redhat.com/browse/OCPBUGS-17455: OVN-K bug in IC mode
+			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:operator.openshift.io\] \[external-targets\]\[apigroup:user.openshift.io\]\[apigroup:security.openshift.io\] pods should keep the assigned EgressIPs when being rescheduled to another node`,
 		},
 		"[Skipped:ibmroks]": {
 			// skip Gluster tests (not supported on ROKS worker nodes)

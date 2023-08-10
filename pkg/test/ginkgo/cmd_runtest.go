@@ -3,16 +3,16 @@ package ginkgo
 import (
 	"context"
 	"fmt"
-	"io"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
-
+	"github.com/openshift/origin/pkg/defaultinvariants"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 type ExitError struct {
@@ -27,30 +27,28 @@ func (e ExitError) Error() string {
 type TestOptions struct {
 	// EnableMonitor is an easy way to enable monitor gathering for a single e2e test.
 	// TODO if this is useful enough for general users, we can extend this into an arg, this just ensures the plumbing.
-	EnableMonitor        bool
-	MonitorEventsOptions *MonitorEventsOptions
+	EnableMonitor bool
 
 	DryRun bool
-	Out    io.Writer
-	ErrOut io.Writer
+	genericclioptions.IOStreams
 }
 
 var _ ginkgo.GinkgoTestingT = &TestOptions{}
 
-func NewTestOptions(out io.Writer, errOut io.Writer) *TestOptions {
+func NewTestOptions(streams genericclioptions.IOStreams) *TestOptions {
 	return &TestOptions{
-		MonitorEventsOptions: NewMonitorEventsOptions(out, errOut),
-		Out:                  out,
-		ErrOut:               errOut,
+		IOStreams: streams,
 	}
 }
 
-func (opt *TestOptions) Run(args []string) error {
+func (o *TestOptions) Run(args []string) error {
 	ctx := context.TODO()
 
 	if len(args) != 1 {
 		return fmt.Errorf("only a single test name may be passed")
 	}
+
+	start := time.Now()
 
 	// Ignore the upstream suite behavior within test execution
 	ginkgo.GetSuite().ClearBeforeAndAfterSuiteNodes()
@@ -69,8 +67,8 @@ func (opt *TestOptions) Run(args []string) error {
 		return fmt.Errorf("no test exists with that name: %s", args[0])
 	}
 
-	if opt.DryRun {
-		fmt.Fprintf(opt.Out, "Running test (dry-run)\n")
+	if o.DryRun {
+		fmt.Fprintf(o.Out, "Running test (dry-run)\n")
 		return nil
 	}
 
@@ -78,9 +76,17 @@ func (opt *TestOptions) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if opt.EnableMonitor {
-		_, err = opt.MonitorEventsOptions.Start(ctx, restConfig)
-		if err != nil {
+	var m monitor.Interface
+	if o.EnableMonitor {
+		// individual tests are always stable, it's the jobs that aren't.
+		monitorEventRecorder := monitor.NewRecorder()
+		m = monitor.NewMonitor(
+			monitorEventRecorder,
+			restConfig,
+			"",
+			defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
+		)
+		if err := m.Start(ctx); err != nil {
 			return err
 		}
 	}
@@ -103,14 +109,15 @@ func (opt *TestOptions) Run(args []string) error {
 	ginkgo.SetReporterConfig(reporterConfig)
 	ginkgo.GetSuite().RunSpec(test.spec, ginkgo.Labels{}, "", ginkgo.GetFailer(), ginkgo.GetWriter(), suiteConfig)
 
-	if opt.EnableMonitor {
-		if err := opt.MonitorEventsOptions.End(ctx, restConfig, ""); err != nil {
+	if m != nil {
+		// ignore the resultstate of the monitor tests because we're only focused on a single one.
+		if _, err := m.Stop(ctx); err != nil {
 			return err
 		}
-		timeSuffix := fmt.Sprintf("_%s", opt.MonitorEventsOptions.GetStartTime().
-			UTC().Format("20060102-150405"))
-		if err := opt.MonitorEventsOptions.WriteRunDataToArtifactsDir("", timeSuffix); err != nil {
-			fmt.Fprintf(opt.ErrOut, "error: Failed to write run-data: %v\n", err)
+
+		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
+		if err := m.SerializeResults(ctx, "missing-junit-suite", timeSuffix); err != nil {
+			fmt.Fprintf(o.ErrOut, "error: Failed to serialize run-data: %v\n", err)
 		}
 	}
 
@@ -124,26 +131,26 @@ func (opt *TestOptions) Run(args []string) error {
 	switch {
 	case summary.State == types.SpecStatePassed:
 		if s, ok := result.LastFlake(); ok {
-			fmt.Fprintf(opt.ErrOut, "flake: %s\n", s)
+			fmt.Fprintf(o.ErrOut, "flake: %s\n", s)
 			return ExitError{Code: 4}
 		}
 	case summary.State == types.SpecStateSkipped:
 		if len(summary.Failure.Message) > 0 {
-			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
+			fmt.Fprintf(o.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
 		}
 		if len(summary.Failure.ForwardedPanic) > 0 {
-			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
+			fmt.Fprintf(o.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
 		}
 		return ExitError{Code: 3}
 	case summary.State == types.SpecStateFailed, summary.State == types.SpecStatePanicked, summary.State == types.SpecStateInterrupted:
 		if len(summary.Failure.ForwardedPanic) > 0 {
 			if len(summary.Failure.Location.FullStackTrace) > 0 {
-				fmt.Fprintf(opt.ErrOut, "\n%s\n", summary.Failure.Location.FullStackTrace)
+				fmt.Fprintf(o.ErrOut, "\n%s\n", summary.Failure.Location.FullStackTrace)
 			}
-			fmt.Fprintf(opt.ErrOut, "fail [%s:%d]: Test Panicked: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
+			fmt.Fprintf(o.ErrOut, "fail [%s:%d]: Test Panicked: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
 			return ExitError{Code: 1}
 		}
-		fmt.Fprintf(opt.ErrOut, "fail [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
+		fmt.Fprintf(o.ErrOut, "fail [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
 		return ExitError{Code: 1}
 	default:
 		return fmt.Errorf("unrecognized test case outcome: %#v", summary)
@@ -151,7 +158,7 @@ func (opt *TestOptions) Run(args []string) error {
 	return nil
 }
 
-func (opt *TestOptions) Fail() {
+func (o *TestOptions) Fail() {
 	// this function allows us to pass TestOptions as the first argument,
 	// it's empty becase we have failure check mechanism implemented above.
 }

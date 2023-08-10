@@ -8,10 +8,36 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
+
+// TODO most consumers only need writers or readers.  switch.
+type Recorder interface {
+	RecorderReader
+	RecorderWriter
+}
+
+type RecorderReader interface {
+	// Intervals returns a sorted snapshot of intervals in the selected timeframe
+	Intervals(from, to time.Time) Intervals
+	// CurrentResourceState returns a list of all known resources of a given type at the instant called.
+	CurrentResourceState() ResourcesMap
+}
+
+type RecorderWriter interface {
+	// RecordResource stores a resource for later serialization.  Deletion is not tracked, so this can be used
+	// to determine the final state of resource that are deleted in a namespace.
+	// Annotations are added to indicate number of updates and the number of recreates.
+	RecordResource(resourceType string, obj runtime.Object)
+
+	Record(conditions ...Condition)
+	RecordAt(t time.Time, conditions ...Condition)
+
+	AddIntervals(eventIntervals ...Interval)
+	StartInterval(t time.Time, condition Condition) int
+	EndInterval(startedInterval int, t time.Time)
+}
 
 const (
 	// ObservedUpdateCountAnnotation is an annotation added locally (in the monitor only), that tracks how many updates
@@ -80,6 +106,7 @@ const (
 	LocatorTypeOther             LocatorType = "Other"
 	LocatorTypeDisruption        LocatorType = "Disruption"
 	LocatorTypeKubeEvent         LocatorType = "KubeEvent"
+	LocatorTypeE2ETest           LocatorType = "E2ETest"
 	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
 )
 
@@ -150,6 +177,11 @@ const (
 	NodeUpdateReason   IntervalReason = "NodeUpdate"
 	NodeNotReadyReason IntervalReason = "NotReady"
 	NodeFailedLease    IntervalReason = "FailedToUpdateLease"
+
+	Timeout IntervalReason = "Timeout"
+
+	E2ETestStarted  IntervalReason = "E2ETestStarted"
+	E2ETestFinished IntervalReason = "E2ETestFinished"
 )
 
 type AnnotationKey string
@@ -165,6 +197,8 @@ const (
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
 	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
+	AnnotationStatus         AnnotationKey = "status"
+	AnnotationCondition      AnnotationKey = "condition"
 )
 
 type ConstructionOwner string
@@ -187,14 +221,16 @@ type Message struct {
 type IntervalSource string
 
 const (
-	SourceAlert             IntervalSource = "Alert"
-	SourceAPIServerShutdown IntervalSource = "APIServerShutdown"
-	SourceDisruption        IntervalSource = "Disruption"
-	SourceNodeMonitor       IntervalSource = "NodeMonitor"
-	SourcePodLog            IntervalSource = "PodLog"
-	SourceNetworkManagerLog IntervalSource = "NetworkMangerLog"
-	SourcePodMonitor        IntervalSource = "PodMonitor"
-	SourceTestData          IntervalSource = "TestData" // some tests have no real source to assign
+	SourceAlert                   IntervalSource = "Alert"
+	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
+	SourceDisruption              IntervalSource = "Disruption"
+	SourceE2ETest                 IntervalSource = "E2ETest"
+	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
+	SourceNodeMonitor             IntervalSource = "NodeMonitor"
+	SourcePodLog                  IntervalSource = "PodLog"
+	SourcePodMonitor              IntervalSource = "PodMonitor"
+	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
+	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 )
 
 type Interval struct {
@@ -238,7 +274,7 @@ func (i Message) OldMessage() string {
 		return annotationString
 	}
 
-	return fmt.Sprintf("%v %v", annotationString, i.HumanMessage)
+	return strings.TrimSpace(fmt.Sprintf("%v %v", annotationString, i.HumanMessage))
 }
 
 func (i Locator) OldLocator() string {
@@ -250,7 +286,11 @@ func (i Locator) OldLocator() string {
 	annotations := []string{}
 	for _, k := range keys.List() {
 		v := i.Keys[LocatorKey(k)]
-		annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
+		if LocatorKey(k) == LocatorE2ETestKey {
+			annotations = append(annotations, fmt.Sprintf("%v/%q", k, v))
+		} else {
+			annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
+		}
 	}
 	annotationString := strings.Join(annotations, " ")
 
@@ -461,44 +501,6 @@ func NodeUpdate(eventInterval Interval) bool {
 	return NodeUpdateReason == reason
 }
 
-func AlertFiringInNamespace(alertName, namespace string) EventIntervalMatchesFunc {
-	return func(eventInterval Interval) bool {
-		return And(
-			func(eventInterval Interval) bool {
-				locatorParts := LocatorParts(eventInterval.Locator)
-				eventAlertName := AlertFrom(locatorParts)
-				if eventAlertName != alertName {
-					return false
-				}
-				if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
-					return true
-				}
-				return false
-			},
-			InNamespace(namespace),
-		)(eventInterval)
-	}
-}
-
-func AlertPendingInNamespace(alertName, namespace string) EventIntervalMatchesFunc {
-	return func(eventInterval Interval) bool {
-		return And(
-			func(eventInterval Interval) bool {
-				locatorParts := LocatorParts(eventInterval.Locator)
-				eventAlertName := AlertFrom(locatorParts)
-				if eventAlertName != alertName {
-					return false
-				}
-				if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
-					return true
-				}
-				return false
-			},
-			InNamespace(namespace),
-		)(eventInterval)
-	}
-}
-
 func AlertFiring() EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
 		if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
@@ -514,23 +516,6 @@ func AlertPending() EventIntervalMatchesFunc {
 			return true
 		}
 		return false
-	}
-}
-
-// InNamespace if namespace == "", then every event matches, same as kube-api
-func InNamespace(namespace string) func(event Interval) bool {
-	return func(event Interval) bool {
-		switch {
-		case len(namespace) == 0:
-			return true
-
-		case namespace == platformidentification.NamespaceOther:
-			eventNamespace := NamespaceFromLocator(event.Locator)
-			return !platformidentification.KnownNamespaces.Has(eventNamespace)
-		default:
-			eventNamespace := NamespaceFromLocator(event.Locator)
-			return eventNamespace == namespace
-		}
 	}
 }
 
@@ -582,48 +567,39 @@ func (intervals Intervals) Cut(from, to time.Time) Intervals {
 	return copied
 }
 
-// CopyAndSort assumes intervals is unsorted and returns a sorted copy of intervals
-// for all intervals between from and to.
-func (intervals Intervals) CopyAndSort(from, to time.Time) Intervals {
-	copied := make(Intervals, 0, len(intervals))
-
-	if from.IsZero() && to.IsZero() {
-		for _, e := range intervals {
-			copied = append(copied, e)
-		}
-		sort.Sort(copied)
-		return copied
-	}
-
-	for _, e := range intervals {
-		if !e.From.After(from) {
-			continue
-		}
-		if !to.IsZero() && !e.From.Before(to) {
-			continue
-		}
-		copied = append(copied, e)
-	}
-	sort.Sort(copied)
-	return copied
-
-}
-
 // Slice works on a sorted Intervals list and returns the set of intervals
-// that start after from and start before to (if to is set). The zero value will
-// return all elements. If intervals is unsorted the result is undefined. This
+// The intervals start from the first Interval that ends AFTER the argument.From.
+// The last interval is one before the first Interval that starts before the argument.To
+// The zero value will return all elements. If intervals is unsorted the result is undefined. This
 // runs in O(n).
 func (intervals Intervals) Slice(from, to time.Time) Intervals {
 	if from.IsZero() && to.IsZero() {
 		return intervals
 	}
 
-	first := sort.Search(len(intervals), func(i int) bool {
-		return intervals[i].From.After(from)
-	})
-	if first == -1 {
-		return nil
+	// forget being fancy, just iterate from the beginning.
+	first := -1
+	if from.IsZero() {
+		first = 0
+	} else {
+		for i := range intervals {
+			curr := intervals[i]
+			if curr.To.IsZero() {
+				if curr.From.After(from) || curr.From == from {
+					first = i
+					break
+				}
+			}
+			if curr.To.After(from) || curr.To == from {
+				first = i
+				break
+			}
+		}
 	}
+	if first == -1 || len(intervals) == 0 {
+		return Intervals{}
+	}
+
 	if to.IsZero() {
 		return intervals[first:]
 	}
@@ -638,10 +614,13 @@ func (intervals Intervals) Slice(from, to time.Time) Intervals {
 // Clamp sets all zero value From or To fields to from or to.
 func (intervals Intervals) Clamp(from, to time.Time) {
 	for i := range intervals {
-		if intervals[i].From.IsZero() {
+		if intervals[i].From.Before(from) {
 			intervals[i].From = from
 		}
 		if intervals[i].To.IsZero() {
+			intervals[i].To = to
+		}
+		if intervals[i].To.After(to) {
 			intervals[i].To = to
 		}
 	}

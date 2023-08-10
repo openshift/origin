@@ -11,11 +11,10 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	operatorclientv1 "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/retry"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -33,20 +32,11 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:o
 	oc := exutil.NewCLIWithPodSecurityLevel("multinetpol-e2e", admissionapi.LevelBaseline)
 	f := oc.KubeFramework()
 
-	// Ensure that MultiNetPolicy stays in the same enabled/disabled state
-	// after the test, that it was in before the test
-	var previousUseMultiNetworkPolicy bool
-	g.BeforeEach(func() {
-		previousUseMultiNetworkPolicy = isMultinetNetworkPolicyEnabled(oc)
-	})
-
-	g.AfterEach(func() {
-		if !previousUseMultiNetworkPolicy {
-			disableMultiNetworkPolicy(oc)
-		}
-	})
-
 	g.DescribeTable("should enforce a network policies on secondary network", func(ctx context.Context, addrs podAddressSet) {
+		if !isMultinetNetworkPolicyEnabled(oc) {
+			skipper.Skipf("skipping because multinet network policy is not enabled on this cluster")
+		}
+
 		var err error
 		ns := f.Namespace.Name
 
@@ -99,9 +89,6 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:o
 		g.By("checking podB can connect to podA")
 		podShouldReach(oc, testPodB.Name, podAListenAddress)
 
-		g.By("enabling MultiNetworkPolicies on cluster")
-		enableMultiNetworkPolicy(oc)
-
 		g.By("creating a deny-all-ingress traffic to pod:a MultiNetworkPolicy")
 		multinetpolicy_yaml := exutil.FixturePath("testdata", "multinetpolicy", "deny-ingress-pod-a.yml")
 		err = oc.AsAdmin().Run("create").Args("-f", multinetpolicy_yaml).Execute()
@@ -127,59 +114,9 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:o
 
 })
 
-func setUseMultiNetworkPolicy(oc *exutil.CLI, enabled bool) {
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		c := oc.AdminOperatorClient().OperatorV1().Networks()
-		config := getCluserNetwork(c)
-
-		b := enabled
-		config.Spec.UseMultiNetworkPolicy = &b
-
-		_, updateErr := c.Update(context.Background(), config, metav1.UpdateOptions{})
-		return updateErr
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-}
-
-func enableMultiNetworkPolicy(oc *exutil.CLI) {
-	setUseMultiNetworkPolicy(oc, true)
-
-	o.Eventually(func() error {
-		return oc.AsAdmin().Run("get").Args("multi-networkpolicies.k8s.cni.cncf.io").Execute()
-	}, "90s", "2s").Should(o.Succeed())
-
-	o.Eventually(func() error {
-		daemonset, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-multus").Get(context.Background(), "multus-networkpolicy", metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("can't get openshift-multus/multus-networkpolicy daemonset: %w", err)
-		}
-
-		if daemonset.Status.NumberAvailable != daemonset.Status.DesiredNumberScheduled {
-			return fmt.Errorf("openshift-multus/multus-networkpolicy daemonset is not ready [%d Available / %d Desired]",
-				daemonset.Status.NumberAvailable, daemonset.Status.DesiredNumberScheduled)
-		}
-
-		return nil
-	}, "30s", "2s").Should(o.Succeed())
-
-}
-
-func disableMultiNetworkPolicy(oc *exutil.CLI) {
-	setUseMultiNetworkPolicy(oc, false)
-
-	o.Eventually(func() error {
-		return oc.AsAdmin().Run("get").Args("multi-networkpolicies.k8s.cni.cncf.io").Execute()
-	}, "90s", "1s").Should(o.HaveOccurred())
-
-	o.Eventually(func() bool {
-		_, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-multus").Get(context.Background(), "multus-networkpolicy", metav1.GetOptions{})
-		return apierrors.IsNotFound(err)
-	}, "30s", "1s").Should(o.BeTrue())
-}
-
 func isMultinetNetworkPolicyEnabled(oc *exutil.CLI) bool {
 	c := oc.AdminOperatorClient().OperatorV1().Networks()
-	config := getCluserNetwork(c)
+	config := getClusterNetwork(c)
 
 	if config.Spec.UseMultiNetworkPolicy == nil {
 		return false
@@ -188,7 +125,7 @@ func isMultinetNetworkPolicyEnabled(oc *exutil.CLI) bool {
 	return *config.Spec.UseMultiNetworkPolicy
 }
 
-func getCluserNetwork(c operatorclientv1.NetworkInterface) *operatorv1.Network {
+func getClusterNetwork(c operatorclientv1.NetworkInterface) *operatorv1.Network {
 	ret, err := c.Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return ret

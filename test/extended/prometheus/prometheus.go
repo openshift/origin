@@ -11,10 +11,12 @@ import (
 	"strings"
 	"time"
 
+	allowedalerts2 "github.com/openshift/origin/pkg/invariantlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/origin/pkg/alerts"
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -23,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -34,7 +37,6 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/networking"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -54,19 +56,6 @@ type TelemeterClientConfig struct {
 var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
-	// These alerts are known to be missing the summary and/or description
-	// annotations.  Bugzillas have been filed, and are linked here.  These
-	// should be fixed one-by-one and removed from this list.
-	descriptionExceptions := sets.NewString(
-		// Repo: openshift/machine-config-operator
-		// https://issues.redhat.com/browse/OCPBUGS-14185
-		"KubeletHealthState",
-		"MCCDrainError",
-		"MCDPivotError",
-		"MCDRebootError",
-		"SystemMemoryExceedsReservation",
-	)
-
 	criticalAlertsMissingRunbookURLExceptions := sets.NewString(
 		// Repository: https://github.com/openshift/cluster-network-operator
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14062
@@ -77,10 +66,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"OVNKubernetesNorthboundDatabaseMultipleLeadersError",
 		"OVNKubernetesSouthboundDatabaseMultipleLeadersError",
 		"OVNKubernetesNorthdInactive",
-
-		// Repository: https://github.com/openshift/cluster-kube-scheduler-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14052
-		"KubeSchedulerDown",
 
 		// Repository; https://github.com/openshift/cluster-storage-operator
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14053
@@ -157,11 +142,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have description and summary annotations", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
-			if descriptionExceptions.Has(alert.Name) {
-				framework.Logf("Alerting rule %q is known to have missing annotations.", alert.Name)
-				return nil
-			}
-
 			violations := sets.NewString()
 
 			if _, found := alert.Annotations["description"]; !found {
@@ -266,6 +246,16 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		oc = exutil.NewCLIWithoutNamespace("prometheus")
 	)
 
+	g.BeforeEach(func() {
+		kubeClient, err := kubernetes.NewForConfig(oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		nsExist, err := exutil.IsNamespaceExist(kubeClient, "openshift-monitoring")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !nsExist {
+			g.Skip("openshift-monitoring namespace does not exist, skipping")
+		}
+	})
+
 	g.It("shouldn't report any unexpected alerts in firing or pending state", func() {
 		// we only consider samples since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds()
@@ -337,7 +327,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 	})
 
 	g.Describe("when installed on the cluster", func() {
-		g.It("should report telemetry [Late]", func() {
+		g.It("should report telemetry [Serial] [Late]", func() {
 			if enabledErr, err := telemetryIsEnabled(ctx, oc.AdminKubeClient()); err != nil {
 				e2e.Failf("could not determine if Telemetry is enabled: %v", err)
 			} else if enabledErr != nil {
@@ -568,7 +558,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			}
 
 			// we exclude alerts that have their own separate tests.
-			for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{}, allowedalerts.DefaultAllowances) {
+			for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{}, allowedalerts2.DefaultAllowances) {
 				allowedAlertNames = append(allowedAlertNames, alertTest.AlertName())
 			}
 

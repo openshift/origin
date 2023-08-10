@@ -277,7 +277,7 @@ func gatherPostMortem(oc *exutil.CLI) {
 		e2e.Logf("get pods from %s: %w", oauthServerNamespace, err)
 	}
 	for _, pod := range pods.Items {
-		logs, err := oc.Run("logs").Args(pod.Name, "-n", oauthServerNamespace).Output()
+		logs, err := oc.AsAdmin().Run("logs").Args(pod.Name, "-n", oauthServerNamespace).Output()
 		if err != nil {
 			e2e.Logf("get logs from %s in %s: %w", pod.Name, oauthServerNamespace, err)
 		}

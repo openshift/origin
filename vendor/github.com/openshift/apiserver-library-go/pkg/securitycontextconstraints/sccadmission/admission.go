@@ -88,10 +88,20 @@ func (c *constraint) Admit(ctx context.Context, a admission.Attributes, _ admiss
 	}
 	pod := a.GetObject().(*coreapi.Pod)
 
+	// deny changes to required SCC annotation during updates
+	if a.GetOperation() == admission.Update {
+		oldPod := a.GetOldObject().(*coreapi.Pod)
+
+		if pod.ObjectMeta.Annotations[securityv1.RequiredSCCAnnotation] != oldPod.ObjectMeta.Annotations[securityv1.RequiredSCCAnnotation] {
+			return admission.NewForbidden(a, fmt.Errorf("invalid change of required security context constraint annotation: %v", securityv1.RequiredSCCAnnotation))
+		}
+	}
+
 	// TODO(liggitt): allow spec mutation during initializing updates?
 	specMutationAllowed := a.GetOperation() == admission.Create
+	ephemeralContainersMutationAllowed := specMutationAllowed || (a.GetOperation() == admission.Update && a.GetSubresource() == "ephemeralcontainers")
 
-	allowedPod, sccName, validationErrs, err := c.computeSecurityContext(ctx, a, pod, specMutationAllowed, "")
+	allowedPod, sccName, validationErrs, err := c.computeSecurityContext(ctx, a, pod, specMutationAllowed, ephemeralContainersMutationAllowed, pod.ObjectMeta.Annotations[securityv1.RequiredSCCAnnotation], "")
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -120,8 +130,16 @@ func (c *constraint) Validate(ctx context.Context, a admission.Attributes, _ adm
 	}
 	pod := a.GetObject().(*coreapi.Pod)
 
+	// this one is required
+	requiredSCCName := pod.ObjectMeta.Annotations[securityv1.RequiredSCCAnnotation]
+	// this one is non-binding
+	validatedSCCNameHint := pod.ObjectMeta.Annotations[securityv1.ValidatedSCCAnnotation]
+	if len(requiredSCCName) > 0 && requiredSCCName != validatedSCCNameHint {
+		return admission.NewForbidden(a, fmt.Errorf("required scc/%v does not match the suggested scc/%v", requiredSCCName, validatedSCCNameHint))
+	}
+
 	// compute the context. Mutation is not allowed. ValidatedSCCAnnotation is used as a hint to gain same speed-up.
-	allowedPod, _, validationErrs, err := c.computeSecurityContext(ctx, a, pod, false, pod.ObjectMeta.Annotations[securityv1.ValidatedSCCAnnotation])
+	allowedPod, _, validationErrs, err := c.computeSecurityContext(ctx, a, pod, false, false, requiredSCCName, validatedSCCNameHint)
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -177,7 +195,13 @@ func (c *constraint) areListersSynced() bool {
 	return true
 }
 
-func (c *constraint) computeSecurityContext(ctx context.Context, a admission.Attributes, pod *coreapi.Pod, specMutationAllowed bool, validatedSCCHint string) (*coreapi.Pod, string, field.ErrorList, error) {
+func (c *constraint) computeSecurityContext(
+	ctx context.Context,
+	a admission.Attributes,
+	pod *coreapi.Pod,
+	specMutationAllowed, ephemeralContainersMutationAllowed bool,
+	requiredSCCName, validatedSCCHint string,
+) (*coreapi.Pod, string, field.ErrorList, error) {
 	// get all constraints that are usable by the user
 	klog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
@@ -206,24 +230,34 @@ func (c *constraint) computeSecurityContext(ctx context.Context, a admission.Att
 		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("securitycontextconstraints.security.openshift.io required check failed oddly"))
 	}
 
-	constraints, err := sccmatching.NewDefaultSCCMatcher(c.sccLister, nil).FindApplicableSCCs(ctx, a.GetNamespace())
+	constraints, err := c.sccLister.List(labels.Everything())
 	if err != nil {
 		return nil, "", nil, admission.NewForbidden(a, err)
 	}
 	if len(constraints) == 0 {
-		sccs, err := c.sccLister.List(labels.Everything())
-		if err != nil {
-			return nil, "", nil, admission.NewForbidden(a, err)
+		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraints found in cluster"))
+	}
+	sort.Sort(sccsort.ByPriority(constraints))
+
+	if len(requiredSCCName) > 0 {
+		var requiredConstraint *securityv1.SecurityContextConstraints
+		for i := range constraints {
+			if constraints[i].Name == requiredSCCName {
+				requiredConstraint = constraints[i]
+				break
+			}
 		}
-		if len(sccs) == 0 {
-			return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraints found in cluster"))
+		if requiredConstraint == nil {
+			return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("required scc/%v not found", requiredSCCName))
 		}
-		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraints found in namespace %s", a.GetNamespace()))
+		constraints = []*securityv1.SecurityContextConstraints{requiredConstraint}
 	}
 
 	// If mutation is not allowed and validatedSCCHint is provided, check the validated policy first.
 	// Keep the order the same for everything else
 	sort.SliceStable(constraints, func(i, j int) bool {
+		// disregard the ephemeral containers here, the rest of the pod should still
+		// not get mutated and so we are primarily interested in the SCC that matched previously
 		if !specMutationAllowed {
 			if constraints[i].Name == validatedSCCHint {
 				return true
@@ -321,6 +355,18 @@ loop:
 			allowingProvider = provider
 			klog.V(5).Infof("pod %s (generate: %s) validated against provider %s with mutation", pod.Name, pod.GenerateName, provider.GetSCCName())
 			break loop
+		case ephemeralContainersMutationAllowed:
+			podCopyCopy := podCopy.DeepCopy()
+			// check if, possibly, only the ephemeral containers were mutated
+			podCopyCopy.Spec.EphemeralContainers = pod.Spec.EphemeralContainers
+			if apiequality.Semantic.DeepEqual(pod, podCopyCopy) {
+				allowedPod = podCopy
+				allowingProvider = provider
+				klog.V(5).Infof("pod %s (generate: %s) validated against provider %s with ephemeralContainers mutation", pod.Name, pod.GenerateName, provider.GetSCCName())
+				break loop
+			}
+			klog.V(5).Infof("pod %s (generate: %s) validated against provider %s, but required pod mutation outside ephemeralContainers, skipping", pod.Name, pod.GenerateName, provider.GetSCCName())
+			failures[provider.GetSCCName()] = "failures final validation after mutating admission"
 		case apiequality.Semantic.DeepEqual(pod, podCopy):
 			// if we don't allow mutation, only use the validated pod if it didn't require any spec changes
 			allowedPod = podCopy
@@ -329,7 +375,7 @@ loop:
 			break loop
 		default:
 			klog.V(5).Infof("pod %s (generate: %s) validated against provider %s, but required mutation, skipping", pod.Name, pod.GenerateName, provider.GetSCCName())
-			failures[provider.GetSCCName()] = fmt.Sprintf("failures final validation after mutating admission")
+			failures[provider.GetSCCName()] = "failures final validation after mutating admission"
 		}
 	}
 
@@ -417,11 +463,23 @@ loop:
 	return allowedPod, allowingProvider.GetSCCName(), validationErrs, nil
 }
 
+var ignoredSubresources = sets.NewString(
+	"exec",
+	"attach",
+	"binding",
+	"eviction",
+	"log",
+	"portforward",
+	"proxy",
+	"status",
+)
+
 func shouldIgnore(a admission.Attributes) (bool, error) {
 	if a.GetResource().GroupResource() != coreapi.Resource("pods") {
 		return true, nil
 	}
-	if len(a.GetSubresource()) != 0 {
+
+	if subresource := a.GetSubresource(); len(subresource) != 0 && ignoredSubresources.Has(subresource) {
 		return true, nil
 	}
 

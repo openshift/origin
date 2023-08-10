@@ -73,8 +73,8 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 	return nil
 }
 
-func DecodeProvider(provider string, dryRun, discover bool, clusterState *ClusterState) (*ClusterConfiguration, error) {
-	switch provider {
+func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterState *ClusterState) (*ClusterConfiguration, error) {
+	switch providerTypeOrJSON {
 	case "none":
 		config := &ClusterConfiguration{
 			ProviderName: "skeleton",
@@ -129,7 +129,7 @@ func DecodeProvider(provider string, dryRun, discover bool, clusterState *Cluste
 		var providerInfo struct {
 			Type string
 		}
-		if err := json.Unmarshal([]byte(provider), &providerInfo); err != nil {
+		if err := json.Unmarshal([]byte(providerTypeOrJSON), &providerInfo); err != nil {
 			return nil, fmt.Errorf("provider must be a JSON object with the 'type' key at a minimum: %v", err)
 		}
 		if len(providerInfo.Type) == 0 {
@@ -150,7 +150,7 @@ func DecodeProvider(provider string, dryRun, discover bool, clusterState *Cluste
 			config = &ClusterConfiguration{}
 		}
 
-		if err := json.Unmarshal([]byte(provider), config); err != nil {
+		if err := json.Unmarshal([]byte(providerTypeOrJSON), config); err != nil {
 			return nil, fmt.Errorf("provider must decode into the ClusterConfig object: %v", err)
 		}
 		return config, nil

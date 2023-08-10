@@ -731,7 +731,7 @@
 "[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should have non-Pod host cAdvisor metrics [Suite:openshift/conformance/parallel]"
 "[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should provide ingress metrics [Suite:openshift/conformance/parallel]"
 "[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should provide named network metrics [apigroup:project.openshift.io] [Suite:openshift/conformance/parallel]"
-"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should report telemetry [Late] [Suite:openshift/conformance/parallel]"
+"[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should report telemetry [Serial] [Late] [Suite:openshift/conformance/serial]"
 "[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]"
 "[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster shouldn't have failing rules evaluation [Suite:openshift/conformance/parallel]"
 "[sig-instrumentation] Prometheus [apigroup:image.openshift.io] when installed on the cluster shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io] [Suite:openshift/conformance/parallel]"
