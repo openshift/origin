@@ -1186,6 +1186,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: policy
       type:
         scalar: string
+    - name: protocolStrategy
+      type:
+        scalar: string
+      default: ""
     - name: transportConfig
       type:
         namedType: com.github.openshift.api.operator.v1.DNSTransportConfig
@@ -1229,6 +1233,9 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.operator.v1.GatewayConfig
   map:
     fields:
+    - name: ipForwarding
+      type:
+        scalar: string
     - name: routingViaHost
       type:
         scalar: boolean
@@ -2599,6 +2606,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: maxFileSize
       type:
         scalar: numeric
+    - name: maxLogFiles
+      type:
+        scalar: numeric
     - name: rateLimit
       type:
         scalar: numeric
@@ -3117,6 +3127,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: policy
       type:
         scalar: string
+    - name: protocolStrategy
+      type:
+        scalar: string
+      default: ""
     - name: transportConfig
       type:
         namedType: com.github.openshift.api.operator.v1.DNSTransportConfig
