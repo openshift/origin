@@ -456,6 +456,7 @@ func (b *BackendSampler) Stop() {
 		fmt.Printf("waiting for consumer to finish %v...\n", b.locator)
 		select {
 		case <-b.consumptionFinished:
+			fmt.Printf("consumer finished %v\n", b.locator)
 			return
 		case <-time.After(10 * time.Second):
 		}
