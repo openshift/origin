@@ -28,11 +28,15 @@ spec:
             - --output-file=/var/log/persistent-logs/disruption-pod-to-pod.jsonl
             - --disruption-backend-prefix=pod-to-pod
             - --disruption-target-service-name=pod-network-service
-          # overridden when created
+            - --stop-configmap=stop-collecting
+            - --my-node-name=$(MY_NODE_NAME)
           image: docker.io/deads2k/openshift-tests
           imagePullPolicy: IfNotPresent
           name: disruption-poller
           terminationMessagePolicy: FallbackToLogsOnError
+          securityContext:
+            runAsUser: 0
+            privileged: true
           env:
             - name: MY_NODE_NAME
               valueFrom:
@@ -56,7 +60,7 @@ spec:
                 matchLabels:
                   network.openshift.io/disruption-target: pod-network
                   network.openshift.io/disruption-actor: poller
-    volumes:
-      - hostPath:
-          path: /var/log/kube-apiserver
-        name: persistent-log-dir
+      volumes:
+        - hostPath:
+            path: /var/log/kube-apiserver
+          name: persistent-log-dir

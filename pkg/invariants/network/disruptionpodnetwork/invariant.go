@@ -117,6 +117,19 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 }
 
 func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	// create the stop collecting configmap and wait for 30s to thing to have stopped.  the 30s is just a guess
+	if _, err := pna.kubeClient.CoreV1().ConfigMaps(pna.namespaceName).Create(ctx, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "stop-collecting"},
+	}, metav1.CreateOptions{}); err != nil {
+		return nil, nil, err
+	}
+
+	select {
+	case <-time.After(30 * time.Second):
+	case <-ctx.Done():
+		return nil, nil, ctx.Err()
+	}
+
 	pollerLabel, err := labels.NewRequirement("network.openshift.io/disruption-actor", selection.Equals, []string{"poller"})
 	if err != nil {
 		return nil, nil, err
