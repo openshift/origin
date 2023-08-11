@@ -25,6 +25,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+type explain struct {
+	gvr                   schema.GroupVersionResource
+	fieldTypeNameOverride map[string]string
+}
+
 type explainExceptions struct {
 	gv      schema.GroupVersion
 	field   string
@@ -32,27 +37,33 @@ type explainExceptions struct {
 }
 
 var (
-	builtinTypes = map[string][]schema.GroupVersionResource{
+	builtinTypes = map[string][]explain{
 		"apps.openshift.io": {
-			{Group: "apps.openshift.io", Version: "v1", Resource: "deploymentconfigs"},
+			{gvr: schema.GroupVersionResource{Group: "apps.openshift.io", Version: "v1", Resource: "deploymentconfigs"}},
 		},
 		"build.openshift.io": {
-			{Group: "build.openshift.io", Version: "v1", Resource: "buildconfigs"},
-			{Group: "build.openshift.io", Version: "v1", Resource: "builds"},
+			{gvr: schema.GroupVersionResource{Group: "build.openshift.io", Version: "v1", Resource: "buildconfigs"}},
+			{gvr: schema.GroupVersionResource{Group: "build.openshift.io", Version: "v1", Resource: "builds"}},
 		},
 		"image.openshift.io": {
-			{Group: "image.openshift.io", Version: "v1", Resource: "imagestreamimports"},
-			{Group: "image.openshift.io", Version: "v1", Resource: "imagestreams"},
-			{Group: "image.openshift.io", Version: "v1", Resource: "imagetags"},
+			{gvr: schema.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "imagestreamimports"}},
+			{gvr: schema.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "imagestreams"}},
+			{
+				gvr: schema.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "imagetags"},
+				fieldTypeNameOverride: map[string]string{
+					"spec":   "TagReference",
+					"status": "NamedTagEventList",
+				},
+			},
 		},
 		"project.openshift.io": {
-			{Group: "project.openshift.io", Version: "v1", Resource: "projects"},
+			{gvr: schema.GroupVersionResource{Group: "project.openshift.io", Version: "v1", Resource: "projects"}},
 		},
 		"route.openshift.io": {
-			{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
+			{gvr: schema.GroupVersionResource{Group: "route.openshift.io", Version: "v1", Resource: "routes"}},
 		},
 		"template.openshift.io": {
-			{Group: "template.openshift.io", Version: "v1", Resource: "templateinstances"},
+			{gvr: schema.GroupVersionResource{Group: "template.openshift.io", Version: "v1", Resource: "templateinstances"}},
 		},
 	}
 
@@ -538,7 +549,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 
 		for _, bts := range builtinTypes {
 			for _, bt := range bts {
-				delete(resourceMap, bt)
+				delete(resourceMap, bt.gvr)
 			}
 		}
 		for _, ct := range crdTypes {
@@ -576,7 +587,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", groupName, groupName), func() {
 			for _, bt := range types {
 				e2e.Logf("Checking %s...", bt)
-				o.Expect(verifySpecStatusExplain(oc, nil, bt)).NotTo(o.HaveOccurred())
+				o.Expect(verifySpecStatusExplain(oc, nil, bt.gvr, bt.fieldTypeNameOverride)).NotTo(o.HaveOccurred())
 			}
 		})
 	}
@@ -593,7 +604,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 				if !exist {
 					g.Skip(fmt.Sprintf("Resource %s of %s does not exist, skipping", resourceName, groupName))
 				}
-				o.Expect(verifySpecStatusExplain(oc, nil, bet)).NotTo(o.HaveOccurred())
+				o.Expect(verifySpecStatusExplain(oc, nil, bet, nil)).NotTo(o.HaveOccurred())
 			})
 		}
 	}
@@ -667,12 +678,18 @@ var _ = g.Describe("[sig-cli] oc explain networking types", func() {
 	})
 })
 
-func verifySpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource) error {
+func verifySpecStatusExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, gvr schema.GroupVersionResource, fieldTypeNameOverrides map[string]string) error {
 	singularResourceName, _ := strings.CutSuffix(gvr.Resource, "s")
-	normalizedResourceName := fmt.Sprintf("(?i)%v(?-i)", singularResourceName)            // case insensitive
-	defaultSpecTypeName := fmt.Sprintf("(<%vSpec>|<Object>)", normalizedResourceName)     // <Object> was used before 1.27
-	defaultStatusTypeName := fmt.Sprintf("(<%vStatus>|<Object>)", normalizedResourceName) // <Object> was used before 1.27
-	pattern := fmt.Sprintf(`(?s)DESCRIPTION:.*FIELDS:.*spec.*%v.*[Ss]pec(ification)?.*status.*%v.*[Ss]tatus.*`, defaultSpecTypeName, defaultStatusTypeName)
+	normalizedResourceName := fmt.Sprintf("(?i)%v(?-i)", singularResourceName) // case insensitive
+	specTypeName := fmt.Sprintf("(<%vSpec>|<Object>)", normalizedResourceName) // <Object> was used before 1.27
+	if typeName, ok := fieldTypeNameOverrides["spec"]; ok {
+		specTypeName = fmt.Sprintf("<%v>", typeName)
+	}
+	statusTypeName := fmt.Sprintf("(<%vStatus>|<Object>)", normalizedResourceName) // <Object> was used before 1.27
+	if typeName, ok := fieldTypeNameOverrides["status"]; ok {
+		statusTypeName = fmt.Sprintf("<%v>", typeName)
+	}
+	pattern := fmt.Sprintf(`(?s)DESCRIPTION:.*FIELDS:.*spec.*%v.*[Ss]pec(ification)?.*status.*%v.*[Ss]tatus.*`, specTypeName, statusTypeName)
 	return verifyExplain(oc, crdClient, gvr, pattern, gvr.Resource, fmt.Sprintf("--api-version=%s", gvr.GroupVersion()))
 }
 
