@@ -38,6 +38,11 @@ spec:
               scheme: HTTP
               port: 8080
               path: /readyz
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 1
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
       affinity:
