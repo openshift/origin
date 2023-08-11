@@ -2,9 +2,11 @@ package disruptionpodnetwork
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"embed"
 	_ "embed"
+	"fmt"
 	"time"
 
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
@@ -133,8 +135,11 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 	}
 
 	retIntervals := monitorapi.Intervals{}
+	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
+	buf := &bytes.Buffer{}
 	for _, pollerPod := range pollerPods.Items {
+		fmt.Fprintf(buf, "\n\nLogs for -n %v pod/%v\n", pollerPod.Namespace, pollerPod.Name)
 		req := pna.kubeClient.CoreV1().Pods(pna.namespaceName).GetLogs(pollerPod.Name, &corev1.PodLogOptions{})
 		if err != nil {
 			errs = append(errs, err)
@@ -149,6 +154,7 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
 			line := scanner.Bytes()
+			fmt.Fprintln(buf, line)
 			if len(line) == 0 {
 				continue
 			}
@@ -159,8 +165,12 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 			}
 		}
 	}
+	junits = append(junits, &junitapi.JUnitTestCase{
+		Name:      "[sig-network] poller pod logs",
+		SystemOut: string(buf.Bytes()),
+	})
 
-	return retIntervals, nil, utilerrors.NewAggregate(errs)
+	return retIntervals, junits, utilerrors.NewAggregate(errs)
 }
 
 func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
