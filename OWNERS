@@ -8,6 +8,8 @@ filters:
     - sjenning
     - smarterclayton
     - soltysh
+    - stlaz
+    - p0lyn0mial
     approvers:
     - bparees
     - deads2k
@@ -22,6 +24,8 @@ filters:
     - stbenjam
     - sttts
     - smarterclayton
+    - stlaz
+    - p0lyn0mial
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
