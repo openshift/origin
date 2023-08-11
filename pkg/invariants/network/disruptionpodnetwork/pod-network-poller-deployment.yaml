@@ -25,8 +25,8 @@ spec:
             - /openshift-tests
             - disruption
             - watch-endpoint-slice
-            - --output-file=disruption.jsonl
-            - --disruption-backend-prefix=pod-to-pod-
+            - --output-file=/var/log/persistent-logs/disruption-pod-to-pod.jsonl
+            - --disruption-backend-prefix=pod-to-pod
             - --disruption-target-service-name=pod-network-service
           # overridden when created
           image: docker.io/deads2k/openshift-tests
@@ -38,6 +38,9 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+          volumeMounts:
+            - mountPath: /var/log/persistent-logs
+              name: persistent-log-dir
       restartPolicy: Always
       terminationGracePeriodSeconds: 70
       tolerations:
@@ -53,3 +56,7 @@ spec:
                 matchLabels:
                   network.openshift.io/disruption-target: pod-network
                   network.openshift.io/disruption-actor: poller
+    volumes:
+      - hostPath:
+          path: /var/log/kube-apiserver
+        name: persistent-log-dir

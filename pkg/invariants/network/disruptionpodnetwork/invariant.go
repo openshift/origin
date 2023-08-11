@@ -148,7 +148,7 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
 			line := scanner.Bytes()
-			fmt.Fprintln(buf, line)
+			fmt.Fprintln(buf, string(line))
 			if len(line) == 0 {
 				continue
 			}
