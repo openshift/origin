@@ -92,10 +92,8 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
-	//only get the worker nodes since we con only schedual there to begin with
-	nodes, err := pna.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
-		LabelSelector: "node-role.kubernetes.io/worker",
-	})
+	// our pods tolerate masters, so create one for each of them.
+	nodes, err := pna.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
