@@ -3,6 +3,7 @@ package invariants
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -50,69 +51,116 @@ func (r *invariantRegistry) AddInvariantOrDie(name, jiraComponent string, invari
 }
 
 func (r *invariantRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error) {
-	junits := []*junitapi.JUnitTestCase{}
-	errs := []error{}
+	wg := sync.WaitGroup{}
+	junitCh := make(chan *junitapi.JUnitTestCase, len(r.invariantTests))
+	errCh := make(chan error, len(r.invariantTests))
 
-	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("[Jira:%q] invariant test %v setup", invariant.jiraComponent, invariant.name)
+	for i := range r.invariantTests {
+		wg.Add(1)
+		go func(ctx context.Context, invariant *invariantItem) {
+			defer wg.Done()
 
-		start := time.Now()
-		err := startCollectionWithPanicProtection(ctx, invariant.invariantTest, adminRESTConfig, recorder)
-		end := time.Now()
-		duration := end.Sub(start)
-		if err != nil {
-			errs = append(errs, err)
-			junits = append(junits, &junitapi.JUnitTestCase{
+			testName := fmt.Sprintf("[Jira:%q] invariant test %v setup", invariant.jiraComponent, invariant.name)
+			fmt.Printf("  Starting %v for %v\n", invariant.name, invariant.jiraComponent)
+
+			start := time.Now()
+			err := startCollectionWithPanicProtection(ctx, invariant.invariantTest, adminRESTConfig, recorder)
+			end := time.Now()
+			duration := end.Sub(start)
+			if err != nil {
+				errCh <- err
+				junitCh <- &junitapi.JUnitTestCase{
+					Name:     testName,
+					Duration: duration.Seconds(),
+					FailureOutput: &junitapi.FailureOutput{
+						Output: fmt.Sprintf("failed during setup\n%v", err),
+					},
+					SystemOut: fmt.Sprintf("failed during setup\n%v", err),
+				}
+				return
+			}
+
+			junitCh <- &junitapi.JUnitTestCase{
 				Name:     testName,
 				Duration: duration.Seconds(),
-				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("failed during setup\n%v", err),
-				},
-				SystemOut: fmt.Sprintf("failed during setup\n%v", err),
-			})
-			continue
-		}
+			}
+		}(ctx, r.invariantTests[i])
 
-		junits = append(junits, &junitapi.JUnitTestCase{
-			Name:     testName,
-			Duration: duration.Seconds(),
-		})
+	}
+
+	wg.Wait()
+	close(junitCh)
+	close(errCh)
+
+	junits := []*junitapi.JUnitTestCase{}
+	errs := []error{}
+	for curr := range junitCh {
+		junits = append(junits, curr)
+	}
+	for curr := range errCh {
+		errs = append(errs, curr)
 	}
 
 	return junits, utilerrors.NewAggregate(errs)
 }
 
 func (r *invariantRegistry) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	wg := sync.WaitGroup{}
+	intervalsCh := make(chan monitorapi.Intervals, len(r.invariantTests))
+	junitCh := make(chan []*junitapi.JUnitTestCase, 2*len(r.invariantTests))
+	errCh := make(chan error, len(r.invariantTests))
+
+	for i := range r.invariantTests {
+		wg.Add(1)
+		go func(ctx context.Context, invariant *invariantItem) {
+			defer wg.Done()
+			testName := fmt.Sprintf("[Jira:%q] invariant test %v collection", invariant.jiraComponent, invariant.name)
+
+			start := time.Now()
+			localIntervals, localJunits, err := collectDataWithPanicProtection(ctx, invariant.invariantTest, storageDir, beginning, end)
+			intervalsCh <- localIntervals
+			junitCh <- localJunits
+			end := time.Now()
+			duration := end.Sub(start)
+			if err != nil {
+				junitCh <- []*junitapi.JUnitTestCase{
+					{
+						Name:     testName,
+						Duration: duration.Seconds(),
+						FailureOutput: &junitapi.FailureOutput{
+							Output: fmt.Sprintf("failed during collection\n%v", err),
+						},
+						SystemOut: fmt.Sprintf("failed during collection\n%v", err),
+					},
+				}
+				return
+			}
+
+			junitCh <- []*junitapi.JUnitTestCase{
+				{
+					Name:     testName,
+					Duration: duration.Seconds(),
+				},
+			}
+		}(ctx, r.invariantTests[i])
+	}
+
+	wg.Wait()
+	close(intervalsCh)
+	close(junitCh)
+	close(errCh)
+
 	intervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
-
-	for _, invariant := range r.invariantTests {
-		testName := fmt.Sprintf("[Jira:%q] invariant test %v collection", invariant.jiraComponent, invariant.name)
-
-		start := time.Now()
-		localIntervals, localJunits, err := collectDataWithPanicProtection(ctx, invariant.invariantTest, storageDir, beginning, end)
-		junits = append(junits, localJunits...)
-		intervals = append(intervals, localIntervals...)
-		end := time.Now()
-		duration := end.Sub(start)
-		if err != nil {
-			errs = append(errs, err)
-			junits = append(junits, &junitapi.JUnitTestCase{
-				Name:     testName,
-				Duration: duration.Seconds(),
-				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("failed during collection\n%v", err),
-				},
-				SystemOut: fmt.Sprintf("failed during collection\n%v", err),
-			})
-			continue
-		}
-
-		junits = append(junits, &junitapi.JUnitTestCase{
-			Name:     testName,
-			Duration: duration.Seconds(),
-		})
+	for curr := range intervalsCh {
+		intervals = append(intervals, curr...)
+	}
+	for curr := range junitCh {
+		junits = append(junits, curr...)
+	}
+	for curr := range errCh {
+		errs = append(errs, curr)
 	}
 
 	return intervals, junits, utilerrors.NewAggregate(errs)
