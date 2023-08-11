@@ -34,6 +34,11 @@ spec:
           terminationMessagePolicy: FallbackToLogsOnError
       restartPolicy: Always
       terminationGracePeriodSeconds: 70
+      tolerations:
+        # Ensure pod can be scheduled on master nodes
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:

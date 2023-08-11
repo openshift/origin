@@ -45,6 +45,11 @@ spec:
             failureThreshold: 1
       restartPolicy: Always
       terminationGracePeriodSeconds: 60
+      tolerations:
+        # Ensure pod can be scheduled on master nodes
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
