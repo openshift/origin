@@ -9,22 +9,19 @@ import (
 	"syscall"
 	"time"
 
-	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
-
-	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
-
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
-	monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
 	run2 "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
-
-	"github.com/openshift/origin/pkg/resourcewatch/cmd"
-
-	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
+	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/run"
+	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
 	run_test "github.com/openshift/origin/pkg/cmd/openshift-tests/run-test"
 	run_upgrade "github.com/openshift/origin/pkg/cmd/openshift-tests/run-upgrade"
+	"github.com/openshift/origin/pkg/resourcewatch/cmd"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
@@ -84,6 +81,7 @@ func main() {
 		dev.NewDevCommand(),
 		run2.NewRunMonitorCommand(ioStreams),
 		monitor.NewMonitorCommand(ioStreams),
+		disruption.NewDisruptionCommand(ioStreams),
 		risk_analysis.NewTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
 		timeline.NewTimelineCommand(ioStreams),
