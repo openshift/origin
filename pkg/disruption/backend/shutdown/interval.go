@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+
 	"github.com/openshift/origin/pkg/disruption/backend"
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
 
@@ -32,11 +34,11 @@ import (
 // shutdown event of the kube-apiserver, and request(s) from different
 // backend sampler(s) will potentially hit the kube-apiserver
 // during a graceful shutdown window.
-// This function returns an instance of WantEventRecorderAndMonitor, the test
+// This function returns an instance of WantEventRecorderAndMonitorRecorder, the test
 // driver can use it to pass along the shared event recorder and monitor.
 func NewSharedShutdownIntervalTracker(delegate backendsampler.SampleCollector, descriptor backend.TestDescriptor,
-	monitor backend.Monitor, eventRecorder events.EventRecorder) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitor) {
-	handler := newCIShutdownIntervalHandler(descriptor, monitor, eventRecorder)
+	monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitorRecorder) {
+	handler := newCIShutdownIntervalHandler(descriptor, monitorRecorder, eventRecorder)
 	return &sharedShutdownIntervalTracker{
 		shutdownIntervalTracker: &shutdownIntervalTracker{
 			delegate:  delegate,

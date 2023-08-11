@@ -13,23 +13,23 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-func newCIShutdownIntervalHandler(descriptor backend.TestDescriptor, monitor backend.Monitor, eventRecorder events.EventRecorder) *ciShutdownIntervalHandler {
+func newCIShutdownIntervalHandler(descriptor backend.TestDescriptor, monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) *ciShutdownIntervalHandler {
 	return &ciShutdownIntervalHandler{
-		monitor:       monitor,
-		eventRecorder: eventRecorder,
-		descriptor:    descriptor,
+		monitorRecorder: monitorRecorder,
+		eventRecorder:   eventRecorder,
+		descriptor:      descriptor,
 	}
 }
 
 var _ shutdownIntervalHandler = &ciShutdownIntervalHandler{}
-var _ backend.WantEventRecorderAndMonitor = &ciShutdownIntervalHandler{}
+var _ backend.WantEventRecorderAndMonitorRecorder = &ciShutdownIntervalHandler{}
 
 type ciShutdownIntervalHandler struct {
 	descriptor backend.TestDescriptor
 
-	lock          sync.Mutex
-	monitor       backend.Monitor
-	eventRecorder events.EventRecorder
+	lock            sync.Mutex
+	monitorRecorder monitorapi.RecorderWriter
+	eventRecorder   events.EventRecorder
 }
 
 // SetEventRecorder sets the event recorder
@@ -40,10 +40,10 @@ func (h *ciShutdownIntervalHandler) SetEventRecorder(recorder events.EventRecord
 }
 
 // SetMonitor sets the interval recorder provided by the monitor API
-func (h *ciShutdownIntervalHandler) SetMonitor(monitor backend.Monitor) {
+func (h *ciShutdownIntervalHandler) SetMonitorRecorder(monitorRecorder monitorapi.RecorderWriter) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	h.monitor = monitor
+	h.monitorRecorder = monitorRecorder
 }
 
 func (h *ciShutdownIntervalHandler) Handle(shutdown *shutdownInterval) {
@@ -70,6 +70,6 @@ func (h *ciShutdownIntervalHandler) Handle(shutdown *shutdownInterval) {
 	condition := monitorapi.NewInterval(monitorapi.SourceAPIServerShutdown, level).
 		Locator(h.descriptor.ShutdownLocator()).Display().
 		Message(monitorapi.NewMessage().HumanMessage(message).Reason(reason)).BuildCondition()
-	intervalID := h.monitor.StartInterval(shutdown.From, condition)
-	h.monitor.EndInterval(intervalID, shutdown.To)
+	intervalID := h.monitorRecorder.StartInterval(shutdown.From, condition)
+	h.monitorRecorder.EndInterval(intervalID, shutdown.To)
 }
