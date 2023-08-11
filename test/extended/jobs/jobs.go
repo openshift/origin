@@ -44,7 +44,7 @@ var _ = g.Describe("[sig-apps][Feature:Jobs]", func() {
 
 		o.Expect(len(jobs.Items)).Should(o.Equal(1))
 		job := jobs.Items[0]
-		o.Expect(len(job.Status.Conditions)).Should(o.Equal(1))
+		o.Expect(len(job.Status.Conditions)).Should(o.Equal(10))
 		o.Expect(job.Status.Conditions[0].Type).Should(o.Equal(batchv1.JobComplete))
 
 		g.By("removing a job...")
