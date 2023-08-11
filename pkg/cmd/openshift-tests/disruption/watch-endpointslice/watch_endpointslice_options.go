@@ -24,6 +24,7 @@ type WatchEndpointSliceOptions struct {
 	OutputFile    string
 	BackendPrefix string
 	ServiceName   string
+	MyNodeName    string
 
 	OriginalOutFile io.Writer
 	CloseFn         iooptions.CloseFunc
@@ -51,6 +52,7 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 	podToPodChecker := NewEndpointWatcher(
 		o.BackendPrefix,
 		o.ServiceName,
+		o.MyNodeName,
 		recorder,
 		o.IOStreams.Out,
 		namespaceScopedEndpointSliceInformers.EndpointSlices())

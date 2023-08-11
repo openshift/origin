@@ -33,6 +33,11 @@ spec:
           imagePullPolicy: IfNotPresent
           name: disruption-poller
           terminationMessagePolicy: FallbackToLogsOnError
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
       restartPolicy: Always
       terminationGracePeriodSeconds: 70
       tolerations:

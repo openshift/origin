@@ -29,6 +29,7 @@ import (
 type EndpointSliceController struct {
 	backendPrefix string
 	serviceName   string
+	myNodeName    string
 	recorder      monitorapi.RecorderWriter
 	outFile       io.Writer
 
@@ -53,6 +54,7 @@ type watcher struct {
 func NewEndpointWatcher(
 	backendPrefix string,
 	serviceName string,
+	myNodeName string,
 	recorder monitorapi.RecorderWriter,
 	outFile io.Writer,
 
@@ -61,6 +63,7 @@ func NewEndpointWatcher(
 	c := &EndpointSliceController{
 		backendPrefix: backendPrefix,
 		serviceName:   serviceName,
+		myNodeName:    myNodeName,
 		recorder:      recorder,
 		outFile:       outFile,
 
@@ -140,16 +143,20 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 		url := fmt.Sprintf("http://%s", net.JoinHostPort(newWatcher.address, newWatcher.port))
 		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, newWatcher.nodeName)
 
-		newWatcher.newConnectionSampler = backenddisruption.NewSimpleBackend(
+		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
+		intervalLocator := fmt.Sprintf("%s-from-node-%v-to-node-%v-endpoint-%v", c.backendPrefix, c.myNodeName, newWatcher.nodeName, newWatcher.address)
+		newWatcher.newConnectionSampler = backenddisruption.NewSimpleBackendWithLocator(
+			monitorapi.LocateDisruptionCheck(intervalLocator, monitorapi.NewConnectionType),
 			url,
-			fmt.Sprintf("%s-new-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
+			fmt.Sprintf("%s-%v", c.backendPrefix, monitorapi.NewConnectionType),
 			"",
 			monitorapi.NewConnectionType,
 		)
 		newWatcher.newConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
-		newWatcher.reusedConnectionSampler = backenddisruption.NewSimpleBackend(
+		newWatcher.reusedConnectionSampler = backenddisruption.NewSimpleBackendWithLocator(
+			monitorapi.LocateDisruptionCheck(intervalLocator, monitorapi.ReusedConnectionType),
 			url,
-			fmt.Sprintf("%s-reused-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
+			fmt.Sprintf("%s-%v", c.backendPrefix, monitorapi.ReusedConnectionType),
 			"",
 			monitorapi.ReusedConnectionType,
 		)
