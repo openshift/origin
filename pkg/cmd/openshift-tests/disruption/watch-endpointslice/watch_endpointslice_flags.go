@@ -22,6 +22,7 @@ type WatchEndpointSliceFlags struct {
 	OutputFlags   *iooptions.OutputFlags
 	ServiceName   string
 	BackendPrefix string
+	MyNodeName    string
 
 	genericclioptions.IOStreams
 }
@@ -79,6 +80,7 @@ func NewWatchEndpointSlice(ioStreams genericclioptions.IOStreams) *cobra.Command
 }
 
 func (f *WatchEndpointSliceFlags) BindOptions(flags *pflag.FlagSet) {
+	flags.StringVar(&f.MyNodeName, "my-node-name", f.MyNodeName, "the name of the node running this pod")
 	flags.StringVar(&f.ServiceName, "disruption-target-service-name", f.ServiceName, "the name of the service whose endpoints we want to poll")
 	flags.StringVar(&f.BackendPrefix, "disruption-backend-prefix", f.BackendPrefix, "classification of disruption for the disruption summary")
 	f.ConfigFlags.AddFlags(flags)
@@ -132,6 +134,7 @@ func (f *WatchEndpointSliceFlags) ToOptions() (*WatchEndpointSliceOptions, error
 		Namespace:       namespace,
 		OutputFile:      f.OutputFlags.OutFile,
 		ServiceName:     f.ServiceName,
+		MyNodeName:      f.MyNodeName,
 		BackendPrefix:   f.BackendPrefix,
 		CloseFn:         closeFn,
 		OriginalOutFile: originalOutStream,
