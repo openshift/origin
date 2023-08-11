@@ -154,7 +154,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 
-	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), " openshift-apiserver", metav1.GetOptions{})
+	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-apiserver", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		w.notSupportedReason = "namespace openshift-apiserver not present"
 		return nil
@@ -162,7 +162,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	if err != nil {
 		return err
 	}
-	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), " openshift-oauth-apiserver", metav1.GetOptions{})
+	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-oauth-apiserver", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		w.notSupportedReason = "namespace openshift-oauth-apiserver not present"
 		return nil
