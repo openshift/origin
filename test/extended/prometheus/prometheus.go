@@ -67,10 +67,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"OVNKubernetesSouthboundDatabaseMultipleLeadersError",
 		"OVNKubernetesNorthdInactive",
 
-		// Repository; https://github.com/openshift/cluster-storage-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14053
-		"MultipleDefaultStorageClasses",
-
 		// Repository: https://github.com/openshift/machine-api-operator
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14055
 		"MachineAPIOperatorMetricsCollectionFailing",
