@@ -378,20 +378,9 @@ func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecor
 	}
 
 	// the producer is wired from the original context so that a base cancel stops everything
-	producerContext, producerCancel := context.WithCancel(ctx)
-	defer producerCancel()
-	b.setCancelForRun(producerCancel) // used from .Stop later to stop monitoring
-
-	// the consumer context is separate from the original context, but stopped 15s after the producer context closes.
-	// this allows consumption to complete after the context is closed
-	consumerContext, consumerCancel := context.WithCancel(context.Background())
-	defer consumerCancel()
-	go func() {
-		<-producerContext.Done()
-		consumptionGrace := b.getTimeout() * 2 // we need to wait longer than backstopContextTimeout to ensure we're finished producing
-		time.Sleep(consumptionGrace)
-		consumerCancel()
-	}()
+	samplerContext, samplerCancel := context.WithCancel(ctx)
+	defer samplerCancel()
+	b.setCancelForRun(samplerCancel) // used from .Stop later to stop monitoring
 
 	if monitorRecorder == nil {
 		return fmt.Errorf("monitor is required")
@@ -403,7 +392,7 @@ func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecor
 			for {
 				select {
 				case <-fakeEventRecorder.Events:
-				case <-producerContext.Done():
+				case <-samplerContext.Done():
 					return
 				}
 			}
@@ -413,11 +402,10 @@ func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecor
 
 	interval := 1 * time.Second
 	disruptionSampler := newDisruptionSampler(b)
-	go disruptionSampler.produceSamples(producerContext, interval)
-	go disruptionSampler.consumeSamples(consumerContext, b.consumptionFinished, interval, monitorRecorder, eventRecorder)
+	go disruptionSampler.produceSamples(samplerContext, interval)
+	go disruptionSampler.consumeSamples(samplerContext, b.consumptionFinished, interval, monitorRecorder, eventRecorder)
 
-	<-producerContext.Done()
-	<-consumerContext.Done()
+	<-samplerContext.Done()
 	<-b.consumptionFinished
 
 	if disruptionSampler.numberOfSamples(ctx) > 0 {
