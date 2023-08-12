@@ -29,6 +29,10 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:APIServer] authenticated browser should get a 200 from /": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-api-machinery][Feature:APIServer] should serve openapi v3 discovery": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery][Feature:APIServer] should serve openapi v3": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients": " [Suite:openshift/conformance/parallel]",
