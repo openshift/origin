@@ -70,6 +70,7 @@ func (m *Monitor) Start(ctx context.Context) error {
 		return err
 	}
 	m.junits = append(m.junits, localJunits...)
+	fmt.Printf("All invariants started.\n")
 
 	client, err := kubernetes.NewForConfig(m.adminKubeConfig)
 	if err != nil {
@@ -100,24 +101,19 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 	m.stopFn()
 	m.stopFn = nil
 
-	// we don't want this method to return until all te additional recorders and invariants have completed processing.
-	// to do this correctly, we need closure channels or some kind of mechanism.
-	// rather than properly wire this through, we'll wait until the backend disruption consumers timeout after the producer
-	// close.
-	// TODO once we have converted the backendsamplers to invariant tests, we can properly wait for completion
-	time.Sleep(70 * time.Second)
-
-	// set the stop time for after we finished.
-	m.stopTime = time.Now()
+	preStopTime := time.Now()
 
 	fmt.Fprintf(os.Stderr, "Collecting data.\n")
-	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, m.startTime, m.stopTime)
+	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, m.startTime, preStopTime)
 	if err != nil {
 		// these errors are represented as junit, always continue to the next step
 		fmt.Fprintf(os.Stderr, "Error collecting data, continuing, junit will reflect this. %v\n", err)
 	}
 	m.recorder.AddIntervals(collectedIntervals...)
 	m.junits = append(m.junits, collectionJunits...)
+
+	// set the stop time for after we finished.
+	m.stopTime = time.Now()
 
 	fmt.Fprintf(os.Stderr, "Computing intervals.\n")
 	computedIntervals, computedJunit, err := m.invariantRegistry.ConstructComputedIntervals(

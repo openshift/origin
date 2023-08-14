@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -53,7 +52,7 @@ func (bs *RemoteSampler) GetURL() (string, error) {
 	return "", nil
 }
 
-func (bs *RemoteSampler) RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error {
+func (bs *RemoteSampler) RunEndpointMonitoring(ctx context.Context, m monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
 	ctx, cancel := context.WithCancel(ctx)
 	bs.lock.Lock()
 	bs.cancel = cancel
@@ -79,7 +78,7 @@ func (bs *RemoteSampler) RunEndpointMonitoring(ctx context.Context, m backenddis
 
 }
 
-func (bs *RemoteSampler) StartEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error {
+func (bs *RemoteSampler) StartEndpointMonitoring(ctx context.Context, m monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
 	framework.Logf("DisruptionTest: starting in-cluster monitors")
 	return sampler.StartInClusterMonitors(ctx, bs.config)
 }

@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -373,7 +372,7 @@ func (b *BackendSampler) CheckConnection(ctx context.Context) (string, error) {
 
 // RunEndpointMonitoring sets up a client for the given BackendSampler, starts checking the endpoint, and recording
 // success/failure edges into the monitorRecorder, and blocks until the context is closed or the sampler is closed.
-func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecorder Recorder, eventRecorder events.EventRecorder) error {
+func (b *BackendSampler) RunEndpointMonitoring(ctx context.Context, monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
 	if b.isRunning() {
 		return fmt.Errorf("cannot monitor twice at the same time")
 	}
@@ -464,13 +463,13 @@ func (b *BackendSampler) Stop() {
 
 // StartEndpointMonitoring sets up a client for the given BackendSampler, starts checking the endpoint, and recording
 // success/failure edges into the monitorRecorder
-func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, recorder Recorder, eventRecorder events.EventRecorder) error {
-	if recorder == nil {
+func (b *BackendSampler) StartEndpointMonitoring(ctx context.Context, monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
+	if monitorRecorder == nil {
 		return fmt.Errorf("monitor is required")
 	}
 
 	go func() {
-		err := b.RunEndpointMonitoring(ctx, recorder, eventRecorder)
+		err := b.RunEndpointMonitoring(ctx, monitorRecorder, eventRecorder)
 		if err != nil {
 			utilruntime.HandleError(err)
 		}
@@ -527,14 +526,13 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 		select {
 		case <-ticker.C:
 		case <-ctx.Done():
-			fmt.Fprintf(os.Stderr, "%v producer sampler context is done\n", b.backendSampler.locator)
 			return
 		}
 	}
 }
 
 // consumeSamples only exits when the ctx is closed
-func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh chan struct{}, interval time.Duration, monitorRecorder Recorder, eventRecorder events.EventRecorder) {
+func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh chan struct{}, interval time.Duration, monitorRecorder monitorapi.RecorderWriter, eventRecorder events.EventRecorder) {
 	defer close(consumerDoneCh)
 
 	firstSample := true
@@ -545,8 +543,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 	// when we exit this function, we want to set a final duration of failure.  We don't actually know whether it ended
 	// or how long it took to ask
 	defer func() {
-		fmt.Fprintf(os.Stderr, "%v setting the intervals as done at time %v\n", b.backendSampler.locator, time.Now())
-
 		if previousIntervalID != -1 && previousSampleTime != nil {
 			monitorRecorder.EndInterval(previousIntervalID, previousSampleTime.Add(interval))
 		}
@@ -555,7 +551,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 1\n", b.backendSampler.locator)
 			return
 		default:
 		}
@@ -566,7 +561,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			case <-time.After(interval):
 				continue
 			case <-ctx.Done():
-				fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 2\n", b.backendSampler.locator)
 				return
 			}
 		}
@@ -575,7 +569,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 		select {
 		case <-currSample.finished:
 		case <-ctx.Done():
-			fmt.Fprintf(os.Stderr, "%v consumer sampler context is done at 3\n", b.backendSampler.locator)
 			return
 		}
 
@@ -621,7 +614,6 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			}
 
 			message := DisruptionEndedMessage(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType())
-			framework.Logf(message)
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
 				v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
