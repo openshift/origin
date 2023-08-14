@@ -73,13 +73,13 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 
-	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		LivenessProbeBackend,
 		"",
 		monitorapi.NewConnectionType)
 
-	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		LivenessProbeBackend,
 		"",

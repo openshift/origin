@@ -129,7 +129,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			backend := NewSimpleBackend(testHost, tt.fields.disruptionBackendName, tt.fields.path, tt.fields.connectionType)
+			backend := NewSimpleBackendFromOpenshiftTests(testHost, tt.fields.disruptionBackendName, tt.fields.path, tt.fields.connectionType)
 			timeout := 1 * time.Second
 			backend.timeout = &timeout
 			if len(tt.fields.expect) > 0 {
@@ -337,7 +337,7 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			parent := NewSimpleBackend("host", "backend", "path", monitorapi.NewConnectionType)
+			parent := NewSimpleBackendFromOpenshiftTests("host", "backend", "path", monitorapi.NewConnectionType)
 			backendSampler := newDisruptionSampler(parent)
 			interval := 1 * time.Second
 			monitor := monitor2.NewRecorder()

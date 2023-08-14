@@ -22,7 +22,7 @@ func BackendDisruptionSeconds(locator string, events Intervals) (time.Duration, 
 }
 
 func IsDisruptionEvent(eventInterval Interval) bool {
-	if disruptionBackend := DisruptionFrom(LocatorParts(eventInterval.Locator)); len(disruptionBackend) > 0 {
+	if disruptionBackend := ThisDisruptionInstanceFrom(LocatorParts(eventInterval.Locator)); len(disruptionBackend) > 0 {
 		return true
 	}
 	return false

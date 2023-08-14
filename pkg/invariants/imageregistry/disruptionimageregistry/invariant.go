@@ -76,19 +76,18 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	}
 
 	baseURL := fmt.Sprintf("https://%s", w.imageRegistryRoute.Status.Ingress[0].Host)
-	disruptionBackendName := "image-registry"
+	historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-%v", "image-registry", monitorapi.NewConnectionType)
+	historicalBackendDisruptionDataForReusedConnectionsName := fmt.Sprintf("%s-%v", "image-registry", monitorapi.ReusedConnectionType)
 	path := "/healthz"
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendWithLocator(
-		monitorapi.LocateRouteForDisruptionCheck(namespace, "test-disruption-new", disruptionBackendName, monitorapi.NewConnectionType),
+		monitorapi.NewLocator().LocateRouteForDisruptionCheck(historicalBackendDisruptionDataForNewConnectionsName, backenddisruption.OpenshiftTestsSource, namespace, "test-disruption-new", monitorapi.NewConnectionType),
 		baseURL,
-		disruptionBackendName,
 		path,
 		monitorapi.NewConnectionType)
 
 	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendWithLocator(
-		monitorapi.LocateRouteForDisruptionCheck(namespace, "test-disruption-reused", disruptionBackendName, monitorapi.ReusedConnectionType),
+		monitorapi.NewLocator().LocateRouteForDisruptionCheck(historicalBackendDisruptionDataForReusedConnectionsName, backenddisruption.OpenshiftTestsSource, namespace, "test-disruption-reused", monitorapi.ReusedConnectionType),
 		baseURL,
-		disruptionBackendName,
 		path,
 		monitorapi.ReusedConnectionType)
 

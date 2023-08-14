@@ -26,7 +26,7 @@ func TestServerAvailability(
 
 	// Lookup allowed disruption based on historical data:
 	locatorParts := monitorapi.LocatorParts(locator)
-	disruptionName := monitorapi.DisruptionFrom(locatorParts)
+	disruptionName := monitorapi.ThisDisruptionInstanceFrom(locatorParts)
 	connType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
 	backendName := fmt.Sprintf("%s-%s-connections", disruptionName, connType)
 	if jobType == nil {

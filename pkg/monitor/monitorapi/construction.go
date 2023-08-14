@@ -118,14 +118,11 @@ func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, contain
 	return b.Build()
 }
 
-func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, protocol, target string) Locator {
-	b.targetType = LocatorTypeDisruption
-	b.annotations[LocatorDisruptionKey] = disruptionName
+func (b *LocatorBuilder) Disruption(backendDisruptionName, thisInstanceName, loadBalancer, protocol, target string, connectionType BackendConnectionType) Locator {
+	b = b.withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName).withConnectionType(connectionType)
+
 	if len(loadBalancer) > 0 {
 		b.annotations[LocatorLoadBalancerKey] = loadBalancer
-	}
-	if len(connection) > 0 {
-		b.annotations[LocatorConnectionKey] = connection
 	}
 	if len(protocol) > 0 {
 		b.annotations[LocatorProtocolKey] = protocol
@@ -134,6 +131,57 @@ func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, pr
 		b.annotations[LocatorTargetKey] = target
 	}
 	return b.Build()
+}
+
+// DisruptionRequiredOnly takes only the logically required data for backend-disruption.json and codifies it.
+// backendDisruptionName is the value used to store and locate historical data related to the amount of disruption.
+// thisInstanceName is used to show on a timeline which connection failed.
+// For instance, the backendDisruptionName may be internal-load-balancer and the thisInstanceName may include,
+// 1. from worker-a
+// 2. new connections
+// 3. to IP
+// 4. this protocol
+func (b *LocatorBuilder) DisruptionRequiredOnly(backendDisruptionName, thisInstanceName string) Locator {
+	b = b.withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName)
+	return b.Build()
+}
+
+func (b *LocatorBuilder) withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName string) *LocatorBuilder {
+	b.targetType = LocatorTypeDisruption
+	b.annotations[LocatorBackendDisruptionNameKey] = backendDisruptionName
+	b.annotations[LocatorDisruptionKey] = thisInstanceName
+	return b
+}
+
+func (b *LocatorBuilder) withNamespace(namespace string) *LocatorBuilder {
+	b.annotations[LocatorNamespaceKey] = namespace
+	return b
+}
+
+func (b *LocatorBuilder) withRoute(route string) *LocatorBuilder {
+	b.annotations[LocatorRouteKey] = route
+	return b
+}
+
+func (b *LocatorBuilder) withConnectionType(connectionType BackendConnectionType) *LocatorBuilder {
+	b.annotations[LocatorConnectionKey] = string(connectionType)
+	return b
+}
+
+func (b *LocatorBuilder) LocateRouteForDisruptionCheck(backendDisruptionName, thisInstanceName, ns, name string, connectionType BackendConnectionType) Locator {
+	return b.
+		withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName).
+		withNamespace(ns).
+		withRoute(name).
+		withConnectionType(connectionType).
+		Build()
+}
+
+func (b *LocatorBuilder) LocateDisruptionCheck(backendDisruptionName, thisInstanceName string, connectionType BackendConnectionType) Locator {
+	return b.
+		withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName).
+		withConnectionType(connectionType).
+		Build()
 }
 
 func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {

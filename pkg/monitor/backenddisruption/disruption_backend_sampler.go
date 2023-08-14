@@ -36,9 +36,7 @@ import (
 type BackendSampler struct {
 	// locator is the string used to identify this in the monitorRecorder later on.  It should always be set
 	// by the constructors to ensure a consistent shape for later inspection in higher layers.
-	locator string
-	// disruptionBackendName is a shortname for humans to recognize the endpoint being connected to
-	disruptionBackendName string
+	locator monitorapi.Locator
 	// connectionType indicates what type of connection is being used.
 	connectionType monitorapi.BackendConnectionType
 	// is the `/path` part of the url.  It must start with a slash.
@@ -88,35 +86,48 @@ type routeCoordinates struct {
 	name string
 }
 
-// NewSimpleBackend constructs a BackendSampler suitable for use against a generic server
-func NewSimpleBackend(host, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
+const OpenshiftTestsSource = "openshift-tests"
+
+// NewSimpleBackendFromOpenshiftTests constructs a BackendSampler suitable for use against a generic server
+func NewSimpleBackendFromOpenshiftTests(host, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
+
 	ret := &BackendSampler{
-		connectionType:        connectionType,
-		locator:               monitorapi.LocateDisruptionCheck(disruptionBackendName, connectionType),
-		disruptionBackendName: disruptionBackendName,
-		path:                  path,
-		hostGetter:            NewSimpleHostGetter(host),
-		consumptionFinished:   make(chan struct{}),
+		connectionType:      connectionType,
+		locator:             monitorapi.NewLocator().LocateDisruptionCheck(disruptionBackendName, OpenshiftTestsSource, connectionType),
+		path:                path,
+		hostGetter:          NewSimpleHostGetter(host),
+		consumptionFinished: make(chan struct{}),
+	}
+
+	// TODO return error?  This is programmer error
+	if len(ret.GetDisruptionBackendName()) == 0 {
+		panic("missing disruption backend")
 	}
 
 	return ret
 }
 
 // NewRouteBackend constructs a BackendSampler suitable for use against a routes.route.openshift.io
-func NewSimpleBackendWithLocator(locator, host, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
+func NewSimpleBackendWithLocator(locator monitorapi.Locator, host, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
 	ret := &BackendSampler{
-		connectionType:        connectionType,
-		locator:               locator,
-		disruptionBackendName: disruptionBackendName,
-		path:                  path,
-		hostGetter:            NewSimpleHostGetter(host),
-		consumptionFinished:   make(chan struct{}),
+		connectionType:      connectionType,
+		locator:             locator,
+		path:                path,
+		hostGetter:          NewSimpleHostGetter(host),
+		consumptionFinished: make(chan struct{}),
 	}
+
+	// TODO return error?  This is programmer error
+	if len(ret.GetDisruptionBackendName()) == 0 {
+		panic("missing disruption backend")
+	}
+
 	return ret
 }
 
 // NewAPIServerBackend constructs a BackendSampler suitable for use against a kube-like API server
 func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) (*BackendSampler, error) {
+	historicalBackendDisruptionDataName := fmt.Sprintf("%s-%v", disruptionBackendName, connectionType)
 
 	kubeTransportConfig, err := clientConfig.TransportConfig()
 	if err != nil {
@@ -128,15 +139,19 @@ func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path 
 	}
 
 	ret := &BackendSampler{
-		connectionType:        connectionType,
-		locator:               monitorapi.LocateDisruptionCheck(disruptionBackendName, connectionType),
-		disruptionBackendName: disruptionBackendName,
-		path:                  path,
-		hostGetter:            NewKubeAPIHostGetter(clientConfig),
-		tlsConfig:             tlsConfig,
-		bearerToken:           kubeTransportConfig.BearerToken,
-		bearerTokenFile:       kubeTransportConfig.BearerTokenFile,
-		consumptionFinished:   make(chan struct{}),
+		connectionType:      connectionType,
+		locator:             monitorapi.NewLocator().LocateDisruptionCheck(historicalBackendDisruptionDataName, OpenshiftTestsSource, connectionType),
+		path:                path,
+		hostGetter:          NewKubeAPIHostGetter(clientConfig),
+		tlsConfig:           tlsConfig,
+		bearerToken:         kubeTransportConfig.BearerToken,
+		bearerTokenFile:     kubeTransportConfig.BearerTokenFile,
+		consumptionFinished: make(chan struct{}),
+	}
+
+	// TODO return error?  This is programmer error
+	if len(ret.GetDisruptionBackendName()) == 0 {
+		panic("missing disruption backend")
 	}
 
 	return ret, nil
@@ -144,14 +159,22 @@ func NewAPIServerBackend(clientConfig *rest.Config, disruptionBackendName, path 
 
 // NewRouteBackend constructs a BackendSampler suitable for use against a routes.route.openshift.io
 func NewRouteBackend(clientConfig *rest.Config, namespace, name, disruptionBackendName, path string, connectionType monitorapi.BackendConnectionType) *BackendSampler {
-	return &BackendSampler{
-		connectionType:        connectionType,
-		locator:               monitorapi.LocateRouteForDisruptionCheck(namespace, name, disruptionBackendName, connectionType),
-		disruptionBackendName: disruptionBackendName,
-		path:                  path,
-		hostGetter:            NewRouteHostGetter(clientConfig, namespace, name),
-		consumptionFinished:   make(chan struct{}),
+	historicalBackendDisruptionDataName := fmt.Sprintf("%s-%v", disruptionBackendName, connectionType)
+
+	ret := &BackendSampler{
+		connectionType:      connectionType,
+		locator:             monitorapi.NewLocator().LocateRouteForDisruptionCheck(historicalBackendDisruptionDataName, OpenshiftTestsSource, namespace, name, connectionType),
+		path:                path,
+		hostGetter:          NewRouteHostGetter(clientConfig, namespace, name),
+		consumptionFinished: make(chan struct{}),
 	}
+
+	// TODO return error?  This is programmer error
+	if len(ret.GetDisruptionBackendName()) == 0 {
+		panic("missing disruption backend")
+	}
+
+	return ret
 }
 
 // WithBearerTokenAuth sets bearer tokens to use
@@ -202,10 +225,10 @@ func (b *BackendSampler) bodyMatches(body []byte) error {
 }
 
 func (b *BackendSampler) GetDisruptionBackendName() string {
-	return b.disruptionBackendName
+	return monitorapi.BackendDisruptionNameFromLocator(b.locator)
 }
 
-func (b *BackendSampler) GetLocator() string {
+func (b *BackendSampler) GetLocator() monitorapi.Locator {
 	return b.locator
 }
 
@@ -504,9 +527,10 @@ func (b *disruptionSampler) produceSamples(ctx context.Context, interval time.Du
 				// For now we will just log clearly the requests that failed and use this to correlate with the
 				// audit log manually.
 				logrus.WithFields(logrus.Fields{
-					"backend": b.backendSampler.disruptionBackendName,
-					"type":    b.backendSampler.connectionType,
-					"auditID": uid,
+					"this-instance": b.backendSampler.locator,
+					"backend":       b.backendSampler.GetDisruptionBackendName(),
+					"type":          b.backendSampler.connectionType,
+					"auditID":       uid,
 				}).Errorf("disruption sample failed: %v", sampleErr)
 			}
 			close(currDisruptionSample.finished)
@@ -584,14 +608,14 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			}
 
 			// start a new interval with the new error
-			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
+			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
 			framework.Logf(message)
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
 				v1.EventTypeWarning, string(eventReason), "detected", message)
 			currCondition := monitorapi.Condition{
 				Level:   level,
-				Locator: b.backendSampler.GetLocator(),
+				Locator: b.backendSampler.GetLocator().OldLocator(),
 				Message: message,
 			}
 			previousIntervalID = monitorRecorder.StartInterval(currSample.startTime, currCondition)
@@ -602,13 +626,13 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 				monitorRecorder.EndInterval(previousIntervalID, currSample.startTime)
 			}
 
-			message := DisruptionEndedMessage(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType())
+			message := DisruptionEndedMessage(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType())
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
 				v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
 			currCondition := monitorapi.Condition{
 				Level:   monitorapi.Info,
-				Locator: b.backendSampler.GetLocator(),
+				Locator: b.backendSampler.GetLocator().OldLocator(),
 				Message: message,
 			}
 			previousIntervalID = monitorRecorder.StartInterval(currSample.startTime, currCondition)
@@ -619,14 +643,14 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 				monitorRecorder.EndInterval(previousIntervalID, currSample.startTime)
 			}
 
-			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
+			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
 			framework.Logf(message)
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
 				v1.EventTypeWarning, string(eventReason), "detected", message)
 			currCondition := monitorapi.Condition{
 				Level:   level,
-				Locator: b.backendSampler.GetLocator(),
+				Locator: b.backendSampler.GetLocator().OldLocator(),
 				Message: message,
 			}
 			previousIntervalID = monitorRecorder.StartInterval(currSample.startTime, currCondition)

@@ -106,40 +106,26 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 
 	for _, locator := range allBackendLocators.List() {
 		locatorParts := monitorapi.LocatorParts(locator)
-		disruptionBackend := monitorapi.DisruptionFrom(locatorParts)
+		name := monitorapi.BackendDisruptionNameFrom(locatorParts)
 
 		connectionType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
-		aggregatedDisruptionName := strings.ToLower(fmt.Sprintf("%s-%s-connections", disruptionBackend, connectionType))
-
-		// load-balancer has been introduced in the new disruption test framework
-		loadBalancerType := monitorapi.DisruptionLoadBalancerTypeFrom(locatorParts)
-		if len(loadBalancerType) > 0 {
-			// the name is unique and has all the descriptors including connection type
-			aggregatedDisruptionName = disruptionBackend
-		}
 
 		disruptionDuration, disruptionMessages, connectionType :=
 			monitorapi.BackendDisruptionSeconds(locator, allDisruptionEventsIntervals)
+
 		bs := &BackendDisruption{
-			Name:               aggregatedDisruptionName,
-			BackendName:        disruptionBackend,
+			Name:               name,
+			BackendName:        name,
 			ConnectionType:     strings.Title(connectionType),
 			DisruptedDuration:  metav1.Duration{Duration: disruptionDuration},
 			DisruptionMessages: disruptionMessages,
-			LoadBalancerType:   "external-lb",
-			Protocol:           "http1",
+			LoadBalancerType:   "",
+			Protocol:           "",
 			// for existing disruption test, the 'disruption' locator
 			// part closely resembles the api being tested.
-			TargetAPI: disruptionBackend,
+			TargetAPI: "",
 		}
-		ret.BackendDisruptions[aggregatedDisruptionName] = bs
-
-		if len(loadBalancerType) > 0 {
-			bs.LoadBalancerType = loadBalancerType
-			bs.Protocol = monitorapi.DisruptionProtocolFrom(locatorParts)
-			bs.TargetAPI = monitorapi.DisruptionTargetAPIFrom(locatorParts)
-			bs.BackendName = fmt.Sprintf("%s-%s-%s", bs.TargetAPI, bs.Protocol, bs.LoadBalancerType)
-		}
+		ret.BackendDisruptions[name] = bs
 	}
 
 	return ret
