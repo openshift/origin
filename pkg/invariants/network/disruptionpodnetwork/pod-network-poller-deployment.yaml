@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - command:
-            - /openshift-tests
+            - /usr/bin/openshift-tests
             - disruption
             - watch-endpoint-slice
             - --output-file=/var/log/persistent-logs/disruption-pod-to-pod.jsonl
@@ -30,7 +30,7 @@ spec:
             - --disruption-target-service-name=pod-network-service
             - --stop-configmap=stop-collecting
             - --my-node-name=$(MY_NODE_NAME)
-          image: docker.io/deads2k/openshift-tests
+          image: image-registry.openshift-image-registry.svc:5000/openshift/tests
           imagePullPolicy: IfNotPresent
           name: disruption-poller
           terminationMessagePolicy: FallbackToLogsOnError
