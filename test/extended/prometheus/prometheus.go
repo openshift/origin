@@ -355,6 +355,11 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
+
+			if err != nil {
+				// Making the test flaky until monitoring team fixes the rate limit issue.
+				testresult.Flakef(err.Error())
+			}
 		})
 
 		g.It("should start and expose a secured proxy and unsecured metrics [apigroup:config.openshift.io]", func() {
