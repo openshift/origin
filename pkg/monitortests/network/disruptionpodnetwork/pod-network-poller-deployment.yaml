@@ -30,7 +30,7 @@ spec:
             - --disruption-target-service-name=pod-network-service
             - --stop-configmap=stop-collecting
             - --my-node-name=$(MY_NODE_NAME)
-          image: image-registry.openshift-image-registry.svc:5000/openshift/tests
+          image: docker.io/deads2k/openshift-tests:latest
           imagePullPolicy: IfNotPresent
           name: disruption-poller
           terminationMessagePolicy: FallbackToLogsOnError
