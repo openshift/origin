@@ -57,7 +57,7 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 			nodeStateTracker.OpenInterval(nodeLocator, notReadyState, event.From)
 		case "Ready":
 			message := monitorapi.NewMessage().Reason(monitorapi.NodeNotReadyReason).HumanMessagef("role/%v is not ready", roles).BuildString()
-			intervals = append(intervals, nodeStateTracker.CloseInterval(nodeLocator, notReadyState, statetracker.SimpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Warning, monitorapi.NodeNotReadyReason, message), event.From)...)
+			intervals = append(intervals, nodeStateTracker.CloseIfOpenedInterval(nodeLocator, notReadyState, statetracker.SimpleCondition(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.Warning, monitorapi.NodeNotReadyReason, message), event.From)...)
 		case "MachineConfigChange":
 			nodeStateTracker.OpenInterval(nodeLocator, updateState, event.From)
 		case "MachineConfigReached":
