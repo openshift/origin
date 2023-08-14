@@ -9,14 +9,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitortestframework"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
-	"github.com/openshift/origin/pkg/invariants"
 
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -26,9 +26,9 @@ import (
 )
 
 type Monitor struct {
-	adminKubeConfig   *rest.Config
-	invariantRegistry invariants.InvariantRegistry
-	storageDir        string
+	adminKubeConfig     *rest.Config
+	monitorTestRegistry monitortestframework.MonitorTestRegistry
+	storageDir          string
 
 	recorder monitorapi.Recorder
 	junits   []*junitapi.JUnitTestCase
@@ -44,12 +44,12 @@ func NewMonitor(
 	recorder monitorapi.Recorder,
 	adminKubeConfig *rest.Config,
 	storageDir string,
-	invariantRegistry invariants.InvariantRegistry) Interface {
+	monitorTestRegistry monitortestframework.MonitorTestRegistry) Interface {
 	return &Monitor{
-		adminKubeConfig:   adminKubeConfig,
-		recorder:          recorder,
-		invariantRegistry: invariantRegistry,
-		storageDir:        storageDir,
+		adminKubeConfig:     adminKubeConfig,
+		recorder:            recorder,
+		monitorTestRegistry: monitorTestRegistry,
+		storageDir:          storageDir,
 	}
 }
 
@@ -65,12 +65,12 @@ func (m *Monitor) Start(ctx context.Context) error {
 	ctx, m.stopFn = context.WithCancel(ctx)
 	m.startTime = time.Now()
 
-	localJunits, err := m.invariantRegistry.StartCollection(ctx, m.adminKubeConfig, m.recorder)
+	localJunits, err := m.monitorTestRegistry.StartCollection(ctx, m.adminKubeConfig, m.recorder)
 	if err != nil {
 		return err
 	}
 	m.junits = append(m.junits, localJunits...)
-	fmt.Printf("All invariants started.\n")
+	fmt.Printf("All monitor tests started.\n")
 
 	client, err := kubernetes.NewForConfig(m.adminKubeConfig)
 	if err != nil {
@@ -104,7 +104,7 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 	preStopTime := time.Now()
 
 	fmt.Fprintf(os.Stderr, "Collecting data.\n")
-	collectedIntervals, collectionJunits, err := m.invariantRegistry.CollectData(ctx, m.storageDir, m.startTime, preStopTime)
+	collectedIntervals, collectionJunits, err := m.monitorTestRegistry.CollectData(ctx, m.storageDir, m.startTime, preStopTime)
 	if err != nil {
 		// these errors are represented as junit, always continue to the next step
 		fmt.Fprintf(os.Stderr, "Error collecting data, continuing, junit will reflect this. %v\n", err)
@@ -116,7 +116,7 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 	m.stopTime = time.Now()
 
 	fmt.Fprintf(os.Stderr, "Computing intervals.\n")
-	computedIntervals, computedJunit, err := m.invariantRegistry.ConstructComputedIntervals(
+	computedIntervals, computedJunit, err := m.monitorTestRegistry.ConstructComputedIntervals(
 		ctx,
 		m.recorder.Intervals(time.Time{}, time.Time{}), // compute intervals based on *all* the intervals.
 		m.recorder.CurrentResourceState(),
@@ -135,7 +135,7 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 	if err := monitorserialization.EventsToFile(filepath.Join(m.storageDir, filename), finalEvents); err != nil {
 		fmt.Fprintf(os.Stderr, "error: Failed to junit event info: %v\n", err)
 	}
-	invariantJunits, err := m.invariantRegistry.EvaluateTestsFromConstructedIntervals(
+	monitorTestJunits, err := m.monitorTestRegistry.EvaluateTestsFromConstructedIntervals(
 		ctx,
 		finalEvents, // evaluate the tests on the intervals during our active time.
 	)
@@ -143,10 +143,10 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 		// these errors are represented as junit, always continue to the next step
 		fmt.Fprintf(os.Stderr, "Error evaluating tests, continuing, junit will reflect this. %v\n", err)
 	}
-	m.junits = append(m.junits, invariantJunits...)
+	m.junits = append(m.junits, monitorTestJunits...)
 
 	fmt.Fprintf(os.Stderr, "Cleaning up.\n")
-	cleanupJunits, err := m.invariantRegistry.Cleanup(ctx)
+	cleanupJunits, err := m.monitorTestRegistry.Cleanup(ctx)
 	if err != nil {
 		// these errors are represented as junit, always continue to the next step
 		fmt.Fprintf(os.Stderr, "Error cleaning up, continuing, junit will reflect this. %v\n", err)
@@ -189,7 +189,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 	}
 
 	fmt.Fprintf(os.Stderr, "Writing to storage.\n")
-	invariantJunits, err := m.invariantRegistry.WriteContentToStorage(
+	monitorTestJunits, err := m.monitorTestRegistry.WriteContentToStorage(
 		ctx,
 		m.storageDir,
 		timeSuffix,
@@ -200,7 +200,7 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 		// these errors are represented as junit, always continue to the next step
 		fmt.Fprintf(os.Stderr, "Error writing to storage, continuing, junit will reflect this. %v\n", err)
 	}
-	m.junits = append(m.junits, invariantJunits...)
+	m.junits = append(m.junits, monitorTestJunits...)
 
 	fmt.Fprintf(os.Stderr, "Writing junits.\n")
 	if err := m.serializeJunit(ctx, m.storageDir, junitSuiteName, timeSuffix); err != nil {
@@ -238,7 +238,7 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 	if err != nil {
 		return err
 	}
-	filePrefix := "e2e-invariants"
+	filePrefix := "e2e-monitor-tests"
 	path := filepath.Join(storageDir, fmt.Sprintf("%s_%s.xml", filePrefix, fileSuffix))
 	fmt.Fprintf(os.Stderr, "Writing JUnit report to %s\n", path)
 	return os.WriteFile(path, test.StripANSI(out), 0640)

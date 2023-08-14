@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	allowedalerts2 "github.com/openshift/origin/pkg/invariantlibrary/allowedalerts"
-	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
+	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"

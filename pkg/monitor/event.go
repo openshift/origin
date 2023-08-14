@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/invariantlibrary/pathologicaleventlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"

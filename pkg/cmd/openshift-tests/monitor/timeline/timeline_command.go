@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/invariants/testframework/timelineserializer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
 
-	"github.com/openshift/origin/pkg/defaultinvariants"
+	"github.com/openshift/origin/pkg/defaultmonitortests"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -250,7 +250,7 @@ func (o *Timeline) Run() error {
 		to = *o.EndDate
 	}
 
-	invariantRegistry := defaultinvariants.NewInvariantsFor(defaultinvariants.Stable)
+	invariantRegistry := defaultmonitortests.NewMonitorTestsFor(defaultmonitortests.Stable)
 	computedIntervals, _, err := invariantRegistry.ConstructComputedIntervals(
 		context.TODO(),
 		filteredEvents,
