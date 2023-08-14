@@ -28,6 +28,7 @@ spec:
             - --output-file=disruption.jsonl
             - --disruption-backend-prefix=pod-to-pod-
             - --disruption-target-service-name=pod-network-service
+          # overridden when created
           image: docker.io/deads2k/openshift-tests
           imagePullPolicy: IfNotPresent
           name: disruption-poller

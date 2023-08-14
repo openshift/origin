@@ -71,7 +71,7 @@ func newDefaultInvariants() invariants.InvariantRegistry {
 
 	invariantTests.AddInvariantOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewAvailabilityInvariant())
 
-	invariantTests.AddInvariantOrDie(disruptionpodnetwork.InvariantName, "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant())
+	invariantTests.AddInvariantOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant())
 	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 	invariantTests.AddInvariantOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewAvailabilityInvariant())
 
