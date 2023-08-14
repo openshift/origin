@@ -3,7 +3,7 @@ package defaultinvariants
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/invariants/testframework/disruptionexternalservicemonitoring"
+	"github.com/openshift/origin/pkg/invariants/network/disruptionpodnetwork"
 
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/invariants/authentication/legacyauthenticationinvariants"
@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/invariants/testframework/additionaleventscollector"
 	"github.com/openshift/origin/pkg/invariants/testframework/alertanalyzer"
 	"github.com/openshift/origin/pkg/invariants/testframework/clusterinfoserializer"
+	"github.com/openshift/origin/pkg/invariants/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/invariants/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/invariants/testframework/e2etestanalyzer"
 	"github.com/openshift/origin/pkg/invariants/testframework/intervalserializer"
@@ -70,6 +71,7 @@ func newDefaultInvariants() invariants.InvariantRegistry {
 
 	invariantTests.AddInvariantOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewAvailabilityInvariant())
 
+	invariantTests.AddInvariantOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant())
 	invariantTests.AddInvariantOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 	invariantTests.AddInvariantOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewAvailabilityInvariant())
 

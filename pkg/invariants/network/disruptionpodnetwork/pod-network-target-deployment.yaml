@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-network-disruption-target
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 34%
+      maxSurge: 0
+  # to be overridden by the number of nodes
+  replicas: 1
+  selector:
+    matchLabels:
+      network.openshift.io/disruption-target: pod-network
+      network.openshift.io/disruption-actor: target
+  template:
+    metadata:
+      labels:
+        network.openshift.io/disruption-target: pod-network
+        network.openshift.io/disruption-actor: target
+    spec:
+      containers:
+        - command:
+            - /agnhost
+            - netexec
+            - --http-port=8080
+            - --delay-shutdown=30
+          # overridden when created
+          image: registry.k8s.io/e2e-test-images/agnhost:2.43
+          imagePullPolicy: IfNotPresent
+          name: pod-disruption-server
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          terminationMessagePolicy: FallbackToLogsOnError
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              port: 8080
+              path: /readyz
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 1
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      tolerations:
+        # Ensure pod can be scheduled on master nodes
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  network.openshift.io/disruption-target: pod-network
+                  network.openshift.io/disruption-actor: target
