@@ -41,11 +41,12 @@ var (
 	//go:embed *.yaml
 	yamls embed.FS
 
-	namespace                  *corev1.Namespace
-	pollerRoleBinding          *rbacv1.RoleBinding
-	podNetworkPollerDeployment *appsv1.Deployment
-	podNetworkTargetDeployment *appsv1.Deployment
-	podNetworkTargetService    *corev1.Service
+	namespace                           *corev1.Namespace
+	pollerRoleBinding                   *rbacv1.RoleBinding
+	podNetworkPollerDeployment          *appsv1.Deployment
+	podNeterworkServicePollerDeployment *appsv1.Deployment
+	podNetworkTargetDeployment          *appsv1.Deployment
+	podNetworkTargetService             *corev1.Service
 )
 
 func yamlOrDie(name string) []byte {
@@ -117,6 +118,8 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkTargetService, metav1.CreateOptions{}); err != nil {
 		return err
 	}
+
+	//use service.Spec.ClusterIP and inject it into Pod
 
 	return nil
 }
