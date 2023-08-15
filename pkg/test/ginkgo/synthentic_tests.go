@@ -1,8 +1,6 @@
 package ginkgo
 
 import (
-	"bytes"
-	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -44,53 +42,4 @@ func (a JUnitsForAllEvents) JUnitsForEvents(events monitorapi.Intervals, duratio
 		all = append(all, results...)
 	}
 	return all
-}
-
-func createSyntheticTestsFromMonitor(events monitorapi.Intervals, monitorDuration time.Duration) ([]*junitapi.JUnitTestCase, *bytes.Buffer, *bytes.Buffer) {
-	var syntheticTestResults []*junitapi.JUnitTestCase
-
-	buf, errBuf := &bytes.Buffer{}, &bytes.Buffer{}
-	fmt.Fprintf(buf, "\nTimeline:\n\n")
-	errorCount := 0
-	for _, event := range events {
-		if event.Level == monitorapi.Error {
-			errorCount++
-			fmt.Fprintln(errBuf, event.String())
-		}
-		fmt.Fprintln(buf, event.String())
-	}
-	fmt.Fprintln(buf)
-
-	monitorTestName := "[sig-arch] Monitor cluster while tests execute"
-	if errorCount > 0 {
-		syntheticTestResults = append(
-			syntheticTestResults,
-			&junitapi.JUnitTestCase{
-				Name:      monitorTestName,
-				SystemOut: buf.String(),
-				Duration:  monitorDuration.Seconds(),
-				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("%d error level events were detected during this test run:\n\n%s", errorCount, errBuf.String()),
-				},
-			},
-			// write a passing test to trigger detection of this issue as a flake, indicating we have no idea whether
-			// these are actual failures or not
-			&junitapi.JUnitTestCase{
-				Name:     monitorTestName,
-				Duration: monitorDuration.Seconds(),
-			},
-		)
-	} else {
-		// even if no error events, add a passed test including the output so we can scan with search.ci:
-		syntheticTestResults = append(
-			syntheticTestResults,
-			&junitapi.JUnitTestCase{
-				Name:      monitorTestName,
-				Duration:  monitorDuration.Seconds(),
-				SystemOut: buf.String(),
-			},
-		)
-	}
-
-	return syntheticTestResults, buf, errBuf
 }

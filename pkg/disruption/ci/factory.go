@@ -143,7 +143,7 @@ type testFactory struct {
 	once                   sync.Once
 	err                    error
 	sharedShutdownInterval backendsampler.SampleCollector
-	wantMonitorAndRecorder backend.WantEventRecorderAndMonitor
+	wantMonitorAndRecorder backend.WantEventRecorderAndMonitorRecorder
 	hostNameDecoder        backend.HostNameDecoderWithRunner
 }
 
@@ -186,7 +186,7 @@ func (b *testFactory) New(c TestConfiguration) (Sampler, error) {
 	backendSampler := &BackendSampler{
 		TestConfiguration:           c,
 		SampleRunner:                runner,
-		wantEventRecorderAndMonitor: []backend.WantEventRecorderAndMonitor{b.wantMonitorAndRecorder, want},
+		wantEventRecorderAndMonitor: []backend.WantEventRecorderAndMonitorRecorder{b.wantMonitorAndRecorder, want},
 		baseURL:                     requestor.GetBaseURL(),
 		hostNameDecoder:             b.hostNameDecoder,
 	}

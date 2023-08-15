@@ -7,7 +7,6 @@ import (
 
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/disruption/sampler"
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/kubernetes/test/e2e/framework"
 
@@ -23,8 +22,8 @@ type Sampler interface {
 	GetDisruptionBackendName() string
 	GetLocator() monitorapi.Locator
 	GetURL() (string, error)
-	RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
-	StartEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error
+	RunEndpointMonitoring(ctx context.Context, m monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error
+	StartEndpointMonitoring(ctx context.Context, m monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error
 	Stop()
 }
 
@@ -33,7 +32,7 @@ type BackendSampler struct {
 	TestConfiguration
 	SampleRunner sampler.Runner
 
-	wantEventRecorderAndMonitor []backend.WantEventRecorderAndMonitor
+	wantEventRecorderAndMonitor []backend.WantEventRecorderAndMonitorRecorder
 	baseURL                     string
 	hostNameDecoder             backend.HostNameDecoderWithRunner
 	lock                        sync.Mutex
@@ -68,7 +67,7 @@ func (bs *BackendSampler) GetURL() (string, error) {
 	return bs.baseURL, nil
 }
 
-func (bs *BackendSampler) RunEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error {
+func (bs *BackendSampler) RunEndpointMonitoring(ctx context.Context, m monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
 	ctx, cancel := context.WithCancel(ctx)
 	bs.lock.Lock()
 	bs.cancel = cancel
@@ -90,7 +89,7 @@ func (bs *BackendSampler) RunEndpointMonitoring(ctx context.Context, m backenddi
 	}
 
 	for _, s := range bs.wantEventRecorderAndMonitor {
-		s.SetMonitor(m)
+		s.SetMonitorRecorder(m)
 		s.SetEventRecorder(eventRecorder)
 	}
 
@@ -114,7 +113,7 @@ func (bs *BackendSampler) RunEndpointMonitoring(ctx context.Context, m backenddi
 	return nil
 }
 
-func (bs *BackendSampler) StartEndpointMonitoring(ctx context.Context, m backenddisruption.Recorder, eventRecorder events.EventRecorder) error {
+func (bs *BackendSampler) StartEndpointMonitoring(ctx context.Context, m monitorapi.RecorderWriter, eventRecorder events.EventRecorder) error {
 	if m == nil {
 		return fmt.Errorf("monitor is required")
 	}

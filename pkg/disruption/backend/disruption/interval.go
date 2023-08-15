@@ -3,6 +3,7 @@ package disruption
 import (
 	"github.com/openshift/origin/pkg/disruption/backend"
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"k8s.io/client-go/tools/events"
 )
 
@@ -27,9 +28,9 @@ import (
 // it will generate the following disruption intervals
 //
 //	unavailable[s2,s4] available[s5,s6] unavailable[s7] available[s8]
-func NewIntervalTracker(delegate backendsampler.SampleCollector, descriptor backend.TestDescriptor, monitor backend.Monitor,
-	eventRecorder events.EventRecorder) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitor) {
-	handler := newCIHandler(descriptor, monitor, eventRecorder)
+func NewIntervalTracker(delegate backendsampler.SampleCollector, descriptor backend.TestDescriptor, monitorRecorder monitorapi.RecorderWriter,
+	eventRecorder events.EventRecorder) (backendsampler.SampleCollector, backend.WantEventRecorderAndMonitorRecorder) {
+	handler := newCIHandler(descriptor, monitorRecorder, eventRecorder)
 	return &intervalTracker{
 		delegate: delegate,
 		handler:  handler,

@@ -112,6 +112,13 @@ var schemaYAML = typed.YAMLObject(`types:
         elementType:
           namedType: __untyped_deduced_
         elementRelationship: separable
+- name: com.github.openshift.api.config.v1.AWSDNSSpec
+  map:
+    fields:
+    - name: privateZoneIAMRole
+      type:
+        scalar: string
+      default: ""
 - name: com.github.openshift.api.config.v1.AWSIngressSpec
   map:
     fields:
@@ -932,6 +939,21 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1.DNSStatus
       default: {}
+- name: com.github.openshift.api.config.v1.DNSPlatformSpec
+  map:
+    fields:
+    - name: aws
+      type:
+        namedType: com.github.openshift.api.config.v1.AWSDNSSpec
+    - name: type
+      type:
+        scalar: string
+      default: ""
+    unions:
+    - discriminator: type
+      fields:
+      - fieldName: aws
+        discriminatorValue: AWS
 - name: com.github.openshift.api.config.v1.DNSSpec
   map:
     fields:
@@ -939,6 +961,10 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
+    - name: platform
+      type:
+        namedType: com.github.openshift.api.config.v1.DNSPlatformSpec
+      default: {}
     - name: privateZone
       type:
         namedType: com.github.openshift.api.config.v1.DNSZone

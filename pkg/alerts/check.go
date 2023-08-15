@@ -6,11 +6,12 @@ import (
 	"strings"
 	"time"
 
+	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/openshift/origin/pkg/synthetictests/allowedalerts"
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/util/disruption"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
@@ -45,11 +46,11 @@ func CheckAlerts(allowancesFunc AllowedAlertsFunc,
 	// In addition to the alert allowances passed in (which can differ for upgrades vs conformance),
 	// we also exclude alerts that have their own separate tests codified. This is a backstop test for
 	// everything else.
-	for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{},
-		allowedalerts.DefaultAllowances) {
+	for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{},
+		allowedalerts2.DefaultAllowances) {
 
 		switch alertTest.AlertState() {
-		case allowedalerts.AlertPending:
+		case allowedalerts2.AlertPending:
 			// a pending test covers pending and everything above (firing)
 			allowedPendingAlerts = append(allowedPendingAlerts,
 				helper.MetricCondition{
@@ -63,7 +64,7 @@ func CheckAlerts(allowancesFunc AllowedAlertsFunc,
 					Text:     "has a separate e2e test",
 				},
 			)
-		case allowedalerts.AlertInfo:
+		case allowedalerts2.AlertInfo:
 			// an info test covers all firing
 			allowedFiringAlerts = append(allowedFiringAlerts,
 				helper.MetricCondition{

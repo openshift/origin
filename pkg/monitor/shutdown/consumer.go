@@ -32,7 +32,7 @@ type Monitor interface {
 	EndInterval(startedInterval int, t time.Time)
 }
 
-func newConsumer(monitor Monitor) *consumer {
+func newConsumer(monitor monitorapi.RecorderWriter) *consumer {
 	return &consumer{
 		monitor:   monitor,
 		byHost:    make(map[string]*corev1.Event),
@@ -41,7 +41,7 @@ func newConsumer(monitor Monitor) *consumer {
 }
 
 type consumer struct {
-	monitor   Monitor
+	monitor   monitorapi.RecorderWriter
 	lock      sync.Mutex
 	processed map[types.UID]struct{}
 	byHost    map[string]*corev1.Event
@@ -101,7 +101,7 @@ func (c *consumer) Consume(event *corev1.Event) {
 	condition := complete(start, end)
 	// these logs can be useful to debug if the windows are not displayed correctly
 	framework.Logf("GracefulShutdownEvent - Start: %+v", start)
-	framework.Logf("GracefulShutdownEvent - End: %+v", end)
+	framework.Logf("GracefulShutdownEvent - Stop: %+v", end)
 	framework.Logf(condition.Message)
 	intervalID := c.monitor.StartInterval(timeOf(start), condition)
 	c.monitor.EndInterval(intervalID, timeOf(end))

@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func startNodeMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
+func startNodeMonitoring(ctx context.Context, m monitorapi.Recorder, client kubernetes.Interface) {
 	nodeReadyFn := func(node, oldNode *corev1.Node) []monitorapi.Condition {
 		isCreate := false
 		if oldNode == nil {
@@ -190,4 +190,18 @@ func nodeRoles(node *corev1.Node) string {
 
 	sort.Strings(roles)
 	return strings.Join(roles, ",")
+}
+
+func findNodeCondition(status []corev1.NodeCondition, name corev1.NodeConditionType, position int) *corev1.NodeCondition {
+	if position < len(status) {
+		if status[position].Type == name {
+			return &status[position]
+		}
+	}
+	for i := range status {
+		if status[i].Type == name {
+			return &status[i]
+		}
+	}
+	return nil
 }

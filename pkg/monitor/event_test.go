@@ -2,127 +2,119 @@ package monitor
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"os"
 	"regexp"
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
-
-// readTestFiles takes a filename of a kubeconfig file and events json file and returns
-// raw events and a kubernetes.Clientset.  This is mostly used for interactive debugging.
-// Get the kubeconfig by creating a file using the output of the KAAS tool or cluster-bot.
-// NOTE: You can possible get panics due to timeout of KAAS kube configs.
-// Get the json file for all events from artifacts/gather-extra.  Or by using using
-// "oc -n aNamespace get event" after setting KUBECONFIG.
-func readTestFiles(kubeconfig, jsonFile string) (corev1.EventList, *kubernetes.Clientset, error) {
-
-	_, err := os.Stat(kubeconfig)
-	if errors.Is(err, os.ErrNotExist) {
-		fmt.Println("File does not exist:", kubeconfig)
-		return corev1.EventList{}, nil, err
-	}
-	_, err = os.Stat(jsonFile)
-	if errors.Is(err, os.ErrNotExist) {
-		fmt.Println("File does not exist:", jsonFile)
-		return corev1.EventList{}, nil, err
-	}
-
-	file, err := os.Open(jsonFile)
-	if err != nil {
-		fmt.Println("Error opening jsonFile:", err)
-		return corev1.EventList{}, nil, err
-	}
-	defer file.Close()
-
-	var kubeEvents corev1.EventList
-	if err := json.NewDecoder(file).Decode(&kubeEvents); err != nil {
-		fmt.Println("Error reading jsonFile")
-		return corev1.EventList{}, nil, err
-	}
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		fmt.Println("Unable to setup *rest.Config:", err)
-		return kubeEvents, nil, err
-	}
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		fmt.Println("Unable to setup kube client:", err)
-		return kubeEvents, nil, err
-	}
-
-	return kubeEvents, clientSet, nil
-}
 
 func Test_recordAddOrUpdateEvent(t *testing.T) {
 
-	// If we have files, we can use this to do a local debugging.
-	// Without files, we use the single event tests.
-	kubeEvents, clientSet, _ := readTestFiles("/tmp/test/k.txt", "/tmp/test/kube_events.json")
-	smallKubeEvents := corev1.EventList{
-		Items: []corev1.Event{
-			{
-				Count:         2,
-				Reason:        "NodeHasNoDiskPressure",
-				Message:       "sample message",
-				LastTimestamp: metav1.Now(),
-			},
-		},
-	}
-	if len(kubeEvents.Items) == 0 {
-		kubeEvents.Items = append(kubeEvents.Items, smallKubeEvents.Items...)
-	}
-
 	type args struct {
 		ctx                    context.Context
-		m                      *Monitor
+		m                      monitorapi.Recorder
 		client                 kubernetes.Interface
 		reMatchFirstQuote      *regexp.Regexp
 		significantlyBeforeNow time.Time
-		kubeEventList          corev1.EventList
+		kubeEvent              *corev1.Event
 	}
 
 	now := time.Now()
 
 	tests := []struct {
-		name string
-		args args
-		want int
-		skip bool
+		name            string
+		args            args
+		skip            bool
+		kubeEvent       *corev1.Event
+		expectedLocator string
+		expectedMessage string
 	}{
 		{
-			name: "Single Event test",
+			name: "simple event",
 			args: args{
-				ctx:                    context.TODO(),
-				m:                      NewMonitor(),
-				client:                 nil,
-				reMatchFirstQuote:      regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`),
-				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
-				kubeEventList:          smallKubeEvents,
+				ctx: context.TODO(),
+				m:   NewRecorder(),
+				kubeEvent: &corev1.Event{
+					Count:  2,
+					Reason: "SomethingHappened",
+					InvolvedObject: corev1.ObjectReference{
+						Kind:      "Pod",
+						Namespace: "openshift-authentication",
+						Name:      "testpod-927947",
+					},
+					Message:       "sample message",
+					LastTimestamp: metav1.Now(),
+				},
 			},
-			want: 1,
+			expectedLocator: "ns/openshift-authentication pod/testpod-927947",
+			expectedMessage: "reason/SomethingHappened sample message (2 times)",
 		},
 		{
-			name: "Multiple Event (from file) test",
-			skip: true, // skip since we use this only for interactive debugging
+			name: "unknown pathological event",
 			args: args{
-				ctx:               context.TODO(),
-				m:                 NewMonitor(),
-				client:            clientSet,
-				reMatchFirstQuote: regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`),
-
-				// Use the timestamp of the first corev1.Event
-				significantlyBeforeNow: kubeEvents.Items[0].LastTimestamp.UTC().Add(-15 * time.Minute),
-				kubeEventList:          kubeEvents,
+				ctx: context.TODO(),
+				m:   NewRecorder(),
+				kubeEvent: &corev1.Event{
+					Count:  40,
+					Reason: "SomethingHappened",
+					InvolvedObject: corev1.ObjectReference{
+						Kind:      "Pod",
+						Namespace: "openshift-authentication",
+						Name:      "testpod-927947",
+					},
+					Message:       "sample message",
+					LastTimestamp: metav1.Now(),
+				},
 			},
+			expectedLocator: "ns/openshift-authentication pod/testpod-927947 hmsg/72c78c2ba1",
+			expectedMessage: "pathological/true reason/SomethingHappened sample message (40 times)",
+		},
+		{
+			name: "allowed pathological event",
+			args: args{
+				ctx: context.TODO(),
+				m:   NewRecorder(),
+				kubeEvent: &corev1.Event{
+					Count:  40,
+					Reason: "SomethingHappened",
+					InvolvedObject: corev1.ObjectReference{
+						Kind:      "Pod",
+						Namespace: "openshift-e2e-loki",
+						Name:      "loki-promtail-982739",
+					},
+					Message:       "Readiness probe failed",
+					LastTimestamp: metav1.Now(),
+				},
+				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
+			},
+			expectedLocator: "ns/openshift-e2e-loki pod/loki-promtail-982739 hmsg/04cd2d7fbb",
+			expectedMessage: "pathological/true interesting/true reason/SomethingHappened Readiness probe failed (40 times)",
+		},
+		{
+			name: "allowed pathological event with known bug",
+			args: args{
+				ctx: context.TODO(),
+				m:   NewRecorder(),
+				kubeEvent: &corev1.Event{
+					Count:  40,
+					Reason: "TopologyAwareHintsDisabled",
+					InvolvedObject: corev1.ObjectReference{
+						Kind:      "Pod",
+						Namespace: "any",
+						Name:      "any",
+					},
+					Message:       "irrelevant",
+					LastTimestamp: metav1.Now(),
+				},
+				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
+			},
+			expectedLocator: "ns/any pod/any hmsg/e13faa98ab",
+			expectedMessage: "pathological/true interesting/true reason/TopologyAwareHintsDisabled irrelevant (40 times)",
 		},
 	}
 	for _, tt := range tests {
@@ -130,13 +122,13 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			continue
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			for _, event := range tt.args.kubeEventList.Items {
-				recordAddOrUpdateEvent(tt.args.ctx, tt.args.m, tt.args.client, tt.args.reMatchFirstQuote, tt.args.significantlyBeforeNow, &event)
-				len := len(tt.args.m.Intervals(now.Add(-10*time.Minute), now.Add(10*time.Minute)))
-				if len != tt.want {
-					t.Errorf("Wrong number of EventIntervals; got: %d expected: %d", len, tt.want)
-				}
-			}
+			significantlyBeforeNow := now.UTC().Add(-15 * time.Minute)
+			recordAddOrUpdateEvent(tt.args.ctx, tt.args.m, nil, significantlyBeforeNow, tt.args.kubeEvent)
+			intervals := tt.args.m.Intervals(now.Add(-10*time.Minute), now.Add(10*time.Minute))
+			assert.Equal(t, 1, len(intervals))
+			interval := intervals[0]
+			assert.Equal(t, tt.expectedLocator, interval.Locator)
+			assert.Equal(t, tt.expectedMessage, interval.Message)
 		})
 	}
 }

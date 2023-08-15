@@ -1,6 +1,8 @@
 package riskanalysis
 
-import "github.com/openshift/origin/pkg/synthetictests/platformidentification"
+import (
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+)
 
 // Define types, these are subsets of the sippy APIs of the same name, copied here to eliminate a lot of the cruft.
 // ProwJobRunTest defines a join table linking tests to the job runs they execute in, along with the status for

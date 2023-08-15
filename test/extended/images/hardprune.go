@@ -11,7 +11,7 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	"github.com/docker/distribution/manifest/schema2"
+	"github.com/distribution/distribution/v3/manifest/schema2"
 	dockerClient "github.com/fsouza/go-dockerclient"
 
 	kapiv1 "k8s.io/api/core/v1"

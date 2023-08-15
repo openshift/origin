@@ -2102,6 +2102,19 @@ func DoesApiResourceExist(config *rest.Config, apiResourceName, group string) (b
 	return false, nil
 }
 
+func IsNamespaceExist(kubeClient *kubernetes.Clientset, namespace string) (bool, error) {
+	_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			e2e.Logf("%s namespace not found", namespace)
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 // IsMicroShiftCluster returns "true" if a cluster is MicroShift,
 // "false" otherwise. It needs kube-admin client as input.
 func IsMicroShiftCluster(kubeClient k8sclient.Interface) (bool, error) {

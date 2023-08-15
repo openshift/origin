@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
+
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
@@ -33,16 +37,12 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades/apps"
 	"k8s.io/kubernetes/test/e2e/upgrades/node"
 
-	"github.com/openshift/origin/pkg/synthetictests/platformidentification"
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
 	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
-	"github.com/openshift/origin/test/e2e/upgrade/service"
 	"github.com/openshift/origin/test/extended/prometheus"
 	"github.com/openshift/origin/test/extended/util/disruption"
-	"github.com/openshift/origin/test/extended/util/disruption/frontends"
-	"github.com/openshift/origin/test/extended/util/disruption/imageregistry"
 	"github.com/openshift/origin/test/extended/util/operator"
 )
 
@@ -57,14 +57,6 @@ func AllTests() []upgrades.Test {
 		&adminack.UpgradeTest{},
 		&manifestdelete.UpgradeTest{},
 		&alert.UpgradeTest{},
-
-		// These two tests require complex setup and thus are a poor fit for our current invariant/synthetic
-		// disruption tests, so they remain separate. They output AdditionalEvents json files as artifacts which
-		// are merged into our main e2e-events.
-		service.NewServiceLoadBalancerWithNewConnectionsTest(),
-		service.NewServiceLoadBalancerWithReusedConnectionsTest(),
-		imageregistry.NewImageRegistryAvailableWithNewConnectionsTest(),
-		imageregistry.NewImageRegistryAvailableWithReusedConnectionsTest(),
 
 		&node.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},
@@ -323,37 +315,6 @@ func getUpgradeContext(c configv1client.Interface, upgradeImage string) (*upgrad
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
-// PreUpgradeResourceCounts stores a map of resource type to a count of the number of
-// resources of that type in the entire cluster, gathered prior to launching the upgrade.
-var PreUpgradeResourceCounts = map[string]int{}
-
-func GatherPreUpgradeResourceCounts() error {
-	config, err := framework.LoadConfig(true)
-	if err != nil {
-		return err
-	}
-	kubeClient := kubernetes.NewForConfigOrDie(config)
-	// Store resource counts we're interested in monitoring from before upgrade to after.
-	// Used to test for excessive resource growth during upgrade in the invariants.
-	ctx := context.Background()
-	secrets, err := kubeClient.CoreV1().Secrets("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	PreUpgradeResourceCounts["secrets"] = len(secrets.Items)
-	framework.Logf("found %d Secrets prior to upgrade at %s\n", len(secrets.Items),
-		time.Now().UTC().Format(time.RFC3339))
-
-	configMaps, err := kubeClient.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	PreUpgradeResourceCounts["configmaps"] = len(configMaps.Items)
-	framework.Logf("found %d ConfigMaps prior to upgrade at %s\n", len(configMaps.Items),
-		time.Now().UTC().Format(time.RFC3339))
-	return nil
-}
-
 func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
@@ -364,7 +325,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		"[bz-Routing] console is not available via ingress",
 		func() (error, bool) {
 			pollErr := wait.PollImmediateWithContext(context.TODO(), 1*time.Second, 10*time.Minute, func(ctx context.Context) (bool, error) {
-				consoleSampler := frontends.CreateConsoleRouteAvailableWithNewConnections()
+				consoleSampler := disruptioningress.CreateConsoleRouteAvailableWithNewConnections(config)
 				_, err := consoleSampler.CheckConnection(ctx)
 				if err == nil {
 					return true, nil
@@ -412,15 +373,20 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		Network  string
 	}
 	var upgradeDurationLimits = map[limitLocator]float64{
-		{configv1.AWSPlatformType, OVN}:       85,
+		// NOTE: The OVNAWSPlatformType and OVNGCPPlatformType upgrade times are originally 85 and 90 minutes each.
+		// The OVNBareMetalPlatformType and OVNVSpherePlatformType upgrade times are originally 80 and 95 each.
+		// Due to well-known reasons (https://issues.redhat.com/browse/SDN-4042), these numbers are increased to
+		// 100 minutes only for the 4.13->4.14 upgrades - same as OVNAzurePlatformType. These numbers will be brought
+		// down to their original values in OCP 4.15 (https://issues.redhat.com/browse/OTA-999)
+		{configv1.AWSPlatformType, OVN}:       100,
 		{configv1.AWSPlatformType, SDN}:       95,
 		{configv1.AzurePlatformType, OVN}:     100,
 		{configv1.AzurePlatformType, SDN}:     100,
-		{configv1.GCPPlatformType, OVN}:       90,
+		{configv1.GCPPlatformType, OVN}:       100,
 		{configv1.GCPPlatformType, SDN}:       75,
-		{configv1.BareMetalPlatformType, OVN}: 80,
+		{configv1.BareMetalPlatformType, OVN}: 100,
 		{configv1.BareMetalPlatformType, SDN}: 70,
-		{configv1.VSpherePlatformType, OVN}:   95,
+		{configv1.VSpherePlatformType, OVN}:   100,
 		{configv1.VSpherePlatformType, SDN}:   70,
 	}
 

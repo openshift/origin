@@ -8,7 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/duplicateevents"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,8 +19,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Interface) {
-	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
+var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
+
+func startEventMonitoring(ctx context.Context, m monitorapi.Recorder, client kubernetes.Interface) {
 
 	// filter out events written "now" but with significantly older start times (events
 	// created in test jobs are the most common)
@@ -52,7 +54,7 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, client, reMatchFirstQuote, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -63,7 +65,7 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, client, reMatchFirstQuote, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -77,19 +79,19 @@ var allRepeatedEventPatterns = combinedDuplicateEventPatterns()
 
 func combinedDuplicateEventPatterns() *regexp.Regexp {
 	s := ""
-	for _, r := range duplicateevents.AllowedRepeatedEventPatterns {
+	for _, r := range pathologicaleventlibrary.AllowedRepeatedEventPatterns {
 		if s != "" {
 			s += "|"
 		}
 		s += r.String()
 	}
-	for _, r := range duplicateevents.AllowedUpgradeRepeatedEventPatterns {
+	for _, r := range pathologicaleventlibrary.AllowedUpgradeRepeatedEventPatterns {
 		if s != "" {
 			s += "|"
 		}
 		s += r.String()
 	}
-	for _, r := range duplicateevents.KnownEventsBugs {
+	for _, r := range pathologicaleventlibrary.KnownEventsBugs {
 		if s != "" {
 			s += "|"
 		}
@@ -111,7 +113,7 @@ func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool
 		fmt.Printf("error getting kubeclient: [%v] when processing event %s - %s\n", err, event.Locator, event.Message)
 		kubeClient = nil
 	}
-	for _, isRepeatedEventOKFuncList := range [][]duplicateevents.IsRepeatedEventOKFunc{duplicateevents.AllowedRepeatedEventFns, duplicateevents.AllowedSingleNodeRepeatedEventFns} {
+	for _, isRepeatedEventOKFuncList := range [][]pathologicaleventlibrary.IsRepeatedEventOKFunc{pathologicaleventlibrary.AllowedRepeatedEventFns, pathologicaleventlibrary.AllowedSingleNodeRepeatedEventFns} {
 		for _, allowRepeatedEventFn := range isRepeatedEventOKFuncList {
 			allowed, err := allowRepeatedEventFn(event, kubeClient, int(times))
 			if err != nil {
@@ -129,13 +131,12 @@ func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool
 
 func recordAddOrUpdateEvent(
 	ctx context.Context,
-	m Recorder,
+	recorder monitorapi.Recorder,
 	client kubernetes.Interface,
-	reMatchFirstQuote *regexp.Regexp,
 	significantlyBeforeNow time.Time,
 	obj *corev1.Event) {
 
-	m.RecordResource("events", obj)
+	recorder.RecordResource("events", obj)
 
 	// Temporary hack by dgoodwin, we're missing events here that show up later in
 	// gather-extra/events.json. Adding some output to see if we can isolate what we saw
@@ -238,16 +239,16 @@ func recordAddOrUpdateEvent(
 		updatedMessage := event.Message
 		if allRepeatedEventPatterns.MatchString(eventDisplayMessage) || checkAllowedRepeatedEventOKFns(event, obj.Count) {
 			// This is a repeated event that we know about
-			updatedMessage = fmt.Sprintf("%s %s", duplicateevents.InterestingMark, updatedMessage)
+			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, updatedMessage)
 		}
 
-		if obj.Count > duplicateevents.DuplicateEventThreshold && duplicateevents.EventCountExtractor.MatchString(eventDisplayMessage) {
+		if obj.Count > pathologicaleventlibrary.DuplicateEventThreshold && pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage) {
 			// This is a repeated event that exceeds threshold
-			updatedMessage = fmt.Sprintf("%s %s", duplicateevents.PathologicalMark, updatedMessage)
+			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, updatedMessage)
 		}
 
 		condition.Message = updatedMessage
-		if strings.Contains(condition.Message, duplicateevents.InterestingMark) || strings.Contains(condition.Message, duplicateevents.PathologicalMark) {
+		if strings.Contains(condition.Message, pathologicaleventlibrary.InterestingMark) || strings.Contains(condition.Message, pathologicaleventlibrary.PathologicalMark) {
 
 			// Remove the "(n times)" portion of the message, and get the first 10 characters of the hash of the message
 			// so we can add it to the locator. This incorporates the message into the locator without the resulting
@@ -264,11 +265,11 @@ func recordAddOrUpdateEvent(
 		fmt.Printf("processed event: %+v\nresulting new interval: %s from: %s to %s\n", *obj, message, pathoFrom, to)
 
 		// Add the interval.
-		inter := m.StartInterval(pathoFrom, condition)
-		m.EndInterval(inter, to)
+		inter := recorder.StartInterval(pathoFrom, condition)
+		recorder.EndInterval(inter, to)
 
 	} else {
-		m.RecordAt(t, condition)
+		recorder.RecordAt(t, condition)
 	}
 }
 
@@ -285,4 +286,17 @@ func eventForContainer(fieldPath string) (string, bool) {
 	default:
 		return "", false
 	}
+}
+
+func locateEvent(event *corev1.Event) string {
+	if len(event.InvolvedObject.Namespace) > 0 {
+		if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+		}
+		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+	}
+	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+	}
+	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 }

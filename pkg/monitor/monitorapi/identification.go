@@ -2,7 +2,6 @@ package monitorapi
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -21,18 +20,14 @@ func LocateDisruptionCheck(disruptionBackendName string, connectionType BackendC
 	return fmt.Sprintf("disruption/%s connection/%s", disruptionBackendName, connectionType)
 }
 
-func E2ETestLocator(testName string) string {
-	return fmt.Sprintf("e2e-test/%q", testName)
-}
-
-func IsE2ETest(locator string) bool {
-	_, ret := E2ETestFromLocator(locator)
+func IsE2ETest(l Locator) bool {
+	_, ret := E2ETestFromLocator(l)
 	return ret
 }
 
-func E2ETestFromLocator(locator string) (string, bool) {
-	ret := E2ETestFrom(LocatorParts(locator))
-	return ret, len(ret) > 0
+func E2ETestFromLocator(l Locator) (string, bool) {
+	test, ok := l.Keys[LocatorE2ETestKey]
+	return test, ok
 }
 
 func NodeLocator(testName string) string {
@@ -97,18 +92,6 @@ func NamespaceFrom(locatorParts map[string]string) string {
 		return ns
 	}
 	return ""
-}
-
-func E2ETestFrom(locatorParts map[string]string) string {
-	quotedTestName, ok := locatorParts["e2e-test"]
-	if !ok {
-		return ""
-	}
-	testName, err := strconv.Unquote(quotedTestName)
-	if err != nil {
-		return ""
-	}
-	return testName
 }
 
 func NodeFrom(locatorParts map[string]string) string {
