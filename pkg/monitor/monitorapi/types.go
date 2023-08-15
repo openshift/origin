@@ -36,7 +36,7 @@ type RecorderWriter interface {
 
 	AddIntervals(eventIntervals ...Interval)
 	StartInterval(t time.Time, condition Condition) int
-	EndInterval(startedInterval int, t time.Time)
+	EndInterval(startedInterval int, t time.Time) *Interval
 }
 
 const (
@@ -229,6 +229,7 @@ const (
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
 	SourcePodLog                  IntervalSource = "PodLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
+	SourceKubeEvent               IntervalSource = "KubeEvent"
 	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 )

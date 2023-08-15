@@ -32,7 +32,7 @@ type Monitor interface {
 	EndInterval(startedInterval int, t time.Time)
 }
 
-func newConsumer(monitor Monitor) *consumer {
+func newConsumer(monitor monitorapi.RecorderWriter) *consumer {
 	return &consumer{
 		monitor:   monitor,
 		byHost:    make(map[string]*corev1.Event),
@@ -41,7 +41,7 @@ func newConsumer(monitor Monitor) *consumer {
 }
 
 type consumer struct {
-	monitor   Monitor
+	monitor   monitorapi.RecorderWriter
 	lock      sync.Mutex
 	processed map[types.UID]struct{}
 	byHost    map[string]*corev1.Event

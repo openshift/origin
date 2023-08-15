@@ -19,8 +19,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
+
 func startEventMonitoring(ctx context.Context, m monitorapi.Recorder, client kubernetes.Interface) {
-	reMatchFirstQuote := regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
 	// filter out events written "now" but with significantly older start times (events
 	// created in test jobs are the most common)
@@ -53,7 +54,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.Recorder, client kub
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, client, reMatchFirstQuote, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -64,7 +65,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.Recorder, client kub
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, client, reMatchFirstQuote, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -132,7 +133,6 @@ func recordAddOrUpdateEvent(
 	ctx context.Context,
 	recorder monitorapi.Recorder,
 	client kubernetes.Interface,
-	reMatchFirstQuote *regexp.Regexp,
 	significantlyBeforeNow time.Time,
 	obj *corev1.Event) {
 

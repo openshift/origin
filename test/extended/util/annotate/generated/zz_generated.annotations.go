@@ -29,6 +29,10 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:APIServer] authenticated browser should get a 200 from /": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-api-machinery][Feature:APIServer] should serve openapi v3 discovery": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery][Feature:APIServer] should serve openapi v3": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and don't send request early": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer][Late] API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients": " [Suite:openshift/conformance/parallel]",
@@ -729,55 +733,55 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc env can set environment variables [apigroup:apps.openshift.io][apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain list uncovered GroupVersionResources": " [Disabled:Broken]",
+	"[sig-cli] oc explain list uncovered GroupVersionResources": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": " [Disabled:Broken]",
+	"[sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for apps.openshift.io [apigroup:apps.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for apps.openshift.io [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for authorization.openshift.io [apigroup:authorization.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for authorization.openshift.io [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for config.openshift.io [apigroup:config.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for config.openshift.io [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for console.openshift.io [apigroup:console.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for console.openshift.io [apigroup:console.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for image.openshift.io [apigroup:image.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for image.openshift.io [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for oauth.openshift.io [apigroup:oauth.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for oauth.openshift.io [apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for project.openshift.io [apigroup:project.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for project.openshift.io [apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for rangeallocations of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for rangeallocations of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for route.openshift.io [apigroup:route.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for route.openshift.io [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for security.internal.openshift.io [apigroup:security.internal.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for security.internal.openshift.io [apigroup:security.internal.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for securitycontextconstraints of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for securitycontextconstraints of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for template.openshift.io [apigroup:template.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for template.openshift.io [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper fields description for user.openshift.io [apigroup:user.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper fields description for user.openshift.io [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain proper spec+status for CRDs": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain proper spec+status for CRDs": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for apps.openshift.io [apigroup:apps.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for apps.openshift.io [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for build.openshift.io [apigroup:build.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for build.openshift.io [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for image.openshift.io [apigroup:image.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for image.openshift.io [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for podsecuritypolicyreviews of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for podsecuritypolicyreviews of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for podsecuritypolicyselfsubjectreviews of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for podsecuritypolicyselfsubjectreviews of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for podsecuritypolicysubjectreviews of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for podsecuritypolicysubjectreviews of security.openshift.io, if the resource is present [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for project.openshift.io [apigroup:project.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for project.openshift.io [apigroup:project.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for route.openshift.io [apigroup:route.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for route.openshift.io [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain should contain spec+status for template.openshift.io [apigroup:template.openshift.io]": " [Disabled:Broken]",
+	"[sig-cli] oc explain should contain spec+status for template.openshift.io [apigroup:template.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc expose can ensure the expose command is functioning as expected [apigroup:route.openshift.io]": " [Suite:openshift/conformance/parallel]",
 

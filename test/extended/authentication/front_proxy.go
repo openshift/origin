@@ -33,6 +33,13 @@ var _ = g.Describe("[sig-auth][Feature:Authentication] ", func() {
 			if *controlPlaneTopology == configv1.ExternalTopologyMode {
 				e2eskipper.Skipf("External clusters do not have an aggregator-client secret in the cluster. Because the control plane lives outside the cluster, the aggregator-client secret is not needed in the cluster.")
 			}
+
+			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if isMicroShift {
+				e2eskipper.Skipf("MicroShift team promised to create this test separately because the aggregator client cert is accessed differently there. If this text is still here, please reachout to MicroShift team about where the test lives.")
+			}
+
 			frontProxySecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-kube-apiserver").Get(context.Background(), "aggregator-client", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 

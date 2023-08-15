@@ -73,7 +73,6 @@ type NewRequestTokenOptionsFunc func(username, password string) *tokenrequest.Re
 // very simplified for now
 // returns OAuth server url, cleanup function, error
 func DeployOAuthServer(oc *exutil.CLI, idps []osinv1.IdentityProvider, configMaps []corev1.ConfigMap, secrets []corev1.Secret) (NewRequestTokenOptionsFunc, func(), error) {
-
 	var cleanupFuncs []func()
 	cleanupFunc := func() {
 		for _, f := range cleanupFuncs {
@@ -494,8 +493,11 @@ func determineImageFromRelease(oc *exutil.CLI) (string, error) {
 }
 
 func newRequestTokenOptions(config *restclient.Config, oauthServerURL, oauthClientName, username, password string) *tokenrequest.RequestTokenOptions {
-
-	options := tokenrequest.NewRequestTokenOptions(config, false, challengehandlers.NewBasicChallengeHandler(config.Host, "", os.Stdin, os.Stdout, nil, username, password))
+	opts := tokenrequest.NewRequestTokenOptions(config, false)
+	options, err := opts.WithChallengeHandlers(challengehandlers.NewBasicChallengeHandler(config.Host, "", os.Stdin, os.Stdout, nil, username, password))
+	if err != nil {
+		panic(err)
+	}
 	// supply the info the client would otherwise ask from .well-known/oauth-authorization-server
 	oauthClientConfig := &osincli.ClientConfig{
 		ClientId:     oauthClientName,

@@ -14,7 +14,7 @@ import (
 	risk_analysis "github.com/openshift/origin/pkg/cmd/openshift-tests/risk-analysis"
 
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
-	monitor_command "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
+	monitor "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor"
 	run2 "github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/run"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/monitor/timeline"
 
@@ -83,7 +83,7 @@ func main() {
 		run_test.NewRunTestCommand(ioStreams),
 		dev.NewDevCommand(),
 		run2.NewRunMonitorCommand(ioStreams),
-		monitor_command.NewMonitorCommand(ioStreams),
+		monitor.NewMonitorCommand(ioStreams),
 		risk_analysis.NewTestFailureRiskAnalysisCommand(),
 		cmd.NewRunResourceWatchCommand(),
 		timeline.NewTimelineCommand(ioStreams),

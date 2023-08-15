@@ -7,7 +7,7 @@ require (
 	github.com/RangelReale/osincli v0.0.0-20160924135400-fababb0555f2
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/davecgh/go-spew v1.1.1
-	github.com/docker/distribution v2.8.1+incompatible
+	github.com/distribution/distribution/v3 v3.0.0-20230530204932-ba46c769b3d1
 	github.com/fsouza/go-dockerclient v1.7.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
@@ -25,43 +25,43 @@ require (
 	github.com/openshift/api v0.0.0-20230713214710-aaae7101a7ad
 	github.com/openshift/apiserver-library-go v0.0.0-20230703120157-e3794c5cc9fd
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
-	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
-	github.com/openshift/library-go v0.0.0-20230503173034-95ca3c14e50a
+	github.com/openshift/client-go v0.0.0-20230626133714-296133fbf75e
+	github.com/openshift/library-go v0.0.0-20230626162119-954ade536d6d
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/client_model v0.3.0
 	github.com/prometheus/common v0.37.0
 	github.com/sirupsen/logrus v1.9.0
-	github.com/spf13/cobra v1.6.0
+	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/objx v0.5.0
 	github.com/stretchr/testify v1.8.1
 	go.etcd.io/etcd/client/pkg/v3 v3.5.7
 	go.etcd.io/etcd/client/v3 v3.5.7
-	golang.org/x/crypto v0.1.0
-	golang.org/x/net v0.8.0
+	golang.org/x/crypto v0.7.0
+	golang.org/x/net v0.10.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	google.golang.org/grpc v1.51.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.27.1
+	k8s.io/api v0.27.2
 	k8s.io/apiextensions-apiserver v0.27.1
-	k8s.io/apimachinery v0.27.1
+	k8s.io/apimachinery v0.27.2
 	k8s.io/apiserver v0.27.1
 	k8s.io/cli-runtime v0.27.1
 	k8s.io/client-go v0.27.1
 	k8s.io/component-base v0.27.1
 	k8s.io/component-helpers v0.27.1
-	k8s.io/klog/v2 v2.90.1
+	k8s.io/klog/v2 v2.100.1
 	k8s.io/kube-aggregator v0.27.1
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f
 	k8s.io/kubectl v0.27.1
 	k8s.io/kubernetes v1.27.1
 	k8s.io/legacy-cloud-providers v0.27.1
 	k8s.io/pod-security-admission v0.27.1
-	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
+	k8s.io/utils v0.0.0-20230505201702-9f6742963106
 	sigs.k8s.io/kustomize/kyaml v0.14.1
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3
 	sigs.k8s.io/yaml v1.3.0
@@ -106,6 +106,7 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
+	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v20.10.21+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -121,7 +122,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
+	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.1 // indirect
@@ -130,7 +131,7 @@ require (
 	github.com/godbus/dbus/v5 v5.0.6 // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/btree v1.0.1 // indirect
@@ -147,7 +148,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
-	github.com/hashicorp/golang-lru v0.5.1 // indirect
+	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
@@ -241,9 +242,9 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
+	golang.org/x/term v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	google.golang.org/api v0.60.0 // indirect

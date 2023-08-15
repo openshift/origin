@@ -93,6 +93,7 @@ func markMissedPathologicalEvents(events monitorapi.Intervals) monitorapi.Interv
 			constructedEventCopy.Message = fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, scannedEvent.Message)
 			constructedEventCopy.Locator = pLocator
 			logrus.Infof("Found a times match: Locator=%s Message=%s", events[i].Locator, events[i].Message)
+			pathologicalEvents = append(pathologicalEvents, *constructedEventCopy)
 		}
 	}
 

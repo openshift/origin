@@ -126,19 +126,7 @@ func (m *recorder) RecordResource(resourceType string, obj runtime.Object) {
 // Record captures one or more conditions at the current time. All conditions are recorded
 // in monotonic order as EventInterval objects.
 func (m *recorder) Record(conditions ...monitorapi.Condition) {
-	if len(conditions) == 0 {
-		return
-	}
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	t := time.Now().UTC()
-	for _, condition := range conditions {
-		m.events = append(m.events, monitorapi.Interval{
-			Condition: condition,
-			From:      t,
-			To:        t,
-		})
-	}
+	m.RecordAt(time.Now().UTC(), conditions...)
 }
 
 // AddIntervals provides a mechanism to directly inject eventIntervals
@@ -162,14 +150,17 @@ func (m *recorder) StartInterval(t time.Time, condition monitorapi.Condition) in
 
 // EndInterval updates the To of the interval started by StartInterval if it is greater than
 // the from.
-func (m *recorder) EndInterval(startedInterval int, t time.Time) {
+func (m *recorder) EndInterval(startedInterval int, t time.Time) *monitorapi.Interval {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	if startedInterval < len(m.events) {
 		if m.events[startedInterval].From.Before(t) {
 			m.events[startedInterval].To = t
 		}
+		t := m.events[startedInterval]
+		return &t
 	}
+	return nil
 }
 
 // RecordAt captures one or more conditions at the provided time. All conditions are recorded
@@ -178,15 +169,15 @@ func (m *recorder) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 	if len(conditions) == 0 {
 		return
 	}
-	m.lock.Lock()
-	defer m.lock.Unlock()
+	intervals := monitorapi.Intervals{}
 	for _, condition := range conditions {
-		m.events = append(m.events, monitorapi.Interval{
+		intervals = append(intervals, monitorapi.Interval{
 			Condition: condition,
 			From:      t,
 			To:        t,
 		})
 	}
+	m.AddIntervals(intervals...)
 }
 
 func (m *recorder) snapshot() monitorapi.Intervals {

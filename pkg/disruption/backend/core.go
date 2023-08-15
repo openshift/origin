@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/openshift/origin/pkg/disruption/sampler"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -41,17 +40,11 @@ func (s SampleResult) AggregateErr() error {
 	return err
 }
 
-// Monitor abstracts the subset of the Monitor API used by the disruption test.
-type Monitor interface {
-	StartInterval(t time.Time, condition monitorapi.Condition) int
-	EndInterval(startedInterval int, t time.Time)
-}
-
-// WantEventRecorderAndMonitor allows the test driver to pass on
+// WantEventRecorderAndMonitorRecorder allows the test driver to pass on
 // the shared event recorder and the monitor instance.
-type WantEventRecorderAndMonitor interface {
+type WantEventRecorderAndMonitorRecorder interface {
 	SetEventRecorder(events.EventRecorder)
-	SetMonitor(monitor Monitor)
+	SetMonitorRecorder(monitorRecorder monitorapi.RecorderWriter)
 }
 
 // HostNameDecoder is responsible for decoding the
