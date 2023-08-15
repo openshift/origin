@@ -146,26 +146,20 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	// TODO restore once we work out how to contact other hosts
-	if false {
-		podNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
-		podNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
-			return err
-		}
+	podNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
+	podNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+		return err
 	}
 	hostNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	// TODO restore once we work out how to contact other hosts
-	if false {
-		hostNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
-		hostNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
-			return err
-		}
+	hostNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
+	hostNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+		return err
 	}
 
 	// force the image to use the "normal" global mapping.
@@ -181,7 +175,6 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 
 	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
-	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
 	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
@@ -214,8 +207,7 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 	retIntervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
-	// TODO add to the -to-host variants once they are enabled.
-	for _, typeOfConnection := range []string{"pod-to-pod", "host-to-pod"} {
+	for _, typeOfConnection := range []string{"pod-to-pod", "pod-to-host", "host-to-pod", "host-to-host"} {
 		localIntervals, localJunit, localErrs := pna.collectDetailsForPoller(ctx, typeOfConnection)
 		retIntervals = append(retIntervals, localIntervals...)
 		junits = append(junits, localJunit...)
