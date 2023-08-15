@@ -143,16 +143,20 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 		url := fmt.Sprintf("http://%s", net.JoinHostPort(newWatcher.address, newWatcher.port))
 		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, newWatcher.nodeName)
 
-		newWatcher.newConnectionSampler = backenddisruption.NewSimpleBackend(
+		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
+		historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.NewConnectionType)
+		historicalBackendDisruptionDataForReusedConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.ReusedConnectionType)
+		intervalLocator := fmt.Sprintf("%s-from-node-%v-to-node-%v-endpoint-%v", c.backendPrefix, c.myNodeName, newWatcher.nodeName, newWatcher.address)
+		newWatcher.newConnectionSampler = backenddisruption.NewSimpleBackendWithLocator(
+			monitorapi.NewLocator().LocateDisruptionCheck(historicalBackendDisruptionDataForNewConnectionsName, intervalLocator, monitorapi.NewConnectionType),
 			url,
-			fmt.Sprintf("%v-new-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
 			"",
 			monitorapi.NewConnectionType,
 		)
 		newWatcher.newConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
-		newWatcher.reusedConnectionSampler = backenddisruption.NewSimpleBackend(
+		newWatcher.reusedConnectionSampler = backenddisruption.NewSimpleBackendWithLocator(
+			monitorapi.NewLocator().LocateDisruptionCheck(historicalBackendDisruptionDataForReusedConnectionsName, intervalLocator, monitorapi.ReusedConnectionType),
 			url,
-			fmt.Sprintf("%v-reused-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
 			"",
 			monitorapi.ReusedConnectionType,
 		)

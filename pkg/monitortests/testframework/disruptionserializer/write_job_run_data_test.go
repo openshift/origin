@@ -23,7 +23,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-60 * time.Minute),
@@ -33,7 +33,7 @@ func TestComputeDisruptionData(t *testing.T) {
 			expected: map[string]BackendDisruption{
 				"kube-api-new-connections": {
 					Name:               "kube-api-new-connections",
-					BackendName:        "kube-api",
+					BackendName:        "kube-api-new-connections",
 					ConnectionType:     "New",
 					DisruptedDuration:  metav1.Duration{Duration: 0 * time.Second},
 					DisruptionMessages: nil,
@@ -46,7 +46,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-60 * time.Minute),
@@ -55,7 +55,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
 					},
 					From: time.Now().Add(-30 * time.Minute),
@@ -64,7 +64,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-20 * time.Minute),
@@ -74,7 +74,7 @@ func TestComputeDisruptionData(t *testing.T) {
 			expected: map[string]BackendDisruption{
 				"kube-api-new-connections": {
 					Name:              "kube-api-new-connections",
-					BackendName:       "kube-api",
+					BackendName:       "kube-api-new-connections",
 					ConnectionType:    "New",
 					DisruptedDuration: metav1.Duration{Duration: 10 * time.Minute},
 				},
@@ -86,7 +86,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-60 * time.Minute),
@@ -95,7 +95,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
 					},
 					From: time.Now().Add(-50 * time.Minute),
@@ -104,7 +104,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-40 * time.Minute),
@@ -113,7 +113,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
 					},
 					From: time.Now().Add(-30 * time.Minute),
@@ -122,7 +122,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-20 * time.Minute),
@@ -132,7 +132,7 @@ func TestComputeDisruptionData(t *testing.T) {
 			expected: map[string]BackendDisruption{
 				"kube-api-new-connections": {
 					Name:              "kube-api-new-connections",
-					BackendName:       "kube-api",
+					BackendName:       "kube-api-new-connections",
 					ConnectionType:    "New",
 					DisruptedDuration: metav1.Duration{Duration: 20 * time.Minute},
 				},
@@ -144,7 +144,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-60 * time.Minute),
@@ -153,7 +153,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
 					},
 					From: time.Now().Add(-30 * time.Minute),
@@ -162,7 +162,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/kube-api connection/new",
+						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
 						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-20 * time.Minute),
@@ -171,7 +171,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/openshift-api connection/new",
+						Locator: "backend-disruption-name/openshift-api-new-connections disruption/openshift-api connection/new",
 						Message: "disruption/openshift-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-60 * time.Minute),
@@ -180,7 +180,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Error,
-						Locator: "disruption/openshift-api connection/new",
+						Locator: "backend-disruption-name/openshift-api-new-connections disruption/openshift-api connection/new",
 						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
 					},
 					From: time.Now().Add(-30 * time.Minute),
@@ -189,7 +189,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level:   monitorapi.Info,
-						Locator: "disruption/openshift-api connection/new",
+						Locator: "backend-disruption-name/openshift-api-new-connections disruption/openshift-api connection/new",
 						Message: "disruption/openshift-api connection/new started responding to GET requests over new connections",
 					},
 					From: time.Now().Add(-25 * time.Minute),
@@ -199,13 +199,13 @@ func TestComputeDisruptionData(t *testing.T) {
 			expected: map[string]BackendDisruption{
 				"kube-api-new-connections": {
 					Name:              "kube-api-new-connections",
-					BackendName:       "kube-api",
+					BackendName:       "kube-api-new-connections",
 					ConnectionType:    "New",
 					DisruptedDuration: metav1.Duration{Duration: 10 * time.Minute},
 				},
 				"openshift-api-new-connections": {
 					Name:              "openshift-api-new-connections",
-					BackendName:       "openshift-api",
+					BackendName:       "openshift-api-new-connections",
 					ConnectionType:    "New",
 					DisruptedDuration: metav1.Duration{Duration: 5 * time.Minute},
 				},
