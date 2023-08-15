@@ -93,13 +93,9 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 	numNodes := int32(len(nodes.Items))
 
-	// disable the poller until can get the image sorted out.
-	// TODO re-enable
-	if false {
-		podNetworkPollerDeployment.Spec.Replicas = &numNodes
-		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
-			return err
-		}
+	podNetworkPollerDeployment.Spec.Replicas = &numNodes
+	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+		return err
 	}
 
 	// force the image to use the "normal" global mapping.
