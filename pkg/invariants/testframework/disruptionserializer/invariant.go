@@ -9,12 +9,10 @@ import (
 	"strings"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"github.com/openshift/origin/pkg/invariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -90,7 +88,7 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 		BackendDisruptions: map[string]*BackendDisruption{},
 	}
 
-	allBackendLocators := sets.String{}
+	backendDisruptionNamesToConnectionType := map[string]monitorapi.BackendConnectionType{}
 	allDisruptionEventsIntervals := eventIntervals.Filter(
 		monitorapi.And(
 			monitorapi.IsDisruptionEvent,
@@ -101,22 +99,20 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 		),
 	)
 	for _, eventInterval := range allDisruptionEventsIntervals {
-		allBackendLocators.Insert(eventInterval.Locator)
+		locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
+		backendDisruptionName := monitorapi.BackendDisruptionNameFrom(locatorParts)
+		connectionType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
+		backendDisruptionNamesToConnectionType[backendDisruptionName] = connectionType
 	}
 
-	for _, locator := range allBackendLocators.List() {
-		locatorParts := monitorapi.LocatorParts(locator)
-		name := monitorapi.BackendDisruptionNameFrom(locatorParts)
-
-		connectionType := monitorapi.DisruptionConnectionTypeFrom(locatorParts)
-
-		disruptionDuration, disruptionMessages, connectionType :=
-			monitorapi.BackendDisruptionSeconds(locator, allDisruptionEventsIntervals)
+	for backendDisruptionName, connectionType := range backendDisruptionNamesToConnectionType {
+		disruptionDuration, disruptionMessages :=
+			monitorapi.BackendDisruptionSeconds(backendDisruptionName, allDisruptionEventsIntervals)
 
 		bs := &BackendDisruption{
-			Name:               name,
-			BackendName:        name,
-			ConnectionType:     strings.Title(connectionType),
+			Name:               backendDisruptionName,
+			BackendName:        backendDisruptionName,
+			ConnectionType:     strings.Title(string(connectionType)),
 			DisruptedDuration:  metav1.Duration{Duration: disruptionDuration},
 			DisruptionMessages: disruptionMessages,
 			LoadBalancerType:   "",
@@ -125,7 +121,7 @@ func computeDisruptionData(eventIntervals monitorapi.Intervals) *BackendDisrupti
 			// part closely resembles the api being tested.
 			TargetAPI: "",
 		}
-		ret.BackendDisruptions[name] = bs
+		ret.BackendDisruptions[backendDisruptionName] = bs
 	}
 
 	return ret

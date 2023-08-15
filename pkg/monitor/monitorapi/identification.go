@@ -111,8 +111,8 @@ func BackendDisruptionNameFrom(locatorParts map[string]string) string {
 	return locatorParts[string(LocatorBackendDisruptionNameKey)]
 }
 
-func DisruptionConnectionTypeFrom(locatorParts map[string]string) string {
-	return locatorParts["connection"]
+func DisruptionConnectionTypeFrom(locatorParts map[string]string) BackendConnectionType {
+	return BackendConnectionType(locatorParts[string(LocatorConnectionKey)])
 }
 
 func DisruptionLoadBalancerTypeFrom(locatorParts map[string]string) string {
@@ -130,6 +130,15 @@ func DisruptionTargetAPIFrom(locatorParts map[string]string) string {
 func IsEventForLocator(locator string) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
 		if eventInterval.Locator == locator {
+			return true
+		}
+		return false
+	}
+}
+
+func IsEventForBackendDisruptionName(backendDisruptionName string) EventIntervalMatchesFunc {
+	return func(eventInterval Interval) bool {
+		if BackendDisruptionNameFrom(LocatorParts(eventInterval.Locator)) == backendDisruptionName {
 			return true
 		}
 		return false
