@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - command:
-            - /openshift-tests
+            - /usr/bin/openshift-tests
             - disruption
             - watch-endpoint-slice
             - --output-file=disruption.jsonl
