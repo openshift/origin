@@ -5,15 +5,15 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/openshift/origin/pkg/invariants/testframework/uploadtolokiserializer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/uploadtolokiserializer"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/alerts"
-	"github.com/openshift/origin/pkg/invariantlibrary/allowedalerts"
-	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
-	"github.com/openshift/origin/pkg/invariants/testframework/legacytestframeworkinvariants"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -76,7 +76,7 @@ a running cluster.
 			}
 
 			logrus.Info("running tests")
-			testCases := legacytestframeworkinvariants.RunAlertTests(
+			testCases := legacytestframeworkmonitortests.RunAlertTests(
 				jobType,
 				alerts.AllowedAlertsDuringUpgrade, // NOTE: may someway want a cli flag for conformance variant
 				configv1.Default,

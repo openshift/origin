@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/openshift/origin/pkg/defaultinvariants"
+	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
@@ -111,7 +111,7 @@ func max(a, b int) int {
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upgrade bool) error {
 	ctx := context.Background()
 
-	jobStability := defaultinvariants.ClusterStabilityDuringTest(o.ClusterStabilityDuringTest)
+	jobStability := defaultmonitortests.ClusterStabilityDuringTest(o.ClusterStabilityDuringTest)
 
 	tests, err := testsForSuite()
 	if err != nil {
@@ -249,7 +249,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, upg
 		monitorEventRecorder,
 		restConfig,
 		o.JUnitDir,
-		defaultinvariants.NewInvariantsFor(jobStability),
+		defaultmonitortests.NewMonitorTestsFor(jobStability),
 	)
 	if err := m.Start(ctx); err != nil {
 		return err
