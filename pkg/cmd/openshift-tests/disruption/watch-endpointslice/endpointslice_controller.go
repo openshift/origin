@@ -95,6 +95,8 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 		return err
 	}
 
+	// watchersForCurrEndpoints holds the metadata (but not the samplers) for all watchers that should be present
+	// based on the current state of the endpointslices.
 	watchersForCurrEndpoints := map[string]*watcher{}
 	port := ""
 	for _, currPort := range endpointSlice.Ports {
@@ -118,6 +120,7 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 	c.watcherLock.Lock()
 	defer c.watcherLock.Unlock()
 
+	// watchersToDelete holds all the watchers present in the running controller and not needed based on the endpointslice state.
 	watchersToDelete := map[string]*watcher{}
 	for watcherKey := range c.watchers {
 		knownWatcher := c.watchers[watcherKey]
@@ -142,14 +145,14 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 
 		newWatcher.newConnectionSampler = backenddisruption.NewSimpleBackend(
 			url,
-			fmt.Sprintf("%s-new-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
+			fmt.Sprintf("%v-new-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
 			"",
 			monitorapi.NewConnectionType,
 		)
 		newWatcher.newConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
 		newWatcher.reusedConnectionSampler = backenddisruption.NewSimpleBackend(
 			url,
-			fmt.Sprintf("%s-reused-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
+			fmt.Sprintf("%v-reused-connection-node-%v-endpoint-%v", c.backendPrefix, newWatcher.nodeName, newWatcher.address),
 			"",
 			monitorapi.ReusedConnectionType,
 		)

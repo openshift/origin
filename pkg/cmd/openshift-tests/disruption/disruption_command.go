@@ -9,6 +9,7 @@ import (
 func NewDisruptionCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "disruption",
+		Long:          "Collecting place for commands used to measure endpoint availability and latency.",
 		SilenceErrors: true,
 	}
 	cmd.AddCommand(
