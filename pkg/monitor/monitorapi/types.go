@@ -227,6 +227,7 @@ const (
 	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
 	SourceDisruption              IntervalSource = "Disruption"
 	SourceE2ETest                 IntervalSource = "E2ETest"
+	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
 	SourcePodLog                  IntervalSource = "PodLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"

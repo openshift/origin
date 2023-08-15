@@ -46,6 +46,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testErrorUpdatingEndpointSlices(finalIntervals)...)
 	junits = append(junits, testMultipleSingleSecondDisruptions(finalIntervals)...)
 	junits = append(junits, testDNSOverlapDisruption(finalIntervals)...)
+	junits = append(junits, testNoTooManyNetlinkEventLogs(finalIntervals)...)
 
 	return junits, nil
 }

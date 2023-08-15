@@ -14,13 +14,15 @@ import (
 func TestMonitorApiIntervals(t *testing.T) {
 
 	testcase := []struct {
-		name    string
-		logLine string
-		want    monitorapi.Interval
+		name          string
+		logLine       string
+		generatorFunc func(nodeName string, logBytes []byte) monitorapi.Intervals
+		want          monitorapi.Interval
 	}{
 		{
-			name:    "status",
-			logLine: `Sep 27 08:59:59.857303 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: I0927 08:59:59.850662    2397 status_manager.go:667] "Failed to get status for pod" podUID=a1947638-25c2-4fd8-b3c8-4dbaa666bc61 pod="openshift-monitoring/prometheus-k8s-0" err="Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/namespaces/openshift-monitoring/pods/prometheus-k8s-0\": http2: client connection lost"`,
+			name:          "status",
+			logLine:       `Sep 27 08:59:59.857303 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: I0927 08:59:59.850662    2397 status_manager.go:667] "Failed to get status for pod" podUID=a1947638-25c2-4fd8-b3c8-4dbaa666bc61 pod="openshift-monitoring/prometheus-k8s-0" err="Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/namespaces/openshift-monitoring/pods/prometheus-k8s-0\": http2: client connection lost"`,
+			generatorFunc: eventsFromKubeletLogs,
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
@@ -49,8 +51,9 @@ func TestMonitorApiIntervals(t *testing.T) {
 			},
 		},
 		{
-			name:    "reflector",
-			logLine: `Sep 27 08:59:59.853216 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: W0927 08:59:59.849136    2397 reflector.go:347] object-"openshift-monitoring"/"prometheus-adapter-7m6srg4dfreoi": watch of *v1.Secret ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection lost") has prevented the request from succeeding`,
+			name:          "reflector",
+			logLine:       `Sep 27 08:59:59.853216 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: W0927 08:59:59.849136    2397 reflector.go:347] object-"openshift-monitoring"/"prometheus-adapter-7m6srg4dfreoi": watch of *v1.Secret ended with: an error on the server ("unable to decode an event from the watch stream: http2: client connection lost") has prevented the request from succeeding`,
+			generatorFunc: eventsFromKubeletLogs,
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
@@ -79,8 +82,9 @@ func TestMonitorApiIntervals(t *testing.T) {
 			},
 		},
 		{
-			name:    "kubelet",
-			logLine: `Sep 27 08:59:59.853216 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: E0927 08:59:59.849143    2397 kubelet_node_status.go:487] "Error updating node status, will retry" err="error getting node \"ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s\": Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/nodes/ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s?timeout=10s\": http2: client connection lost"`,
+			name:          "kubelet",
+			logLine:       `Sep 27 08:59:59.853216 ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s kubenswrapper[2397]: E0927 08:59:59.849143    2397 kubelet_node_status.go:487] "Error updating node status, will retry" err="error getting node \"ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s\": Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/nodes/ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s?timeout=10s\": http2: client connection lost"`,
+			generatorFunc: eventsFromKubeletLogs,
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
@@ -106,8 +110,9 @@ func TestMonitorApiIntervals(t *testing.T) {
 			},
 		},
 		{
-			name:    "leaseUpdateError",
-			logLine: `May 19 19:10:03.753983 ci-op-6clh576g-0dd98-xz4pt-master-2 kubenswrapper[1516]: E0519 19:10:03.753942    1516 controller.go:189] failed to update lease, error: Put "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s": net/http: request canceled (Client.Timeout exceeded while awaiting headers)`,
+			name:          "leaseUpdateError",
+			logLine:       `May 19 19:10:03.753983 ci-op-6clh576g-0dd98-xz4pt-master-2 kubenswrapper[1516]: E0519 19:10:03.753942    1516 controller.go:189] failed to update lease, error: Put "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s": net/http: request canceled (Client.Timeout exceeded while awaiting headers)`,
+			generatorFunc: eventsFromKubeletLogs,
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
@@ -132,8 +137,9 @@ func TestMonitorApiIntervals(t *testing.T) {
 			},
 		},
 		{
-			name:    "leaseUpdateErr",
-			logLine: `Jun 29 05:16:54.197389 ci-op-cyqgzj4w-ed5cd-ll5md-master-0 kubenswrapper[2336]: E0629 05:16:54.195979    2336 controller.go:193] "Failed to update lease" err="Put \"https://api-int.ci-op-cyqgzj4w-ed5cd.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-cyqgzj4w-ed5cd-ll5md-master-0?timeout=10s\": http2: client connection lost"`,
+			name:          "leaseUpdateErr",
+			logLine:       `Jun 29 05:16:54.197389 ci-op-cyqgzj4w-ed5cd-ll5md-master-0 kubenswrapper[2336]: E0629 05:16:54.195979    2336 controller.go:193] "Failed to update lease" err="Put \"https://api-int.ci-op-cyqgzj4w-ed5cd.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-cyqgzj4w-ed5cd-ll5md-master-0?timeout=10s\": http2: client connection lost"`,
+			generatorFunc: eventsFromKubeletLogs,
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
@@ -158,8 +164,9 @@ func TestMonitorApiIntervals(t *testing.T) {
 			},
 		},
 		{
-			name:    "simple failure",
-			logLine: `Jul 05 17:47:52.807876 ci-op-lxqqvl5x-d3bee-gl4hp-master-0 hyperkube[1495]: I0606 17:47:52.807876    1599 prober.go:121] "Probe failed" probeType="Readiness" pod="openshift-authentication/oauth-openshift-77f7b95df5-r4xf7" podUID=1af660b3-ac3a-4182-86eb-2f74725d8415 containerName="oauth-openshift" probeResult=failure output="Get \"https://10.129.0.12:6443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)"`,
+			name:          "simple failure",
+			logLine:       `Jul 05 17:47:52.807876 ci-op-lxqqvl5x-d3bee-gl4hp-master-0 hyperkube[1495]: I0606 17:47:52.807876    1599 prober.go:121] "Probe failed" probeType="Readiness" pod="openshift-authentication/oauth-openshift-77f7b95df5-r4xf7" podUID=1af660b3-ac3a-4182-86eb-2f74725d8415 containerName="oauth-openshift" probeResult=failure output="Get \"https://10.129.0.12:6443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)"`,
+			generatorFunc: eventsFromKubeletLogs,
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
@@ -188,8 +195,9 @@ func TestMonitorApiIntervals(t *testing.T) {
 			},
 		},
 		{
-			name:    "simple error",
-			logLine: `Jul 05 17:43:12.908344 ci-op-lxqqvl5x-d3bee-gl4hp-master-0 hyperkube[1495]: E0606 17:43:12.908344    1500 prober.go:118] "Probe errored" err="rpc error: code = NotFound desc = container is not created or running: checking if PID of 645437acbb2ca429c04d5a2628924e2e10d44c681c824dddc7c82ffa30a936be is running failed: container process not found" probeType="Readiness" pod="openshift-marketplace/redhat-operators-4jpg4" podUID=0bac4741-a3bd-483c-b119-e97663d64024 containerName="registry-server"`,
+			name:          "simple error",
+			logLine:       `Jul 05 17:43:12.908344 ci-op-lxqqvl5x-d3bee-gl4hp-master-0 hyperkube[1495]: E0606 17:43:12.908344    1500 prober.go:118] "Probe errored" err="rpc error: code = NotFound desc = container is not created or running: checking if PID of 645437acbb2ca429c04d5a2628924e2e10d44c681c824dddc7c82ffa30a936be is running failed: container process not found" probeType="Readiness" pod="openshift-marketplace/redhat-operators-4jpg4" podUID=0bac4741-a3bd-483c-b119-e97663d64024 containerName="registry-server"`,
+			generatorFunc: eventsFromKubeletLogs,
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
@@ -218,8 +226,9 @@ func TestMonitorApiIntervals(t *testing.T) {
 			},
 		},
 		{
-			name:    "signature error",
-			logLine: `Feb 01 05:37:45.731611 ci-op-vyccmv3h-4ef92-xs5k5-master-0 kubenswrapper[2213]: E0201 05:37:45.730879 2213 pod_workers.go:965] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"oauth-proxy\" with ErrImagePull: \"rpc error: code = Unknown desc = copying system image from manifest list: reading signatures: parsing signature https://registry.redhat.io/containers/sigstore/openshift4/ose-oauth-proxy@sha256=f968922564c3eea1c69d6bbe529d8970784d6cae8935afaf674d9fa7c0f72ea3/signature-9: unrecognized signature format, starting with binary 0x3c\"" pod="openshift-e2e-loki/loki-promtail-plm74" podUID=59b26cbf-3421-407c-98ee-986b5a091ef4`,
+			name:          "signature error",
+			logLine:       `Feb 01 05:37:45.731611 ci-op-vyccmv3h-4ef92-xs5k5-master-0 kubenswrapper[2213]: E0201 05:37:45.730879 2213 pod_workers.go:965] "Error syncing pod, skipping" err="failed to \"StartContainer\" for \"oauth-proxy\" with ErrImagePull: \"rpc error: code = Unknown desc = copying system image from manifest list: reading signatures: parsing signature https://registry.redhat.io/containers/sigstore/openshift4/ose-oauth-proxy@sha256=f968922564c3eea1c69d6bbe529d8970784d6cae8935afaf674d9fa7c0f72ea3/signature-9: unrecognized signature format, starting with binary 0x3c\"" pod="openshift-e2e-loki/loki-promtail-plm74" podUID=59b26cbf-3421-407c-98ee-986b5a091ef4`,
+			generatorFunc: eventsFromKubeletLogs,
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
@@ -249,13 +258,39 @@ func TestMonitorApiIntervals(t *testing.T) {
 				To:   systemdJournalLogTime("Feb 01 05:37:45.731611"),
 			},
 		},
+		{
+			name:          "too many netlink events",
+			logLine:       `Apr 12 11:49:49.188086 ci-op-xs3rnrtc-2d4c7-4mhm7-worker-b-dwc7w NetworkManager[1155]: <info> [1681300187.8326] platform-linux: netlink[rtnl]: read: too many netlink events. Need to resynchronize platform cache`,
+			generatorFunc: intervalsFromNetworkManagerLogs,
+			want: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level:   monitorapi.Warning,
+					Locator: "node/ci-op-xs3rnrtc-2d4c7-4mhm7-worker-b-dwc7w",
+					Message: "[1155]: <info> [1681300187.8326] platform-linux: netlink[rtnl]: read: too many netlink events. Need to resynchronize platform cache",
+					StructuredLocator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypeNode,
+						Keys: map[monitorapi.LocatorKey]string{
+							"node": "testName",
+						},
+					},
+					StructuredMessage: monitorapi.Message{
+						Reason:       "",
+						Cause:        "",
+						HumanMessage: "NetworkManager[1155]: <info> [1681300187.8326] platform-linux: netlink[rtnl]: read: too many netlink events. Need to resynchronize platform cache",
+						Annotations:  map[monitorapi.AnnotationKey]string{},
+					},
+				},
+				From: systemdJournalLogTime("Apr 12 11:49:49.188086"),
+				To:   systemdJournalLogTime("Apr 12 11:49:50.188086"),
+			},
+		},
 	}
 
 	for _, tc := range testcase {
 		t.Run(tc.name, func(t *testing.T) {
 			logString := tc.logLine + "\n"
 
-			intervals := eventsFromKubeletLogs("testName", []byte(logString))
+			intervals := tc.generatorFunc("testName", []byte(logString))
 
 			assert.NotNil(t, intervals, "Invalid intervals")
 			assert.Equal(t, 1, intervals.Len())
