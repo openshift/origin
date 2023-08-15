@@ -14,7 +14,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/openshift/origin/pkg/defaultinvariants"
+	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/spf13/cobra"
@@ -140,7 +140,7 @@ func (f *RunMonitorOptions) Run() error {
 		recorder,
 		restConfig,
 		f.ArtifactDir,
-		defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
+		defaultmonitortests.NewMonitorTestsFor(defaultmonitortests.Stable),
 	)
 	if err := m.Start(ctx); err != nil {
 		return err

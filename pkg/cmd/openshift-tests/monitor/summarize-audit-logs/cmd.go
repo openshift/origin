@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	auditloganalyzer2 "github.com/openshift/origin/pkg/invariants/kubeapiserver/auditloganalyzer"
+	auditloganalyzer2 "github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
 
 	"k8s.io/client-go/kubernetes"
 

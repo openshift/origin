@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/invariantlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"

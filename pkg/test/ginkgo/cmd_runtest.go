@@ -9,7 +9,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
-	"github.com/openshift/origin/pkg/defaultinvariants"
+	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -84,7 +84,7 @@ func (o *TestOptions) Run(args []string) error {
 			monitorEventRecorder,
 			restConfig,
 			"",
-			defaultinvariants.NewInvariantsFor(defaultinvariants.Stable),
+			defaultmonitortests.NewMonitorTestsFor(defaultmonitortests.Stable),
 		)
 		if err := m.Start(ctx); err != nil {
 			return err
