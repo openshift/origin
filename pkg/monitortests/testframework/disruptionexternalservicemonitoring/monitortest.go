@@ -25,8 +25,7 @@ const (
 	newConnectionTestName    = "[sig-trt] disruption/ci-cluster-network-liveness connection/new should be available throughout the test"
 	reusedConnectionTestName = "[sig-trt] disruption/ci-cluster-network-liveness connection/reused should be available throughout the test"
 
-	LivenessProbeBackend = "ci-cluster-network-liveness"
-	externalServiceURL   = "http://static.redhat.com/test/rhel-networkmanager.txt"
+	externalServiceURL = "http://static.redhat.com/test/rhel-networkmanager.txt"
 )
 
 type availability struct {
@@ -74,15 +73,15 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 
-	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
-		LivenessProbeBackend,
+		"ci-cluster-network-liveness-new-connections",
 		"",
 		monitorapi.NewConnectionType)
 
-	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
-		LivenessProbeBackend,
+		"ci-cluster-network-liveness-reused-connections",
 		"",
 		monitorapi.ReusedConnectionType)
 

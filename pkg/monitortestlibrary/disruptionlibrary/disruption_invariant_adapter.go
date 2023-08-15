@@ -98,7 +98,7 @@ func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, [
 	return nil, nil, utilerrors.NewAggregate([]error{newRecoverErr, reusedRecoverErr})
 }
 
-func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails, locator string, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
+func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails string, locator monitorapi.Locator, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
 	// Indicates there is no entry in the query_results.json data file, nor a valid fallback,
 	// we do not wish to run the test. (this likely implies we do not have the required number of
 	// runs in 3 weeks to do a reliable P99)
@@ -127,7 +127,7 @@ func createDisruptionJunit(testName string, allowedDisruption *time.Duration, di
 		}
 	}
 
-	reason := fmt.Sprintf("%s was unreachable during disruption: %v", locator, disruptionDetails)
+	reason := fmt.Sprintf("%v was unreachable during disruption: %v", locator.OldLocator(), disruptionDetails)
 	describe := disruptedIntervals.Strings()
 	failureMessage := fmt.Sprintf("%s for at least %s (maxAllowed=%s):\n\n%s", reason, roundedDisruptionDuration, roundedAllowedDisruption, strings.Join(describe, "\n"))
 
@@ -149,7 +149,7 @@ func (w *Availability) junitForNewConnections(ctx context.Context, finalInterval
 			w.newConnectionTestName, newConnectionAllowed, newConnectionDisruptionDetails, w.newConnectionDisruptionSampler.GetLocator(),
 			finalIntervals.Filter(
 				monitorapi.And(
-					monitorapi.IsEventForLocator(w.newConnectionDisruptionSampler.GetLocator()),
+					monitorapi.IsEventForLocator(w.newConnectionDisruptionSampler.GetLocator().OldLocator()),
 					monitorapi.IsErrorEvent,
 				),
 			),
@@ -166,7 +166,7 @@ func (w *Availability) junitForReusedConnections(ctx context.Context, finalInter
 			w.reusedConnectionTestName, reusedConnectionAllowed, reusedConnectionDisruptionDetails, w.reusedConnectionDisruptionSampler.GetLocator(),
 			finalIntervals.Filter(
 				monitorapi.And(
-					monitorapi.IsEventForLocator(w.reusedConnectionDisruptionSampler.GetLocator()),
+					monitorapi.IsEventForLocator(w.reusedConnectionDisruptionSampler.GetLocator().OldLocator()),
 					monitorapi.IsErrorEvent,
 				),
 			),
