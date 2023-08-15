@@ -2,9 +2,11 @@ package disruptionpodnetwork
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"embed"
 	_ "embed"
+	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -116,6 +118,19 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 }
 
 func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	// create the stop collecting configmap and wait for 30s to thing to have stopped.  the 30s is just a guess
+	if _, err := pna.kubeClient.CoreV1().ConfigMaps(pna.namespaceName).Create(ctx, &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "stop-collecting"},
+	}, metav1.CreateOptions{}); err != nil {
+		return nil, nil, err
+	}
+
+	select {
+	case <-time.After(30 * time.Second):
+	case <-ctx.Done():
+		return nil, nil, ctx.Err()
+	}
+
 	pollerLabel, err := labels.NewRequirement("network.openshift.io/disruption-actor", selection.Equals, []string{"poller"})
 	if err != nil {
 		return nil, nil, err
@@ -128,8 +143,11 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 	}
 
 	retIntervals := monitorapi.Intervals{}
+	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
+	buf := &bytes.Buffer{}
 	for _, pollerPod := range pollerPods.Items {
+		fmt.Fprintf(buf, "\n\nLogs for -n %v pod/%v\n", pollerPod.Namespace, pollerPod.Name)
 		req := pna.kubeClient.CoreV1().Pods(pna.namespaceName).GetLogs(pollerPod.Name, &corev1.PodLogOptions{})
 		if err != nil {
 			errs = append(errs, err)
@@ -144,6 +162,8 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
 			line := scanner.Bytes()
+			buf.Write(line)
+			buf.Write([]byte("\n"))
 			if len(line) == 0 {
 				continue
 			}
@@ -154,8 +174,12 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 			}
 		}
 	}
+	junits = append(junits, &junitapi.JUnitTestCase{
+		Name:      "[sig-network] poller pod logs",
+		SystemOut: string(buf.Bytes()),
+	})
 
-	return retIntervals, nil, utilerrors.NewAggregate(errs)
+	return retIntervals, junits, utilerrors.NewAggregate(errs)
 }
 
 func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
