@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 )
 
@@ -37,8 +39,8 @@ func (p *ServicePoller) Run(ctx context.Context, finishedCleanup chan struct{}) 
 	logger.Info("Starting Polling Service")
 	defer logger.Info("Shutting down Service Poller")
 
-	//go wait.UntilWithContext(ctx, p.runServicePoller, time.Second)
-	go p.runServicePoller(ctx)
+	go wait.UntilWithContext(ctx, p.runServicePoller, time.Second)
+	//go p.runServicePoller(ctx)
 
 	// do a thing
 
