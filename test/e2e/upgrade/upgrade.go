@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/invariants/network/disruptioningress"
+	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
 
-	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"

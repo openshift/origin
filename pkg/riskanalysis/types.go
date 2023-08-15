@@ -1,7 +1,7 @@
 package riskanalysis
 
 import (
-	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 )
 
 // Define types, these are subsets of the sippy APIs of the same name, copied here to eliminate a lot of the cruft.

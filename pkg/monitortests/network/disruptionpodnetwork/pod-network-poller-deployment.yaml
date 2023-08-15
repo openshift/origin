@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-network-disruption-poller
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 34%
+      maxSurge: 0
+  # to be overridden by the number of nodes
+  replicas: 1
+  selector:
+    matchLabels:
+      network.openshift.io/disruption-target: pod-network
+      network.openshift.io/disruption-actor: poller
+  template:
+    metadata:
+      labels:
+        network.openshift.io/disruption-target: pod-network
+        network.openshift.io/disruption-actor: poller
+    spec:
+      containers:
+        - command:
+            - /openshift-tests
+            - disruption
+            - watch-endpoint-slice
+            - --output-file=disruption.jsonl
+            - --disruption-backend-prefix=pod-to-pod-
+            - --disruption-target-service-name=pod-network-service
+          # overridden when created
+          image: docker.io/deads2k/openshift-tests
+          imagePullPolicy: IfNotPresent
+          name: disruption-poller
+          terminationMessagePolicy: FallbackToLogsOnError
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 70
+      tolerations:
+        # Ensure pod can be scheduled on master nodes
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  network.openshift.io/disruption-target: pod-network
+                  network.openshift.io/disruption-actor: poller

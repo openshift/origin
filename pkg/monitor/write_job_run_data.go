@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/openshift/origin/pkg/invariantlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
