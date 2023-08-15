@@ -1,10 +1,12 @@
-package monitor
+package watchevents
 
 import (
 	"context"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitor"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +40,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			name: "simple event",
 			args: args{
 				ctx: context.TODO(),
-				m:   NewRecorder(),
+				m:   monitor.NewRecorder(),
 				kubeEvent: &corev1.Event{
 					Count:  2,
 					Reason: "SomethingHappened",
@@ -58,7 +60,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			name: "unknown pathological event",
 			args: args{
 				ctx: context.TODO(),
-				m:   NewRecorder(),
+				m:   monitor.NewRecorder(),
 				kubeEvent: &corev1.Event{
 					Count:  40,
 					Reason: "SomethingHappened",
@@ -78,7 +80,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			name: "allowed pathological event",
 			args: args{
 				ctx: context.TODO(),
-				m:   NewRecorder(),
+				m:   monitor.NewRecorder(),
 				kubeEvent: &corev1.Event{
 					Count:  40,
 					Reason: "SomethingHappened",
@@ -99,7 +101,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			name: "allowed pathological event with known bug",
 			args: args{
 				ctx: context.TODO(),
-				m:   NewRecorder(),
+				m:   monitor.NewRecorder(),
 				kubeEvent: &corev1.Event{
 					Count:  40,
 					Reason: "TopologyAwareHintsDisabled",
@@ -123,7 +125,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 		}
 		t.Run(tt.name, func(t *testing.T) {
 			significantlyBeforeNow := now.UTC().Add(-15 * time.Minute)
-			recordAddOrUpdateEvent(tt.args.ctx, tt.args.m, nil, significantlyBeforeNow, tt.args.kubeEvent)
+			recordAddOrUpdateEvent(tt.args.ctx, tt.args.m, nil, nil, significantlyBeforeNow, tt.args.kubeEvent)
 			intervals := tt.args.m.Intervals(now.Add(-10*time.Minute), now.Add(10*time.Minute))
 			assert.Equal(t, 1, len(intervals))
 			interval := intervals[0]

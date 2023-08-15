@@ -4,9 +4,6 @@ import (
 	"fmt"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
-
-	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
-
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
@@ -18,11 +15,13 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
+	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionserviceloadbalancer"
 	"github.com/openshift/origin/pkg/monitortests/network/legacynetworkmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/node/kubeletlogcollector"
 	"github.com/openshift/origin/pkg/monitortests/node/legacynodemonitortests"
 	"github.com/openshift/origin/pkg/monitortests/node/nodestateanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/node/watchnodes"
 	"github.com/openshift/origin/pkg/monitortests/node/watchpods"
 	"github.com/openshift/origin/pkg/monitortests/storage/legacystoragemonitortests"
 	"github.com/openshift/origin/pkg/monitortests/testframework/additionaleventscollector"
@@ -38,6 +37,8 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/trackedresourcesserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/uploadtolokiserializer"
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchclusteroperators"
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchevents"
 )
 
 type ClusterStabilityDuringTest string
@@ -119,6 +120,7 @@ func newUniversalMonitorTests() monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node", legacynodemonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node", nodestateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node", watchpods.NewPodWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node", watchnodes.NewNodeWatcher())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
 
@@ -134,6 +136,8 @@ func newUniversalMonitorTests() monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry.AddMonitorTestOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
 	monitorTestRegistry.AddMonitorTestOrDie("upload-to-loki-serializer", "Test Framework", uploadtolokiserializer.NewUploadSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
 
 	return monitorTestRegistry
 }

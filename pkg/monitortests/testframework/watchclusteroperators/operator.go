@@ -1,4 +1,4 @@
-package monitor
+package watchclusteroperators
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 )
 
-func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.Recorder, client configclientset.Interface) {
+func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWriter, client configclientset.Interface) {
 	coInformer := cache.NewSharedIndexInformer(
-		NewErrorRecordingListWatcher(m, &cache.ListWatch{
+		newErrorRecordingListWatcher(m, &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return client.ConfigV1().ClusterOperators().List(ctx, options)
 			},
@@ -133,7 +133,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.Recorder, 
 	go coInformer.Run(ctx.Done())
 
 	cvInformer := cache.NewSharedIndexInformer(
-		NewErrorRecordingListWatcher(m, &cache.ListWatch{
+		newErrorRecordingListWatcher(m, &cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = "metadata.name=version"
 				return client.ConfigV1().ClusterVersions().List(ctx, options)
