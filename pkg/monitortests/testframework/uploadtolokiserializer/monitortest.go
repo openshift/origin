@@ -50,7 +50,7 @@ func (*lokiSerializer) EvaluateTestsFromConstructedIntervals(ctx context.Context
 
 func (*lokiSerializer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	fmt.Fprintf(os.Stderr, "Uploading to loki.\n")
-	if err := UploadIntervalsToLoki(finalIntervals); err != nil {
+	if err := UploadIntervalsToLoki(finalIntervals, timeSuffix, false); err != nil {
 		// Best effort, we do not want to error out here:
 		// TODO do we need to have a junit return option from this function to allow us to find failures?
 		logrus.WithError(err).Warn("unable to upload intervals to loki")
@@ -263,9 +263,12 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string, dr
 
 func intervalToLogLine(i monitorapi.Interval, timeSuffix string) (string, map[string]string, error) {
 
-	// TODO: temporary hack while we wait for structured locators to become the norm.
-	// Clear out the unstructured locator, the e2e-test ones are serializing in a way that breaks loki's json parsing.
-	i.Locator = ""
+	// TODO: temporary hack, the way we were packing e2e tests into locators with quotes was breaking
+	// with json serialization somewhere either when submitting or when parsing in loki
+	if i.StructuredLocator.Type == monitorapi.LocatorTypeE2ETest {
+		logrus.Warn("found a structured e2e locator")
+		i.Locator = ""
+	}
 
 	ib, err := json.Marshal(i)
 	if err != nil {
@@ -302,38 +305,47 @@ func intervalToLogLine(i monitorapi.Interval, timeSuffix string) (string, map[st
 		return "", logLine, nil
 	}
 
-	locatorParts := strings.Split(i.Locator, " ")
-
-	for _, lp := range locatorParts {
-		parts := strings.Split(lp, "/")
-		if len(parts) < 2 {
-			logrus.Warnf("unable to split locator parts: %+v", lp)
-			continue
+	// Handle the new structured locators, not all are ported yet:
+	if i.StructuredLocator.Type != "" {
+		// Extract the namespace from the locator, if present, and use as a label.
+		if ns, ok := i.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]; ok {
+			logLine["namespace"] = ns
 		}
-		tag, val := parts[0], parts[1]
-		if strings.TrimSpace(tag) == "" {
-			// Have seen this fail on: WARN[0002] unable to process locator tag: May 12 11:10:00.000 I /machine-config reason/OperatorVersionChanged clusteroperator/machine-config-operator version changed from [{operator 4.14.0-0.nightly-2023-05-03-163151}] to [{operator 4.14.0-0.nightly-2023-05-12-121801}]
-			// Would be interesting to track down where this is coming from. Should be identification.go OperatorLocator, but this is impossible.
-			logrus.Warnf("unable to process locator tag: %+v", i)
-			continue
-		}
+	} else {
+		// Fall back to the previous unstructured locator
+		locatorParts := strings.Split(i.Locator, " ")
 
-		// some locator fields can slip in with '-', which is not a valid json key and then breaks unpack in loki.
-		// replace them with '_'.
-		tag = strings.ReplaceAll(tag, "-", "_")
+		for _, lp := range locatorParts {
+			parts := strings.Split(lp, "/")
+			if len(parts) < 2 {
+				logrus.Warnf("unable to split locator parts: %+v (%v)", lp, i.Locator)
+				continue
+			}
+			tag, val := parts[0], parts[1]
+			if strings.TrimSpace(tag) == "" {
+				// Have seen this fail on: WARN[0002] unable to process locator tag: May 12 11:10:00.000 I /machine-config reason/OperatorVersionChanged clusteroperator/machine-config-operator version changed from [{operator 4.14.0-0.nightly-2023-05-03-163151}] to [{operator 4.14.0-0.nightly-2023-05-12-121801}]
+				// Would be interesting to track down where this is coming from. Should be identification.go OperatorLocator, but this is impossible.
+				logrus.Warnf("unable to process locator tag: %+v", i)
+				continue
+			}
 
-		// WARNING: opting for a potentially risky change here, I want namespace filtering to be available as a
-		// label in loki soon,	and thus I am translating some labels we used historically in origin intervals to
-		// match those we pull from pod logs in the cluster itself. This will require our intervals charts in sippy
-		// be able to parse this new name instead of the other. Ideally, we would go rename these fully in origin wherever used.
-		if tag == "ns" {
-			tag = "namespace"
-		}
-		if tag == "node" {
-			tag = "host"
-		}
+			// some locator fields can slip in with '-', which is not a valid json key and then breaks unpack in loki.
+			// replace them with '_'.
+			tag = strings.ReplaceAll(tag, "-", "_")
 
-		logLine[tag] = val
+			// WARNING: opting for a potentially risky change here, I want namespace filtering to be available as a
+			// label in loki soon,	and thus I am translating some labels we used historically in origin intervals to
+			// match those we pull from pod logs in the cluster itself. This will require our intervals charts in sippy
+			// be able to parse this new name instead of the other. Ideally, we would go rename these fully in origin wherever used.
+			if tag == "ns" {
+				tag = "namespace"
+			}
+			if tag == "node" {
+				tag = "host"
+			}
+
+			logLine[tag] = val
+		}
 	}
 
 	// If we have a namespace in the locator, return and it will be used as a proper label:
