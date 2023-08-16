@@ -12,7 +12,9 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -59,15 +61,26 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	eventsForPods := getEventsByPodName(events)
 
 	var platform configv1.PlatformType
-	configClient, err := configclient.NewForConfig(clientConfig)
+
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
-		failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
+		failures = append(failures, fmt.Sprintf("error creating kubeClient: %v", err))
 	} else {
-		infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+		isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
 		if err != nil {
-			failures = append(failures, fmt.Sprintf("error getting cluster infrastructure: %v", err))
-		} else {
-			platform = infra.Status.PlatformStatus.Type
+			failures = append(failures, fmt.Sprintf("error checking MicroShift cluster: %v", err))
+		} else if !isMicroShift {
+			configClient, err := configclient.NewForConfig(clientConfig)
+			if err != nil {
+				failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
+			} else {
+				infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+				if err != nil {
+					failures = append(failures, fmt.Sprintf("error getting cluster infrastructure: %v", err))
+				} else {
+					platform = infra.Status.PlatformStatus.Type
+				}
+			}
 		}
 	}
 
