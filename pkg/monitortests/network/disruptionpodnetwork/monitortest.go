@@ -7,7 +7,11 @@ import (
 	"embed"
 	_ "embed"
 	"fmt"
+	"os/exec"
+	"strings"
 	"time"
+
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
@@ -60,15 +64,42 @@ func init() {
 }
 
 type podNetworkAvalibility struct {
-	namespaceName string
-	kubeClient    kubernetes.Interface
+	payloadImagePullSpec string
+	namespaceName        string
+	kubeClient           kubernetes.Interface
 }
 
-func NewPodNetworkAvalibilityInvariant() monitortestframework.MonitorTest {
-	return &podNetworkAvalibility{}
+func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
+	return &podNetworkAvalibility{
+		payloadImagePullSpec: info.UpgradeTargetPayloadImagePullSpec,
+	}
 }
 
 func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	if len(pna.payloadImagePullSpec) == 0 {
+		configClient, err := configclient.NewForConfig(adminRESTConfig)
+		if err != nil {
+			return err
+		}
+		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		pna.payloadImagePullSpec = clusterVersion.Status.History[0].Image
+	}
+
+	// runImageExtract extracts src from specified image to dst
+	cmd := exec.Command("oc", "adm", "release", "info", pna.payloadImagePullSpec, "--image-for=tests")
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
+	cmd.Stdout = out
+	cmd.Stderr = errOut
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
+	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
+
 	var err error
 
 	pna.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
@@ -93,13 +124,10 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 	numNodes := int32(len(nodes.Items))
 
-	// disable the poller until can get the image sorted out.
-	// TODO re-enable
-	if false {
-		podNetworkPollerDeployment.Spec.Replicas = &numNodes
-		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
-			return err
-		}
+	podNetworkPollerDeployment.Spec.Replicas = &numNodes
+	podNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+		return err
 	}
 
 	// force the image to use the "normal" global mapping.

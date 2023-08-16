@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	"github.com/openshift/origin/pkg/version"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -71,11 +72,16 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 	// TODO fix the the upstream so that the AfterReadingAllFlags will properly check for either of the inputs having values.
 	k8simage.Init("")
 
+	// TODO the gingkoRunSuiteOptions needs to have flags then calculated options to express specified versus computed values
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest: monitortestframework.ClusterStabilityDuringTest(o.GinkgoRunSuiteOptions.ClusterStabilityDuringTest),
+	}
+
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
 	if !o.GinkgoRunSuiteOptions.DryRun {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", false)
+	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", monitorTestInfo, false)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}
