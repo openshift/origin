@@ -10,6 +10,24 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
+type ClusterStabilityDuringTest string
+
+var (
+	// Stable means that at no point during testing do we expect a component to take downtime and upgrades are not happening.
+	Stable ClusterStabilityDuringTest = "Stable"
+	// TODO only bring this back if we have some reason to collect Upgrade specific information.  I can't think of reason.
+	// TODO please contact @deads2k for vetting if you think you found something
+	//Upgrade    ClusterStabilityDuringTest = "Upgrade"
+	// Disruptive means that the suite is expected to induce outages to the cluster.
+	Disruptive ClusterStabilityDuringTest = "Disruptive"
+)
+
+type MonitorTestInitializationInfo struct {
+	ClusterStabilityDuringTest ClusterStabilityDuringTest
+	// UpgradeTargetImage is only set for upgrades.  It is set to the *final* destination version.
+	UpgradeTargetPayloadImagePullSpec string
+}
+
 type MonitorTest interface {
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.

@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/openshift/origin/pkg/monitortestframework"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
@@ -103,11 +105,17 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 		return err
 	}
 
+	// TODO the gingkoRunSuiteOptions needs to have flags then calculated options to express specified versus computed values
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest:        monitortestframework.ClusterStabilityDuringTest(o.GinkgoRunSuiteOptions.ClusterStabilityDuringTest),
+		UpgradeTargetPayloadImagePullSpec: o.ToImage,
+	}
+
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
 	if !o.GinkgoRunSuiteOptions.DryRun {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests-upgrade", true)
+	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests-upgrade", monitorTestInfo, true)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}
