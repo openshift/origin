@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -32,7 +33,13 @@ func (w *newAPIServerDisruptionChecker) CollectData(ctx context.Context, storage
 	if err != nil {
 		return nil, nil, err
 	}
-
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return nil, nil, err
+	}
+	if isMicroShift {
+		return nil, nil, nil
+	}
 	apiserverAvailabilityIntervals, err := apiserveravailability.APIServerAvailabilityIntervalsFromCluster(kubeClient, beginning, end)
 
 	return apiserverAvailabilityIntervals, nil, err
@@ -51,9 +58,18 @@ func (w *newAPIServerDisruptionChecker) WriteContentToStorage(ctx context.Contex
 }
 
 func (w *newAPIServerDisruptionChecker) Cleanup(ctx context.Context) error {
-	if err := sampler.TearDownInClusterMonitors(w.adminRESTConfig); err != nil {
+	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
+	if err != nil {
 		return err
 	}
-
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return err
+	}
+	if !isMicroShift {
+		if err := sampler.TearDownInClusterMonitors(w.adminRESTConfig); err != nil {
+			return err
+		}
+	}
 	return nil
 }
