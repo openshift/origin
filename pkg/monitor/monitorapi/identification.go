@@ -12,14 +12,6 @@ const (
 	ReusedConnectionType BackendConnectionType = "reused"
 )
 
-func LocateRouteForDisruptionCheck(ns, name, disruptionBackendName string, connectionType BackendConnectionType) string {
-	return fmt.Sprintf("ns/%s route/%s disruption/%s connection/%s", ns, name, disruptionBackendName, connectionType)
-}
-
-func LocateDisruptionCheck(disruptionBackendName string, connectionType BackendConnectionType) string {
-	return fmt.Sprintf("disruption/%s connection/%s", disruptionBackendName, connectionType)
-}
-
 func IsE2ETest(l Locator) bool {
 	_, ret := E2ETestFromLocator(l)
 	return ret
@@ -106,12 +98,21 @@ func AlertFrom(locatorParts map[string]string) string {
 	return locatorParts["alert"]
 }
 
-func DisruptionFrom(locatorParts map[string]string) string {
-	return locatorParts["disruption"]
+func ThisDisruptionInstanceFrom(locatorParts map[string]string) string {
+	return locatorParts[string(LocatorDisruptionKey)]
 }
 
-func DisruptionConnectionTypeFrom(locatorParts map[string]string) string {
-	return locatorParts["connection"]
+func BackendDisruptionNameFromLocator(locator Locator) string {
+	return locator.Keys[LocatorBackendDisruptionNameKey]
+}
+
+// BackendDisruptionNameFrom holds the value used to store and locate historical data related to the amount of disruption.
+func BackendDisruptionNameFrom(locatorParts map[string]string) string {
+	return locatorParts[string(LocatorBackendDisruptionNameKey)]
+}
+
+func DisruptionConnectionTypeFrom(locatorParts map[string]string) BackendConnectionType {
+	return BackendConnectionType(locatorParts[string(LocatorConnectionKey)])
 }
 
 func DisruptionLoadBalancerTypeFrom(locatorParts map[string]string) string {
@@ -129,6 +130,15 @@ func DisruptionTargetAPIFrom(locatorParts map[string]string) string {
 func IsEventForLocator(locator string) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
 		if eventInterval.Locator == locator {
+			return true
+		}
+		return false
+	}
+}
+
+func IsEventForBackendDisruptionName(backendDisruptionName string) EventIntervalMatchesFunc {
+	return func(eventInterval Interval) bool {
+		if BackendDisruptionNameFrom(LocatorParts(eventInterval.Locator)) == backendDisruptionName {
 			return true
 		}
 		return false

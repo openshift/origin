@@ -124,14 +124,16 @@ const (
 	LocatorContainerKey       LocatorKey = "container"
 	LocatorAlertKey           LocatorKey = "alert"
 	LocatorRouteKey           LocatorKey = "route"
-	LocatorDisruptionKey      LocatorKey = "disruption"
-	LocatorE2ETestKey         LocatorKey = "e2e-test"
-	LocatorLoadBalancerKey    LocatorKey = "load-balancer"
-	LocatorConnectionKey      LocatorKey = "connection"
-	LocatorProtocolKey        LocatorKey = "protocol"
-	LocatorTargetKey          LocatorKey = "target"
-	LocatorShutdownKey        LocatorKey = "shutdown"
-	LocatorServerKey          LocatorKey = "server"
+	// LocatorBackendDisruptionNameKey holds the value used to store and locate historical data related to the amount of disruption.
+	LocatorBackendDisruptionNameKey LocatorKey = "backend-disruption-name"
+	LocatorDisruptionKey            LocatorKey = "disruption"
+	LocatorE2ETestKey               LocatorKey = "e2e-test"
+	LocatorLoadBalancerKey          LocatorKey = "load-balancer"
+	LocatorConnectionKey            LocatorKey = "connection"
+	LocatorProtocolKey              LocatorKey = "protocol"
+	LocatorTargetKey                LocatorKey = "target"
+	LocatorShutdownKey              LocatorKey = "shutdown"
+	LocatorServerKey                LocatorKey = "server"
 )
 
 type Locator struct {
@@ -225,6 +227,7 @@ const (
 	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
 	SourceDisruption              IntervalSource = "Disruption"
 	SourceE2ETest                 IntervalSource = "E2ETest"
+	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
 	SourcePodLog                  IntervalSource = "PodLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"

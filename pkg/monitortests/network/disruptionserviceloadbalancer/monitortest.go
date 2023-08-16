@@ -204,15 +204,15 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return fmt.Errorf("could not reach %v reliably: %w", url, err)
 	}
 
-	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		baseURL,
-		"service-load-balancer-with-pdb",
+		"service-load-balancer-with-pdb-new-connections",
 		path,
 		monitorapi.NewConnectionType).
 		WithExpectedBody("hello")
-	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		baseURL,
-		"service-load-balancer-with-pdb",
+		"service-load-balancer-with-pdb-reused-connections",
 		path,
 		monitorapi.ReusedConnectionType).
 		WithExpectedBody("hello")

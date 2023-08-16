@@ -163,4 +163,49 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(pod.Annotations[securityv1.ValidatedSCCAnnotation]).To(o.Equal("restricted-v2"))
 	})
+
+	g.It("SCC admission fails for incorrect/non-existent required-scc annotation", func() {
+		sccPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "required-scc-testpod",
+				Annotations: map[string]string{
+					securityv1.RequiredSCCAnnotation: "non_existent_scc", // Set an annotation to a non-existent SCC.
+				},
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:    "sleeper",
+						Image:   "fedora:latest",
+						Command: []string{"sleep"},
+						Args:    []string{"infinity"},
+						SecurityContext: &corev1.SecurityContext{
+							RunAsNonRoot: pointer.Bool(true),
+							Capabilities: &corev1.Capabilities{
+								Drop: []corev1.Capability{
+									"ALL",
+								},
+							},
+						},
+					},
+				},
+				SecurityContext: &corev1.PodSecurityContext{
+					RunAsNonRoot: pointer.Bool(true),
+				},
+			},
+		}
+
+		// Attempt to create the pod and expect an error due to the non-existent SCC.
+		_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), sccPod, metav1.CreateOptions{})
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(err.Error()).To(o.MatchRegexp(`required .*non_existent_scc.* not found`))
+
+		// Set an annotation to an existing SCC but without the required permissions.
+		sccPod.Annotations[securityv1.RequiredSCCAnnotation] = "privileged"
+
+		// Attempt to create the pod again and expect an error due to the lack of permission.
+		_, err = oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), sccPod, metav1.CreateOptions{})
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(err.Error()).To(o.ContainSubstring("Forbidden: not usable by user or serviceaccount"))
+	})
 })

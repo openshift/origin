@@ -2,6 +2,7 @@ package historicaldata
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,7 @@ var nextBestGuessers = []NextBestKey{
 	MicroReleaseUpgrade,
 	//	MinorReleaseUpgrade,
 	PreviousReleaseUpgrade,
+
 	combine(PreviousReleaseUpgrade, MicroReleaseUpgrade),
 	//	combine(PreviousReleaseUpgrade, MinorReleaseUpgrade),
 
@@ -188,4 +190,39 @@ func combine(nextBestKeys ...NextBestKey) NextBestKey {
 		}
 		return curr, true
 	}
+}
+
+func CurrentReleaseFromMap(releasesInQueryResults map[string]bool) string {
+	var releaseSlice []struct {
+		Key   string
+		Value bool
+	}
+	for key, value := range releasesInQueryResults {
+		releaseSlice = append(releaseSlice, struct {
+			Key   string
+			Value bool
+		}{Key: key, Value: value})
+	}
+
+	// Sort the slice in descending order
+	sort.Slice(releaseSlice, func(i, j int) bool {
+		return compareReleaseString(releaseSlice[i].Key, releaseSlice[j].Key)
+	})
+	var firstKey string
+	// Access the first key from the sorted slice
+	if len(releaseSlice) > 0 {
+		firstKey = releaseSlice[0].Key
+	}
+	return firstKey
+}
+
+func compareReleaseString(one, two string) bool {
+	major1 := getMajor(one)
+	major2 := getMajor(two)
+	if major1 == major2 {
+		minor1 := getMinor(one)
+		minor2 := getMinor(two)
+		return minor1 > minor2
+	}
+	return major1 > major2
 }

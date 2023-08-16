@@ -1,6 +1,8 @@
 package run
 
 import (
+	"fmt"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/clioptions/kubeconfig"
@@ -9,6 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/rest"
 )
 
 // TODO collapse this with cmd_runsuite
@@ -75,8 +78,12 @@ func (f *RunSuiteFlags) SetIOStreams(streams genericclioptions.IOStreams) {
 
 func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 	adminRESTConfig, err := kubeconfig.GetStaticRESTConfig()
-	if err != nil {
-		return nil, err
+	switch {
+	case err != nil && f.GinkgoRunSuiteOptions.DryRun:
+		fmt.Fprintf(f.ErrOut, "Unable to get admin rest config, skipping apigroup check in the dry-run mode: %v\n", err)
+		adminRESTConfig = &rest.Config{}
+	case err != nil && !f.GinkgoRunSuiteOptions.DryRun:
+		return nil, fmt.Errorf("unable to get admin rest config, %w", err)
 	}
 
 	closeFn, err := f.OutputFlags.ConfigureIOStreams(f.IOStreams, f)
