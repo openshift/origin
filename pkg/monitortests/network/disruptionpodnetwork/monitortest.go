@@ -203,7 +203,8 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 	retIntervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
-	for _, typeOfConnection := range []string{"pod-to-pod", "pod-to-host", "host-to-pod", "host-to-host"} {
+	// TODO add to the -to-host variants once they are enabled.
+	for _, typeOfConnection := range []string{"pod-to-pod", "host-to-pod"} {
 		localIntervals, localJunit, localErrs := pna.collectDetailsForPoller(ctx, typeOfConnection)
 		retIntervals = append(retIntervals, localIntervals...)
 		junits = append(junits, localJunit...)
@@ -215,7 +216,6 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 }
 
 func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, typeOfConnection string) (monitorapi.Intervals, []*junitapi.JUnitTestCase, []error) {
-
 	pollerLabel, err := labels.NewRequirement("network.openshift.io/disruption-actor", selection.Equals, []string{"poller"})
 	if err != nil {
 		return nil, nil, []error{err}
@@ -235,6 +235,7 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 	buf := &bytes.Buffer{}
+	podsWithoutIntervals := []string{}
 	for _, pollerPod := range pollerPods.Items {
 		fmt.Fprintf(buf, "\n\nLogs for -n %v pod/%v\n", pollerPod.Namespace, pollerPod.Name)
 		req := pna.kubeClient.CoreV1().Pods(pna.namespaceName).GetLogs(pollerPod.Name, &corev1.PodLogOptions{})
@@ -248,6 +249,7 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 			continue
 		}
 
+		foundInterval := false
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
 			line := scanner.Bytes()
@@ -260,13 +262,32 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 			// not all lines are json, ignore errors.
 			if currInterval, err := monitorserialization.IntervalFromJSON(line); err == nil {
 				retIntervals = append(retIntervals, *currInterval)
+				foundInterval = true
 			}
 		}
+		if !foundInterval {
+			podsWithoutIntervals = append(podsWithoutIntervals, pollerPod.Name)
+		}
 	}
-	junits = append(junits, &junitapi.JUnitTestCase{
+
+	failures := []string{}
+	if len(podsWithoutIntervals) > 0 {
+		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
+	}
+	if len(pollerPods.Items) == 0 {
+		failures = append(failures, "no pods found for poller %q", typeOfConnection)
+	}
+
+	logJunit := &junitapi.JUnitTestCase{
 		Name:      fmt.Sprintf("[sig-network] can collect %v poller pod logs", typeOfConnection),
 		SystemOut: string(buf.Bytes()),
-	})
+	}
+	if len(failures) > 0 {
+		logJunit.FailureOutput = &junitapi.FailureOutput{
+			Output: strings.Join(failures, "\n"),
+		}
+	}
+	junits = append(junits, logJunit)
 
 	return retIntervals, junits, errs
 }
