@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -65,6 +67,7 @@ func init() {
 
 type podNetworkAvalibility struct {
 	payloadImagePullSpec string
+	notSupportedReason   string
 	namespaceName        string
 	kubeClient           kubernetes.Interface
 }
@@ -82,6 +85,10 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 			return err
 		}
 		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			pna.notSupportedReason = "clusterversion/version not found and no image pull spec specified."
+			return nil
+		}
 		if err != nil {
 			return err
 		}
@@ -146,6 +153,10 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 }
 
 func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if len(pna.notSupportedReason) > 0 {
+		return nil, nil, nil
+	}
+
 	// create the stop collecting configmap and wait for 30s to thing to have stopped.  the 30s is just a guess
 	if _, err := pna.kubeClient.CoreV1().ConfigMaps(pna.namespaceName).Create(ctx, &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "stop-collecting"},
