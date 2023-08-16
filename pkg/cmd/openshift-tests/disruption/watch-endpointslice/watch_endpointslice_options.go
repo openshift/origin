@@ -35,6 +35,7 @@ type WatchEndpointSliceOptions struct {
 }
 
 func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
+	fmt.Fprintf(o.Out, "PROOF OF THE PR WORKING!\n")
 	fmt.Fprintf(o.Out, "Initializing to watch -n %v service/%v\n", o.Namespace, o.ServiceName)
 
 	startingContent, err := os.ReadFile(o.OutputFile)
