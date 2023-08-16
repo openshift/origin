@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitortestframework"
+
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/image"
@@ -135,12 +137,15 @@ func (f *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest: monitortestframework.Stable,
+	}
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), f.Out, f.DisplayFilterFn)
 	m := monitor.NewMonitor(
 		recorder,
 		restConfig,
 		f.ArtifactDir,
-		defaultmonitortests.NewMonitorTestsFor(defaultmonitortests.Stable),
+		defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
 	)
 	if err := m.Start(ctx); err != nil {
 		return err

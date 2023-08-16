@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitortestframework"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
@@ -76,6 +78,9 @@ func (o *TestOptions) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest: monitortestframework.Stable,
+	}
 	var m monitor.Interface
 	if o.EnableMonitor {
 		// individual tests are always stable, it's the jobs that aren't.
@@ -84,7 +89,7 @@ func (o *TestOptions) Run(args []string) error {
 			monitorEventRecorder,
 			restConfig,
 			"",
-			defaultmonitortests.NewMonitorTestsFor(defaultmonitortests.Stable),
+			defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
 		)
 		if err := m.Start(ctx); err != nil {
 			return err

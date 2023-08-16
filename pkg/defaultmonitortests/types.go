@@ -40,30 +40,18 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/uploadtolokiserializer"
 )
 
-type ClusterStabilityDuringTest string
-
-var (
-	// Stable means that at no point during testing do we expect a component to take downtime and upgrades are not happening.
-	Stable ClusterStabilityDuringTest = "Stable"
-	// TODO only bring this back if we have some reason to collect Upgrade specific information.  I can't think of reason.
-	// TODO please contact @deads2k for vetting if you think you found something
-	//Upgrade    ClusterStabilityDuringTest = "Upgrade"
-	// Disruptive means that the suite is expected to induce outages to the cluster.
-	Disruptive ClusterStabilityDuringTest = "Disruptive"
-)
-
-func NewMonitorTestsFor(clusterStabilityDuringTest ClusterStabilityDuringTest) monitortestframework.MonitorTestRegistry {
-	switch clusterStabilityDuringTest {
-	case Stable:
-		return newDefaultMonitorTests()
-	case Disruptive:
+func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
+	switch info.ClusterStabilityDuringTest {
+	case monitortestframework.Stable:
+		return newDefaultMonitorTests(info)
+	case monitortestframework.Disruptive:
 		return newDisruptiveMonitorTests()
 	default:
-		panic(fmt.Sprintf("unknown cluster stability level: %q", clusterStabilityDuringTest))
+		panic(fmt.Sprintf("unknown cluster stability level: %q", info.ClusterStabilityDuringTest))
 	}
 }
 
-func newDefaultMonitorTests() monitortestframework.MonitorTestRegistry {
+func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
 	monitorTestRegistry.AddRegistryOrDie(newUniversalMonitorTests())
@@ -72,7 +60,7 @@ func newDefaultMonitorTests() monitortestframework.MonitorTestRegistry {
 
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewAvailabilityInvariant())
 
-	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
 	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewAvailabilityInvariant())
 
