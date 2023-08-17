@@ -95,13 +95,15 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 	// ovirt does not support service type loadbalancer because it doesn't program a cloud.
+	// none platform does not have CCM which exposes the service of type loadbalancer.
 	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.KubevirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.LibvirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.NutanixPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType ||
-		infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType {
+		infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType ||
+		infra.Status.PlatformStatus.Type == configv1.NonePlatformType {
 		w.notSupportedReason = fmt.Sprintf("platform %q is not supported", infra.Status.PlatformStatus.Type)
 	}
 	// single node clusters are not supported because the replication controller has 2 replicas with anti-affinity for running on the same node.
