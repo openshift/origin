@@ -2,8 +2,6 @@ package dev
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortests/testframework/uploadtolokiserializer"
@@ -61,7 +59,7 @@ a running cluster.
 			logrus.Info("running alert invariant tests")
 
 			logrus.WithField("intervalsFile", o.intervalsFile).Info("loading e2e intervals")
-			intervals, err := readIntervalsFromFile(o.intervalsFile)
+			intervals, err := monitorserialization.EventsFromFile(o.intervalsFile)
 			if err != nil {
 				logrus.WithError(err).Fatal("error loading intervals file")
 			}
@@ -124,21 +122,6 @@ a running cluster.
 	return cmd
 }
 
-func readIntervalsFromFile(intervalsFile string) (monitorapi.Intervals, error) {
-	jsonFile, err := os.Open(intervalsFile)
-	if err != nil {
-		return nil, err
-	}
-	defer jsonFile.Close()
-
-	jsonBytes, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return monitorserialization.EventsFromJSON(jsonBytes)
-}
-
 func newRunDisruptionInvariantsCommand() *cobra.Command {
 	// TODO: reusing alertInvariantOpts for now, seems we need the same for disruption.
 	opts := alertInvariantOpts{}
@@ -159,7 +142,7 @@ a running cluster.
 			logrus.Info("running disruption invariant tests")
 
 			logrus.WithField("intervalsFile", opts.intervalsFile).Info("loading e2e intervals")
-			intervals, err := readIntervalsFromFile(opts.intervalsFile)
+			intervals, err := monitorserialization.EventsFromFile(opts.intervalsFile)
 			if err != nil {
 				logrus.WithError(err).Fatal("error loading intervals file")
 			}
@@ -214,7 +197,7 @@ func newUploadIntervalsCommand() *cobra.Command {
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logrus.WithField("intervalsFile", opts.intervalsFile).Info("loading e2e intervals")
-			intervals, err := readIntervalsFromFile(opts.intervalsFile)
+			intervals, err := monitorserialization.EventsFromFile(opts.intervalsFile)
 			if err != nil {
 				logrus.WithError(err).Fatal("error loading intervals file")
 			}
