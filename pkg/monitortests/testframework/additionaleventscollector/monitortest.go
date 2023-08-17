@@ -54,7 +54,7 @@ func (w *additionalEventsCollector) CollectData(ctx context.Context, storageDir 
 			if !strings.HasPrefix(d.Name(), "AdditionalEvents__") {
 				return nil
 			}
-			saved, _ := monitorserialization.EventsFromFile(path)
+			saved, _ := monitorserialization.IntervalsFromFile(path)
 			intervalsFromStorage = append(intervalsFromStorage, saved...)
 			return nil
 		})

@@ -76,7 +76,6 @@ var totalIntervalsPushed int
 func pushBatch(client *http.Client, bearerToken, invoker, namespace string, values [][]interface{}, dryRun bool) error {
 	totalIntervalsPushed += len(values)
 	logger := logrus.WithField("namespace", namespace)
-	logger.Infof("uploading a batch of %d intervals", len(values))
 
 	labels := map[string]string{
 		"invoker": invoker,
@@ -266,7 +265,6 @@ func intervalToLogLine(i monitorapi.Interval, timeSuffix string) (string, map[st
 	// TODO: temporary hack, the way we were packing e2e tests into locators with quotes was breaking
 	// with json serialization somewhere either when submitting or when parsing in loki
 	if i.StructuredLocator.Type == monitorapi.LocatorTypeE2ETest {
-		logrus.Warn("found a structured e2e locator")
 		i.Locator = ""
 	}
 

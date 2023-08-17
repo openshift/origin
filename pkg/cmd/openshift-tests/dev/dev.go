@@ -59,7 +59,7 @@ a running cluster.
 			logrus.Info("running alert invariant tests")
 
 			logrus.WithField("intervalsFile", o.intervalsFile).Info("loading e2e intervals")
-			intervals, err := monitorserialization.EventsFromFile(o.intervalsFile)
+			intervals, err := monitorserialization.IntervalsFromFile(o.intervalsFile)
 			if err != nil {
 				logrus.WithError(err).Fatal("error loading intervals file")
 			}
@@ -142,7 +142,7 @@ a running cluster.
 			logrus.Info("running disruption invariant tests")
 
 			logrus.WithField("intervalsFile", opts.intervalsFile).Info("loading e2e intervals")
-			intervals, err := monitorserialization.EventsFromFile(opts.intervalsFile)
+			intervals, err := monitorserialization.IntervalsFromFile(opts.intervalsFile)
 			if err != nil {
 				logrus.WithError(err).Fatal("error loading intervals file")
 			}
@@ -197,7 +197,7 @@ func newUploadIntervalsCommand() *cobra.Command {
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logrus.WithField("intervalsFile", opts.intervalsFile).Info("loading e2e intervals")
-			intervals, err := monitorserialization.EventsFromFile(opts.intervalsFile)
+			intervals, err := monitorserialization.IntervalsFromFile(opts.intervalsFile)
 			if err != nil {
 				logrus.WithError(err).Fatal("error loading intervals file")
 			}
