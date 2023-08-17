@@ -1,4 +1,4 @@
-package monitor
+package watchnodes
 
 import (
 	"testing"

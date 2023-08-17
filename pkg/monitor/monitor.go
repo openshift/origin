@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
-	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitor/shutdown"
 	"k8s.io/client-go/kubernetes"
@@ -76,17 +75,9 @@ func (m *Monitor) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	configClient, err := configclientset.NewForConfig(m.adminKubeConfig)
-	if err != nil {
-		return err
-	}
 
-	startNodeMonitoring(ctx, m.recorder, client)
-	startEventMonitoring(ctx, m.recorder, client)
 	shutdown.StartMonitoringGracefulShutdownEvents(ctx, m.recorder, client)
 
-	// add interval creation at the same point where we add the monitors
-	startClusterOperatorMonitoring(ctx, m.recorder, configClient)
 	return nil
 }
 
