@@ -225,7 +225,7 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 		junitSuite.TestCases = append(junitSuite.TestCases, currJunit)
 	}
 
-	out, err := xml.Marshal(junitSuite)
+	out, err := xml.MarshalIndent(junitSuite, "", "    ")
 	if err != nil {
 		return err
 	}
