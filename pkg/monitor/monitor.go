@@ -19,8 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitor/shutdown"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -70,13 +68,6 @@ func (m *Monitor) Start(ctx context.Context) error {
 	}
 	m.junits = append(m.junits, localJunits...)
 	fmt.Printf("All monitor tests started.\n")
-
-	client, err := kubernetes.NewForConfig(m.adminKubeConfig)
-	if err != nil {
-		return err
-	}
-
-	shutdown.StartMonitoringGracefulShutdownEvents(ctx, m.recorder, client)
 
 	return nil
 }

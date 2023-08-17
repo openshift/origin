@@ -113,6 +113,8 @@ const (
 type LocatorKey string
 
 const (
+	LocatorServer             LocatorKey = "server"   // TODO this looks like a bad name.  Aggregated apiserver?  Do we even need it?
+	LocatorShutdown           LocatorKey = "shutdown" // TODO this should not exist.  This is a reason and message
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorNodeKey            LocatorKey = "node"
@@ -151,6 +153,7 @@ const (
 	DisruptionBeganEventReason              IntervalReason = "DisruptionBegan"
 	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
 	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
+	GracefulAPIServerShutdown               IntervalReason = "GracefulShutdownWindow"
 
 	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
 

@@ -29,8 +29,8 @@ func NonUniquePodLocatorFrom(locator string) string {
 func PodFrom(locator string) PodReference {
 	parts := LocatorParts(locator)
 	namespace := NamespaceFrom(parts)
-	name := parts["pod"]
-	uid := parts["uid"]
+	name := parts[string(LocatorPodKey)]
+	uid := parts[string(LocatorUIDKey)]
 	if len(namespace) == 0 || len(name) == 0 || len(uid) == 0 {
 		return PodReference{}
 	}

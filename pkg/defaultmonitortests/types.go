@@ -3,6 +3,8 @@ package defaultmonitortests
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
+
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
@@ -101,6 +103,7 @@ func newUniversalMonitorTests() monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry.AddMonitorTestOrDie("audit-log-analyzer", "kube-apiserver", auditloganalyzer.NewAuditLogAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-new-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking", legacynetworkmonitortests.NewLegacyTests())
 
