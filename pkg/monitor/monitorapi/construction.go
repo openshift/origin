@@ -15,8 +15,6 @@ type IntervalBuilder struct {
 	display           bool
 	structuredLocator Locator
 	structuredMessage Message
-	from              time.Time
-	to                time.Time
 }
 
 func NewInterval(source IntervalSource, level IntervalLevel) *IntervalBuilder {
@@ -29,16 +27,6 @@ func NewInterval(source IntervalSource, level IntervalLevel) *IntervalBuilder {
 // Display is a coarse grained hint that any UI should display this interval to a user.
 func (b *IntervalBuilder) Display() *IntervalBuilder {
 	b.display = true
-	return b
-}
-
-func (b *IntervalBuilder) From(from time.Time) *IntervalBuilder {
-	b.from = from
-	return b
-}
-
-func (b *IntervalBuilder) To(to time.Time) *IntervalBuilder {
-	b.to = to
 	return b
 }
 
@@ -56,13 +44,14 @@ func (b *IntervalBuilder) BuildCondition() Condition {
 	return ret
 }
 
-func (b *IntervalBuilder) Build() Interval {
+// Build creates the final interval with a mandatory from/to timestamp.
+func (b *IntervalBuilder) Build(from, to time.Time) Interval {
 	ret := Interval{
 		Condition: b.BuildCondition(),
 		Display:   b.display,
-		From:      b.from,
-		To:        b.to,
 		Source:    b.source,
+		From:      from,
+		To:        to,
 	}
 
 	return ret

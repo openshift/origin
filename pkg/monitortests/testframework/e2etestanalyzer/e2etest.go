@@ -49,7 +49,7 @@ func intervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 			Message(monitorapi.NewMessage().
 				HumanMessagef("e2e test finished As %q", testStatus).
 				WithAnnotation(monitorapi.AnnotationStatus, testStatus)).
-			From(from).To(event.From).Build())
+			Build(from, event.From))
 	}
 
 	for testName, testStart := range testNameToLastStart {
@@ -58,8 +58,7 @@ func intervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 			Message(monitorapi.NewMessage().
 				HumanMessagef("e2e test did not finish %q", "DidNotFinish").
 				WithAnnotation(monitorapi.AnnotationStatus, "DidNotFinish")).
-			From(testStart).
-			To(end).Build())
+			Build(testStart, end))
 	}
 
 	return ret
