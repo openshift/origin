@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pod-network-disruption-poller
+  name: pod-network-to-host-network-disruption-poller
 spec:
   strategy:
     type: RollingUpdate
@@ -12,12 +12,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      network.openshift.io/disruption-target: pod-network
+      network.openshift.io/disruption-target: pod-to-host
       network.openshift.io/disruption-actor: poller
   template:
     metadata:
       labels:
-        network.openshift.io/disruption-target: pod-network
+        network.openshift.io/disruption-target: pod-to-host
         network.openshift.io/disruption-actor: poller
     spec:
       containers:
@@ -25,12 +25,12 @@ spec:
             - /usr/bin/openshift-tests
             - disruption
             - watch-endpoint-slice
-            - --output-file=/var/log/persistent-logs/disruption-pod-to-pod.jsonl
-            - --disruption-backend-prefix=pod-to-pod
-            - --disruption-target-service-name=pod-network-service
+            - --output-file=/var/log/persistent-logs/disruption-pod-to-host.jsonl
+            - --disruption-backend-prefix=pod-to-host
+            - --disruption-target-service-name=host-network-service
             - --stop-configmap=stop-collecting
             - --my-node-name=$(MY_NODE_NAME)
-          image: image-to-be-replaced
+          image: docker.io/deads2k/openshift-tests:latest
           imagePullPolicy: IfNotPresent
           name: disruption-poller
           terminationMessagePolicy: FallbackToLogsOnError
@@ -58,7 +58,7 @@ spec:
             - topologyKey: "kubernetes.io/hostname"
               labelSelector:
                 matchLabels:
-                  network.openshift.io/disruption-target: pod-network
+                  network.openshift.io/disruption-target: pod-to-host
                   network.openshift.io/disruption-actor: poller
       volumes:
         - hostPath:

@@ -41,11 +41,16 @@ var (
 	//go:embed *.yaml
 	yamls embed.FS
 
-	namespace                  *corev1.Namespace
-	pollerRoleBinding          *rbacv1.RoleBinding
-	podNetworkPollerDeployment *appsv1.Deployment
-	podNetworkTargetDeployment *appsv1.Deployment
-	podNetworkTargetService    *corev1.Service
+	namespace                                *corev1.Namespace
+	pollerRoleBinding                        *rbacv1.RoleBinding
+	podNetworkToPodNetworkPollerDeployment   *appsv1.Deployment
+	podNetworkToHostNetworkPollerDeployment  *appsv1.Deployment
+	hostNetworkToPodNetworkPollerDeployment  *appsv1.Deployment
+	hostNetworkToHostNetworkPollerDeployment *appsv1.Deployment
+	podNetworkTargetDeployment               *appsv1.Deployment
+	podNetworkTargetService                  *corev1.Service
+	hostNetworkTargetDeployment              *appsv1.Deployment
+	hostNetworkTargetService                 *corev1.Service
 )
 
 func yamlOrDie(name string) []byte {
@@ -60,9 +65,14 @@ func yamlOrDie(name string) []byte {
 func init() {
 	namespace = resourceread.ReadNamespaceV1OrDie(yamlOrDie("namespace.yaml"))
 	pollerRoleBinding = resourceread.ReadRoleBindingV1OrDie(yamlOrDie("poller-rolebinding.yaml"))
-	podNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-poller-deployment.yaml"))
+	podNetworkToPodNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-to-pod-network-poller-deployment.yaml"))
+	podNetworkToHostNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-to-host-network-poller-deployment.yaml"))
+	hostNetworkToPodNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("host-network-to-pod-network-poller-deployment.yaml"))
+	hostNetworkToHostNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("host-network-to-host-network-poller-deployment.yaml"))
 	podNetworkTargetDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-target-deployment.yaml"))
 	podNetworkTargetService = resourceread.ReadServiceV1OrDie(yamlOrDie("pod-network-target-service.yaml"))
+	hostNetworkTargetDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("host-network-target-deployment.yaml"))
+	hostNetworkTargetService = resourceread.ReadServiceV1OrDie(yamlOrDie("host-network-target-service.yaml"))
 }
 
 type podNetworkAvalibility struct {
@@ -131,10 +141,31 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 	numNodes := int32(len(nodes.Items))
 
-	podNetworkPollerDeployment.Spec.Replicas = &numNodes
-	podNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+	podNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
+	podNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
+	}
+	// TODO restore once we work out how to contact other hosts
+	if false {
+		podNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
+		podNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+			return err
+		}
+	}
+	hostNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
+	hostNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+	// TODO restore once we work out how to contact other hosts
+	if false {
+		hostNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
+		hostNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
+			return err
+		}
 	}
 
 	// force the image to use the "normal" global mapping.
@@ -146,6 +177,16 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 
 	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkTargetService, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
+	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LocationFor(originalAgnhost.GetE2EImage())
+	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), hostNetworkTargetService, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -170,21 +211,42 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 		return nil, nil, ctx.Err()
 	}
 
+	retIntervals := monitorapi.Intervals{}
+	junits := []*junitapi.JUnitTestCase{}
+	errs := []error{}
+	// TODO add to the -to-host variants once they are enabled.
+	for _, typeOfConnection := range []string{"pod-to-pod", "host-to-pod"} {
+		localIntervals, localJunit, localErrs := pna.collectDetailsForPoller(ctx, typeOfConnection)
+		retIntervals = append(retIntervals, localIntervals...)
+		junits = append(junits, localJunit...)
+		errs = append(errs, localErrs...)
+
+	}
+
+	return retIntervals, junits, utilerrors.NewAggregate(errs)
+}
+
+func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, typeOfConnection string) (monitorapi.Intervals, []*junitapi.JUnitTestCase, []error) {
 	pollerLabel, err := labels.NewRequirement("network.openshift.io/disruption-actor", selection.Equals, []string{"poller"})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, []error{err}
+	}
+	typeLabel, err := labels.NewRequirement("network.openshift.io/disruption-target", selection.Equals, []string{typeOfConnection})
+	if err != nil {
+		return nil, nil, []error{err}
 	}
 	pollerPods, err := pna.kubeClient.CoreV1().Pods(pna.namespaceName).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.NewSelector().Add(*pollerLabel).String(),
+		LabelSelector: labels.NewSelector().Add(*pollerLabel).Add(*typeLabel).String(),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, []error{err}
 	}
 
 	retIntervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
 	buf := &bytes.Buffer{}
+	podsWithoutIntervals := []string{}
 	for _, pollerPod := range pollerPods.Items {
 		fmt.Fprintf(buf, "\n\nLogs for -n %v pod/%v\n", pollerPod.Namespace, pollerPod.Name)
 		req := pna.kubeClient.CoreV1().Pods(pna.namespaceName).GetLogs(pollerPod.Name, &corev1.PodLogOptions{})
@@ -198,6 +260,7 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 			continue
 		}
 
+		foundInterval := false
 		scanner := bufio.NewScanner(logStream)
 		for scanner.Scan() {
 			line := scanner.Bytes()
@@ -210,15 +273,34 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 			// not all lines are json, ignore errors.
 			if currInterval, err := monitorserialization.IntervalFromJSON(line); err == nil {
 				retIntervals = append(retIntervals, *currInterval)
+				foundInterval = true
 			}
 		}
+		if !foundInterval {
+			podsWithoutIntervals = append(podsWithoutIntervals, pollerPod.Name)
+		}
 	}
-	junits = append(junits, &junitapi.JUnitTestCase{
-		Name:      "[sig-network] poller pod logs",
-		SystemOut: string(buf.Bytes()),
-	})
 
-	return retIntervals, junits, utilerrors.NewAggregate(errs)
+	failures := []string{}
+	if len(podsWithoutIntervals) > 0 {
+		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
+	}
+	if len(pollerPods.Items) == 0 {
+		failures = append(failures, "no pods found for poller %q", typeOfConnection)
+	}
+
+	logJunit := &junitapi.JUnitTestCase{
+		Name:      fmt.Sprintf("[sig-network] can collect %v poller pod logs", typeOfConnection),
+		SystemOut: string(buf.Bytes()),
+	}
+	if len(failures) > 0 {
+		logJunit.FailureOutput = &junitapi.FailureOutput{
+			Output: strings.Join(failures, "\n"),
+		}
+	}
+	junits = append(junits, logJunit)
+
+	return retIntervals, junits, errs
 }
 
 func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
