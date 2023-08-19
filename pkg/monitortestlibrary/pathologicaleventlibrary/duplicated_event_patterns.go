@@ -148,6 +148,9 @@ var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testMarketplaceStartupProbeFailure
 	regexp.MustCompile(MarketplaceStartupProbeFailureRegExpStr),
+
+	// stale condition challenge reset
+	regexp.MustCompile(`message changed from "\x{FEFF}`),
 }
 
 // AllowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
