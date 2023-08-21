@@ -50,13 +50,6 @@ var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 			podsLabelSelector = labels.SelectorFromSet(labels.Set{"app": "nginx-with-delayed-ready"})
 		})
 
-		g.JustBeforeEach(func() {
-			//TODO remove this check once PDBUnhealthyPodEvictionPolicy is graduated to beta and enabled by default
-			if !exutil.IsTechPreviewNoUpgrade(oc) {
-				g.Skip("the test is not expected to work within Tech Preview disabled clusters")
-			}
-		})
-
 		g.It(fmt.Sprintf("should evict according to the IfHealthyBudget policy"), func() {
 			g.By(fmt.Sprintf("calling oc create -f %q", ifHealthyBudgetPolicyPDB))
 			err := oc.Run("create").Args("-f", ifHealthyBudgetPolicyPDB).Execute()
