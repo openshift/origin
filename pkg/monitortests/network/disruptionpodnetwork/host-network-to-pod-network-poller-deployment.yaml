@@ -31,7 +31,7 @@ spec:
             - --stop-configmap=stop-collecting
             - --my-node-name=$(MY_NODE_NAME)
             - --request-scheme=http
-          image: docker.io/deads2k/openshift-tests:latest
+          image: image-to-be-replaced
           imagePullPolicy: IfNotPresent
           name: disruption-poller
           terminationMessagePolicy: FallbackToLogsOnError

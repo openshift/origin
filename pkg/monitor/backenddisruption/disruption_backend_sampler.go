@@ -53,6 +53,8 @@ type BackendSampler struct {
 	// tlsConfig holds the CA bundle for verifying the server and client cert/key pair for identifying to the server.
 	tlsConfig *tls.Config
 
+	// expectedStatusCode allows status codes other than 200-399.
+	expectedStatusCode int
 	// expect is an exact text match for the expected body.  If expect and expectRegexp are empty, then any 2xx or 3xx
 	// http status code is accepted.
 	expect string
@@ -187,6 +189,12 @@ func (b *BackendSampler) WithBearerTokenAuth(token, tokenFile string) *BackendSa
 // WithTLSConfig sets both the CA bundle for trusting the server and the client cert/key pair for identifying to the server
 func (b *BackendSampler) WithTLSConfig(tlsConfig *tls.Config) *BackendSampler {
 	b.tlsConfig = tlsConfig
+	return b
+}
+
+// WithTLSConfig sets both the CA bundle for trusting the server and the client cert/key pair for identifying to the server
+func (b *BackendSampler) WithExpectedStatusCode(statusCode int) *BackendSampler {
+	b.expectedStatusCode = statusCode
 	return b
 }
 
@@ -382,6 +390,8 @@ func (b *BackendSampler) CheckConnection(ctx context.Context) (string, error) {
 		sampleErr = getErr
 	case bodyReadErr != nil:
 		sampleErr = bodyReadErr
+	case b.expectedStatusCode > 0 && b.expectedStatusCode == resp.StatusCode:
+		// don't fail
 	case resp.StatusCode < 200 || resp.StatusCode > 399:
 		sampleErr = fmt.Errorf("error running request: %v: %v", resp.Status, string(body))
 	default:

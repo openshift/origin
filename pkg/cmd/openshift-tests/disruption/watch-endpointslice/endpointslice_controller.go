@@ -28,15 +28,16 @@ import (
 )
 
 type EndpointSliceController struct {
-	backendPrefix     string
-	namespaceName     string
-	serviceName       string
-	myNodeName        string
-	stopConfigMapName string
-	scheme            string
-	path              string
-	recorder          monitorapi.RecorderWriter
-	outFile           io.Writer
+	backendPrefix      string
+	namespaceName      string
+	serviceName        string
+	myNodeName         string
+	stopConfigMapName  string
+	scheme             string
+	path               string
+	expectedStatusCode int
+	recorder           monitorapi.RecorderWriter
+	outFile            io.Writer
 
 	endpointSliceLister discoverylisters.EndpointSliceLister
 	configmapLister     corelisters.ConfigMapLister
@@ -65,6 +66,7 @@ func NewEndpointWatcher(
 	myNodeName string,
 	scheme string,
 	path string,
+	expectedStatusCode int,
 	recorder monitorapi.RecorderWriter,
 	outFile io.Writer,
 
@@ -209,13 +211,20 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 			"",
 			monitorapi.NewConnectionType,
 		)
+		if c.expectedStatusCode > 0 {
+			newWatcher.newConnectionSampler = newWatcher.newConnectionSampler.WithExpectedStatusCode(c.expectedStatusCode)
+		}
 		newWatcher.newConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
+
 		newWatcher.reusedConnectionSampler = backenddisruption.NewSimpleBackendWithLocator(
 			monitorapi.NewLocator().LocateDisruptionCheck(historicalBackendDisruptionDataForReusedConnectionsName, intervalLocator, monitorapi.ReusedConnectionType),
 			url,
 			"",
 			monitorapi.ReusedConnectionType,
 		)
+		if c.expectedStatusCode > 0 {
+			newWatcher.reusedConnectionSampler = newWatcher.reusedConnectionSampler.WithExpectedStatusCode(c.expectedStatusCode)
+		}
 		newWatcher.reusedConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
 
 		c.watchers[watcherKey] = newWatcher
