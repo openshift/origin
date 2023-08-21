@@ -112,7 +112,8 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	if err := cmd.Run(); err != nil {
-		return err
+		pna.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
+		return nil
 	}
 	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
 	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
@@ -188,7 +189,14 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 
 func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	if len(pna.notSupportedReason) > 0 {
-		return nil, nil, nil
+		return nil, []*junitapi.JUnitTestCase{
+			{
+				Name: "[sig-network] can collect pod-to-pod network disruption",
+				SkipMessage: &junitapi.SkipMessage{
+					Message: pna.notSupportedReason,
+				},
+			},
+		}, nil
 	}
 
 	// create the stop collecting configmap and wait for 30s to thing to have stopped.  the 30s is just a guess
