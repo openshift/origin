@@ -89,11 +89,6 @@ func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInit
 }
 
 func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	if true {
-		pna.notSupportedReason = "skipping collection for intermittent serial scheduling problems"
-		return nil
-	}
-
 	if len(pna.payloadImagePullSpec) == 0 {
 		configClient, err := configclient.NewForConfig(adminRESTConfig)
 		if err != nil {
