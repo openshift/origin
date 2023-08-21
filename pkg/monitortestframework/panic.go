@@ -3,6 +3,7 @@ package monitortestframework
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"k8s.io/client-go/rest"
@@ -25,7 +26,7 @@ func startCollectionWithPanicProtection(ctx context.Context, monitortest Monitor
 func collectDataWithPanicProtection(ctx context.Context, monitortest MonitorTest, storageDir string, beginning, end time.Time) (intervals monitorapi.Intervals, junit []*junitapi.JUnitTestCase, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("caught panic: %v", r)
+			err = fmt.Errorf("caught panic: %v stack trace:\n%s", r, debug.Stack())
 		}
 	}()
 
