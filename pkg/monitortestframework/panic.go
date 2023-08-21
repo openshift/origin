@@ -3,6 +3,7 @@ package monitortestframework
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"k8s.io/client-go/rest"
@@ -14,7 +15,7 @@ import (
 func startCollectionWithPanicProtection(ctx context.Context, monitortest MonitorTest, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("caught panic: %v", r)
+			err = fmt.Errorf("caught panic: %v\n%v", r, string(debug.Stack()))
 		}
 	}()
 
@@ -25,7 +26,7 @@ func startCollectionWithPanicProtection(ctx context.Context, monitortest Monitor
 func collectDataWithPanicProtection(ctx context.Context, monitortest MonitorTest, storageDir string, beginning, end time.Time) (intervals monitorapi.Intervals, junit []*junitapi.JUnitTestCase, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("caught panic: %v", r)
+			err = fmt.Errorf("caught panic: %v\n%v", r, string(debug.Stack()))
 		}
 	}()
 
@@ -36,7 +37,7 @@ func collectDataWithPanicProtection(ctx context.Context, monitortest MonitorTest
 func constructComputedIntervalsWithPanicProtection(ctx context.Context, monitortest MonitorTest, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (intervals monitorapi.Intervals, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("caught panic: %v", r)
+			err = fmt.Errorf("caught panic: %v\n%v", r, string(debug.Stack()))
 		}
 	}()
 
@@ -47,7 +48,7 @@ func constructComputedIntervalsWithPanicProtection(ctx context.Context, monitort
 func evaluateTestsFromConstructedIntervalsWithPanicProtection(ctx context.Context, monitortest MonitorTest, finalIntervals monitorapi.Intervals) (junits []*junitapi.JUnitTestCase, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("caught panic: %v", r)
+			err = fmt.Errorf("caught panic: %v\n%v", r, string(debug.Stack()))
 		}
 	}()
 
@@ -58,7 +59,7 @@ func evaluateTestsFromConstructedIntervalsWithPanicProtection(ctx context.Contex
 func writeContentToStorageWithPanicProtection(ctx context.Context, monitortest MonitorTest, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("caught panic: %v", r)
+			err = fmt.Errorf("caught panic: %v\n%v", r, string(debug.Stack()))
 		}
 	}()
 
@@ -69,7 +70,7 @@ func writeContentToStorageWithPanicProtection(ctx context.Context, monitortest M
 func cleanupWithPanicProtection(ctx context.Context, monitortest MonitorTest) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("caught panic: %v", r)
+			err = fmt.Errorf("caught panic: %v\n%v", r, string(debug.Stack()))
 		}
 	}()
 
