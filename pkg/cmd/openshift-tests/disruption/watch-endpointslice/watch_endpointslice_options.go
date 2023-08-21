@@ -27,6 +27,8 @@ type WatchEndpointSliceOptions struct {
 	BackendPrefix     string
 	ServiceName       string
 	MyNodeName        string
+	Scheme            string
+	Path              string
 	StopConfigMapName string
 
 	OriginalOutFile io.Writer
@@ -59,6 +61,8 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 		o.ServiceName,
 		o.StopConfigMapName,
 		o.MyNodeName,
+		o.Scheme,
+		o.Path,
 		recorder,
 		o.IOStreams.Out,
 		namespaceScopedEndpointSliceInformers.EndpointSlices(),

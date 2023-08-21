@@ -8,5 +8,5 @@ spec:
     network.openshift.io/disruption-actor: target
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 8080
+      port: 443
+      targetPort: 10250

@@ -22,6 +22,8 @@ type WatchEndpointSliceFlags struct {
 	OutputFlags       *iooptions.OutputFlags
 	ServiceName       string
 	BackendPrefix     string
+	Scheme            string
+	Path              string
 	MyNodeName        string
 	StopConfigMapName string
 
@@ -32,6 +34,7 @@ func NewWatchEndpointSliceFlags(streams genericclioptions.IOStreams) *WatchEndpo
 	return &WatchEndpointSliceFlags{
 		ConfigFlags: genericclioptions.NewConfigFlags(false),
 		OutputFlags: iooptions.NewOutputOptions(),
+		Scheme:      "https",
 		IOStreams:   streams,
 	}
 }
@@ -85,6 +88,8 @@ func (f *WatchEndpointSliceFlags) BindOptions(flags *pflag.FlagSet) {
 	flags.StringVar(&f.ServiceName, "disruption-target-service-name", f.ServiceName, "the name of the service whose endpoints we want to poll")
 	flags.StringVar(&f.BackendPrefix, "disruption-backend-prefix", f.BackendPrefix, "classification of disruption for the disruption summary")
 	flags.StringVar(&f.StopConfigMapName, "stop-configmap", f.StopConfigMapName, "the name of the configmap that indicates that this pod should stop all watchers.")
+	flags.StringVar(&f.Scheme, "request-scheme", f.Scheme, "http or https")
+	flags.StringVar(&f.Path, "request-path", f.Path, "path to request, like /healthz")
 	f.ConfigFlags.AddFlags(flags)
 	f.OutputFlags.BindFlags(flags)
 }
@@ -137,6 +142,8 @@ func (f *WatchEndpointSliceFlags) ToOptions() (*WatchEndpointSliceOptions, error
 		OutputFile:        f.OutputFlags.OutFile,
 		ServiceName:       f.ServiceName,
 		StopConfigMapName: f.StopConfigMapName,
+		Scheme:            f.Scheme,
+		Path:              f.Path,
 		MyNodeName:        f.MyNodeName,
 		BackendPrefix:     f.BackendPrefix,
 		CloseFn:           closeFn,

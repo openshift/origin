@@ -33,6 +33,8 @@ type EndpointSliceController struct {
 	serviceName       string
 	myNodeName        string
 	stopConfigMapName string
+	scheme            string
+	path              string
 	recorder          monitorapi.RecorderWriter
 	outFile           io.Writer
 
@@ -61,6 +63,8 @@ func NewEndpointWatcher(
 	serviceName string,
 	stopConfigMapName string,
 	myNodeName string,
+	scheme string,
+	path string,
 	recorder monitorapi.RecorderWriter,
 	outFile io.Writer,
 
@@ -73,6 +77,8 @@ func NewEndpointWatcher(
 		myNodeName:        myNodeName,
 		namespaceName:     namespaceName,
 		stopConfigMapName: stopConfigMapName,
+		scheme:            scheme,
+		path:              path,
 		recorder:          recorder,
 		outFile:           outFile,
 
@@ -190,7 +196,7 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 			continue
 		}
 		newWatcher := watchersForCurrEndpoints[watcherKey]
-		url := fmt.Sprintf("http://%s", net.JoinHostPort(newWatcher.address, newWatcher.port))
+		url := fmt.Sprintf("%s://%s%s", c.scheme, net.JoinHostPort(newWatcher.address, newWatcher.port), c.path)
 		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, newWatcher.nodeName)
 
 		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type

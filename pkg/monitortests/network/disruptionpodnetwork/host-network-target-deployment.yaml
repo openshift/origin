@@ -22,23 +22,15 @@ spec:
     spec:
       containers:
         - command:
-            - /agnhost
-            - netexec
-            - --http-port=8080
-            - --delay-shutdown=30
-          # overridden when created
-          image: registry.k8s.io/e2e-test-images/agnhost:2.43
+            - sleep
+            - "21600"
+          image: image-registry.openshift-image-registry.svc:5000/openshift/cli
           imagePullPolicy: IfNotPresent
           name: host-disruption-server
-          ports:
-            - containerPort: 8080
-              protocol: TCP
           terminationMessagePolicy: FallbackToLogsOnError
           readinessProbe:
-            httpGet:
-              scheme: HTTP
-              port: 8080
-              path: /readyz
+            tcpSocket:
+              port: 10250
             initialDelaySeconds: 0
             periodSeconds: 5
             timeoutSeconds: 10
@@ -46,7 +38,7 @@ spec:
             failureThreshold: 1
       restartPolicy: Always
       hostNetwork: true
-      terminationGracePeriodSeconds: 60
+      terminationGracePeriodSeconds: 1
       tolerations:
         # Ensure pod can be scheduled on master nodes
         - key: "node-role.kubernetes.io/master"
