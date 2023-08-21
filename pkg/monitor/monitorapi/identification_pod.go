@@ -31,7 +31,7 @@ func PodFrom(locator string) PodReference {
 	namespace := NamespaceFrom(parts)
 	name := parts[string(LocatorPodKey)]
 	uid := parts[string(LocatorUIDKey)]
-	if len(namespace) == 0 || len(name) == 0 || len(uid) == 0 {
+	if len(namespace) == 0 || len(name) == 0 {
 		return PodReference{}
 	}
 	return PodReference{
