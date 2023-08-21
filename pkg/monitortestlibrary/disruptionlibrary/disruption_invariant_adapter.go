@@ -4,11 +4,8 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"strings"
 	"sync"
-	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/allowedbackenddisruption"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -98,102 +95,16 @@ func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, [
 	return nil, nil, utilerrors.NewAggregate([]error{newRecoverErr, reusedRecoverErr})
 }
 
-func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails string, locator monitorapi.Locator, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
-	// Indicates there is no entry in the query_results.json data file, nor a valid fallback,
-	// we do not wish to run the test. (this likely implies we do not have the required number of
-	// runs in 3 weeks to do a reliable P99)
-	if allowedDisruption == nil {
-		return &junitapi.JUnitTestCase{
-			Name: testName,
-			SkipMessage: &junitapi.SkipMessage{
-				Message: "No historical data to calculate allowedDisruption",
-			},
-		}
-	}
-
-	if *allowedDisruption < 1*time.Second {
-		t := 1 * time.Second
-		allowedDisruption = &t
-		disruptionDetails = "always allow at least one second"
-	}
-
-	disruptionDuration := disruptedIntervals.Duration(1 * time.Second)
-	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
-	roundedDisruptionDuration := disruptionDuration.Round(time.Second)
-
-	if roundedDisruptionDuration <= roundedAllowedDisruption {
-		return &junitapi.JUnitTestCase{
-			Name: testName,
-		}
-	}
-
-	reason := fmt.Sprintf("%v was unreachable during disruption: %v", locator.OldLocator(), disruptionDetails)
-	describe := disruptedIntervals.Strings()
-	failureMessage := fmt.Sprintf("%s for at least %s (maxAllowed=%s):\n\n%s", reason, roundedDisruptionDuration, roundedAllowedDisruption, strings.Join(describe, "\n"))
-
-	return &junitapi.JUnitTestCase{
-		Name: testName,
-		FailureOutput: &junitapi.FailureOutput{
-			Output: failureMessage,
-		},
-		SystemOut: failureMessage,
-	}
-}
-
-func (w *Availability) junitForNewConnections(ctx context.Context, finalIntervals monitorapi.Intervals) (*junitapi.JUnitTestCase, error) {
-	newConnectionAllowed, newConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.newConnectionDisruptionSampler, w.jobType)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get new allowed disruption: %w", err)
-	}
-	return createDisruptionJunit(
-			w.newConnectionTestName, newConnectionAllowed, newConnectionDisruptionDetails, w.newConnectionDisruptionSampler.GetLocator(),
-			finalIntervals.Filter(
-				monitorapi.And(
-					monitorapi.IsEventForLocator(w.newConnectionDisruptionSampler.GetLocator().OldLocator()),
-					monitorapi.IsErrorEvent,
-				),
-			),
-		),
-		nil
-}
-
-func (w *Availability) junitForReusedConnections(ctx context.Context, finalIntervals monitorapi.Intervals) (*junitapi.JUnitTestCase, error) {
-	reusedConnectionAllowed, reusedConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.reusedConnectionDisruptionSampler, w.jobType)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get reused allowed disruption: %w", err)
-	}
-	return createDisruptionJunit(
-			w.reusedConnectionTestName, reusedConnectionAllowed, reusedConnectionDisruptionDetails, w.reusedConnectionDisruptionSampler.GetLocator(),
-			finalIntervals.Filter(
-				monitorapi.And(
-					monitorapi.IsEventForLocator(w.reusedConnectionDisruptionSampler.GetLocator().OldLocator()),
-					monitorapi.IsErrorEvent,
-				),
-			),
-		),
-		nil
-}
-
-func historicalAllowedDisruption(ctx context.Context, backend *backenddisruption.BackendSampler, jobType *platformidentification.JobType) (*time.Duration, string, error) {
-	backendName := backend.GetDisruptionBackendName() + "-" + string(backend.GetConnectionType()) + "-connections"
-
-	return allowedbackenddisruption.GetAllowedDisruption(backendName, *jobType)
-}
-
 func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	if w == nil {
 		return nil, fmt.Errorf("unable to evaluate tests because instance is nil")
 	}
-
-	newConnectionJunit, err := w.junitForNewConnections(ctx, finalIntervals)
-	if err != nil {
-		return nil, err
+	if w.jobType == nil {
+		return nil, fmt.Errorf("unable to evaluate tests because job type is missing")
 	}
 
-	reusedConnectionJunit, err := w.junitForReusedConnections(ctx, finalIntervals)
-	if err != nil {
-		return nil, err
-	}
-
-	return []*junitapi.JUnitTestCase{newConnectionJunit, reusedConnectionJunit}, nil
+	newBackendName := w.newConnectionDisruptionSampler.GetDisruptionBackendName() + "-new-connections"
+	reusedBackendName := w.reusedConnectionDisruptionSampler.GetDisruptionBackendName() + "-reused-connections"
+	evaluator := NewAvailabilityTestEvaluatorInvariant(w.newConnectionTestName, w.reusedConnectionTestName, newBackendName, reusedBackendName, *w.jobType)
+	return evaluator.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
 }

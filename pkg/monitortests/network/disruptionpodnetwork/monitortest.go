@@ -16,6 +16,8 @@ import (
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
@@ -53,6 +55,8 @@ var (
 	podNetworkTargetService                  *corev1.Service
 	hostNetworkTargetDeployment              *appsv1.Deployment
 	hostNetworkTargetService                 *corev1.Service
+
+	connectionTypes = []string{"pod-to-pod", "pod-to-host", "host-to-pod", "host-to-host", "pod-to-service", "host-to-service"}
 )
 
 func yamlOrDie(name string) []byte {
@@ -83,7 +87,9 @@ type podNetworkAvalibility struct {
 	payloadImagePullSpec string
 	notSupportedReason   string
 	namespaceName        string
-	kubeClient           kubernetes.Interface
+	jobType              *platformidentification.JobType
+
+	kubeClient kubernetes.Interface
 }
 
 func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
@@ -93,6 +99,13 @@ func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInit
 }
 
 func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+
+	var err error
+	pna.jobType, err = platformidentification.GetJobType(ctx, adminRESTConfig)
+	if err != nil {
+		return err
+	}
+
 	if len(pna.payloadImagePullSpec) == 0 {
 		configClient, err := configclient.NewForConfig(adminRESTConfig)
 		if err != nil {
@@ -121,8 +134,6 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
 	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
-
-	var err error
 
 	pna.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
@@ -232,7 +243,7 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 	retIntervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
-	for _, typeOfConnection := range []string{"pod-to-pod", "pod-to-host", "host-to-pod", "host-to-host", "pod-to-service", "host-to-service"} {
+	for _, typeOfConnection := range connectionTypes {
 		localIntervals, localJunit, localErrs := pna.collectDetailsForPoller(ctx, typeOfConnection)
 		retIntervals = append(retIntervals, localIntervals...)
 		junits = append(junits, localJunit...)
@@ -325,7 +336,28 @@ func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context
 }
 
 func (pna *podNetworkAvalibility) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+	if len(pna.notSupportedReason) > 0 {
+		return nil, nil
+	}
+	if pna.jobType == nil {
+		return nil, fmt.Errorf("unable to evaluate tests because job type is missing")
+	}
+
+	junits := []*junitapi.JUnitTestCase{}
+	errs := []error{}
+	for _, typeOfConnection := range connectionTypes {
+		newBackendName := fmt.Sprintf("%s-new-connections", typeOfConnection)
+		reusedBackendName := fmt.Sprintf("%s-reused-connections", typeOfConnection)
+		newTestName := fmt.Sprintf("[sig-network] disruption/%s should be available throughout the test", newBackendName)
+		reusedTestName := fmt.Sprintf("[sig-network] disruption/%s should be available throughout the test", reusedBackendName)
+		evaluator := disruptionlibrary.NewAvailabilityTestEvaluatorInvariant(newTestName, reusedTestName, newBackendName, reusedBackendName, *pna.jobType).
+			AlwaysAtLeastFlakeOnNonZero() // we do this so that it's easier to search for failure in search.ci
+		localJunits, localErr := evaluator.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
+		junits = append(junits, localJunits...)
+		errs = append(errs, localErr)
+	}
+
+	return junits, utilerrors.NewAggregate(errs)
 }
 
 func (pna *podNetworkAvalibility) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
