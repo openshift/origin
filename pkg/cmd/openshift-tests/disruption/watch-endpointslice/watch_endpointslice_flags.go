@@ -18,14 +18,15 @@ import (
 // WatchEndpointSliceFlags is used to run a monitoring process against the provided server as
 // a command line interaction.
 type WatchEndpointSliceFlags struct {
-	ConfigFlags       *genericclioptions.ConfigFlags
-	OutputFlags       *iooptions.OutputFlags
-	ServiceName       string
-	BackendPrefix     string
-	Scheme            string
-	Path              string
-	MyNodeName        string
-	StopConfigMapName string
+	ConfigFlags        *genericclioptions.ConfigFlags
+	OutputFlags        *iooptions.OutputFlags
+	ServiceName        string
+	BackendPrefix      string
+	Scheme             string
+	Path               string
+	ExpectedStatusCode int
+	MyNodeName         string
+	StopConfigMapName  string
 
 	genericclioptions.IOStreams
 }
@@ -90,6 +91,7 @@ func (f *WatchEndpointSliceFlags) BindOptions(flags *pflag.FlagSet) {
 	flags.StringVar(&f.StopConfigMapName, "stop-configmap", f.StopConfigMapName, "the name of the configmap that indicates that this pod should stop all watchers.")
 	flags.StringVar(&f.Scheme, "request-scheme", f.Scheme, "http or https")
 	flags.StringVar(&f.Path, "request-path", f.Path, "path to request, like /healthz")
+	flags.IntVar(&f.ExpectedStatusCode, "expected-status-code", f.ExpectedStatusCode, "status code to expect from the sampler")
 	f.ConfigFlags.AddFlags(flags)
 	f.OutputFlags.BindFlags(flags)
 }
@@ -137,17 +139,18 @@ func (f *WatchEndpointSliceFlags) ToOptions() (*WatchEndpointSliceOptions, error
 	}
 
 	return &WatchEndpointSliceOptions{
-		KubeClient:        kubeClient,
-		Namespace:         namespace,
-		OutputFile:        f.OutputFlags.OutFile,
-		ServiceName:       f.ServiceName,
-		StopConfigMapName: f.StopConfigMapName,
-		Scheme:            f.Scheme,
-		Path:              f.Path,
-		MyNodeName:        f.MyNodeName,
-		BackendPrefix:     f.BackendPrefix,
-		CloseFn:           closeFn,
-		OriginalOutFile:   originalOutStream,
-		IOStreams:         f.IOStreams,
+		KubeClient:         kubeClient,
+		Namespace:          namespace,
+		OutputFile:         f.OutputFlags.OutFile,
+		ServiceName:        f.ServiceName,
+		StopConfigMapName:  f.StopConfigMapName,
+		Scheme:             f.Scheme,
+		Path:               f.Path,
+		MyNodeName:         f.MyNodeName,
+		BackendPrefix:      f.BackendPrefix,
+		ExpectedStatusCode: f.ExpectedStatusCode,
+		CloseFn:            closeFn,
+		OriginalOutFile:    originalOutStream,
+		IOStreams:          f.IOStreams,
 	}, nil
 }

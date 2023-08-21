@@ -32,7 +32,8 @@ spec:
             - --my-node-name=$(MY_NODE_NAME)
             - --request-scheme=https
             - --request-path=/healthz
-          image: docker.io/deads2k/openshift-tests:latest
+            - --expected-status-code=401
+          image: image-to-be-replaced
           imagePullPolicy: IfNotPresent
           name: disruption-poller
           terminationMessagePolicy: FallbackToLogsOnError

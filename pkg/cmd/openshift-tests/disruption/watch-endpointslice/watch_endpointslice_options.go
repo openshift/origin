@@ -23,13 +23,14 @@ type WatchEndpointSliceOptions struct {
 	KubeClient kubernetes.Interface
 	Namespace  string
 
-	OutputFile        string
-	BackendPrefix     string
-	ServiceName       string
-	MyNodeName        string
-	Scheme            string
-	Path              string
-	StopConfigMapName string
+	OutputFile         string
+	BackendPrefix      string
+	ServiceName        string
+	MyNodeName         string
+	Scheme             string
+	Path               string
+	ExpectedStatusCode int
+	StopConfigMapName  string
 
 	OriginalOutFile io.Writer
 	CloseFn         iooptions.CloseFunc
@@ -63,6 +64,7 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 		o.MyNodeName,
 		o.Scheme,
 		o.Path,
+		o.ExpectedStatusCode,
 		recorder,
 		o.IOStreams.Out,
 		namespaceScopedEndpointSliceInformers.EndpointSlices(),
