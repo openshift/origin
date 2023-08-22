@@ -14,7 +14,7 @@ var _ = g.Describe("[sig-cli] policy", func() {
 
 	var (
 		oc               = exutil.NewCLIWithPodSecurityLevel("oc-policy", api.LevelRestricted)
-		simpleDeployment = exutil.FixturePath("testdata", "deployments", "deployment-simple.yaml")
+		simpleDeployment = exutil.FixturePath("testdata", "deployments", "deployment-simple-sleep.yaml")
 	)
 
 	g.It("scc-subject-review, scc-review [apigroup:authorization.openshift.io][apigroup:user.openshift.io]", func() {

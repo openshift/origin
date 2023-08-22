@@ -284,6 +284,7 @@
 // test/extended/testdata/deployments/deployment-image-resolution-is.yaml
 // test/extended/testdata/deployments/deployment-image-resolution.yaml
 // test/extended/testdata/deployments/deployment-min-ready-seconds.yaml
+// test/extended/testdata/deployments/deployment-simple-sleep.yaml
 // test/extended/testdata/deployments/deployment-simple.yaml
 // test/extended/testdata/deployments/deployment-trigger.yaml
 // test/extended/testdata/deployments/deployment-with-ref-env.yaml
@@ -42149,6 +42150,49 @@ func testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml() (*asset, err
 	return a, nil
 }
 
+var _testExtendedTestdataDeploymentsDeploymentSimpleSleepYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-simple-sleep
+spec:
+  replicas: 1
+  selector:
+    name: deployment-simple-sleep
+  strategy:
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        name: deployment-simple-sleep
+    spec:
+      containers:
+      - image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+        imagePullPolicy: IfNotPresent
+        command:
+          - /bin/sleep
+          - infinity
+        name: myapp
+        readinessProbe:
+          exec:
+            command:
+            - "true"
+`)
+
+func testExtendedTestdataDeploymentsDeploymentSimpleSleepYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDeploymentsDeploymentSimpleSleepYaml, nil
+}
+
+func testExtendedTestdataDeploymentsDeploymentSimpleSleepYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDeploymentsDeploymentSimpleSleepYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/deployments/deployment-simple-sleep.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataDeploymentsDeploymentSimpleYaml = []byte(`apiVersion: apps.openshift.io/v1
 kind: DeploymentConfig
 metadata:
@@ -54272,6 +54316,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/deployment-image-resolution-is.yaml":                                 testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml,
 	"test/extended/testdata/deployments/deployment-image-resolution.yaml":                                    testExtendedTestdataDeploymentsDeploymentImageResolutionYaml,
 	"test/extended/testdata/deployments/deployment-min-ready-seconds.yaml":                                   testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml,
+	"test/extended/testdata/deployments/deployment-simple-sleep.yaml":                                        testExtendedTestdataDeploymentsDeploymentSimpleSleepYaml,
 	"test/extended/testdata/deployments/deployment-simple.yaml":                                              testExtendedTestdataDeploymentsDeploymentSimpleYaml,
 	"test/extended/testdata/deployments/deployment-trigger.yaml":                                             testExtendedTestdataDeploymentsDeploymentTriggerYaml,
 	"test/extended/testdata/deployments/deployment-with-ref-env.yaml":                                        testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml,
@@ -54934,6 +54979,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"deployment-image-resolution-is.yaml": {testExtendedTestdataDeploymentsDeploymentImageResolutionIsYaml, map[string]*bintree{}},
 					"deployment-image-resolution.yaml":    {testExtendedTestdataDeploymentsDeploymentImageResolutionYaml, map[string]*bintree{}},
 					"deployment-min-ready-seconds.yaml":   {testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml, map[string]*bintree{}},
+					"deployment-simple-sleep.yaml":        {testExtendedTestdataDeploymentsDeploymentSimpleSleepYaml, map[string]*bintree{}},
 					"deployment-simple.yaml":              {testExtendedTestdataDeploymentsDeploymentSimpleYaml, map[string]*bintree{}},
 					"deployment-trigger.yaml":             {testExtendedTestdataDeploymentsDeploymentTriggerYaml, map[string]*bintree{}},
 					"deployment-with-ref-env.yaml":        {testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml, map[string]*bintree{}},
