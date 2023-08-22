@@ -87,6 +87,11 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			// https://github.com/kubernetes/kubernetes/blob/70ca1dbb81d8b8c6a2ac88d62480008780d4db79/test/e2e/apimachinery/garbage_collector.go#L735
 			continue
 		}
+		if strings.Contains(event.Locator, "ns/e2e-test-tuning-") &&
+			strings.Contains(event.Message, "IFNAME") {
+			// These tests are trying to cause pod sandbox failures, so the errors are intended.
+			continue
+		}
 		if strings.Contains(event.Message, "Multus") &&
 			strings.Contains(event.Message, "error getting pod") &&
 			(strings.Contains(event.Message, "connection refused") || strings.Contains(event.Message, "i/o timeout")) {
