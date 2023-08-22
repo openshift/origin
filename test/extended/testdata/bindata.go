@@ -48993,7 +48993,7 @@ spec:
             httpGet:
               path: /
               port: 8080
-            initialDelaySeconds: 40
+            initialDelaySeconds: 310
             successThreshold: 2
           ports:
             - name: http
