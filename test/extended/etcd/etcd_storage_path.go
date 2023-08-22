@@ -9,9 +9,19 @@ import (
 	"testing"
 
 	g "github.com/onsi/ginkgo/v2"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	discocache "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	kclientset "k8s.io/client-go/kubernetes"
@@ -21,17 +31,8 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
-
-	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
 // Etcd data for all persisted OpenShift objects.
@@ -280,18 +281,12 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 
 	removeStorageData(t, etcdStorageData,
 		// disabled alpha versions
-		gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicybindings"),
-		gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicies"),
 		gvr("certificates.k8s.io", "v1alpha1", "clustertrustbundles"),
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
 		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
 		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
 		gvr("networking.k8s.io", "v1alpha1", "clustercidrs"),
 		gvr("networking.k8s.io", "v1alpha1", "ipaddresses"),
-		gvr("resource.k8s.io", "v1alpha2", "resourceclasses"),
-		gvr("resource.k8s.io", "v1alpha2", "resourceclaimtemplates"),
-		gvr("resource.k8s.io", "v1alpha2", "resourceclaims"),
-		gvr("resource.k8s.io", "v1alpha2", "podschedulingcontexts"),
 		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
 		// disabled deprecated versions
 		gvr("autoscaling", "v2beta1", "horizontalpodautoscalers"),
@@ -305,6 +300,24 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		gvr("policy", "v1beta1", "poddisruptionbudgets"),
 		gvr("storage.k8s.io", "v1beta1", "csistoragecapacities"),
 	)
+
+	// if !exutil.IsTechPreviewNoUpgrade(oc) {
+	if !isFeatureEnabled(oc, configv1.FeatureGateValidatingAdmissionPolicy) {
+		// alpha versions enabled when FeatureGateValidatingAdmissionPolicy is on
+		removeStorageData(t, etcdStorageData,
+			gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicies"),
+			gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicybindings"),
+		)
+	}
+	if !isFeatureEnabled(oc, configv1.FeatureGateDynamicResourceAllocation) {
+		// alpha versions enabled when FeatureGateDynamicResourceAllocation is on
+		removeStorageData(t, etcdStorageData,
+			gvr("resource.k8s.io", "v1alpha2", "podschedulingcontexts"),
+			gvr("resource.k8s.io", "v1alpha2", "resourceclaims"),
+			gvr("resource.k8s.io", "v1alpha2", "resourceclaimtemplates"),
+			gvr("resource.k8s.io", "v1alpha2", "resourceclasses"),
+		)
+	}
 
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
@@ -504,6 +517,34 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 			t.Errorf("invalid test data, please ensure all expectedEtcdPath are unique, path %s has duplicate GVRs:\n%s", path, gvrStrings)
 		}
 	}
+}
+
+func isFeatureEnabled(oc *exutil.CLI, featureGateName configv1.FeatureGateName) bool {
+	version, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return false
+		}
+		framework.Failf("could not retrieve cluster version: %v", err)
+	}
+	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return false
+		}
+		framework.Failf("could not retrieve feature-gate: %v", err)
+	}
+
+	for _, fg := range featureGate.Status.FeatureGates {
+		if fg.Version == version.Status.Desired.Version {
+			for _, feat := range fg.Enabled {
+				if feat.Name == featureGateName {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func getCRDs(t g.GinkgoTInterface, crdClient *apiextensionsclientset.Clientset) map[schema.GroupVersionResource]empty {
