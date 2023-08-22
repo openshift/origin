@@ -1,6 +1,6 @@
 apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
 name: "[Stable] ConsoleLink"
-crd: 0000_10_consolelink.crd.yaml
+crd: 00_consolelink.crd.yaml
 tests:
   onCreate:
   - name: Should be able to create a minimal ConsoleLink

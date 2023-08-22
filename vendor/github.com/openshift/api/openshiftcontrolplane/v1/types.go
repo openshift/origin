@@ -192,6 +192,29 @@ type JenkinsPipelineConfig struct {
 	Parameters map[string]string `json:"parameters"`
 }
 
+// OpenShiftControllerName defines a string type used to represent the various
+// OpenShift controllers within openshift-controller-manager. These constants serve as identifiers
+// for the controllers and are used on both openshift/openshift-controller-manager 
+// and openshift/cluster-openshift-controller-manager-operator repositories.
+type OpenShiftControllerName string
+
+const (
+	OpenShiftServiceAccountController            OpenShiftControllerName = "openshift.io/serviceaccount"
+	OpenShiftDefaultRoleBindingsController       OpenShiftControllerName = "openshift.io/default-rolebindings"
+	OpenShiftServiceAccountPullSecretsController OpenShiftControllerName = "openshift.io/serviceaccount-pull-secrets"
+	OpenshiftOriginNamespaceController           OpenShiftControllerName = "openshift.io/origin-namespace"
+	OpenshiftBuildController                     OpenShiftControllerName = "openshift.io/build"
+	OpenshiftBuildConfigChangeController         OpenShiftControllerName = "openshift.io/build-config-change"
+	OpenshiftDeployerController                  OpenShiftControllerName = "openshift.io/deployer"
+	OpenshiftDeploymentConfigController          OpenShiftControllerName = "openshift.io/deploymentconfig"
+	OpenshiftImageTriggerController              OpenShiftControllerName = "openshift.io/image-trigger"
+	OpenshiftImageImportController               OpenShiftControllerName = "openshift.io/image-import"
+	OpenshiftImageSignatureImportController      OpenShiftControllerName = "openshift.io/image-signature-import"
+	OpenshiftTemplateInstanceController          OpenShiftControllerName = "openshift.io/templateinstance"
+	OpenshiftTemplateInstanceFinalizerController OpenShiftControllerName = "openshift.io/templateinstancefinalizer"
+	OpenshiftUnidlingController                  OpenShiftControllerName = "openshift.io/unidling"
+)
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.

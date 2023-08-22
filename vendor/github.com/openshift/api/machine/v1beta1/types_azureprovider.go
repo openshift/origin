@@ -95,7 +95,7 @@ type AzureMachineProviderSpec struct {
 	// Availability Zone for the virtual machine.
 	// If nil, the virtual machine should be deployed to no zone
 	// +optional
-	Zone *string `json:"zone,omitempty"`
+	Zone string `json:"zone,omitempty"`
 	// NetworkResourceGroup is the resource group for the virtual machine's network
 	// +optional
 	NetworkResourceGroup string `json:"networkResourceGroup,omitempty"`
