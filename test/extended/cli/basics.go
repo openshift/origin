@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 		cmdTestData          = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata")
 		mixedAPIVersionsFile = exutil.FixturePath("testdata", "mixed-api-versions.yaml")
 		oauthAccessTokenFile = filepath.Join(cmdTestData, "oauthaccesstoken.yaml")
-		templateFile         = filepath.Join(cmdTestData, "application-template-stibuild.json")
+		templateFile         = filepath.Join(cmdTestData, "application-template-mix.json")
 	)
 
 	g.It("can create and interact with a list of resources", func() {
