@@ -91,7 +91,7 @@ func NodeFrom(locatorParts map[string]string) string {
 }
 
 func OperatorFrom(locatorParts map[string]string) string {
-	return locatorParts["clusteroperator"]
+	return locatorParts[string(LocatorClusterOperatorKey)]
 }
 
 func AlertFrom(locatorParts map[string]string) string {

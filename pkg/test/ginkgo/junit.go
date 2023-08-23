@@ -95,7 +95,7 @@ func generateJUnitTestSuiteResults(
 }
 
 func writeJUnitReport(s *junitapi.JUnitTestSuite, filePrefix, fileSuffix, dir string, errOut io.Writer) error {
-	out, err := xml.Marshal(s)
+	out, err := xml.MarshalIndent(s, "", "    ")
 	if err != nil {
 		return err
 	}

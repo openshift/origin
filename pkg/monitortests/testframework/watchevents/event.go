@@ -283,17 +283,29 @@ func eventForContainer(fieldPath string) (string, bool) {
 	}
 }
 
+// TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
 func locateEvent(event *corev1.Event) string {
-	if len(event.InvolvedObject.Namespace) > 0 {
-		if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+	switch {
+	case event.InvolvedObject.Kind == "Namespace":
+		// namespace better match the event itself.
+		return monitorapi.NewLocator().LocateNamespace(event.InvolvedObject.Name).OldLocator()
+
+	case event.InvolvedObject.Kind == "Node":
+		return monitorapi.NewLocator().NodeFromName(event.InvolvedObject.Name).OldLocator()
+
+	case len(event.InvolvedObject.Namespace) == 0:
+		if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
+			return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+		}
+		return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+
+	default:
+		// involved object is namespaced
+		if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
 			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
 		}
 		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 	}
-	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
-		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
-	}
-	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 }
 
 func nodeRoles(node *corev1.Node) string {
