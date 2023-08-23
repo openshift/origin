@@ -116,8 +116,8 @@ func (c *PollServiceController) syncServicePoller(ctx context.Context, key strin
 		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, c.nodeName)
 
 		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
-		historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-to-service-%v-connections", c.backendPrefix, monitorapi.NewConnectionType)
-		historicalBackendDisruptionDataForReusedConnectionsName := fmt.Sprintf("%s-to-service-%v-connections", c.backendPrefix, monitorapi.ReusedConnectionType)
+		historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.NewConnectionType)
+		historicalBackendDisruptionDataForReusedConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.ReusedConnectionType)
 		intervalLocator := fmt.Sprintf("%s-to-service-from-node-%v-to-clusterIP-%v", c.backendPrefix, c.nodeName, c.clusterIP)
 		c.watcher = &watcher{
 			address: c.clusterIP,

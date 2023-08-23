@@ -187,23 +187,17 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
-	serviceEnv := []corev1.EnvVar{
-		{
-			Name:  "SERVICE_CLUSTER_IP",
-			Value: service.Spec.ClusterIP,
-		},
-	}
-	podNetworkServicePollerDep.Spec.Replicas = &numNodes
-	podNetworkServicePollerDep.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-	podNetworkServicePollerDep.Spec.Template.Spec.Containers[0].Env = serviceEnv
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkServicePollerDep, metav1.CreateOptions{}); err != nil {
-		return err
-	}
-	hostNetworkServicePollerDep.Spec.Replicas = &numNodes
-	hostNetworkServicePollerDep.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-	hostNetworkServicePollerDep.Spec.Template.Spec.Containers[0].Env = serviceEnv
-	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkServicePollerDep, metav1.CreateOptions{}); err != nil {
-		return err
+	for _, deployment := range []*appsv1.Deployment{podNetworkServicePollerDep, hostNetworkServicePollerDep} {
+		deployment.Spec.Replicas = &numNodes
+		deployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
+			if env.Name == "SERVICE_CLUSTER_IP" {
+				deployment.Spec.Template.Spec.Containers[0].Env[i].Value = service.Spec.ClusterIP
+			}
+		}
+		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), deployment, metav1.CreateOptions{}); err != nil {
+			return err
+		}
 	}
 
 	return nil
