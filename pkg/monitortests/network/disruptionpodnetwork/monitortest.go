@@ -192,10 +192,6 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 			Name:  "SERVICE_CLUSTER_IP",
 			Value: service.Spec.ClusterIP,
 		},
-		{
-			Name:  "PORT",
-			Value: fmt.Sprintf("%d", service.Spec.Ports[0].Port),
-		},
 	}
 	podNetworkServicePollerDep.Spec.Replicas = &numNodes
 	podNetworkServicePollerDep.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec

@@ -6,12 +6,12 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 )
@@ -23,7 +23,7 @@ type PollServiceFlags struct {
 	MyNodeName        string
 	StopConfigMapName string
 	ServiceClusterIP  string
-	ServicePort       string
+	ServicePort       uint16
 
 	genericclioptions.IOStreams
 }
@@ -85,7 +85,7 @@ func (f *PollServiceFlags) BindOptions(flags *pflag.FlagSet) {
 	flags.StringVar(&f.MyNodeName, "my-node-name", f.MyNodeName, "the name of the node running this pod")
 	flags.StringVar(&f.StopConfigMapName, "stop-configmap", f.StopConfigMapName, "the name of the configmap that indicates that this pod should stop all watchers.")
 	flags.StringVar(&f.ServiceClusterIP, "service-clusterIP", f.ServiceClusterIP, "the service clusterIP to poll")
-	flags.StringVar(&f.ServicePort, "service-port", f.ServicePort, "the exposed port on the service to poll")
+	flags.Uint16Var(&f.ServicePort, "service-port", f.ServicePort, "the exposed port on the service to poll")
 	flags.StringVar(&f.BackendPrefix, "disruption-backend-prefix", f.BackendPrefix, "classification of disruption for the disruption summery")
 	f.ConfigFlags.AddFlags(flags)
 	f.OutputFlags.BindFlags(flags)
@@ -97,9 +97,6 @@ func (f *PollServiceFlags) Validate() error {
 	}
 	if ip := net.ParseIP(f.ServiceClusterIP); ip == nil {
 		return fmt.Errorf("service-clusterIP must be a valid IP address")
-	}
-	if _, err := strconv.ParseUint(f.ServicePort, 10, 16); err != nil {
-		return fmt.Errorf("service-port must be a valid port number between 0 - 65535")
 	}
 
 	if len(f.BackendPrefix) == 0 {

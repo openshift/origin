@@ -18,7 +18,7 @@ type PollServiceOptions struct {
 	KubeClient kubernetes.Interface
 	Namespace  string
 	ClusterIP  string
-	Port       string
+	Port       uint16
 
 	BackendPrefix     string
 	OutputFile        string
@@ -31,7 +31,7 @@ type PollServiceOptions struct {
 }
 
 func (o *PollServiceOptions) Run(ctx context.Context) error {
-	fmt.Fprintf(o.Out, "Initializing to watch clusterIP %s:%s\n", o.ClusterIP, o.Port)
+	fmt.Fprintf(o.Out, "Initializing to watch clusterIP %s:%d\n", o.ClusterIP, o.Port)
 
 	startingContent, err := os.ReadFile(o.OutputFile)
 	if err != nil && !os.IsNotExist(err) {

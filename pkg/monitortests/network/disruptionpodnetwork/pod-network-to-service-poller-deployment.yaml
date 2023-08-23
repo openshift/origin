@@ -30,7 +30,7 @@ spec:
             - --stop-configmap=stop-collecting
             - --my-node-name=$(MY_NODE_NAME)
             - --service-clusterIP=$(SERVICE_CLUSTER_IP)
-            - --service-port=${PORT}
+            - --service-port=80
           image: quay.io/jtanenba/openshift-tests:latest
           imagePullPolicy: IfNotPresent
           name: disruption-poller
@@ -46,9 +46,6 @@ spec:
             - name: SERVICE_CLUSTER_IP
               #to be overwritten by the service clusterIP
               value: ""
-            - name: PORT
-              # to be overwriten by the port exposed with clusterIP
-              value: "80"
           volumeMounts:
             - mountPath: /var/log/persistent-logs
               name: persistent-log-dir

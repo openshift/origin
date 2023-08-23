@@ -25,7 +25,7 @@ type PollServiceController struct {
 	backendPrefix     string
 	nodeName          string
 	clusterIP         string
-	port              string
+	port              uint16
 	namespaceName     string
 	stopConfigMapName string
 	recorder          monitorapi.RecorderWriter
@@ -44,7 +44,7 @@ type PollServiceController struct {
 
 type watcher struct {
 	address                 string
-	port                    string
+	port                    uint16
 	newConnectionSampler    *backenddisruption.BackendSampler
 	reusedConnectionSampler *backenddisruption.BackendSampler
 }
@@ -54,7 +54,7 @@ func NewPollServiceWatcher(
 	nodeName string,
 	namespaceName string,
 	clusterIP string,
-	port string,
+	port uint16,
 	recorder monitorapi.RecorderWriter,
 	outFile io.Writer,
 	stopConfigMapName string,
@@ -112,7 +112,7 @@ func (c *PollServiceController) syncServicePoller(ctx context.Context, key strin
 	defer c.watcherLock.Unlock()
 
 	if c.watcher == nil {
-		url := fmt.Sprintf("http://%s", net.JoinHostPort(c.clusterIP, c.port))
+		url := fmt.Sprintf("http://%s", net.JoinHostPort(c.clusterIP, fmt.Sprintf("%d", c.port)))
 		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, c.nodeName)
 
 		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
