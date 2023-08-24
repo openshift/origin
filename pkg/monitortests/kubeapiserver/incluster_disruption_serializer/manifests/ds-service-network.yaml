@@ -7,10 +7,12 @@ spec:
   selector:
     matchLabels:
       app: service-network-monitor
+      network.openshift.io/disruption-actor: poller
   template:
     metadata:
       labels:
         app: service-network-monitor
+        network.openshift.io/disruption-actor: poller
     spec:
       containers:
       - name: service-network

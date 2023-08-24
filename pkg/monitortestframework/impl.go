@@ -1,10 +1,18 @@
 package monitortestframework
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
+
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
@@ -309,4 +317,37 @@ func (r *monitorTestRegistry) AddRegistryOrDie(registry MonitorTestRegistry) {
 
 func (r *monitorTestRegistry) getMonitorTests() map[string]*monitorTesttItem {
 	return r.monitorTests
+}
+
+// GetOpenshiftTestsImagePullSpec returns the pull spec, a not-supported-reason, or an error.
+func (m *MonitorTestInitializationInfo) GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.Config) (string, string, error) {
+	payloadImagePullSpec := m.UpgradeTargetPayloadImagePullSpec
+	if len(payloadImagePullSpec) == 0 {
+		configClient, err := configclient.NewForConfig(adminRESTConfig)
+		if err != nil {
+			return "", "", err
+		}
+		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return "", "clusterversion/version not found and no image pull spec specified", nil
+		}
+		if err != nil {
+			return "", "", err
+		}
+		payloadImagePullSpec = clusterVersion.Status.History[0].Image
+	}
+
+	// runImageExtract extracts src from specified image to dst
+	cmd := exec.Command("oc", "adm", "release", "info", payloadImagePullSpec, "--image-for=tests")
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
+	cmd.Stdout = out
+	cmd.Stderr = errOut
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String()), err
+	}
+	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
+	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
+
+	return openshiftTestsImagePullSpec, "", nil
 }
