@@ -118,7 +118,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("external-aws-cloud-service-availability", "Test Framework", disruptionexternalawscloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("pathological-event-analyzer", "Test Framework", pathologicaleventanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
-	monitorTestRegistry.AddMonitorTestOrDie("incluster-disruption-serializer", "kube-apiserver", incluster_disruption_serializer.NewInvariantInClusterDisruption())
+	monitorTestRegistry.AddMonitorTestOrDie("incluster-disruption-serializer", "kube-apiserver", incluster_disruption_serializer.NewInvariantInClusterDisruption(info))
 
 	monitorTestRegistry.AddMonitorTestOrDie("monitoring-statefulsets-recreation", "Monitoring", statefulsetsrecreation.NewStatefulsetsChecker())
 
