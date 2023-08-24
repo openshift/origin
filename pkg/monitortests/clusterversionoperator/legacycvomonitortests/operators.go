@@ -107,8 +107,26 @@ func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.
 				nodeNameToOSUpdateTimes[nodeName] = &startedStaged{}
 			}
 			// for this type of event, the from/to time are identical as this is a point in time event.
+			// see a case where the from / to are different - OCPBUGS-18090
+			//         {
+			//            "level": "Info",
+			//            "locator": "ns/openshift-machine-config-operator node/ci-op-gdbqslqd-d5fb3-wtrh8-worker-a-t6bgw",
+			//            "message": "reason/OSUpdateStarted roles/worker  (2 times)",
+			//            "tempStructuredLocator": {
+			//                "type": "",
+			//                "keys": null
+			//            },
+			//            "tempStructuredMessage": {
+			//                "reason": "",
+			//                "cause": "",
+			//                "humanMessage": "",
+			//                "annotations": null
+			//            },
+			//            "from": "2023-08-24T04:39:03Z",
+			//            "to": "2023-08-24T04:39:04Z"
+			//        },
 			ss := nodeNameToOSUpdateTimes[nodeName]
-			ss.OSUpdateStarted = e.To
+			ss.OSUpdateStarted = e.From
 
 		case reason == "OSUpdateStaged":
 			_, ok := nodeNameToOSUpdateTimes[nodeName]
