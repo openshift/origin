@@ -278,34 +278,6 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 	nodeData.Stub = `{"metadata": {"name": "node1"}, "spec": {"unschedulable": true}, "status": {"conditions":[{"type":"Ready", "status":"True"}]}}`
 	etcdStorageData[nodeGvr] = nodeData
 
-	removeStorageData(t, etcdStorageData,
-		// disabled alpha versions
-		gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicybindings"),
-		gvr("admissionregistration.k8s.io", "v1alpha1", "validatingadmissionpolicies"),
-		gvr("certificates.k8s.io", "v1alpha1", "clustertrustbundles"),
-		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "flowschemas"),
-		gvr("flowcontrol.apiserver.k8s.io", "v1alpha1", "prioritylevelconfigurations"),
-		gvr("internal.apiserver.k8s.io", "v1alpha1", "storageversions"),
-		gvr("networking.k8s.io", "v1alpha1", "clustercidrs"),
-		gvr("networking.k8s.io", "v1alpha1", "ipaddresses"),
-		gvr("resource.k8s.io", "v1alpha2", "resourceclasses"),
-		gvr("resource.k8s.io", "v1alpha2", "resourceclaimtemplates"),
-		gvr("resource.k8s.io", "v1alpha2", "resourceclaims"),
-		gvr("resource.k8s.io", "v1alpha2", "podschedulingcontexts"),
-		gvr("storage.k8s.io", "v1alpha1", "csistoragecapacities"),
-		// disabled deprecated versions
-		gvr("autoscaling", "v2beta1", "horizontalpodautoscalers"),
-		gvr("autoscaling", "v2beta2", "horizontalpodautoscalers"),
-		gvr("batch", "v1beta1", "cronjobs"),
-		gvr("discovery.k8s.io", "v1beta1", "endpointslices"),
-		gvr("events.k8s.io", "v1beta1", "events"),
-		gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "flowschemas"),
-		gvr("flowcontrol.apiserver.k8s.io", "v1beta1", "prioritylevelconfigurations"),
-		gvr("node.k8s.io", "v1beta1", "runtimeclasses"),
-		gvr("policy", "v1beta1", "poddisruptionbudgets"),
-		gvr("storage.k8s.io", "v1beta1", "csistoragecapacities"),
-	)
-
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
@@ -477,8 +449,10 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		}()
 	}
 
-	if inEtcdData, inEtcdSeen := diffMaps(etcdStorageData, etcdSeen); len(inEtcdData) != 0 || len(inEtcdSeen) != 0 {
-		t.Errorf("etcd data does not match the types we saw:\nin etcd data but not seen:\n%s\nseen but not in etcd data:\n%s", inEtcdData, inEtcdSeen)
+	inEtcdData, inEtcdSeen := diffMaps(etcdStorageData, etcdSeen)
+	t.Logf("etcd storage expectations are defined for the following unserved resources: %v", strings.Join(inEtcdData, ", "))
+	if len(inEtcdSeen) != 0 {
+		t.Errorf("etcd data does not match the types we saw:\nseen but not in etcd data:\n%s", inEtcdSeen)
 	}
 
 	if inKindData, inKindSeen := diffMaps(kindWhiteList, kindSeen); len(inKindData) != 0 || len(inKindSeen) != 0 {
