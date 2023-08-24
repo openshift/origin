@@ -70,7 +70,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewAvailabilityInvariant())
 
 	monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewAvailabilityInvariant())
-	monitorTestRegistry.AddMonitorTestOrDie("incluster-disruption-serializer", "kube-apiserver", incluster_disruption_serializer.NewInvariantInClusterDisruption())
+	monitorTestRegistry.AddMonitorTestOrDie("incluster-disruption-serializer", "kube-apiserver", incluster_disruption_serializer.NewInvariantInClusterDisruption(info))
 
 	return monitorTestRegistry
 }

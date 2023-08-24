@@ -7,25 +7,20 @@ spec:
   selector:
     matchLabels:
       app: internal-lb-monitor
+      network.openshift.io/disruption-actor: poller
   template:
     metadata:
       labels:
         app: internal-lb-monitor
+        network.openshift.io/disruption-actor: poller
     spec:
       containers:
       - name: internal-lb
         command:
-        - bash
-        - -c
-        - |
-          trap 'kill "${child_pid}"; wait "${child_pid}"' SIGINT SIGTERM
-          CMD="sleep infinity"
-          if openshift-tests --help | grep "run-disruption"; then
-            CMD="openshift-tests run-disruption --artifact-dir /var/log/disruption-data --lb-type ${LOAD_BALANCER} --extra-message $(EXTRA_MESSAGE)"
-          fi
-          ${CMD}&
-          child_pid="$!"
-          wait "${child_pid}"
+        - openshift-tests
+        - run-disruption
+        - --output-file=/var/log/disruption-data/monitor-events/internal-lb.txt
+        - --lb-type $(LOAD_BALANCER)
         env:
         - name: KUBERNETES_SERVICE_HOST
           value: api-int.foo.bar

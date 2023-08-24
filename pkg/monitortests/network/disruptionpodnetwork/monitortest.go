@@ -1,23 +1,14 @@
 package disruptionpodnetwork
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"embed"
 	_ "embed"
-	"fmt"
-	"os/exec"
-	"strings"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
-
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -76,49 +67,28 @@ func init() {
 }
 
 type podNetworkAvalibility struct {
-	payloadImagePullSpec string
-	notSupportedReason   string
-	namespaceName        string
-	kubeClient           kubernetes.Interface
+	getImagePullSpec monitortestframework.OpenshiftTestImageGetterFunc
+
+	notSupportedReason string
+	namespaceName      string
+	kubeClient         kubernetes.Interface
 }
 
-func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
+func NewPodNetworkAvalibilityInvariant(initializationInfo monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
 	return &podNetworkAvalibility{
-		payloadImagePullSpec: info.UpgradeTargetPayloadImagePullSpec,
+		getImagePullSpec: initializationInfo.GetOpenshiftTestsImagePullSpec,
 	}
 }
 
 func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	if len(pna.payloadImagePullSpec) == 0 {
-		configClient, err := configclient.NewForConfig(adminRESTConfig)
-		if err != nil {
-			return err
-		}
-		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			pna.notSupportedReason = "clusterversion/version not found and no image pull spec specified."
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		pna.payloadImagePullSpec = clusterVersion.Status.History[0].Image
+	openshiftTestsImagePullSpec, notSupportedReason, err := pna.getImagePullSpec(ctx, adminRESTConfig)
+	if err != nil {
+		return err
 	}
-
-	// runImageExtract extracts src from specified image to dst
-	cmd := exec.Command("oc", "adm", "release", "info", pna.payloadImagePullSpec, "--image-for=tests")
-	out := &bytes.Buffer{}
-	errOut := &bytes.Buffer{}
-	cmd.Stdout = out
-	cmd.Stderr = errOut
-	if err := cmd.Run(); err != nil {
-		pna.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
+	if len(notSupportedReason) > 0 {
+		pna.notSupportedReason = notSupportedReason
 		return nil
 	}
-	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
-	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
-
-	var err error
 
 	pna.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
@@ -235,72 +205,8 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 	if err != nil {
 		return nil, nil, []error{err}
 	}
-	pollerPods, err := pna.kubeClient.CoreV1().Pods(pna.namespaceName).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.NewSelector().Add(*pollerLabel).Add(*typeLabel).String(),
-	})
-	if err != nil {
-		return nil, nil, []error{err}
-	}
 
-	retIntervals := monitorapi.Intervals{}
-	junits := []*junitapi.JUnitTestCase{}
-	errs := []error{}
-	buf := &bytes.Buffer{}
-	podsWithoutIntervals := []string{}
-	for _, pollerPod := range pollerPods.Items {
-		fmt.Fprintf(buf, "\n\nLogs for -n %v pod/%v\n", pollerPod.Namespace, pollerPod.Name)
-		req := pna.kubeClient.CoreV1().Pods(pna.namespaceName).GetLogs(pollerPod.Name, &corev1.PodLogOptions{})
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		logStream, err := req.Stream(ctx)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		foundInterval := false
-		scanner := bufio.NewScanner(logStream)
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			buf.Write(line)
-			buf.Write([]byte("\n"))
-			if len(line) == 0 {
-				continue
-			}
-
-			// not all lines are json, ignore errors.
-			if currInterval, err := monitorserialization.IntervalFromJSON(line); err == nil {
-				retIntervals = append(retIntervals, *currInterval)
-				foundInterval = true
-			}
-		}
-		if !foundInterval {
-			podsWithoutIntervals = append(podsWithoutIntervals, pollerPod.Name)
-		}
-	}
-
-	failures := []string{}
-	if len(podsWithoutIntervals) > 0 {
-		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
-	}
-	if len(pollerPods.Items) == 0 {
-		failures = append(failures, "no pods found for poller %q", typeOfConnection)
-	}
-
-	logJunit := &junitapi.JUnitTestCase{
-		Name:      fmt.Sprintf("[sig-network] can collect %v poller pod logs", typeOfConnection),
-		SystemOut: string(buf.Bytes()),
-	}
-	if len(failures) > 0 {
-		logJunit.FailureOutput = &junitapi.FailureOutput{
-			Output: strings.Join(failures, "\n"),
-		}
-	}
-	junits = append(junits, logJunit)
-
-	return retIntervals, junits, errs
+	return disruptionlibrary.CollectIntervalsForPods(ctx, pna.kubeClient, pna.namespaceName, labels.NewSelector().Add(*pollerLabel).Add(*typeLabel))
 }
 
 func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
