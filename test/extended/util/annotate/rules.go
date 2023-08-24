@@ -53,6 +53,13 @@ var (
 			// https://issues.redhat.com/browse/OCPBUGS-3339
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mysql\]\[Slow\] openshift mysql image Creating from a template should instantiate the template`,
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mariadb\]\[Slow\] openshift mariadb image Creating from a template should instantiate the template`,
+
+			// https://issues.redhat.com/browse/OCPBUGS-12841
+			`\[sig-network\] Services should have session affinity timeout work for NodePort service \[LinuxOnly\]`,
+			`\[sig-network\] Networking Granular Checks: Services should function for node-Service: http`,
+			`\[sig-network\] Services should have session affinity work for NodePort service \[LinuxOnly\] \[Conformance\]`,
+			`\[sig-network\] Services should be able to switch session affinity for NodePort service \[LinuxOnly\] \[Conformance\]`,
+			`\[sig-network\] Networking Granular Checks: Services should function for pod-Service: http`,
 		},
 		// tests that need to be temporarily disabled while the rebase is in progress.
 		"[Disabled:RebaseInProgress]": {
