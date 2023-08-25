@@ -23,6 +23,32 @@ type testCategorizer struct {
 	substring string
 }
 
+func getPlatformType(clientConfig *rest.Config) (configv1.PlatformType, error) {
+	var platform configv1.PlatformType
+
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		return platform, fmt.Errorf("error creating kubeClient: %v", err)
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return platform, fmt.Errorf("error checking MicroShift cluster: %v", err)
+	}
+	if isMicroShift {
+		return platform, nil
+	}
+
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		return platform, fmt.Errorf("error creating configClient: %v", err)
+	}
+	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return platform, fmt.Errorf("error getting cluster infrastructure: %v", err)
+	}
+	return infra.Status.PlatformStatus.Type, nil
+}
+
 func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-network] pods should successfully create sandboxes"
 	// we can further refine this signal by subdividing different failure modes if it is pertinent.  Right now I'm seeing
@@ -61,27 +87,9 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	eventsForPods := getEventsByPodName(events)
 
 	var platform configv1.PlatformType
-
-	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	platform, err := getPlatformType(clientConfig)
 	if err != nil {
-		failures = append(failures, fmt.Sprintf("error creating kubeClient: %v", err))
-	} else {
-		isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
-		if err != nil {
-			failures = append(failures, fmt.Sprintf("error checking MicroShift cluster: %v", err))
-		} else if !isMicroShift {
-			configClient, err := configclient.NewForConfig(clientConfig)
-			if err != nil {
-				failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
-			} else {
-				infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-				if err != nil {
-					failures = append(failures, fmt.Sprintf("error getting cluster infrastructure: %v", err))
-				} else {
-					platform = infra.Status.PlatformStatus.Type
-				}
-			}
-		}
+		failures = append(failures, fmt.Sprintf("error determining platform type: %v", err))
 	}
 
 	for _, event := range events {
