@@ -18,8 +18,29 @@ rules:
     resources:
       - namespaces
   - verbs:
+      - create
+      - get
+      - list
+      - update
+      - delete
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+  - verbs:
       - list
     apiGroups:
       - image.openshift.io
     resources:
       - imagestreams
+  - verbs:
+      - create
+      - get
+      - list
+      - update
+      - delete
+    apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases

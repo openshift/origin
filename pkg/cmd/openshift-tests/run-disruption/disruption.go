@@ -43,7 +43,9 @@ type RunAPIDisruptionMonitorFlags struct {
 
 func NewRunInClusterDisruptionMonitorFlags(ioStreams genericclioptions.IOStreams) *RunAPIDisruptionMonitorFlags {
 	return &RunAPIDisruptionMonitorFlags{
-		IOStreams: ioStreams,
+		ConfigFlags: genericclioptions.NewConfigFlags(false),
+		OutputFlags: iooptions.NewOutputOptions(),
+		IOStreams:   ioStreams,
 	}
 }
 
