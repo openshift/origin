@@ -1,9 +1,10 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: internal-lb-monitor
   namespace: e2e-disruption-monitor
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: internal-lb-monitor
@@ -14,13 +15,24 @@ spec:
         app: internal-lb-monitor
         network.openshift.io/disruption-actor: poller
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - internal-lb-monitor
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: internal-lb
         command:
         - openshift-tests
         - run-disruption
         - --output-file=/var/log/disruption-data/monitor-events/internal-lb.txt
-        - --lb-type $(LOAD_BALANCER)
+        - --lb-type=$(LOAD_BALANCER)
+        - --stop-configmap=stop-configmap
         env:
         - name: KUBERNETES_SERVICE_HOST
           value: api-int.foo.bar
@@ -28,11 +40,6 @@ spec:
           value: "6443"
         - name: LOAD_BALANCER
           value: "internal-lb"
-        - name: EXTRA_MESSAGE
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: spec.nodeName
         image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
         volumeMounts:
         - mountPath: /var/log/disruption-data
@@ -42,7 +49,6 @@ spec:
       securityContext:
         privileged: true
         runAsUser: 0
-      terminationGracePeriodSeconds: 90
       volumes:
       - hostPath:
           path: /var/log/disruption-data
