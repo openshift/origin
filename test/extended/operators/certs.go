@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		currentPKIContent, err := certgraphanalysis.GatherCertsFromAllNamespaces(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		jsonBytes, err := json.MarshalIndent(currentPKIContent, "", "  ")
+		jsonBytes, err := json.MarshalIndent(justLocations(currentPKIContent), "", "  ")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		pkiDir := filepath.Join(exutil.ArtifactDirPath(), "tls_for_cluster")
@@ -111,6 +111,27 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 	})
 
 })
+
+func justLocations(in *certgraphapi.PKIList) *certgraphapi.PKIList {
+	ret := &certgraphapi.PKIList{}
+	ret.LogicalName = in.LogicalName
+	ret.Description = in.Description
+
+	for _, curr := range in.CertKeyPairs.Items {
+		t := curr.DeepCopy()
+		t.Spec.Details.SignerDetails = nil
+		t.Spec.Details.ServingCertDetails = nil
+		t.Spec.Details.ClientCertDetails = nil
+		t.Spec.CertMetadata = certgraphapi.CertKeyMetadata{}
+		ret.CertKeyPairs.Items = append(ret.CertKeyPairs.Items, *t)
+	}
+	for _, curr := range in.CertificateAuthorityBundles.Items {
+		t := curr.DeepCopy()
+		t.Spec.CertificateMetadata = nil
+		ret.CertificateAuthorityBundles.Items = append(ret.CertificateAuthorityBundles.Items, *t)
+	}
+	return ret
+}
 
 // TODO move to library
 
