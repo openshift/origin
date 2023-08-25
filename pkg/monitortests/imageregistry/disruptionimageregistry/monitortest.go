@@ -107,6 +107,11 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 	if len(w.notSupportedReason) > 0 {
 		return nil, nil, nil
 	}
+	// we failed and indicated it during setup.
+	if w.disruptionChecker == nil {
+		return nil, nil, nil
+	}
+
 	return w.disruptionChecker.CollectData(ctx)
 }
 
@@ -119,6 +124,10 @@ func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 		return nil, nil
 	}
 	if w.suppressJunit {
+		return nil, nil
+	}
+	// we failed and indicated it during setup.
+	if w.disruptionChecker == nil {
 		return nil, nil
 	}
 
