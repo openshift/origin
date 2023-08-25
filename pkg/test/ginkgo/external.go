@@ -29,6 +29,11 @@ type serializedTest struct {
 func externalTestsForSuite(ctx context.Context) ([]*testCase, error) {
 	var tests []*testCase
 
+	// TODO get client from real client location
+	if _, err := util.GetClientConfig(util.KubeConfigPath()); err != nil {
+		return nil, nil
+	}
+
 	// TODO: add support for binaries from other images
 	testBinary, err := extractBinaryFromReleaseImage("hyperkube", "/usr/bin/k8s-tests")
 	if err != nil {
