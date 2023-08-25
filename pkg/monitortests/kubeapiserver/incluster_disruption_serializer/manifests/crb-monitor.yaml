@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: e2e-disruption-monitor
+  generateName: e2e-disruption-monitor-
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -9,4 +9,3 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: disruption-monitor-sa
-  namespace: e2e-disruption-monitor
