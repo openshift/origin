@@ -34,14 +34,7 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 )
 
-const (
-	disruptionDataFolder = "disruption-data"
-	disruptionTypeEnvVar = "DISRUPTION_TYPE_LABEL"
-	inClusterEventsFile  = "junit/AdditionalEvents__in_cluster_disruption.json"
-)
-
 var (
-	namespace string
 	//go:embed manifests/namespace.yaml
 	namespaceYaml []byte
 	//go:embed manifests/crb-hostaccess.yaml
@@ -52,214 +45,28 @@ var (
 	rbacListOauthClientCRBYaml []byte
 	//go:embed manifests/serviceaccount.yaml
 	serviceAccountYaml []byte
-	//go:embed manifests/ds-internal-lb.yaml
-	dsInternalLBYaml []byte
-	//go:embed manifests/ds-service-network.yaml
-	dsServiceNetworkYaml []byte
-	//go:embed manifests/ds-localhost.yaml
-	dsLocalhostYaml []byte
-	//go:embed manifests/ds-cleanup.yaml
-	dsCleanupYaml         []byte
-	rbacPrivilegedCRBName string
-	rbacMonitorRoleName   string
-	rbacMonitorCRBName    string
+	//go:embed manifests/dep-internal-lb.yaml
+	internalLBDeploymentYaml []byte
+	//go:embed manifests/dep-service-network.yaml
+	serviceNetworkDeploymentYaml []byte
+	//go:embed manifests/dep-localhost.yaml
+	localhostDeploymentYaml []byte
+	rbacPrivilegedCRBName   string
+	rbacMonitorRoleName     string
+	rbacMonitorCRBName      string
 )
-
-func createInternalLBDS(ctx context.Context, clientset kubernetes.Interface, apiIntHost, openshiftTestsImagePullSpec string) error {
-	dsObj := resourceread.ReadDaemonSetV1OrDie(dsInternalLBYaml)
-	dsObj.Namespace = namespace
-	dsObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
-	// we need to use the openshift-tests image of the destination during an upgrade.
-	dsObj.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-
-	client := clientset.AppsV1().DaemonSets(namespace)
-	var err error
-	_, err = client.Create(ctx, dsObj, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("error creating daemonset: %v", err)
-	}
-
-	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
-		cache.NewListWatchFromClient(
-			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", dsObj.Name)),
-		&appsv1.DaemonSet{},
-		nil,
-		func(event watch.Event) (bool, error) {
-			ds := event.Object.(*appsv1.DaemonSet)
-			return ds.Status.NumberReady > 0, nil
-		},
-	); watchErr != nil {
-		return fmt.Errorf("daemonset %s didn't roll out: %v", dsObj.Name, watchErr)
-	}
-	return nil
-}
-
-func createCleanupDS(ctx context.Context, clientset kubernetes.Interface) error {
-	dsObj := resourceread.ReadDaemonSetV1OrDie(dsCleanupYaml)
-	dsObj.Namespace = namespace
-
-	client := clientset.AppsV1().DaemonSets(namespace)
-	var err error
-	_, err = client.Create(ctx, dsObj, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("error creating daemonset: %v", err)
-	}
-
-	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
-		cache.NewListWatchFromClient(
-			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", dsObj.Name)),
-		&appsv1.DaemonSet{},
-		nil,
-		func(event watch.Event) (bool, error) {
-			ds := event.Object.(*appsv1.DaemonSet)
-			return ds.Status.NumberReady > 0, nil
-		},
-	); watchErr != nil {
-		return fmt.Errorf("daemonset %s didn't roll out: %v", dsObj.Name, watchErr)
-	}
-	return nil
-}
-
-func createServiceNetworkDS(ctx context.Context, clientset kubernetes.Interface, openshiftTestsImagePullSpec string) error {
-	dsObj := resourceread.ReadDaemonSetV1OrDie(dsServiceNetworkYaml)
-	dsObj.Namespace = namespace
-	// we need to use the openshift-tests image of the destination during an upgrade.
-	dsObj.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-
-	client := clientset.AppsV1().DaemonSets(namespace)
-	var err error
-	_, err = client.Create(ctx, dsObj, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("error creating daemonset: %v", err)
-	}
-
-	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
-		cache.NewListWatchFromClient(
-			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", dsObj.Name)),
-		&appsv1.DaemonSet{},
-		nil,
-		func(event watch.Event) (bool, error) {
-			ds := event.Object.(*appsv1.DaemonSet)
-			return ds.Status.NumberReady > 0, nil
-		},
-	); watchErr != nil {
-		return fmt.Errorf("daemonset %s didn't roll out: %v", dsObj.Name, watchErr)
-	}
-	return nil
-}
-
-func createLocalhostDS(ctx context.Context, clientset kubernetes.Interface, openshiftTestsImagePullSpec string) error {
-	dsObj := resourceread.ReadDaemonSetV1OrDie(dsLocalhostYaml)
-	dsObj.Namespace = namespace
-	// we need to use the openshift-tests image of the destination during an upgrade.
-	dsObj.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-
-	client := clientset.AppsV1().DaemonSets(namespace)
-	var err error
-	_, err = client.Create(ctx, dsObj, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("error creating daemonset: %v", err)
-	}
-
-	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
-		cache.NewListWatchFromClient(
-			clientset.AppsV1().RESTClient(), "daemonsets", namespace, fields.OneTermEqualSelector("metadata.name", dsObj.Name)),
-		&appsv1.DaemonSet{},
-		nil,
-		func(event watch.Event) (bool, error) {
-			ds := event.Object.(*appsv1.DaemonSet)
-			return ds.Status.NumberReady > 0, nil
-		},
-	); watchErr != nil {
-		return fmt.Errorf("daemonset %s didn't roll out: %v", dsObj.Name, watchErr)
-	}
-	return nil
-}
-
-func createRBACPrivileged(ctx context.Context, clientset kubernetes.Interface) error {
-	rbacPrivilegedObj := resourceread.ReadClusterRoleBindingV1OrDie(rbacPrivilegedYaml)
-	rbacPrivilegedObj.Subjects[0].Namespace = namespace
-
-	client := clientset.RbacV1().ClusterRoleBindings()
-	_, err := client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating privileged SCC CRB: %v", err)
-	}
-	rbacPrivilegedCRBName = rbacPrivilegedObj.Name
-	return nil
-}
-
-func createMonitorRole(ctx context.Context, clientset kubernetes.Interface) error {
-	rbacMonitorRoleObj := resourceread.ReadClusterRoleV1OrDie(rbacMonitorRoleYaml)
-	rbacMonitorRoleName = rbacMonitorRoleObj.Name
-
-	client := clientset.RbacV1().ClusterRoles()
-	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating oauthclients list role: %v", err)
-	}
-	rbacMonitorRoleName = rbacMonitorRoleObj.Name
-	return nil
-}
-
-func createMonitorCRB(ctx context.Context, clientset kubernetes.Interface) error {
-	rbacMonitorCRBObj := resourceread.ReadClusterRoleBindingV1OrDie(rbacListOauthClientCRBYaml)
-	rbacMonitorCRBObj.Subjects[0].Namespace = namespace
-	rbacMonitorCRBName = rbacMonitorCRBObj.Name
-
-	client := clientset.RbacV1().ClusterRoleBindings()
-	_, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating oauthclients list CRB: %v", err)
-	}
-	rbacMonitorCRBName = rbacMonitorCRBObj.Name
-	return nil
-}
-
-func createServiceAccount(ctx context.Context, clientset kubernetes.Interface) error {
-	serviceAccountObj := resourceread.ReadServiceAccountV1OrDie(serviceAccountYaml)
-	serviceAccountObj.Namespace = namespace
-	client := clientset.CoreV1().ServiceAccounts(namespace)
-	_, err := client.Create(ctx, serviceAccountObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating service account: %v", err)
-	}
-	return nil
-}
-
-func createNamespace(ctx context.Context, clientset kubernetes.Interface) error {
-	namespaceObj := resourceread.ReadNamespaceV1OrDie(namespaceYaml)
-
-	client := clientset.CoreV1().Namespaces()
-	actualNamespace, err := client.Create(ctx, namespaceObj, metav1.CreateOptions{})
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return fmt.Errorf("error creating namespace: %v", err)
-	}
-	namespace = actualNamespace.Name
-	return nil
-}
 
 type InvariantInClusterDisruption struct {
 	getImagePullSpec monitortestframework.OpenshiftTestImageGetterFunc
 
-	namespaceName        string
-	adminRESTConfig      *rest.Config
-	kubeClient           kubernetes.Interface
-	payloadImagePullSpec string
+	namespaceName               string
+	openshiftTestsImagePullSpec string
+	notSupportedReason          string
+	allNodes                    int32
+	controlPlaneNodes           int32
 
-	notSupportedReason string
+	adminRESTConfig *rest.Config
+	kubeClient      kubernetes.Interface
 }
 
 func NewInvariantInClusterDisruption(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
@@ -268,19 +75,143 @@ func NewInvariantInClusterDisruption(info monitortestframework.MonitorTestInitia
 	}
 }
 
-func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
-	openshiftTestsImagePullSpec, notSupportedReason, err := i.getImagePullSpec(ctx, adminRESTConfig)
+func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx context.Context, deploymentObj *appsv1.Deployment) error {
+
+	deploymentObj.Namespace = i.namespaceName
+	// we need to use the openshift-tests image of the destination during an upgrade.
+	deploymentObj.Spec.Template.Spec.Containers[0].Image = i.openshiftTestsImagePullSpec
+
+	client := i.kubeClient.AppsV1().Deployments(i.namespaceName)
+	var err error
+	_, err = client.Create(ctx, deploymentObj, metav1.CreateOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating deployment: %v", err)
 	}
-	if len(notSupportedReason) > 0 {
-		i.notSupportedReason = notSupportedReason
+
+	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
+		cache.NewListWatchFromClient(
+			i.kubeClient.AppsV1().RESTClient(), "deployments", i.namespaceName, fields.OneTermEqualSelector("metadata.name", deploymentObj.Name)),
+		&appsv1.Deployment{},
+		nil,
+		func(event watch.Event) (bool, error) {
+			deployment := event.Object.(*appsv1.Deployment)
+			return deployment.Status.ReadyReplicas == deployment.Status.Replicas, nil
+		},
+	); watchErr != nil {
+		return fmt.Errorf("deployment %s didn't roll out: %v", deploymentObj.Name, watchErr)
+	}
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Context, apiIntHost string) error {
+	deploymentObj := resourceread.ReadDeploymentV1OrDie(internalLBDeploymentYaml)
+	deploymentObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
+	// set amount of deployment replicas to make sure it runs on all nodes
+	deploymentObj.Spec.Replicas = &i.allNodes
+
+	return i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
+}
+
+func (i *InvariantInClusterDisruption) createServiceNetworkDeployment(ctx context.Context) error {
+	deploymentObj := resourceread.ReadDeploymentV1OrDie(serviceNetworkDeploymentYaml)
+	// set amount of deployment replicas to make sure it runs on all nodes
+	deploymentObj.Spec.Replicas = &i.allNodes
+
+	return i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
+}
+
+func (i *InvariantInClusterDisruption) createLocalhostDeployment(ctx context.Context) error {
+	// Don't start localhost deployment on hypershift
+	if i.controlPlaneNodes == 0 {
 		return nil
 	}
 
+	deploymentObj := resourceread.ReadDeploymentV1OrDie(localhostDeploymentYaml)
+	// set amount of deployment replicas to make sure it runs on control plane nodes
+	deploymentObj.Spec.Replicas = &i.controlPlaneNodes
+
+	return i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
+}
+
+func (i *InvariantInClusterDisruption) createRBACPrivileged(ctx context.Context) error {
+	rbacPrivilegedObj := resourceread.ReadClusterRoleBindingV1OrDie(rbacPrivilegedYaml)
+	rbacPrivilegedObj.Subjects[0].Namespace = i.namespaceName
+
+	client := i.kubeClient.RbacV1().ClusterRoleBindings()
+	_, err := client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating privileged SCC CRB: %v", err)
+	}
+	rbacPrivilegedCRBName = rbacPrivilegedObj.Name
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) createMonitorRole(ctx context.Context) error {
+	rbacMonitorRoleObj := resourceread.ReadClusterRoleV1OrDie(rbacMonitorRoleYaml)
+
+	client := i.kubeClient.RbacV1().ClusterRoles()
+	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating oauthclients list role: %v", err)
+	}
+	rbacMonitorRoleName = rbacMonitorRoleObj.Name
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) createMonitorCRB(ctx context.Context) error {
+	rbacMonitorCRBObj := resourceread.ReadClusterRoleBindingV1OrDie(rbacListOauthClientCRBYaml)
+	rbacMonitorCRBObj.Subjects[0].Namespace = i.namespaceName
+
+	client := i.kubeClient.RbacV1().ClusterRoleBindings()
+	_, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating oauthclients list CRB: %v", err)
+	}
+	rbacMonitorCRBName = rbacMonitorCRBObj.Name
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) createServiceAccount(ctx context.Context) error {
+	serviceAccountObj := resourceread.ReadServiceAccountV1OrDie(serviceAccountYaml)
+	serviceAccountObj.Namespace = i.namespaceName
+	client := i.kubeClient.CoreV1().ServiceAccounts(i.namespaceName)
+	_, err := client.Create(ctx, serviceAccountObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating service account: %v", err)
+	}
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) error {
+	namespaceObj := resourceread.ReadNamespaceV1OrDie(namespaceYaml)
+
+	client := i.kubeClient.CoreV1().Namespaces()
+	actualNamespace, err := client.Create(ctx, namespaceObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating namespace: %v", err)
+	}
+	i.namespaceName = actualNamespace.Name
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
+	var err error
+	i.openshiftTestsImagePullSpec, i.notSupportedReason, err = i.getImagePullSpec(ctx, adminRESTConfig)
+	if err != nil {
+		i.notSupportedReason = "Failed to find test image pullspec"
+		return nil
+	}
+	if len(i.notSupportedReason) > 0 {
+		return nil
+	}
+
+	i.adminRESTConfig = adminRESTConfig
 	i.kubeClient, err = kubernetes.NewForConfig(i.adminRESTConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("error constructing kube client: %v", err)
 	}
 
 	if ok, _ := exutil.IsMicroShiftCluster(i.kubeClient); ok {
@@ -288,57 +219,68 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Starting in-cluster monitoring daemonsets\n")
-	i.adminRESTConfig = adminRESTConfig
+	fmt.Fprintf(os.Stderr, "Starting in-cluster monitoring deployments\n")
 	configClient, err := configclient.NewForConfig(i.adminRESTConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("error constructing openshift config client: %v", err)
 	}
 	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting openshift infrastructure: %v", err)
 	}
 
 	internalAPI, err := url.Parse(infra.Status.APIServerInternalURL)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing api int url: %v", err)
 	}
 	apiIntHost := internalAPI.Hostname()
 
-	err = createNamespace(ctx, i.kubeClient)
+	allNodes, err := i.kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting nodes: %v", err)
 	}
-	// TODO real create
-	i.namespaceName = namespace
+	i.allNodes = int32(len(allNodes.Items))
 
-	err = createServiceAccount(ctx, i.kubeClient)
+	controlPlaneNodes, err := i.kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+		LabelSelector: labels.Set{"node-role.kubernetes.io/master": ""}.AsSelector().String(),
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting control plane nodes: %v", err)
 	}
-	err = createRBACPrivileged(ctx, i.kubeClient)
+	i.controlPlaneNodes = int32(len(controlPlaneNodes.Items))
+
+	err = i.createNamespace(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating namespace: %v", err)
 	}
-	err = createMonitorRole(ctx, i.kubeClient)
+
+	err = i.createServiceAccount(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating service accounts: %v", err)
 	}
-	err = createMonitorCRB(ctx, i.kubeClient)
+	err = i.createRBACPrivileged(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating privileged SCC rolebinding: %v", err)
 	}
-	err = createServiceNetworkDS(ctx, i.kubeClient, openshiftTestsImagePullSpec)
+	err = i.createMonitorRole(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating monitor role: %v", err)
 	}
-	err = createLocalhostDS(ctx, i.kubeClient, openshiftTestsImagePullSpec)
+	err = i.createMonitorCRB(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating monitor rolebinding: %v", err)
 	}
-	err = createInternalLBDS(ctx, i.kubeClient, apiIntHost, openshiftTestsImagePullSpec)
+	err = i.createServiceNetworkDeployment(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating service network deployment: %v", err)
+	}
+	err = i.createLocalhostDeployment(ctx)
+	if err != nil {
+		return fmt.Errorf("error creating localhost: %v", err)
+	}
+	err = i.createInternalLBDeployment(ctx, apiIntHost)
+	if err != nil {
+		return fmt.Errorf("error creating internal LB: %v", err)
 	}
 	return nil
 }
@@ -396,11 +338,12 @@ func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
 		return err
 	}
 	nsClient := kubeClient.CoreV1().Namespaces()
-	err = nsClient.Delete(ctx, namespace, metav1.DeleteOptions{})
+	err = nsClient.Delete(ctx, i.namespaceName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error removing namespace %s: %v", namespace, err)
+		return fmt.Errorf("error removing namespace %s: %v", i.namespaceName, err)
 	}
 
+	fmt.Fprintf(os.Stderr, "Removing in-cluster monitoring cluster roles and bindings\n")
 	crbClient := kubeClient.RbacV1().ClusterRoleBindings()
 	err = crbClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
