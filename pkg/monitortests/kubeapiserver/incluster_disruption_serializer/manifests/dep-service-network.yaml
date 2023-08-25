@@ -1,43 +1,47 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
-  name: internal-lb-monitor
+  name: service-network-monitor
   namespace: e2e-disruption-monitor
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      app: internal-lb-monitor
+      app: service-network-monitor
       network.openshift.io/disruption-actor: poller
   template:
     metadata:
       labels:
-        app: internal-lb-monitor
+        app: service-network-monitor
         network.openshift.io/disruption-actor: poller
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - service-network-monitor
+            topologyKey: "kubernetes.io/hostname"
       containers:
-      - name: internal-lb
+      - name: service-network
         command:
         - openshift-tests
         - run-disruption
-        - --output-file=/var/log/disruption-data/monitor-events/internal-lb.txt
-        - --lb-type $(LOAD_BALANCER)
+        - --output-file=/var/log/disruption-data/monitor-events/service-network-monitor.txt
+        - --lb-type=$(LOAD_BALANCER)
+        - --stop-configmap=stop-configmap
         env:
-        - name: KUBERNETES_SERVICE_HOST
-          value: api-int.foo.bar
-        - name: KUBERNETES_SERVICE_PORT
-          value: "6443"
         - name: LOAD_BALANCER
-          value: "internal-lb"
-        - name: EXTRA_MESSAGE
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: spec.nodeName
+          value: service-network
         image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
         volumeMounts:
         - mountPath: /var/log/disruption-data
           name: artifacts
-      hostNetwork: true
+        securityContext:
+          privileged: true
       serviceAccountName: disruption-monitor-sa
       securityContext:
         privileged: true
