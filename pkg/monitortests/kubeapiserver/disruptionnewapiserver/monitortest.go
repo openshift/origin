@@ -2,6 +2,7 @@ package disruptionnewapiserver
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -16,7 +17,8 @@ import (
 )
 
 type newAPIServerDisruptionChecker struct {
-	adminRESTConfig *rest.Config
+	adminRESTConfig    *rest.Config
+	notSupportedReason string
 }
 
 func NewDisruptionInvariant() monitortestframework.MonitorTest {
@@ -25,20 +27,28 @@ func NewDisruptionInvariant() monitortestframework.MonitorTest {
 
 func (w *newAPIServerDisruptionChecker) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+
+	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		w.notSupportedReason = "platform MicroShift not supported"
+	}
 	return nil
 }
 
 func (w *newAPIServerDisruptionChecker) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if len(w.notSupportedReason) > 0 {
+		return nil, nil, nil
+	}
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
 	if err != nil {
 		return nil, nil, err
-	}
-	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
-	if err != nil {
-		return nil, nil, err
-	}
-	if isMicroShift {
-		return nil, nil, nil
 	}
 	apiserverAvailabilityIntervals, err := apiserveravailability.APIServerAvailabilityIntervalsFromCluster(kubeClient, beginning, end)
 
@@ -58,18 +68,12 @@ func (w *newAPIServerDisruptionChecker) WriteContentToStorage(ctx context.Contex
 }
 
 func (w *newAPIServerDisruptionChecker) Cleanup(ctx context.Context) error {
-	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
-	if err != nil {
-		return err
+	if len(w.notSupportedReason) > 0 {
+		return nil
 	}
-	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
-	if err != nil {
+
+	if err := sampler.TearDownInClusterMonitors(w.adminRESTConfig); err != nil {
 		return err
-	}
-	if !isMicroShift {
-		if err := sampler.TearDownInClusterMonitors(w.adminRESTConfig); err != nil {
-			return err
-		}
 	}
 	return nil
 }
