@@ -325,7 +325,6 @@ type OpenStackFailureDomain struct {
 // RootVolume represents the volume metadata to boot from.
 // The original RootVolume struct is defined in the v1alpha1 but it's not best practice to use it directly here so we define a new one
 // that should stay in sync with the original one.
-// +kubebuilder:validation:MinProperties:=1
 type RootVolume struct {
 	// availabilityZone specifies the Cinder availability zone where the root volume will be created.
 	// If not specifified, the root volume will be created in the availability zone specified by the volume type in the cinder configuration.
@@ -343,12 +342,16 @@ type RootVolume struct {
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
 	// volumeType specifies the type of the root volume that will be provisioned.
-	// If not specifified, the root volume will be created as the type in the machine template.
 	// The maximum length of a volume type name is 255 characters, as per the OpenStack limit.
+	// + ---
+	// + Historically, the installer has always required a volume type to be specified when deploying
+	// + the control plane with a root volume. This is because the default volume type in Cinder is not guaranteed
+	// + to be available, therefore we prefer the user to be explicit about the volume type to use.
+	// + We apply the same logic in CPMS: if the failure domain specifies a root volume, we require the user to specify a volume type.
+	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=255
-	// +optional
-	VolumeType string `json:"volumeType,omitempty"`
+	VolumeType string `json:"volumeType"`
 }
 
 // ControlPlaneMachineSetStatus represents the status of the ControlPlaneMachineSet CRD.
