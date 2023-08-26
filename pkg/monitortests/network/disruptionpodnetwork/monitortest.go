@@ -47,6 +47,8 @@ var (
 	podNetworkToHostNetworkPollerDeployment  *appsv1.Deployment
 	hostNetworkToPodNetworkPollerDeployment  *appsv1.Deployment
 	hostNetworkToHostNetworkPollerDeployment *appsv1.Deployment
+	podNetworkServicePollerDep               *appsv1.Deployment
+	hostNetworkServicePollerDep              *appsv1.Deployment
 	podNetworkTargetDeployment               *appsv1.Deployment
 	podNetworkTargetService                  *corev1.Service
 	hostNetworkTargetDeployment              *appsv1.Deployment
@@ -69,6 +71,8 @@ func init() {
 	podNetworkToHostNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-to-host-network-poller-deployment.yaml"))
 	hostNetworkToPodNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("host-network-to-pod-network-poller-deployment.yaml"))
 	hostNetworkToHostNetworkPollerDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("host-network-to-host-network-poller-deployment.yaml"))
+	podNetworkServicePollerDep = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-to-service-poller-deployment.yaml"))
+	hostNetworkServicePollerDep = resourceread.ReadDeploymentV1OrDie(yamlOrDie("host-network-to-service-poller-deployment.yaml"))
 	podNetworkTargetDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("pod-network-target-deployment.yaml"))
 	podNetworkTargetService = resourceread.ReadServiceV1OrDie(yamlOrDie("pod-network-target-service.yaml"))
 	hostNetworkTargetDeployment = resourceread.ReadDeploymentV1OrDie(yamlOrDie("host-network-target-deployment.yaml"))
@@ -171,7 +175,8 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
-	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkTargetService, metav1.CreateOptions{}); err != nil {
+	service, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkTargetService, metav1.CreateOptions{})
+	if err != nil {
 		return err
 	}
 
@@ -179,9 +184,21 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-
 	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), hostNetworkTargetService, metav1.CreateOptions{}); err != nil {
 		return err
+	}
+
+	for _, deployment := range []*appsv1.Deployment{podNetworkServicePollerDep, hostNetworkServicePollerDep} {
+		deployment.Spec.Replicas = &numNodes
+		deployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
+			if env.Name == "SERVICE_CLUSTER_IP" {
+				deployment.Spec.Template.Spec.Containers[0].Env[i].Value = service.Spec.ClusterIP
+			}
+		}
+		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), deployment, metav1.CreateOptions{}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -215,7 +232,7 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 	retIntervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
-	for _, typeOfConnection := range []string{"pod-to-pod", "pod-to-host", "host-to-pod", "host-to-host"} {
+	for _, typeOfConnection := range []string{"pod-to-pod", "pod-to-host", "host-to-pod", "host-to-host", "pod-to-service", "host-to-service"} {
 		localIntervals, localJunit, localErrs := pna.collectDetailsForPoller(ctx, typeOfConnection)
 		retIntervals = append(retIntervals, localIntervals...)
 		junits = append(junits, localJunit...)
