@@ -94,21 +94,21 @@ func createPostBackupResources(oc *exutil.CLI) error {
 }
 
 func assertPostBackupResourcesAreNotFound(oc *exutil.CLI) {
-	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), postBackupNamespaceName, metav1.GetOptions{})
+	ns, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), postBackupNamespaceName, metav1.GetOptions{})
 	o.Expect(err).To(o.HaveOccurred())
-	o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
+	o.Expect(errors.IsNotFound(err)).To(o.BeTrue(), fmt.Sprintf("expected namespace [%s] to not exist anymore, api did not return 404 error: [%v]. Namespace: [%v]", postBackupNamespaceName, err, ns))
 
-	_, err = oc.AdminKubeClient().CoreV1().Secrets(postBackupNamespaceName).Get(context.Background(), postBackSecret.Name, metav1.GetOptions{})
+	secret, err := oc.AdminKubeClient().CoreV1().Secrets(postBackupNamespaceName).Get(context.Background(), postBackSecret.Name, metav1.GetOptions{})
 	o.Expect(err).To(o.HaveOccurred())
-	o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
+	o.Expect(errors.IsNotFound(err)).To(o.BeTrue(), fmt.Sprintf("expected secret [%s] to not exist anymore, api did not return 404 error: [%v]. Secret: [%v]", postBackSecret.Name, err, secret))
 
-	_, err = oc.AdminKubeClient().CoreV1().Services(postBackupNamespaceName).Get(context.Background(), postBackupService.Name, metav1.GetOptions{})
+	svc, err := oc.AdminKubeClient().CoreV1().Services(postBackupNamespaceName).Get(context.Background(), postBackupService.Name, metav1.GetOptions{})
 	o.Expect(err).To(o.HaveOccurred())
-	o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
+	o.Expect(errors.IsNotFound(err)).To(o.BeTrue(), fmt.Sprintf("expected service [%s] to not exist anymore, api did not return 404 error: [%v]. Service: [%v]", postBackSecret.Name, err, svc))
 
-	_, err = oc.AdminKubeClient().AppsV1().Deployments(postBackupNamespaceName).Get(context.Background(), postBackupDeployment.Name, metav1.GetOptions{})
+	dep, err := oc.AdminKubeClient().AppsV1().Deployments(postBackupNamespaceName).Get(context.Background(), postBackupDeployment.Name, metav1.GetOptions{})
 	o.Expect(err).To(o.HaveOccurred())
-	o.Expect(errors.IsNotFound(err)).To(o.BeTrue())
+	o.Expect(errors.IsNotFound(err)).To(o.BeTrue(), fmt.Sprintf("expected deployment [%s] to not exist anymore, api did not return 404 error: [%v]. Deployment: [%v]", postBackSecret.Name, err, dep))
 
 	// TODO(thomas): ideally we also would want to find left-over containers by id in cri-o, which was too complex so we trust the API instead
 	pods, err := e2epod.GetPods(context.Background(), oc.AdminKubeClient(), postBackupNamespaceName, postBackupDeployment.Spec.Selector.MatchLabels)
@@ -118,16 +118,16 @@ func assertPostBackupResourcesAreNotFound(oc *exutil.CLI) {
 
 func assertPostBackupResourcesAreStillFound(oc *exutil.CLI) {
 	_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), postBackupNamespaceName, metav1.GetOptions{})
-	o.Expect(err).ToNot(o.HaveOccurred())
+	o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("expected namespace [%s] to still exist, api returned error: [%v]", postBackupNamespaceName, err))
 
 	_, err = oc.AdminKubeClient().CoreV1().Secrets(postBackupNamespaceName).Get(context.Background(), postBackSecret.Name, metav1.GetOptions{})
-	o.Expect(err).ToNot(o.HaveOccurred())
+	o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("expected secret [%s] to still exist, api returned error: [%v]", postBackSecret.Name, err))
 
 	_, err = oc.AdminKubeClient().CoreV1().Services(postBackupNamespaceName).Get(context.Background(), postBackupService.Name, metav1.GetOptions{})
-	o.Expect(err).ToNot(o.HaveOccurred())
+	o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("expected service [%s] to still exist, api returned error: [%v]", postBackupService.Name, err))
 
 	_, err = oc.AdminKubeClient().AppsV1().Deployments(postBackupNamespaceName).Get(context.Background(), postBackupDeployment.Name, metav1.GetOptions{})
-	o.Expect(err).ToNot(o.HaveOccurred())
+	o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("expected deployment [%s] to still exist, api returned error: [%v]", postBackupDeployment.Name, err))
 }
 
 func assertPostBackupResourcesAreStillFunctional(oc *exutil.CLI) {
