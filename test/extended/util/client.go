@@ -26,7 +26,6 @@ import (
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/openshift/api/annotations"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -55,6 +54,7 @@ import (
 	e2edebug "k8s.io/kubernetes/test/e2e/framework/debug"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	"github.com/openshift/api/annotations"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -131,7 +131,7 @@ func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
 // but the given pod security level is applied to the created e2e test namespace.
 func NewCLIWithPodSecurityLevel(project string, level admissionapi.Level) *CLI {
 	cli := NewCLI(project)
-	cli.kubeFramework.NamespacePodSecurityEnforceLevel = level
+	cli.kubeFramework.NamespacePodSecurityLevel = level
 	return cli
 }
 
@@ -557,17 +557,17 @@ func (c *CLI) setupNamespacePodSecurity(ns string) error {
 			return err
 		}
 
-		if len(c.kubeFramework.NamespacePodSecurityEnforceLevel) == 0 {
-			c.kubeFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelRestricted
+		if len(c.kubeFramework.NamespacePodSecurityLevel) == 0 {
+			c.kubeFramework.NamespacePodSecurityLevel = admissionapi.LevelRestricted
 		}
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels[admissionapi.EnforceLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		ns.Labels[admissionapi.EnforceLevelLabel] = string(c.kubeFramework.NamespacePodSecurityLevel)
 		// In contrast to upstream, OpenShift sets a global default on warn and audit pod security levels.
 		// Since this would cause unwanted audit log and warning entries, we are setting the same level as for enforcement.
-		ns.Labels[admissionapi.WarnLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
-		ns.Labels[admissionapi.AuditLevelLabel] = string(c.kubeFramework.NamespacePodSecurityEnforceLevel)
+		ns.Labels[admissionapi.WarnLevelLabel] = string(c.kubeFramework.NamespacePodSecurityLevel)
+		ns.Labels[admissionapi.AuditLevelLabel] = string(c.kubeFramework.NamespacePodSecurityLevel)
 		ns.Labels["security.openshift.io/scc.podSecurityLabelSync"] = "false"
 
 		_, err = c.AdminKubeClient().CoreV1().Namespaces().Update(context.Background(), ns, metav1.UpdateOptions{})

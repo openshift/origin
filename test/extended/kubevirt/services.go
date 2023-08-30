@@ -3,6 +3,7 @@ package kubevirt
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -17,7 +18,7 @@ var _ = Describe("[sig-kubevirt] services", func() {
 		mgmtFramework.SkipNamespaceCreation = true
 
 		f1 := e2e.NewDefaultFramework("server-framework")
-		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+		f1.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
 		It("should allow connections to pods from infra cluster pod via NodePort across different infra nodes", func() {
 			oc = setMgmtFramework(mgmtFramework)

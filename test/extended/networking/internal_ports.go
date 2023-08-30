@@ -38,7 +38,7 @@ const (
 var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 	f := framework.NewDefaultFramework("nettest")
 	// TODO(sur): verify if privileged is really necessary in a follow-up
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 	oc := exutil.NewCLIWithoutNamespace("nettest").AsAdmin()
 
 	ginkgo.It("for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]", func() {
