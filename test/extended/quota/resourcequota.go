@@ -85,6 +85,74 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
+		g.It("The number of created persistent volume claims can not exceed the limitation", func() {
+			testProject := oc.SetupProject()
+			testResourceQuotaName := "my-resource-quota-" + testProject
+			pvcName := "myclaim-" + testProject
+			clusterAdminKubeClient := oc.AdminKubeClient()
+
+			rq := &corev1.ResourceQuota{
+				ObjectMeta: metav1.ObjectMeta{Name: testResourceQuotaName, Namespace: testProject},
+				Spec: corev1.ResourceQuotaSpec{
+					Hard: corev1.ResourceList{
+						"persistentvolumeclaims": resource.MustParse("1"),
+					},
+				},
+			}
+
+			pvc := &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: pvcName,
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("3Gi"),
+						},
+					},
+				},
+			}
+
+			g.By("Create the persistent volume and checking the usage")
+			_, err := clusterAdminKubeClient.CoreV1().ResourceQuotas(testProject).Create(context.Background(), rq, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, err = clusterAdminKubeClient.CoreV1().PersistentVolumeClaims(testProject).Create(context.Background(), pvc, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = waitForResourceQuotaStatus(clusterAdminKubeClient, testResourceQuotaName, testProject, func(actualResourceQuota *corev1.ResourceQuota) error {
+				expectedUsedStatus := corev1.ResourceList{
+					"persistentvolumeclaims": resource.MustParse("1"),
+				}
+				if !equality.Semantic.DeepEqual(actualResourceQuota.Status.Used, expectedUsedStatus) {
+					return fmt.Errorf("unexpected current total usage: actual: %v, expected: %v", actualResourceQuota.Status.Used, expectedUsedStatus)
+				}
+				return nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, err = clusterAdminKubeClient.CoreV1().PersistentVolumeClaims(testProject).Create(context.Background(), pvc, metav1.CreateOptions{})
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(err.Error()).To(o.MatchRegexp(pvcName + `.*forbidden.*[Ee]xceeded quota`))
+
+			g.By("Deleting the persistent volume and checking the usage")
+			err = clusterAdminKubeClient.CoreV1().PersistentVolumeClaims(testProject).Delete(context.Background(), pvcName, metav1.DeleteOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = waitForResourceQuotaStatus(clusterAdminKubeClient, testResourceQuotaName, testProject, func(actualResourceQuota *corev1.ResourceQuota) error {
+				expectedUsedStatus := corev1.ResourceList{
+					"persistentvolumeclaims": resource.MustParse("0"),
+				}
+				if !equality.Semantic.DeepEqual(actualResourceQuota.Status.Used, expectedUsedStatus) {
+					return fmt.Errorf("unexpected current total usage: actual: %v, expected: %v", actualResourceQuota.Status.Used, expectedUsedStatus)
+				}
+				return nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 	})
 })
 
