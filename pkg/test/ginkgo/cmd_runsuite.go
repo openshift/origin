@@ -56,8 +56,9 @@ type GinkgoRunSuiteOptions struct {
 
 	CommandEnv []string
 
-	DryRun        bool
-	PrintCommands bool
+	DryRun         bool
+	SkipInvariants bool
+	PrintCommands  bool
 	genericclioptions.IOStreams
 
 	StartTime time.Time
@@ -72,6 +73,7 @@ func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSui
 
 func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
+	flags.BoolVar(&o.SkipInvariants, "skip-invariants", o.SkipInvariants, "Skip invariant tests.")
 	flags.BoolVar(&o.PrintCommands, "print-commands", o.PrintCommands, "Print the sub-commands that would be executed instead.")
 	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive")
 	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
@@ -463,7 +465,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	// default is empty string as that is what entries prior to adding this will have
 	wasMasterNodeUpdated := ""
-	if events := monitorEventRecorder.Intervals(start, end); len(events) > 0 {
+	if events := monitorEventRecorder.Intervals(start, end); len(events) > 0 && !o.SkipInvariants {
 		buf := &bytes.Buffer{}
 		if !upgrade {
 			// the current mechanism for external binaries does not support upgrade
