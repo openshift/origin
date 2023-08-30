@@ -23,36 +23,24 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	defer g.GinkgoRecover()
 
-	cli := exutil.NewCLIWithPodSecurityLevel("etcd-storage-path", psapi.LevelBaseline)
-	adminCLI := cli.AsAdmin()
+	oc := exutil.NewCLIWithPodSecurityLevel("etcd-storage-path", psapi.LevelBaseline).AsAdmin()
 
-	g.It("should be stored at the correct location and version for all resources [Serial]", func() {
-		controlPlaneTopology, err := exutil.GetControlPlaneTopology(adminCLI)
+	_ = g.It("should be stored at the correct location and version for all resources [Serial]", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
 			e2eskipper.Skipf("External clusters run etcd outside of the cluster. Etcd cannot be accessed directly from within the cluster")
 		}
 
-		etcdClientCreater := &etcdPortForwardClient{kubeClient: adminCLI.AdminKubeClient()}
+		etcdClientCreater := &etcdPortForwardClient{kubeClient: oc.AdminKubeClient()}
 		defer etcdClientCreater.closeAll()
-
-		// for the cleaning mechanism (cli.TeardownProject being invoked in g.AfterEach)
-		// we need to use the original client, AsAdmin replaces the instaces and thus
-		// the newely created objects won't get pruned afte the test finishes
-		etcdUser := cli.CreateUser("test-etcd-storage-path")
-		err = adminCLI.Run("adm", "policy", "add-cluster-role-to-user").Args("cluster-admin", etcdUser.Name, "--rolebinding-name", etcdUser.Name).Execute()
-		// make sure the clusterrolebinding also gets removed
-		cli.AddExplicitResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("clusterrolebindings"), "", etcdUser.Name)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		adminCLI.ChangeUser(etcdUser.Name)
-		testEtcd3StoragePath(g.GinkgoT(2), adminCLI, etcdClientCreater.getEtcdClient)
+		testEtcd3StoragePath(g.GinkgoT(2), oc, etcdClientCreater.getEtcdClient)
 	})
 })
 
