@@ -6,6 +6,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
+	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -50,5 +51,9 @@ func (w *newAPIServerDisruptionChecker) WriteContentToStorage(ctx context.Contex
 }
 
 func (w *newAPIServerDisruptionChecker) Cleanup(ctx context.Context) error {
+	if err := sampler.TearDownInClusterMonitors(w.adminRESTConfig); err != nil {
+		return err
+	}
+
 	return nil
 }

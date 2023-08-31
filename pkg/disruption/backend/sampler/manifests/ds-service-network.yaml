@@ -1,41 +1,38 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: service-network-monitor
   namespace: e2e-disruption-monitor
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: service-network-monitor
-      network.openshift.io/disruption-actor: poller
   template:
     metadata:
       labels:
         app: service-network-monitor
-        network.openshift.io/disruption-actor: poller
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - service-network-monitor
-            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: service-network
         command:
-        - openshift-tests
-        - run-disruption
-        - --output-file=/var/log/disruption-data/monitor-events/service-network-monitor.txt
-        - --lb-type=$(LOAD_BALANCER)
-        - --stop-configmap=stop-configmap
+        - bash
+        - -c
+        - |
+          trap 'kill "${child_pid}"; wait "${child_pid}"' SIGINT SIGTERM
+          CMD="sleep infinity"
+          LB="service-network"
+          if openshift-tests --help | grep "run-disruption"; then
+            CMD="openshift-tests run-disruption --artifact-dir /var/log/disruption-data --lb-type ${LB} --extra-message $(EXTRA_MESSAGE)"
+          fi
+          ${CMD}&
+          child_pid="$!"
+          wait "${child_pid}"
         env:
-        - name: LOAD_BALANCER
-          value: service-network
+        - name: EXTRA_MESSAGE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
         image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
         volumeMounts:
         - mountPath: /var/log/disruption-data
@@ -46,7 +43,6 @@ spec:
       securityContext:
         privileged: true
         runAsUser: 0
-      terminationGracePeriodSeconds: 90
       volumes:
       - hostPath:
           path: /var/log/disruption-data
