@@ -129,7 +129,7 @@ var (
 
 			// HelmChartRepository instances keep Helm chart repository configuration
 			// By default users are able to browse charts from all configured repositories through console UI
-			rbacv1helpers.NewRule("get", "list").Groups("helm.openshift.io").Resources("helmchartrepositories").RuleOrDie(),
+			rbacv1helpers.NewRule(read...).Groups("helm.openshift.io").Resources("helmchartrepositories").RuleOrDie(),
 
 			// TODO: remove when openshift-apiserver has removed these
 			rbacv1helpers.NewRule("get").URLs(
