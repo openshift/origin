@@ -2,17 +2,26 @@ package authorization
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/kubernetes"
 	rest "k8s.io/client-go/rest"
 	psapi "k8s.io/pod-security-admission/api"
@@ -189,14 +198,302 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 	})
 })
 
+var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:LabelSyncer][Feature:ForceHistoricalOwnership]", func() {
+	defer g.GinkgoRecover()
+
+	ctx := context.Background()
+	oc := exutil.NewCLIWithoutNamespace("pod-security-managed-labels-historical")
+
+	cpc := "cluster-policy-controller"
+	psaLabelSyncer := "pod-security-admission-label-synchronization-controller"
+	createMgr := cpc
+	updateMgr := names.SimpleNameGenerator.GenerateName("test-client-")
+	labelSyncLabel := "security.openshift.io/scc.podSecurityLabelSync"
+	psaLabels := []string{
+		psapi.AuditLevelLabel,
+		psapi.AuditVersionLabel,
+		psapi.WarnLevelLabel,
+		psapi.WarnVersionLabel,
+	}
+
+	g.It("forcing PSa label historical ownership", func() {
+		for _, testCase := range []struct {
+			name                                   string
+			podSecurityLabelSync                   string
+			expectedManagerForPSaLabelsAfterCreate string
+			expectedManagerForPSaLabelsAfterUpdate string
+		}{
+			{"labelsyncer-off", "false", cpc, updateMgr},
+			{"labelsyncer-on", "true", psaLabelSyncer, psaLabelSyncer},
+			{"labelsyncer-undef", "", psaLabelSyncer, updateMgr},
+
+			// openshift- prefixed namespaces; special case when podSecurityLabelSync label is undefined
+			{"openshift-e2e-labelsyncer-off", "false", cpc, updateMgr},
+			{"openshift-e2e-labelsyncer-on", "true", psaLabelSyncer, psaLabelSyncer},
+			{"openshift-e2e-labelsyncer-undef", "", cpc, updateMgr},
+		} {
+			ns := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: names.SimpleNameGenerator.GenerateName(testCase.name + "-"),
+					Labels: map[string]string{
+						psapi.AuditLevelLabel:   "restricted",
+						psapi.AuditVersionLabel: "v1.24",
+						psapi.WarnLevelLabel:    "restricted",
+						psapi.WarnVersionLabel:  "v1.24",
+					},
+				},
+			}
+
+			if testCase.podSecurityLabelSync != "" {
+				ns.ObjectMeta.Labels[labelSyncLabel] = testCase.podSecurityLabelSync
+			}
+
+			ns, err := oc.AdminKubeClient().CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{FieldManager: createMgr})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			ns, err = waitAndGetNamespace(ctx, oc, ns)
+			oc.AddResourceToDelete(corev1.SchemeGroupVersion.WithResource("namespaces"), ns)
+
+			managers, err := managerPerLabel(ns.ObjectMeta.ManagedFields)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if ns.ObjectMeta.Labels[labelSyncLabel] != "" {
+				o.Expect(managers[labelSyncLabel]).To(o.Equal(cpc))
+			}
+
+			for _, label := range psaLabels {
+				o.Expect(managers[label]).To(o.Equal(testCase.expectedManagerForPSaLabelsAfterCreate))
+			}
+
+			ns.ObjectMeta.Labels[psapi.AuditLevelLabel] = "privileged"
+			ns.ObjectMeta.Labels[psapi.AuditVersionLabel] = "v1.25"
+			ns.ObjectMeta.Labels[psapi.WarnLevelLabel] = "privileged"
+			ns.ObjectMeta.Labels[psapi.WarnVersionLabel] = "v1.25"
+			ns, err = oc.AdminKubeClient().CoreV1().Namespaces().Update(ctx, ns, metav1.UpdateOptions{FieldManager: updateMgr})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			ns, err = waitAndGetNamespace(ctx, oc, ns)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			managers, err = managerPerLabel(ns.ObjectMeta.ManagedFields)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if ns.ObjectMeta.Labels[labelSyncLabel] != "" {
+				o.Expect(managers[labelSyncLabel]).To(o.Equal(cpc))
+			}
+
+			for _, label := range psaLabels {
+				o.Expect(managers[label]).To(o.Equal(testCase.expectedManagerForPSaLabelsAfterUpdate))
+			}
+		}
+	})
+})
+
+var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:LabelSyncer]", func() {
+	defer g.GinkgoRecover()
+
+	ctx := context.Background()
+	oc := exutil.NewCLIWithoutNamespace("pod-security-managed-labels")
+
+	sccToPSa := map[string]string{
+		"privileged":    "privileged",
+		"restricted":    "baseline",
+		"restricted-v2": "restricted",
+	}
+
+	g.It("updating PSa labels", func() {
+		for _, testCase := range []struct {
+			name                          string
+			podSecurityLabelSync          string
+			expectedPSaLevelAfterCreate   string
+			expectedPSaVersionAfterCreate string
+			userPSaLevel                  string
+			userPSaVersion                string
+			expectedPSaLevelAfterUpdate   string
+			expectedPSaVersionAfterUpdate string
+			sccChangesPSa                 bool
+		}{
+			{"restricted-labelsyncer-off", "false", "", "", "restricted", "v1.25", "restricted", "v1.25", false},
+			{"baseline-labelsyncer-off", "false", "", "", "baseline", "v1.25", "baseline", "v1.25", false},
+			{"privileged-labelsyncer-off", "false", "", "", "privileged", "v1.25", "privileged", "v1.25", false},
+
+			{"restricted-labelsyncer-on", "true", "restricted", "v1.24", "restricted", "v1.25", "restricted", "v1.24", true},
+			{"baseline-labelsyncer-on", "true", "restricted", "v1.24", "baseline", "v1.25", "restricted", "v1.24", true},
+			{"privileged-labelsyncer-on", "true", "restricted", "v1.24", "privileged", "v1.25", "restricted", "v1.24", true},
+
+			{"restricted-labelsyncer-undef", "", "restricted", "v1.24", "restricted", "v1.25", "restricted", "v1.25", true}, // sccChangesPSa = true because the field hasn't been taken over as the update did not change the label
+			{"baseline-labelsyncer-undef", "", "restricted", "v1.24", "baseline", "v1.25", "baseline", "v1.25", false},
+			{"privileged-labelsyncer-undef", "", "restricted", "v1.24", "privileged", "v1.25", "privileged", "v1.25", false},
+
+			// openshift- prefixed namespaces; special case when podSecurityLabelSync label is undefined
+			{"openshift-e2e-restricted-labelsyncer-off", "false", "", "", "restricted", "v1.25", "restricted", "v1.25", false},
+			{"openshift-e2e-baseline-labelsyncer-off", "false", "", "", "baseline", "v1.25", "baseline", "v1.25", false},
+			{"openshift-e2e-privileged-labelsyncer-off", "false", "", "", "privileged", "v1.25", "privileged", "v1.25", false},
+
+			{"openshift-e2e-restricted-labelsyncer-on", "true", "restricted", "v1.24", "restricted", "v1.25", "restricted", "v1.24", true},
+			{"openshift-e2e-baseline-labelsyncer-on", "true", "restricted", "v1.24", "baseline", "v1.25", "restricted", "v1.24", true},
+			{"openshift-e2e-privileged-labelsyncer-on", "true", "restricted", "v1.24", "privileged", "v1.25", "restricted", "v1.24", true},
+
+			{"openshift-e2e-restricted-labelsyncer-undef", "", "", "", "restricted", "v1.25", "restricted", "v1.25", false},
+			{"openshift-e2e-baseline-labelsyncer-undef", "", "", "", "baseline", "v1.25", "baseline", "v1.25", false},
+			{"openshift-e2e-privileged-labelsyncer-undef", "", "", "", "privileged", "v1.25", "privileged", "v1.25", false},
+		} {
+			g.By(fmt.Sprintf("test updating PSa labels for ns: %s", testCase.name), func() {
+				ns := &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   names.SimpleNameGenerator.GenerateName(testCase.name + "-"),
+						Labels: map[string]string{},
+					},
+				}
+
+				if testCase.podSecurityLabelSync != "" {
+					ns.ObjectMeta.Labels["security.openshift.io/scc.podSecurityLabelSync"] = testCase.podSecurityLabelSync
+				}
+
+				// create the test namespace without any PSa labels; podSecurityLabelSync label according to each test case
+				ns, err := oc.AdminKubeClient().CoreV1().Namespaces().Create(ctx, ns, metav1.CreateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				ns, err = waitAndGetNamespace(ctx, oc, ns)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				oc.AddResourceToDelete(corev1.SchemeGroupVersion.WithResource("namespaces"), ns)
+
+				// assert expectations after creation depending on the podSecurityLabelSync label
+				o.Expect(ns.ObjectMeta.Labels[psapi.AuditLevelLabel]).To(o.Equal(testCase.expectedPSaLevelAfterCreate))
+				o.Expect(ns.ObjectMeta.Labels[psapi.AuditVersionLabel]).To(o.Equal(testCase.expectedPSaVersionAfterCreate))
+				o.Expect(ns.ObjectMeta.Labels[psapi.WarnLevelLabel]).To(o.Equal(testCase.expectedPSaLevelAfterCreate))
+				o.Expect(ns.ObjectMeta.Labels[psapi.WarnVersionLabel]).To(o.Equal(testCase.expectedPSaVersionAfterCreate))
+
+				// test overwriting the PSa labels
+				ns.ObjectMeta.Labels[psapi.AuditLevelLabel] = testCase.userPSaLevel
+				ns.ObjectMeta.Labels[psapi.AuditVersionLabel] = testCase.userPSaVersion
+				ns.ObjectMeta.Labels[psapi.WarnLevelLabel] = testCase.userPSaLevel
+				ns.ObjectMeta.Labels[psapi.WarnVersionLabel] = testCase.userPSaVersion
+				ns, err = oc.AdminKubeClient().CoreV1().Namespaces().Update(ctx, ns, metav1.UpdateOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				ns, err = waitAndGetNamespace(ctx, oc, ns)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// assert expectations after the update based on the podSecurityLabelSync label
+				o.Expect(ns.ObjectMeta.Labels[psapi.AuditLevelLabel]).To(o.Equal(testCase.expectedPSaLevelAfterUpdate))
+				o.Expect(ns.ObjectMeta.Labels[psapi.AuditVersionLabel]).To(o.Equal(testCase.expectedPSaVersionAfterUpdate))
+				o.Expect(ns.ObjectMeta.Labels[psapi.WarnLevelLabel]).To(o.Equal(testCase.expectedPSaLevelAfterUpdate))
+				o.Expect(ns.ObjectMeta.Labels[psapi.WarnVersionLabel]).To(o.Equal(testCase.expectedPSaVersionAfterUpdate))
+
+				// add a role to a SA
+				role, err := bindRoleToSA(ctx, oc, ns.Name)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				// set some SCCs on the role and test PSa label outcome
+				for scc, psaLabel := range sccToPSa {
+					err = setSCCPermissions(ctx, oc, role, scc)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					ns, err = waitAndGetNamespace(ctx, oc, ns)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
+					expectedLevelLabel := testCase.expectedPSaLevelAfterUpdate
+					if testCase.sccChangesPSa {
+						// SCC assignment yields PSa label change by the labelsyncer
+						expectedLevelLabel = psaLabel
+					}
+					o.Expect(ns.ObjectMeta.Labels[psapi.AuditLevelLabel]).To(o.Equal(expectedLevelLabel))
+					o.Expect(ns.ObjectMeta.Labels[psapi.WarnLevelLabel]).To(o.Equal(expectedLevelLabel))
+				}
+			})
+		}
+	})
+})
+
+// creates a service account, a role & rolebinding for the test and binds it to the SA
+func bindRoleToSA(ctx context.Context, oc *exutil.CLI, nsName string) (*v1.Role, error) {
+	sa := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{Name: "sa-" + nsName, Namespace: nsName},
+	}
+
+	role := &v1.Role{
+		ObjectMeta: metav1.ObjectMeta{Name: "role-" + nsName, Namespace: nsName},
+	}
+
+	roleBinding := &v1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "rb-" + nsName, Namespace: nsName},
+		Subjects: []v1.Subject{
+			{Kind: v1.ServiceAccountKind, Name: sa.ObjectMeta.Name},
+		},
+		RoleRef: v1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "Role",
+			Name:     role.ObjectMeta.Name,
+		},
+	}
+
+	_, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(nsName).Create(ctx, sa, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	oc.AddResourceToDelete(corev1.SchemeGroupVersion.WithResource("serviceaccounts"), sa)
+
+	_, err = oc.AdminKubeClient().RbacV1().Roles(nsName).Create(ctx, role, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	oc.AddResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("roles"), role)
+
+	_, err = oc.AdminKubeClient().RbacV1().RoleBindings(nsName).Create(ctx, roleBinding, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	oc.AddResourceToDelete(rbacv1.SchemeGroupVersion.WithResource("rolebindings"), roleBinding)
+
+	return role, nil
+}
+
+// updates a role to use a specific SCC
+func setSCCPermissions(ctx context.Context, oc *exutil.CLI, role *v1.Role, scc string) error {
+	role.Rules = []v1.PolicyRule{
+		{
+			APIGroups:     []string{"security.openshift.io"},
+			ResourceNames: []string{scc},
+			Resources:     []string{"securitycontextconstraints"},
+			Verbs:         []string{"use"},
+		},
+	}
+
+	_, err := oc.AdminKubeClient().RbacV1().Roles(role.ObjectMeta.Namespace).Update(ctx, role, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// waitAndGetNamespace waits for the labelsyncer to sync the namespace; it polls until it detects a change in the
+// namespace object, or until a timeout is reached
+func waitAndGetNamespace(ctx context.Context, oc *exutil.CLI, ns *corev1.Namespace) (*corev1.Namespace, error) {
+	var updatedNS *corev1.Namespace
+	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		var getErr error
+		updatedNS, getErr = oc.AdminKubeClient().CoreV1().Namespaces().Get(ctx, ns.Name, metav1.GetOptions{})
+		if getErr != nil {
+			return false, getErr
+		}
+
+		return !reflect.DeepEqual(ns, updatedNS), nil
+	})
+
+	// no change detected within the timeout; do not return any error
+	if errors.Is(err, context.DeadlineExceeded) {
+		return updatedNS, nil
+	}
+
+	return updatedNS, err
+}
+
 func privilegedContainer(c corev1.Container) corev1.Container {
 	ret := c.DeepCopy()
 	if ret.SecurityContext == nil {
 		ret.SecurityContext = &corev1.SecurityContext{}
 	}
 	ret.SecurityContext.Privileged = pointer.Bool(true)
-	return *ret
 
+	return *ret
 }
 
 type HeaderRecordingRoundTripper struct {
@@ -226,4 +523,44 @@ func (rt *HeaderRecordingRoundTripper) RecordedHeaders() []http.Header {
 
 func (rt *HeaderRecordingRoundTripper) ClearHeaders() {
 	rt.headers = []http.Header{}
+}
+
+func managerPerLabel(managedFields []metav1.ManagedFieldsEntry) (map[string]string, error) {
+	result := map[string]string{}
+	for _, field := range managedFields {
+		labels, err := managedLabels(field)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, label := range labels.UnsortedList() {
+			result[label] = field.Manager
+		}
+	}
+
+	return result, nil
+}
+
+func managedLabels(fieldsEntry metav1.ManagedFieldsEntry) (sets.Set[string], error) {
+	managedUnstructured := map[string]interface{}{}
+	err := json.Unmarshal(fieldsEntry.FieldsV1.Raw, &managedUnstructured)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal managed fields: %w", err)
+	}
+
+	labels, found, err := unstructured.NestedMap(managedUnstructured, "f:metadata", "f:labels")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get labels from the managed fields: %w", err)
+	}
+
+	ret := sets.New[string]()
+	if !found {
+		return ret, nil
+	}
+
+	for l := range labels {
+		ret.Insert(strings.Replace(l, "f:", "", 1))
+	}
+
+	return ret, nil
 }
