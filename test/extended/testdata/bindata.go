@@ -420,6 +420,7 @@
 // test/extended/testdata/net-attach-defs/whereabouts-nad.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml
 // test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml
+// test/extended/testdata/node_tuning/nto-stalld.yaml
 // test/extended/testdata/oauthserver/cabundle-cm.yaml
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
@@ -48821,6 +48822,46 @@ func testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml() (*asset, error)
 	return a, nil
 }
 
+var _testExtendedTestdataNode_tuningNtoStalldYaml = []byte(`apiVersion: tuned.openshift.io/v1
+kind: Tuned
+metadata:
+  name: openshift-stalld
+  namespace: openshift-cluster-node-tuning-operator
+spec:
+  profile:
+  - data: |
+      [main]
+      summary=Custom OpenShift profile
+      include=openshift-node,realtime
+      
+      [sysctl]
+      kernel.sched_rt_runtime_us = -1
+      
+      [service]
+      service.stalld=start,enable
+    name: openshift-stalld
+  recommend:
+  - match:
+    - label: node-role.kubernetes.io/worker-stalld
+    priority: 20
+    profile: openshift-stalld
+`)
+
+func testExtendedTestdataNode_tuningNtoStalldYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataNode_tuningNtoStalldYaml, nil
+}
+
+func testExtendedTestdataNode_tuningNtoStalldYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataNode_tuningNtoStalldYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/node_tuning/nto-stalld.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOauthserverCabundleCmYaml = []byte(`apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -54611,6 +54652,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/net-attach-defs/whereabouts-nad.yml":                                             testExtendedTestdataNetAttachDefsWhereaboutsNadYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-awake.yml":                                      testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml,
 	"test/extended/testdata/net-attach-defs/whereabouts-race-sleepy.yml":                                     testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml,
+	"test/extended/testdata/node_tuning/nto-stalld.yaml":                                                     testExtendedTestdataNode_tuningNtoStalldYaml,
 	"test/extended/testdata/oauthserver/cabundle-cm.yaml":                                                    testExtendedTestdataOauthserverCabundleCmYaml,
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                  testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                      testExtendedTestdataOauthserverOauthPodYaml,
@@ -55343,6 +55385,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"whereabouts-nad.yml":         {testExtendedTestdataNetAttachDefsWhereaboutsNadYml, map[string]*bintree{}},
 					"whereabouts-race-awake.yml":  {testExtendedTestdataNetAttachDefsWhereaboutsRaceAwakeYml, map[string]*bintree{}},
 					"whereabouts-race-sleepy.yml": {testExtendedTestdataNetAttachDefsWhereaboutsRaceSleepyYml, map[string]*bintree{}},
+				}},
+				"node_tuning": {nil, map[string]*bintree{
+					"nto-stalld.yaml": {testExtendedTestdataNode_tuningNtoStalldYaml, map[string]*bintree{}},
 				}},
 				"oauthserver": {nil, map[string]*bintree{
 					"cabundle-cm.yaml":   {testExtendedTestdataOauthserverCabundleCmYaml, map[string]*bintree{}},
