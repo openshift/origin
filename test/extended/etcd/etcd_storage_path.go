@@ -229,7 +229,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 
 	var tt *testing.T // will cause nil panics that make it easy enough to find where things went wrong
 
-	kubeConfig := restclient.CopyConfig(oc.AdminConfig())
+	kubeConfig := restclient.CopyConfig(oc.UserConfig())
 	kubeConfig.QPS = 99999
 	kubeConfig.Burst = 9999
 	kubeClient := kclientset.NewForConfigOrDie(kubeConfig)
