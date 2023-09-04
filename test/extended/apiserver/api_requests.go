@@ -12,14 +12,18 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	apiserverv1 "github.com/openshift/api/apiserver/v1"
-	configv1 "github.com/openshift/api/config/v1"
-	apiserverclientv1 "github.com/openshift/client-go/apiserver/clientset/versioned/typed/apiserver/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
+	apiserverv1 "github.com/openshift/api/apiserver/v1"
+	configv1 "github.com/openshift/api/config/v1"
+	apiserverclientv1 "github.com/openshift/client-go/apiserver/clientset/versioned/typed/apiserver/v1"
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -39,7 +43,23 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 	g.It("clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]", func() {
 		ctx := context.Background()
-		apirequestCountClient, err := apiserverclientv1.NewForConfig(oc.AdminConfig())
+		adminConfig := oc.AdminConfig()
+
+		var cluster414OrNewer bool
+		isMicroShift, err := exutil.IsMicroShiftCluster(kubernetes.NewForConfigOrDie(adminConfig))
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !isMicroShift {
+			// get the real version on a regular cluster, for microshift ones we'll
+			// pretend it's an older cluster and will continue to flake on this test
+			clusterVersion, err := exutil.GetClusterVersion(ctx, adminConfig)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			fromVersion, toVersion := getClusterVersions(clusterVersion)
+			// for new clusters 4.14+, or upgraded from 4.14+ this job needs to pass
+			cluster414OrNewer = (fromVersion == nil && toVersion.AtLeast(utilversion.MustParseGeneric("4.14"))) ||
+				(fromVersion != nil && fromVersion.AtLeast(utilversion.MustParseGeneric("4.14")))
+		}
+
+		apirequestCountClient, err := apiserverclientv1.NewForConfig(adminConfig)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		apiRequestCounts, err := apirequestCountClient.APIRequestCounts().List(ctx, metav1.ListOptions{})
@@ -109,7 +129,13 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		sort.Strings(failureOutput)
 
 		if len(failureOutput) > 0 {
-			framework.Failf(strings.Join(failureOutput, "\n"))
+			if cluster414OrNewer {
+				// for clusters 4.14+ this job needs to pass
+				framework.Failf(strings.Join(failureOutput, "\n"))
+			} else {
+				// for olders - only flake
+				result.Flakef(strings.Join(failureOutput, "\n"))
+			}
 		}
 	})
 
@@ -380,3 +406,19 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		o.Expect(operatorBoundExceeded).To(o.BeEmpty())
 	})
 })
+
+func getClusterVersions(clusterVersion *configv1.ClusterVersion) (*utilversion.Version, *utilversion.Version) {
+	var from, to *utilversion.Version
+	for _, h := range clusterVersion.Status.History {
+		if h.State == configv1.CompletedUpdate {
+			// history is sorted such that newer versions are first, older later
+			if to == nil {
+				to = utilversion.MustParseSemantic(h.Version)
+			} else {
+				from = utilversion.MustParseSemantic(h.Version)
+				break
+			}
+		}
+	}
+	return from, to
+}
