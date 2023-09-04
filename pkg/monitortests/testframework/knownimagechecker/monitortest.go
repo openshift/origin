@@ -10,22 +10,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-
-	"github.com/openshift/origin/test/extended/util/image"
-
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-
-	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
-	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
-	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 const testName = "[sig-arch] Only known images used by tests"
@@ -107,7 +105,7 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 	}
 	allowedPrefixes.Insert(imageStreamPrefixes.UnsortedList()...)
 
-	releaseImage, err := getReleaseImage(w.adminKubeConfig)
+	releaseImage, err := exutil.GetReleaseImage(ctx, w.adminKubeConfig)
 	if err != nil {
 		klog.Errorf("failed to get release image: %v", err)
 	} else {
@@ -264,19 +262,4 @@ func imagePrefixesFromNamespaceImageStreams(ns string) (sets.String, error) {
 		}
 	}
 	return allowedPrefixes, nil
-}
-
-// getReleaseImage does exactly that. We need to add it as exception, as there are some oauth tests that use it to find the
-// oauth server image when the ControlPlaneToplogy is external, where there is no oauth server deployed inside the cluster that
-// could be used: https://github.com/openshift/origin/blob/176aeb92845af9eb50b1d0fe8e98a78dee29215e/test/extended/util/oauthserver/oauthserver.go#L489-L532
-func getReleaseImage(cfg *rest.Config) (string, error) {
-	client, err := configv1client.NewForConfig(cfg)
-	if err != nil {
-		return "", fmt.Errorf("failed to construct configv1client: %w", err)
-	}
-	cv, err := client.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to get clusterversion: %w", err)
-	}
-	return cv.Status.Desired.Image, nil
 }
