@@ -35,7 +35,6 @@ import (
 	"github.com/openshift/library-go/pkg/oauth/tokenrequest/challengehandlers"
 
 	"github.com/openshift/origin/test/extended/testdata"
-	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -489,7 +488,7 @@ func getImage(oc *exutil.CLI) (string, error) {
 }
 
 func determineImageFromRelease(oc *exutil.CLI) (string, error) {
-	return util.DetermineImageFromRelease(oc, "oauth-server")
+	return exutil.DetermineImageFromRelease(context.TODO(), oc, "oauth-server")
 }
 
 func newRequestTokenOptions(config *restclient.Config, oauthServerURL, oauthClientName, username, password string) *tokenrequest.RequestTokenOptions {
