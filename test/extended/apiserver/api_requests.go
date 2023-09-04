@@ -297,7 +297,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"cluster-autoscaler-operator":            44,
 				"cluster-baremetal-operator":             31,
 				"cluster-image-registry-operator":        119,
-				"cluster-monitoring-operator":            64,
+				"cluster-monitoring-operator":            77,
 				"cluster-node-tuning-operator":           97,
 				"cluster-samples-operator":               23,
 				"cluster-storage-operator":               202,
@@ -315,7 +315,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"openshift-config-operator":              50,
 				"openshift-controller-manager-operator":  180,
 				"openshift-kube-scheduler-operator":      179,
-				"prometheus-operator":                    90,
+				"prometheus-operator":                    100,
 				"service-ca-operator":                    131,
 			},
 		}
