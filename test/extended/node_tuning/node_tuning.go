@@ -61,7 +61,7 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 			appliedStatus, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ntoNamespace, "profile", firstCoreOSWorkerNodes, `-ojsonpath='{.status.conditions[?(@.type=="Applied")].status}'`).Output()
 			tunedProfile, err2 := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ntoNamespace, "profile", firstCoreOSWorkerNodes, "-ojsonpath={.status.tunedProfile}").Output()
 			if err1 != nil || err2 != nil || strings.Contains(appliedStatus, "False") || strings.Contains(appliedStatus, "Unknown") || tunedProfile != "openshift-stalld" {
-				e2e.Logf("failed to apply custom profile to nodes, the status is %s and %v, check again", appliedStatus, err)
+				e2e.Logf("failed to apply custom profile to nodes, the status is %s and profile is %s, check again", appliedStatus, tunedProfile)
 			}
 			return strings.Contains(appliedStatus, "True") && tunedProfile == "openshift-stalld"
 		}, 5*time.Second, time.Second).Should(o.BeTrue())
