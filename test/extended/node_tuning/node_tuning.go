@@ -63,7 +63,7 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 			if err1 != nil || err2 != nil || strings.Contains(appliedStatus, "False") || strings.Contains(appliedStatus, "Unknown") || tunedProfile != "openshift-stalld" {
 				e2e.Logf("failed to apply custom profile to nodes, the status is %s and %v, check again", appliedStatus, err)
 			}
-			return strings.Contains(appliedStatus, "True")
+			return strings.Contains(appliedStatus, "True") && tunedProfile == "openshift-stalld"
 		}, 5*time.Second, time.Second).Should(o.BeTrue())
 
 		e2e.Logf("assert if the custom profile openshift-stalld applied to label node")
