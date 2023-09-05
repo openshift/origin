@@ -24,7 +24,6 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	yaml "gopkg.in/yaml.v2"
 
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -42,7 +41,6 @@ import (
 	memory "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
@@ -1145,38 +1143,4 @@ func GetClientConfig(kubeConfigFile string) (*rest.Config, error) {
 	}
 
 	return clientConfig, nil
-}
-
-const (
-	installConfigName = "cluster-config-v1"
-)
-
-// installConfig The subset of openshift-install's InstallConfig we parse for this test
-type installConfig struct {
-	FIPS bool `json:"fips,omitempty"`
-}
-
-func IsFIPS(client clientcorev1.ConfigMapsGetter) (bool, error) {
-	// this currently uses an install config because it has a lower dependency threshold than going directly to the node.
-	installConfig, err := installConfigFromCluster(client)
-	if err != nil {
-		return false, err
-	}
-	return installConfig.FIPS, nil
-}
-
-func installConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*installConfig, error) {
-	cm, err := client.ConfigMaps("kube-system").Get(context.Background(), installConfigName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	data, ok := cm.Data["install-config"]
-	if !ok {
-		return nil, fmt.Errorf("no install-config found in kube-system/%s", installConfigName)
-	}
-	config := &installConfig{}
-	if err := yaml.Unmarshal([]byte(data), config); err != nil {
-		return nil, err
-	}
-	return config, nil
 }
