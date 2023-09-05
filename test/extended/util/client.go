@@ -12,7 +12,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -110,62 +109,99 @@ type resourceRef struct {
 	Name      string
 }
 
-// NewCLIWithFramework initializes the CLI using the provided Kube
-// framework. It can be called inside of a Ginkgo .It() function.
-func NewCLIWithFramework(kubeFramework *framework.Framework) *CLI {
-	cli := &CLI{
-		kubeFramework:           kubeFramework,
-		username:                "admin",
-		execPath:                "oc",
-		adminConfigPath:         KubeConfigPath(),
-		staticConfigManifestDir: StaticConfigManifestDir(),
+// CLIOption defines a function allowing to alter CLI client resource during creation.
+type CLIOption func(cliOptions) cliOptions
+
+// WithFramework allows injecting kube framework into CLI.
+func WithFramework(framework *framework.Framework) CLIOption {
+	return func(o cliOptions) cliOptions {
+		o.kubeFramework = framework
+		return o
 	}
-	// Called only once (assumed the objects will never get modified)
-	// TODO: run in every BeforeEach
-	cli.setupStaticConfigsFromManifests()
-	return cli
 }
 
-// NewCLIWithPodSecurityLevel initializes the CLI the same way as `NewCLI()`
-// but the given pod security level is applied to the created e2e test namespace.
-func NewCLIWithPodSecurityLevel(project string, level admissionapi.Level) *CLI {
-	cli := NewCLI(project)
-	cli.kubeFramework.NamespacePodSecurityLevel = level
-	return cli
+// WithPSALevel allows setting PodSecurityEnforcement level.
+func WithPSALevel(level admissionapi.Level) CLIOption {
+	return func(o cliOptions) cliOptions {
+		o.podSecurityEnforceLevel = level
+		return o
+	}
 }
 
-// NewCLI initializes the CLI and Kube framework helpers with the provided
-// namespace. Should be called outside of a Ginkgo .It() function.
-// This will apply the `restricted` pod security level to the given underlying namespace.
-func NewCLI(project string) *CLI {
-	cli := NewCLIWithoutNamespace(project)
-	cli.withoutNamespace = false
-	// create our own project
-	g.BeforeEach(func() { cli.SetupProject() })
-	return cli
+// WithoutNamespace skips namespace creation.
+func WithoutNamespace() CLIOption {
+	return func(o cliOptions) cliOptions {
+		o.withoutNamespace = true
+		return o
+	}
 }
 
-// NewCLIWithoutNamespace initializes the CLI and Kube framework helpers
-// without a namespace. Should be called outside of a Ginkgo .It()
-// function. Use SetupProject() to create a project for this namespace.
-func NewCLIWithoutNamespace(project string) *CLI {
-	cli := &CLI{
-		kubeFramework: &framework.Framework{
+// WithKubeConfig allows injecting a specific kubeConfig path to use.
+func WithKubeConfig(path string) CLIOption {
+	return func(o cliOptions) cliOptions {
+		o.kubeConfig = path
+		return o
+	}
+}
+
+type cliOptions struct {
+	// kubeFramework to use, instead of creating a brand new one
+	kubeFramework *framework.Framework
+	// prefix for the created test namespace or UniqueName of the test framework
+	baseName string
+	// pod security level applied to the created e2e test namespace, defaults to `restricted`
+	podSecurityEnforceLevel admissionapi.Level
+	// whether to add --namespace flag in oc invocations
+	withoutNamespace bool
+	// specific kubeConfig to use for CLI
+	kubeConfig string
+}
+
+// NewCLI is responsible for creating a new CLI object for invoking OpenShift CLI,
+// cliOptions allow customization of the created object.
+// The CLI is not synchronized and is not thread-safe.
+func NewCLI(baseName string, opts ...CLIOption) *CLI {
+	options := cliOptions{baseName: baseName}
+	for _, optFn := range opts {
+		options = optFn(options)
+	}
+
+	if len(options.baseName) == 0 && options.kubeFramework == nil {
+		panic("misconfigured CLI, either BaseName or KubeFramework are required")
+	}
+	kubeFramework := options.kubeFramework
+	if kubeFramework == nil {
+		kubeFramework = &framework.Framework{
 			SkipNamespaceCreation: true,
-			BaseName:              project,
+			BaseName:              options.baseName,
 			Options: framework.Options{
 				ClientQPS:   20,
 				ClientBurst: 50,
 			},
 			Timeouts: framework.NewTimeoutContext(),
-		},
+		}
+	}
+	if len(options.podSecurityEnforceLevel) > 0 {
+		kubeFramework.NamespacePodSecurityEnforceLevel = options.podSecurityEnforceLevel
+	}
+	kubeConfig := options.kubeConfig
+	if len(options.kubeConfig) == 0 {
+		kubeConfig = KubeConfigPath()
+	}
+
+	cli := &CLI{
+		kubeFramework:           kubeFramework,
 		username:                "admin",
 		execPath:                "oc",
-		adminConfigPath:         KubeConfigPath(),
+		adminConfigPath:         kubeConfig,
 		staticConfigManifestDir: StaticConfigManifestDir(),
-		withoutNamespace:        true,
+		withoutNamespace:        options.withoutNamespace,
 	}
 	g.BeforeEach(cli.kubeFramework.BeforeEach)
+	// if we want namespace, make sure one is created
+	if !options.withoutNamespace {
+		g.BeforeEach(func() { cli.NewProject() })
+	}
 
 	// Called only once (assumed the objects will never get modified)
 	cli.setupStaticConfigsFromManifests()
@@ -181,6 +217,7 @@ func NewCLIWithoutNamespace(project string) *CLI {
 // NewCLIForMonitorTest initializes the CLI and Kube framework helpers
 // without a namespace. Should be called outside of a Ginkgo .It()
 // function.
+// TODO (soltysh): this should be moved to monitortest utils
 func NewCLIForMonitorTest(project string) *CLI {
 	cli := &CLI{
 		kubeFramework: &framework.Framework{
@@ -202,31 +239,6 @@ func NewCLIForMonitorTest(project string) *CLI {
 	// Called only once (assumed the objects will never get modified)
 	cli.setupStaticConfigsFromManifests()
 	return cli
-}
-
-// NewHypershiftManagementCLI returns a CLI that interacts with the Hypershift management cluster.
-// Contrary to a normal CLI it does not perform any cleanup, and it must not be used for any mutating
-// operations. Also, contrary to a normal CLI it must be constructed inside an `It` block. This is
-// because retrieval of hypershift management cluster config can fail, but assertions are only
-// allowed inside an `It` block. `AfterEach` and `BeforeEach` are not allowed there though.
-func NewHypershiftManagementCLI(project string) *CLI {
-	kubeconfig, _, err := GetHypershiftManagementClusterConfigAndNamespace()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return &CLI{
-		kubeFramework: &framework.Framework{
-			SkipNamespaceCreation: true,
-			BaseName:              project,
-			Options: framework.Options{
-				ClientQPS:   20,
-				ClientBurst: 50,
-			},
-			Timeouts: framework.NewTimeoutContext(),
-		},
-		username:         "admin",
-		execPath:         "oc",
-		adminConfigPath:  kubeconfig,
-		withoutNamespace: true,
-	}
 }
 
 // KubeFramework returns Kubernetes framework which contains helper functions
@@ -258,7 +270,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 		FatalErr(err)
 	}
 
-	f, err := ioutil.TempFile("", "configfile")
+	f, err := os.CreateTemp("", "configfile")
 	if err != nil {
 		FatalErr(err)
 	}
@@ -843,6 +855,7 @@ func (c *CLI) Run(commands ...string) *CLI {
 }
 
 // Executes with the kubeconfig specified from the environment
+// TODO (soltysh): this should be moved to monitortest utils
 func (c *CLI) RunInMonitorTest(commands ...string) *CLI {
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
@@ -965,7 +978,7 @@ func (c *CLI) OutputToFile(filename string) (string, error) {
 		return "", err
 	}
 	path := filepath.Join(framework.TestContext.OutputDir, c.Namespace()+"-"+filename)
-	return path, ioutil.WriteFile(path, []byte(content), 0644)
+	return path, os.WriteFile(path, []byte(content), 0644)
 }
 
 // Execute executes the current command and return error if the execution failed
@@ -1129,7 +1142,7 @@ func WaitForAccess(c kubernetes.Interface, allowed bool, review *kubeauthorizati
 }
 
 func GetClientConfig(kubeConfigFile string) (*rest.Config, error) {
-	kubeConfigBytes, err := ioutil.ReadFile(kubeConfigFile)
+	kubeConfigBytes, err := os.ReadFile(kubeConfigFile)
 	if err != nil {
 		return nil, err
 	}
