@@ -30,7 +30,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("scc", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 	ctx := context.Background()
 
 	g.It("TestPodUpdateSCCEnforcement [apigroup:user.openshift.io][apigroup:authorization.openshift.io]", func() {
@@ -106,7 +106,7 @@ var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 
 	defer g.GinkgoRecover()
 	// pods running as root are being started here
-	oc := exutil.NewCLIWithPodSecurityLevel("scc", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("scc", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 
 	g.It("TestAllowedSCCViaRBAC [apigroup:project.openshift.io][apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]", func() {
 		t := g.GinkgoT()
@@ -357,7 +357,7 @@ func RunTestAllowedSCCViaRBAC(
 
 var _ = g.Describe("[sig-auth][Feature:SecurityContextConstraints] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("ssc", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("ssc", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("TestPodDefaultCapabilities", func() {
 		g.By("Running a restricted pod and getting it's inherited capabilities")

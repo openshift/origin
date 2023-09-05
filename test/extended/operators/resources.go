@@ -16,7 +16,7 @@ import (
 )
 
 var _ = g.Describe("[sig-arch] Managed cluster", func() {
-	oc := exutil.NewCLIWithoutNamespace("operator-resources")
+	oc := exutil.NewCLI("operator-resources", exutil.WithoutNamespace())
 
 	// Pods that are part of the control plane should set both cpu and memory requests, but require an exception
 	// to set limits on memory (CPU limits are generally not allowed). This enforces the rules described in

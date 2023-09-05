@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("router-scoped", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI("router-scoped", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()

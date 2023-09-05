@@ -22,7 +22,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][valueFrom] process valueFrom in
 		successfulDockerBuildValueFrom = filepath.Join(valueFromBaseDir, "successful-docker-build-value-from-config.yaml")
 		failedSTIBuildValueFrom        = filepath.Join(valueFromBaseDir, "failed-sti-build-value-from-config.yaml")
 		failedDockerBuildValueFrom     = filepath.Join(valueFromBaseDir, "failed-docker-build-value-from-config.yaml")
-		oc                             = exutil.NewCLIWithPodSecurityLevel("build-valuefrom", admissionapi.LevelBaseline)
+		oc                             = exutil.NewCLI("build-valuefrom", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.Context("", func() {

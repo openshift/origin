@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][a
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("router-reencrypt", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI("router-reencrypt", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.BeforeEach(func() {
 		var err error

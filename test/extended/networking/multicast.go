@@ -25,7 +25,7 @@ import (
 )
 
 var _ = Describe("[sig-network] multicast", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("multicast", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("multicast", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	// The subnet plugin should block all multicast. The multitenant and networkpolicy
 	// plugins should implement multicast in the way that we test. For third-party

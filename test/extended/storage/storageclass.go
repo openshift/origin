@@ -32,7 +32,7 @@ const (
 var _ = g.Describe("[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc           = exutil.NewCLIWithPodSecurityLevel("disable-sc-test", admissionapi.LevelPrivileged)
+		oc           = exutil.NewCLI("disable-sc-test", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 		sctest       *DisableStorageClassTest
 		savedSCState operatorv1.StorageClassStateName
 	)

@@ -43,7 +43,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 		"support",
 	)
 
-	oc := exutil.NewCLIWithoutNamespace("clusteroperators")
+	oc := exutil.NewCLI("clusteroperators", exutil.WithoutNamespace())
 
 	g.BeforeEach(func() {
 		clusterOperatorsList, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})

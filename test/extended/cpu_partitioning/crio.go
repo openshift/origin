@@ -37,8 +37,8 @@ container_ids=$(sudo crictl ps -q)
 container_data=$(sudo crictl inspect $container_ids)
 
 # Filter down CRIO data to relevant information only
-workload_containers=$(echo $container_data | jq -rs '[ 
-	.[] | select(.info.runtimeSpec.annotations["target.workload.openshift.io/management"]) | 
+workload_containers=$(echo $container_data | jq -rs '[
+	.[] | select(.info.runtimeSpec.annotations["target.workload.openshift.io/management"]) |
 	{
 		cpuSet: (.info.runtimeSpec.linux.resources.cpu.cpus // ""),
         cpuShares: .info.runtimeSpec.linux.resources.cpu.shares,
@@ -48,8 +48,8 @@ workload_containers=$(echo $container_data | jq -rs '[
         podNamespace: .info.runtimeSpec.annotations["io.kubernetes.pod.namespace"],
         podName: .info.runtimeSpec.annotations["io.kubernetes.pod.name"],
 		name: .status.metadata.name,
-		pid: .info.pid, 
-		hostname: .info.runtimeSpec.hostname 
+		pid: .info.pid,
+		hostname: .info.runtimeSpec.hostname
 	}
 	]')
 
@@ -117,7 +117,7 @@ func (c *crioContainerData) getAnnotationCPUResources() (crioCPUResource, error)
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation", func() {
 
 	var (
-		oc                      = exutil.NewCLIWithoutNamespace("cpu-partitioning").AsAdmin()
+		oc                      = exutil.NewCLI("cpu-partitioning", exutil.WithoutNamespace()).AsAdmin()
 		managedNamespace        = exutil.NewCLI("managed-namespace").SetManagedNamespace().AsAdmin()
 		ctx                     = context.Background()
 		isClusterCPUPartitioned = false

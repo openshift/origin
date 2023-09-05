@@ -18,7 +18,7 @@ import (
 )
 
 var _ = g.Describe("[sig-arch] Managed cluster", func() {
-	oc := exutil.NewCLIWithoutNamespace("operator-daemonsets")
+	oc := exutil.NewCLI("operator-daemonsets", exutil.WithoutNamespace())
 
 	// Daemonsets shipped with the platform must be able to upgrade without disruption to workloads.
 	// Daemonsets that are in the data path must gracefully shutdown and redirect workload traffic, or

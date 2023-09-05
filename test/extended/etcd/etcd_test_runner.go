@@ -29,7 +29,7 @@ import (
 var _ = g.Describe("[sig-api-machinery] API data in etcd", func() {
 	defer g.GinkgoRecover()
 
-	cli := exutil.NewCLIWithPodSecurityLevel("etcd-storage-path", psapi.LevelBaseline)
+	cli := exutil.NewCLI("etcd-storage-path", exutil.WithPSALevel(psapi.LevelBaseline))
 	adminCLI := cli.AsAdmin()
 
 	g.It("should be stored at the correct location and version for all resources [Serial]", func() {

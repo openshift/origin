@@ -23,7 +23,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("working-scc-during-install")
+	oc := exutil.NewCLI("working-scc-during-install", exutil.WithoutNamespace())
 
 	g.It("should not have pod creation failures during install", func() {
 		kubeClient := oc.AdminKubeClient()
@@ -86,7 +86,7 @@ var _ = g.Describe("[sig-auth][Feature:SCC][Early]", func() {
 var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("required-scc", psapi.LevelPrivileged)
+	oc := exutil.NewCLI("required-scc", exutil.WithPSALevel(psapi.LevelPrivileged))
 
 	g.It("required-scc annotation is being applied to workloads", func() {
 		sccRole, err := oc.AdminKubeClient().RbacV1().ClusterRoles().Create(context.Background(),

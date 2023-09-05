@@ -17,7 +17,7 @@ import (
 
 var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func() {
 	var (
-		oc                     = exutil.NewCLIWithPodSecurityLevel("build-volumes", admissionapi.LevelBaseline)
+		oc                     = exutil.NewCLI("build-volumes", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		baseDir                = exutil.FixturePath("testdata", "builds", "volumes")
 		secret                 = filepath.Join(baseDir, "secret.yaml")
 		configmap              = filepath.Join(baseDir, "configmap.yaml")
@@ -134,7 +134,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                     = exutil.NewCLIWithPodSecurityLevel("build-volumes-csi", admissionapi.LevelBaseline)
+		oc                     = exutil.NewCLI("build-volumes-csi", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		baseDir                = exutil.FixturePath("testdata", "builds", "volumes")
 		secret                 = filepath.Join(baseDir, "secret.yaml")
 		s2iDeploymentConfig    = filepath.Join(baseDir, "s2i-deploymentconfig.yaml")

@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build without output image", fu
 	var (
 		dockerImageFixture = exutil.FixturePath("testdata", "builds", "test-docker-no-outputname.json")
 		s2iImageFixture    = exutil.FixturePath("testdata", "builds", "test-s2i-no-outputname.json")
-		oc                 = exutil.NewCLIWithPodSecurityLevel("build-no-outputname", admissionapi.LevelBaseline)
+		oc                 = exutil.NewCLI("build-no-outputname", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.Context("", func() {

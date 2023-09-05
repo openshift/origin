@@ -9,7 +9,7 @@ import (
 )
 
 var _ = g.Describe("[sig-network] external gateway address", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("ns-global", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("ns-global", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 
 	InOVNKubernetesContext(func() {
 		f := oc.KubeFramework()

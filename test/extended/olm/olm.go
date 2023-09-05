@@ -25,7 +25,7 @@ const (
 var _ = g.Describe("[sig-operator] OLM should", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithoutNamespace("default")
+	oc := exutil.NewCLI("default", exutil.WithoutNamespace())
 
 	providedAPIs := []struct {
 		fromAPIService bool
@@ -93,10 +93,11 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			_, namespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			var kubeConfig string
+			kubeConfig, namespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+			oc = exutil.NewCLI("default", exutil.WithoutNamespace(), exutil.WithKubeConfig(kubeConfig)).AsAdmin()
 		}
 
 		deploymentResource := []string{"catalog-operator", "olm-operator", "packageserver"}
@@ -137,7 +138,7 @@ var _ = g.Describe("[sig-operator] OLM should", func() {
 var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithoutNamespace("default")
+	oc := exutil.NewCLI("default", exutil.WithoutNamespace())
 
 	// TODO: This test should be more generic and across components
 	// OCP-20981, [BZ 1626434]The olm/catalog binary should output the exact version info
@@ -150,9 +151,10 @@ var _ = g.Describe("[sig-arch] ocp payload should be based on existing source", 
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			_, namespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
+			var kubeConfig string
+			kubeConfig, namespace, err = exutil.GetHypershiftManagementClusterConfigAndNamespace()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+			oc = exutil.NewCLI("default", exutil.WithoutNamespace(), exutil.WithKubeConfig(kubeConfig)).AsAdmin()
 		}
 		sameCommit := ""
 		subPods := []string{"catalog-operator", "olm-operator", "packageserver"}
@@ -261,7 +263,7 @@ var _ = g.Describe("[sig-operator] an end user can use OLM", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLI("olm-23440")
+		oc = exutil.NewCLI("olm-23440", exutil.WithoutNamespace())
 
 		buildPruningBaseDir = exutil.FixturePath("testdata", "olm")
 		operatorGroup       = filepath.Join(buildPruningBaseDir, "operatorgroup.yaml")

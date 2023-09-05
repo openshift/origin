@@ -21,7 +21,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:Image] oc tag", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("image-oc-tag", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("image-oc-tag", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	ctx := context.Background()
 
 	g.It("should preserve image reference for external images [apigroup:image.openshift.io]", func() {

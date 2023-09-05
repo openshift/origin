@@ -47,7 +47,7 @@ func (w *watchRequestCountSerializer) EvaluateTestsFromConstructedIntervals(ctx 
 }
 
 func (w *watchRequestCountSerializer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	oc := exutil.NewCLIWithoutNamespace("api-requests")
+	oc := exutil.NewCLI("api-requests", exutil.WithoutNamespace())
 
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {

@@ -57,7 +57,7 @@ func getPodNodeName(client clientset.Interface, namespace, name string) string {
 }
 
 var _ = g.Describe("[sig-network][Feature:tuning]", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("tuning", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("tuning", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 	f := oc.KubeFramework()
 
 	g.It("pod should start with all sysctl on whitelist [apigroup:k8s.cni.cncf.io]", func() {

@@ -32,8 +32,8 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 	f := framework.NewDefaultFramework("oc-adm")
 	f.SkipNamespaceCreation = true
 
-	oc := exutil.NewCLIWithoutNamespace("oc-adm").AsAdmin()
-	ocns := exutil.NewCLI("oc-adm-ns").AsAdmin()
+	oc := exutil.NewCLI("oc-adm", exutil.WithoutNamespace()).AsAdmin()
+	ocns := exutil.NewCLI("oc-adn-ns").AsAdmin()
 	policyRolesPath := exutil.FixturePath("testdata", "roles", "policy-roles.yaml")
 	policyClusterRolesPath := exutil.FixturePath("testdata", "roles", "policy-clusterroles.yaml")
 	gen := names.SimpleNameGenerator

@@ -24,7 +24,7 @@ import (
 )
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Token Expiration]", func() {
-	var oc = exutil.NewCLIWithPodSecurityLevel("oauth-expiration", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI("oauth-expiration", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	var newRequestTokenOptions oauthserver.NewRequestTokenOptionsFunc
 	var oauthServerCleanup func()
 

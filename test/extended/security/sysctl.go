@@ -17,7 +17,7 @@ import (
 )
 
 var _ = g.Describe("[sig-arch] [Conformance] sysctl", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("sysctl", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("sysctl", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 	ctx := context.Background()
 	g.DescribeTable("whitelists", func(sysctl, value, path, defaultSysctlValue string) {
 		f := oc.KubeFramework()

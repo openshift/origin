@@ -34,7 +34,7 @@ import (
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle]", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("cluster-client-cert", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("cluster-client-cert", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	defer g.GinkgoRecover()
 
 	g.It("Pods cannot access the /config/master API endpoint", func() {

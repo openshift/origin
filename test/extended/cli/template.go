@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-cli] templates", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                           = exutil.NewCLIWithPodSecurityLevel("oc-templates", admissionapi.LevelPrivileged)
+		oc                           = exutil.NewCLI("oc-templates", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		testDataPath                 = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata")
 		appTemplatePath              = filepath.Join(testDataPath, "application-template-dockerbuild.json")
 		appTemplateStiPath           = filepath.Join(testDataPath, "application-template-stibuild.json")

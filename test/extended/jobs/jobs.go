@@ -18,7 +18,7 @@ import (
 
 var _ = g.Describe("[sig-apps][Feature:Jobs]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("job-controller", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("job-controller", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("Users should be able to create and run a job in a user project", func() {
 

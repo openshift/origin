@@ -29,10 +29,7 @@ import (
 
 var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 	defer g.GinkgoRecover()
-
-	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("build-webhooks", admissionapi.LevelBaseline)
-	)
+	oc := exutil.NewCLI("build-webhooks", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
 		TestWebhook(g.GinkgoT(), oc)

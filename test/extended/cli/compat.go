@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-cli] oc", func() {
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("cli", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI("cli", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("can run inside of a busybox container [apigroup:image.openshift.io]", func() {
 		ns := oc.Namespace()

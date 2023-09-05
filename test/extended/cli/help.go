@@ -12,7 +12,7 @@ import (
 var _ = g.Describe("[sig-cli] oc help", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("oc-help")
+	oc := exutil.NewCLI("oc-help", exutil.WithoutNamespace())
 
 	g.It("works as expected", func() {
 		err := exec.Command("kubectl").Run()

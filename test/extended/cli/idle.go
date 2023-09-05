@@ -26,7 +26,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 	defer g.GinkgoRecover()
 
 	var (
-		oc                   = exutil.NewCLIWithPodSecurityLevel("oc-idle", admissionapi.LevelBaseline)
+		oc                   = exutil.NewCLI("oc-idle", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		cmdTestData          = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata")
 		idleSVCRoute         = filepath.Join(cmdTestData, "idling-svc-route.yaml")
 		idleDeploymentConfig = filepath.Join(cmdTestData, "idling-dc.yaml")

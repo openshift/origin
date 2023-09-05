@@ -21,7 +21,7 @@ import (
 
 var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("etcd-hardware-speed").AsAdmin()
+	oc := exutil.NewCLI("etcd-hardware-speed", exutil.WithoutNamespace()).AsAdmin()
 
 	g.BeforeEach(func() {
 		isSingleNode, err := exutil.IsSingleNode(context.Background(), oc.AdminConfigClient())

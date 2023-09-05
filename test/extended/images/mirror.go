@@ -205,7 +205,7 @@ RUN echo %[3]s > /3
 var _ = g.Describe("[sig-imageregistry][Feature:ImageMirror][Slow] Image mirror", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithPodSecurityLevel("image-mirror", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI("image-mirror", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("mirror image from integrated registry to external registry [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 		g.By("get user credentials")

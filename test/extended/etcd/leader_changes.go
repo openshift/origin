@@ -18,7 +18,7 @@ import (
 
 var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("etcd-leader-change").AsAdmin()
+	oc := exutil.NewCLI("etcd-leader-change", exutil.WithoutNamespace()).AsAdmin()
 
 	var earlyTimeStamp time.Time
 	g.It("record the start revision of the etcd-operator [Early]", func() {
@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+			oc = exutil.NewCLI("default", exutil.WithoutNamespace()).AsAdmin()
 		}
 
 		prometheus, err := client.NewE2EPrometheusRouterClient(ctx, oc)

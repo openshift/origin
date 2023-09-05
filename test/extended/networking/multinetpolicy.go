@@ -29,7 +29,7 @@ type podAddressSet struct {
 
 var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io]", func() {
 
-	oc := exutil.NewCLIWithPodSecurityLevel("multinetpol-e2e", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("multinetpol-e2e", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	f := oc.KubeFramework()
 
 	g.DescribeTable("should enforce a network policies on secondary network", func(ctx context.Context, addrs podAddressSet) {
@@ -47,7 +47,7 @@ var _ = g.Describe("[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:o
 
 		networksTemplate := `[
 			  {
-				"name": "macvlan1-nad",		
+				"name": "macvlan1-nad",
 				"ips": ["%s"]
 			  }
 			]`

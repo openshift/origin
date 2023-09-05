@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-network][Feature:Multus]", func() {
 	var oc *exutil.CLI
 	var ns string // namespace
 
-	oc = exutil.NewCLIWithPodSecurityLevel("multus-e2e", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI("multus-e2e", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	f := oc.KubeFramework()
 	podName := "multus-test-pod-"

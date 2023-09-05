@@ -28,7 +28,7 @@ const (
 // This is [Serial] because it modifies the cluster/network.config.openshift.io object in each test.
 var _ = g.Describe("[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial]", g.Ordered, func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("network-diagnostics")
+	oc := exutil.NewCLI("network-diagnostics", exutil.WithoutNamespace())
 
 	g.BeforeAll(func(ctx context.Context) {
 		// Reset and take ownership of the network diagnostics config

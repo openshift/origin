@@ -95,7 +95,7 @@ func (UpgradeTest) DisplayName() string {
 // Setup creates artifacts to be used by Test
 func (t *UpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 	g.By("Setting up upgrade delete test")
-	oc := exutil.NewCLIWithFramework(f)
+	oc := exutil.NewCLI("", exutil.WithFramework(f))
 	t.oc = oc
 	config, err := framework.LoadConfig()
 	o.Expect(err).NotTo(o.HaveOccurred())

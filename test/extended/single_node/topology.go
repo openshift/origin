@@ -44,7 +44,7 @@ func getNamespaceStatefulSets(f *framework.Framework, namespace corev1.Namespace
 }
 
 func GetTopologies(f *framework.Framework) (controlPlaneTopology, infraTopology v1.TopologyMode) {
-	oc := exutil.NewCLIWithFramework(f)
+	oc := exutil.NewCLI("default", exutil.WithFramework(f))
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
 		"cluster", metav1.GetOptions{})
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())

@@ -21,7 +21,7 @@ const (
 // This is [Serial] because it deletes the csi-snapshot-webhook-secret
 var _ = g.Describe("[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operator][Serial][apigroup:operator.openshift.io]", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLIWithoutNamespace("storage-csi-snapshot-operator")
+	var oc = exutil.NewCLI("storage-csi-snapshot-operator", exutil.WithoutNamespace())
 
 	g.BeforeEach(func() {
 		// Skip if CSISnapshot CO is not enabled

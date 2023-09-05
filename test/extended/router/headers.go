@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "router", "router-http-echo-server.yaml")
-		oc         = exutil.NewCLIWithPodSecurityLevel("router-headers", admissionapi.LevelBaseline)
+		oc         = exutil.NewCLI("router-headers", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 		routerIP  string
 		metricsIP string

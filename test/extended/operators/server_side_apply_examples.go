@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-apimachinery]", func() {
 
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("server-side-apply-examples", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("server-side-apply-examples", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 	fieldManager := metav1.ApplyOptions{
 		FieldManager: "e2e=test",
 	}

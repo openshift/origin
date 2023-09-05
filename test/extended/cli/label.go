@@ -18,7 +18,7 @@ const (
 var _ = g.Describe("[sig-cli] oc label", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithPodSecurityLevel("oc-label", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI("oc-label", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("pod", func() {
 		g.By("creating hello-openshift pod")

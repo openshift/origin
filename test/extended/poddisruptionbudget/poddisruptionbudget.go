@@ -27,7 +27,7 @@ import (
 
 var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("poddisruptionbudgets", admissionapi.LevelRestricted)
+	oc := exutil.NewCLI("poddisruptionbudgets", exutil.WithPSALevel(admissionapi.LevelRestricted))
 
 	const (
 		// should be higher than the pod start time, so first pod is still not ready when a seconds one starts with a big delay (might take a long time to pull image)

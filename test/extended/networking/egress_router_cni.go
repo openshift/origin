@@ -34,7 +34,7 @@ const (
 )
 
 var _ = g.Describe("[sig-network][Feature:EgressRouterCNI]", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel(egressRouterCNIE2E, admissionapi.LevelPrivileged).SetManagedNamespace()
+	oc := exutil.NewCLI(egressRouterCNIE2E, exutil.WithPSALevel(admissionapi.LevelPrivileged)).SetManagedNamespace()
 
 	g.It("should ensure ipv4 egressrouter cni resources are created [apigroup:operator.openshift.io]", func() {
 		doEgressRouterCNI(egressRouterCNIV4Manifest, oc, ipv4MatchPattern)

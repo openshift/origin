@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-cli] oc annotate", func() {
 		podAnnotationTemplate = `{{index .metadata.annotations "new-anno"}}`
 	)
 
-	var oc = exutil.NewCLIWithPodSecurityLevel("oc-annotation", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI("oc-annotation", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("pod", func() {
 		g.By("creating hello-openshift pod")

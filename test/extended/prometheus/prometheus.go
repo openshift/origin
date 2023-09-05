@@ -211,7 +211,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 	)
 
 	var alertingRules map[string][]promv1.AlertingRule
-	oc := exutil.NewCLIWithoutNamespace("prometheus")
+	oc := exutil.NewCLI("prometheus", exutil.WithoutNamespace())
 
 	g.BeforeEach(func(ctx context.Context) {
 		err := exutil.WaitForAnImageStream(
@@ -362,7 +362,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	defer g.GinkgoRecover()
 	ctx := context.TODO()
-	oc := exutil.NewCLIWithoutNamespace("prometheus")
+	oc := exutil.NewCLI("prometheus", exutil.WithoutNamespace())
 
 	g.BeforeEach(func() {
 		kubeClient, err := kubernetes.NewForConfig(oc.AdminConfig())
@@ -415,11 +415,9 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	ctx := context.TODO()
-	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("default", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
-		queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken string
-	)
+	var queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken string
 
 	g.BeforeEach(func(ctx g.SpecContext) {
 		err := exutil.WaitForAnImageStream(

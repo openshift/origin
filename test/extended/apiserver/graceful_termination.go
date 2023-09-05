@@ -28,7 +28,7 @@ import (
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("terminating-kube-apiserver")
+	oc := exutil.NewCLI("terminating-kube-apiserver", exutil.WithoutNamespace())
 
 	// This test checks whether the apiserver reports any events that may indicate a problem at any time,
 	// not just when the suite is running. We already have invariant tests that fail if these are violated
@@ -154,7 +154,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		results := map[string]int{}
 
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			mgmtClusterOC := exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+			mgmtClusterOC := exutil.NewCLI("default", exutil.WithoutNamespace()).AsAdmin()
 			pods, err := mgmtClusterOC.KubeClient().CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: "hypershift.openshift.io/control-plane-component=kube-apiserver"})
 			o.Expect(err).To(o.BeNil())
 			for _, pod := range pods.Items {

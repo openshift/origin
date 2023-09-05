@@ -81,7 +81,7 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 	// As an extra precaution for now, we do not run this check on all tests since some might fail to pull
 	// release payload information
 	if config.HasNoOptionalCapabilities && !isMicroShift {
-		imageStreamString, _, err := exutil.NewCLIWithoutNamespace("").AsAdmin().Run("adm", "release", "info", `-ojsonpath={.references}`).Outputs()
+		imageStreamString, _, err := exutil.NewCLI("default", exutil.WithoutNamespace()).AsAdmin().Run("adm", "release", "info", `-ojsonpath={.references}`).Outputs()
 		if err != nil {
 			return err
 		}

@@ -22,7 +22,7 @@ var (
 var _ = g.Describe("[sig-cli] oc debug", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("oc-debug", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("oc-debug", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	testCLIDebug := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 	testDeploymentConfig := exutil.FixturePath("testdata", "test-deployment-config.yaml")
 	testReplicationController := exutil.FixturePath("testdata", "test-replication-controller.yaml")

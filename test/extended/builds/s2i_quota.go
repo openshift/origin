@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] s2i build with a quota", func()
 
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-s2i-build-quota.json")
-		oc           = exutil.NewCLIWithPodSecurityLevel("s2i-build-quota", api.LevelPrivileged)
+		oc           = exutil.NewCLI("s2i-build-quota", exutil.WithPSALevel(api.LevelPrivileged))
 	)
 
 	g.Context("", func() {

@@ -87,7 +87,7 @@ func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernete
 var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g.Ordered, func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("certificate-checker")
+	oc := exutil.NewCLI("certificate-checker", exutil.WithoutNamespace())
 	ctx := context.Background()
 
 	g.BeforeAll(func() {

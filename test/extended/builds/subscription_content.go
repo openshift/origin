@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][subscription-content] builds in
 	defer g.GinkgoRecover()
 
 	var (
-		oc               = exutil.NewCLIWithPodSecurityLevel("build-subscription-content", admissionapi.LevelBaseline)
+		oc               = exutil.NewCLI("build-subscription-content", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		baseDir          = exutil.FixturePath("testdata", "builds", "subscription-content")
 		secretTemplate   = filepath.Join(baseDir, "secret-template.txt")
 		imageStream      = filepath.Join(baseDir, "build-imagestream.yaml")

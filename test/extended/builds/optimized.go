@@ -22,7 +22,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] Optimized image builds", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLIWithPodSecurityLevel("build-dockerfile-env", admissionapi.LevelBaseline)
+		oc             = exutil.NewCLI("build-dockerfile-env", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		skipLayers     = buildv1.ImageOptimizationSkipLayers
 		testDockerfile = fmt.Sprintf(`
 FROM %s

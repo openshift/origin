@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] incremental s2i build", f
 	var (
 		templateFixture      = exutil.FixturePath("testdata", "builds", "incremental-auth-build.json")
 		podAndServiceFixture = exutil.FixturePath("testdata", "builds", "test-build-podsvc.json")
-		oc                   = exutil.NewCLIWithPodSecurityLevel("build-sti-inc", admissionapi.LevelBaseline)
+		oc                   = exutil.NewCLI("build-sti-inc", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.Context("", func() {

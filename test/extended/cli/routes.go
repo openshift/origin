@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-cli] oc", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc          = exutil.NewCLIWithPodSecurityLevel("oc-routes", admissionapi.LevelBaseline)
+		oc          = exutil.NewCLI("oc-routes", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		cmdTestData = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata")
 		testRoute   = filepath.Join(cmdTestData, "test-route.json")
 		testService = filepath.Join(cmdTestData, "test-service.json")

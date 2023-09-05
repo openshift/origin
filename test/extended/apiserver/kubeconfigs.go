@@ -22,7 +22,7 @@ import (
 
 var _ = g.Describe("[Conformance][sig-api-machinery][Feature:APIServer] local kubeconfig", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("apiserver", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("apiserver", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 
 	for _, kc := range []string{
 		"localhost.kubeconfig",

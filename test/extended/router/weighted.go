@@ -32,7 +32,7 @@ import (
 var _ = g.Describe("[sig-network][Feature:Router][apigroup:image.openshift.io]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("weighted-router", admissionapi.LevelBaseline)
+		oc = exutil.NewCLI("weighted-router", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.BeforeEach(func() {

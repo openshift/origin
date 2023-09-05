@@ -34,7 +34,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageStreamImport][Serial][Slow] ImageStream API [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("imagestream-api", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("imagestream-api", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	g.BeforeEach(func() {
 		if err := deployEphemeralImageRegistry(oc); err != nil {
 			g.GinkgoT().Fatalf("error deploying ephemeral registry: %s", err)

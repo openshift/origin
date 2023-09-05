@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 	g.Context("privileged namespace", func() {
 		var (
-			oc = exutil.NewCLIWithPodSecurityLevel("inline-vol-privileged-ns", admissionapi.LevelPrivileged)
+			oc = exutil.NewCLI("inline-vol-privileged-ns", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 		)
 
 		g.BeforeEach(func() {
@@ -120,7 +120,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 	g.Context("baseline namespace", func() {
 		var (
-			oc = exutil.NewCLIWithPodSecurityLevel("inline-vol-baseline-ns", admissionapi.LevelBaseline)
+			oc = exutil.NewCLI("inline-vol-baseline-ns", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		)
 
 		g.BeforeEach(func() {
@@ -177,7 +177,7 @@ var _ = g.Describe("[sig-storage][Feature:CSIInlineVolumeAdmission][Serial]", fu
 
 	g.Context("restricted namespace", func() {
 		var (
-			oc = exutil.NewCLIWithPodSecurityLevel("inline-vol-restricted-ns", admissionapi.LevelRestricted)
+			oc = exutil.NewCLI("inline-vol-restricted-ns", exutil.WithPSALevel(admissionapi.LevelRestricted))
 		)
 
 		g.BeforeEach(func() {

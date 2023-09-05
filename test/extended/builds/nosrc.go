@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build with empty source", func(
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-nosrc-build.json")
-		oc           = exutil.NewCLIWithPodSecurityLevel("cli-build-nosrc", admissionapi.LevelBaseline)
+		oc           = exutil.NewCLI("cli-build-nosrc", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		exampleBuild = exutil.FixturePath("testdata", "builds", "test-build-app")
 	)
 

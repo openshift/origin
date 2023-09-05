@@ -14,7 +14,7 @@ import (
 var _ = g.Describe("[sig-cli] oc observe", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("oc-observe").AsAdmin()
+	oc := exutil.NewCLI("oc-observe", exutil.WithoutNamespace()).AsAdmin()
 
 	g.It("works as expected", func() {
 		g.By("Find out the clusterIP of the kubernetes.default service")

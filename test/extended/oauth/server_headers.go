@@ -17,7 +17,7 @@ import (
 )
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] [Headers][apigroup:route.openshift.io][apigroup:config.openshift.io][apigroup:oauth.openshift.io]", func() {
-	var oc = exutil.NewCLIWithPodSecurityLevel("oauth-server-headers", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI("oauth-server-headers", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	var transport http.RoundTripper
 	var oauthServerAddr string
 	var oauthServerCleanup func()

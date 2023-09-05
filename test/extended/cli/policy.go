@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-cli] policy", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc               = exutil.NewCLIWithPodSecurityLevel("oc-policy", api.LevelRestricted)
+		oc               = exutil.NewCLI("oc-policy", exutil.WithPSALevel(api.LevelRestricted))
 		simpleDeployment = exutil.FixturePath("testdata", "deployments", "deployment-simple-sleep.yaml")
 	)
 

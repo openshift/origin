@@ -42,7 +42,7 @@ func testOpenshiftNodeLabeling(oc *exutil.CLI, node *corev1.Node, forbiddenLabel
 
 var _ = g.Describe("[sig-node] [Conformance] Prevent openshift node labeling on update by the node", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("node-label-e2e", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("node-label-e2e", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 
 	g.It("TestOpenshiftNodeLabeling", func() {
 		clusterAdminKubeClientset := oc.AdminKubeClient()

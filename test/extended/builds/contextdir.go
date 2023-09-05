@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 	defer g.GinkgoRecover()
 	var (
 		appFixture            = exutil.FixturePath("testdata", "builds", "test-context-build.json")
-		oc                    = exutil.NewCLIWithPodSecurityLevel("contextdir", admissionapi.LevelBaseline)
+		oc                    = exutil.NewCLI("contextdir", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		s2iBuildConfigName    = "s2icontext"
 		s2iBuildName          = "s2icontext-1"
 		dcName                = "frontend"

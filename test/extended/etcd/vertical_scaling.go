@@ -19,7 +19,8 @@ import (
 
 var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd/scaling] etcd", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("etcd-scaling").AsAdmin()
+
+	oc := exutil.NewCLI("etcd-scaling", exutil.WithoutNamespace()).AsAdmin()
 
 	cleanupPlatformSpecificConfiguration := func() { /*noop*/ }
 

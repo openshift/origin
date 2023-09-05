@@ -19,7 +19,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] build can reference a cluster service", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLIWithPodSecurityLevel("build-service", admissionapi.LevelBaseline)
+		oc             = exutil.NewCLI("build-service", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		testDockerfile = fmt.Sprintf(`
 FROM %s
 RUN cat /etc/resolv.conf

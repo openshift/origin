@@ -38,7 +38,7 @@ var rootDir string
 var _ = g.Describe("[sig-scalability][Feature:Performance] Load cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                = exutil.NewCLIWithoutNamespace("cl")
+		oc                = exutil.NewCLI("cl", exutil.WithoutNamespace())
 		masterVertFixture = exutil.FixturePath("testdata", "cluster", "master-vert.yaml")
 		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "cakephp-mysql.json")
 		_                 = exutil.FixturePath("testdata", "cluster", "quickstarts", "dancer-mysql.json")

@@ -16,7 +16,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] verify /run filesystem contents", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                                      = exutil.NewCLIWithPodSecurityLevel("verify-run-fs", admissionapi.LevelBaseline)
+		oc                                      = exutil.NewCLI("verify-run-fs", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		testVerityRunFSWriteableBuildConfigYaml = fmt.Sprintf(`
 apiVersion: build.openshift.io/v1
 kind: BuildConfig

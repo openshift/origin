@@ -78,7 +78,7 @@ ls /host/$hostPath
 var _ = Describe("[sig-node][Disruptive][Feature:KubeletGracefulShutdown]", func() {
 
 	var (
-		oc           = exutil.NewCLIWithoutNamespace("pod").AsAdmin()
+		oc           = exutil.NewCLI("pod", exutil.WithoutNamespace()).AsAdmin()
 		node         *corev1.Node
 		successPod   *corev1.Pod
 		errorPod     *corev1.Pod

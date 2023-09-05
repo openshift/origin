@@ -162,7 +162,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                  = exutil.NewCLIWithPodSecurityLevel("cli-idling", admissionapi.LevelBaseline).Verbose()
+		oc                  = exutil.NewCLI("cli-idling", exutil.WithPSALevel(admissionapi.LevelBaseline)).Verbose()
 		echoServerFixture   = exutil.FixturePath("testdata", "idling-echo-server.yaml")
 		echoServerRcFixture = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
 		framework           = oc.KubeFramework()

@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][pullsearch] docker build where 
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-search-registries.yaml")
-		oc           = exutil.NewCLIWithPodSecurityLevel("docker-build-pullsearch", api.LevelPrivileged)
+		oc           = exutil.NewCLI("docker-build-pullsearch", exutil.WithPSALevel(api.LevelPrivileged))
 	)
 
 	g.Context("", func() {

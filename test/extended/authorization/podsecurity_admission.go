@@ -33,7 +33,7 @@ var sleeperContainer = corev1.Container{
 var _ = g.Describe("[sig-auth][Feature:PodSecurity]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("pod-security", psapi.LevelRestricted)
+	oc := exutil.NewCLI("pod-security", exutil.WithPSALevel(psapi.LevelRestricted))
 
 	g.It("restricted-v2 SCC should mutate empty securityContext to match restricted PSa profile", func() {
 		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), &corev1.Pod{
@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-auth][Feature:PodSecurity]", func() {
 var _ = g.Describe("[sig-auth][Feature:PodSecurity][Feature:SCC]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("pod-security-scc-mutation", psapi.LevelRestricted)
+	oc := exutil.NewCLI("pod-security-scc-mutation", exutil.WithPSALevel(psapi.LevelRestricted))
 
 	g.It("creating pod controllers", func() {
 		ns, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), oc.Namespace(), metav1.GetOptions{})

@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][pullsecret] docker build using 
 
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build-pullsecret.json")
-		oc           = exutil.NewCLIWithPodSecurityLevel("docker-build-pullsecret", admissionapi.LevelBaseline)
+		oc           = exutil.NewCLI("docker-build-pullsecret", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.Context("", func() {

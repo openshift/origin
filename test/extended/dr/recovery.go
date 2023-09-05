@@ -18,7 +18,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 	f := framework.NewDefaultFramework("recovery")
 	f.SkipNamespaceCreation = true
-	oc := exutil.NewCLIWithoutNamespace("recovery")
+	// TODO (soltysh): why we're using two frameworks: one created above, and another in NewCLI
+	oc := exutil.NewCLI("recovery", exutil.WithoutNamespace())
 
 	g.AfterEach(func() {
 		g.GinkgoT().Log("waiting to delete post backup resources....")
@@ -78,7 +79,8 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 	f := framework.NewDefaultFramework("recovery")
 	f.SkipNamespaceCreation = true
-	oc := exutil.NewCLIWithoutNamespace("recovery")
+	// TODO (soltysh): why we're using two frameworks: one created above, and another in NewCLI
+	oc := exutil.NewCLI("recovery", exutil.WithoutNamespace())
 
 	g.AfterEach(func() {
 		// we need to ensure this test also ends with a stable revision for api and etcd

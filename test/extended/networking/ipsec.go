@@ -208,7 +208,7 @@ func ensureIPsecDisabled(oc *exutil.CLI) error {
 
 var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
-	oc := exutil.NewCLIWithPodSecurityLevel("ipsec", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI("ipsec", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 	f := oc.KubeFramework()
 
 	waitForIPsecNSConfigApplied := func() {

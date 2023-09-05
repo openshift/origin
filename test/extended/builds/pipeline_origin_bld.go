@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 	defer g.GinkgoRecover()
 
 	var (
-		oc               = exutil.NewCLIWithPodSecurityLevel("jenkins-pipeline", admissionapi.LevelBaseline)
+		oc               = exutil.NewCLI("jenkins-pipeline", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		j                *jenkins.JenkinsRef
 		simplePipelineBC = exutil.FixturePath("testdata", "builds", "simple-pipeline-bc.yaml")
 

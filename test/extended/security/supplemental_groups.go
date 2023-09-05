@@ -32,7 +32,7 @@ const (
 var _ = g.Describe("[sig-node] supplemental groups", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithPodSecurityLevel("sup-groups", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("sup-groups", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	ctx := context.Background()
 
 	g.Describe("Ensure supplemental groups propagate to docker", func() {

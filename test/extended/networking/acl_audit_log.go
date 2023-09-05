@@ -37,7 +37,7 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("acl-logging", psapi.LevelBaseline)
+	oc = exutil.NewCLI("acl-logging", exutil.WithPSALevel(psapi.LevelBaseline))
 
 	// The OVNKubernetes subnet plugin should allow acl_logging for network policy.
 	// For Openshift SDN and third party plugins, the behavior is unspecified and we should not run either test.

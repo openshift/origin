@@ -14,7 +14,7 @@ import (
 )
 
 var _ = Describe("[sig-arch] Managed cluster should", func() {
-	oc := exutil.NewCLIWithoutNamespace("pod")
+	oc := exutil.NewCLI("pod", exutil.WithoutNamespace())
 
 	It("ensure platform components have system-* priority class associated", func() {
 		// iterate over the references to find valid images

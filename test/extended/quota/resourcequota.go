@@ -87,7 +87,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 		})
 
 		g.It("should properly count the number of persistentvolumeclaims resources [Serial]", func() {
-			testProject := oc.SetupProject()
+			testProject := oc.NewProject()
 			testResourceQuotaName := "my-resource-quota-" + testProject
 			pvcName := "myclaim-" + testProject
 			clusterAdminKubeClient := oc.AdminKubeClient()
@@ -166,7 +166,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 		})
 
 		g.It("check the quota after import-image with --all option [Skipped:Disconnected]", func() {
-			testProject := oc.SetupProject()
+			testProject := oc.NewProject()
 			testResourceQuotaName := "my-imagestream-quota-" + testProject
 			clusterAdminKubeClient := oc.AdminKubeClient()
 

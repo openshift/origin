@@ -15,7 +15,7 @@ import (
 var _ = g.Describe("[sig-cli] oc statefulset", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithPodSecurityLevel("oc-statefulset", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI("oc-statefulset", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("creates and deletes statefulsets", func() {
 		g.By("creating a new service for the statefulset")

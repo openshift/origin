@@ -80,7 +80,7 @@ func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client 
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io][apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithPodSecurityLevel("router-http2", api.LevelBaseline)
+	var oc = exutil.NewCLI("router-http2", exutil.WithPSALevel(api.LevelBaseline))
 
 	// this hook must be registered before the framework namespace teardown
 	// hook

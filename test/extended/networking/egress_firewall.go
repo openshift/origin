@@ -33,7 +33,7 @@ const (
 
 var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 
-	egFwoc := exutil.NewCLIWithPodSecurityLevel(egressFWE2E, admissionapi.LevelPrivileged)
+	egFwoc := exutil.NewCLI(egressFWE2E, exutil.WithPSALevel(admissionapi.LevelPrivileged))
 	egFwf := egFwoc.KubeFramework()
 	mgmtFw := e2e.NewDefaultFramework("mgmt-framework")
 	mgmtFw.SkipNamespaceCreation = true
@@ -54,8 +54,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 			})
 		},
 	)
-
-	noegFwoc := exutil.NewCLIWithPodSecurityLevel(noEgressFWE2E, admissionapi.LevelBaseline)
+	noegFwoc := exutil.NewCLI(noEgressFWE2E, exutil.WithPSALevel(admissionapi.LevelBaseline))
 	noegFwf := noegFwoc.KubeFramework()
 	g.It("egressFirewall should have no impact outside its namespace", func() {
 		g.By("creating test pod")
@@ -94,7 +93,7 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:DNSNameResolver][Feature:Egress
 	// - Merge this section with main section when feature is GA.
 	// - Merge oVNKManifest & oVNKWCManifest contents.
 	// - Update doEgressFwTest and sendEgressFwTraffic functions.
-	wcEgFwOc := exutil.NewCLIWithPodSecurityLevel(wcEgressFWE2E, admissionapi.LevelPrivileged)
+	wcEgFwOc := exutil.NewCLI(wcEgressFWE2E, exutil.WithPSALevel(admissionapi.LevelPrivileged))
 	wcEgFwF := wcEgFwOc.KubeFramework()
 	mgmtFramework := e2e.NewDefaultFramework("mgmt-framework")
 	mgmtFramework.SkipNamespaceCreation = true

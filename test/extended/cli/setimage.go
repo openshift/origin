@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 	var (
 		deploymentConfig = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "test-deployment-config.yaml")
 		imageStream      = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "image-streams", "image-streams-centos7.json")
-		oc               = exutil.NewCLIWithPodSecurityLevel("oc-set-image", admissionapi.LevelBaseline)
+		oc               = exutil.NewCLI("oc-set-image", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.It("can set images for pods and deployments [apigroup:image.openshift.io][apigroup:apps.openshift.io][Skipped:Disconnected]", func() {

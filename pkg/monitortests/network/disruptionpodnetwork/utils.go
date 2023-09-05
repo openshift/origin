@@ -47,7 +47,7 @@ func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.C
 		logrus.WithError(err).Errorf("unable to determine openshift-tests image through exec: %v", errOut.String())
 		// Now try the wrapper to see if it makes a difference
 		if oc == nil {
-			oc = exutil.NewCLIWithoutNamespace("openshift-tests")
+			oc = exutil.NewCLI("openshift-tests", exutil.WithoutNamespace())
 		}
 		outStr, err = oc.Run("adm", "release", "info", suggestedPayloadImage).Args("--image-for=tests").Output()
 		if err != nil {

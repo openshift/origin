@@ -28,7 +28,7 @@ import (
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithPodSecurityLevel("grpc-interop", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI("grpc-interop", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	// this hook must be registered before the framework namespace teardown
 	// hook

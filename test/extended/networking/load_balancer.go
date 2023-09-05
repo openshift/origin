@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-network] load balancer", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("load-balancer", admissionapi.LevelPrivileged)
+		oc = exutil.NewCLI("load-balancer", exutil.WithPSALevel(admissionapi.LevelPrivileged))
 	)
 
 	g.It("should be managed by OpenShift", func() {

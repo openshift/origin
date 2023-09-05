@@ -20,7 +20,7 @@ import (
 var _ = g.Describe("[sig-instrumentation][sig-builds][Feature:Builds] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("prometheus", admissionapi.LevelBaseline)
+		oc = exutil.NewCLI("prometheus", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.AfterEach(func() {

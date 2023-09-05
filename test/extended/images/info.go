@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageInfo] Image info", func() {
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("image-info", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI("image-info", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.It("should display information about images [apigroup:image.openshift.io]", func() {
 		ns = oc.Namespace()

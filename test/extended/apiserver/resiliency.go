@@ -32,7 +32,8 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 	f := framework.NewDefaultFramework("cluster-resiliency")
 	f.SkipNamespaceCreation = true
 
-	oc := exutil.NewCLIWithoutNamespace("cluster-resiliency")
+	// TODO (soltysh): why we're using two frameworks: one created above, and another in NewCLI
+	oc := exutil.NewCLI("cluster-resiliency", exutil.WithoutNamespace())
 
 	ginkgo.It("should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
 		controlPlaneTopology, _ := single_node.GetTopologies(f)

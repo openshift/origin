@@ -85,7 +85,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		entry.dic.Wait()
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("cli-deployment", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI("cli-deployment", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	var (
 		deploymentFixture               = exutil.FixturePath("testdata", "deployments", "test-deployment-test.yaml")

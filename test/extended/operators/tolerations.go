@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("[sig-arch] Managed cluster should", func() {
-	oc := exutil.NewCLIWithoutNamespace("operators")
+	oc := exutil.NewCLI("operators", exutil.WithoutNamespace())
 
 	It("ensure control plane operators do not make themselves unevictable", func() {
 		// iterate over the references to find valid images

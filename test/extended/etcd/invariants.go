@@ -20,7 +20,8 @@ import (
 
 var _ = g.Describe("[sig-etcd] etcd", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("etcd-invariants").AsAdmin()
+
+	oc := exutil.NewCLI("etcd-invariants", exutil.WithoutNamespace()).AsAdmin()
 
 	g.It("cluster has the same number of master nodes and voting members from the endpoints configmap [Early][apigroup:config.openshift.io]", func() {
 		exutil.SkipIfExternalControlplaneTopology(oc, "clusters with external controlplane topology don't have master nodes")

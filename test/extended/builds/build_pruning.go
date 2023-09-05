@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] prune builds based on settings 
 		failedBuildConfig     = filepath.Join(buildPruningBaseDir, "failed-build-config.yaml")
 		erroredBuildConfig    = filepath.Join(buildPruningBaseDir, "errored-build-config.yaml")
 		groupBuildConfig      = filepath.Join(buildPruningBaseDir, "default-group-build-config.yaml")
-		oc                    = exutil.NewCLIWithPodSecurityLevel("build-pruning", admissionapi.LevelBaseline)
+		oc                    = exutil.NewCLI("build-pruning", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		pollingInterval       = time.Second
 		timeout               = time.Minute
 	)

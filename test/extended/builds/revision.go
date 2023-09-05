@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] build have source revision meta
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-revision.json")
-		oc           = exutil.NewCLIWithPodSecurityLevel("cli-build-revision", admissionapi.LevelBaseline)
+		oc           = exutil.NewCLI("cli-build-revision", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.Context("", func() {

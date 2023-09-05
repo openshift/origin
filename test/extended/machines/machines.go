@@ -36,7 +36,7 @@ const (
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster should", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("control-plane-machines").AsAdmin()
+	oc := exutil.NewCLI("control-plane-machines", exutil.WithoutNamespace()).AsAdmin()
 
 	var cfg *rest.Config
 	var c *kubernetes.Clientset

@@ -42,7 +42,7 @@ type h2specFailingTest struct {
 var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Router][apigroup:route.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithPodSecurityLevel("router-h2spec", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI("router-h2spec", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	// this hook must be registered before the framework namespace teardown
 	// hook

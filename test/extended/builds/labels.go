@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] result image should have proper
 		imageStreamFixture = exutil.FixturePath("testdata", "builds", "test-image-stream.json")
 		stiBuildFixture    = exutil.FixturePath("testdata", "builds", "test-s2i-build.json")
 		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build.json")
-		oc                 = exutil.NewCLIWithPodSecurityLevel("build-sti-labels", admissionapi.LevelBaseline)
+		oc                 = exutil.NewCLI("build-sti-labels", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	)
 
 	g.Context("", func() {

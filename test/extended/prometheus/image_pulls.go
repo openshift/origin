@@ -39,7 +39,7 @@ func (t *ImagePullsAreFast) Test(ctx context.Context, f *framework.Framework, do
 
 	g.By(fmt.Sprintf("verifying that pull durations do not exceed %s", t.threshold))
 
-	oc := exutil.NewCLIWithFramework(f)
+	oc := exutil.NewCLI("default", exutil.WithFramework(f))
 
 	// we only consider samples since the beginning of the test
 	testDuration := exutil.DurationSinceStartInSeconds().String()

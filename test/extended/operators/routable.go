@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("operators-routable", admissionapi.LevelBaseline)
+		oc = exutil.NewCLI("operators-routable", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 		// routeHostWait is how long to wait for routes to be assigned a host
 		routeHostWait = 30 * time.Second

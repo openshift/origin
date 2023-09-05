@@ -18,7 +18,7 @@ import (
 )
 
 var _ = Describe("[sig-arch] Managed cluster", func() {
-	oc := exutil.NewCLIWithoutNamespace("operators")
+	oc := exutil.NewCLI("operators", exutil.WithoutNamespace())
 	It("should ensure pods use downstream images from our release image with proper ImagePullPolicy [apigroup:config.openshift.io]", func() {
 		imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
 		if err != nil {

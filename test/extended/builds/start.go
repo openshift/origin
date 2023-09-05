@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 		symlinkFixture     = exutil.FixturePath("testdata", "builds", "test-symlink-build.yaml")
 		exampleGemfileURL  = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
 		exampleArchiveURL  = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
-		oc                 = exutil.NewCLIWithPodSecurityLevel("cli-start-build", admissionapi.LevelBaseline)
+		oc                 = exutil.NewCLI("cli-start-build", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		verifyNodeSelector = func(oc *exutil.CLI, name string) {
 			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), name+"-build", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())

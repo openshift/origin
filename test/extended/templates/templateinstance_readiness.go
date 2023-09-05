@@ -29,7 +29,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance readiness te
 	defer g.GinkgoRecover()
 
 	var (
-		cli              = exutil.NewCLIWithPodSecurityLevel("templates", admissionapi.LevelBaseline)
+		cli              = exutil.NewCLI("templates", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		template         *templatev1.Template
 		templateinstance *templatev1.TemplateInstance
 		templatefixture  = exutil.FixturePath("testdata", "templates", "templateinstance_readiness.yaml")

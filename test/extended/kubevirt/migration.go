@@ -17,7 +17,7 @@ import (
 )
 
 var _ = Describe("[sig-kubevirt] migration", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("ns-global", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI("ns-global", exutil.WithPSALevel(admissionapi.LevelBaseline))
 	InKubeVirtClusterContext(oc, func() {
 		mgmtFramework := e2e.NewDefaultFramework("mgmt-framework")
 		mgmtFramework.SkipNamespaceCreation = true

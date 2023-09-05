@@ -47,7 +47,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("router-stress", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI("router-stress", exutil.WithPSALevel(admissionapi.LevelBaseline))
 
 	g.BeforeEach(func() {
 		var err error

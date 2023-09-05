@@ -17,7 +17,7 @@ var _ = g.Describe("[sig-imageregistry][Serial] Image signature workflow", func(
 	defer g.GinkgoRecover()
 
 	var (
-		oc                 = exutil.NewCLIWithPodSecurityLevel("registry-signing", admissionapi.LevelBaseline)
+		oc                 = exutil.NewCLI("registry-signing", exutil.WithPSALevel(admissionapi.LevelBaseline))
 		signerBuildFixture = exutil.FixturePath("testdata", "signer-buildconfig.yaml")
 	)
 

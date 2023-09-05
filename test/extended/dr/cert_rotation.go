@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certro
 	defer g.GinkgoRecover()
 
 	ctx := context.TODO()
-	oc := exutil.NewCLIWithoutNamespace("etcd-certs").AsAdmin()
+	oc := exutil.NewCLI("etcd-certs", exutil.WithoutNamespace()).AsAdmin()
 
 	g.BeforeEach(func() {
 		// we need to ensure this test always begins with a stable revision for api and etcd

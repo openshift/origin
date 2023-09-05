@@ -24,7 +24,7 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 
 	var (
 		ntoNamespace        = "openshift-cluster-node-tuning-operator"
-		oc                  = exutil.NewCLIWithoutNamespace("nto").AsAdmin()
+		oc                  = exutil.NewCLI("nto", exutil.WithoutNamespace()).AsAdmin()
 		buildPruningBaseDir = exutil.FixturePath("testdata", "node_tuning")
 		ntoStalldFile       = filepath.Join(buildPruningBaseDir, "nto-stalld.yaml")
 		stalldCurrentPID    string
