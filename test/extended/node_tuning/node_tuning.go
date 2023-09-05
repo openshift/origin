@@ -58,8 +58,9 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 
 		// Assert if profile applied to label node with re-try
 		o.Eventually(func() bool {
-			appliedStatus, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ntoNamespace, "profile", firstCoreOSWorkerNodes, `-ojsonpath='{.status.conditions[?(@.type=="Applied")].status}'`).Output()
-			if err != nil || strings.Contains(appliedStatus, "False") || strings.Contains(appliedStatus, "Unknown") {
+			appliedStatus, err1 := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ntoNamespace, "profile", firstCoreOSWorkerNodes, `-ojsonpath='{.status.conditions[?(@.type=="Applied")].status}'`).Output()
+			tunedProfile, err2 := oc.AsAdmin().WithoutNamespace().Run("get").Args("-n", ntoNamespace, "profile", firstCoreOSWorkerNodes, "-ojsonpath={.status.tunedProfile}").Output()
+			if err1 != nil || err2 != nil || strings.Contains(appliedStatus, "False") || strings.Contains(appliedStatus, "Unknown") || tunedProfile != "openshift-stalld" {
 				e2e.Logf("failed to apply custom profile to nodes, the status is %s and %v, check again", appliedStatus, err)
 			}
 			return strings.Contains(appliedStatus, "True")
