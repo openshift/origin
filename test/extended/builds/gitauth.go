@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] can use private repositor
 
 	var (
 		testBuildFixture = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
-		oc               = exutil.NewCLI("build-s2i-private-repo")
+		oc               = exutil.NewCLI(exutil.CliOptions{BaseName: "build-s2i-private-repo"})
 	)
 
 	g.Context("", func() {

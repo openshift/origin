@@ -12,7 +12,7 @@ import (
 var _ = g.Describe("[sig-cli] oc run", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLIWithPodSecurityLevel("oc-run", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-run", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	g.It("can use --image flag correctly [apigroup:apps.openshift.io]", func() {
 		_, err := oc.Run("create").Args("deploymentconfig", "newdcforimage", "--image=validimagevalue").Output()

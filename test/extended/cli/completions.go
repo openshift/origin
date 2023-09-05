@@ -10,7 +10,7 @@ import (
 var _ = g.Describe("[sig-cli] oc completion", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("oc-completion")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-completion"})
 
 	g.It("returns expected help messages", func() {
 		out, err := oc.Run("completion").Args("-h").Output()

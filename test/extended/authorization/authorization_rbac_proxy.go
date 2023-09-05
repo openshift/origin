@@ -28,7 +28,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("rbac-proxy")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "rbac-proxy"})
 	g.Context("", func() {
 		g.Describe("RunLegacyLocalRoleBindingEndpoint", func() {
 			g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io]"), func() {

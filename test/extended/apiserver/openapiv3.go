@@ -25,7 +25,7 @@ import (
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("apiserver-openapi")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "apiserver-openapi", WithoutNamespace: true})
 
 	g.It("should serve openapi v3 discovery", func() {
 		transport, err := rest.TransportFor(oc.AdminConfig())

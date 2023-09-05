@@ -20,7 +20,7 @@ import (
 
 var _ = g.Describe("[sig-network][Feature:Whereabouts]", func() {
 
-	oc := exutil.NewCLIWithPodSecurityLevel("whereabouts-e2e", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "whereabouts-e2e", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	// Whereabouts is already installed in Origin. These tests aims to verify the integrity of the installation.
 

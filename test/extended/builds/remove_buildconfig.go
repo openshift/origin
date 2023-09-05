@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] remove all builds when build co
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "builds", "test-build.yaml")
-		oc           = exutil.NewCLI("cli-remove-build")
+		oc           = exutil.NewCLI(exutil.CliOptions{BaseName: "cli-remove-build"})
 	)
 
 	g.Context("", func() {

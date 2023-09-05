@@ -25,7 +25,7 @@ import (
 
 var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("templates")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "templates"})
 
 	g.It("TestTemplate [apigroup:template.openshift.io]", func() {
 		t := g.GinkgoT()
@@ -97,7 +97,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 
 var _ = g.Describe("[sig-devex][Feature:Templates] template-api", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("templates")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "templates"})
 
 	g.It("TestTemplateTransformationFromConfig [apigroup:template.openshift.io]", func() {
 		t := g.GinkgoT()

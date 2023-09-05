@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	"github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 type serializedTest struct {
@@ -73,7 +72,8 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 		return "", fmt.Errorf("cannot create temporary directory for extracted binary: %w", err)
 	}
 
-	oc := util.NewCLIWithoutNamespace("default")
+	// TODO (soltysh): this should be replaced with exutil.DetermineImageFromRelease from https://github.com/openshift/origin/pull/28240
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "default", WithoutNamespace: true})
 	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("failed reading ClusterVersion/version: %w", err)
@@ -91,7 +91,7 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 		return "", fmt.Errorf("failed reading image-references: %w", err)
 	}
 	defer jsonFile.Close()
-	data, err := ioutil.ReadAll(jsonFile)
+	data, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return "", fmt.Errorf("unable to load release image-references: %w", err)
 	}
@@ -126,6 +126,6 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 
 // runImageExtract extracts src from specified image to dst
 func runImageExtract(image, src, dst string) error {
-	cmd := exec.Command("oc", "--kubeconfig="+util.KubeConfigPath(), "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm")
+	cmd := exec.Command("oc", "--kubeconfig="+exutil.KubeConfigPath(), "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm")
 	return cmd.Run()
 }

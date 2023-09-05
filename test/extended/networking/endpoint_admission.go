@@ -23,7 +23,7 @@ import (
 
 var _ = g.Describe("[sig-network][endpoints] admission [apigroup:config.openshift.io]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("endpoint-admission")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "endpoint-admission"})
 
 	var clusterAdminKubeClient, projectAdminClient kubernetes.Interface
 	var clusterIP, serviceIP string

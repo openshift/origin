@@ -31,7 +31,7 @@ func (t *MetricsAvailableAfterUpgradeTest) DisplayName() string {
 }
 
 func (t *MetricsAvailableAfterUpgradeTest) Setup(ctx context.Context, f *e2e.Framework) {
-	oc := exutil.NewCLIWithFramework(f)
+	oc := exutil.NewCLI(exutil.CliOptions{KubeFramework: f})
 
 	g.By("getting the prometheus_build_info metric before the upgrade")
 	preUpgradeQuery := `prometheus_build_info{pod="prometheus-k8s-0"}`
@@ -45,7 +45,7 @@ func (t *MetricsAvailableAfterUpgradeTest) Setup(ctx context.Context, f *e2e.Fra
 func (t *MetricsAvailableAfterUpgradeTest) Test(ctx context.Context, f *e2e.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	<-done
 
-	oc := exutil.NewCLIWithFramework(f)
+	oc := exutil.NewCLI(exutil.CliOptions{KubeFramework: f})
 
 	g.By("verifying that the timeseries is queryable at the same timestamp after the upgrade")
 	postUpgradeQuery := `prometheus_build_info{pod="prometheus-k8s-0"}`

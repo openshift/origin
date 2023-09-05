@@ -29,7 +29,7 @@ const (
 var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota][Serial][Suite:openshift/registry/serial] Image limit range [apigroup:config.openshift.io][apigroup:image.openshift.io][apigroup:operator.openshift.io]", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("limitrange-admission")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "limitrange-admission"})
 
 	g.BeforeEach(func() {
 		_, err := exutil.WaitForInternalRegistryHostname(oc)

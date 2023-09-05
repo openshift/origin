@@ -26,7 +26,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP IDP", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("oauth-ldap-idp", admissionapi.LevelPrivileged)
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "oauth-ldap-idp", PodSecurityEnforceLevel: admissionapi.LevelPrivileged})
 
 		bindDN         = "cn=Manager,dc=example,dc=com"
 		bindPassword   = "admin"

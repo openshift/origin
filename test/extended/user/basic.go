@@ -23,7 +23,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:UserAPI]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("user-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "user-api"})
 
 	g.It("users can manipulate groups [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]", func() {
 		t := g.GinkgoT()

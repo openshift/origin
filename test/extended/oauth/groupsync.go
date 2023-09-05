@@ -33,7 +33,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:LDAP][Serial] ldap group sync", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("ldap-group-sync", admissionapi.LevelPrivileged).AsAdmin()
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "ldap-group-sync", PodSecurityEnforceLevel: admissionapi.LevelPrivileged}).AsAdmin()
 	)
 
 	g.It("can sync groups from ldap [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:security.openshift.io]", func() {

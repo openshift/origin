@@ -18,7 +18,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphe
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLI("baremetal")
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "baremetal"})
 	)
 
 	g.It("have a metal3 deployment", func() {
@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal/OpenStack/vSphe
 var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("baremetal")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "baremetal"})
 
 	g.BeforeEach(func() {
 		skipIfNotBaremetal(oc)
@@ -151,7 +151,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	defer g.GinkgoRecover()
 
 	var (
-		oc     = exutil.NewCLI("baremetal")
+		oc     = exutil.NewCLI(exutil.CliOptions{BaseName: "baremetal"})
 		helper *BaremetalTestHelper
 	)
 

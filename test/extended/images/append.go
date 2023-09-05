@@ -80,7 +80,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("image-append", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI(exutil.CliOptions{BaseName: "image-append", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	g.It("should create images by appending them [apigroup:image.openshift.io]", func() {
 		is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(context.Background(), "tools", metav1.GetOptions{})

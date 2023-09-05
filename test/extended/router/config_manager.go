@@ -46,7 +46,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 		}
 	})
 
-	oc = exutil.NewCLI("router-config-manager")
+	oc = exutil.NewCLI(exutil.CliOptions{BaseName: "router-config-manager"})
 
 	g.BeforeEach(func() {
 		// the test has been skipped since July 2018 because it was flaking.

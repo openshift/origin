@@ -32,7 +32,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance security tes
 	defer g.GinkgoRecover()
 
 	var (
-		cli = exutil.NewCLI("templates")
+		cli = exutil.NewCLI(exutil.CliOptions{BaseName: "templates"})
 
 		adminuser, edituser, editbygroupuser *userv1.User
 		editgroup                            *userv1.Group

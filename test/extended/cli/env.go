@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-cli] oc env", func() {
 	var (
 		file            = exutil.FixturePath("testdata", "test-deployment-config.yaml")
 		buildConfigFile = exutil.FixturePath("testdata", "test-buildcli.json")
-		oc              = exutil.NewCLI("oc-env")
+		oc              = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-env"})
 	)
 
 	g.It("can set environment variables [apigroup:apps.openshift.io][apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {

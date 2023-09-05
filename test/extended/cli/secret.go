@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-cli] oc secret", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc       = exutil.NewCLI("oc-secret")
+		oc       = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-secret"})
 		testData = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "resource-builder")
 	)
 

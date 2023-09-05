@@ -23,7 +23,7 @@ import (
 var _ = g.Describe("[sig-arch][Late]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("api-requests")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "api-requests", WithoutNamespace: true})
 
 	g.It("clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]", func() {
 		ctx := context.Background()

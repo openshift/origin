@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-cli] oc expose", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                  = exutil.NewCLI("oc-expose")
+		oc                  = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-expose"})
 		externalServiceFile = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "external-service.yaml")
 		multiportSvcFile    = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "multiport-service.yaml")
 	)

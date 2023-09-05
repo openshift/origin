@@ -198,7 +198,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift m
 	defer g.GinkgoRecover()
 	g.Skip("db replica tests are currently flaky and disabled")
 
-	var oc = exutil.NewCLI("mysql-replication")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "mysql-replication"})
 	var pvs = []*kapiv1.PersistentVolume{}
 	var nfspod = &kapiv1.Pod{}
 	var cleanup = func() {

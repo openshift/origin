@@ -28,7 +28,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "project-api"})
 	ctx := context.Background()
 
 	g.Describe("TestProjectIsNamespace", func() {
@@ -92,7 +92,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "project-api"})
 
 	g.Describe("TestProjectWatch", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]"), func() {
@@ -155,7 +155,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "project-api"})
 
 	g.Describe("TestProjectWatchWithSelectionPredicate", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:project.openshift.io][apigroup:authorization.openshift.io][apigroup:user.openshift.io]"), func() {
@@ -337,7 +337,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "project-api"})
 
 	g.Describe("TestScopedProjectAccess", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:project.openshift.io][apigroup:authorization.openshift.io]"), func() {
@@ -455,7 +455,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "project-api"})
 
 	g.Describe("TestInvalidRoleRefs", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:authorization.openshift.io][apigroup:user.openshift.io][apigroup:project.openshift.io]"), func() {

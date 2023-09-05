@@ -21,7 +21,7 @@ const (
 var _ = g.Describe("[sig-storage][Late] Metrics", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithoutNamespace("prometheus")
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "prometheus", WithoutNamespace: true})
 
 		url, bearerToken string
 	)

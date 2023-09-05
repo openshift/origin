@@ -19,7 +19,7 @@ import (
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("apiserver")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "apiserver"})
 
 	g.It("validates APIServer in config.openshift.io/v1", func() {
 		client, err := dynamic.NewForConfig(oc.AdminConfig())

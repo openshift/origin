@@ -357,7 +357,9 @@ func setMgmtFramework(mgmtFramework *e2e.Framework) *exutil.CLI {
 	_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 	Expect(err).NotTo(HaveOccurred())
 
-	oc := exutil.NewHypershiftManagementCLI(hcpNamespace).AsAdmin()
+	// TODO (soltysh): this is wrong, since the hcpNamespace here is only a prefix
+	// not an actually used namespace
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: hcpNamespace}).AsAdmin()
 
 	mgmtClientSet := oc.KubeClient()
 	mgmtFramework.Namespace = &corev1.Namespace{

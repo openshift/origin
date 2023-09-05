@@ -58,7 +58,7 @@ func getServiceAccountToken(client kubernetes.Interface, ns, name string) (strin
 
 var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("pull-secrets")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "pull-secrets"})
 
 	g.It("TestAutomaticCreationOfPullSecrets [apigroup:config.openshift.io][apigroup:image.openshift.io]", func() {
 		t := g.GinkgoT()
@@ -120,7 +120,7 @@ func getServiceAccountPullSecret(client kubernetes.Interface, ns, name string) (
 
 var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("pull-secrets")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "pull-secrets"})
 
 	g.AfterEach(func() {
 		if g.CurrentSpecReport().Failed() {

@@ -16,7 +16,7 @@ import (
 var _ = g.Describe("[sig-cli] oc status", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("oc-status")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-status"})
 
 	g.It("returns expected help messages [apigroup:project.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:apps.openshift.io][apigroup:route.openshift.io]", func() {
 		out, err := oc.Run("status").Args("-h").Output()

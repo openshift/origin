@@ -76,7 +76,7 @@ var (
 var _ = g.Describe("[sig-node] Managed cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("managed-cluster-node", psapi.LevelPrivileged).AsAdmin()
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "managed-cluster-node", PodSecurityEnforceLevel: psapi.LevelPrivileged}).AsAdmin()
 	)
 
 	var staticNodeNames []string

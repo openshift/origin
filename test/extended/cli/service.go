@@ -13,7 +13,7 @@ import (
 var _ = g.Describe("[sig-cli] oc service", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("oc-service")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-service"})
 
 	g.It("creates and deletes services", func() {
 		err := oc.Run("get").Args("services").Execute()

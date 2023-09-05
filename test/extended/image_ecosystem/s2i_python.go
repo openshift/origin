@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][python][Slow] hot deploy
 	defer g.GinkgoRecover()
 
 	var (
-		oc             = exutil.NewCLI("s2i-python")
+		oc             = exutil.NewCLI(exutil.CliOptions{BaseName: "s2i-python"})
 		djangoTemplate = "django-psql-example"
 		modifyCommand  = []string{"sed", "-ie", `s/'count': PageView.objects.count()/'count': 1337/`, "welcome/views.py"}
 		pageCountFn    = func(count int) string { return fmt.Sprintf("Page views: %d", count) }

@@ -9,7 +9,7 @@ import (
 var _ = g.Describe("[sig-devex] check registry.redhat.io is available and samples operator can import sample imagestreams", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("samples-health-check")
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "samples-health-check"})
 	)
 	g.It("run sample related validations [apigroup:config.openshift.io][apigroup:image.openshift.io]", func() {
 		err := exutil.WaitForOpenShiftNamespaceImageStreams(oc)

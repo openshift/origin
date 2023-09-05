@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 	defer g.GinkgoRecover()
 
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("router-idling", admissionapi.LevelBaseline)
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "router-idling", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 	)
 
 	// this hook must be registered before the framework namespace teardown

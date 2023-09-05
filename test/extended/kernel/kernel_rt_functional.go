@@ -9,7 +9,7 @@ import (
 var _ = g.Describe("[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow", g.Ordered, func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI(rtNamespace).AsAdmin()
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: rtNamespace}).AsAdmin()
 	)
 
 	g.BeforeAll(func() {

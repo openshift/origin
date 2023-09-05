@@ -54,7 +54,7 @@ func setupLocalAPIClientset() *apiextensionsclientset.Clientset {
 	if err != nil {
 		fmt.Printf("Error setting KUBECONFIG: %s", err)
 	}
-	oc := exutil.NewCLI("default")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "default"})
 	local_client := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
 	return local_client
 }

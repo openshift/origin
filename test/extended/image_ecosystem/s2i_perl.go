@@ -41,7 +41,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy f
 	var (
 		appSource     = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy")
 		perlTemplate  = exutil.FixturePath("testdata", "image_ecosystem", "perl-hotdeploy", "perl.json")
-		oc            = exutil.NewCLI("s2i-perl")
+		oc            = exutil.NewCLI(exutil.CliOptions{BaseName: "s2i-perl"})
 		modifyCommand = []string{"sed", "-ie", `s/initial value/modified value/`, "lib/My/Test.pm"}
 		dcName        = "perl"
 		rcNameOne     = fmt.Sprintf("%s-1", dcName)

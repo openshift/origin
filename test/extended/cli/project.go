@@ -16,7 +16,7 @@ import (
 var _ = g.Describe("[sig-cli] oc project", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("oc-project").AsAdmin()
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-project"}).AsAdmin()
 
 	g.It("--show-labels works for projects [apigroup:project.openshift.io]", func() {
 		out, err := oc.Run("label").Args("namespace", oc.Namespace(), "foo=bar").Output()

@@ -50,7 +50,7 @@ func validateFIPSOnNode(oc *exutil.CLI, fipsExpected bool, node *corev1.Node) er
 
 var _ = g.Describe("[sig-arch] [Conformance] FIPS", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("fips", admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "fips", PodSecurityEnforceLevel: admissionapi.LevelPrivileged})
 
 	g.It("TestFIPS", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)

@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("[sig-network] network isolation", func() {
-	oc := exutil.NewCLI("ns-global")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "ns-global"})
 
 	InNonIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-isolation1")

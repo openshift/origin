@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance object kinds
 
 	var (
 		fixture = exutil.FixturePath("testdata", "templates", "templateinstance_objectkinds.yaml")
-		cli     = exutil.NewCLI("templates")
+		cli     = exutil.NewCLI(exutil.CliOptions{BaseName: "templates"})
 	)
 
 	g.It("should create and delete objects from varying API groups [apigroup:template.openshift.io][apigroup:route.openshift.io]", func() {

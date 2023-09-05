@@ -18,7 +18,8 @@ const (
 
 var _ = g.Describe("[sig-scalability][Feature:Performance][Serial][Slow] Load cluster", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLIWithoutNamespace("cl")
+
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "cl", WithoutNamespace: true})
 
 	g.It("concurrently with templates", func() {
 		var namespaces []string

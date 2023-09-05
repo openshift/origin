@@ -25,7 +25,7 @@ import (
 )
 
 var _ = Describe("[sig-network] multicast", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("multicast", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "multicast", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	// The subnet plugin should block all multicast. The multitenant and networkpolicy
 	// plugins should implement multicast in the way that we test. For third-party
@@ -34,7 +34,7 @@ var _ = Describe("[sig-network] multicast", func() {
 	InopenshiftSDNModeContext([]string{networkutils.SingleTenantPluginName},
 		func() {
 			It("should block multicast traffic", func() {
-				oc := exutil.NewCLI("multicast")
+				oc := exutil.NewCLI(exutil.CliOptions{BaseName: "multicast"})
 				f := oc.KubeFramework()
 				Expect(testMulticast(f, oc)).NotTo(Succeed())
 			})

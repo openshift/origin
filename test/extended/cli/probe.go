@@ -16,7 +16,7 @@ var _ = g.Describe("[sig-cli] oc probe", func() {
 
 	var (
 		deploymentConfig = exutil.FixturePath("testdata", "test-deployment-config.yaml")
-		oc               = exutil.NewCLIWithPodSecurityLevel("oc-probe", admissionapi.LevelBaseline)
+		oc               = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-probe", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 	)
 
 	g.It("can ensure the probe command is functioning as expected on pods", func() {

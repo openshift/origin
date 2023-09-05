@@ -34,7 +34,7 @@ type testCaseRedirectURIs struct {
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] [apigroup:oauth.openshift.io]", func() {
 	g.Describe("OAuthClientWithRedirectURIs", func() {
 		ctx := context.Background()
-		oc := exutil.NewCLI("oauthclient-with-redirect-uris")
+		oc := exutil.NewCLI(exutil.CliOptions{BaseName: "oauthclient-with-redirect-uris"})
 		httpClient := &http.Client{
 			Transport: &http.Transport{
 				Proxy:           http.ProxyFromEnvironment,

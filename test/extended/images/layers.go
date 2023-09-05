@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("image-layers", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI(exutil.CliOptions{BaseName: "image-layers", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	g.It("should identify a deleted image as missing [apigroup:image.openshift.io]", func() {
 		client := oc.AdminImageClient().ImageV1()

@@ -18,7 +18,7 @@ const kuberControllerNamespace = "openshift-kube-controller-manager"
 
 var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager][Late]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("ccm")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "ccm"})
 
 	g.It("Deploy an external cloud provider [apigroup:machineconfiguration.openshift.io]", func() {
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})

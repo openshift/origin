@@ -27,7 +27,7 @@ var authzToken, sha256AuthzToken = exutil.GenerateOAuthTokenPair()
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("oauthclient-secret-with-plus")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "oauthclient-secret-with-plus"})
 	ctx := context.Background()
 
 	g.Describe("ClientSecretWithPlus", func() {

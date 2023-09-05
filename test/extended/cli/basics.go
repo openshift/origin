@@ -28,7 +28,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                   = exutil.NewCLIWithPodSecurityLevel("oc-basics", admissionapi.LevelBaseline)
+		oc                   = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-basics", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 		cmdTestData          = exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata")
 		mixedAPIVersionsFile = exutil.FixturePath("testdata", "mixed-api-versions.yaml")
 		oauthAccessTokenFile = filepath.Join(cmdTestData, "oauthaccesstoken.yaml")

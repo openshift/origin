@@ -96,7 +96,7 @@ func clearTransient(dc *appsv1.DeploymentConfig) {
 
 var _ = g.Describe("[sig-apps][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("deployment-defaults")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "deployment-defaults"})
 
 	g.It("TestDeploymentConfigDefaults [apigroup:apps.openshift.io]", func() {
 		t := g.GinkgoT()

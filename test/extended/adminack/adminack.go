@@ -14,7 +14,7 @@ import (
 
 var _ = g.Describe("[sig-cluster-lifecycle]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("cli-deployment")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "cli-deployment"})
 
 	g.Describe("TestAdminAck", func() {
 		g.It("should succeed [apigroup:config.openshift.io]", func() {

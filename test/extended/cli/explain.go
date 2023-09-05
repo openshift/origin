@@ -527,7 +527,7 @@ func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
 var _ = g.Describe("[sig-cli] oc explain", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-explain")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "oc-explain"})
 
 	g.It("list uncovered GroupVersionResources", func() {
 		crdTypes := getCrdTypes(oc)
@@ -662,7 +662,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 var _ = g.Describe("[sig-cli] oc explain networking types", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-explain")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "oc-explain"})
 
 	networking.InOpenShiftSDNContext(func() {
 		g.It("should contain proper fields description for special networking types", func() {

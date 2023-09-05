@@ -33,7 +33,7 @@ const QuotaWaitTimeout = time.Minute
 
 var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("crq")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "crq"})
 
 	g.Describe("Cluster resource quota", func() {
 		g.It(fmt.Sprintf("should control resource limits across namespaces [apigroup:quota.openshift.io][apigroup:image.openshift.io][apigroup:monitoring.coreos.com][apigroup:template.openshift.io]"), func() {

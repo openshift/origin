@@ -28,7 +28,7 @@ import (
 var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-adm-must-gather").AsAdmin()
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "oc-adm-must-gather"}).AsAdmin()
 
 	g.JustBeforeEach(func() {
 		// wait for the default service account to be avaiable

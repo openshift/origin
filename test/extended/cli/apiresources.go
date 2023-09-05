@@ -10,7 +10,7 @@ import (
 var _ = g.Describe("[sig-cli] oc api-resources", func() {
 	defer g.GinkgoRecover()
 
-	var oc = exutil.NewCLI("oc-api-resources")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-api-resources"})
 
 	g.It("can output expected information about api-resources", func() {
 		out, err := oc.Run("api-resources").Output()

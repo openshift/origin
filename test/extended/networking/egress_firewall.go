@@ -30,7 +30,7 @@ const (
 
 var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 
-	egFwoc := exutil.NewCLIWithPodSecurityLevel(egressFWE2E, admissionapi.LevelPrivileged)
+	egFwoc := exutil.NewCLI(exutil.CliOptions{BaseName: egressFWE2E, PodSecurityEnforceLevel: admissionapi.LevelPrivileged})
 	egFwf := egFwoc.KubeFramework()
 
 	// The OVNKubernetes subnet plugin supports EgressFirewall objects.
@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 			})
 		},
 	)
-	noegFwoc := exutil.NewCLIWithPodSecurityLevel(noEgressFWE2E, admissionapi.LevelBaseline)
+	noegFwoc := exutil.NewCLI(exutil.CliOptions{BaseName: noEgressFWE2E, PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 	noegFwf := noegFwoc.KubeFramework()
 	g.It("egressFirewall should have no impact outside its namespace", func() {
 		g.By("creating test pod")

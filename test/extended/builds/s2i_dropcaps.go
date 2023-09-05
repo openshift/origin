@@ -14,7 +14,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] Capabilities should be dr
 	var (
 		s2ibuilderFixture      = exutil.FixturePath("testdata", "s2i-dropcaps", "rootable-ruby")
 		rootAccessBuildFixture = exutil.FixturePath("testdata", "s2i-dropcaps", "root-access-build.yaml")
-		oc                     = exutil.NewCLI("build-s2i-dropcaps")
+		oc                     = exutil.NewCLI(exutil.CliOptions{BaseName: "build-s2i-dropcaps"})
 	)
 
 	g.Context("", func() {

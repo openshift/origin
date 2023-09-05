@@ -28,7 +28,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImagePrune][Serial][Suite:openshift/registry/serial][Local] Image hard prune [apigroup:apps.openshift.io][apigroup:user.openshift.io]", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("prune-images")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "prune-images"})
 	var originalAcceptSchema2 *bool
 	ctx := context.Background()
 

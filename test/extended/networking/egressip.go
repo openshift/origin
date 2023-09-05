@@ -44,7 +44,7 @@ const (
 )
 
 var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.io]", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel(namespacePrefix, admissionapi.LevelPrivileged)
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: namespacePrefix, PodSecurityEnforceLevel: admissionapi.LevelPrivileged})
 	portAllocator := NewPortAllocator(egressIPTargetHostPortMin, egressIPTargetHostPortMax)
 
 	var (

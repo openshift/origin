@@ -21,7 +21,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 	ctx := context.Background()
 
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "project-api"})
 
 	g.It("TestUnprivilegedNewProject [apigroup:project.openshift.io]", func() {
 		t := g.GinkgoT()
@@ -64,7 +64,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 
 var _ = g.Describe("[sig-auth][Feature:ProjectAPI][Serial] ", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("project-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "project-api"})
 	ctx := context.Background()
 
 	g.It("TestUnprivilegedNewProjectDenied [apigroup:authorization.openshift.io][apigroup:project.openshift.io]", func() {

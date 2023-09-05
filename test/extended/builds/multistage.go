@@ -24,7 +24,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds] Multi-stage image builds", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLIWithPodSecurityLevel("build-multistage", admissionapi.LevelBaseline)
+		oc             = exutil.NewCLI(exutil.CliOptions{BaseName: "build-multistage", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 		testDockerfile = fmt.Sprintf(`
 FROM scratch as test
 USER 1001

@@ -20,7 +20,7 @@ import (
 
 var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("job-names")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "job-names"})
 	jobName := os.Getenv("JOB_NAME")
 
 	// If it's an e2e job, we're only interested in the parts that come after e2e, e.g.

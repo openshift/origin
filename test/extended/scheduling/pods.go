@@ -123,7 +123,7 @@ func (p requirePodsOnDifferentNodesTest) run(oc *exutil.CLI) {
 var _ = g.Describe("[sig-scheduling][Early]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("scheduling-pod-check")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "scheduling-pod-check"})
 
 	g.BeforeEach(func() {
 		_, err := exutil.WaitForRouterServiceIP(oc)

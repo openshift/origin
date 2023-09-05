@@ -27,7 +27,7 @@ type stream struct {
 var _ = g.Describe("[sig-coreos] [Conformance] CoreOS bootimages", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("coreos")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "coreos", WithoutNamespace: true})
 
 	g.It("TestBootimagesPresent [apigroup:machineconfiguration.openshift.io]", func() {
 		client := oc.AdminKubeClient()

@@ -65,7 +65,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc                    = exutil.NewCLI("oc-builds").AsAdmin()
+		oc                    = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-builds"}).AsAdmin()
 		testDockerfileContent = fmt.Sprintf("FROM %s", image.ShellImage())
 	)
 

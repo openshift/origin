@@ -25,7 +25,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream admission", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("imagestream-admission")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "imagestream-admission"})
 
 	g.It("TestImageStreamTagsAdmission [apigroup:image.openshift.io]", func() {
 		TestImageStreamTagsAdmission(g.GinkgoT(), oc)

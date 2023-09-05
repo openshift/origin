@@ -49,7 +49,7 @@ var _ = Describe("[sig-network] services", func() {
 		})
 	})
 
-	oc := exutil.NewCLIWithPodSecurityLevel("ns-global", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "ns-global", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	InIsolatingContext(func() {
 		f1 := e2e.NewDefaultFramework("net-services1")

@@ -23,7 +23,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLIWithPodSecurityLevel("resolve-local-names", admissionapi.LevelBaseline)
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "resolve-local-names", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 	one := int64(0)
 	ctx := context.Background()
 

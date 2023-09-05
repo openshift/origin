@@ -11,7 +11,7 @@ import (
 var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("oc-request-timeout")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "oc-request-timeout"})
 
 	g.It("works as expected [apigroup:apps.openshift.io]", func() {
 		busyBoxImage := k8simage.GetE2EImage(k8simage.BusyBox)

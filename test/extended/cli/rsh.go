@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-cli] oc rsh", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		oc        = exutil.NewCLIWithPodSecurityLevel("oc-rsh", admissionapi.LevelBaseline)
+		oc        = exutil.NewCLI(exutil.CliOptions{BaseName: "oc-rsh", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 		podsLabel = exutil.ParseLabelsOrDie("name=hello-busybox")
 	)
 

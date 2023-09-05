@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using pull secrets in a b
 		exampleBuild    = exutil.FixturePath("testdata", "builds", "test-docker-app")
 		linkedBuild     = exutil.FixturePath("testdata", "builds", "pullsecret", "linked-nodejs-bc.yaml")
 		pullSecretBuild = exutil.FixturePath("testdata", "builds", "pullsecret", "pullsecret-nodejs-bc.yaml")
-		oc              = exutil.NewCLI("cli-pullsecret-build")
+		oc              = exutil.NewCLI(exutil.CliOptions{BaseName: "cli-pullsecret-build"})
 	)
 
 	g.Context("", func() {

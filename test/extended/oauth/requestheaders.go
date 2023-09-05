@@ -59,7 +59,7 @@ type certAuthTest struct {
 }
 
 var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
-	var oc = exutil.NewCLI("request-headers")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "request-headers"})
 
 	g.It("test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io][apigroup:apps.openshift.io]", func() {
 

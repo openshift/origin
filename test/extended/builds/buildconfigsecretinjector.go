@@ -12,7 +12,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds] buildconfig secret injector", f
 
 	var (
 		itemsPath = exutil.FixturePath("testdata", "builds", "test-buildconfigsecretinjector.yaml")
-		oc        = exutil.NewCLI("buildconfigsecretinjector")
+		oc        = exutil.NewCLI(exutil.CliOptions{BaseName: "buildconfigsecretinjector"})
 	)
 
 	g.Context("", func() {

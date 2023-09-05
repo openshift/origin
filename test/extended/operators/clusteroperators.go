@@ -43,7 +43,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 		"support",
 	)
 
-	oc := exutil.NewCLIWithoutNamespace("clusteroperators")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "clusteroperators", WithoutNamespace: true})
 
 	g.BeforeEach(func() {
 		clusterOperatorsList, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
@@ -61,7 +61,7 @@ var _ = g.Describe("[sig-arch] ClusterOperators [apigroup:config.openshift.io]",
 
 		})
 
-		oc := exutil.NewCLI("clusteroperators")
+		oc := exutil.NewCLI(exutil.CliOptions{BaseName: "clusteroperators"})
 		g.Specify("at least one related object that is not a namespace", func() {
 			controlplaneTopology, err := exutil.GetControlPlaneTopology(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())

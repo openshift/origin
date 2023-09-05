@@ -30,7 +30,7 @@ const (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageQuota] Image resource quota", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLI("resourcequota-admission")
+	var oc = exutil.NewCLI(exutil.CliOptions{BaseName: "resourcequota-admission"})
 
 	g.It(fmt.Sprintf("should deny a push of built image exceeding %s quota [apigroup:image.openshift.io]", imagev1.ResourceImageStreams), func() {
 		g.Skip("TODO: determine why this test is not skipped/fails on 4.0 clusters")

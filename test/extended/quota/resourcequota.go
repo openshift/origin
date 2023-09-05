@@ -21,7 +21,7 @@ import (
 
 var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("object-count-rq")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "object-count-rq"})
 
 	g.Describe("Object count", func() {
 		g.It(fmt.Sprintf("should properly count the number of imagestreams resources [apigroup:image.openshift.io]"), func() {

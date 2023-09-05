@@ -20,7 +20,7 @@ import (
 const nodeLabelSelectorWorker = "node-role.kubernetes.io/worker"
 
 var _ = g.Describe("[sig-network][Feature:tap]", func() {
-	oc := exutil.NewCLI("tap")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "tap"})
 	f := oc.KubeFramework()
 	var worker *corev1.Node
 	var isCUDDisabled bool

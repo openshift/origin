@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	defer g.GinkgoRecover()
 
 	var (
-		oc     = exutil.NewCLI("baremetal")
+		oc     = exutil.NewCLI(exutil.CliOptions{BaseName: "baremetal"})
 		helper *BaremetalTestHelper
 	)
 

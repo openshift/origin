@@ -26,7 +26,7 @@ func (UpgradeTest) DisplayName() string {
 func (t *UpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 	g.By("Setting up upgrade alert test")
 
-	t.oc = exutil.NewCLIWithFramework(f)
+	t.oc = exutil.NewCLI(exutil.CliOptions{KubeFramework: f})
 
 	framework.Logf("Post-upgrade alert test setup complete")
 }

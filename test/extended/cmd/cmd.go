@@ -30,7 +30,7 @@ var _ = g.Describe("[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] te
 	hacklibDir := exutil.FixturePath("testdata", "cmd", "hack")
 	keys := exutil.FixturePaths("testdata", "cmd", "test", "cmd")
 
-	oc := exutil.NewCLIWithPodSecurityLevel("test-cmd", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "test-cmd", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	for _, filename := range keys {
 		// only make tests for the bash files

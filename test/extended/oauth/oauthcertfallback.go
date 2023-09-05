@@ -32,7 +32,7 @@ const (
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth server", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("oauth")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "oauth"})
 
 	g.It("has the correct token and certificate fallback semantics [apigroup:user.openshift.io]", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)

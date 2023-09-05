@@ -39,7 +39,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "scopes"})
 
 	g.Describe("TestScopedTokens", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:oauth.openshift.io][apigroup:build.openshift.io]"), func() {
@@ -101,7 +101,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "scopes"})
 
 	g.Describe("TestScopedImpersonation", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io]"), func() {
@@ -136,7 +136,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "scopes"})
 
 	g.Describe("TestScopeEscalations", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:oauth.openshift.io]"), func() {
@@ -213,7 +213,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "scopes"})
 
 	g.Describe("TestTokensWithIllegalScopes", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:oauth.openshift.io]"), func() {
@@ -444,7 +444,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] scopes", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("scopes")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "scopes"})
 
 	g.Describe("TestUnknownScopes", func() {
 		g.It(fmt.Sprintf("should succeed [apigroup:user.openshift.io][apigroup:authorization.openshift.io][apigroup:project.openshift.io]"), func() {

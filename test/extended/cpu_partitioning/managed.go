@@ -25,7 +25,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 	defer g.GinkgoRecover()
 
 	var (
-		oc                      = exutil.NewCLIWithoutNamespace("cpu-partitioning").AsAdmin()
+		oc                      = exutil.NewCLI(exutil.CliOptions{BaseName: "cpu-partitioning", WithoutNamespace: true}).AsAdmin()
 		ctx                     = context.Background()
 		isClusterCPUPartitioned = false
 	)

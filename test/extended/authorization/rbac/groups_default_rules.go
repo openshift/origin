@@ -175,7 +175,7 @@ var (
 var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("default-rbac-policy")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "default-rbac-policy"})
 
 	g.It("should have correct RBAC rules", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)

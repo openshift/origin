@@ -9,7 +9,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build controller", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("build-controllers")
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "build-controllers"})
 	)
 
 	g.Context("", func() {

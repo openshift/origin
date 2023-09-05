@@ -39,7 +39,7 @@ import (
 var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("router-metrics", admissionapi.LevelBaseline)
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "router-metrics", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 		username, password, bearerToken string
 		metricsPort                     int32

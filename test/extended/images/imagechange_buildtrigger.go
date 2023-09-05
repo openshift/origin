@@ -18,7 +18,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Image change build triggers", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("image-change-build-trigger")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "image-change-build-trigger"})
 
 	g.It("TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 		TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(g.GinkgoT(), oc)

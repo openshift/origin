@@ -39,7 +39,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 		}
 	})
 
-	oc = exutil.NewCLIWithPodSecurityLevel("unprivileged-router", admissionapi.LevelBaseline)
+	oc = exutil.NewCLI(exutil.CliOptions{BaseName: "unprivileged-router", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	g.BeforeEach(func() {
 		ns = oc.Namespace()

@@ -19,7 +19,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should have deadli
 	var (
 		sourceFixture = exutil.FixturePath("testdata", "builds", "test-cds-sourcebuild.json")
 		dockerFixture = exutil.FixturePath("testdata", "builds", "test-cds-dockerbuild.json")
-		oc            = exutil.NewCLI("cli-start-build")
+		oc            = exutil.NewCLI(exutil.CliOptions{BaseName: "cli-start-build"})
 	)
 
 	g.Context("", func() {

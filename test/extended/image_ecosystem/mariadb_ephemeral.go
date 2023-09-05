@@ -13,7 +13,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift
 	defer g.GinkgoRecover()
 	var (
 		templatePath = "mariadb-ephemeral"
-		oc           = exutil.NewCLI("mariadb-create")
+		oc           = exutil.NewCLI(exutil.CliOptions{BaseName: "mariadb-create"})
 	)
 
 	g.Context("", func() {

@@ -22,7 +22,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] well-known endpoint", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("oauth-well-known")
+		oc             = exutil.NewCLI(exutil.CliOptions{BaseName: "oauth-well-known"})
 		oauthRoute     = "oauth-openshift"
 		oauthNamespace = "openshift-authentication"
 	)

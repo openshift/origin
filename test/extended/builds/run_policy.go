@@ -37,7 +37,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 	defer g.GinkgoRecover()
 	var (
 		// Use invalid source here as we don't care about the result
-		oc = exutil.NewCLI("cli-build-run-policy")
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "cli-build-run-policy"})
 	)
 
 	g.Context("", func() {

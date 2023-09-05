@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("[sig-kubevirt] services", func() {
-	oc := exutil.NewCLIWithPodSecurityLevel("ns-global", admissionapi.LevelBaseline)
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "ns-global", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 
 	InKubeVirtClusterContext(oc, func() {
 		mgmtFramework := e2e.NewDefaultFramework("mgmt-framework")

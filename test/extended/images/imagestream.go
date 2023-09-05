@@ -23,7 +23,7 @@ import (
 
 var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers][Serial] ImageStream API", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("imagestream-api")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "imagestream-api"})
 
 	g.It("TestImageStreamMappingCreate [apigroup:image.openshift.io]", func() {
 		TestImageStreamMappingCreate(g.GinkgoT(), oc)

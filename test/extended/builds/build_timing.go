@@ -39,7 +39,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][timing] capture build stages an
 		dockerBuildDockerfile = filepath.Join(buildTimingBaseDir, "Dockerfile")
 		sourceBuildFixture    = filepath.Join(buildTimingBaseDir, "test-s2i-build.json")
 		sourceBuildBinDir     = filepath.Join(buildTimingBaseDir, "s2i-binary-dir")
-		oc                    = exutil.NewCLIWithPodSecurityLevel("build-timing", admissionapi.LevelBaseline)
+		oc                    = exutil.NewCLI(exutil.CliOptions{BaseName: "build-timing", PodSecurityEnforceLevel: admissionapi.LevelBaseline})
 	)
 
 	g.Context("", func() {

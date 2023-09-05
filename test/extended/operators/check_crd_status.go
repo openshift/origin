@@ -145,7 +145,7 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 		crdItemList []apiextensionsv1.CustomResourceDefinition
 	)
 
-	oc := exutil.NewCLI("subresource-status-check")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "subresource-status-check"})
 
 	g.BeforeEach(func() {
 		var err error
@@ -172,7 +172,7 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 		crdItemList []apiextensionsv1.CustomResourceDefinition
 	)
 
-	oc := exutil.NewCLI("schema-status-check")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "schema-status-check"})
 
 	g.BeforeEach(func() {
 		var err error

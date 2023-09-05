@@ -13,7 +13,7 @@ import (
 
 var _ = g.Describe("[sig-api-machinery] APIServer CR fields validation", func() {
 	var (
-		oc = exutil.NewCLI("cluster-basic-auth")
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "cluster-basic-auth"})
 	)
 	defer g.GinkgoRecover()
 

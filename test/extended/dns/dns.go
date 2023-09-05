@@ -410,7 +410,7 @@ func validateLocalDNSPodPreference(queryPodExec *exutil.PodExecutor, localDNSPod
 
 var _ = Describe("[sig-network-edge] DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
-	oc := exutil.NewCLI("dns-dualstack")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "dns-dualstack"})
 
 	It("should answer endpoint and wildcard queries for the cluster", func() {
 		ctx := context.Background()

@@ -20,7 +20,7 @@ var _ = g.Describe("[sig-devex][Feature:Templates] templateinstance creation wit
 	defer g.GinkgoRecover()
 
 	var (
-		cli             = exutil.NewCLI("templates")
+		cli             = exutil.NewCLI(exutil.CliOptions{BaseName: "templates"})
 		templatefixture = exutil.FixturePath("testdata", "templates", "templateinstance_badobject.yaml")
 	)
 

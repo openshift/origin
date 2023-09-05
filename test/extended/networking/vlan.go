@@ -22,7 +22,7 @@ import (
 )
 
 var _ = g.Describe("[sig-network][Feature:vlan]", func() {
-	oc := exutil.NewCLI("vlan")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "vlan"})
 	f := oc.KubeFramework()
 
 	var podName1 string
@@ -43,11 +43,11 @@ var _ = g.Describe("[sig-network][Feature:vlan]", func() {
 		vlanNadConfig = `{
 		"cniVersion":"0.4.0","name":"%s",
 		"plugins":[
-			{ 
-				"type": "%s", 
+			{
+				"type": "%s",
 				"linkInContainer": true,
-				"master": "%s", 
-				"mtu": 1500, 
+				"master": "%s",
+				"mtu": 1500,
 				"vlanId": %s,
 				"ipam": { "type": "static", "addresses": [{ "address": "%s/24" }] }
 			}]

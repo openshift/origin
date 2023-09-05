@@ -19,7 +19,7 @@ import (
 )
 
 var _ = g.Describe("[sig-network][Feature:bond]", func() {
-	oc := exutil.NewCLI("bond")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "bond"})
 	f := oc.KubeFramework()
 
 	g.It("should create a pod with bond interface [apigroup:k8s.cni.cncf.io]", func() {

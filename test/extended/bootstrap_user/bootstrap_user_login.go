@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-auth][Feature:BootstrapUser] The bootstrap user", func(
 
 	// since login mutates the current kubeconfig we want to use NewCLI
 	// as that will give each one of our test runs a new config via SetupProject
-	oc := exutil.NewCLI("bootstrap-login")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "bootstrap-login"})
 
 	g.It("should successfully login with password decoded from kubeadmin secret [Disruptive]", func() {
 		var originalPasswordHash []byte

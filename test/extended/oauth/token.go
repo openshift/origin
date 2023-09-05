@@ -24,7 +24,7 @@ import (
 
 var _ = g.Describe("[sig-auth][Feature:OAuthServer] OAuth Authenticator", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLI("oauth-access-token-e2e-test")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "oauth-access-token-e2e-test"})
 	ctx := context.Background()
 
 	g.It(fmt.Sprintf("accepts sha256 access tokens [apigroup:user.openshift.io][apigroup:oauth.openshift.io]"), func() {

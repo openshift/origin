@@ -12,7 +12,7 @@ import (
 var _ = g.Describe("[sig-auth][Feature:LDAP] LDAP", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLIWithPodSecurityLevel("oauth-ldap", admissionapi.LevelPrivileged)
+		oc = exutil.NewCLI(exutil.CliOptions{BaseName: "oauth-ldap", PodSecurityEnforceLevel: admissionapi.LevelPrivileged})
 	)
 
 	g.It("should start an OpenLDAP test server [apigroup:user.openshift.io][apigroup:security.openshift.io][apigroup:authorization.openshift.io]", func() {

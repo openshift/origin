@@ -20,7 +20,7 @@ import (
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLIWithoutNamespace("apiserver")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "apiserver", WithoutNamespace: true})
 
 	g.It("anonymous browsers should get a 403 from /", func() {
 		transport, err := anonymousHttpTransport(oc.AdminConfig())

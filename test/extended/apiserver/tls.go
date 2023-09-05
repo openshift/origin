@@ -12,7 +12,7 @@ import (
 var _ = g.Describe("[sig-api-machinery][Feature:APIServer]", func() {
 	defer g.GinkgoRecover()
 
-	oc := exutil.NewCLI("apiserver")
+	oc := exutil.NewCLI(exutil.CliOptions{BaseName: "apiserver"})
 
 	g.It("TestTLSDefaults", func() {
 		g.Skip("skipping because it was broken in master")

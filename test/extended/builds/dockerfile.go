@@ -19,7 +19,7 @@ import (
 var _ = g.Describe("[sig-builds][Feature:Builds][Slow] build can have Dockerfile input", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc             = exutil.NewCLI("build-dockerfile-env")
+		oc             = exutil.NewCLI(exutil.CliOptions{BaseName: "build-dockerfile-env"})
 		dockerfileAdd  = exutil.FixturePath("testdata", "builds", "docker-add")
 		testDockerfile = fmt.Sprintf(`
 FROM %s
