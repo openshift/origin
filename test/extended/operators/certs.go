@@ -37,7 +37,8 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		jsonBytes, err := json.MarshalIndent(justLocations(currentPKIContent), "", "  ")
+		tlsRegistryInfo := allCertsToPKIRegistry(currentPKIContent)
+		jsonBytes, err := json.MarshalIndent(tlsRegistryInfo, "", "  ")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		pkiDir := filepath.Join(exutil.ArtifactDirPath(), "tls_for_cluster")
@@ -47,36 +48,34 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// TODO read from vendored openshift/api where approvers approve items
-		previousPKIContent := &certgraphapi.PKIList{}
+		previousPKIContent := &certgraphapi.PKIRegistryInfo{}
 
-		newSecrets := map[certgraphapi.InClusterSecretLocation]certgraphapi.CertKeyPair{}
-		secretsWithoutComponents := map[certgraphapi.InClusterSecretLocation]certgraphapi.CertKeyPair{}
-		for _, currCertKeyPair := range currentPKIContent.CertKeyPairs.Items {
-			for _, currLocation := range currCertKeyPair.Spec.SecretLocations {
-				// TODO add a field for "responsibleComponent" set based on annotation, still key based on namespace,name tuple
-				// TODO possibly a look-aside info at the top level of CertKeyPairs
+		newSecrets := map[certgraphapi.InClusterSecretLocation]certgraphapi.PKIRegistryInClusterCertKeyPair{}
+		secretsWithoutComponents := map[certgraphapi.InClusterSecretLocation]certgraphapi.PKIRegistryInClusterCertKeyPair{}
+		for _, currCertKeyPair := range tlsRegistryInfo.CertKeyPairs {
+			currLocation := currCertKeyPair.SecretLocation
+			// TODO add a field for "responsibleComponent" set based on annotation, still key based on namespace,name tuple
+			// TODO possibly a look-aside info at the top level of CertKeyPairs
 
-				_, err := locateCertKeyPair(currLocation, previousPKIContent.CertKeyPairs.Items)
-				if err == nil {
-					continue
-				}
-				newSecrets[currLocation] = currCertKeyPair
+			_, err := locateCertKeyPair(currLocation, previousPKIContent.CertKeyPairs)
+			if err == nil {
+				continue
 			}
+			newSecrets[currLocation] = currCertKeyPair
 		}
 
-		newConfigMaps := map[certgraphapi.InClusterConfigMapLocation]certgraphapi.CertificateAuthorityBundle{}
-		configMapsWithoutComponents := map[certgraphapi.InClusterConfigMapLocation]certgraphapi.CertificateAuthorityBundle{}
-		for _, currCABundle := range currentPKIContent.CertificateAuthorityBundles.Items {
-			for _, currLocation := range currCABundle.Spec.ConfigMapLocations {
-				// TODO add a field for "responsibleComponent" set based on annotation, still key based on namespace,name tuple
-				// TODO possibly a look-aside info at the top level of CertKeyPairs
+		newConfigMaps := map[certgraphapi.InClusterConfigMapLocation]certgraphapi.PKIRegistryInClusterCABundle{}
+		configMapsWithoutComponents := map[certgraphapi.InClusterConfigMapLocation]certgraphapi.PKIRegistryInClusterCABundle{}
+		for _, currCABundle := range tlsRegistryInfo.CertificateAuthorityBundles {
+			currLocation := currCABundle.ConfigMapLocation
+			// TODO add a field for "responsibleComponent" set based on annotation, still key based on namespace,name tuple
+			// TODO possibly a look-aside info at the top level of CertKeyPairs
 
-				_, err := locateCertificateAuthorityBundle(currLocation, previousPKIContent.CertificateAuthorityBundles.Items)
-				if err == nil {
-					continue
-				}
-				newConfigMaps[currLocation] = currCABundle
+			_, err := locateCertificateAuthorityBundle(currLocation, previousPKIContent.CertificateAuthorityBundles)
+			if err == nil {
+				continue
 			}
+			newConfigMaps[currLocation] = currCABundle
 		}
 
 		messages := []string{}
@@ -121,25 +120,70 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 })
 
-func justLocations(in *certgraphapi.PKIList) *certgraphapi.PKIList {
-	ret := &certgraphapi.PKIList{}
-	ret.LogicalName = in.LogicalName
-	ret.Description = in.Description
+func allCertsToPKIRegistry(in *certgraphapi.PKIList) *certgraphapi.PKIRegistryInfo {
+	ret := &certgraphapi.PKIRegistryInfo{}
 
 	for _, curr := range in.CertKeyPairs.Items {
-		t := curr.DeepCopy()
-		t.Spec.Details.SignerDetails = nil
-		t.Spec.Details.ServingCertDetails = nil
-		t.Spec.Details.ClientCertDetails = nil
-		t.Spec.CertMetadata = certgraphapi.CertKeyMetadata{}
-		ret.CertKeyPairs.Items = append(ret.CertKeyPairs.Items, *t)
+		for _, location := range curr.Spec.SecretLocations {
+			registryInfo := certgraphapi.PKIRegistryInClusterCertKeyPair{
+				SecretLocation: certgraphapi.InClusterSecretLocation{
+					Namespace: location.Namespace,
+					Name:      location.Name,
+				},
+				// TODO retrieve this via annotations in the API
+				CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
+					OwningJiraComponent: "",
+					HumanName:           "",
+					Description:         "",
+				},
+			}
+			ret.CertKeyPairs = append(ret.CertKeyPairs, registryInfo)
+		}
 	}
 	for _, curr := range in.CertificateAuthorityBundles.Items {
-		t := curr.DeepCopy()
-		t.Spec.CertificateMetadata = nil
-		ret.CertificateAuthorityBundles.Items = append(ret.CertificateAuthorityBundles.Items, *t)
+		for _, location := range curr.Spec.ConfigMapLocations {
+			registryInfo := certgraphapi.PKIRegistryInClusterCABundle{
+				ConfigMapLocation: certgraphapi.InClusterConfigMapLocation{
+					Namespace: location.Namespace,
+					Name:      location.Name,
+				},
+				// TODO retrieve this via annotations in the API
+				CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
+					OwningJiraComponent: "",
+					HumanName:           "",
+					Description:         "",
+				},
+			}
+			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, registryInfo)
+		}
 	}
+
+	sort.Sort(registrySecretByNamespaceName(ret.CertKeyPairs))
+	sort.Sort(registryConfigMapByNamespaceName(ret.CertificateAuthorityBundles))
+
 	return ret
+}
+
+type registrySecretByNamespaceName []certgraphapi.PKIRegistryInClusterCertKeyPair
+
+func (n registrySecretByNamespaceName) Len() int      { return len(n) }
+func (n registrySecretByNamespaceName) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
+func (n registrySecretByNamespaceName) Less(i, j int) bool {
+	if n[i].SecretLocation.Namespace != n[j].SecretLocation.Namespace {
+		return n[i].SecretLocation.Namespace < n[j].SecretLocation.Namespace
+	}
+	return n[i].SecretLocation.Name < n[j].SecretLocation.Name
+}
+
+type registryConfigMapByNamespaceName []certgraphapi.PKIRegistryInClusterCABundle
+
+func (n registryConfigMapByNamespaceName) Len() int      { return len(n) }
+func (n registryConfigMapByNamespaceName) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
+func (n registryConfigMapByNamespaceName) Less(i, j int) bool {
+	if n[i].ConfigMapLocation.Namespace != n[j].ConfigMapLocation.Namespace {
+		return n[i].ConfigMapLocation.Namespace < n[j].ConfigMapLocation.Namespace
+	}
+	return n[i].ConfigMapLocation.Name < n[j].ConfigMapLocation.Name
 }
 
 // TODO move to library
@@ -149,8 +193,8 @@ type secretLocationByNamespaceName []certgraphapi.InClusterSecretLocation
 func (n secretLocationByNamespaceName) Len() int      { return len(n) }
 func (n secretLocationByNamespaceName) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 func (n secretLocationByNamespaceName) Less(i, j int) bool {
-	if n[i].Namespace < n[j].Namespace {
-		return true
+	if n[i].Namespace != n[j].Namespace {
+		return n[i].Namespace < n[j].Namespace
 	}
 	return n[i].Name < n[j].Name
 }
@@ -160,30 +204,26 @@ type configMapLocationByNamespaceName []certgraphapi.InClusterConfigMapLocation
 func (n configMapLocationByNamespaceName) Len() int      { return len(n) }
 func (n configMapLocationByNamespaceName) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 func (n configMapLocationByNamespaceName) Less(i, j int) bool {
-	if n[i].Namespace < n[j].Namespace {
-		return true
+	if n[i].Namespace != n[j].Namespace {
+		return n[i].Namespace < n[j].Namespace
 	}
 	return n[i].Name < n[j].Name
 }
 
-func locateCertKeyPair(targetLocation certgraphapi.InClusterSecretLocation, certKeyPairs []certgraphapi.CertKeyPair) (*certgraphapi.CertKeyPair, error) {
+func locateCertKeyPair(targetLocation certgraphapi.InClusterSecretLocation, certKeyPairs []certgraphapi.PKIRegistryInClusterCertKeyPair) (*certgraphapi.PKIRegistryInClusterCertKeyPair, error) {
 	for i, curr := range certKeyPairs {
-		for _, location := range curr.Spec.SecretLocations {
-			if location == targetLocation {
-				return &certKeyPairs[i], nil
-			}
+		if targetLocation == curr.SecretLocation {
+			return &certKeyPairs[i], nil
 		}
 	}
 
 	return nil, fmt.Errorf("not found: %#v", targetLocation)
 }
 
-func locateCertificateAuthorityBundle(targetLocation certgraphapi.InClusterConfigMapLocation, certKeyPairs []certgraphapi.CertificateAuthorityBundle) (*certgraphapi.CertificateAuthorityBundle, error) {
-	for i, curr := range certKeyPairs {
-		for _, location := range curr.Spec.ConfigMapLocations {
-			if location == targetLocation {
-				return &certKeyPairs[i], nil
-			}
+func locateCertificateAuthorityBundle(targetLocation certgraphapi.InClusterConfigMapLocation, caBundles []certgraphapi.PKIRegistryInClusterCABundle) (*certgraphapi.PKIRegistryInClusterCABundle, error) {
+	for i, curr := range caBundles {
+		if targetLocation == curr.ConfigMapLocation {
+			return &caBundles[i], nil
 		}
 	}
 
