@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	coreinformers "k8s.io/client-go/informers/core/v1"
 
@@ -76,7 +79,67 @@ func (w *etcdLogAnalyzer) CollectData(ctx context.Context, storageDir string, be
 }
 
 func (*etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+	ret := monitorapi.Intervals{}
+
+	leader := ""
+	term := ""
+	var newInterval *monitorapi.IntervalBuilder
+	startTime := time.Time{}
+
+	interestingReasons := sets.NewString("leader-found", "leader-elected", "leader-lost", "leader-missing")
+
+	podsToNode := podaccess.NonUniquePodToNode(startingIntervals)
+	etcdMemberIDToPod := podaccess.NonUniqueEtcdMemberToPod(startingIntervals)
+
+	for _, currInterval := range startingIntervals {
+		reason := monitorapi.ReasonFrom(currInterval.Message)
+		if !interestingReasons.Has(string(reason)) {
+			continue
+		}
+
+		annotations := monitorapi.AnnotationsFromMessage(currInterval.Message)
+		newLeader := annotations[monitorapi.AnnotationEtcdLeader]
+		newTerm := annotations[monitorapi.AnnotationEtcdTerm]
+
+		leaderChanged := newLeader != leader
+		termChanged := newTerm != term
+
+		switch {
+		case newInterval != nil && (leaderChanged || termChanged):
+			interval := newInterval.Build(startTime, currInterval.To)
+			ret = append(ret, interval)
+			fallthrough
+
+		case leaderChanged || termChanged:
+			leaderPod := etcdMemberIDToPod[newLeader]
+			leaderNode := podsToNode[leaderPod]
+
+			newInterval = monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Warning).
+				Locator(
+					monitorapi.NewLocator().EtcdMemberFromNames(leaderNode, newLeader),
+				).
+				Message(
+					monitorapi.NewMessage().
+						Constructed(monitorapi.ConstructionOwnerEtcdLifecycle).
+						WithAnnotation(monitorapi.AnnotationEtcdLeader, newLeader).
+						WithAnnotation(monitorapi.AnnotationEtcdTerm, newTerm).
+						HumanMessage(""),
+				)
+			startTime = currInterval.From
+
+		}
+
+		leader = newLeader
+		term = newTerm
+	}
+
+	// when we're finished, we must close the last
+	if newInterval != nil {
+		ret = append(ret, newInterval.Build(startTime, time.Time{}))
+		newInterval = nil
+	}
+
+	return ret, nil
 }
 
 func (*etcdLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
@@ -106,10 +169,7 @@ func newEtcdRecorder(recorder monitorapi.RecorderWriter) etcdRecorder {
 			{"dropped internal Raft message since sending buffer is full", monitorapi.Warning},
 			{"waiting for ReadIndex response took too long, retrying", monitorapi.Warning},
 			{"apply request took too long", monitorapi.Warning},
-			{"elected leader", monitorapi.Info},
-			{"lost leader", monitorapi.Info},
 			{"is starting a new election", monitorapi.Info},
-			{"became leader", monitorapi.Info},
 		},
 	}
 }
@@ -133,14 +193,6 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 			continue
 		}
 
-		// TODO need the src/podLog locator to make the display work
-		//g.recorder.AddIntervals(
-		//	monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Warning).
-		//		Locator(logLine.Locator).
-		//		// TODO details in the message
-		//		Message(monitorapi.NewMessage().HumanMessage(parsedLine.Msg)).
-		//		Build(logLine.Instant, logLine.Instant.Add(time.Second)),
-		//)
 		g.recorder.AddIntervals(monitorapi.Interval{
 			Condition: monitorapi.Condition{
 				Level:   monitorapi.Warning,
@@ -151,4 +203,134 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 			To:   parsedLine.Timestamp.Add(1 * time.Second),
 		})
 	}
+
+	messages := []*monitorapi.MessageBuilder{}
+	switch {
+	case strings.Contains(parsedLine.Msg, "restarting local member"):
+		messages = []*monitorapi.MessageBuilder{
+			monitorapi.NewMessage().
+				Reason("local-member-restart"). // this message provides a mapping from pod ID to member ID
+				WithAnnotation(monitorapi.AnnotationEtcdLocalMember, parsedLine.LocalMemberID).
+				HumanMessage(parsedLine.Msg),
+		}
+
+	case strings.Contains(parsedLine.Msg, "elected leader"):
+		messages = []*monitorapi.MessageBuilder{
+			monitorapi.NewMessage().
+				Reason("leader-found"). // this message can be produced when etcd starts up
+				WithAnnotation(monitorapi.AnnotationEtcdLeader, currentLeaderFromMessage(parsedLine.Msg)).
+				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
+				HumanMessage(parsedLine.Msg),
+		}
+
+	case strings.Contains(parsedLine.Msg, "became leader"):
+		messages = []*monitorapi.MessageBuilder{
+			monitorapi.NewMessage().
+				Reason("leader-elected"). // this message is produce when a leader is chosen
+				WithAnnotation(monitorapi.AnnotationEtcdLeader, currentLeaderFromMessage(parsedLine.Msg)).
+				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
+				HumanMessage(parsedLine.Msg),
+		}
+
+	case strings.Contains(parsedLine.Msg, "lost leader"):
+		messages = []*monitorapi.MessageBuilder{
+			monitorapi.NewMessage().
+				Reason("leader-lost").
+				WithAnnotation(monitorapi.AnnotationPreviousEtcdLeader, prevLeaderFromMessage(parsedLine.Msg)).
+				WithAnnotation(monitorapi.AnnotationEtcdLeader, "").
+				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
+				HumanMessage(parsedLine.Msg),
+		}
+
+	case strings.Contains(parsedLine.Msg, "no leader"):
+		messages = []*monitorapi.MessageBuilder{
+			monitorapi.NewMessage().
+				Reason("leader-missing").
+				WithAnnotation(monitorapi.AnnotationEtcdLeader, "").
+				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
+				HumanMessage(parsedLine.Msg),
+		}
+
+	case strings.Contains(parsedLine.Msg, "changed leader"):
+		messages = []*monitorapi.MessageBuilder{
+			monitorapi.NewMessage().
+				Reason("leader-lost").
+				WithAnnotation(monitorapi.AnnotationPreviousEtcdLeader, prevLeaderFromMessage(parsedLine.Msg)).
+				WithAnnotation(monitorapi.AnnotationEtcdLeader, "").
+				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
+				HumanMessage(parsedLine.Msg),
+			monitorapi.NewMessage().
+				Reason("leader-found").
+				WithAnnotation(monitorapi.AnnotationEtcdLeader, currentLeaderFromMessage(parsedLine.Msg)).
+				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
+				HumanMessage(parsedLine.Msg),
+		}
+
+	}
+
+	for _, message := range messages {
+		g.recorder.AddIntervals(
+			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Warning).
+				Locator(logLine.Locator).
+				Message(message).
+				Build(logLine.Instant, logLine.Instant.Add(time.Second)),
+		)
+	}
+
+}
+
+var (
+	// "raft.node: 38360899e3c7337e elected leader d8a2c1adbed17efe at term 6"
+	electedLeaderRegex = regexp.MustCompile("elected leader (?P<CURR_LEADER>[a-z0-9.-]+) at term (?P<TERM>[0-9]+)")
+
+	// "38360899e3c7337e became leader at term 8"
+	becameLeaderRegex = regexp.MustCompile("(?P<CURR_LEADER>[a-z0-9.-]+) became leader at term (?P<TERM>[0-9]+)")
+
+	// r.logger.Infof("raft.node: %x changed leader from %x to %x at term %d", r.id, lead, r.lead, r.Term)
+	changedLeaderRegex = regexp.MustCompile(" changed leader from (?P<PREV_LEADER>[a-z0-9.-]+) to (?P<CURR_LEADER>[a-z0-9.-]+) at term (?P<TERM>[0-9]+)")
+
+	// "raft.node: 38360899e3c7337e lost leader eaa12e18c7611129 at term 6"
+	lostLeaderRegex = regexp.MustCompile("lost leader (?P<PREV_LEADER>[a-z0-9.-]+) at term (?P<TERM>[0-9]+)")
+
+	// "38360899e3c7337e no leader at term 6; dropping index reading msg"
+	noLeaderRegex = regexp.MustCompile("no leader at term (?P<TERM>[0-9]+)")
+
+	leaderMessages = []*regexp.Regexp{
+		electedLeaderRegex,
+		becameLeaderRegex,
+		changedLeaderRegex,
+		lostLeaderRegex,
+		noLeaderRegex,
+	}
+)
+
+func currentLeaderFromMessage(msg string) string {
+	return searchForKey(msg, "CURR_LEADER")
+}
+
+func prevLeaderFromMessage(msg string) string {
+	return searchForKey(msg, "PREV_LEADER")
+}
+
+func electionTermFromMessage(msg string) string {
+	return searchForKey(msg, "TERM")
+}
+
+func searchForKey(msg, key string) string {
+	for _, leaderMessageRegexp := range leaderMessages {
+		matches := leaderMessageRegexp.MatchString(msg)
+		if !matches {
+			return ""
+		}
+
+		subMatches := electedLeaderRegex.FindStringSubmatch(msg)
+		subNames := electedLeaderRegex.SubexpNames()
+		for i, name := range subNames {
+			switch name {
+			case key:
+				return subMatches[i]
+			}
+		}
+	}
+	return ""
 }

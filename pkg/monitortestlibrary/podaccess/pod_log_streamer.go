@@ -28,7 +28,7 @@ type PodStreamer struct {
 	doneReading        chan struct{}
 	lastUID            types.UID
 	lastLine           string
-	lastContainerStart *time.Time
+	lastContainerStart time.Time
 	nextContent        chan LogLineContent
 	errs               chan LogError
 }
@@ -106,6 +106,8 @@ func (s *PodStreamer) streamLogs(ctx context.Context) (bool, error) {
 	case <-exit:
 		return false, nil
 	case <-ctx.Done():
+		// wait just a moment so that the streamLogsReader doesn't write to a closed channel
+		time.Sleep(100 * time.Millisecond)
 		return false, nil
 	}
 }
@@ -171,18 +173,18 @@ func (s *PodStreamer) streamLogsReader(ctx context.Context, currPod *corev1.Pod)
 	}
 }
 
-func lastContainerStart(pod *corev1.Pod, containerName string) *time.Time {
+func lastContainerStart(pod *corev1.Pod, containerName string) time.Time {
 	for _, containerStatus := range pod.Status.ContainerStatuses {
 		if containerStatus.Name != containerName {
 			continue
 		}
 		if containerStatus.State.Running != nil {
-			return &containerStatus.State.Running.StartedAt.Time
+			return containerStatus.State.Running.StartedAt.Time
 		}
 		if containerStatus.State.Terminated != nil {
-			return &containerStatus.State.Terminated.StartedAt.Time
+			return containerStatus.State.Terminated.StartedAt.Time
 		}
 	}
 
-	return nil
+	return time.Time{}
 }

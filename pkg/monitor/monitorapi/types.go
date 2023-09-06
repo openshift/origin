@@ -118,6 +118,7 @@ const (
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorNodeKey            LocatorKey = "node"
+	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
 	LocatorKindKey            LocatorKey = "kind"
 	LocatorNameKey            LocatorKey = "name"
 	LocatorPodKey             LocatorKey = "pod"
@@ -192,13 +193,17 @@ const (
 type AnnotationKey string
 
 const (
-	AnnotationReason            AnnotationKey = "reason"
-	AnnotationContainerExitCode AnnotationKey = "code"
-	AnnotationCause             AnnotationKey = "cause"
-	AnnotationNode              AnnotationKey = "node"
-	AnnotationConstructed       AnnotationKey = "constructed"
-	AnnotationPodPhase          AnnotationKey = "phase"
-	AnnotationIsStaticPod       AnnotationKey = "mirrored"
+	AnnotationReason             AnnotationKey = "reason"
+	AnnotationContainerExitCode  AnnotationKey = "code"
+	AnnotationCause              AnnotationKey = "cause"
+	AnnotationNode               AnnotationKey = "node"
+	AnnotationEtcdLocalMember    AnnotationKey = "local-member-id"
+	AnnotationEtcdTerm           AnnotationKey = "term"
+	AnnotationEtcdLeader         AnnotationKey = "leader"
+	AnnotationPreviousEtcdLeader AnnotationKey = "prev-leader"
+	AnnotationConstructed        AnnotationKey = "constructed"
+	AnnotationPodPhase           AnnotationKey = "phase"
+	AnnotationIsStaticPod        AnnotationKey = "mirrored"
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
 	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
@@ -211,6 +216,7 @@ type ConstructionOwner string
 const (
 	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
 	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
+	ConstructionOwnerEtcdLifecycle = "etcd-lifecycle-constructor"
 )
 
 type Message struct {

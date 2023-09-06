@@ -14,7 +14,8 @@ type subStringLevel struct {
 }
 
 type etcdLogLine struct {
-	Level     string    `json:"level"`
-	Timestamp time.Time `json:"ts"`
-	Msg       string    `json:"msg"`
+	Level         string    `json:"level"`
+	Timestamp     time.Time `json:"ts"`
+	Msg           string    `json:"msg"`
+	LocalMemberID string    `json:"local-member-id"`
 }

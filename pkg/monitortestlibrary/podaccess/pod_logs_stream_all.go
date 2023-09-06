@@ -192,9 +192,19 @@ func (c *PodsStreamer) removeAllWatchers(ctx context.Context) {
 	c.watcherLock.Lock()
 	defer c.watcherLock.Unlock()
 
-	for _, watcherToDelete := range c.watchers {
-		watcherToDelete.podStreamer.Stop(ctx)
+	wg := sync.WaitGroup{}
+	for i := range c.watchers {
+		watcherToDelete := c.watchers[i]
+		wg.Add(1)
+
+		// these can take a bit to shutdown, shut them down in parallel.
+		go func(ctx context.Context, watcherToDelete *watcher) {
+			defer utilruntime.HandleCrash()
+			defer wg.Done()
+			watcherToDelete.podStreamer.Stop(ctx)
+		}(ctx, watcherToDelete)
 	}
+	wg.Wait()
 
 	c.watchers = map[podKey]*watcher{}
 }
