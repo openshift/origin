@@ -13,6 +13,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphanalysis"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -23,9 +24,17 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 	oc := exutil.NewCLIWithoutNamespace("certificate-checker")
 
 	g.It("all tls artifacts must be known", func() {
+
 		ctx := context.Background()
 		kubeClient := oc.AdminKubeClient()
-		currentPKIContent, err := certgraphanalysis.GatherCertsFromAllNamespaces(ctx, kubeClient)
+		if ok, _ := exutil.IsMicroShiftCluster(kubeClient); ok {
+			g.Skip("microshift does not auto-collect TLS.")
+		}
+		jobType, err := platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		tlsArtifactFilename := fmt.Sprintf("tls-artifacts-%s-%s-%s-%s.json", jobType.Topology, jobType.Architecture, jobType.Platform, jobType.Network)
+
+		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		jsonBytes, err := json.MarshalIndent(justLocations(currentPKIContent), "", "  ")
@@ -34,7 +43,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		pkiDir := filepath.Join(exutil.ArtifactDirPath(), "tls_for_cluster")
 		err = os.MkdirAll(pkiDir, 0755)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = os.WriteFile(filepath.Join(pkiDir, "all-tls-artifacts.json"), jsonBytes, 0644)
+		err = os.WriteFile(filepath.Join(pkiDir, tlsArtifactFilename), jsonBytes, 0644)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// TODO read from vendored openshift/api where approvers approve items
