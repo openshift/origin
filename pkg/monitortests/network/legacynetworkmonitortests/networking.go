@@ -12,13 +12,41 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 type testCategorizer struct {
 	by        string
 	substring string
+}
+
+func getPlatformType(clientConfig *rest.Config) (configv1.PlatformType, error) {
+	var platform configv1.PlatformType
+
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		return platform, fmt.Errorf("error creating kubeClient: %v", err)
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return platform, fmt.Errorf("error checking MicroShift cluster: %v", err)
+	}
+	if isMicroShift {
+		return platform, nil
+	}
+
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		return platform, fmt.Errorf("error creating configClient: %v", err)
+	}
+	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return platform, fmt.Errorf("error getting cluster infrastructure: %v", err)
+	}
+	return infra.Status.PlatformStatus.Type, nil
 }
 
 func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
@@ -59,16 +87,9 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	eventsForPods := getEventsByPodName(events)
 
 	var platform configv1.PlatformType
-	configClient, err := configclient.NewForConfig(clientConfig)
+	platform, err := getPlatformType(clientConfig)
 	if err != nil {
-		failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
-	} else {
-		infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-		if err != nil {
-			failures = append(failures, fmt.Sprintf("error getting cluster infrastructure: %v", err))
-		} else {
-			platform = infra.Status.PlatformStatus.Type
-		}
+		failures = append(failures, fmt.Sprintf("error determining platform type: %v", err))
 	}
 
 	for _, event := range events {
