@@ -203,17 +203,17 @@ func (c *CLI) ChangeUser(name string) *CLI {
 
 	kubeConfig, err := createConfig(c.Namespace(), clientConfig)
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 
 	f, err := os.CreateTemp("", "configfile")
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	c.configPath = f.Name()
 	err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 
 	c.username = name
@@ -712,7 +712,7 @@ func (c *CLI) NewPrometheusClient(ctx context.Context) prometheusv1.API {
 func (c *CLI) UserConfig() *rest.Config {
 	clientConfig, err := GetClientConfig(c.configPath)
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	return clientConfig
 }
@@ -720,7 +720,7 @@ func (c *CLI) UserConfig() *rest.Config {
 func (c *CLI) AdminConfig() *rest.Config {
 	clientConfig, err := GetClientConfig(c.adminConfigPath)
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	return clientConfig
 }
@@ -862,7 +862,7 @@ func (c *CLI) outputs(stdOutBuff, stdErrBuff *bytes.Buffer) (string, string, err
 		wrappedErr := fmt.Errorf("Error running %v:\nStdOut>\n%s\nStdErr>\n%s\n%w\n", cmd, stdOut[getStartingIndexForLastN(stdOutBytes, 4096):], stdErr[getStartingIndexForLastN(stdErrBytes, 4096):], err)
 		return stdOut, stdErr, wrappedErr
 	default:
-		FatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
+		fatalErr(fmt.Errorf("unable to execute %q: %v", c.execPath, err))
 		// unreachable code
 		return "", "", nil
 	}
@@ -889,8 +889,7 @@ func (c *CLI) Execute() error {
 	return err
 }
 
-// FatalErr exits the test in case a fatal error has occurred.
-func FatalErr(msg interface{}) {
+func fatalErr(msg interface{}) {
 	// the path that leads to this being called isn't always clear...
 	fmt.Fprintln(g.GinkgoWriter, string(debug.Stack()))
 	framework.Failf("%v", msg)
@@ -909,7 +908,7 @@ func (c *CLI) CreateUser(prefix string) *userv1.User {
 		ObjectMeta: metav1.ObjectMeta{GenerateName: prefix + c.Namespace()},
 	}, metav1.CreateOptions{})
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 
@@ -917,16 +916,15 @@ func (c *CLI) CreateUser(prefix string) *userv1.User {
 }
 
 func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
-
 	userAPIExists, err := DoesApiResourceExist(c.AdminConfig(), "users", "user.openshift.io")
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 
 	if !userAPIExists {
 		config, err := c.setupUserConfig(username)
 		if err != nil {
-			FatalErr(err)
+			fatalErr(err)
 		}
 		return config
 	}
@@ -936,14 +934,14 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 
 	user, err := userClient.UserV1().Users().Get(ctx, username, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	if err != nil {
 		user, err = userClient.UserV1().Users().Create(ctx, &userv1.User{
 			ObjectMeta: metav1.ObjectMeta{Name: username},
 		}, metav1.CreateOptions{})
 		if err != nil {
-			FatalErr(err)
+			fatalErr(err)
 		}
 		c.AddResourceToDelete(userv1.GroupVersion.WithResource("users"), user)
 	}
@@ -955,7 +953,7 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 		GrantMethod: oauthv1.GrantHandlerAuto,
 	}, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	if oauthClientObj != nil {
 		c.AddExplicitResourceToDelete(oauthv1.GroupVersion.WithResource("oauthclients"), "", oauthClientName)
@@ -971,7 +969,7 @@ func (c *CLI) GetClientConfigForUser(username string) *rest.Config {
 		RedirectURI: "https://localhost:8443/oauth/token/implicit",
 	}, metav1.CreateOptions{})
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	c.AddResourceToDelete(oauthv1.GroupVersion.WithResource("oauthaccesstokens"), token)
 
@@ -1011,7 +1009,7 @@ func (c *CLI) WaitForAccessAllowed(review *kubeauthorizationv1.SelfSubjectAccess
 
 	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	return WaitForAccess(kubeClient, true, review)
 }
@@ -1023,7 +1021,7 @@ func (c *CLI) WaitForAccessDenied(review *kubeauthorizationv1.SelfSubjectAccessR
 
 	kubeClient, err := kubernetes.NewForConfig(c.GetClientConfigForUser(user))
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 	return WaitForAccess(kubeClient, false, review)
 }
