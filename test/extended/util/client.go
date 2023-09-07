@@ -75,10 +75,11 @@ import (
 // CLI provides function to call the OpenShift CLI and Kubernetes and OpenShift
 // clients.
 type CLI struct {
-	execPath        string
-	verb            string
-	configPath      string
-	adminConfigPath string
+	execPath          string
+	verb              string
+	currentConfigPath string
+	userConfigPath    string
+	adminConfigPath   string
 
 	// directory with static manifests, each file is expected to be a single manifest
 	// manifest files can be stored under directory tree
@@ -255,9 +256,9 @@ func (c *CLI) Username() string {
 
 // AsAdmin changes current config file path to the admin config.
 func (c *CLI) AsAdmin() *CLI {
-	nc := *c
-	nc.configPath = c.adminConfigPath
-	return &nc
+	c.currentConfigPath = c.adminConfigPath
+	framework.Logf("configPath is now %q", c.currentConfigPath)
+	return c
 }
 
 // ChangeUser changes the user used by the current CLI session.
@@ -274,14 +275,15 @@ func (c *CLI) ChangeUser(name string) *CLI {
 	if err != nil {
 		fatalErr(err)
 	}
-	c.configPath = f.Name()
-	err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
+	c.userConfigPath = f.Name()
+	err = clientcmd.WriteToFile(*kubeConfig, c.userConfigPath)
 	if err != nil {
 		fatalErr(err)
 	}
 
 	c.username = name
-	framework.Logf("configPath is now %q", c.configPath)
+	c.currentConfigPath = c.userConfigPath
+	framework.Logf("configPath is now %q", c.currentConfigPath)
 	return c
 }
 
@@ -302,16 +304,16 @@ func (c *CLI) SetManagedNamespace() *CLI {
 }
 
 // WithoutNamespace instructs the command should be invoked without adding --namespace parameter
-func (c CLI) WithoutNamespace() *CLI {
+func (c *CLI) WithoutNamespace() *CLI {
 	c.withoutNamespace = true
-	return &c
+	return c
 }
 
 // WithToken instructs the command should be invoked with --token rather than --kubeconfig flag
-func (c CLI) WithToken(token string) *CLI {
-	c.configPath = ""
+func (c *CLI) WithToken(token string) *CLI {
+	c.currentConfigPath = ""
 	c.token = token
-	return &c
+	return c
 }
 
 // SetupProject creates a new project and assign a random user to the project.
@@ -618,8 +620,8 @@ func (c *CLI) TeardownProject() {
 		e2edebug.DumpAllNamespaceInfo(context.TODO(), c.kubeFramework.ClientSet, c.Namespace())
 	}
 
-	if len(c.configPath) > 0 {
-		os.Remove(c.configPath)
+	if len(c.userConfigPath) > 0 {
+		os.Remove(c.userConfigPath)
 	}
 
 	dynamicClient := c.AdminDynamicClient()
@@ -796,7 +798,7 @@ func (c *CLI) NewPrometheusClient(ctx context.Context) prometheusv1.API {
 }
 
 func (c *CLI) UserConfig() *rest.Config {
-	clientConfig, err := GetClientConfig(c.configPath)
+	clientConfig, err := GetClientConfig(c.userConfigPath)
 	if err != nil {
 		fatalErr(err)
 	}
@@ -833,18 +835,19 @@ func (c *CLI) Run(commands ...string) *CLI {
 	requiresTestStart()
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
-		execPath:        c.execPath,
-		verb:            commands[0],
-		kubeFramework:   c.KubeFramework(),
-		adminConfigPath: c.adminConfigPath,
-		configPath:      c.configPath,
-		username:        c.username,
-		globalArgs:      commands,
+		execPath:          c.execPath,
+		verb:              commands[0],
+		kubeFramework:     c.KubeFramework(),
+		adminConfigPath:   c.adminConfigPath,
+		userConfigPath:    c.userConfigPath,
+		currentConfigPath: c.currentConfigPath,
+		username:          c.username,
+		globalArgs:        commands,
 	}
-	if len(c.configPath) > 0 {
-		nc.globalArgs = append([]string{fmt.Sprintf("--kubeconfig=%s", c.configPath)}, nc.globalArgs...)
+	if len(c.currentConfigPath) > 0 {
+		nc.globalArgs = append([]string{fmt.Sprintf("--kubeconfig=%s", c.currentConfigPath)}, nc.globalArgs...)
 	}
-	if len(c.configPath) == 0 && len(c.token) > 0 {
+	if len(c.currentConfigPath) == 0 && len(c.token) > 0 {
 		nc.globalArgs = append([]string{fmt.Sprintf("--token=%s", c.token)}, nc.globalArgs...)
 	}
 	if !c.withoutNamespace {
@@ -859,13 +862,12 @@ func (c *CLI) Run(commands ...string) *CLI {
 func (c *CLI) RunInMonitorTest(commands ...string) *CLI {
 	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
 	nc := &CLI{
-		execPath:        c.execPath,
-		verb:            commands[0],
-		kubeFramework:   c.KubeFramework(),
-		adminConfigPath: c.adminConfigPath,
-		configPath:      c.configPath,
-		username:        c.username,
-		globalArgs:      commands,
+		execPath:          c.execPath,
+		verb:              commands[0],
+		kubeFramework:     c.KubeFramework(),
+		currentConfigPath: c.adminConfigPath,
+		username:          c.username,
+		globalArgs:        commands,
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)
