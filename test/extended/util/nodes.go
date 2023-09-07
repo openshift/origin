@@ -8,7 +8,7 @@ import (
 )
 
 // GetClusterNodesBy returns the cluster nodes by role
-func GetClusterNodesBy(oc *CLI, role string) ([]string, error) {
+func GetClusterNodesByRole(oc *CLI, role string) ([]string, error) {
 	nodes, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", "-l", "node-role.kubernetes.io/"+role, "-o", "jsonpath='{.items[*].metadata.name}'").Output()
 	return strings.Split(strings.Trim(nodes, "'"), " "), err
 }
