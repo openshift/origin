@@ -283,14 +283,33 @@ func findBridgePhysicalInterface(oc *exutil.CLI, nodeName, bridgeName string) (s
 	if podName == "" {
 		return "", fmt.Errorf("Could not find a valid ovnkube-node pod on node '%s'", nodeName)
 	}
-	out, err = adminExecInPod(oc, "openshift-ovn-kubernetes", podName, "ovnkube-node", fmt.Sprintf("ovs-vsctl list-ports %s", bridgeName))
+
+	ovnkubePod, err := oc.AdminKubeClient().CoreV1().Pods("openshift-ovn-kubernetes").Get(context.Background(),
+		podName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("couldn't get %s pod in openshift-ovn-kubernetes namespace: %v", podName, err)
+	}
+
+	ovnkubeContainerName := ""
+	for _, container := range ovnkubePod.Spec.Containers {
+		if container.Name == "ovnkube-node" {
+			ovnkubeContainerName = container.Name
+		} else if container.Name == "ovnkube-controller" {
+			ovnkubeContainerName = container.Name
+		}
+	}
+	if ovnkubeContainerName == "" {
+		return "", fmt.Errorf("didn't find ovnkube-node or ovnkube-controller container in %s pod", podName)
+	}
+
+	out, err = adminExecInPod(oc, "openshift-ovn-kubernetes", podName, ovnkubeContainerName, fmt.Sprintf("ovs-vsctl list-ports %s", bridgeName))
 	if err != nil {
 		return "", fmt.Errorf("failed to get list of ports on bridge %s:, error: %v",
 			bridgeName, err)
 	}
 	for _, port := range strings.Split(out, "\n") {
 		out, err = adminExecInPod(
-			oc, "openshift-ovn-kubernetes", podName, "ovnkube-node",
+			oc, "openshift-ovn-kubernetes", podName, ovnkubeContainerName,
 			fmt.Sprintf("ovs-vsctl get Port %s Interfaces", port))
 		if err != nil {
 			return "", fmt.Errorf("failed to get port %s on bridge %s: error: %v",
@@ -301,7 +320,7 @@ func findBridgePhysicalInterface(oc *exutil.CLI, nodeName, bridgeName string) (s
 		ifaces := strings.TrimPrefix(strings.TrimSuffix(out, "]"), "[")
 		for _, iface := range strings.Split(ifaces, ",") {
 			out, err = adminExecInPod(
-				oc, "openshift-ovn-kubernetes", podName, "ovnkube-node",
+				oc, "openshift-ovn-kubernetes", podName, ovnkubeContainerName,
 				fmt.Sprintf("ovs-vsctl get Interface %s Type", strings.TrimSpace(iface)))
 			if err != nil {
 				return "", fmt.Errorf("failed to get Interface %q Type on bridge %q:, error: %v",

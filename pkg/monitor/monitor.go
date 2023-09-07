@@ -18,10 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/test"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
-	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitor/shutdown"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -67,26 +64,11 @@ func (m *Monitor) Start(ctx context.Context) error {
 
 	localJunits, err := m.monitorTestRegistry.StartCollection(ctx, m.adminKubeConfig, m.recorder)
 	if err != nil {
-		return err
+		fmt.Fprintf(os.Stderr, "Error starting data collection, continuing, junit will reflect this. %v\n", err)
 	}
 	m.junits = append(m.junits, localJunits...)
 	fmt.Printf("All monitor tests started.\n")
 
-	client, err := kubernetes.NewForConfig(m.adminKubeConfig)
-	if err != nil {
-		return err
-	}
-	configClient, err := configclientset.NewForConfig(m.adminKubeConfig)
-	if err != nil {
-		return err
-	}
-
-	startNodeMonitoring(ctx, m.recorder, client)
-	startEventMonitoring(ctx, m.recorder, client)
-	shutdown.StartMonitoringGracefulShutdownEvents(ctx, m.recorder, client)
-
-	// add interval creation at the same point where we add the monitors
-	startClusterOperatorMonitoring(ctx, m.recorder, configClient)
 	return nil
 }
 
@@ -234,7 +216,7 @@ func (m *Monitor) serializeJunit(ctx context.Context, storageDir, junitSuiteName
 		junitSuite.TestCases = append(junitSuite.TestCases, currJunit)
 	}
 
-	out, err := xml.Marshal(junitSuite)
+	out, err := xml.MarshalIndent(junitSuite, "", "    ")
 	if err != nil {
 		return err
 	}

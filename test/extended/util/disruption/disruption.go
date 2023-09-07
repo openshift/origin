@@ -143,7 +143,7 @@ func runChaosmonkey(
 				return
 			}
 			defer f.Close()
-			out, err := xml.Marshal(testSuite)
+			out, err := xml.MarshalIndent(testSuite, "", "    ")
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "error: Failed to marshal junit: %v\n", err)
 				return

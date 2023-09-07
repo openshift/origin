@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: host-network-to-host-network-disruption-poller
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 34%
+      maxSurge: 0
+  # to be overridden by the number of nodes
+  replicas: 1
+  selector:
+    matchLabels:
+      network.openshift.io/disruption-target: host-to-host
+      network.openshift.io/disruption-actor: poller
+  template:
+    metadata:
+      labels:
+        network.openshift.io/disruption-target: host-to-host
+        network.openshift.io/disruption-actor: poller
+    spec:
+      containers:
+        - command:
+            - /usr/bin/openshift-tests
+            - disruption
+            - watch-endpoint-slice
+            - --output-file=/var/log/persistent-logs/disruption-host-to-host.jsonl
+            - --disruption-backend-prefix=host-to-host
+            - --disruption-target-service-name=host-network-service
+            - --stop-configmap=stop-collecting
+            - --my-node-name=$(MY_NODE_NAME)
+            - --request-scheme=https
+            - --request-path=/healthz
+            - --expected-status-code=401
+          image: image-to-be-replaced
+          imagePullPolicy: IfNotPresent
+          name: disruption-poller
+          terminationMessagePolicy: FallbackToLogsOnError
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - mountPath: /var/log/persistent-logs
+              name: persistent-log-dir
+      restartPolicy: Always
+      hostNetwork: true
+      terminationGracePeriodSeconds: 70
+      tolerations:
+        # Ensure pod can be scheduled on master nodes
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  network.openshift.io/disruption-target: host-to-host
+                  network.openshift.io/disruption-actor: poller
+      volumes:
+        - hostPath:
+            path: /var/log/kube-apiserver
+          name: persistent-log-dir

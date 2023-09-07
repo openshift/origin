@@ -17,7 +17,7 @@ func testMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitap
 	allServers := sets.String{}
 	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
 	for _, eventInterval := range allDisruptionEventsIntervals {
-		backend := monitorapi.DisruptionFrom(monitorapi.LocatorParts(eventInterval.Locator))
+		backend := monitorapi.ThisDisruptionInstanceFrom(monitorapi.LocatorParts(eventInterval.Locator))
 		switch {
 		case strings.HasPrefix(backend, "ingress-"):
 			allServers.Insert(eventInterval.Locator)

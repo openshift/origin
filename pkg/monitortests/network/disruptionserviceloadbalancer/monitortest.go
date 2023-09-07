@@ -95,13 +95,15 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 	// ovirt does not support service type loadbalancer because it doesn't program a cloud.
+	// none platform does not have CCM which exposes the service of type loadbalancer.
 	if infra.Status.PlatformStatus.Type == configv1.OvirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.KubevirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.LibvirtPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.NutanixPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType ||
-		infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType {
+		infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType ||
+		infra.Status.PlatformStatus.Type == configv1.NonePlatformType {
 		w.notSupportedReason = fmt.Sprintf("platform %q is not supported", infra.Status.PlatformStatus.Type)
 	}
 	// single node clusters are not supported because the replication controller has 2 replicas with anti-affinity for running on the same node.
@@ -204,15 +206,15 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return fmt.Errorf("could not reach %v reliably: %w", url, err)
 	}
 
-	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		baseURL,
-		"service-load-balancer-with-pdb",
+		"service-load-balancer-with-pdb-new-connections",
 		path,
 		monitorapi.NewConnectionType).
 		WithExpectedBody("hello")
-	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackend(
+	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		baseURL,
-		"service-load-balancer-with-pdb",
+		"service-load-balancer-with-pdb-reused-connections",
 		path,
 		monitorapi.ReusedConnectionType).
 		WithExpectedBody("hello")
@@ -232,6 +234,10 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 	if len(w.notSupportedReason) > 0 {
 		return nil, nil, nil
 	}
+	// we failed and indicated it during setup.
+	if w.disruptionChecker == nil {
+		return nil, nil, nil
+	}
 
 	return w.disruptionChecker.CollectData(ctx)
 }
@@ -245,6 +251,10 @@ func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 		return nil, nil
 	}
 	if w.suppressJunit {
+		return nil, nil
+	}
+	// we failed and indicated it during setup.
+	if w.disruptionChecker == nil {
 		return nil, nil
 	}
 

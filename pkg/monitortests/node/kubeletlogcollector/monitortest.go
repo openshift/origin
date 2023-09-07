@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -30,6 +31,15 @@ func (w *kubeletLogCollector) CollectData(ctx context.Context, storageDir string
 	if err != nil {
 		return nil, nil, err
 	}
+	// MicroShift does not have a proper journal for the node logs api.
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return nil, nil, err
+	}
+	if isMicroShift {
+		return nil, nil, nil
+	}
+
 	intervals, err := intervalsFromNodeLogs(ctx, kubeClient, beginning, end)
 	return intervals, nil, err
 }

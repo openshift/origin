@@ -1,10 +1,11 @@
-package monitor
+package watchevents
 
 import (
 	"context"
 	"crypto/sha256"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,12 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
 var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
 
-func startEventMonitoring(ctx context.Context, m monitorapi.Recorder, client kubernetes.Interface) {
+func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, adminRESTConfig *rest.Config, client kubernetes.Interface) {
 
 	// filter out events written "now" but with significantly older start times (events
 	// created in test jobs are the most common)
@@ -54,7 +56,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.Recorder, client kub
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, client, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, adminRESTConfig, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -65,7 +67,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.Recorder, client kub
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, client, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, adminRESTConfig, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -104,18 +106,10 @@ func combinedDuplicateEventPatterns() *regexp.Regexp {
 // and returns true if this event is an event we already know about.  Some functions
 // require a kubeconfig, but also handle the kubeconfig being nil (in case we cannot
 // successfully get a kubeconfig).
-func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool {
-
-	kubeClient, err := GetMonitorRESTConfig()
-	if err != nil {
-		// If we couldn't get a kube client, we won't be able to run functions that require a kube config
-		// but we can still pass a nil so that the rest of the functions can run.
-		fmt.Printf("error getting kubeclient: [%v] when processing event %s - %s\n", err, event.Locator, event.Message)
-		kubeClient = nil
-	}
+func checkAllowedRepeatedEventOKFns(adminRESTConfig *rest.Config, event monitorapi.Interval, times int32) bool {
 	for _, isRepeatedEventOKFuncList := range [][]pathologicaleventlibrary.IsRepeatedEventOKFunc{pathologicaleventlibrary.AllowedRepeatedEventFns, pathologicaleventlibrary.AllowedSingleNodeRepeatedEventFns} {
 		for _, allowRepeatedEventFn := range isRepeatedEventOKFuncList {
-			allowed, err := allowRepeatedEventFn(event, kubeClient, int(times))
+			allowed, err := allowRepeatedEventFn(event, adminRESTConfig, int(times))
 			if err != nil {
 				// for errors, we'll default to no match.
 				fmt.Printf("Error processing pathological event: %v\n", err)
@@ -131,7 +125,8 @@ func checkAllowedRepeatedEventOKFns(event monitorapi.Interval, times int32) bool
 
 func recordAddOrUpdateEvent(
 	ctx context.Context,
-	recorder monitorapi.Recorder,
+	recorder monitorapi.RecorderWriter,
+	adminRESTConfig *rest.Config,
 	client kubernetes.Interface,
 	significantlyBeforeNow time.Time,
 	obj *corev1.Event) {
@@ -237,7 +232,7 @@ func recordAddOrUpdateEvent(
 		eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
 
 		updatedMessage := event.Message
-		if allRepeatedEventPatterns.MatchString(eventDisplayMessage) || checkAllowedRepeatedEventOKFns(event, obj.Count) {
+		if allRepeatedEventPatterns.MatchString(eventDisplayMessage) || checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count) {
 			// This is a repeated event that we know about
 			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, updatedMessage)
 		}
@@ -288,15 +283,40 @@ func eventForContainer(fieldPath string) (string, bool) {
 	}
 }
 
+// TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
 func locateEvent(event *corev1.Event) string {
-	if len(event.InvolvedObject.Namespace) > 0 {
-		if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
+	switch {
+	case event.InvolvedObject.Kind == "Namespace":
+		// namespace better match the event itself.
+		return monitorapi.NewLocator().LocateNamespace(event.InvolvedObject.Name).OldLocator()
+
+	case event.InvolvedObject.Kind == "Node":
+		return monitorapi.NewLocator().NodeFromName(event.InvolvedObject.Name).OldLocator()
+
+	case len(event.InvolvedObject.Namespace) == 0:
+		if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
+			return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+		}
+		return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+
+	default:
+		// involved object is namespaced
+		if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
 			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
 		}
 		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 	}
-	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
-		return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
+}
+
+func nodeRoles(node *corev1.Node) string {
+	const roleLabel = "node-role.kubernetes.io"
+	var roles []string
+	for label := range node.Labels {
+		if strings.Contains(label, roleLabel) {
+			roles = append(roles, label[len(roleLabel)+1:])
+		}
 	}
-	return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
+
+	sort.Strings(roles)
+	return strings.Join(roles, ",")
 }

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitortestframework"
+
 	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
 
 	"github.com/openshift/origin/pkg/defaultmonitortests"
@@ -250,7 +252,10 @@ func (o *Timeline) Run() error {
 		to = *o.EndDate
 	}
 
-	invariantRegistry := defaultmonitortests.NewMonitorTestsFor(defaultmonitortests.Stable)
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest: monitortestframework.Stable,
+	}
+	invariantRegistry := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
 	computedIntervals, _, err := invariantRegistry.ConstructComputedIntervals(
 		context.TODO(),
 		filteredEvents,

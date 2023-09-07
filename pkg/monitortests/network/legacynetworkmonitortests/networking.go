@@ -12,13 +12,41 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 type testCategorizer struct {
 	by        string
 	substring string
+}
+
+func getPlatformType(clientConfig *rest.Config) (configv1.PlatformType, error) {
+	var platform configv1.PlatformType
+
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		return platform, fmt.Errorf("error creating kubeClient: %v", err)
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return platform, fmt.Errorf("error checking MicroShift cluster: %v", err)
+	}
+	if isMicroShift {
+		return platform, nil
+	}
+
+	configClient, err := configclient.NewForConfig(clientConfig)
+	if err != nil {
+		return platform, fmt.Errorf("error creating configClient: %v", err)
+	}
+	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return platform, fmt.Errorf("error getting cluster infrastructure: %v", err)
+	}
+	return infra.Status.PlatformStatus.Type, nil
 }
 
 func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
@@ -59,16 +87,9 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	eventsForPods := getEventsByPodName(events)
 
 	var platform configv1.PlatformType
-	configClient, err := configclient.NewForConfig(clientConfig)
+	platform, err := getPlatformType(clientConfig)
 	if err != nil {
-		failures = append(failures, fmt.Sprintf("error creating configClient: %v", err))
-	} else {
-		infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-		if err != nil {
-			failures = append(failures, fmt.Sprintf("error getting cluster infrastructure: %v", err))
-		} else {
-			platform = infra.Status.PlatformStatus.Type
-		}
+		failures = append(failures, fmt.Sprintf("error determining platform type: %v", err))
 	}
 
 	for _, event := range events {
@@ -85,6 +106,11 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			// readiness/availability, and it deletes pods with a 0 second termination period. If CNI is not able to create the sandbox in time it
 			// does not signal an error in the test, as we don't need the pod being available for success.
 			// https://github.com/kubernetes/kubernetes/blob/70ca1dbb81d8b8c6a2ac88d62480008780d4db79/test/e2e/apimachinery/garbage_collector.go#L735
+			continue
+		}
+		if strings.Contains(event.Locator, "ns/e2e-test-tuning-") &&
+			strings.Contains(event.Message, "IFNAME") {
+			// These tests are trying to cause pod sandbox failures, so the errors are intended.
 			continue
 		}
 		if strings.Contains(event.Message, "Multus") &&
@@ -394,5 +420,33 @@ func testNoOVSVswitchdUnreasonablyLongPollIntervals(events monitorapi.Intervals)
 
 	// I've seen these as high as 9s in jobs that nothing else failed in, leaving as just a flake
 	// for now.
+	return []*junitapi.JUnitTestCase{failure, success}
+}
+
+func testNoTooManyNetlinkEventLogs(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-network] NetworkManager should not log too many netlink events to system journal"
+	success := &junitapi.JUnitTestCase{Name: testName}
+
+	var failures []string
+	for _, event := range events {
+		if strings.Contains(event.Message, "read: too many netlink events. Need to resynchronize platform cache") && strings.Contains(event.Message, "NetworkManager") {
+			msg := fmt.Sprintf("%v - %v", event.Locator, event.Message)
+			failures = append(failures, msg)
+		}
+	}
+
+	if len(failures) == 0 {
+		return []*junitapi.JUnitTestCase{success}
+	}
+
+	failure := &junitapi.JUnitTestCase{
+		Name:      testName,
+		SystemOut: strings.Join(failures, "\n"),
+		FailureOutput: &junitapi.FailureOutput{
+			Output: fmt.Sprintf("Found %d instances of NetworkManager logging too many netlink events. An undersized netlink socket receive buffer in NetworkManager can cause the kernel to have to send more, smaller messages at any given time. If NetworkManager does not process them fast enough, some messages can be lost, requiring a re-sync and triggering this log message.\n\n%v", len(failures), strings.Join(failures, "\n")),
+		},
+	}
+
+	// leaving as a flake so we can see how common this is for now.
 	return []*junitapi.JUnitTestCase{failure, success}
 }

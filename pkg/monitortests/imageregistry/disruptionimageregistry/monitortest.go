@@ -77,19 +77,18 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	}
 
 	baseURL := fmt.Sprintf("https://%s", w.imageRegistryRoute.Status.Ingress[0].Host)
-	disruptionBackendName := "image-registry"
+	historicalBackendDisruptionDataForNewConnectionsName := "image-registry-new-connections"
+	historicalBackendDisruptionDataForReusedConnectionsName := "image-registry-reused-connections"
 	path := "/healthz"
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendWithLocator(
-		monitorapi.LocateRouteForDisruptionCheck(namespace, "test-disruption-new", disruptionBackendName, monitorapi.NewConnectionType),
+		monitorapi.NewLocator().LocateRouteForDisruptionCheck(historicalBackendDisruptionDataForNewConnectionsName, backenddisruption.OpenshiftTestsSource, namespace, "test-disruption-new", monitorapi.NewConnectionType),
 		baseURL,
-		disruptionBackendName,
 		path,
 		monitorapi.NewConnectionType)
 
 	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendWithLocator(
-		monitorapi.LocateRouteForDisruptionCheck(namespace, "test-disruption-reused", disruptionBackendName, monitorapi.ReusedConnectionType),
+		monitorapi.NewLocator().LocateRouteForDisruptionCheck(historicalBackendDisruptionDataForReusedConnectionsName, backenddisruption.OpenshiftTestsSource, namespace, "test-disruption-reused", monitorapi.ReusedConnectionType),
 		baseURL,
-		disruptionBackendName,
 		path,
 		monitorapi.ReusedConnectionType)
 
@@ -108,6 +107,11 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 	if len(w.notSupportedReason) > 0 {
 		return nil, nil, nil
 	}
+	// we failed and indicated it during setup.
+	if w.disruptionChecker == nil {
+		return nil, nil, nil
+	}
+
 	return w.disruptionChecker.CollectData(ctx)
 }
 
@@ -120,6 +124,10 @@ func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 		return nil, nil
 	}
 	if w.suppressJunit {
+		return nil, nil
+	}
+	// we failed and indicated it during setup.
+	if w.disruptionChecker == nil {
 		return nil, nil
 	}
 

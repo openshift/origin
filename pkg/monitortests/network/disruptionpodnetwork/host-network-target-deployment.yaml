@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: host-network-disruption-target
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 34%
+      maxSurge: 0
+  # to be overridden by the number of nodes
+  replicas: 1
+  selector:
+    matchLabels:
+      network.openshift.io/disruption-target: host-network
+      network.openshift.io/disruption-actor: target
+  template:
+    metadata:
+      labels:
+        network.openshift.io/disruption-target: host-network
+        network.openshift.io/disruption-actor: target
+    spec:
+      containers:
+        - command:
+            - sleep
+            - "21600"
+          image: image-registry.openshift-image-registry.svc:5000/openshift/cli
+          imagePullPolicy: IfNotPresent
+          name: host-disruption-server
+          terminationMessagePolicy: FallbackToLogsOnError
+          readinessProbe:
+            tcpSocket:
+              port: 10250
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 1
+      restartPolicy: Always
+      hostNetwork: true
+      terminationGracePeriodSeconds: 1
+      tolerations:
+        # Ensure pod can be scheduled on master nodes
+        - key: "node-role.kubernetes.io/master"
+          operator: "Exists"
+          effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: "kubernetes.io/hostname"
+              labelSelector:
+                matchLabels:
+                  network.openshift.io/disruption-target: host-network
+                  network.openshift.io/disruption-actor: target

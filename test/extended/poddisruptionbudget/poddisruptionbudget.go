@@ -30,7 +30,8 @@ var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("poddisruptionbudgets", admissionapi.LevelRestricted)
 
 	const (
-		podBecomesReadyTimeout = 2 * time.Minute
+		// should be higher than the pod start time, so first pod is still not ready when a seconds one starts with a big delay (might take a long time to pull image)
+		podBecomesReadyTimeout = 5*time.Minute + 10*time.Second
 	)
 	const (
 		ifHealthyBudgetPDBName   = "if-healthy-budget-policy"
@@ -50,13 +51,6 @@ var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 			podsLabelSelector = labels.SelectorFromSet(labels.Set{"app": "nginx-with-delayed-ready"})
 		})
 
-		g.JustBeforeEach(func() {
-			//TODO remove this check once PDBUnhealthyPodEvictionPolicy is graduated to beta and enabled by default
-			if !exutil.IsTechPreviewNoUpgrade(oc) {
-				g.Skip("the test is not expected to work within Tech Preview disabled clusters")
-			}
-		})
-
 		g.It(fmt.Sprintf("should evict according to the IfHealthyBudget policy"), func() {
 			g.By(fmt.Sprintf("calling oc create -f %q", ifHealthyBudgetPolicyPDB))
 			err := oc.Run("create").Args("-f", ifHealthyBudgetPolicyPDB).Execute()
@@ -73,7 +67,7 @@ var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 				DesiredHealthy:     2,
 				ExpectedPods:       3,
 			}
-			pdb, err := waitForPDBStatus(oc.KubeClient().PolicyV1(), metav1.ObjectMeta{Name: ifHealthyBudgetPDBName, Namespace: oc.Namespace()}, e2e.PodStartTimeout, expectedStatus)
+			pdb, err := waitForPDBStatus(oc.KubeClient().PolicyV1(), metav1.ObjectMeta{Name: ifHealthyBudgetPDBName, Namespace: oc.Namespace()}, e2e.PodListTimeout, expectedStatus)
 			if err != nil {
 				g.Fail(fmt.Sprintf("error occurred while waiting for PDB status: %v\nexpected %#v, got %#v", err, expectedStatus, pdbStatus(pdb)))
 			}
@@ -181,7 +175,7 @@ var _ = g.Describe("[sig-apps] poddisruptionbudgets", func() {
 				DesiredHealthy:     2,
 				ExpectedPods:       3,
 			}
-			pdb, err := waitForPDBStatus(oc.KubeClient().PolicyV1(), metav1.ObjectMeta{Name: alwaysAllowPolicyPDBName, Namespace: oc.Namespace()}, e2e.PodStartTimeout, expectedStatus)
+			pdb, err := waitForPDBStatus(oc.KubeClient().PolicyV1(), metav1.ObjectMeta{Name: alwaysAllowPolicyPDBName, Namespace: oc.Namespace()}, e2e.PodListTimeout, expectedStatus)
 			if err != nil {
 				g.Fail(fmt.Sprintf("error occurred while waiting for PDB status: %v\nexpected %#v, got %#v", err, expectedStatus, pdbStatus(pdb)))
 			}

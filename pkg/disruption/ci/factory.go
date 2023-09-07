@@ -92,8 +92,14 @@ func (t TestDescriptor) Name() string {
 }
 
 func (t TestDescriptor) DisruptionLocator() monitorapi.Locator {
-	return monitorapi.NewLocator().Disruption(t.Name(), string(t.LoadBalancerType),
-		string(t.ConnectionType), string(t.Protocol), string(t.TargetServer))
+	return monitorapi.NewLocator().Disruption(
+		t.Name(),
+		fmt.Sprintf("%v-%v-%v", t.TargetServer, t.Protocol, t.LoadBalancerType),
+		string(t.LoadBalancerType),
+		string(t.Protocol),
+		string(t.TargetServer),
+		t.ConnectionType,
+	)
 }
 
 func (t TestDescriptor) ShutdownLocator() monitorapi.Locator {

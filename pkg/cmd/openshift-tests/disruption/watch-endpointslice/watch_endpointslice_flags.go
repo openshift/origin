@@ -18,10 +18,15 @@ import (
 // WatchEndpointSliceFlags is used to run a monitoring process against the provided server as
 // a command line interaction.
 type WatchEndpointSliceFlags struct {
-	ConfigFlags   *genericclioptions.ConfigFlags
-	OutputFlags   *iooptions.OutputFlags
-	ServiceName   string
-	BackendPrefix string
+	ConfigFlags        *genericclioptions.ConfigFlags
+	OutputFlags        *iooptions.OutputFlags
+	ServiceName        string
+	BackendPrefix      string
+	Scheme             string
+	Path               string
+	ExpectedStatusCode int
+	MyNodeName         string
+	StopConfigMapName  string
 
 	genericclioptions.IOStreams
 }
@@ -30,6 +35,7 @@ func NewWatchEndpointSliceFlags(streams genericclioptions.IOStreams) *WatchEndpo
 	return &WatchEndpointSliceFlags{
 		ConfigFlags: genericclioptions.NewConfigFlags(false),
 		OutputFlags: iooptions.NewOutputOptions(),
+		Scheme:      "https",
 		IOStreams:   streams,
 	}
 }
@@ -79,8 +85,13 @@ func NewWatchEndpointSlice(ioStreams genericclioptions.IOStreams) *cobra.Command
 }
 
 func (f *WatchEndpointSliceFlags) BindOptions(flags *pflag.FlagSet) {
+	flags.StringVar(&f.MyNodeName, "my-node-name", f.MyNodeName, "the name of the node running this pod")
 	flags.StringVar(&f.ServiceName, "disruption-target-service-name", f.ServiceName, "the name of the service whose endpoints we want to poll")
 	flags.StringVar(&f.BackendPrefix, "disruption-backend-prefix", f.BackendPrefix, "classification of disruption for the disruption summary")
+	flags.StringVar(&f.StopConfigMapName, "stop-configmap", f.StopConfigMapName, "the name of the configmap that indicates that this pod should stop all watchers.")
+	flags.StringVar(&f.Scheme, "request-scheme", f.Scheme, "http or https")
+	flags.StringVar(&f.Path, "request-path", f.Path, "path to request, like /healthz")
+	flags.IntVar(&f.ExpectedStatusCode, "expected-status-code", f.ExpectedStatusCode, "status code to expect from the sampler")
 	f.ConfigFlags.AddFlags(flags)
 	f.OutputFlags.BindFlags(flags)
 }
@@ -128,13 +139,18 @@ func (f *WatchEndpointSliceFlags) ToOptions() (*WatchEndpointSliceOptions, error
 	}
 
 	return &WatchEndpointSliceOptions{
-		KubeClient:      kubeClient,
-		Namespace:       namespace,
-		OutputFile:      f.OutputFlags.OutFile,
-		ServiceName:     f.ServiceName,
-		BackendPrefix:   f.BackendPrefix,
-		CloseFn:         closeFn,
-		OriginalOutFile: originalOutStream,
-		IOStreams:       f.IOStreams,
+		KubeClient:         kubeClient,
+		Namespace:          namespace,
+		OutputFile:         f.OutputFlags.OutFile,
+		ServiceName:        f.ServiceName,
+		StopConfigMapName:  f.StopConfigMapName,
+		Scheme:             f.Scheme,
+		Path:               f.Path,
+		MyNodeName:         f.MyNodeName,
+		BackendPrefix:      f.BackendPrefix,
+		ExpectedStatusCode: f.ExpectedStatusCode,
+		CloseFn:            closeFn,
+		OriginalOutFile:    originalOutStream,
+		IOStreams:          f.IOStreams,
 	}, nil
 }

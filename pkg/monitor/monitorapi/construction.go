@@ -15,8 +15,6 @@ type IntervalBuilder struct {
 	display           bool
 	structuredLocator Locator
 	structuredMessage Message
-	from              time.Time
-	to                time.Time
 }
 
 func NewInterval(source IntervalSource, level IntervalLevel) *IntervalBuilder {
@@ -29,16 +27,6 @@ func NewInterval(source IntervalSource, level IntervalLevel) *IntervalBuilder {
 // Display is a coarse grained hint that any UI should display this interval to a user.
 func (b *IntervalBuilder) Display() *IntervalBuilder {
 	b.display = true
-	return b
-}
-
-func (b *IntervalBuilder) From(from time.Time) *IntervalBuilder {
-	b.from = from
-	return b
-}
-
-func (b *IntervalBuilder) To(to time.Time) *IntervalBuilder {
-	b.to = to
 	return b
 }
 
@@ -56,13 +44,18 @@ func (b *IntervalBuilder) BuildCondition() Condition {
 	return ret
 }
 
-func (b *IntervalBuilder) Build() Interval {
+// Build creates the final interval with a mandatory from/to timestamp.
+// Zero value times are allowed to indicate cases when the from or to is not known.
+// This situation happens when the monitor doesn't observe a state change: imagine intervals for tracking graceful shutdown.
+// If the monitor is stopped before the shutdown completes, it is incorrect to indicate a To time of "now".
+// It is accurate to indicate "open" by using a zero value time.
+func (b *IntervalBuilder) Build(from, to time.Time) Interval {
 	ret := Interval{
 		Condition: b.BuildCondition(),
 		Display:   b.display,
-		From:      b.from,
-		To:        b.to,
 		Source:    b.source,
+		From:      from,
+		To:        to,
 	}
 
 	return ret
@@ -93,9 +86,10 @@ func NewLocator() *LocatorBuilder {
 }
 
 func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
-	b.targetType = LocatorTypeNode
-	b.annotations[LocatorNodeKey] = nodeName
-	return b.Build()
+	return b.
+		withTargetType(LocatorTypeNode).
+		withNode(nodeName).
+		Build()
 }
 
 func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, container string) Locator {
@@ -118,14 +112,11 @@ func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, contain
 	return b.Build()
 }
 
-func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, protocol, target string) Locator {
-	b.targetType = LocatorTypeDisruption
-	b.annotations[LocatorDisruptionKey] = disruptionName
+func (b *LocatorBuilder) Disruption(backendDisruptionName, thisInstanceName, loadBalancer, protocol, target string, connectionType BackendConnectionType) Locator {
+	b = b.withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName).withConnectionType(connectionType)
+
 	if len(loadBalancer) > 0 {
 		b.annotations[LocatorLoadBalancerKey] = loadBalancer
-	}
-	if len(connection) > 0 {
-		b.annotations[LocatorConnectionKey] = connection
 	}
 	if len(protocol) > 0 {
 		b.annotations[LocatorProtocolKey] = protocol
@@ -134,6 +125,102 @@ func (b *LocatorBuilder) Disruption(disruptionName, loadBalancer, connection, pr
 		b.annotations[LocatorTargetKey] = target
 	}
 	return b.Build()
+}
+
+// DisruptionRequiredOnly takes only the logically required data for backend-disruption.json and codifies it.
+// backendDisruptionName is the value used to store and locate historical data related to the amount of disruption.
+// thisInstanceName is used to show on a timeline which connection failed.
+// For instance, the backendDisruptionName may be internal-load-balancer and the thisInstanceName may include,
+// 1. from worker-a
+// 2. new connections
+// 3. to IP
+// 4. this protocol
+func (b *LocatorBuilder) DisruptionRequiredOnly(backendDisruptionName, thisInstanceName string) Locator {
+	b = b.withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName)
+	return b.Build()
+}
+
+func (b *LocatorBuilder) withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName string) *LocatorBuilder {
+	b.targetType = LocatorTypeDisruption
+	b.annotations[LocatorBackendDisruptionNameKey] = backendDisruptionName
+	b.annotations[LocatorDisruptionKey] = thisInstanceName
+	return b
+}
+
+func (b *LocatorBuilder) LocateNamespace(namespaceName string) Locator {
+	return b.
+		withNamespace(namespaceName).
+		Build()
+}
+
+func (b *LocatorBuilder) withNamespace(namespace string) *LocatorBuilder {
+	b.annotations[LocatorNamespaceKey] = namespace
+	return b
+}
+
+func (b *LocatorBuilder) withNode(nodeName string) *LocatorBuilder {
+	b.annotations[LocatorNodeKey] = nodeName
+	return b
+}
+
+func (b *LocatorBuilder) withRoute(route string) *LocatorBuilder {
+	b.annotations[LocatorRouteKey] = route
+	return b
+}
+
+func (b *LocatorBuilder) withTargetType(targetType LocatorType) *LocatorBuilder {
+	b.targetType = targetType
+	return b
+}
+
+func (b *LocatorBuilder) withConnectionType(connectionType BackendConnectionType) *LocatorBuilder {
+	b.annotations[LocatorConnectionKey] = string(connectionType)
+	return b
+}
+
+func (b *LocatorBuilder) LocateRouteForDisruptionCheck(backendDisruptionName, thisInstanceName, ns, name string, connectionType BackendConnectionType) Locator {
+	return b.
+		withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName).
+		withNamespace(ns).
+		withRoute(name).
+		withConnectionType(connectionType).
+		Build()
+}
+
+func (b *LocatorBuilder) LocateDisruptionCheck(backendDisruptionName, thisInstanceName string, connectionType BackendConnectionType) Locator {
+	return b.
+		withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName).
+		withConnectionType(connectionType).
+		Build()
+}
+
+func (b *LocatorBuilder) LocateServer(serverName, nodeName, namespace, podName string, isShutdown bool) Locator {
+	if isShutdown {
+		return b.
+			withShutdown().
+			withServer(serverName).
+			withNode(nodeName).
+			withNamespace(namespace).
+			withPodName(podName).
+			Build()
+	}
+	return b.
+		withServer(serverName).
+		withNode(nodeName).
+		withNamespace(namespace).
+		withPodName(podName).
+		Build()
+}
+
+// TODO remove this once we know what all breaks.
+func (b *LocatorBuilder) withShutdown() *LocatorBuilder {
+	b.annotations[LocatorShutdown] = "apiserver"
+	return b
+}
+
+func (b *LocatorBuilder) withServer(serverName string) *LocatorBuilder {
+	b.annotations[LocatorServerKey] = serverName
+	return b
 }
 
 func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
@@ -182,12 +269,22 @@ func (b *LocatorBuilder) ContainerFromNames(namespace, podName, uid, containerNa
 }
 
 func (b *LocatorBuilder) PodFromNames(namespace, podName, uid string) Locator {
-	b.targetType = LocatorTypePod
-	b.annotations[LocatorNamespaceKey] = namespace
-	b.annotations[LocatorPodKey] = podName
-	b.annotations[LocatorUIDKey] = uid
+	return b.
+		withTargetType(LocatorTypePod).
+		withNamespace(namespace).
+		withPodName(podName).
+		withUID(uid).
+		Build()
+}
 
-	return b.Build()
+func (b *LocatorBuilder) withPodName(podName string) *LocatorBuilder {
+	b.annotations[LocatorPodKey] = podName
+	return b
+}
+
+func (b *LocatorBuilder) withUID(uid string) *LocatorBuilder {
+	b.annotations[LocatorUIDKey] = uid
+	return b
 }
 
 func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) Locator {

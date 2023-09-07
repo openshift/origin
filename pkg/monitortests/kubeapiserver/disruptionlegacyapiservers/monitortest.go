@@ -222,6 +222,11 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 	errs := []error{}
 
 	for i := range w.disruptionCheckers {
+		// we failed and indicated it during setup.
+		if w.disruptionCheckers[i] == nil {
+			continue
+		}
+
 		localIntervals, localJunits, localErr := w.disruptionCheckers[i].CollectData(ctx)
 		intervals = append(intervals, localIntervals...)
 		junits = append(junits, localJunits...)
@@ -246,6 +251,11 @@ func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 	errs := []error{}
 
 	for i := range w.disruptionCheckers {
+		// we failed and indicated it during setup.
+		if w.disruptionCheckers[i] == nil {
+			continue
+		}
+
 		localJunits, localErr := w.disruptionCheckers[i].EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
 		junits = append(junits, localJunits...)
 		if localErr != nil {

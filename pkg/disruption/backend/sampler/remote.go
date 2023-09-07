@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -388,7 +387,8 @@ func fetchEventsFromFileOnNode(ctx context.Context, clientset *kubernetes.Client
 	fmt.Fprintf(os.Stdout, "Fetched %d events from node %s\n", len(allEvents), nodeName)
 	// Keep only disruption events
 	for _, event := range allEvents {
-		if !strings.HasPrefix(event.Locator, "disruption/") {
+		backendDisruptionName := monitorapi.BackendDisruptionNameFrom(monitorapi.LocatorParts(event.Locator))
+		if len(backendDisruptionName) == 0 {
 			continue
 		}
 		filteredEvents = append(filteredEvents, event)

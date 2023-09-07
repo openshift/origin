@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/sirupsen/logrus"
 )
 
 type AlertStatisticalData struct {
@@ -79,25 +80,31 @@ func NewAlertMatcherWithHistoricalData(data map[AlertDataKey]AlertStatisticalDat
 
 func (b *AlertBestMatcher) bestMatch(key AlertDataKey) (AlertStatisticalData, string, error) {
 	exactMatchKey := key
+	logrus.WithField("alertName", key.AlertName).Infof("searching for bestMatch for %+v", key.JobType)
+	logrus.Infof("historicalData has %d entries", len(b.HistoricalData))
 
-	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok && percentiles.JobRuns >= minJobRuns {
-		return percentiles, "", nil
+	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok {
+		if percentiles.JobRuns > minJobRuns {
+			logrus.Infof("found exact match: %+v", percentiles)
+			return percentiles, "", nil
+		}
+		percentiles, matchReason, err := b.evaluateBestGuesser(PreviousReleaseUpgrade, exactMatchKey)
+		if err != nil {
+			return AlertStatisticalData{}, "", err
+		}
+		if percentiles != (AlertStatisticalData{}) {
+			return percentiles, matchReason, nil
+		}
 	}
 
 	// tested in TestGetClosestP95Value in allowedbackendisruption.  Should get a local test at some point.
 	for _, nextBestGuesser := range nextBestGuessers {
-		nextBestJobType, ok := nextBestGuesser(key.JobType)
-		if !ok {
-			continue
+		percentiles, matchReason, err := b.evaluateBestGuesser(nextBestGuesser, exactMatchKey)
+		if err != nil {
+			return AlertStatisticalData{}, "", err
 		}
-		nextBestMatchKey := AlertDataKey{
-			AlertName:      key.AlertName,
-			AlertNamespace: key.AlertNamespace,
-			AlertLevel:     key.AlertLevel,
-			JobType:        nextBestJobType,
-		}
-		if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns >= minJobRuns {
-			return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
+		if percentiles != (AlertStatisticalData{}) {
+			return percentiles, matchReason, nil
 		}
 	}
 
@@ -110,6 +117,24 @@ func (b *AlertBestMatcher) bestMatch(key AlertDataKey) (AlertStatisticalData, st
 	return AlertStatisticalData{},
 		fmt.Sprintf("(no exact or fuzzy match for jobType=%#v)", key.JobType),
 		nil
+}
+
+func (b *AlertBestMatcher) evaluateBestGuesser(nextBestGuesser NextBestKey, exactMatchKey AlertDataKey) (AlertStatisticalData, string, error) {
+	nextBestJobType, ok := nextBestGuesser(exactMatchKey.JobType)
+	if !ok {
+		return AlertStatisticalData{}, "", nil
+	}
+	nextBestMatchKey := AlertDataKey{
+		AlertName:      exactMatchKey.AlertName,
+		AlertNamespace: exactMatchKey.AlertNamespace,
+		AlertLevel:     exactMatchKey.AlertLevel,
+
+		JobType: nextBestJobType,
+	}
+	if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns >= minJobRuns {
+		return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
+	}
+	return AlertStatisticalData{}, "", nil
 }
 
 // BestMatchDuration returns the best possible match for this historical data.  It attempts an exact match first, then

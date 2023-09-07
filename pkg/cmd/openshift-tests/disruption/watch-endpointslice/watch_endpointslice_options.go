@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 
+	coreinformers "k8s.io/client-go/informers/core/v1"
+
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitor"
 	"k8s.io/client-go/informers"
@@ -21,9 +23,14 @@ type WatchEndpointSliceOptions struct {
 	KubeClient kubernetes.Interface
 	Namespace  string
 
-	OutputFile    string
-	BackendPrefix string
-	ServiceName   string
+	OutputFile         string
+	BackendPrefix      string
+	ServiceName        string
+	MyNodeName         string
+	Scheme             string
+	Path               string
+	ExpectedStatusCode int
+	StopConfigMapName  string
 
 	OriginalOutFile io.Writer
 	CloseFn         iooptions.CloseFunc
@@ -46,14 +53,23 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 
 	kubeInformers := informers.NewSharedInformerFactory(o.KubeClient, 0)
 	namespaceScopedEndpointSliceInformers := discoveryinformers.New(kubeInformers, o.Namespace, nil)
+	namespaceScopedCoreInformers := coreinformers.New(kubeInformers, o.Namespace, nil)
 
 	cleanupFinished := make(chan struct{})
 	podToPodChecker := NewEndpointWatcher(
 		o.BackendPrefix,
+		o.Namespace,
 		o.ServiceName,
+		o.StopConfigMapName,
+		o.MyNodeName,
+		o.Scheme,
+		o.Path,
+		o.ExpectedStatusCode,
 		recorder,
 		o.IOStreams.Out,
-		namespaceScopedEndpointSliceInformers.EndpointSlices())
+		namespaceScopedEndpointSliceInformers.EndpointSlices(),
+		namespaceScopedCoreInformers.ConfigMaps(),
+	)
 	go podToPodChecker.Run(ctx, cleanupFinished)
 
 	go kubeInformers.Start(ctx.Done())

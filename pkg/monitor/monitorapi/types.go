@@ -113,6 +113,8 @@ const (
 type LocatorKey string
 
 const (
+	LocatorServer             LocatorKey = "server"   // TODO this looks like a bad name.  Aggregated apiserver?  Do we even need it?
+	LocatorShutdown           LocatorKey = "shutdown" // TODO this should not exist.  This is a reason and message
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorNodeKey            LocatorKey = "node"
@@ -124,14 +126,16 @@ const (
 	LocatorContainerKey       LocatorKey = "container"
 	LocatorAlertKey           LocatorKey = "alert"
 	LocatorRouteKey           LocatorKey = "route"
-	LocatorDisruptionKey      LocatorKey = "disruption"
-	LocatorE2ETestKey         LocatorKey = "e2e-test"
-	LocatorLoadBalancerKey    LocatorKey = "load-balancer"
-	LocatorConnectionKey      LocatorKey = "connection"
-	LocatorProtocolKey        LocatorKey = "protocol"
-	LocatorTargetKey          LocatorKey = "target"
-	LocatorShutdownKey        LocatorKey = "shutdown"
-	LocatorServerKey          LocatorKey = "server"
+	// LocatorBackendDisruptionNameKey holds the value used to store and locate historical data related to the amount of disruption.
+	LocatorBackendDisruptionNameKey LocatorKey = "backend-disruption-name"
+	LocatorDisruptionKey            LocatorKey = "disruption"
+	LocatorE2ETestKey               LocatorKey = "e2e-test"
+	LocatorLoadBalancerKey          LocatorKey = "load-balancer"
+	LocatorConnectionKey            LocatorKey = "connection"
+	LocatorProtocolKey              LocatorKey = "protocol"
+	LocatorTargetKey                LocatorKey = "target"
+	LocatorShutdownKey              LocatorKey = "shutdown"
+	LocatorServerKey                LocatorKey = "server"
 )
 
 type Locator struct {
@@ -149,6 +153,7 @@ const (
 	DisruptionBeganEventReason              IntervalReason = "DisruptionBegan"
 	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
 	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
+	GracefulAPIServerShutdown               IntervalReason = "GracefulShutdownWindow"
 
 	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
 
@@ -225,6 +230,7 @@ const (
 	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
 	SourceDisruption              IntervalSource = "Disruption"
 	SourceE2ETest                 IntervalSource = "E2ETest"
+	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
 	SourcePodLog                  IntervalSource = "PodLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
