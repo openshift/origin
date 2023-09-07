@@ -158,7 +158,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		// Create a target project and assign source and target namespace
 		// to variables for later use.
 		egressIPNamespace = f.Namespace.Name
-		externalNamespace = oc.SetupProject()
+		externalNamespace = oc.NewProject()
 
 		g.By("Selecting the EgressIP nodes and a non-EgressIP node")
 		nonEgressIPNodeName = workerNodesOrderedNames[0]

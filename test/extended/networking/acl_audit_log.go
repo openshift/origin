@@ -49,7 +49,7 @@ var _ = Describe("[sig-network][Feature:Network Policy Audit logging]", func() {
 				makeNamespaceScheduleToAllNodes(f)
 				makeNamespaceACLLoggingEnabled(oc)
 
-				nsNoACLLog := oc.SetupProject()
+				nsNoACLLog := oc.NewProject()
 				By("making namespace " + nsNoACLLog + " with acl-logging disabled")
 				ns = append(ns, nsNoACLLog)
 

@@ -85,8 +85,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:ClusterResourceQuota]", func() {
 			}
 			oc.AddResourceToDelete(quotav1.GroupVersion.WithResource("clusterresourcequotas"), cq)
 
-			firstProjectName := oc.SetupProject()
-			secondProjectName := oc.SetupProject()
+			firstProjectName := oc.NewProject()
+			secondProjectName := oc.NewProject()
 
 			// Wait for the creation of the mandatory configmaps before performing checks of quota
 			// enforcement to ensure reliable test execution.
