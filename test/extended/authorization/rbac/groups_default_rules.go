@@ -240,12 +240,12 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] The default clust
 			kubeInformers.Rbac().V1().Roles().Informer().HasSynced,
 			kubeInformers.Rbac().V1().RoleBindings().Informer().HasSynced,
 		); !ok {
-			exutil.FatalErr("failed to sync RBAC cache")
+			e2e.Failf("failed to sync RBAC cache")
 		}
 
 		namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 		if err != nil {
-			exutil.FatalErr(err)
+			e2e.Failf("%v", err)
 		}
 
 		g.By("should only allow the system:authenticated group to access certain policy rules", func() {

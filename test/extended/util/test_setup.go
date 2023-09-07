@@ -174,7 +174,7 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 		return err
 	})
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 }
 
@@ -199,7 +199,7 @@ func addE2EServiceAccountsToSCC(securityClient securityv1client.Interface, names
 		return nil
 	})
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 }
 
@@ -225,6 +225,6 @@ func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namesp
 		return nil
 	})
 	if err != nil {
-		FatalErr(err)
+		fatalErr(err)
 	}
 }
