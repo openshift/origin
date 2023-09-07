@@ -1401,7 +1401,7 @@ var Annotations = map[string]string{
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of Endpoints pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-node-tuning] NTO should OCP-66086 NTO Prevent from stalld continually restarting [slow]": " [Suite:openshift/conformance/parallel]",
+	"[sig-node-tuning] NTO should OCP-66086 NTO Prevent from stalld continually restarting [Slow]": "",
 
 	"[sig-node] Managed cluster record the number of nodes at the beginning of the tests [Early]": " [Suite:openshift/conformance/parallel]",
 

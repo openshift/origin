@@ -20,7 +20,7 @@ func GetFirstCoreOsWorkerNode(oc *CLI) (string, error) {
 
 // getFirstNodeByOsID returns the cluster node by role and os id
 func getFirstNodeByOsID(oc *CLI, role string, osID string) (string, error) {
-	nodes, err := GetClusterNodesBy(oc, role)
+	nodes, err := GetClusterNodesByRole(oc, role)
 	for _, node := range nodes {
 		stdout, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node/"+node, "-o", "jsonpath=\"{.metadata.labels.node\\.openshift\\.io/os_id}\"").Output()
 		if strings.Trim(stdout, "\"") == osID {
