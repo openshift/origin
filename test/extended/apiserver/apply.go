@@ -68,7 +68,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 
 		g.It(fmt.Sprintf("should work for %s [apigroup:%s]", gvr, gvr.Group), func() {
 			// create the testing namespace
-			testNamespace := oc.SetupProject()
+			testNamespace := oc.NewProject()
 
 			exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), gvr.Resource, gvr.GroupVersion().String())
 			o.Expect(err).NotTo(o.HaveOccurred())

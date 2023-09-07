@@ -102,13 +102,13 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			w, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			ns01Name := oc.SetupProject()
+			ns01Name := oc.NewProject()
 			authorization.AddUserAdminToProject(oc, ns01Name, bobName)
 			waitForAdd(ns01Name, w)
 
 			// TEST FOR ADD/REMOVE ACCESS
 			joeName := oc.CreateUser("joe-").Name
-			ns02Name := oc.SetupProject()
+			ns02Name := oc.NewProject()
 			authorization.AddUserAdminToProject(oc, ns02Name, joeName)
 			bobEditName := authorization.AddUserEditToProject(oc, ns02Name, bobName)
 			waitForAdd(ns02Name, w)
@@ -121,7 +121,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			waitForDelete(ns02Name, w)
 
 			// TEST FOR DELETE PROJECT
-			ns03Name := oc.SetupProject()
+			ns03Name := oc.NewProject()
 			authorization.AddUserAdminToProject(oc, ns03Name, bobName)
 			waitForAdd(ns03Name, w)
 
@@ -163,7 +163,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			bobConfig := oc.GetClientConfigForUser(bobName)
 			bobProjectClient := projectv1client.NewForConfigOrDie(bobConfig)
 
-			ns01Name := oc.SetupProject()
+			ns01Name := oc.NewProject()
 			w, err := bobProjectClient.Projects().Watch(ctx, metav1.ListOptions{
 				FieldSelector: "metadata.name=" + ns01Name,
 			})
@@ -173,7 +173,7 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			// we should be seeing an "ADD" watch event being emitted, since we are specifically watching this project via a field selector
 			waitForAdd(ns01Name, w)
 
-			ns03Name := oc.SetupProject()
+			ns03Name := oc.NewProject()
 			authorization.AddUserAdminToProject(oc, ns03Name, bobName)
 			// we are only watching ns-01, we should not receive events for other projects
 			waitForNoEvent(w, ns01Name)
@@ -347,10 +347,10 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			fullBobConfig := oc.GetClientConfigForUser(bobName)
 			fullBobClient := projectv1client.NewForConfigOrDie(fullBobConfig)
 
-			oneName := oc.SetupProject()
-			twoName := oc.SetupProject()
-			threeName := oc.SetupProject()
-			fourName := oc.SetupProject()
+			oneName := oc.NewProject()
+			twoName := oc.NewProject()
+			threeName := oc.NewProject()
+			fourName := oc.NewProject()
 
 			oneTwoBobConfig, err := GetScopedClientForUser(oc, bobName, []string{
 				scope.UserListScopedProjects,
@@ -468,9 +468,9 @@ var _ = g.Describe("[sig-auth][Feature:ProjectAPI] ", func() {
 			aliceName := oc.CreateUser("alice-").Name
 			aliceConfig := oc.GetClientConfigForUser(aliceName)
 
-			fooName := oc.SetupProject()
+			fooName := oc.NewProject()
 			authorization.AddUserAdminToProject(oc, fooName, bobName)
-			barName := oc.SetupProject()
+			barName := oc.NewProject()
 			authorization.AddUserAdminToProject(oc, barName, aliceName)
 
 			roleBinding := &rbacv1.RoleBinding{}

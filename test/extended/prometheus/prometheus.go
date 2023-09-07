@@ -722,7 +722,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 		})
 
 		g.It("should provide named network metrics [apigroup:project.openshift.io]", func() {
-			ns := oc.SetupProject()
+			ns := oc.NewProject()
 
 			cs, err := newDynClientSet()
 			o.Expect(err).NotTo(o.HaveOccurred())

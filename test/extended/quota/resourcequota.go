@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 		g.It(fmt.Sprintf("should properly count the number of imagestreams resources [apigroup:image.openshift.io]"), func() {
 			clusterAdminKubeClient := oc.AdminKubeClient()
 			clusterAdminImageClient := oc.AdminImageClient().ImageV1()
-			testProject := oc.SetupProject()
+			testProject := oc.NewProject()
 			testResourceQuotaName := "count-imagestreams"
 
 			rq := &corev1.ResourceQuota{

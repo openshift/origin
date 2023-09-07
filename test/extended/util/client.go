@@ -316,34 +316,63 @@ func (c *CLI) WithToken(token string) *CLI {
 	return c
 }
 
-// SetupProject creates a new project and assign a random user to the project.
+// NewProject creates a new project and assign a random user to the project.
 // All resources will be then created within this project.
 // Returns the name of the new project.
-func (c *CLI) SetupProject() string {
-	exist, err := DoesApiResourceExist(c.AdminConfig(), "projects", "project.openshift.io")
+func (c *CLI) NewProject() string {
+	projectExist, err := DoesApiResourceExist(c.AdminConfig(), "projects", "project.openshift.io")
 	o.Expect(err).ToNot(o.HaveOccurred())
-	if exist {
-		return c.setupProject()
-	}
-	return c.setupNamespace()
+	return c.setupProjectOrNamespace(projectExist)
 }
 
-func (c *CLI) setupProject() string {
+func (c *CLI) setupProjectOrNamespace(project bool) string {
 	requiresTestStart()
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
-	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
-	framework.Logf("The user is now %q", c.Username())
+	newUsername := fmt.Sprintf("%s-user", newNamespace)
+	c.SetNamespace(newNamespace)
 
-	framework.Logf("Creating project %q", newNamespace)
-	_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
-		ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
-	}, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
+	resource := "namespace"
+	if project {
+		resource = "project"
+	}
 
-	c.kubeFramework.AddNamespacesToDelete(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}})
+	framework.Logf("Creating %s %q...", resource, newNamespace)
+	var nsObject *corev1.Namespace
+	if project {
+		// create project
+		c.ChangeUser(newUsername)
+		nsObject = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: newNamespace}}
+		_, err := c.ProjectClient().ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+			ObjectMeta: metav1.ObjectMeta{Name: newNamespace},
+		}, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	} else {
+		// create namespace
+		nsObject = &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: newNamespace,
+				Annotations: map[string]string{
+					annotations.OpenShiftDescription: newUsername,
+					annotations.OpenShiftDisplayName: newNamespace,
+					"openshift.io/requester":         newUsername,
+				},
+			},
+		}
+		_, err := c.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), nsObject, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		c.kubeFramework.AddNamespacesToDelete(nsObject)
+
+		framework.Logf("Configuring kubeconfig with user %q certificates...", newUsername)
+		c.ChangeUser(newUsername)
+
+		framework.Logf("Waiting for RoleBinding %q to be provisioned...", newUsername)
+		err = c.setupRoleInNamespace(newUsername)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+	c.kubeFramework.AddNamespacesToDelete(nsObject)
 
 	framework.Logf("Waiting on permissions in project %q ...", newNamespace)
-	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+	err := WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
 		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 			Namespace: newNamespace,
 			Verb:      "create",
@@ -362,113 +391,58 @@ func (c *CLI) setupProject() string {
 	// Wait for SAs and default dockercfg Secret to be injected
 	// TODO: it would be nice to have a shared list but it is defined in at least 3 place,
 	// TODO: some of them not even using the constants
-	DefaultServiceAccounts := []string{
-		"default",
-		"deployer",
-		"builder",
+	defaultServiceAccounts := []string{"default"}
+	if project {
+		defaultServiceAccounts = append(defaultServiceAccounts, "deployer", "builder")
 	}
-	for _, sa := range DefaultServiceAccounts {
+	for _, sa := range defaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
 		err = WaitForServiceAccountWithSecret(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
-	var ctx context.Context
-	cancel := func() {}
-	defer func() { cancel() }()
-	// Wait for default role bindings for those SAs
-	for _, name := range []string{"system:image-pullers", "system:image-builders", "system:deployers"} {
-		framework.Logf("Waiting for RoleBinding %q to be provisioned...", name)
+	if project {
+		var ctx context.Context
+		cancel := func() {}
+		defer func() { cancel() }()
+		// Wait for default role bindings for those SAs
+		for _, name := range []string{"system:image-pullers", "system:image-builders", "system:deployers"} {
+			framework.Logf("Waiting for RoleBinding %q to be provisioned...", name)
 
-		ctx, cancel = watchtools.ContextWithOptionalTimeout(context.Background(), 3*time.Minute)
+			ctx, cancel = watchtools.ContextWithOptionalTimeout(context.Background(), 3*time.Minute)
 
-		fieldSelector := fields.OneTermEqualSelector("metadata.name", name).String()
-		lw := &cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = fieldSelector
-				return c.KubeClient().RbacV1().RoleBindings(newNamespace).List(context.Background(), options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = fieldSelector
-				return c.KubeClient().RbacV1().RoleBindings(newNamespace).Watch(context.Background(), options)
-			},
-		}
-
-		_, err := watchtools.UntilWithSync(ctx, lw, &rbacv1.RoleBinding{}, nil, func(event watch.Event) (b bool, e error) {
-			switch t := event.Type; t {
-			case watch.Added, watch.Modified:
-				return true, nil
-
-			case watch.Deleted:
-				return true, fmt.Errorf("object has been deleted")
-
-			default:
-				return true, fmt.Errorf("internal error: unexpected event %#v", e)
+			fieldSelector := fields.OneTermEqualSelector("metadata.name", name).String()
+			lw := &cache.ListWatch{
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					options.FieldSelector = fieldSelector
+					return c.KubeClient().RbacV1().RoleBindings(newNamespace).List(context.Background(), options)
+				},
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					options.FieldSelector = fieldSelector
+					return c.KubeClient().RbacV1().RoleBindings(newNamespace).Watch(context.Background(), options)
+				},
 			}
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+
+			_, err := watchtools.UntilWithSync(ctx, lw, &rbacv1.RoleBinding{}, nil, func(event watch.Event) (b bool, e error) {
+				switch t := event.Type; t {
+				case watch.Added, watch.Modified:
+					return true, nil
+
+				case watch.Deleted:
+					return true, fmt.Errorf("object has been deleted")
+
+				default:
+					return true, fmt.Errorf("internal error: unexpected event %#v", e)
+				}
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 	}
 
-	WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
-
-	framework.Logf("Project %q has been fully provisioned.", newNamespace)
-	return newNamespace
-}
-
-func (c *CLI) setupNamespace() string {
-	requiresTestStart()
-	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
-	username := fmt.Sprintf("%s-user", newNamespace)
-	serviceAccountName := "default"
-	c.SetNamespace(newNamespace)
-
-	nsObject := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: newNamespace,
-			Annotations: map[string]string{
-				annotations.OpenShiftDescription: username,
-				annotations.OpenShiftDisplayName: newNamespace,
-				"openshift.io/requester":         username,
-			},
-		},
-	}
-	framework.Logf("Creating namespace %q", newNamespace)
-	_, err := c.AdminKubeClient().CoreV1().Namespaces().Create(context.Background(), nsObject, metav1.CreateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	c.kubeFramework.AddNamespacesToDelete(nsObject)
-
-	framework.Logf("Waiting for ServiceAccount %q to be provisioned...", serviceAccountName)
-	err = WaitForServiceAccount(c.AdminKubeClient().CoreV1().ServiceAccounts(newNamespace), serviceAccountName)
+	err = WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	framework.Logf("Configuring kubeconfig with user %q certificates...", username)
-	c.ChangeUser(username)
-
-	framework.Logf("Waiting for RoleBinding %q to be provisioned...", username)
-	err = c.setupRoleInNamespace(username)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	framework.Logf("Waiting on permissions in namespace %q ...", newNamespace)
-	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), kubeauthorizationv1.SelfSubjectAccessReviewSpec{
-		ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
-			Namespace: newNamespace,
-			Verb:      "create",
-			Group:     "",
-			Resource:  "pods",
-		},
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	err = c.setupNamespacePodSecurity(newNamespace)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	err = c.setupNamespaceManagedAnnotation(newNamespace)
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	WaitForNamespaceSCCAnnotations(c.KubeClient().CoreV1(), newNamespace)
-
-	framework.Logf("Namespace %q has been fully provisioned.", newNamespace)
-
+	framework.Logf("The %s %q for %q has been fully provisioned.", resource, newNamespace, newUsername)
 	return newNamespace
 }
 
