@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-// GetClusterNodesBy returns the cluster nodes by role
+// GetClusterNodesByRole returns the cluster nodes by role
 func GetClusterNodesByRole(oc *CLI, role string) ([]string, error) {
 	nodes, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", "-l", "node-role.kubernetes.io/"+role, "-o", "jsonpath='{.items[*].metadata.name}'").Output()
 	return strings.Split(strings.Trim(nodes, "'"), " "), err
