@@ -175,9 +175,7 @@ func (w *Availability) junitForReusedConnections(ctx context.Context, finalInter
 }
 
 func historicalAllowedDisruption(ctx context.Context, backend *backenddisruption.BackendSampler, jobType *platformidentification.JobType) (*time.Duration, string, error) {
-	backendName := backend.GetDisruptionBackendName() + "-" + string(backend.GetConnectionType()) + "-connections"
-
-	return allowedbackenddisruption.GetAllowedDisruption(backendName, *jobType)
+	return allowedbackenddisruption.GetAllowedDisruption(backend.GetDisruptionBackendName(), *jobType)
 }
 
 func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
