@@ -112,8 +112,6 @@ func injectNewImages(ref reference.DockerImageReference, upstream bool) []string
 		"registry.k8s.io/sig-storage/csi-snapshotter:v6.1.0":           "e2e-51-registry-k8s-io-sig-storage-csi-snapshotter-v6-1-0-VHjLoFuxMj90NLA8",
 		"registry.k8s.io/sig-storage/hostpathplugin:v1.9.0 ":           "e2e-53-registry-k8s-io-sig-storage-hostpathplugin-v1-9-0-4xsLPL7j4yiDKNiL",
 		"registry.k8s.io/e2e-test-images/busybox:1.29-2":               "e2e-54-registry-k8s-io-e2e-test-images-busybox-1-29-2-ZYWRth-o9U_JR2ZE",
-		"registry.k8s.io/pause:3.9":                                    "e2e-27-registry-k8s-io-pause-3-9-p9APyPDU5GsW02Rk",
-		"registry.k8s.io/e2e-test-images/httpd:2.4.38-4":               "e2e-12-registry-k8s-io-e2e-test-images-httpd-2-4-38-4-lYFH2l3oSS5xEICa",
 	} {
 		if upstream {
 			lines = append(lines, fmt.Sprintf("%s %s:%s", original, ref.Exact(), mirror))
