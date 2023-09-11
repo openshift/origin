@@ -129,7 +129,7 @@ func checkConnectivityToHostWithCLI(f *e2e.Framework, oc *exutil.CLI, nodeName s
 	e2e.Logf("Waiting up to %v to wget %s", timeout, host)
 	cmd := fmt.Sprintf("wget -T 30 -qO- %s", host)
 	var err error
-	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2) {
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(10 * time.Second) {
 		stdout, err = oc.Run("exec").Args(execPod.Name, "-n", namespace, "--", "/bin/sh", "-x", "-c", cmd).Output()
 		if err != nil {
 			e2e.Logf("got err: %v, retry until timeout", err)
@@ -195,7 +195,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 	e2e.Logf("Waiting up to %v to wget %s", timeout, host)
 	cmd := fmt.Sprintf("wget -T 30 -qO- %s", host)
 	var err error
-	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2) {
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(10 * time.Second) {
 		stdout, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 		if err != nil {
 			e2e.Logf("got err: %v, retry until timeout", err)
