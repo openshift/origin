@@ -21,6 +21,13 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 	f.SkipNamespaceCreation = true
 	oc := exutil.NewCLIWithoutNamespace("recovery")
 
+	g.AfterEach(func() {
+		g.GinkgoT().Log("waiting to delete post backup resources....")
+		err := removePostBackupResources(oc)
+		err = errors.Wrap(err, "post backup resources cleanup timed out")
+		o.Expect(err).ToNot(o.HaveOccurred())
+	})
+
 	g.It("[Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node", func() {
 		// ensure the CEO can still act without quorum, doing it first so the CEO can cycle while we install ssh keys
 		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)

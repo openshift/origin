@@ -3,18 +3,18 @@ package dr
 import (
 	"context"
 	"fmt"
-
 	o "github.com/onsi/gomega"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
-	"k8s.io/utils/pointer"
-
-	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/utils/pointer"
+	"time"
 )
 
 const postBackupNamespaceName = "etcd-backup-ns"
@@ -91,6 +91,22 @@ func createPostBackupResources(oc *exutil.CLI) error {
 	}
 
 	return nil
+}
+
+func removePostBackupResources(oc *exutil.CLI) error {
+	// it's enough to only delete the namespace, all other resources are included in there
+	err := oc.AdminKubeClient().CoreV1().Namespaces().Delete(context.Background(), postBackupNamespace.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("could not delete post backup namespace: %w", err)
+	}
+
+	return wait.PollImmediate(30*time.Second, 10*time.Minute, func() (bool, error) {
+		_, err := oc.AdminKubeClient().CoreV1().Namespaces().Get(context.Background(), postBackupNamespaceName, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, nil
+	})
 }
 
 func assertPostBackupResourcesAreNotFound(oc *exutil.CLI) {
