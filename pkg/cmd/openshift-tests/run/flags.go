@@ -109,6 +109,7 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 		return nil, err
 	}
 
+	ginkgoOptions.FromRepository = f.FromRepository
 	o := &RunSuiteOptions{
 		GinkgoRunSuiteOptions: ginkgoOptions,
 		Suite:                 suite,

@@ -61,6 +61,8 @@ type GinkgoRunSuiteOptions struct {
 	PrintCommands bool
 	genericclioptions.IOStreams
 
+	FromRepository string
+
 	StartTime time.Time
 }
 
@@ -119,7 +121,14 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	}
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
-	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
+	// OPENSHIFT_SKIP_EXTERNAL_TESTS env variable allows to skip using external binary
+	// in a similar fashion when --from-repository flag is specified when invoking tests
+	// this means that images are very likely mirrored so for the time being we cannot
+	// use external binary for tests
+	// TODO (soltysh): when using external binary we should also consult that binary
+	// for the list of tests it might require to run them
+	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 &&
+		strings.EqualFold(o.FromRepository, "quay.io/openshift/community-e2e-images") {
 		buf := &bytes.Buffer{}
 		fmt.Fprintf(buf, "Attempting to pull tests from external binary...\n")
 		externalTests, err := externalTestsForSuite(ctx)
@@ -156,7 +165,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			SystemOut: buf.String(),
 		})
 	} else {
-		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
+		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set or --from-repository=%s not being the default\n", o.FromRepository)
 	}
 
 	// this ensures the tests are always run in random order to avoid
