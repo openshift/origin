@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -12,6 +13,8 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/stretchr/objx"
 
+	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,11 +27,13 @@ import (
 )
 
 const (
-	operatorWait = 1 * time.Minute
+	operatorWait               = 1 * time.Minute
+	masterMachineLabelSelector = "machine.openshift.io/cluster-api-machine-role" + "=" + "master"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster should", func() {
 	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("control-plane-machines").AsAdmin()
 
 	g.It("have machine resources [apigroup:machine.openshift.io]", func() {
 		cfg, err := e2e.LoadConfig()
@@ -98,6 +103,36 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 			w.Flush()
 			e2e.Logf("Machines:\n%s", buf.String())
 			e2e.Failf("Machine resources missing for nodes: %s", strings.Join(nodeNames.List(), ", "))
+		}
+	})
+
+	g.It("[sig-scheduling][Early] control plane machine set operator should not cause an early rollout", func() {
+		cfg, err := e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		c, err := e2e.LoadClientset()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		dc, err := dynamic.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		pattern := `^([a-zA-Z0-9]+-)+master-\d+$`
+
+		g.By("checking for the openshift machine api operator")
+		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+
+		g.By("ensuring every node is linked to a machine api resource")
+		allControlPlaneMachines, err := machineClientSet.MachineV1beta1().Machines("openshift-machine-api").List(context.Background(), metav1.ListOptions{
+			LabelSelector: masterMachineLabelSelector,
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		regex, err := regexp.Compile(pattern)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, m := range allControlPlaneMachines.Items {
+			matched := regex.MatchString(m.Name)
+			o.Expect(matched).To(o.BeTrue(), fmt.Sprintf("unexpected name of a control machine occured during early stages: %s", m.Name))
 		}
 	})
 })
