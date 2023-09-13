@@ -1251,19 +1251,23 @@ func sendProbesToHostPort(oc *exutil.CLI, proberPod *v1.Pod, url, targetProtocol
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			framework.Logf("Starting iteration %d", i)
 			time.Sleep(time.Duration(n) * time.Millisecond)
 			output, err := runOcWithRetry(oc.AsAdmin(), "exec", proberPod.Name, "--", "curl", "--max-time", "15", "-s", request)
 			// Report errors.
 			if err != nil {
 				errChan <- fmt.Errorf("Query failed. Request: %s, Output: %s, Error: %v", request, output, err)
 			}
+			framework.Logf("Iteration %d done", i)
 			return
 		}()
 	}
+	framework.Logf("Waiting for %d iterations to complete", iterations)
 	wg.Wait()
 
 	// If the above yielded any errors, then append them to a list and report them.
 	if len(errChan) > 0 {
+		framework.Logf("Encountered %d errors sending probes", len(errChan))
 		errList := "Encountered the following errors: "
 		for e := range errChan {
 			errList = fmt.Sprintf("%s {%s}", errList, e.Error())
@@ -1271,6 +1275,7 @@ func sendProbesToHostPort(oc *exutil.CLI, proberPod *v1.Pod, url, targetProtocol
 		return "", fmt.Errorf(errList)
 	}
 
+	framework.Logf("Sending probes successful")
 	return randomID.String(), nil
 }
 
