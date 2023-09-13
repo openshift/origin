@@ -1,6 +1,7 @@
-package monitor
+package uploadtolokiserializer
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -12,7 +13,7 @@ func TestIntervalToLogLine(t *testing.T) {
 	from := time.Now()
 	tests := []struct {
 		name           string
-		interval       monitorapi.EventInterval
+		interval       monitorapi.Interval
 		expNS          string
 		expLevel       string // Info or Error today
 		expLogLine     map[string]string
@@ -20,7 +21,7 @@ func TestIntervalToLogLine(t *testing.T) {
 	}{
 		{
 			name: "interval with duration",
-			interval: monitorapi.EventInterval{
+			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: "ns/openshift-e2e-loki pod/event-exporter-55f76dcbf6-xp6fm uid/49fb2fd1-6dd4-45b6-bb39-31acca69a573 container/event-exporter",
@@ -35,7 +36,7 @@ func TestIntervalToLogLine(t *testing.T) {
 		},
 		{
 			name: "interval with no To timestamp",
-			interval: monitorapi.EventInterval{
+			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: "ns/openshift-e2e-loki pod/event-exporter-55f76dcbf6-xp6fm uid/49fb2fd1-6dd4-45b6-bb39-31acca69a573 container/event-exporter",
@@ -49,7 +50,7 @@ func TestIntervalToLogLine(t *testing.T) {
 		},
 		{
 			name: "interval with identical To timestamp",
-			interval: monitorapi.EventInterval{
+			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Info,
 					Locator: "e2e-test/\"[sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive] [Serial]\"",
@@ -64,7 +65,7 @@ func TestIntervalToLogLine(t *testing.T) {
 		},
 		{
 			name: "interval with no namespace",
-			interval: monitorapi.EventInterval{
+			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level:   monitorapi.Error,
 					Locator: "node/ip-10-0-162-214.us-east-2.compute.internal",
@@ -86,9 +87,15 @@ func TestIntervalToLogLine(t *testing.T) {
 			assert.Equal(t, test.expNS, namespace)
 			assert.Equal(t, test.expNS, logLine["namespace"])
 			assert.Equal(t, test.expLevel, logLine["level"])
-			assert.Equal(t, test.interval.Message, logLine["_entry"])
 			assert.Equal(t, test.expDurationSec, logLine["durationSec"])
 			assert.True(t, len(logLine["filename"]) > 0)
+
+			// _entry should be a serialized json blob, make sure we can unmarshal:
+			var ri monitorapi.Interval
+			err = json.Unmarshal([]byte(logLine["_entry"]), &ri)
+			assert.NoError(t, err)
+			assert.Equal(t, test.interval.Message, ri.Message)
+
 		})
 	}
 }
