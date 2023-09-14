@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/sirupsen/logrus"
@@ -268,7 +269,8 @@ func intervalToLogLine(i monitorapi.Interval, timeSuffix string) (string, map[st
 		i.Locator = ""
 	}
 
-	ib, err := json.Marshal(i)
+	// TODO: probably should convert to the type we use for serialization in serialize.go
+	ib, err := json.Marshal(monitorserialization.MonitorIntervalToEventInterval(i))
 	if err != nil {
 		return "", map[string]string{}, err
 	}

@@ -2,10 +2,12 @@ package uploadtolokiserializer
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -91,10 +93,11 @@ func TestIntervalToLogLine(t *testing.T) {
 			assert.True(t, len(logLine["filename"]) > 0)
 
 			// _entry should be a serialized json blob, make sure we can unmarshal:
-			var ri monitorapi.Interval
+			var ri monitorserialization.EventInterval
 			err = json.Unmarshal([]byte(logLine["_entry"]), &ri)
 			assert.NoError(t, err)
 			assert.Equal(t, test.interval.Message, ri.Message)
+			fmt.Println(logLine["_entry"])
 
 		})
 	}
