@@ -1251,6 +1251,7 @@ func InitGcePdDriver() storageframework.TestDriver {
 				storageframework.CapExec:                true,
 				storageframework.CapMultiPODs:           true,
 				storageframework.CapControllerExpansion: true,
+				storageframework.CapOnlineExpansion:     true,
 				storageframework.CapNodeExpansion:       true,
 				// GCE supports volume limits, but the test creates large
 				// number of volumes and times out test suites.
@@ -1490,10 +1491,19 @@ func (v *vSphereDriver) GetDynamicProvisionStorageClass(config *storageframework
 
 func (v *vSphereDriver) PrepareTest(f *framework.Framework) (*storageframework.PerTestConfig, func()) {
 	return &storageframework.PerTestConfig{
-		Driver:    v,
-		Prefix:    "vsphere",
-		Framework: f,
-	}, func() {}
+			Driver:    v,
+			Prefix:    "vsphere",
+			Framework: f,
+		}, func() {
+			// Driver Cleanup function
+			// Logout each vSphere client connection to prevent session leakage
+			nodes := vspheretest.GetReadySchedulableNodeInfos()
+			for _, node := range nodes {
+				if node.VSphere.Client != nil {
+					node.VSphere.Client.Logout(context.TODO())
+				}
+			}
+		}
 }
 
 func (v *vSphereDriver) CreateVolume(config *storageframework.PerTestConfig, volType storageframework.TestVolType) storageframework.TestVolume {
@@ -1692,6 +1702,7 @@ func InitAwsDriver() storageframework.TestDriver {
 				storageframework.CapMultiPODs:           true,
 				storageframework.CapControllerExpansion: true,
 				storageframework.CapNodeExpansion:       true,
+				storageframework.CapOnlineExpansion:     true,
 				// AWS supports volume limits, but the test creates large
 				// number of volumes and times out test suites.
 				storageframework.CapVolumeLimits: false,

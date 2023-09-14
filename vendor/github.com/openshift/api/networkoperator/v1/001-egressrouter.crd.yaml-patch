@@ -1,9 +1,4 @@
 - op: add
-  path: /spec/versions/name=v1/schema/openAPIV3Schema/properties/spec/properties/addresses/items/properties/ip/anyOf
-  value:
-    - format: ipv4
-    - format: ipv6
-- op: add
   path: /spec/versions/name=v1/schema/openAPIV3Schema/properties/spec/properties/addresses/items/properties/gateway/anyOf
   value:
     - format: ipv4

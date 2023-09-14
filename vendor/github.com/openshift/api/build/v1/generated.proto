@@ -733,6 +733,8 @@ message DockerBuildStrategy {
 
   // buildArgs contains build arguments that will be resolved in the Dockerfile.  See
   // https://docs.docker.com/engine/reference/builder/#/arg for more details.
+  // NOTE: Only the 'name' and 'value' fields are supported. Any settings on the 'valueFrom' field
+  // are ignored.
   repeated k8s.io.api.core.v1.EnvVar buildArgs = 7;
 
   // imageOptimizationPolicy describes what optimizations the system can use when building images

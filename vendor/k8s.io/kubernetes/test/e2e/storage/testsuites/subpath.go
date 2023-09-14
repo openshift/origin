@@ -122,7 +122,7 @@ func (s *subPathTestSuite) DefineTests(driver storageframework.TestDriver, patte
 
 		// Now do the more expensive test initialization.
 		l.config, l.driverCleanup = driver.PrepareTest(f)
-		l.migrationCheck = newMigrationOpCheck(f.ClientSet, driver.GetDriverInfo().InTreePluginName)
+		l.migrationCheck = newMigrationOpCheck(f.ClientSet, f.ClientConfig(), driver.GetDriverInfo().InTreePluginName)
 		testVolumeSizeRange := s.GetTestSuiteInfo().SupportedSizeRange
 		l.resource = storageframework.CreateVolumeResource(driver, l.config, pattern, testVolumeSizeRange)
 		l.hostExec = utils.NewHostExec(f)
@@ -345,6 +345,11 @@ func (s *subPathTestSuite) DefineTests(driver storageframework.TestDriver, patte
 	ginkgo.It("should unmount if pod is gracefully deleted while kubelet is down [Disruptive][Slow][LinuxOnly]", func() {
 		init()
 		defer cleanup()
+
+		if strings.HasPrefix(driverName, "hostPath") {
+			// TODO: This skip should be removed once #61446 is fixed
+			e2eskipper.Skipf("Driver %s does not support reconstruction, skipping", driverName)
+		}
 
 		testSubpathReconstruction(f, l.hostExec, l.pod, false)
 	})
