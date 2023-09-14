@@ -120,7 +120,6 @@ type StorageVersionMigrationList struct {
 // The state of the storage of a specific resource.
 type StorageState struct {
 	metav1.TypeMeta `json:",inline"`
-	// The name must be "<.spec.resource.resouce>.<.spec.resource.group>".
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Specification of the storage state.

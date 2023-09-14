@@ -5,7 +5,8 @@ package v1
 // AzureFailureDomainApplyConfiguration represents an declarative configuration of the AzureFailureDomain type for use
 // with apply.
 type AzureFailureDomainApplyConfiguration struct {
-	Zone *string `json:"zone,omitempty"`
+	Zone   *string `json:"zone,omitempty"`
+	Subnet *string `json:"subnet,omitempty"`
 }
 
 // AzureFailureDomainApplyConfiguration constructs an declarative configuration of the AzureFailureDomain type for use with
@@ -19,5 +20,13 @@ func AzureFailureDomain() *AzureFailureDomainApplyConfiguration {
 // If called multiple times, the Zone field is set to the value of the last call.
 func (b *AzureFailureDomainApplyConfiguration) WithZone(value string) *AzureFailureDomainApplyConfiguration {
 	b.Zone = &value
+	return b
+}
+
+// WithSubnet sets the Subnet field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Subnet field is set to the value of the last call.
+func (b *AzureFailureDomainApplyConfiguration) WithSubnet(value string) *AzureFailureDomainApplyConfiguration {
+	b.Subnet = &value
 	return b
 }
