@@ -317,6 +317,12 @@ func (b *LocatorBuilder) E2ETest(testName string) Locator {
 	return b.Build()
 }
 
+func (b *LocatorBuilder) ClusterOperator(name string) Locator {
+	b.targetType = LocatorTypeClusterOperator
+	b.annotations[LocatorClusterOperatorKey] = name
+	return b.Build()
+}
+
 func (b *LocatorBuilder) Build() Locator {
 	ret := Locator{
 		Type: b.targetType,
