@@ -10,7 +10,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
-	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/image"
 
@@ -27,6 +26,7 @@ import (
 type RunMonitorFlags struct {
 	ArtifactDir    string
 	DisplayFromNow bool
+	FromRepository string
 
 	genericclioptions.IOStreams
 }
@@ -77,6 +77,7 @@ func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Comm
 func (f *RunMonitorFlags) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&f.ArtifactDir, "artifact-dir", f.ArtifactDir, "The directory where monitor events will be stored.")
 	flags.BoolVar(&f.DisplayFromNow, "display-from-now", f.DisplayFromNow, "Only display intervals from at or after this comand was started.")
+	flags.StringVar(&f.FromRepository, "from-repository", f.FromRepository, "A container image repository to retrieve test images from.")
 }
 
 func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
@@ -95,12 +96,14 @@ func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
 		ArtifactDir:     f.ArtifactDir,
 		DisplayFilterFn: displayFilterFn,
 		IOStreams:       f.IOStreams,
+		FromRepository:  f.FromRepository,
 	}, nil
 }
 
 type RunMonitorOptions struct {
 	ArtifactDir     string
 	DisplayFilterFn monitorapi.EventIntervalMatchesFunc
+	FromRepository  string
 
 	genericclioptions.IOStreams
 }
@@ -108,10 +111,12 @@ type RunMonitorOptions struct {
 // Run starts monitoring the cluster by invoking Start, periodically printing the
 // events accumulated to Out. When the user hits CTRL+C or signals termination the
 // condition intervals (all non-instantaneous events) are reported to Out.
-func (f *RunMonitorOptions) Run() error {
-	fmt.Fprintf(f.Out, "Starting the monitor.\n")
+func (o *RunMonitorOptions) Run() error {
+	// set globals so that helpers will create pods with the mapped images if we create them from this process.
+	image.InitializeImages(o.FromRepository)
 
-	image.InitializeImages(imagesetup.DefaultTestImageMirrorLocation)
+	fmt.Fprintf(o.Out, "Starting the monitor.\n")
+
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	if err != nil {
 		return err
@@ -122,12 +127,12 @@ func (f *RunMonitorOptions) Run() error {
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
-		fmt.Fprintf(f.ErrOut, "Interrupted, terminating\n")
+		fmt.Fprintf(o.ErrOut, "Interrupted, terminating\n")
 		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 
 		sig := <-abortCh
-		fmt.Fprintf(f.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
+		fmt.Fprintf(o.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
 		switch sig {
 		case syscall.SIGINT:
 			os.Exit(130)
@@ -140,21 +145,21 @@ func (f *RunMonitorOptions) Run() error {
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest: monitortestframework.Stable,
 	}
-	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), f.Out, f.DisplayFilterFn)
+	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.Out, o.DisplayFilterFn)
 	m := monitor.NewMonitor(
 		recorder,
 		restConfig,
-		f.ArtifactDir,
+		o.ArtifactDir,
 		defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
 	)
 	if err := m.Start(ctx); err != nil {
 		return err
 	}
-	fmt.Fprintf(f.Out, "Monitor started, waiting for ctrl+C to stop...\n")
+	fmt.Fprintf(o.Out, "Monitor started, waiting for ctrl+C to stop...\n")
 
 	<-ctx.Done()
 
-	fmt.Fprintf(f.Out, "Monitor shutting down, this may take up to five minutes...\n")
+	fmt.Fprintf(o.Out, "Monitor shutting down, this may take up to five minutes...\n")
 
 	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cleanupCancel()
