@@ -72,10 +72,10 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 			_, err = noegFwoc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
 			expectNoError(err)
 		}
-		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "https://docs.openshift.com").Output()
+		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m2", "https://docs.openshift.com").Output()
 		expectNoError(err)
 
-		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "http://www.google.com:80").Output()
+		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m2", "http://www.google.com:80").Output()
 		expectNoError(err)
 		deleteTestEgressFw(noegFwf)
 	})
