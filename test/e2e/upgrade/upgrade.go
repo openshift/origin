@@ -378,7 +378,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 		// Due to well-known reasons (https://issues.redhat.com/browse/SDN-4042), these numbers are increased to
 		// 100 minutes only for the 4.13->4.14 upgrades - same as OVNAzurePlatformType. These numbers will be brought
 		// down to their original values in OCP 4.15 (https://issues.redhat.com/browse/OTA-999)
-		{configv1.AWSPlatformType, OVN}:       100,
+		{configv1.AWSPlatformType, OVN}:       130,
 		{configv1.AWSPlatformType, SDN}:       95,
 		{configv1.AzurePlatformType, OVN}:     100,
 		{configv1.AzurePlatformType, SDN}:     100,
