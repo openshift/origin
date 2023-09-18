@@ -11,7 +11,7 @@ import (
 var skipE2e []byte
 
 func TestBelongsInKubeAPIServer(t *testing.T) {
-	inputIntervals, err := monitorserialization.EventsFromJSON(skipE2e)
+	inputIntervals, err := monitorserialization.IntervalsFromJSON(skipE2e)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -208,7 +208,7 @@ type Timeline struct {
 }
 
 func (o *Timeline) Run() error {
-	consumedEvents, err := monitorserialization.EventsFromFile(o.MonitorEventFilename)
+	consumedEvents, err := monitorserialization.IntervalsFromFile(o.MonitorEventFilename)
 	if err != nil {
 		return err
 	}

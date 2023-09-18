@@ -380,7 +380,7 @@ func fetchEventsFromFileOnNode(ctx context.Context, clientset *kubernetes.Client
 	if err != nil {
 		return filteredEvents, fmt.Errorf("failed to fetch file %s on node %s: %v", filePath, nodeName, err)
 	}
-	allEvents, err := monitorserialization.EventsFromJSON(allBytes)
+	allEvents, err := monitorserialization.IntervalsFromJSON(allBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert file %s from node %s to intervals: %v", filePath, nodeName, err)
 	}

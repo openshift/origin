@@ -12,7 +12,7 @@ import (
 )
 
 func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
-	intervals, err := monitorserialization.EventsFromFile("testdata/node.json")
+	intervals, err := monitorserialization.IntervalsFromFile("testdata/node.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ type nodeIntervalTest struct {
 }
 
 func (p nodeIntervalTest) test(t *testing.T) {
-	inputIntervals, err := monitorserialization.EventsFromJSON(p.events)
+	inputIntervals, err := monitorserialization.IntervalsFromJSON(p.events)
 	if err != nil {
 		t.Fatal(err)
 	}

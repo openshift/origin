@@ -19,6 +19,8 @@ type EventInterval struct {
 	Locator string `json:"locator"`
 	Message string `json:"message"`
 
+	// TODO: add Display and Source when we're ready
+
 	// TODO: we're hoping to move these to just locator/message when everything is ready.
 	StructuredLocator monitorapi.Locator `json:"tempStructuredLocator"`
 	StructuredMessage monitorapi.Message `json:"tempStructuredMessage"`
@@ -40,30 +42,33 @@ func EventsToFile(filename string, events monitorapi.Intervals) error {
 	return ioutil.WriteFile(filename, json, 0644)
 }
 
-func EventsFromFile(filename string) (monitorapi.Intervals, error) {
+func IntervalsFromFile(filename string) (monitorapi.Intervals, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	return EventsFromJSON(data)
+	return IntervalsFromJSON(data)
 }
 
-func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
+func IntervalsFromJSON(data []byte) (monitorapi.Intervals, error) {
 	var list EventIntervalList
 	if err := json.Unmarshal(data, &list); err != nil {
 		return nil, err
 	}
 	events := make(monitorapi.Intervals, 0, len(list.Items))
 	for _, interval := range list.Items {
+		// Convert from serialization type back into the original Interval
 		level, err := monitorapi.ConditionLevelFromString(interval.Level)
 		if err != nil {
 			return nil, err
 		}
 		events = append(events, monitorapi.Interval{
 			Condition: monitorapi.Condition{
-				Level:   level,
-				Locator: interval.Locator,
-				Message: interval.Message,
+				Level:             level,
+				Locator:           interval.Locator,
+				Message:           interval.Message,
+				StructuredLocator: interval.StructuredLocator,
+				StructuredMessage: interval.StructuredMessage,
 			},
 
 			From: interval.From.Time,
@@ -96,7 +101,7 @@ func IntervalFromJSON(data []byte) (*monitorapi.Interval, error) {
 }
 
 func IntervalToOneLineJSON(interval monitorapi.Interval) ([]byte, error) {
-	outputEvent := monitorEventIntervalToEventInterval(interval)
+	outputEvent := MonitorIntervalToEventInterval(interval)
 
 	spacedBytes, err := json.Marshal(outputEvent)
 	if err != nil {
@@ -113,7 +118,7 @@ func IntervalToOneLineJSON(interval monitorapi.Interval) ([]byte, error) {
 func EventsToJSON(events monitorapi.Intervals) ([]byte, error) {
 	outputEvents := []EventInterval{}
 	for _, curr := range events {
-		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
+		outputEvents = append(outputEvents, MonitorIntervalToEventInterval(curr))
 	}
 
 	sort.Sort(byTime(outputEvents))
@@ -135,7 +140,7 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 		if curr.From == curr.To && !curr.To.IsZero() {
 			continue
 		}
-		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
+		outputEvents = append(outputEvents, MonitorIntervalToEventInterval(curr))
 	}
 
 	sort.Sort(byTime(outputEvents))
@@ -143,7 +148,9 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 	return json.MarshalIndent(list, "", "    ")
 }
 
-func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
+// MonitorIntervalToEventInterval converts the source Interval to a type we use for serialization.
+// TODO: is maintaining two types still necessary?
+func MonitorIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
 	ret := EventInterval{
 		Level:             fmt.Sprintf("%v", interval.Level),
 		Locator:           interval.Locator,
