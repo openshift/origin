@@ -425,6 +425,8 @@
 // test/extended/testdata/oauthserver/oauth-network.yaml
 // test/extended/testdata/oauthserver/oauth-pod.yaml
 // test/extended/testdata/oauthserver/oauth-sa.yaml
+// test/extended/testdata/olm/catalog.yaml
+// test/extended/testdata/olm/operator.yaml
 // test/extended/testdata/olm/operatorgroup.yaml
 // test/extended/testdata/olm/subscription.yaml
 // test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml
@@ -49073,6 +49075,71 @@ func testExtendedTestdataOauthserverOauthSaYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataOlmCatalogYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: catalog-template
+objects:
+- apiVersion: catalogd.operatorframework.io/v1alpha1
+  kind: Catalog
+  metadata:
+    name: "${NAME}"
+  spec:
+    source:
+      type: image
+      image:
+        ref: "${IMAGE}"
+parameters:
+- name: NAME
+- name: IMAGE`)
+
+func testExtendedTestdataOlmCatalogYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmCatalogYaml, nil
+}
+
+func testExtendedTestdataOlmCatalogYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmCatalogYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/catalog.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataOlmOperatorYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: operator-template
+objects:
+- apiVersion: operators.operatorframework.io/v1alpha1
+  kind: Operator
+  metadata:
+    name: "${NAME}"
+  spec:
+    packageName: "${PACKAGE_NAME}"
+    version: "${VERSION}"
+parameters:
+- name: NAME
+- name: VERSION
+- name: PACKAGE_NAME`)
+
+func testExtendedTestdataOlmOperatorYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataOlmOperatorYaml, nil
+}
+
+func testExtendedTestdataOlmOperatorYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataOlmOperatorYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/olm/operator.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataOlmOperatorgroupYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -54657,6 +54724,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/oauthserver/oauth-network.yaml":                                                  testExtendedTestdataOauthserverOauthNetworkYaml,
 	"test/extended/testdata/oauthserver/oauth-pod.yaml":                                                      testExtendedTestdataOauthserverOauthPodYaml,
 	"test/extended/testdata/oauthserver/oauth-sa.yaml":                                                       testExtendedTestdataOauthserverOauthSaYaml,
+	"test/extended/testdata/olm/catalog.yaml":                                                                testExtendedTestdataOlmCatalogYaml,
+	"test/extended/testdata/olm/operator.yaml":                                                               testExtendedTestdataOlmOperatorYaml,
 	"test/extended/testdata/olm/operatorgroup.yaml":                                                          testExtendedTestdataOlmOperatorgroupYaml,
 	"test/extended/testdata/olm/subscription.yaml":                                                           testExtendedTestdataOlmSubscriptionYaml,
 	"test/extended/testdata/poddisruptionbudgets/always-allow-policy-pdb.yaml":                               testExtendedTestdataPoddisruptionbudgetsAlwaysAllowPolicyPdbYaml,
@@ -55396,6 +55465,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"oauth-sa.yaml":      {testExtendedTestdataOauthserverOauthSaYaml, map[string]*bintree{}},
 				}},
 				"olm": {nil, map[string]*bintree{
+					"catalog.yaml":       {testExtendedTestdataOlmCatalogYaml, map[string]*bintree{}},
+					"operator.yaml":      {testExtendedTestdataOlmOperatorYaml, map[string]*bintree{}},
 					"operatorgroup.yaml": {testExtendedTestdataOlmOperatorgroupYaml, map[string]*bintree{}},
 					"subscription.yaml":  {testExtendedTestdataOlmSubscriptionYaml, map[string]*bintree{}},
 				}},

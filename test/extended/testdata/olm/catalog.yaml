@@ -1,0 +1,17 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: catalog-template
+objects:
+- apiVersion: catalogd.operatorframework.io/v1alpha1
+  kind: Catalog
+  metadata:
+    name: "${NAME}"
+  spec:
+    source:
+      type: image
+      image:
+        ref: "${IMAGE}"
+parameters:
+- name: NAME
+- name: IMAGE
