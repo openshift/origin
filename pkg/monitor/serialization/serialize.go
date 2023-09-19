@@ -19,6 +19,10 @@ type EventInterval struct {
 	Locator string `json:"locator"`
 	Message string `json:"message"`
 
+	// TODO: Remove the omitempty, just here to keep from having to repeatedly updated the json
+	// files used in some new tests
+	Source string `json:"tempSource,omitempty"` // also temporary, unsure if this concept will survive
+
 	// TODO: we're hoping to move these to just locator/message when everything is ready.
 	StructuredLocator monitorapi.Locator `json:"tempStructuredLocator"`
 	StructuredMessage monitorapi.Message `json:"tempStructuredMessage"`
@@ -60,6 +64,7 @@ func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
 			return nil, err
 		}
 		events = append(events, monitorapi.Interval{
+			Source: monitorapi.IntervalSource(interval.Source),
 			Condition: monitorapi.Condition{
 				Level:   level,
 				Locator: interval.Locator,
@@ -84,10 +89,13 @@ func IntervalFromJSON(data []byte) (*monitorapi.Interval, error) {
 		return nil, err
 	}
 	return &monitorapi.Interval{
+		Source: monitorapi.IntervalSource(serializedInterval.Source),
 		Condition: monitorapi.Condition{
-			Level:   level,
-			Locator: serializedInterval.Locator,
-			Message: serializedInterval.Message,
+			Level:             level,
+			Locator:           serializedInterval.Locator,
+			Message:           serializedInterval.Message,
+			StructuredLocator: serializedInterval.StructuredLocator,
+			StructuredMessage: serializedInterval.StructuredMessage,
 		},
 
 		From: serializedInterval.From.Time,
@@ -150,6 +158,7 @@ func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInte
 		Message:           interval.Message,
 		StructuredLocator: interval.StructuredLocator,
 		StructuredMessage: interval.StructuredMessage,
+		Source:            string(interval.Source),
 
 		From: metav1.Time{Time: interval.From},
 		To:   metav1.Time{Time: interval.To},

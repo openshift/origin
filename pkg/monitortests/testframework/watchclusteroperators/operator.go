@@ -49,7 +49,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 								monitorapi.AnnotationCondition: string(c.Type),
 								monitorapi.AnnotationStatus:    string(c.Status),
 							}).
-						HumanMessagef("changed: %s", c.Message)
+						HumanMessagef("%s", c.Message)
 
 					if len(c.Reason) > 0 {
 						msg = msg.Reason(monitorapi.IntervalReason(c.Reason))

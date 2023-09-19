@@ -1,46 +1,27 @@
 package monitorapi
 
 import (
-	"strings"
-
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-// condition/Degraded status/True reason/DNSDegraded changed: DNS default is degraded
-func GetOperatorConditionStatus(message string) *configv1.ClusterOperatorStatusCondition {
-	if !strings.HasPrefix(message, "condition/") {
+// GetOperatorConditionStatus reconstructs a ClusterOperatorStatusCondition from an interval.
+func GetOperatorConditionStatus(interval Interval) *configv1.ClusterOperatorStatusCondition {
+	c, ok := interval.StructuredMessage.Annotations[AnnotationCondition]
+	if !ok {
 		return nil
 	}
-	stanzas := strings.Split(message, " ")
+
 	condition := &configv1.ClusterOperatorStatusCondition{}
-
-	for _, stanza := range stanzas {
-		keyValue := strings.SplitN(stanza, "/", 2)
-		if len(keyValue) != 2 {
-			continue
-		}
-
-		switch keyValue[0] {
-		case "condition":
-			if condition.Type == "" {
-				condition.Type = configv1.ClusterStatusConditionType(keyValue[1])
-			}
-		case "status":
-			if condition.Status == "" {
-				condition.Status = configv1.ConditionStatus(keyValue[1])
-			}
-		case "reason":
-			if condition.Reason == "" {
-				condition.Reason = keyValue[1]
-			}
-		}
+	condition.Type = configv1.ClusterStatusConditionType(c)
+	s, ok := interval.StructuredMessage.Annotations[AnnotationStatus]
+	if ok {
+		condition.Status = configv1.ConditionStatus(s)
+	}
+	r, ok := interval.StructuredMessage.Annotations[AnnotationReason]
+	if ok {
+		condition.Reason = r
 	}
 
-	messages := strings.SplitN(message, ": ", 2)
-	if len(messages) < 2 {
-		return condition
-	}
-	condition.Message = messages[1]
-
+	condition.Message = interval.StructuredMessage.HumanMessage
 	return condition
 }

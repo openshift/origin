@@ -244,6 +244,7 @@ const (
 	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 	SourceClusterOperatorMonitor  IntervalSource = "ClusterOperatorMonitor"
+	SourceOperatorState           IntervalSource = "OperatorState"
 )
 
 type Interval struct {
@@ -265,9 +266,20 @@ func (i Interval) String() string {
 	}
 	duration := i.To.Sub(i.From)
 	if duration < time.Second {
-		return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Millisecond))+"ms", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
+		return fmt.Sprintf("%s.%03d - %-5s %s %s %s",
+			i.From.Format("Jan 02 15:04:05"),
+			i.From.Nanosecond()/int(time.Millisecond),
+			strconv.Itoa(int(duration/time.Millisecond))+"ms",
+			i.Level.String()[:1],
+			i.Locator,
+			strings.Replace(i.Message, "\n", "\\n", -1))
 	}
-	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s", i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
+	return fmt.Sprintf("%s.%03d - %-5s %s %s %s",
+		i.From.Format("Jan 02 15:04:05"),
+		i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s",
+		i.Level.String()[:1],
+		i.Locator,
+		strings.Replace(i.Message, "\n", "\\n", -1))
 }
 
 func (i Message) OldMessage() string {
