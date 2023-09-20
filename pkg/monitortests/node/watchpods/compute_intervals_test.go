@@ -84,7 +84,7 @@ func (p podIntervalTest) test(t *testing.T) {
 		resourceMap["pods"] = podMap
 	}
 
-	inputIntervals, err := monitorserialization.IntervalsFromJSON(p.events)
+	inputIntervals, err := monitorserialization.EventsFromJSON(p.events)
 	if err != nil {
 		t.Fatal(err)
 	}
