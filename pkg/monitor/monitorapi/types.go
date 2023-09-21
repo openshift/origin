@@ -238,6 +238,7 @@ const (
 	SourceE2ETest                 IntervalSource = "E2ETest"
 	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
+	SourceSystemJournalScanner    IntervalSource = "KubeletLogScanner"
 	SourcePodLog                  IntervalSource = "PodLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
 	SourceKubeEvent               IntervalSource = "KubeEvent"
