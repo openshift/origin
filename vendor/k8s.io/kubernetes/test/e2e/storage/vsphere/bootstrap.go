@@ -20,6 +20,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/onsi/ginkgo/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
@@ -32,6 +33,7 @@ func Bootstrap(fw *framework.Framework) {
 	done := make(chan bool)
 	go func() {
 		once.Do(func() {
+			defer ginkgo.GinkgoRecover()
 			bootstrapOnce(fw)
 		})
 		<-waiting
