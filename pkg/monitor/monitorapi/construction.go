@@ -163,6 +163,11 @@ func (b *LocatorBuilder) withNode(nodeName string) *LocatorBuilder {
 	return b
 }
 
+func (b *LocatorBuilder) withEtcdMember(memberName string) *LocatorBuilder {
+	b.annotations[LocatorEtcdMemberKey] = memberName
+	return b
+}
+
 func (b *LocatorBuilder) withRoute(route string) *LocatorBuilder {
 	b.annotations[LocatorRouteKey] = route
 	return b
@@ -261,6 +266,13 @@ func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string)
 	return b.Build()
 }
 
+func (b *LocatorBuilder) EtcdMemberFromNames(nodeName, memberName string) Locator {
+	return b.
+		withNode(nodeName).
+		withEtcdMember(memberName).
+		Build()
+}
+
 func (b *LocatorBuilder) ContainerFromNames(namespace, podName, uid, containerName string) Locator {
 	b.PodFromNames(namespace, podName, uid)
 	b.targetType = LocatorTypeContainer
@@ -289,7 +301,6 @@ func (b *LocatorBuilder) withUID(uid string) *LocatorBuilder {
 
 func (b *LocatorBuilder) PodFromPod(pod *corev1.Pod) Locator {
 	b.PodFromNames(pod.Namespace, pod.Name, string(pod.UID))
-	// TODO, to be removed.  this should be in the message, not in the locator
 	if len(pod.Spec.NodeName) > 0 {
 		b.annotations[LocatorNodeKey] = pod.Spec.NodeName
 	}

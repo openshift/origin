@@ -52665,6 +52665,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         if (eventInterval.locator.includes("src/podLog")) {
             return true
         }
+        if (eventInterval.locator.includes("etcd-member/")) {
+            return true
+        }
         return false
     }
 
@@ -53500,6 +53503,9 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
     function isPodLog(eventInterval) {
         if (eventInterval.locator.includes("src/podLog")) {
+            return true
+        }
+        if (eventInterval.locator.includes("etcd-member/")) {
             return true
         }
         return false

@@ -338,6 +338,9 @@
         if (eventInterval.locator.includes("src/podLog")) {
             return true
         }
+        if (eventInterval.locator.includes("etcd-member/")) {
+            return true
+        }
         return false
     }
 
