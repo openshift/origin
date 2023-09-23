@@ -23,7 +23,7 @@ var _ = g.Describe("[sig-node]", func() {
 
 	f := framework.NewDefaultFramework("liveness-probe-override")
 	// TODO(sur): verify if privileged is really necessary in a follow-up
-	f.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+	f.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
 	// upstream e2e will test normal grace period on shutdown
 	g.It("should override timeoutGracePeriodSeconds when annotation is set", func() {

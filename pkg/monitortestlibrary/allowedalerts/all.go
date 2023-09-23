@@ -69,5 +69,7 @@ func AllAlertTests(jobType *platformidentification.JobType, etcdAllowance AlertT
 	ret = append(ret, newAlert("samples", "SamplesImagestreamImportFailing", jobType).pending().neverFail().toTests()...)
 	ret = append(ret, newAlert("samples", "SamplesImagestreamImportFailing", jobType).firing().toTests()...)
 
+	ret = append(ret, newAlert("apiserver-auth", "PodSecurityViolation", jobType).firing().toTests()...)
+
 	return ret
 }

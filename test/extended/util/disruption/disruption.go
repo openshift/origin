@@ -18,15 +18,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/riskanalysis"
-	"github.com/openshift/origin/pkg/test"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
 	g "github.com/onsi/ginkgo/v2"
+
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	admissionapi "k8s.io/pod-security-admission/api"
+
+	"github.com/openshift/origin/pkg/riskanalysis"
+	"github.com/openshift/origin/pkg/test"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 const (
@@ -319,7 +320,7 @@ func createTestFrameworks(tests []upgrades.Test) map[string]*framework.Framework
 			Timeouts: framework.NewTimeoutContext(),
 			// This is similar to https://github.com/kubernetes/kubernetes/blob/f33ca2306548719e5116b53fccfc278bffb809a8/test/e2e/upgrades/upgrade_suite.go#L106,
 			// where centrally all upgrade tests are being instantiated.
-			NamespacePodSecurityEnforceLevel: admissionapi.LevelPrivileged,
+			NamespacePodSecurityLevel: admissionapi.LevelPrivileged,
 		}
 	}
 	return testFrameworks

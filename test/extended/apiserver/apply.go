@@ -42,7 +42,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:ServerSideApply] Server-Side App
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLIWithoutNamespace("server-side-apply")
-	oc.KubeFramework().NamespacePodSecurityEnforceLevel = psapi.LevelBaseline
+	oc.KubeFramework().NamespacePodSecurityLevel = psapi.LevelBaseline
 
 	g.BeforeEach(func() {
 		// Only init once per worker

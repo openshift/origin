@@ -83,4 +83,6 @@ oc new-project "${namespace}"
 
 oc label namespace ${namespace} --overwrite \
   pod-security.kubernetes.io/enforce=baseline \
+  pod-security.kubernetes.io/warn=baseline \
+  pod-security.kubernetes.io/audit=baseline \
   security.openshift.io/scc.podSecurityLabelSync=false
