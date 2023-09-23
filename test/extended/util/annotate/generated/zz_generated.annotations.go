@@ -1423,6 +1423,8 @@ var Annotations = map[string]string{
 
 	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with oslat": " [Serial]",
 
+	"[sig-node][Suite:openshift/nodes/realtime/latency][Disruptive] Real time kernel should meet latency requirements when tested with rteval": " [Serial]",
+
 	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow deadline_test to run successfully": " [Serial]",
 
 	"[sig-node][Suite:openshift/nodes/realtime][Disruptive] Real time kernel should allow pi_stress to run successfully with the fifo algorithm": " [Serial]",
