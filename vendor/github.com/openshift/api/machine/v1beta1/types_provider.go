@@ -185,6 +185,8 @@ const (
 	// WaitingForIPAddressReason is set to indicate that a machine is
 	// currently waiting for an IP address to be provisioned.
 	WaitingForIPAddressReason string = "WaitingForIPAddress"
+	// IPAddressClaimedReason is set to indicate the machine was able to claim an IP address during provisioning.
+	IPAddressClaimedReason string = "IPAddressesClaimed"
 )
 
 // Condition defines an observation of a Machine API resource operational state.

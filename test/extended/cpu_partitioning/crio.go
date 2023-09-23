@@ -22,8 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	"k8s.io/utils/cpuset"
 )
 
 // This collection script queries CRIO for all it's containers, that data is then filtered down to only a subset

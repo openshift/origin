@@ -3,9 +3,10 @@ package security
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"strings"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
@@ -233,19 +234,19 @@ func RunTestAllowedSCCViaRBAC(
 	}
 
 	// this should allow subject1 to make a privileged pod in namespace1
-	rb := addSubjectsToRoleBindingBuilder(rbacv1helpers.NewRoleBindingForClusterRole(clusterRole, namespace1), subject1).BindingOrDie()
+	rb := addSubjectsToRoleBindingBuilder(NewRoleBindingForClusterRole(clusterRole, namespace1), subject1).BindingOrDie()
 	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(namespace1).Create(ctx, &rb, createOpts); err != nil {
 		t.Fatal(err)
 	}
 
 	// this should allow subject1 to make pods in namespace2
-	rbEditUser1Project2 := addSubjectsToRoleBindingBuilder(rbacv1helpers.NewRoleBindingForClusterRole("edit", namespace2), subject1).BindingOrDie()
+	rbEditUser1Project2 := addSubjectsToRoleBindingBuilder(NewRoleBindingForClusterRole("edit", namespace2), subject1).BindingOrDie()
 	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(namespace2).Create(ctx, &rbEditUser1Project2, createOpts); err != nil {
 		t.Fatal(err)
 	}
 
 	// this should allow subject2 to make pods in namespace1
-	rbEditUser2Project1 := addSubjectsToRoleBindingBuilder(rbacv1helpers.NewRoleBindingForClusterRole("edit", namespace1), subject2).BindingOrDie()
+	rbEditUser2Project1 := addSubjectsToRoleBindingBuilder(NewRoleBindingForClusterRole("edit", namespace1), subject2).BindingOrDie()
 	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(namespace1).Create(ctx, &rbEditUser2Project1, createOpts); err != nil {
 		t.Fatal(err)
 	}
@@ -520,4 +521,21 @@ func createClientFromServiceAccount(oc *exutil.CLI, sa *corev1.ServiceAccount) (
 	saClientConfig.BearerToken = bootstrapperToken.Status.Token
 
 	return kubernetes.NewForConfigOrDie(saClientConfig), securityv1client.NewForConfigOrDie(saClientConfig)
+}
+
+func NewRoleBindingForClusterRole(roleName, namespace string) *rbacv1helpers.RoleBindingBuilder {
+	const GroupName = "rbac.authorization.k8s.io"
+	return &rbacv1helpers.RoleBindingBuilder{
+		RoleBinding: rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      roleName,
+				Namespace: namespace,
+			},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: GroupName,
+				Kind:     "ClusterRole",
+				Name:     roleName,
+			},
+		},
+	}
 }
