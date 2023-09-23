@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/origin/pkg/defaultmonitortests"
-	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -123,7 +122,6 @@ func (f *RunMonitorOptions) Run() error {
 	go func() {
 		<-abortCh
 		fmt.Fprintf(f.ErrOut, "Interrupted, terminating\n")
-		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 
 		sig := <-abortCh
