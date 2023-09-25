@@ -87,10 +87,10 @@ func NewPodNetworkAvalibilityInvariant(initializationInfo monitortestframework.M
 func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	openshiftTestsImagePullSpec, notSupportedReason, err := pna.getImagePullSpec(ctx, adminRESTConfig)
 	if err != nil {
-		return err
+		notSupportedReason = "Failed to find test image pullspec"
+		return nil
 	}
 	if len(notSupportedReason) > 0 {
-		pna.notSupportedReason = notSupportedReason
 		return nil
 	}
 
