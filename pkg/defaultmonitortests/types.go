@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
-	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/incluster_disruption_serializer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
@@ -33,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/e2etestanalyzer"
-
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/knownimagechecker"
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
@@ -70,7 +68,6 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewAvailabilityInvariant())
 
 	monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewAvailabilityInvariant())
-	monitorTestRegistry.AddMonitorTestOrDie("incluster-disruption-serializer", "kube-apiserver", incluster_disruption_serializer.NewInvariantInClusterDisruption(info))
 
 	return monitorTestRegistry
 }

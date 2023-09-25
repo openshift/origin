@@ -4,10 +4,6 @@ import (
 	"context"
 	"time"
 
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/openshift/origin/pkg/disruption/backend"
 
 	disruptionci "github.com/openshift/origin/pkg/disruption/ci"
@@ -16,51 +12,75 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func StartAPIMonitoringUsingNewBackend(
-	ctx context.Context,
-	recorder monitorapi.Recorder,
-	clusterConfig *rest.Config,
-	kubeClient kubernetes.Interface,
-	lb backend.LoadBalancerType) ([]disruptionci.Sampler, error) {
-
-	samplers := []disruptionci.Sampler{}
-	errs := []error{}
-	factory := disruptionci.NewDisruptionTestFactory(clusterConfig, kubeClient)
-
-	sampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
-	samplers = append(samplers, sampler)
-	errs = append(errs, err)
-
-	sampler, err = createKubeAPIMonitoringWithConnectionReuseHTTP2(factory, lb)
-	samplers = append(samplers, sampler)
-	errs = append(errs, err)
-
-	sampler, err = createKubeAPIMonitoringWithNewConnectionsHTTP1(factory, lb)
-	samplers = append(samplers, sampler)
-	errs = append(errs, err)
-
-	sampler, err = createKubeAPIMonitoringWithConnectionReuseHTTP1(factory, lb)
-	samplers = append(samplers, sampler)
-	errs = append(errs, err)
-
-	sampler, err = createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
-	samplers = append(samplers, sampler)
-	errs = append(errs, err)
-
-	sampler, err = createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory, lb)
-	samplers = append(samplers, sampler)
-	errs = append(errs, err)
-
-	if combinedErr := utilerrors.NewAggregate(errs); combinedErr != nil {
-		return nil, combinedErr
+func StartAPIMonitoringUsingNewBackend(ctx context.Context, recorder monitorapi.Recorder, clusterConfig *rest.Config, lb backend.LoadBalancerType) error {
+	factory := disruptionci.NewDisruptionTestFactory(clusterConfig)
+	if err := startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx, recorder, factory, lb); err != nil {
+		return err
 	}
-
-	for _, currSampler := range samplers {
-		localErr := currSampler.StartEndpointMonitoring(ctx, recorder, nil)
-		errs = append(errs, localErr)
+	if err := startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx, recorder, factory, lb); err != nil {
+		return err
 	}
+	if err := startKubeAPIMonitoringWithNewConnectionsHTTP1(ctx, recorder, factory, lb); err != nil {
+		return err
+	}
+	if err := startKubeAPIMonitoringWithConnectionReuseHTTP1(ctx, recorder, factory, lb); err != nil {
+		return err
+	}
+	if err := startOpenShiftAPIMonitoringWithNewConnectionsHTTP2(ctx, recorder, factory, lb); err != nil {
+		return err
+	}
+	if err := startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx, recorder, factory, lb); err != nil {
+		return err
+	}
+	return nil
+}
 
-	return samplers, utilerrors.NewAggregate(errs)
+func startKubeAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
+	if err != nil {
+		return err
+	}
+	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+}
+
+func startKubeAPIMonitoringWithConnectionReuseHTTP2(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+	backendSampler, err := createKubeAPIMonitoringWithConnectionReuseHTTP2(factory, lb)
+	if err != nil {
+		return err
+	}
+	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+}
+
+func startKubeAPIMonitoringWithNewConnectionsHTTP1(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+	backendSampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP1(factory, lb)
+	if err != nil {
+		return err
+	}
+	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+}
+
+func startKubeAPIMonitoringWithConnectionReuseHTTP1(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+	backendSampler, err := createKubeAPIMonitoringWithConnectionReuseHTTP1(factory, lb)
+	if err != nil {
+		return err
+	}
+	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+}
+
+func startOpenShiftAPIMonitoringWithNewConnectionsHTTP2(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+	backendSampler, err := createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory, lb)
+	if err != nil {
+		return err
+	}
+	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
+}
+
+func startOpenShiftAPIMonitoringWithConnectionReuseHTTP2(ctx context.Context, recorder monitorapi.Recorder, factory disruptionci.Factory, lb backend.LoadBalancerType) error {
+	backendSampler, err := createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory, lb)
+	if err != nil {
+		return err
+	}
+	return backendSampler.StartEndpointMonitoring(ctx, recorder, nil)
 }
 
 func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType) (disruptionci.Sampler, error) {
