@@ -16,15 +16,26 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/client-go/dynamic"
 	k8sclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
+	"sigs.k8s.io/yaml"
 
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	svc "k8s.io/kubernetes/test/e2e/framework/service"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+)
+
+var (
+	vmiGVR  = schema.GroupVersionResource{Group: "kubevirt.io", Resource: "virtualmachineinstances", Version: "v1"}
+	vmimGVR = schema.GroupVersionResource{Group: "kubevirt.io", Resource: "virtualmachineinstancemigrations", Version: "v1"}
+	vmimGVK = schema.GroupVersionKind{Group: "kubevirt.io", Kind: "VirtualMachineInstanceMigration", Version: "v1"}
 )
 
 type NodeType int
@@ -353,23 +364,147 @@ func InKubeVirtClusterContext(oc *exutil.CLI, body func()) {
 	)
 }
 
+func AfterLiveMigrateWorkersContext(f *e2e.Framework, body func()) {
+	Context("and live migrate hosted control plane workers [Early]",
+		func() {
+			BeforeEach(func() {
+				setMgmtFramework(f)
+				expectNoError(migrateWorkers(f))
+			})
+			body()
+		})
+}
+
 func setMgmtFramework(mgmtFramework *e2e.Framework) *exutil.CLI {
 	_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 	Expect(err).NotTo(HaveOccurred())
 
 	oc := exutil.NewHypershiftManagementCLI(hcpNamespace).AsAdmin()
 
-	mgmtClientSet := oc.KubeClient()
 	mgmtFramework.Namespace = &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: hcpNamespace,
 		},
 	}
-	mgmtFramework.ClientSet = mgmtClientSet
+	mgmtFramework.ClientSet = oc.KubeClient()
+	mgmtFramework.DynamicClient = oc.DynamicClient()
 
 	return oc
 }
 
+func virtualMachineInstanceClient(dc dynamic.Interface) dynamic.NamespaceableResourceInterface {
+	return dc.Resource(vmiGVR)
+}
+
+func virtualMachineInstanceMigrationClient(dc dynamic.Interface) dynamic.NamespaceableResourceInterface {
+	return dc.Resource(vmimGVR)
+}
+
+func composeVMIM(vmiNamespace, vmiName string) *unstructured.Unstructured {
+	vmim := unstructured.Unstructured{}
+	vmim.SetGroupVersionKind(vmimGVK)
+	vmim.SetNamespace(vmiNamespace)
+	vmim.SetGenerateName(vmiName + "-")
+	vmim.UnstructuredContent()["spec"] = map[string]interface{}{
+		"vmiName": vmiName,
+	}
+	return &vmim
+}
+
+func migrateWorkers(f *e2e.Framework) error {
+	By("migrating hosted cluster workers")
+	vmiClient := virtualMachineInstanceClient(f.DynamicClient)
+	vmiList, err := vmiClient.Namespace(f.Namespace.Name).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed retrieving workers VMs at namespace %s: %v", f.Namespace.Name, err)
+	}
+
+	vmimClient := virtualMachineInstanceMigrationClient(f.DynamicClient)
+	vmims := []*unstructured.Unstructured{}
+	for _, vmi := range vmiList.Items {
+		vmim := composeVMIM(vmi.GetNamespace(), vmi.GetName())
+		if vmim, err = vmimClient.Namespace(f.Namespace.Name).Create(context.Background(), vmim, metav1.CreateOptions{}); err != nil {
+			return fmt.Errorf("failed creating vmim %s/%s: %v", vmi.GetNamespace(), vmi.GetName(), err)
+		}
+		vmims = append(vmims, vmim)
+	}
+	for _, vmim := range vmims {
+		phase := ""
+		err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (done bool, err error) {
+			vmim, err = vmimClient.Namespace(f.Namespace.Name).Get(context.Background(), vmim.GetName(), metav1.GetOptions{})
+			if err != nil {
+				return false, err
+			}
+			statusIface, ok := vmim.UnstructuredContent()["status"]
+			if !ok {
+				return false, nil
+			}
+			status, ok := statusIface.(map[string]interface{})
+			if !ok {
+				return false, fmt.Errorf("bad vmim.status: %+v", statusIface)
+			}
+			phaseIface, ok := status["phase"]
+			if !ok {
+				return false, nil
+			}
+			phase, ok = phaseIface.(string)
+			if !ok {
+				return false, fmt.Errorf("bad vmim.status.phase: %+v", phaseIface)
+			}
+			return phase == "Succeeded" || phase == "Failed", nil
+		})
+		if err != nil {
+			return err
+		}
+		if phase == "Failed" {
+			dumpKubevirtArtifacts(f)
+			vmiName, _, _ := unstructured.NestedString(vmim.UnstructuredContent(), "spec", "vmiName")
+			return fmt.Errorf("migration failed for vmi %s", vmiName)
+		}
+	}
+	return nil
+}
+
 func expectNoError(err error, explain ...interface{}) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), explain...)
+}
+
+func mgmtClusterIsAWS(f *e2e.Framework) (bool, error) {
+	oc := setMgmtFramework(f)
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
+		"cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	return infra.Spec.PlatformSpec.Type == configv1.AWSPlatformType, nil
+}
+
+func dumpKubevirtArtifacts(f *e2e.Framework) {
+	vmiClient := virtualMachineInstanceClient(f.DynamicClient)
+	vmiList, err := vmiClient.Namespace(f.Namespace.Name).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		e2e.Logf("failed retrieving VMIs for namespace %s: %v", f.Namespace.Name, err)
+		return
+	}
+	vmiListYAML, err := yaml.Marshal(vmiList)
+	if err != nil {
+		e2e.Logf("failed retrieving VMIs for namespace %s: %v", f.Namespace.Name, err)
+		return
+	}
+	e2e.Logf("vmis: %s", string(vmiListYAML))
+
+	vmimClient := virtualMachineInstanceMigrationClient(f.DynamicClient)
+	vmimList, err := vmimClient.Namespace(f.Namespace.Name).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		e2e.Logf("failed retrieving VMIMs for namespace %s: %v", f.Namespace.Name, err)
+		return
+	}
+	vmimListYAML, err := yaml.Marshal(vmimList)
+	if err != nil {
+		e2e.Logf("failed retrieving VMIMs for namespace %s: %v", f.Namespace.Name, err)
+		return
+	}
+	e2e.Logf("vmims: %s", string(vmimListYAML))
+
 }
