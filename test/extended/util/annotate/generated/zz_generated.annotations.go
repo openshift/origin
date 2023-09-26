@@ -49,6 +49,8 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of imagestreams resources [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-api-machinery][Feature:ResourceQuota] Object count should properly count the number of persistentvolumeclaims resources [Serial]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for apps.openshift.io/v1, Resource=deploymentconfigs [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for build.openshift.io/v1, Resource=buildconfigs [apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
