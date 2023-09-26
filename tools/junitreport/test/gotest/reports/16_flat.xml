@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuites>
-	<testsuite name="package/1" tests="1" skipped="0" failures="0" time="0.16">
-		<testcase name="TestSubTestWithFailures" time="0"></testcase>
-	</testsuite>
-	<testsuite name="package/2" tests="1" skipped="0" failures="0" time="0.16">
-		<testcase name="TestSubTestWithFailures" time="0"></testcase>
-	</testsuite>
-</testsuites>

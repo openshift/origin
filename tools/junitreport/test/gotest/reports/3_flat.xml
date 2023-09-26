@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuites>
-	<testsuite name="package/name" tests="2" skipped="1" failures="0" time="0.15">
-		<testcase name="TestOne" time="0.02">
-			<skipped message="file_test.go:11: Skip message"></skipped>
-		</testcase>
-		<testcase name="TestTwo" time="0.13"></testcase>
-	</testsuite>
-</testsuites>

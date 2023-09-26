@@ -1,7 +1,0 @@
-# Set unix LF EOL for shell scripts
-*.sh text eol=lf
-
-**/zz_generated.*.go linguist-generated=true
-**/types.generated.go linguist-generated=true
-**/generated.pb.go linguist-generated=true
-**/generated.proto linguist-generated=true

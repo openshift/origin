@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-readonly OS_OUTPUT_BASEPATH="${OS_OUTPUT_BASEPATH:-_output}"
-readonly OS_BASE_OUTPUT="${OS_ROOT}/${OS_OUTPUT_BASEPATH}"
-readonly OS_OUTPUT_SCRIPTPATH="${OS_OUTPUT_SCRIPTPATH:-"${OS_BASE_OUTPUT}/scripts"}"

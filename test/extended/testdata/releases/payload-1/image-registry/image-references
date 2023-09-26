@@ -1,8 +1,0 @@
-kind: ImageStream
-apiVersion: image.openshift.io/v1
-spec:
-  tags:
-  - name: image-registry
-    from:
-      name: openshift/origin-image-registry
-      kind: DockerImage

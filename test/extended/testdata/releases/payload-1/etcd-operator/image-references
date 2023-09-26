@@ -1,8 +1,0 @@
-kind: ImageStream
-apiVersion: image.openshift.io/v1
-spec:
-  tags:
-  - name: etcd-operator
-    from:
-      name: quay.io/coreos/etcd-operator
-      kind: DockerImage

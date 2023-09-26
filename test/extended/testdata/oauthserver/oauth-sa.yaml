@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: e2e-oauth
-  labels:
-    app: test-oauth-server
