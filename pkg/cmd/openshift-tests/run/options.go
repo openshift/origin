@@ -72,15 +72,23 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 	// TODO fix the the upstream so that the AfterReadingAllFlags will properly check for either of the inputs having values.
 	k8simage.Init("")
 
-	// TODO the gingkoRunSuiteOptions needs to have flags then calculated options to express specified versus computed values
+	stabilitySetting := testginkgo.Stable
+	switch {
+	case len(o.GinkgoRunSuiteOptions.ClusterStabilityDuringTest) > 0:
+		stabilitySetting = testginkgo.ClusterStabilityDuringTest(o.GinkgoRunSuiteOptions.ClusterStabilityDuringTest)
+	case len(o.Suite.ClusterStabilityDuringTest) > 0:
+		stabilitySetting = o.Suite.ClusterStabilityDuringTest
+	}
+
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
-		ClusterStabilityDuringTest: monitortestframework.ClusterStabilityDuringTest(o.GinkgoRunSuiteOptions.ClusterStabilityDuringTest),
+		ClusterStabilityDuringTest: monitortestframework.ClusterStabilityDuringTest(stabilitySetting),
 	}
 
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
 	if !o.GinkgoRunSuiteOptions.DryRun {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
+
 	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", monitorTestInfo, false)
 	if exitErr != nil {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
