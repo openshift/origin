@@ -11,29 +11,25 @@ import (
 	"strings"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
-
-	"github.com/openshift/origin/pkg/monitortestframework"
-
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-
-	rbacv1 "k8s.io/api/rbac/v1"
-
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
 
@@ -83,6 +79,7 @@ type podNetworkAvalibility struct {
 	payloadImagePullSpec string
 	notSupportedReason   string
 	namespaceName        string
+	targetService        *corev1.Service
 	kubeClient           kubernetes.Interface
 }
 
@@ -174,17 +171,23 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-
 	service, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), podNetworkTargetService, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
+	pna.targetService = service
 
 	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
 	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	if _, err := pna.kubeClient.CoreV1().Services(pna.namespaceName).Create(context.Background(), hostNetworkTargetService, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	// we need to have the service network pollers wait until we have at least one healthy endpoint before starting.
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 60*time.Second, true, pna.serviceHasEndpoints)
+	if err != nil {
 		return err
 	}
 
@@ -202,6 +205,32 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 
 	return nil
+}
+
+func (pna *podNetworkAvalibility) serviceHasEndpoints(ctx context.Context) (bool, error) {
+	targetServiceLabel, err := labels.NewRequirement("kubernetes.io/service-name", selection.Equals, []string{pna.targetService.Name})
+	if err != nil {
+		return false, err
+	}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*targetServiceLabel).String(),
+	}
+	endpointSlices, err := pna.kubeClient.DiscoveryV1().EndpointSlices(pna.targetService.Namespace).List(ctx, listOptions)
+	if err != nil {
+		klog.Errorf(err.Error())
+		return false, nil
+	}
+
+	for _, endpointSlice := range endpointSlices.Items {
+		for _, endpoint := range endpointSlice.Endpoints {
+			if endpoint.Conditions.Serving != nil && *endpoint.Conditions.Serving {
+				// we have at least one endpoint
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
