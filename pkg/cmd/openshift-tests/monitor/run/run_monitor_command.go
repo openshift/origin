@@ -11,7 +11,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
-	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/test/extended/util/image"
 
@@ -30,6 +29,7 @@ type RunMonitorFlags struct {
 	DisplayFromNow      bool
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
+	FromRepository      string
 
 	genericclioptions.IOStreams
 }
@@ -89,6 +89,7 @@ func (f *RunMonitorFlags) BindFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVar(&f.ExactMonitorTests, "monitor", f.ExactMonitorTests,
 		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
 	flags.StringSliceVar(&f.DisableMonitorTests, "disable-monitor", f.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
+	flags.StringVar(&f.FromRepository, "from-repository", f.FromRepository, "A container image repository to retrieve test images from.")
 }
 
 func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
@@ -113,6 +114,7 @@ func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
 		DisplayFilterFn: displayFilterFn,
 		MonitorTests:    monitorTestRegistry,
 		IOStreams:       f.IOStreams,
+		FromRepository:  f.FromRepository,
 	}, nil
 }
 
@@ -140,6 +142,7 @@ type RunMonitorOptions struct {
 	ArtifactDir     string
 	DisplayFilterFn monitorapi.EventIntervalMatchesFunc
 	MonitorTests    monitortestframework.MonitorTestRegistry
+	FromRepository  string
 
 	genericclioptions.IOStreams
 }
@@ -148,9 +151,11 @@ type RunMonitorOptions struct {
 // events accumulated to Out. When the user hits CTRL+C or signals termination the
 // condition intervals (all non-instantaneous events) are reported to Out.
 func (o *RunMonitorOptions) Run() error {
+	// set globals so that helpers will create pods with the mapped images if we create them from this process.
+	image.InitializeImages(o.FromRepository)
+
 	fmt.Fprintf(o.Out, "Starting the monitor.\n")
 
-	image.InitializeImages(imagesetup.DefaultTestImageMirrorLocation)
 	restConfig, err := monitor.GetMonitorRESTConfig()
 	if err != nil {
 		return err
@@ -176,12 +181,15 @@ func (o *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest: monitortestframework.Stable,
+	}
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.Out, o.DisplayFilterFn)
 	m := monitor.NewMonitor(
 		recorder,
 		restConfig,
 		o.ArtifactDir,
-		o.MonitorTests,
+		defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
 	)
 	if err := m.Start(ctx); err != nil {
 		return err
