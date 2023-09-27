@@ -216,6 +216,13 @@ const (
 	AnnotationCondition      AnnotationKey = "condition"
 )
 
+// ConstructionOwner was originally meant to signify that an interval was derived from other intervals.
+// This allowed for the possibility of testing interval generation by feeding in only source intervals,
+// and checking what was generated.
+// TODO: likely want to drop this concept in favor of Source, plus a flag automatically applied to any
+// intervals coming back from the monitor test call to generate calculated intervals. Source
+// will replace the use of what constructed the interval, and the flag will allow us to see what is derived
+// and what isn't.
 type ConstructionOwner string
 
 const (
@@ -234,6 +241,9 @@ type Message struct {
 	Annotations map[AnnotationKey]string `json:"annotations"`
 }
 
+// IntervalSource is used to type/categorize all intervals based on what created them.
+// This is intended to be used to group, and when combined with the display flag, signal that
+// they should be visible by default in the UIs that render interval charts.
 type IntervalSource string
 
 const (
@@ -251,6 +261,8 @@ const (
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 	SourceClusterOperatorMonitor  IntervalSource = "ClusterOperatorMonitor"
 	SourceOperatorState           IntervalSource = "OperatorState"
+	SourceNodeState                              = "NodeState"
+	SourcePodState                               = "PodState"
 )
 
 type Interval struct {

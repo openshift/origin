@@ -16,26 +16,32 @@ type stateTracker struct {
 	locatorsToObservedStates map[string]sets.String
 
 	constructedBy monitorapi.ConstructionOwner
+	// intervalSource is used to type/categorize intervals by where they were created.
+	intervalSource monitorapi.IntervalSource
 }
 
-type conditionCreationFunc func(locator string, from, to time.Time) (monitorapi.Condition, bool)
+type intervalCreationFunc func(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool)
 
-func SimpleCondition(constructedBy monitorapi.ConstructionOwner, level monitorapi.IntervalLevel, reason monitorapi.IntervalReason, message string) conditionCreationFunc {
-	return func(locator string, from, to time.Time) (monitorapi.Condition, bool) {
-		return monitorapi.Condition{
-			Level:   level,
-			Locator: locator,
-			Message: monitorapi.NewMessage().Reason(reason).Constructed(constructedBy).HumanMessage(message).BuildString(),
-		}, true
+func SimpleInterval(constructedBy monitorapi.ConstructionOwner,
+	source monitorapi.IntervalSource, level monitorapi.IntervalLevel,
+	reason monitorapi.IntervalReason, message string) intervalCreationFunc {
+	return func(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool) {
+		interval := monitorapi.NewInterval(source, level).Locator(locator).
+			Message(monitorapi.NewMessage().Reason(reason).
+				WithAnnotation(monitorapi.AnnotationConstructed, string(constructedBy)).
+				HumanMessage(message))
+		return interval, true
 	}
 }
 
-func NewStateTracker(constructedBy monitorapi.ConstructionOwner, beginning time.Time) *stateTracker {
+func NewStateTracker(constructedBy monitorapi.ConstructionOwner,
+	src monitorapi.IntervalSource, beginning time.Time) *stateTracker {
 	return &stateTracker{
 		beginning:                beginning,
 		locatorToStateMap:        map[string]stateMap{},
 		locatorsToObservedStates: map[string]sets.String{},
 		constructedBy:            constructedBy,
+		intervalSource:           src,
 	}
 }
 
@@ -96,16 +102,16 @@ func (t *stateTracker) OpenInterval(locator string, state StateInfo, from time.T
 
 	return false
 }
-func (t *stateTracker) CloseIfOpenedInterval(locator string, state StateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.Interval {
+func (t *stateTracker) CloseIfOpenedInterval(locator string, state StateInfo, intervalCreator intervalCreationFunc, to time.Time) []monitorapi.Interval {
 	states := t.getStates(locator)
 	if _, ok := states[state]; !ok {
 		return nil
 	}
 
-	return t.CloseInterval(locator, state, conditionCreator, to)
+	return t.CloseInterval(locator, state, intervalCreator, to)
 }
 
-func (t *stateTracker) CloseInterval(locator string, state StateInfo, conditionCreator conditionCreationFunc, to time.Time) []monitorapi.Interval {
+func (t *stateTracker) CloseInterval(locator string, state StateInfo, intervalCreator intervalCreationFunc, to time.Time) []monitorapi.Interval {
 	states := t.getStates(locator)
 
 	from, ok := states[state]
@@ -119,7 +125,7 @@ func (t *stateTracker) CloseInterval(locator string, state StateInfo, conditionC
 	delete(states, state)
 	t.locatorToStateMap[locator] = states
 
-	condition, hasCondition := conditionCreator(locator, from, to)
+	condition, hasCondition := intervalCreator(locator, from, to)
 	if !hasCondition {
 		return nil
 	}
@@ -142,7 +148,7 @@ func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]
 
 		for stateName := range states {
 			message := fmt.Sprintf("%v state/%v never completed", strings.Join(annotationStrings, " "), stateName.stateName)
-			ret = append(ret, t.CloseInterval(locator, stateName, SimpleCondition(t.constructedBy, monitorapi.Warning, stateName.reason, message), end)...)
+			ret = append(ret, t.CloseInterval(locator, stateName, SimpleInterval(t.constructedBy, monitorapi.Warning, stateName.reason, message), end)...)
 		}
 	}
 
