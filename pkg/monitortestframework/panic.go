@@ -3,8 +3,10 @@ package monitortestframework
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -15,6 +17,8 @@ func startCollectionWithPanicProtection(ctx context.Context, monitortest Monitor
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
+			logrus.Error("recovering from panic")
+			fmt.Print(debug.Stack())
 		}
 	}()
 
@@ -26,6 +30,8 @@ func collectDataWithPanicProtection(ctx context.Context, monitortest MonitorTest
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
+			logrus.Error("recovering from panic")
+			fmt.Print(debug.Stack())
 		}
 	}()
 
@@ -37,6 +43,8 @@ func constructComputedIntervalsWithPanicProtection(ctx context.Context, monitort
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
+			logrus.Error("recovering from panic")
+			fmt.Print(debug.Stack())
 		}
 	}()
 
@@ -48,6 +56,8 @@ func evaluateTestsFromConstructedIntervalsWithPanicProtection(ctx context.Contex
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
+			logrus.Error("recovering from panic")
+			fmt.Print(debug.Stack())
 		}
 	}()
 
@@ -59,6 +69,8 @@ func writeContentToStorageWithPanicProtection(ctx context.Context, monitortest M
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
+			logrus.Error("recovering from panic")
+			fmt.Print(debug.Stack())
 		}
 	}()
 
@@ -70,6 +82,8 @@ func cleanupWithPanicProtection(ctx context.Context, monitortest MonitorTest) (e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
+			logrus.Error("recovering from panic")
+			fmt.Print(debug.Stack())
 		}
 	}()
 

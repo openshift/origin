@@ -1,21 +1,34 @@
 package monitorapi
 
 import (
-	"reflect"
 	"testing"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetOperatorConditionStatus(t *testing.T) {
 	tests := []struct {
-		name    string
-		message string
-		want    *configv1.ClusterOperatorStatusCondition
+		name     string
+		interval Interval
+		want     *configv1.ClusterOperatorStatusCondition
 	}{
 		{
-			name:    "simple",
-			message: "condition/Degraded status/True reason/DNSDegraded changed: DNS default is degraded",
+			name: "simple",
+			interval: Interval{
+				Source: SourceClusterOperatorMonitor,
+				Condition: Condition{
+					StructuredMessage: Message{
+						Reason:       "DNSDegraded",
+						HumanMessage: "DNS default is degraded",
+						Annotations: map[AnnotationKey]string{
+							AnnotationCondition: "Degraded",
+							AnnotationStatus:    "True",
+							AnnotationReason:    "DNSDegraded",
+						},
+					},
+				},
+			},
 			want: &configv1.ClusterOperatorStatusCondition{
 				Type:    configv1.OperatorDegraded,
 				Status:  configv1.ConditionTrue,
@@ -24,8 +37,21 @@ func TestGetOperatorConditionStatus(t *testing.T) {
 			},
 		},
 		{
-			name:    "unknown",
-			message: "condition/Upgradeable status/Unknown reason/NoData changed: blah blah",
+			name: "unknown",
+			interval: Interval{
+				Source: SourceClusterOperatorMonitor,
+				Condition: Condition{
+					StructuredMessage: Message{
+						Reason:       "NoData",
+						HumanMessage: "blah blah",
+						Annotations: map[AnnotationKey]string{
+							AnnotationCondition: "Upgradeable",
+							AnnotationStatus:    "Unknown",
+							AnnotationReason:    "NoData",
+						},
+					},
+				},
+			},
 			want: &configv1.ClusterOperatorStatusCondition{
 				Type:    configv1.OperatorUpgradeable,
 				Status:  configv1.ConditionUnknown,
@@ -33,22 +59,11 @@ func TestGetOperatorConditionStatus(t *testing.T) {
 				Message: "blah blah",
 			},
 		},
-		{
-			name:    "repeat reason",
-			message: "condition/Available status/True reason/AsExpected changed: reason/again",
-			want: &configv1.ClusterOperatorStatusCondition{
-				Type:    configv1.OperatorAvailable,
-				Status:  configv1.ConditionTrue,
-				Reason:  "AsExpected",
-				Message: "reason/again",
-			},
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := GetOperatorConditionStatus(tt.message); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetOperatorConditionStatus() got = %v, want %v", got, tt.want)
-			}
+			got := GetOperatorConditionStatus(tt.interval)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

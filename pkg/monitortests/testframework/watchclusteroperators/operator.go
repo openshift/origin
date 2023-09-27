@@ -32,24 +32,29 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 		nil,
 	)
 
-	coChangeFns := []func(co, oldCO *configv1.ClusterOperator) []monitorapi.Condition{
-		func(co, oldCO *configv1.ClusterOperator) []monitorapi.Condition {
-			var conditions []monitorapi.Condition
+	coChangeFns := []func(co, oldCO *configv1.ClusterOperator) []monitorapi.Interval{
+		func(co, oldCO *configv1.ClusterOperator) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+			intervalTime := time.Now()
 			for i := range co.Status.Conditions {
 				c := &co.Status.Conditions[i]
 				previousCondition := findOperatorStatusCondition(oldCO.Status.Conditions, c.Type)
 				// If we don't have a previous state, then we should always mark the starting state with an event.
 				// We recently had a PR that caused the kube-apiserver operator be permanently degraded and it didn't show up.
 				if previousCondition == nil || c.Status != previousCondition.Status {
-					var msg string
-					switch {
-					case len(c.Reason) > 0 && len(c.Message) > 0:
-						msg = fmt.Sprintf("condition/%s status/%s reason/%s changed: %s", c.Type, c.Status, c.Reason, c.Message)
-					case len(c.Message) > 0:
-						msg = fmt.Sprintf("condition/%s status/%s changed: %s", c.Type, c.Status, c.Message)
-					default:
-						msg = fmt.Sprintf("condition/%s status/%s changed: ", c.Type, c.Status)
+
+					msg := monitorapi.NewMessage().
+						WithAnnotations(
+							map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: string(c.Type),
+								monitorapi.AnnotationStatus:    string(c.Status),
+							}).
+						HumanMessagef("%s", c.Message)
+
+					if len(c.Reason) > 0 {
+						msg = msg.Reason(monitorapi.IntervalReason(c.Reason))
 					}
+
 					level := monitorapi.Warning
 					if c.Type == configv1.OperatorDegraded && c.Status == configv1.ConditionTrue {
 						level = monitorapi.Error
@@ -63,21 +68,18 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 					if c.Type == configv1.ClusterStatusConditionType("Failing") && c.Status == configv1.ConditionTrue {
 						level = monitorapi.Error
 					}
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   level,
-						Locator: monitorapi.OperatorLocator(co.Name),
-						Message: msg,
-					})
+					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, level).
+						Locator(monitorapi.NewLocator().ClusterOperator(co.Name)).
+						Message(msg).Build(intervalTime, intervalTime))
 				}
 			}
 			if changes := findOperatorVersionChange(oldCO.Status.Versions, co.Status.Versions); len(changes) > 0 {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: monitorapi.OperatorLocator(co.Name),
-					Message: fmt.Sprintf("versions: %v", strings.Join(changes, ", ")),
-				})
+				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, monitorapi.Info).
+					Locator(monitorapi.NewLocator().ClusterOperator(co.Name)).
+					Message(monitorapi.NewMessage().HumanMessagef("versions: %v", strings.Join(changes, ", "))).
+					Build(intervalTime, intervalTime))
 			}
-			return conditions
+			return intervals
 		},
 	}
 
@@ -124,7 +126,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 					return
 				}
 				for _, fn := range coChangeFns {
-					m.Record(fn(co, oldCO)...)
+					m.AddIntervals(fn(co, oldCO)...)
 				}
 			},
 		},
