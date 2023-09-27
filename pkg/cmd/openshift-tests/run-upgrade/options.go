@@ -107,7 +107,7 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 
 	// TODO the gingkoRunSuiteOptions needs to have flags then calculated options to express specified versus computed values
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
-		ClusterStabilityDuringTest:        monitortestframework.ClusterStabilityDuringTest(o.GinkgoRunSuiteOptions.ClusterStabilityDuringTest),
+		ClusterStabilityDuringTest:        monitortestframework.Stable,
 		UpgradeTargetPayloadImagePullSpec: o.ToImage,
 	}
 

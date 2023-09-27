@@ -68,15 +68,14 @@ type GinkgoRunSuiteOptions struct {
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
 	return &GinkgoRunSuiteOptions{
-		IOStreams:                  streams,
-		ClusterStabilityDuringTest: string(Stable),
+		IOStreams: streams,
 	}
 }
 
 func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
 	flags.BoolVar(&o.PrintCommands, "print-commands", o.PrintCommands, "Print the sub-commands that would be executed instead.")
-	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive")
+	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive. Empty default will be treated as Stable.")
 	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
 	flags.IntVar(&o.Count, "count", o.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
 	flags.BoolVar(&o.FailFast, "fail-fast", o.FailFast, "If a test fails, exit immediately.")
@@ -87,7 +86,7 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
 	switch o.ClusterStabilityDuringTest {
-	case string(Stable), string(Disruptive):
+	case "", string(Stable), string(Disruptive):
 	default:
 		return fmt.Errorf("unknown --cluster-stability, %q, expected Stable or Disruptive", o.ClusterStabilityDuringTest)
 	}
@@ -119,6 +118,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	if err != nil {
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
+
+	fmt.Fprintf(o.Out, "found %d tests for suite\n", len(tests))
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	// OPENSHIFT_SKIP_EXTERNAL_TESTS env variable allows to skip using external binary
@@ -168,6 +169,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set or --from-repository=%s not being the default\n", o.FromRepository)
 	}
 
+	fmt.Fprintf(o.Out, "found %d tests (incl externals)\n", len(tests))
+
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
 	suiteConfig, _ := ginkgo.GinkgoConfiguration()
@@ -178,6 +181,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	if len(tests) == 0 {
 		return fmt.Errorf("suite %q does not contain any tests", suite.Name)
 	}
+
+	fmt.Fprintf(o.Out, "found %d filtered tests\n", len(tests))
 
 	count := o.Count
 	if count == 0 {
