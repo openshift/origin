@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -34,10 +35,11 @@ type RunMonitorFlags struct {
 	genericclioptions.IOStreams
 }
 
-func NewRunMonitorOptions(streams genericclioptions.IOStreams) *RunMonitorFlags {
+func NewRunMonitorOptions(streams genericclioptions.IOStreams, fromRepository string) *RunMonitorFlags {
 	return &RunMonitorFlags{
 		DisplayFromNow: true,
 		IOStreams:      streams,
+		FromRepository: fromRepository,
 	}
 }
 
@@ -51,7 +53,7 @@ func NewRunCommand(streams genericclioptions.IOStreams) *cobra.Command {
 }
 
 func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Command {
-	f := NewRunMonitorOptions(streams)
+	f := NewRunMonitorOptions(streams, imagesetup.DefaultTestImageMirrorLocation)
 
 	cmd := &cobra.Command{
 		Use:   name,
