@@ -184,6 +184,9 @@ const (
 	NodeNotReadyReason IntervalReason = "NotReady"
 	NodeFailedLease    IntervalReason = "FailedToUpdateLease"
 
+	MachineConfigChangeReason  IntervalReason = "MachineConfigChanged"
+	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
+
 	Timeout IntervalReason = "Timeout"
 
 	E2ETestStarted  IntervalReason = "E2ETestStarted"
@@ -196,6 +199,7 @@ const (
 	AnnotationReason             AnnotationKey = "reason"
 	AnnotationContainerExitCode  AnnotationKey = "code"
 	AnnotationCause              AnnotationKey = "cause"
+	AnnotationConfig             AnnotationKey = "config"
 	AnnotationNode               AnnotationKey = "node"
 	AnnotationEtcdLocalMember    AnnotationKey = "local-member-id"
 	AnnotationEtcdTerm           AnnotationKey = "term"
@@ -207,6 +211,7 @@ const (
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
 	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
+	AnnotationRoles          AnnotationKey = "roles"
 	AnnotationStatus         AnnotationKey = "status"
 	AnnotationCondition      AnnotationKey = "condition"
 )
