@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -74,6 +76,9 @@ type MonitorTestRegistry interface {
 	AddMonitorTest(name, jiraComponent string, monitorTest MonitorTest) error
 
 	AddMonitorTestOrDie(name, jiraComponent string, monitorTest MonitorTest)
+
+	GetRegistryFor(names ...string) (MonitorTestRegistry, error)
+	ListMonitorTests() sets.String
 
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.

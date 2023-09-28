@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -25,8 +26,10 @@ import (
 )
 
 type RunMonitorFlags struct {
-	ArtifactDir    string
-	DisplayFromNow bool
+	ArtifactDir         string
+	DisplayFromNow      bool
+	ExactMonitorTests   []string
+	DisableMonitorTests []string
 
 	genericclioptions.IOStreams
 }
@@ -75,8 +78,17 @@ func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Comm
 }
 
 func (f *RunMonitorFlags) BindFlags(flags *pflag.FlagSet) {
+	allMonitors, _ := f.getMonitorTestRegistry()
+	monitorNames := []string{}
+	if allMonitors != nil {
+		monitorNames = allMonitors.ListMonitorTests().List()
+	}
+
 	flags.StringVar(&f.ArtifactDir, "artifact-dir", f.ArtifactDir, "The directory where monitor events will be stored.")
 	flags.BoolVar(&f.DisplayFromNow, "display-from-now", f.DisplayFromNow, "Only display intervals from at or after this comand was started.")
+	flags.StringSliceVar(&f.ExactMonitorTests, "monitor", f.ExactMonitorTests,
+		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
+	flags.StringSliceVar(&f.DisableMonitorTests, "disable-monitor", f.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
 }
 
 func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
@@ -91,16 +103,43 @@ func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
 		}
 	}
 
+	monitorTestRegistry, err := f.getMonitorTestRegistry()
+	if err != nil {
+		return nil, err
+	}
+
 	return &RunMonitorOptions{
 		ArtifactDir:     f.ArtifactDir,
 		DisplayFilterFn: displayFilterFn,
+		MonitorTests:    monitorTestRegistry,
 		IOStreams:       f.IOStreams,
 	}, nil
+}
+
+func (f *RunMonitorFlags) getMonitorTestRegistry() (monitortestframework.MonitorTestRegistry, error) {
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest: monitortestframework.Stable,
+	}
+	startingRegistry := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
+
+	switch {
+	case len(f.ExactMonitorTests) > 0:
+		return startingRegistry.GetRegistryFor(f.ExactMonitorTests...)
+
+	case len(f.DisableMonitorTests) > 0:
+		testsToInclude := startingRegistry.ListMonitorTests()
+		testsToInclude.Delete(f.DisableMonitorTests...)
+		return startingRegistry.GetRegistryFor(testsToInclude.List()...)
+
+	default:
+		return startingRegistry, nil
+	}
 }
 
 type RunMonitorOptions struct {
 	ArtifactDir     string
 	DisplayFilterFn monitorapi.EventIntervalMatchesFunc
+	MonitorTests    monitortestframework.MonitorTestRegistry
 
 	genericclioptions.IOStreams
 }
@@ -108,8 +147,8 @@ type RunMonitorOptions struct {
 // Run starts monitoring the cluster by invoking Start, periodically printing the
 // events accumulated to Out. When the user hits CTRL+C or signals termination the
 // condition intervals (all non-instantaneous events) are reported to Out.
-func (f *RunMonitorOptions) Run() error {
-	fmt.Fprintf(f.Out, "Starting the monitor.\n")
+func (o *RunMonitorOptions) Run() error {
+	fmt.Fprintf(o.Out, "Starting the monitor.\n")
 
 	image.InitializeImages(imagesetup.DefaultTestImageMirrorLocation)
 	restConfig, err := monitor.GetMonitorRESTConfig()
@@ -122,12 +161,12 @@ func (f *RunMonitorOptions) Run() error {
 	abortCh := make(chan os.Signal, 2)
 	go func() {
 		<-abortCh
-		fmt.Fprintf(f.ErrOut, "Interrupted, terminating\n")
+		fmt.Fprintf(o.ErrOut, "Interrupted, terminating\n")
 		sampler.TearDownInClusterMonitors(restConfig)
 		cancelFn()
 
 		sig := <-abortCh
-		fmt.Fprintf(f.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
+		fmt.Fprintf(o.ErrOut, "Interrupted twice, exiting (%s)\n", sig)
 		switch sig {
 		case syscall.SIGINT:
 			os.Exit(130)
@@ -137,24 +176,21 @@ func (f *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
-		ClusterStabilityDuringTest: monitortestframework.Stable,
-	}
-	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), f.Out, f.DisplayFilterFn)
+	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.Out, o.DisplayFilterFn)
 	m := monitor.NewMonitor(
 		recorder,
 		restConfig,
-		f.ArtifactDir,
-		defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
+		o.ArtifactDir,
+		o.MonitorTests,
 	)
 	if err := m.Start(ctx); err != nil {
 		return err
 	}
-	fmt.Fprintf(f.Out, "Monitor started, waiting for ctrl+C to stop...\n")
+	fmt.Fprintf(o.Out, "Monitor started, waiting for ctrl+C to stop...\n")
 
 	<-ctx.Done()
 
-	fmt.Fprintf(f.Out, "Monitor shutting down, this may take up to five minutes...\n")
+	fmt.Fprintf(o.Out, "Monitor shutting down, this may take up to five minutes...\n")
 
 	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cleanupCancel()

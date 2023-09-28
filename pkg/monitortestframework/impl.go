@@ -3,10 +3,12 @@ package monitortestframework
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -48,6 +50,29 @@ func (r *monitorTestRegistry) AddMonitorTestOrDie(name, jiraComponent string, mo
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (r *monitorTestRegistry) GetRegistryFor(names ...string) (MonitorTestRegistry, error) {
+	ret := NewMonitorTestRegistry().(*monitorTestRegistry)
+
+	missingNames := []string{}
+	for _, name := range names {
+		monitorTestItem, ok := r.monitorTests[name]
+		if !ok {
+			missingNames = append(missingNames, name)
+			continue
+		}
+		ret.monitorTests[name] = monitorTestItem
+	}
+	if len(missingNames) > 0 {
+		return nil, fmt.Errorf("monitorTests named %v were missing", strings.Join(missingNames, ", "))
+	}
+
+	return ret, nil
+}
+
+func (r *monitorTestRegistry) ListMonitorTests() sets.String {
+	return sets.StringKeySet(r.monitorTests)
 }
 
 func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error) {
