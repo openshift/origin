@@ -82,7 +82,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][timing] capture build stages an
 			expectedBuildStages := make(map[string][]string)
 			expectedBuildStages["PullImages"] = []string{"", "1000s"}
 			expectedBuildStages["Build"] = []string{"10ms", "1000s"}
-			expectedBuildStages["PushImage"] = []string{"100ms", "1000s"}
+			expectedBuildStages["PushImage"] = []string{"75ms", "1000s"}
 
 			g.By("creating test image stream")
 			err := oc.Run("create").Args("-f", isFixture).Execute()
