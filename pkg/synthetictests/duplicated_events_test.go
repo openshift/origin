@@ -153,6 +153,14 @@ func TestUpgradeEventRegexExcluder(t *testing.T) {
 			name:    "etcd-member",
 			message: `ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: ip-10-0-198-128.ec2.internal`,
 		},
+		{
+			name:    "readiness-notready",
+			message: `ns/openshift-machine-api pod/machine-api-controllers-6665d45fd-blbbp node/ip-1-2-3-4.ec2.internal - reason/ProbeError Readiness probe error: Get "http://1.2.3.4:9441/healthz": dial tcp 1.2.3.4:9441: connect: connection refused`,
+		},
+		{
+			name:    "readiness-timeout",
+			message: `ns/openshift-monitoring pod/thanos-querier-d89745c9-xttvz node/ip-1-2-3-4.us-west-2.compute.internal - reason/ProbeError Readiness probe error: Get "https://1.2.3.4:9091/-/ready": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)`,
+		},
 	}
 
 	for _, test := range tests {
