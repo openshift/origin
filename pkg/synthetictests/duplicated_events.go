@@ -146,6 +146,10 @@ var allowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
 	// There is a separate test to catch this specific case
 	regexp.MustCompile(requiredResourcesMissingRegEx),
+	// Ingore the timeouts because cluster maybe not be ready yet
+	regexp.MustCompile(`reason/ProbeError.Readiness.probe.error:.Get.+net/http:.request.canceled.while.waiting.for.connection.\(Client.Timeout.exceeded.while.awaiting.headers\)`),
+	// Ignore the connection refused error because cluster may not be ready yet
+	regexp.MustCompile(`reason/.*dial tcp.*connection refused`),
 }
 
 var knownEventsBugs = []knownProblem{
