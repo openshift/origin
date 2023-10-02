@@ -4,15 +4,21 @@
             "level": "Info",
             "locator": "node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
             "message": "constructed/node-lifecycle-constructor reason/NodeUpdate phase/Drain roles/worker drained node",
+            "tempSource": "NodeState",
             "tempStructuredLocator": {
-                "type": "",
-                "keys": null
+                "type": "Node",
+                "keys": {
+                    "node": "ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7"
+                }
             },
             "tempStructuredMessage": {
-                "reason": "",
+                "reason": "NodeUpdate",
                 "cause": "",
-                "humanMessage": "",
-                "annotations": null
+                "humanMessage": "phase/Drain roles/worker drained node",
+                "annotations": {
+                    "constructed": "node-lifecycle-constructor",
+                    "reason": "NodeUpdate"
+                }
             },
             "from": "2023-07-17T22:58:52Z",
             "to": "2023-07-17T23:00:24Z"
@@ -21,15 +27,21 @@
             "level": "Warning",
             "locator": "node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
             "message": "constructed/node-lifecycle-constructor reason/NodeUpdate role/worker state/OperatingSystemUpdate never completed",
+            "tempSource": "NodeState",
             "tempStructuredLocator": {
-                "type": "",
-                "keys": null
+                "type": "Node",
+                "keys": {
+                    "node": "ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7"
+                }
             },
             "tempStructuredMessage": {
-                "reason": "",
+                "reason": "NodeUpdate",
                 "cause": "",
-                "humanMessage": "",
-                "annotations": null
+                "humanMessage": "role/worker state/OperatingSystemUpdate never completed",
+                "annotations": {
+                    "constructed": "node-lifecycle-constructor",
+                    "reason": "NodeUpdate"
+                }
             },
             "from": "2023-07-17T23:00:24Z",
             "to": "2023-07-17T23:58:52Z"
