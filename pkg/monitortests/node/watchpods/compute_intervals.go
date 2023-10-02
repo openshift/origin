@@ -12,33 +12,55 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
+// reduceToPodLocator takes a locator with a Pod key, and reduces it to *only* the keys
+// relevant to a pod. This allows us to consistently map to that pod when other keys may be
+// changing, such as containers, or when it's assigned to a node. It is assumed that
+// the incoming locator has a pod key at the point this is called.
+func reduceToPodLocator(locator monitorapi.Locator) monitorapi.Locator {
+	return monitorapi.NewLocator().PodFromNames(
+		locator.Keys[monitorapi.LocatorNamespaceKey],
+		locator.Keys[monitorapi.LocatorPodKey],
+		locator.Keys[monitorapi.LocatorUIDKey])
+}
+
+// reduceToContainerLocator takes a locator with a Container key, and reduces it to *only* the keys
+// relevant to a container.
+func reduceToContainerLocator(locator monitorapi.Locator) monitorapi.Locator {
+	return monitorapi.NewLocator().ContainerFromNames(
+		locator.Keys[monitorapi.LocatorNamespaceKey],
+		locator.Keys[monitorapi.LocatorPodKey],
+		locator.Keys[monitorapi.LocatorUIDKey],
+		locator.Keys[monitorapi.LocatorConnectionKey])
+}
+
 func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
 	podStateTracker := statetracker.NewStateTracker(monitorapi.ConstructionOwnerPodLifecycle, monitorapi.SourcePodState, beginning)
 	locatorToMessageAnnotations := map[string]map[string]string{}
 
 	for _, event := range events {
-		pod := monitorapi.PodFrom(event.Locator)
-		if len(pod.Name) == 0 {
+		if _, ok := event.StructuredLocator.Keys[monitorapi.LocatorPodKey]; !ok {
 			continue
 		}
-		reason := monitorapi.ReasonFrom(event.Message)
+		podLocator := reduceToPodLocator(event.StructuredLocator)
+		reason := event.StructuredMessage.Reason
 		switch reason {
 		case monitorapi.PodPendingReason, monitorapi.PodNotPendingReason, monitorapi.PodReasonDeleted:
 		default:
 			continue
 		}
 
-		podLocator := pod.ToLocator()
 		podPendingState := statetracker.State("Pending", "PodWasPending")
 
 		switch reason {
 		case monitorapi.PodPendingReason:
 			podStateTracker.OpenInterval(podLocator, podPendingState, event.From)
 		case monitorapi.PodNotPendingReason:
-			intervals = append(intervals, podStateTracker.CloseIfOpenedInterval(podLocator, podPendingState, pendingPodCondition, event.From)...)
+			intervals = append(intervals, podStateTracker.CloseIfOpenedInterval(podLocator,
+				podPendingState, pendingPodCondition, event.From)...)
 		case monitorapi.PodReasonDeleted:
-			intervals = append(intervals, podStateTracker.CloseIfOpenedInterval(podLocator, podPendingState, pendingPodCondition, event.From)...)
+			intervals = append(intervals, podStateTracker.CloseIfOpenedInterval(podLocator,
+				podPendingState, pendingPodCondition, event.From)...)
 		}
 	}
 	intervals = append(intervals, podStateTracker.CloseAllIntervals(locatorToMessageAnnotations, end)...)
@@ -49,39 +71,54 @@ func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end 
 func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, startTime, endTime time.Time) monitorapi.Intervals {
 	sort.Stable(ByPodLifecycle(input))
 	// these *static* locators to events. These are NOT the same as the actual event locators because nodes are not consistently assigned.
+	// As such we need to strip out all but the essential locator keys for both pods and containers so we can consistently key them in maps
+	// across their lifecycle changes.
 	podToStateTransitions := map[string][]monitorapi.Interval{}
 	allPodTransitions := map[string][]monitorapi.Interval{}
 	containerToLifecycleTransitions := map[string][]monitorapi.Interval{}
 	containerToReadinessTransitions := map[string][]monitorapi.Interval{}
 	containerToKubeletReadinessChecks := map[string][]monitorapi.Interval{}
+	// locatorKeyToLocator is needed so we can use actual locator objects which cannot be used as map keys,
+	// without having to parse legacy locator strings (which we're using in the map keys)
+	locatorKeyToLocator := map[string]monitorapi.Locator{}
 
 	for i := range input {
 		event := input[i]
-		pod := monitorapi.PodFrom(event.Locator)
-		if len(pod.Name) == 0 {
+		if _, ok := event.StructuredLocator.Keys[monitorapi.LocatorPodKey]; !ok {
 			continue
 		}
-		allPodTransitions[pod.ToLocator()] = append(allPodTransitions[pod.ToLocator()], event)
-		isRecognizedPodReason := monitorapi.PodLifecycleTransitionReasons.Has(monitorapi.ReasonFrom(event.Message))
+		// We have to strip out container, this needs to be just pod locator here
+		podLocator := reduceToPodLocator(event.StructuredLocator)
+		pls := podLocator.OldLocator()
+		locatorKeyToLocator[pls] = podLocator
+		reason := event.StructuredMessage.Reason
+		allPodTransitions[pls] = append(allPodTransitions[pls], event)
+		isRecognizedPodReason := monitorapi.PodLifecycleTransitionReasons.Has(reason)
 
-		container := monitorapi.ContainerFrom(event.Locator)
-		isContainer := len(container.ContainerName) > 0
-		isContainerLifecycleTransition := monitorapi.ContainerLifecycleTransitionReasons.Has(monitorapi.ReasonFrom(event.Message))
-		isContainerReadyTransition := monitorapi.ContainerReadinessTransitionReasons.Has(monitorapi.ReasonFrom(event.Message))
-		isKubeletReadinessCheck := monitorapi.KubeletReadinessCheckReasons.Has(monitorapi.ReasonFrom(event.Message))
+		var containerLocator monitorapi.Locator
+		var cls string
+		_, isContainer := event.StructuredLocator.Keys[monitorapi.LocatorContainerKey]
+		if isContainer {
+			containerLocator = reduceToContainerLocator(event.StructuredLocator)
+			cls = containerLocator.OldLocator()
+			locatorKeyToLocator[cls] = containerLocator
+		}
+		isContainerLifecycleTransition := monitorapi.ContainerLifecycleTransitionReasons.Has(reason)
+		isContainerReadyTransition := monitorapi.ContainerReadinessTransitionReasons.Has(reason)
+		isKubeletReadinessCheck := monitorapi.KubeletReadinessCheckReasons.Has(reason)
 
 		switch {
 		case !isContainer && isRecognizedPodReason:
-			podToStateTransitions[pod.ToLocator()] = append(podToStateTransitions[pod.ToLocator()], event)
+			podToStateTransitions[pls] = append(podToStateTransitions[pls], event)
 
 		case isContainer && isContainerLifecycleTransition:
-			containerToLifecycleTransitions[container.ToLocator()] = append(containerToLifecycleTransitions[container.ToLocator()], event)
+			containerToLifecycleTransitions[cls] = append(containerToLifecycleTransitions[cls], event)
 
 		case isContainer && isContainerReadyTransition:
-			containerToReadinessTransitions[container.ToLocator()] = append(containerToReadinessTransitions[container.ToLocator()], event)
+			containerToReadinessTransitions[cls] = append(containerToReadinessTransitions[cls], event)
 
 		case isKubeletReadinessCheck:
-			containerToKubeletReadinessChecks[container.ToLocator()] = append(containerToKubeletReadinessChecks[container.ToLocator()], event)
+			containerToKubeletReadinessChecks[cls] = append(containerToKubeletReadinessChecks[cls], event)
 
 		}
 	}
@@ -122,18 +159,17 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	// to do this, we find all the readiness failures, make them one second long, so they appear.
 	// we have to render them as a separate bar because we don't want to force the timeline for readiness to be
 	// broken up and the timeline rendering logic we have
-	for locator, instantEvents := range containerToKubeletReadinessChecks {
+	for locatorKey, instantEvents := range containerToKubeletReadinessChecks {
+		locator := locatorKeyToLocator[locatorKey]
 		for _, instantEvent := range instantEvents {
-			ret = append(ret, monitorapi.Interval{
-				Condition: monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locator,
-					Message: monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).
-						HumanMessage(instantEvent.Message).BuildString(),
-				},
-				From: instantEvent.From,
-				To:   instantEvent.From.Add(1 * time.Second),
-			})
+			ret = append(ret, monitorapi.NewInterval(monitorapi.SourcePodState, monitorapi.Info).
+				Locator(locator).Message(
+				monitorapi.NewMessage().
+					// Re-use the structured message, but make sure to set our constructed annotation:
+					WithAnnotations(instantEvent.StructuredMessage.Annotations).
+					Constructed(monitorapi.ConstructionOwnerPodLifecycle).
+					HumanMessage(instantEvent.Message)).
+				Build(instantEvent.From, instantEvent.From.Add(1*time.Second)))
 		}
 	}
 
@@ -141,15 +177,14 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 	return ret
 }
 
-func pendingPodCondition(locator string, from, to time.Time) (monitorapi.Condition, bool) {
+func pendingPodCondition(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool) {
+	// Skip creating intervals for pods that were not pending creation for > 1 minute
 	if to.Sub(from) < 1*time.Minute {
-		return monitorapi.Condition{}, false
+		return nil, false
 	}
-	return monitorapi.Condition{
-		Level:   monitorapi.Warning,
-		Locator: locator,
-		Message: "pod has been pending longer than a minute",
-	}, true
+	return monitorapi.NewInterval(monitorapi.SourcePodState, monitorapi.Warning).
+		Locator(locator).
+		Message(monitorapi.NewMessage().HumanMessage("pod has been pending longer than a minute")), true
 }
 
 func newSimpleTimeBounder(startTime, endTime time.Time) timeBounder {
@@ -490,10 +525,10 @@ type timeBounder interface {
 	getEndTime(locator string) time.Time
 }
 
-func buildTransitionsForCategory(locatorToConditions map[string][]monitorapi.Interval, startReason, endReason monitorapi.IntervalReason, timeBounder timeBounder) monitorapi.Intervals {
+func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Interval, startReason, endReason monitorapi.IntervalReason, timeBounder timeBounder) monitorapi.Intervals {
 	ret := monitorapi.Intervals{}
 	// now step through each category and build the to/from interval
-	for locator, instantEvents := range locatorToConditions {
+	for locator, instantEvents := range locatorToIntervals {
 		startTime := timeBounder.getStartTime(locator)
 		endTime := timeBounder.getEndTime(locator)
 		prevEvent := emptyEvent(timeBounder.getStartTime(locator))

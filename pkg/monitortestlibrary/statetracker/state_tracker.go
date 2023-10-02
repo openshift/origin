@@ -29,7 +29,8 @@ type stateTracker struct {
 	intervalSource monitorapi.IntervalSource
 }
 
-type intervalCreationFunc func(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool)
+type intervalCreationFunc func(locator monitorapi.Locator,
+	from, to time.Time) (*monitorapi.IntervalBuilder, bool)
 
 func SimpleInterval(constructedBy monitorapi.ConstructionOwner,
 	source monitorapi.IntervalSource, level monitorapi.IntervalLevel,
