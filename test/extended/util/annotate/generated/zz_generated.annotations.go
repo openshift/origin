@@ -1415,6 +1415,8 @@ var Annotations = map[string]string{
 
 	"[sig-node] Managed cluster should verify that nodes have no unexpected reboots [Late]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-node] [Conformance] Prevent openshift node labeling on update by the node TestOpenshiftNodeLabeling": " [Suite:openshift/conformance/parallel/minimal]",
+
 	"[sig-node] should override timeoutGracePeriodSeconds when annotation is set": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node] supplemental groups Ensure supplemental groups propagate to docker should propagate requested groups to the container [apigroup:security.openshift.io]": " [Suite:openshift/conformance/parallel]",
