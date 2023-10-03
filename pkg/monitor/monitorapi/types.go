@@ -165,6 +165,9 @@ const (
 	PodReasonForceDelete           IntervalReason = "ForceDelete"
 	PodReasonDeleted               IntervalReason = "Deleted"
 	PodReasonScheduled             IntervalReason = "Scheduled"
+	PodReasonEvicted               IntervalReason = "Evicted"
+	PodReasonPreempted             IntervalReason = "Preempted"
+	PodReasonFailed                IntervalReason = "Failed"
 
 	ContainerReasonContainerExit      IntervalReason = "ContainerExit"
 	ContainerReasonContainerStart     IntervalReason = "ContainerStart"
