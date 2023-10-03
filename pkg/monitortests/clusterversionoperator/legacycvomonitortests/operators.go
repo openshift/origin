@@ -30,6 +30,8 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 	// map from allowed interval regexps to exceptions
 	exceptions := map[*regexp.Regexp]string{
 		regexp.MustCompile(".*condition/Degraded.*"): "We are not worried about Degraded=True blips yet.",
+
+		regexp.MustCompile(".*clusteroperator/authentication condition/Available reason/WellKnown_NotReady status/False[ :].*"): "https://issues.redhat.com/browse/OCPBUGS-20056",
 	}
 
 	var start, stop time.Time
