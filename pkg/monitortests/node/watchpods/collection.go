@@ -19,14 +19,13 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 		oldPodIsPending := oldPod != nil && oldPod.Status.Phase == "Pending"
 		newPodIsPending := pod != nil && pod.Status.Phase == "Pending"
 
-		now := time.Now()
 		switch {
 		case !oldPodIsPending && newPodIsPending:
 			return []monitorapi.Interval{
 				monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 					Locator(monitorapi.NewLocator().PodFromPod(pod)).
 					Message(monitorapi.NewMessage().Reason(monitorapi.PodPendingReason)).
-					Build(now, now),
+					BuildNow(),
 			}
 
 		case !oldPodIsPending && !newPodIsPending:
@@ -35,7 +34,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 					monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 						Locator(monitorapi.NewLocator().PodFromPod(pod)).
 						Message(monitorapi.NewMessage().Reason(monitorapi.PodNotPendingReason)).
-						Build(now, now),
+						BuildNow(),
 				}
 			}
 			return nil
@@ -48,7 +47,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 				monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 					Locator(monitorapi.NewLocator().PodFromPod(pod)).
 					Message(monitorapi.NewMessage().Reason(monitorapi.PodNotPendingReason)).
-					Build(now, now),
+					BuildNow(),
 			}
 		}
 		return nil
@@ -57,13 +56,12 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 	podScheduledFn := func(pod, oldPod *corev1.Pod) []monitorapi.Interval {
 		oldPodHasNode := oldPod != nil && len(oldPod.Spec.NodeName) > 0
 		newPodHasNode := pod != nil && len(pod.Spec.NodeName) > 0
-		now := time.Now()
 		if !oldPodHasNode && newPodHasNode {
 			return []monitorapi.Interval{
 				monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 					Locator(monitorapi.NewLocator().PodFromPod(pod)).
 					Message(monitorapi.NewMessage().Reason(monitorapi.PodReasonScheduled).Node(pod.Spec.NodeName)).
-					Build(now, now),
+					BuildNow(),
 			}
 		}
 		return nil
@@ -73,7 +71,6 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 		isCreate := oldContainerStatuses == nil
 
 		intervals := []monitorapi.Interval{}
-		now := time.Now()
 		for i := range containerStatuses {
 			containerStatus := &containerStatuses[i]
 			containerName := containerStatus.Name
@@ -90,14 +87,14 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonNotReady)).
-					Build(now, now))
+					BuildNow())
 			}
 			if (isCreate && newContainerReady) || (!oldContainerReady && newContainerReady) {
 				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(
 						monitorapi.NewMessage().Reason(monitorapi.ContainerReasonReady),
-					).Build(now, now))
+					).BuildNow())
 			}
 		}
 
@@ -188,7 +185,6 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 
 	containerStatusContainerExitFn := func(pod *corev1.Pod, containerStatuses, oldContainerStatuses []corev1.ContainerStatus) []monitorapi.Interval {
 		intervals := []monitorapi.Interval{}
-		now := time.Now()
 		for i := range containerStatuses {
 			containerStatus := &containerStatuses[i]
 			containerName := containerStatus.Name
@@ -202,7 +198,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(
 						monitorapi.NewMessage().Reason(monitorapi.TerminationStateCleared).HumanMessage("lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
-					).Build(now, now))
+					).BuildNow())
 			}
 
 			// if this container is not terminated, then we don't need to compute an event for it.
@@ -229,7 +225,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 								WithAnnotation(monitorapi.AnnotationContainerExitCode, fmt.Sprintf("%d", containerStatus.LastTerminationState.Terminated.ExitCode)).
 								Cause(containerStatus.LastTerminationState.Terminated.Reason).
 								HumanMessage(containerStatus.LastTerminationState.Terminated.Message),
-							).Build(now, now),
+							).BuildNow(),
 					)
 				} else {
 					intervals = append(intervals,
@@ -240,7 +236,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 								WithAnnotation(monitorapi.AnnotationContainerExitCode, "0").
 								Cause(containerStatus.LastTerminationState.Terminated.Reason).
 								HumanMessage(containerStatus.LastTerminationState.Terminated.Message)).
-							Build(now, now),
+							BuildNow(),
 					)
 				}
 
@@ -256,7 +252,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 								Cause(containerStatus.State.Terminated.Reason).
 								HumanMessage(containerStatus.State.Terminated.Message),
 							).
-							Build(now, now),
+							BuildNow(),
 					)
 				} else {
 					intervals = append(intervals,
@@ -268,7 +264,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 								Cause(containerStatus.State.Terminated.Reason).
 								HumanMessage(containerStatus.State.Terminated.Message),
 							).
-							Build(now, now),
+							BuildNow(),
 					)
 				}
 			}
@@ -280,7 +276,6 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 
 	containerStatusContainerRestartedFn := func(pod *corev1.Pod, containerStatuses, oldContainerStatuses []corev1.ContainerStatus) []monitorapi.Interval {
 		intervals := []monitorapi.Interval{}
-		now := time.Now()
 		for i := range containerStatuses {
 			containerStatus := &containerStatuses[i]
 			containerName := containerStatus.Name
@@ -304,7 +299,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(
 						monitorapi.NewMessage().Reason(monitorapi.ContainerReasonRestarted),
-					).Build(now, now))
+					).BuildNow())
 			}
 		}
 
@@ -335,12 +330,11 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 
 	podCreatedFns := []func(pod *corev1.Pod) []monitorapi.Interval{
 		func(pod *corev1.Pod) []monitorapi.Interval {
-			now := time.Now()
 			return []monitorapi.Interval{
 				monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Info).
 					Locator(monitorapi.NewLocator().PodFromPod(pod)).
 					Message(monitorapi.NewMessage().Reason(monitorapi.PodReasonCreated)).
-					Build(now, now),
+					BuildNow(),
 			}
 		},
 		func(pod *corev1.Pod) []monitorapi.Interval {
@@ -367,7 +361,6 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 		containerReadinessFn,
 		// check phase transitions
 		func(pod, oldPod *corev1.Pod) []monitorapi.Interval {
-			now := time.Now()
 			new, old := pod.Status.Phase, oldPod.Status.Phase
 			if new == old || len(old) == 0 {
 				return nil
@@ -380,48 +373,48 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
 						Locator(monitorapi.NewLocator().PodFromPod(pod)).
 						Message(monitorapi.NewMessage().HumanMessage("invariant violation (bug): pod should not transition %s->%s even when terminated")).
-						Build(now, now))
+						BuildNow())
 				case isMirrorPod(pod):
 					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
 						Locator(monitorapi.NewLocator().PodFromPod(pod)).
 						Message(monitorapi.NewMessage().HumanMessage("invariant violation (bug): static pod should not transition %s->%s with same UID")).
-						Build(now, now))
+						BuildNow())
 				default:
 					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
 						Locator(monitorapi.NewLocator().PodFromPod(pod)).
 						Message(monitorapi.NewMessage().HumanMessage("pod moved back to Pending")).
-						Build(now, now))
+						BuildNow())
 				}
 			case new == corev1.PodUnknown:
 				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
 					Locator(monitorapi.NewLocator().PodFromPod(pod)).
 					Message(monitorapi.NewMessage().HumanMessage("pod moved to the Unknown phase")).
-					Build(now, now))
+					BuildNow())
 			case new == corev1.PodFailed && old != corev1.PodFailed:
 				switch pod.Status.Reason {
 				case "Evicted":
 					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
 						Locator(monitorapi.NewLocator().PodFromPod(pod)).
 						Message(monitorapi.NewMessage().Reason(monitorapi.PodReasonEvicted).HumanMessage(pod.Status.Message)).
-						Build(now, now))
+						BuildNow())
 				case "Preempting":
 					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
 						Locator(monitorapi.NewLocator().PodFromPod(pod)).
 						Message(monitorapi.NewMessage().Reason(monitorapi.PodReasonPreempted).HumanMessage(pod.Status.Message)).
-						Build(now, now))
+						BuildNow())
 				default:
 					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
 						Locator(monitorapi.NewLocator().PodFromPod(pod)).
 						Message(monitorapi.NewMessage().Reason(monitorapi.PodReasonFailed).
 							HumanMessagef("(%s): %s", pod.Status.Reason, pod.Status.Message)).
-						Build(now, now))
+						BuildNow())
 				}
 				for _, s := range pod.Status.InitContainerStatuses {
 					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
 						intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
 							Locator(monitorapi.NewLocator().ContainerFromPod(pod, s.Name)).
 							Message(monitorapi.NewMessage().HumanMessagef("init container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message)).
-							Build(now, now))
+							BuildNow())
 					}
 				}
 				for _, s := range pod.Status.ContainerStatuses {
