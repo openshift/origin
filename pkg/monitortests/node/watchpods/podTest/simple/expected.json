@@ -2,7 +2,7 @@
     "items": [
         {
             "level": "Info",
-            "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
             "message": "constructed/pod-lifecycle-constructor reason/Created",
             "tempStructuredLocator": {
                 "type": "",
@@ -19,7 +19,7 @@
         },
         {
             "level": "Info",
-            "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempStructuredLocator": {
                 "type": "",
@@ -36,7 +36,7 @@
         },
         {
             "level": "Info",
-            "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
             "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
             "tempStructuredLocator": {
                 "type": "",
@@ -53,7 +53,7 @@
         },
         {
             "level": "Info",
-            "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
             "message": "constructed/pod-lifecycle-constructor node/ci-op-ckiwry67-db044-lzjpd-master-0 reason/Scheduled",
             "tempStructuredLocator": {
                 "type": "",
@@ -70,7 +70,7 @@
         },
         {
             "level": "Info",
-            "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempStructuredLocator": {
                 "type": "",
@@ -87,7 +87,7 @@
         },
         {
             "level": "Info",
-            "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
             "message": "constructed/pod-lifecycle-constructor duration/30s reason/GracefulDelete",
             "tempStructuredLocator": {
                 "type": "",
@@ -104,7 +104,7 @@
         },
         {
             "level": "Info",
-            "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady",
             "tempStructuredLocator": {
                 "type": "",

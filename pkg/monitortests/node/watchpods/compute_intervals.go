@@ -1,6 +1,7 @@
 package watchpods
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -30,7 +31,7 @@ func reduceToContainerLocator(locator monitorapi.Locator) monitorapi.Locator {
 		locator.Keys[monitorapi.LocatorNamespaceKey],
 		locator.Keys[monitorapi.LocatorPodKey],
 		locator.Keys[monitorapi.LocatorUIDKey],
-		locator.Keys[monitorapi.LocatorConnectionKey])
+		locator.Keys[monitorapi.LocatorContainerKey])
 }
 
 func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
@@ -142,15 +143,15 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 
 	ret := monitorapi.Intervals{}
 	ret = append(ret,
-		buildTransitionsForCategory(podToStateTransitions,
+		buildTransitionsForCategory(podToStateTransitions, locatorKeyToLocator,
 			monitorapi.PodReasonCreated, monitorapi.PodReasonDeleted, podTimeBounder)...,
 	)
 	ret = append(ret,
-		buildTransitionsForCategory(containerToLifecycleTransitions,
+		buildTransitionsForCategory(containerToLifecycleTransitions, locatorKeyToLocator,
 			monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerExit, containerTimeBounder)...,
 	)
 	ret = append(ret,
-		buildTransitionsForCategory(containerToReadinessTransitions,
+		buildTransitionsForCategory(containerToReadinessTransitions, locatorKeyToLocator,
 			monitorapi.ContainerReasonNotReady, "", containerReadinessTimeBounder)...,
 	)
 
@@ -218,8 +219,7 @@ func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
 
 	// use the earliest known event as a creation time, since it clearly existed at that point in time.
 	var podCreateEventTime *time.Time
-	locator := monitorapi.PodFrom(inLocator).ToLocator()
-	podEvents := t.allPodTransitions[locator]
+	podEvents := t.allPodTransitions[inLocator]
 	for _, event := range podEvents {
 		podCreateEventTime = &event.From
 		break
@@ -227,7 +227,7 @@ func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
 
 	switch {
 	case podCreationTime == nil && podCreateEventTime == nil:
-		return t.delegate.getStartTime(locator)
+		return t.delegate.getStartTime(inLocator)
 
 	case podCreationTime != nil && podCreateEventTime == nil:
 		return *podCreationTime
@@ -243,7 +243,7 @@ func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
 		}
 	}
 
-	return t.delegate.getStartTime(locator)
+	return t.delegate.getStartTime(inLocator)
 }
 
 func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
@@ -525,7 +525,7 @@ type timeBounder interface {
 	getEndTime(locator string) time.Time
 }
 
-func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Interval, startReason, endReason monitorapi.IntervalReason, timeBounder timeBounder) monitorapi.Intervals {
+func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Interval, locatorKeys map[string]monitorapi.Locator, startReason, endReason monitorapi.IntervalReason, timeBounder timeBounder) monitorapi.Intervals {
 	ret := monitorapi.Intervals{}
 	// now step through each category and build the to/from interval
 	for locator, instantEvents := range locatorToIntervals {
@@ -539,15 +539,10 @@ func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Inte
 			prevAnnotations := monitorapi.AnnotationsFromMessage(prevEvent.Message)
 			prevBareMessage := monitorapi.NonAnnotationMessage(prevEvent.Message)
 
-			nextInterval := monitorapi.Interval{
-				Condition: monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locator,
-					Message: monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).WithAnnotations(prevAnnotations).HumanMessage(prevBareMessage).BuildString(),
-				},
-				From: prevEvent.From,
-				To:   currEvent.From,
-			}
+			nextInterval := monitorapi.NewInterval(monitorapi.SourcePodState, monitorapi.Info).
+				Locator(locatorKeys[locator]).
+				Message(monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).WithAnnotations(prevAnnotations).HumanMessage(prevBareMessage)).
+				Build(prevEvent.From, currEvent.From)
 			nextInterval = sanitizeTime(nextInterval, startTime, endTime)
 
 			switch {
@@ -562,7 +557,11 @@ func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Inte
 			case !hasPrev && currReason != startReason:
 				// we missed the startReason (it probably happened before the watch was established).
 				// adjust the message to indicate that we missed the start event for this locator
-				nextInterval.Message = monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Reason(startReason).HumanMessagef("missed real %q", startReason).BuildString()
+				// TODO: Unfortunate hack required for the nextInterval modification, would like to see a better way here someday
+				// .Build() was private before I found this.
+				msg := monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Reason(startReason).HumanMessagef("missed real %q", startReason)
+				nextInterval.StructuredMessage = msg.Build()
+				nextInterval.Message = msg.BuildString()
 			}
 
 			// if the current reason is a logical ending point, reset to an empty previous
@@ -574,15 +573,10 @@ func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Inte
 			ret = append(ret, nextInterval)
 		}
 		if len(prevEvent.Message) > 0 {
-			nextInterval := monitorapi.Interval{
-				Condition: monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locator,
-					Message: monitorapi.ExpandMessage(prevEvent.Message).Constructed(monitorapi.ConstructionOwnerPodLifecycle).BuildString(),
-				},
-				From: prevEvent.From,
-				To:   timeBounder.getEndTime(locator),
-			}
+			nextInterval := monitorapi.NewInterval(monitorapi.SourcePodState, monitorapi.Info).
+				Locator(locatorKeys[locator]).
+				Message(monitorapi.ExpandMessage(prevEvent.Message).Constructed(monitorapi.ConstructionOwnerPodLifecycle)).
+				Build(prevEvent.From, timeBounder.getEndTime(locator))
 			nextInterval = sanitizeTime(nextInterval, startTime, endTime)
 			ret = append(ret, nextInterval)
 		}
@@ -624,27 +618,54 @@ func (n ByPodLifecycle) Swap(i, j int) {
 }
 
 func (n ByPodLifecycle) Less(i, j int) bool {
+	fmt.Printf("Comparing %q to %q\n", n[i].Message, n[j].Message)
+	fmt.Printf("    checking from: %s < %s\n", n[i].From.UTC(), n[j].From.UTC())
 	switch d := n[i].From.Sub(n[j].From); {
 	case d < 0:
+		fmt.Println("    true")
 		return true
 	case d > 0:
+		fmt.Println("    false")
 		return false
 	}
-	lhsReason := monitorapi.ReasonFrom(n[i].Message)
-	rhsReason := monitorapi.ReasonFrom(n[j].Message)
+	fmt.Printf("    from is equal: %s = %s\n", n[i].From.UTC(), n[j].From.UTC())
+	lhsReason := n[i].StructuredMessage.Reason
+	rhsReason := n[j].StructuredMessage.Reason
 
+	fmt.Println("    checking switch cases")
 	switch {
 	case lhsReason == monitorapi.PodReasonCreated && rhsReason == monitorapi.PodReasonScheduled:
+		fmt.Println("    true Created vs Scheduled")
 		return true
 	case lhsReason == monitorapi.PodReasonScheduled && rhsReason == monitorapi.PodReasonCreated:
+		fmt.Println("    false Scheduled vs Created")
+		return false
+
+	case lhsReason == monitorapi.PodReasonCreated && rhsReason == monitorapi.ContainerReasonNotReady:
+		fmt.Println("    true Created vs NotReady")
+		return true
+	case lhsReason == monitorapi.ContainerReasonNotReady && rhsReason == monitorapi.PodReasonCreated:
+		fmt.Println("    false NotReady vs Created")
+		return false
+
+	case lhsReason == monitorapi.PodReasonScheduled && rhsReason == monitorapi.ContainerReasonReady:
+		fmt.Println("    true Scheduled vs Ready")
+		return true
+	case lhsReason == monitorapi.ContainerReasonReady && rhsReason == monitorapi.PodReasonScheduled:
+		fmt.Println("    false Ready vs Scheduled")
 		return false
 	}
 
+	fmt.Printf("    checking To: %s < %s\n", n[i].To.UTC(), n[j].To.UTC())
 	switch d := n[i].To.Sub(n[j].To); {
 	case d < 0:
+		fmt.Println("    true")
 		return true
 	case d > 0:
+		fmt.Println("    false")
 		return false
 	}
+	// wat?
+	fmt.Printf("    <: %v\n", n[i].Message < n[j].Message)
 	return n[i].Message < n[j].Message
 }
