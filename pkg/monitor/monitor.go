@@ -158,8 +158,14 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	// don't bound the intervals that we return
-	finalIntervals := m.recorder.Intervals(time.Time{}, time.Time{})
+	// We bound the intervals by the monitor stop/start time to limit the scope to when
+	// the monitors run (e.g., during upgrade phase and during e2e phase post upgrade).
+	// The tests will not be able to discover intervals outside of the current phase (e.g.,
+	// tests that check intervals for the e2e phase will not see intervals during upgrade
+	// phase and vice versa).  If it turns out visibility throughout the entire run yields
+	// useful testing, we can comeback and tweak this accordingly.
+	finalIntervals := m.recorder.Intervals(m.startTime, m.stopTime)
+
 	finalResources := m.recorder.CurrentResourceState()
 	// TODO stop taking timesuffix as an arg and make this authoritative.
 	//timeSuffix := fmt.Sprintf("_%s", time.Now().UTC().Format("20060102-150405"))
