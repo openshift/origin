@@ -148,7 +148,6 @@ func (t *stateTracker) CloseInterval(locator monitorapi.Locator, state StateInfo
 	if !hasCondition {
 		return nil
 	}
-	// TODO: from/to and Build needed?
 	return []monitorapi.Interval{ib.Build(from, to)}
 }
 

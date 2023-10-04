@@ -370,26 +370,18 @@ type Intervals []Interval
 var _ sort.Interface = Intervals{}
 
 func (intervals Intervals) Less(i, j int) bool {
-	fmt.Printf("comparing\n")
-	fmt.Printf("    %+v\n", intervals[i])
-	fmt.Printf("    %+v\n", intervals[j])
 	switch d := intervals[i].From.Sub(intervals[j].From); {
 	case d < 0:
-		fmt.Println("    from less than, returning true")
 		return true
 	case d > 0:
-		fmt.Println("    from greater than, returning false")
 		return false
 	}
 	switch d := intervals[i].To.Sub(intervals[j].To); {
 	case d < 0:
-		fmt.Println("    to less than, returning true")
 		return true
 	case d > 0:
-		fmt.Println("    to greater than, returning false")
 		return false
 	}
-	fmt.Printf("    falling back to message comparison: %v\n", intervals[i].Message < intervals[j].Message)
 	return intervals[i].Message < intervals[j].Message
 }
 func (intervals Intervals) Len() int { return len(intervals) }

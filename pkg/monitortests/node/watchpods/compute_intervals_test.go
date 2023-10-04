@@ -28,7 +28,6 @@ func TestPodIntervalCreation(t *testing.T) {
 		}
 		testName := file.Name()
 		events := podBytesOrDie(fmt.Sprintf("podTest/%s/startingEvents.json", testName))
-		fmt.Println(fmt.Sprintf("podTest/%s/startingEvents.json", testName))
 		expected := podStringOrDie(fmt.Sprintf("podTest/%s/expected.json", testName))
 		podData := podBytesOrDie(fmt.Sprintf("podTest/%s/podData.json", testName))
 		times := podStringOrDie(fmt.Sprintf("podTest/%s/times.txt", testName))

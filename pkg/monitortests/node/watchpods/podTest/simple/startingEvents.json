@@ -2,7 +2,7 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
       "message": "reason/Created ",
       "tempStructuredLocator": {
         "type": "Pod",
@@ -24,7 +24,7 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
       "message": "reason/Scheduled node/ci-op-ckiwry67-db044-lzjpd-master-0",
       "tempStructuredLocator": {
         "type": "Pod",
@@ -48,7 +48,7 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
       "message": "reason/Ready ",
       "tempStructuredLocator": {
         "type": "Container",
@@ -71,7 +71,7 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
       "message": "reason/GracefulDelete duration/30s",
       "tempStructuredLocator": {
         "type": "Pod",
@@ -95,7 +95,7 @@
     },
     {
       "level": "Warning",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
       "message": "reason/NotReady ",
       "tempStructuredLocator": {
         "type": "Container",
@@ -118,7 +118,7 @@
     },
     {
       "level": "Error",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
       "message": "reason/TerminationStateCleared lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)",
       "tempStructuredLocator": {
         "type": "Container",
@@ -141,7 +141,7 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
       "message": "reason/ContainerExit code/0 cause/Completed ",
       "tempStructuredLocator": {
         "type": "Container",
@@ -166,7 +166,7 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
       "message": "reason/Deleted ",
       "tempStructuredLocator": {
         "type": "Pod",
