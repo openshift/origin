@@ -89,8 +89,8 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 			continue
 		}
 
-		if event.StructuredMessage.Reason == monitorapi.TerminationStateCleared {
-			fmt.Println("hi")
+		if event.StructuredMessage.Reason == monitorapi.PodReasonGracefulDeleteStarted {
+			fmt.Println("GraceFUlDelete")
 		}
 
 		// We have to strip out container, this needs to be just pod locator here
@@ -152,7 +152,7 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 			monitorapi.PodReasonCreated, monitorapi.PodReasonDeleted, podTimeBounder)...,
 	)
 	for _, i := range ret {
-		if i.StructuredMessage.Reason == monitorapi.TerminationStateCleared {
+		if i.StructuredMessage.Reason == monitorapi.PodReasonScheduled {
 			fmt.Println("bingo 1")
 		}
 	}
@@ -161,7 +161,7 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 			monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerExit, containerTimeBounder)...,
 	)
 	for _, i := range ret {
-		if i.StructuredMessage.Reason == monitorapi.TerminationStateCleared {
+		if i.StructuredMessage.Reason == monitorapi.PodReasonScheduled {
 			fmt.Println("bingo 2")
 		}
 	}
@@ -170,7 +170,7 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 			monitorapi.ContainerReasonNotReady, "", containerReadinessTimeBounder)...,
 	)
 	for _, i := range ret {
-		if i.StructuredMessage.Reason == monitorapi.TerminationStateCleared {
+		if i.StructuredMessage.Reason == monitorapi.PodReasonScheduled {
 			fmt.Println("bingo 3")
 		}
 	}
@@ -194,7 +194,6 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 		}
 	}
 
-	fmt.Println("########### Sorting")
 	sort.Stable(ret)
 	return ret
 }
@@ -410,10 +409,9 @@ type containerLifecycleTimeBounder struct {
 }
 
 func (t containerLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
-	locator := monitorapi.ContainerFrom(inLocator).ToLocator()
-	containerEvents, ok := t.podToContainerToLifecycleTransitions[locator]
+	containerEvents, ok := t.podToContainerToLifecycleTransitions[inLocator]
 	if !ok {
-		return t.delegate.getStartTime(locator)
+		return t.delegate.getStartTime(inLocator)
 	}
 	for _, event := range containerEvents {
 		if monitorapi.ReasonFrom(event.Message) == monitorapi.ContainerReasonContainerWait {
@@ -422,7 +420,7 @@ func (t containerLifecycleTimeBounder) getStartTime(inLocator string) time.Time 
 	}
 
 	// no hit, try to bound based on pod
-	return t.delegate.getStartTime(locator)
+	return t.delegate.getStartTime(inLocator)
 }
 
 func (t containerLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
@@ -431,10 +429,9 @@ func (t containerLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 		return *containerTermination
 	}
 
-	locator := monitorapi.ContainerFrom(inLocator).ToLocator()
-	containerEvents, ok := t.podToContainerToLifecycleTransitions[locator]
+	containerEvents, ok := t.podToContainerToLifecycleTransitions[inLocator]
 	if !ok {
-		return t.delegate.getEndTime(locator)
+		return t.delegate.getEndTime(inLocator)
 	}
 	// if the last event is a containerExit, then that's as long as the container lasted.
 	// if the last event isn't a containerExit, then the last time we're aware of for the container is parent.
@@ -444,7 +441,7 @@ func (t containerLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 	}
 
 	// no hit, try to bound based on pod
-	return t.delegate.getEndTime(locator)
+	return t.delegate.getEndTime(inLocator)
 }
 
 func (t containerLifecycleTimeBounder) getContainerEnd(inLocator string) *time.Time {
@@ -517,10 +514,9 @@ type containerReadinessTimeBounder struct {
 }
 
 func (t containerReadinessTimeBounder) getStartTime(inLocator string) time.Time {
-	locator := monitorapi.ContainerFrom(inLocator).ToLocator()
-	containerEvents, ok := t.podToContainerToLifecycleTransitions[locator]
+	containerEvents, ok := t.podToContainerToLifecycleTransitions[inLocator]
 	if !ok {
-		return t.delegate.getStartTime(locator)
+		return t.delegate.getStartTime(inLocator)
 	}
 	for _, event := range containerEvents {
 		// you can only be ready from the time your container is started.
@@ -530,7 +526,7 @@ func (t containerReadinessTimeBounder) getStartTime(inLocator string) time.Time 
 	}
 
 	// no hit, try to bound based on pod
-	return t.delegate.getStartTime(locator)
+	return t.delegate.getStartTime(inLocator)
 }
 
 func (t containerReadinessTimeBounder) getEndTime(inLocator string) time.Time {
@@ -554,6 +550,9 @@ func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Inte
 		for i := range instantEvents {
 			hasPrev := len(prevEvent.Message) > 0
 			currEvent := instantEvents[i]
+			if currEvent.StructuredMessage.Reason == monitorapi.PodReasonScheduled {
+				fmt.Println("lll")
+			}
 			currReason := monitorapi.ReasonFrom(currEvent.Message)
 			prevAnnotations := monitorapi.AnnotationsFromMessage(prevEvent.Message)
 			prevBareMessage := monitorapi.NonAnnotationMessage(prevEvent.Message)
@@ -637,42 +636,27 @@ func (n ByPodLifecycle) Swap(i, j int) {
 }
 
 func (n ByPodLifecycle) Less(i, j int) bool {
-	fmt.Println("\nComparing")
-	fmt.Printf("  lhs: %+v\n", n[i])
-	fmt.Printf("  rhs: %+v\n", n[j])
-	fmt.Printf("    checking from: %s < %s\n", n[i].From.UTC(), n[j].From.UTC())
 	switch d := n[i].From.Sub(n[j].From); {
 	case d < 0:
-		fmt.Println("    true")
 		return true
 	case d > 0:
-		fmt.Println("    false")
 		return false
 	}
-	fmt.Printf("    from is equal: %s = %s\n", n[i].From.UTC(), n[j].From.UTC())
 	lhsReason := n[i].StructuredMessage.Reason
 	rhsReason := n[j].StructuredMessage.Reason
 
-	fmt.Println("    checking switch cases")
 	switch {
 	case lhsReason == monitorapi.PodReasonCreated && rhsReason == monitorapi.PodReasonScheduled:
-		fmt.Println("    true Created should come before Scheduled")
 		return true
 	case lhsReason == monitorapi.PodReasonScheduled && rhsReason == monitorapi.PodReasonCreated:
-		fmt.Println("    false Scheduled should come before Created")
 		return false
 	}
 
-	fmt.Printf("    checking To: %s < %s\n", n[i].To.UTC(), n[j].To.UTC())
 	switch d := n[i].To.Sub(n[j].To); {
 	case d < 0:
-		fmt.Println("    true")
 		return true
 	case d > 0:
-		fmt.Println("    false")
 		return false
 	}
-	// wat?
-	fmt.Printf("    <: %v\n", n[i].Message < n[j].Message)
 	return n[i].Message < n[j].Message
 }

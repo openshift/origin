@@ -83,7 +83,7 @@
         }
       },
       "tempStructuredMessage": {
-        "reason": "Ready",
+        "reason": "GracefulDelete",
         "cause": "",
         "humanMessage": "",
         "annotations": {
