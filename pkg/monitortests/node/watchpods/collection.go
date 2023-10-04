@@ -197,7 +197,8 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Error).
 					Locator(monitorapi.NewLocator().ContainerFromPod(pod, containerName)).
 					Message(
-						monitorapi.NewMessage().Reason(monitorapi.TerminationStateCleared).HumanMessage("lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
+						monitorapi.NewMessage().Reason(monitorapi.TerminationStateCleared).
+							HumanMessage("lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)"),
 					).BuildNow())
 			}
 

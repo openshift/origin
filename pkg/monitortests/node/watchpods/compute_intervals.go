@@ -88,6 +88,11 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 		if _, ok := event.StructuredLocator.Keys[monitorapi.LocatorPodKey]; !ok {
 			continue
 		}
+
+		if event.StructuredMessage.Reason == monitorapi.TerminationStateCleared {
+			fmt.Println("hi")
+		}
+
 		// We have to strip out container, this needs to be just pod locator here
 		podLocator := reduceToPodLocator(event.StructuredLocator)
 		pls := podLocator.OldLocator()
@@ -146,14 +151,29 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 		buildTransitionsForCategory(podToStateTransitions, locatorKeyToLocator,
 			monitorapi.PodReasonCreated, monitorapi.PodReasonDeleted, podTimeBounder)...,
 	)
+	for _, i := range ret {
+		if i.StructuredMessage.Reason == monitorapi.TerminationStateCleared {
+			fmt.Println("bingo 1")
+		}
+	}
 	ret = append(ret,
 		buildTransitionsForCategory(containerToLifecycleTransitions, locatorKeyToLocator,
 			monitorapi.ContainerReasonContainerWait, monitorapi.ContainerReasonContainerExit, containerTimeBounder)...,
 	)
+	for _, i := range ret {
+		if i.StructuredMessage.Reason == monitorapi.TerminationStateCleared {
+			fmt.Println("bingo 2")
+		}
+	}
 	ret = append(ret,
 		buildTransitionsForCategory(containerToReadinessTransitions, locatorKeyToLocator,
 			monitorapi.ContainerReasonNotReady, "", containerReadinessTimeBounder)...,
 	)
+	for _, i := range ret {
+		if i.StructuredMessage.Reason == monitorapi.TerminationStateCleared {
+			fmt.Println("bingo 3")
+		}
+	}
 
 	// inject readiness failures.  These are done separately because they don't impact the overall ready or not ready
 	// recall that a container can fail multiple readiness checks before the failure causes readyz=false on the pod overall.
@@ -174,6 +194,7 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 		}
 	}
 
+	fmt.Println("########### Sorting")
 	sort.Stable(ret)
 	return ret
 }
@@ -247,8 +268,6 @@ func (t podLifecycleTimeBounder) getStartTime(inLocator string) time.Time {
 }
 
 func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
-	podCoordinates := monitorapi.PodFrom(inLocator)
-	locator := podCoordinates.ToLocator()
 
 	// if this is a RunOnce pod that has finished running all of its containers, then the intervals chart will show that
 	// pod no longer existed after the last container terminated.
@@ -260,9 +279,9 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 	// pods will logically be gone once the pod deletion + grace period is over. Or at least they should be
 	lastPossiblePodDelete := t.getPodDeletionPlusGraceTime(inLocator)
 
-	podEvents, ok := t.podToStateTransitions[locator]
+	podEvents, ok := t.podToStateTransitions[inLocator]
 	if !ok {
-		return t.delegate.getEndTime(locator)
+		return t.delegate.getEndTime(inLocator)
 	}
 	for _, event := range podEvents {
 		if monitorapi.ReasonFrom(event.Message) == monitorapi.PodReasonDeleted {
@@ -275,7 +294,7 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator string) time.Time {
 		}
 	}
 
-	return t.delegate.getEndTime(locator)
+	return t.delegate.getEndTime(inLocator)
 }
 
 func (t podLifecycleTimeBounder) getPodCreationTime(inLocator string) *time.Time {
@@ -618,7 +637,9 @@ func (n ByPodLifecycle) Swap(i, j int) {
 }
 
 func (n ByPodLifecycle) Less(i, j int) bool {
-	fmt.Printf("Comparing %q to %q\n", n[i].Message, n[j].Message)
+	fmt.Println("\nComparing")
+	fmt.Printf("  lhs: %+v\n", n[i])
+	fmt.Printf("  rhs: %+v\n", n[j])
 	fmt.Printf("    checking from: %s < %s\n", n[i].From.UTC(), n[j].From.UTC())
 	switch d := n[i].From.Sub(n[j].From); {
 	case d < 0:
@@ -635,24 +656,10 @@ func (n ByPodLifecycle) Less(i, j int) bool {
 	fmt.Println("    checking switch cases")
 	switch {
 	case lhsReason == monitorapi.PodReasonCreated && rhsReason == monitorapi.PodReasonScheduled:
-		fmt.Println("    true Created vs Scheduled")
+		fmt.Println("    true Created should come before Scheduled")
 		return true
 	case lhsReason == monitorapi.PodReasonScheduled && rhsReason == monitorapi.PodReasonCreated:
-		fmt.Println("    false Scheduled vs Created")
-		return false
-
-	case lhsReason == monitorapi.PodReasonCreated && rhsReason == monitorapi.ContainerReasonNotReady:
-		fmt.Println("    true Created vs NotReady")
-		return true
-	case lhsReason == monitorapi.ContainerReasonNotReady && rhsReason == monitorapi.PodReasonCreated:
-		fmt.Println("    false NotReady vs Created")
-		return false
-
-	case lhsReason == monitorapi.PodReasonScheduled && rhsReason == monitorapi.ContainerReasonReady:
-		fmt.Println("    true Scheduled vs Ready")
-		return true
-	case lhsReason == monitorapi.ContainerReasonReady && rhsReason == monitorapi.PodReasonScheduled:
-		fmt.Println("    false Ready vs Scheduled")
+		fmt.Println("    false Scheduled should come before Created")
 		return false
 	}
 
