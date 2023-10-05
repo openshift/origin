@@ -141,6 +141,16 @@ var ovnKubernetesConfig = &operatorv1.NetworkSpec{
 	},
 }
 
+var ovnKubernetesConfigIPv6Primary = &operatorv1.NetworkSpec{
+	DefaultNetwork: operatorv1.DefaultNetworkDefinition{
+		Type: operatorv1.NetworkTypeOVNKubernetes,
+	},
+	ServiceNetwork: []string{
+		"fd02::/112",
+		"172.30.0.0/16",
+	},
+}
+
 var e2eTests = map[string]string{
 	"everyone":              "[Skipped:Wednesday]",
 	"not-gce":               "[Skipped:gce]",
@@ -175,7 +185,7 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredMasters:    gceMasters,
 			discoveredNetwork:    sdnConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"gce","ProjectID":"openshift-gce-devel-ci","Region":"us-east1","Zone":"us-east1-a","NumNodes":3,"MultiMaster":true,"MultiZone":true,"Zones":["us-east1-a","us-east1-b","us-east1-c"],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"gce","ProjectID":"openshift-gce-devel-ci","Region":"us-east1","Zone":"us-east1-a","NumNodes":3,"MultiMaster":true,"MultiZone":true,"Zones":["us-east1-a","us-east1-b","us-east1-c"],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap"),
 		},
 		{
@@ -185,7 +195,7 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredMasters:    gceMasters,
 			discoveredNetwork:    multitenantConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"gce","ProjectID":"openshift-gce-devel-ci","Region":"us-east1","Zone":"us-east1-a","NumNodes":3,"MultiMaster":true,"MultiZone":true,"Zones":["us-east1-a","us-east1-b","us-east1-c"],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","NetworkPluginMode":"Multitenant","HasIPv4":true,"HasIPv6":false,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"gce","ProjectID":"openshift-gce-devel-ci","Region":"us-east1","Zone":"us-east1-a","NumNodes":3,"MultiMaster":true,"MultiZone":true,"Zones":["us-east1-a","us-east1-b","us-east1-c"],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","NetworkPluginMode":"Multitenant","HasIPv4":true,"HasIPv6":false,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-aws", "online", "ipv4", "requires-optional-cap"),
 		},
 		{
@@ -195,7 +205,7 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredMasters:    simpleMasters,
 			discoveredNetwork:    sdnConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"skeleton","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"skeleton","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap"),
 		},
 		{
@@ -206,7 +216,7 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredNetwork:    sdnConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
 			// NB: It does not actually use the passed-in Provider value
-			expectedConfig: `{"type":"skeleton","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig: `{"type":"skeleton","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:       sets.NewString("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap"),
 		},
 		{
@@ -216,7 +226,7 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredMasters:    simpleMasters,
 			discoveredNetwork:    sdnConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"skeleton","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"skeleton","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap"),
 		},
 		{
@@ -226,7 +236,7 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredMasters:    simpleMasters,
 			discoveredNetwork:    sdnConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"openstack","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"openstack","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-gce", "not-aws", "not-multitenant", "online", "ipv4", "requires-optional-cap"),
 		},
 		{
@@ -236,7 +246,17 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredMasters:    simpleMasters,
 			discoveredNetwork:    ovnKubernetesConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"us-east-2a","NumNodes":3,"MultiMaster":false,"MultiZone":true,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OVNKubernetes","HasIPv4":true,"HasIPv6":true,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"us-east-2a","NumNodes":3,"MultiMaster":false,"MultiZone":true,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OVNKubernetes","HasIPv4":true,"HasIPv6":true,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			runTests:             sets.NewString("everyone", "not-gce", "not-sdn", "not-multitenant", "online", "ipv4", "ipv6", "dual-stack", "requires-optional-cap"),
+		},
+		{
+			name:                 "complex override dual-stack IPv6 Primary",
+			provider:             `{"type":"aws","region":"us-east-2","zone":"us-east-2a","multimaster":false,"multizone":true}`,
+			discoveredPlatform:   awsPlatform,
+			discoveredMasters:    simpleMasters,
+			discoveredNetwork:    ovnKubernetesConfigIPv6Primary,
+			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
+			expectedConfig:       `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"us-east-2a","NumNodes":3,"MultiMaster":false,"MultiZone":true,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OVNKubernetes","HasIPv4":true,"HasIPv6":true,"IPFamily":"ipv6","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-gce", "not-sdn", "not-multitenant", "online", "ipv4", "ipv6", "dual-stack", "requires-optional-cap"),
 		},
 		{
@@ -244,7 +264,7 @@ func TestDecodeProvider(t *testing.T) {
 			provider:             `{"type":"aws","region":"us-east-2","zone":"us-east-2a","multimaster":false,"multizone":true}`,
 			discoveredPlatform:   nil,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"us-east-2a","NumNodes":0,"MultiMaster":false,"MultiZone":true,"Zones":null,"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"","HasIPv4":false,"HasIPv6":false,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"us-east-2a","NumNodes":0,"MultiMaster":false,"MultiZone":true,"Zones":null,"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"","HasIPv4":false,"HasIPv6":false,"IPFamily":"","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-gce", "not-sdn", "not-multitenant", "online", "requires-optional-cap"),
 		},
 		{
@@ -254,17 +274,17 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredMasters:    simpleMasters,
 			discoveredNetwork:    ovnKubernetesConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"none","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":true,"SingleReplicaTopology":false,"NetworkPlugin":"OVNKubernetes","HasIPv4":true,"HasIPv6":true,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"none","ProjectID":"","Region":"","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":true,"SingleReplicaTopology":false,"NetworkPlugin":"OVNKubernetes","HasIPv4":true,"HasIPv6":true,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-gce", "not-aws", "not-sdn", "not-multitenant", "ipv4", "ipv6", "dual-stack", "requires-optional-cap"),
 		},
 		{
 			name:                 "override network plugin",
-			provider:             `{"type":"aws","networkPlugin":"Calico","hasIPv4":false,"hasIPv6":true,"hasSCTP":true}`,
+			provider:             `{"type":"aws","networkPlugin":"Calico","hasIPv4":false,"hasIPv6":true,"ipFamily":"ipv6","hasSCTP":true}`,
 			discoveredPlatform:   awsPlatform,
 			discoveredMasters:    simpleMasters,
 			discoveredNetwork:    ovnKubernetesConfig,
 			optionalCapabilities: configv1.KnownClusterVersionCapabilities,
-			expectedConfig:       `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"Calico","HasIPv4":false,"HasIPv6":true,"HasSCTP":true,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
+			expectedConfig:       `{"type":"aws","ProjectID":"","Region":"us-east-2","Zone":"","NumNodes":3,"MultiMaster":true,"MultiZone":false,"Zones":[],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"Calico","HasIPv4":false,"HasIPv6":true,"IPFamily":"ipv6","HasSCTP":true,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":false}`,
 			runTests:             sets.NewString("everyone", "not-gce", "not-sdn", "not-multitenant", "online", "ipv6", "sctp", "requires-optional-cap"),
 		},
 		{
@@ -274,7 +294,7 @@ func TestDecodeProvider(t *testing.T) {
 			discoveredMasters:    gceMasters,
 			discoveredNetwork:    sdnConfig,
 			optionalCapabilities: []configv1.ClusterVersionCapability{},
-			expectedConfig:       `{"type":"gce","ProjectID":"openshift-gce-devel-ci","Region":"us-east1","Zone":"us-east1-a","NumNodes":3,"MultiMaster":true,"MultiZone":true,"Zones":["us-east1-a","us-east1-b","us-east1-c"],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":true}`,
+			expectedConfig:       `{"type":"gce","ProjectID":"openshift-gce-devel-ci","Region":"us-east1","Zone":"us-east1-a","NumNodes":3,"MultiMaster":true,"MultiZone":true,"Zones":["us-east1-a","us-east1-b","us-east1-c"],"ConfigFile":"","Disconnected":false,"SingleReplicaTopology":false,"NetworkPlugin":"OpenShiftSDN","HasIPv4":true,"HasIPv6":false,"IPFamily":"ipv4","HasSCTP":false,"IsProxied":false,"IsIBMROKS":false,"HasNoOptionalCapabilities":true}`,
 			runTests:             sets.NewString("everyone", "not-aws", "not-multitenant", "online", "ipv4"),
 		},
 	}

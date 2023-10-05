@@ -56,6 +56,8 @@ type ClusterConfiguration struct {
 	// and dual-stack-specific tests are run
 	HasIPv4 bool
 	HasIPv6 bool
+	// IPFamily defines default IP stack of the cluster, replaces upstream getDefaultClusterIPFamily
+	IPFamily string
 
 	// HasSCTP determines whether SCTP connectivity tests can be run in the cluster
 	HasSCTP bool
@@ -234,10 +236,17 @@ func LoadConfig(state *ClusterState) (*ClusterConfiguration, error) {
 		config.NetworkPluginMode = string(state.NetworkSpec.DefaultNetwork.OpenShiftSDNConfig.Mode)
 	}
 
+	// replaces IPFamily as determined by upstream getDefaultClusterIPFamily
+	// always IPv4 default
+	config.IPFamily = "ipv4"
 	// Determine IP configuration
-	for _, cidr := range state.NetworkSpec.ServiceNetwork {
+	for i, cidr := range state.NetworkSpec.ServiceNetwork {
 		if utilnet.IsIPv6CIDRString(cidr) {
 			config.HasIPv6 = true
+			// if the first ServiceNetwork is IPv6 we are IPFamily "ipv6"
+			if i == 0 {
+				config.IPFamily = "ipv6"
+			}
 		} else {
 			config.HasIPv4 = true
 		}
