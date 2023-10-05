@@ -240,6 +240,13 @@ var (
 			// Requires ImageRegistry service to be active for OCM to be able to create pull secrets
 			`\[sig-devex\]\[Feature:OpenShiftControllerManager\] TestAutomaticCreationOfPullSecrets \[apigroup:config.openshift.io\]`,
 			`\[sig-devex\]\[Feature:OpenShiftControllerManager\] TestDockercfgTokenDeletedController \[apigroup:image.openshift.io\]`,
+
+			// These tests run against OLM which does not exist when the optional OLM capability is disabled.
+			`\[sig-operator\] OLM should Implement packages API server and list packagemanifest info with namespace not NULL`,
+			`\[sig-operator\] OLM should be installed with`,
+			`\[sig-operator\] OLM should have imagePullPolicy:IfNotPresent on thier deployments`,
+			`\[sig-operator\] an end user can use OLM`,
+			`\[sig-arch\] ocp payload should be based on existing source OLM`,
 		},
 	}
 )

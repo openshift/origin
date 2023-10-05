@@ -203,7 +203,7 @@ var Annotations = map[string]string{
 
 	"[sig-arch] [Conformance] sysctl whitelists net.ipv4.tcp_syncookies": " [Suite:openshift/conformance/parallel/minimal]",
 
-	"[sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Early] CRDs for openshift.io should have a status in the CRD schema": " [Suite:openshift/conformance/parallel]",
 
@@ -1449,25 +1449,25 @@ var Annotations = map[string]string{
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation should have correct cpuset and cpushare set in crio containers": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should Implement packages API server and list packagemanifest info with namespace not NULL [apigroup:packages.operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should be installed with catalogsources at version v1alpha1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should be installed with catalogsources at version v1alpha1 [apigroup:operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should be installed with clusterserviceversions at version v1alpha1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should be installed with clusterserviceversions at version v1alpha1 [apigroup:operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should be installed with installplans at version v1alpha1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should be installed with installplans at version v1alpha1 [apigroup:operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should be installed with operatorgroups at version v1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should be installed with operatorgroups at version v1 [apigroup:operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should be installed with packagemanifests at version v1 [apigroup:packages.operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should be installed with packagemanifests at version v1 [apigroup:packages.operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should be installed with subscriptions at version v1alpha1 [apigroup:operators.coreos.com]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should be installed with subscriptions at version v1alpha1 [apigroup:operators.coreos.com]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] OLM should have imagePullPolicy:IfNotPresent on thier deployments": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-operator] an end user can use OLM Report Upgradeable in OLM ClusterOperators status [apigroup:config.openshift.io]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
-	"[sig-operator] an end user can use OLM can subscribe to the operator [apigroup:config.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-operator] an end user can use OLM can subscribe to the operator [apigroup:config.openshift.io]": " [Skipped:Disconnected] [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
 	"[sig-scalability][Feature:Performance] Load cluster should populate the cluster [Slow][Serial][apigroup:template.openshift.io][apigroup:apps.openshift.io][apigroup:build.openshift.io]": "",
 
