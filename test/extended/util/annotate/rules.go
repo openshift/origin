@@ -54,12 +54,6 @@ var (
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mysql\]\[Slow\] openshift mysql image Creating from a template should instantiate the template`,
 			`\[sig-devex\]\[Feature:ImageEcosystem\]\[mariadb\]\[Slow\] openshift mariadb image Creating from a template should instantiate the template`,
 		},
-		// tests that need to be temporarily disabled while the rebase is in progress.
-		"[Disabled:RebaseInProgress]": {
-			// https://issues.redhat.com/browse/OCPBUGS-13392
-			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce policy to allow traffic only from a pod in a different namespace based on PodSelector and NamespaceSelector`,
-			`\[sig-network\] NetworkPolicyLegacy \[LinuxOnly\] NetworkPolicy between server and client should enforce updated policy`,
-		},
 		// tests that may work, but we don't support them
 		"[Disabled:Unsupported]": {},
 		// tests too slow to be part of conformance
