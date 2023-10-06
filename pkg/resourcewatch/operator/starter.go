@@ -6,10 +6,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+
 	"github.com/openshift/origin/pkg/resourcewatch/controller/configmonitor"
 	"github.com/openshift/origin/pkg/resourcewatch/storage"
 
-	"github.com/openshift/origin/pkg/monitor"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -37,7 +38,7 @@ func RunResourceWatch() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	kubeConfig, err := monitor.GetMonitorRESTConfig()
+	kubeConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		klog.Errorf("Failed to get kubeconfig with error %v", err)
 		return err

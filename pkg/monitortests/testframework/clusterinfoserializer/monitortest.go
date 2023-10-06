@@ -8,11 +8,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
-	"github.com/openshift/origin/pkg/monitor"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/client-go/rest"
@@ -46,7 +47,7 @@ func (*clusterInfoSerializer) EvaluateTestsFromConstructedIntervals(ctx context.
 func (w *clusterInfoSerializer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	return writeClusterData(
 		filepath.Join(storageDir, fmt.Sprintf("cluster-data%s.json", timeSuffix)),
-		w.collectClusterData(monitor.WasMasterNodeUpdated(finalIntervals)),
+		w.collectClusterData(clusterinfo.WasMasterNodeUpdated(finalIntervals)),
 	)
 }
 
@@ -64,5 +65,5 @@ func writeClusterData(filename string, clusterData platformidentification.Cluste
 }
 
 func (w *clusterInfoSerializer) collectClusterData(masterNodeUpdated string) platformidentification.ClusterData {
-	return monitor.CollectClusterData(w.adminRESTConfig, masterNodeUpdated)
+	return clusterinfo.CollectClusterData(w.adminRESTConfig, masterNodeUpdated)
 }

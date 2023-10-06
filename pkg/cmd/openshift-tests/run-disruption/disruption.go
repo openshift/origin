@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -70,7 +72,7 @@ func NewRunInClusterDisruptionMonitorCommand(ioStreams genericclioptions.IOStrea
 }
 
 func (opt *RunAPIDisruptionMonitorOptions) Run() error {
-	restConfig, err := monitor.GetMonitorRESTConfig()
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		return err
 	}
