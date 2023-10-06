@@ -91,21 +91,6 @@ var (
 		{Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"},
 		{Group: "monitoring.coreos.com", Version: "v1", Resource: "thanosrulers"},
 
-		{Group: "operators.coreos.com", Version: "v1", Resource: "olmconfigs"},
-		{Group: "operators.coreos.com", Version: "v1", Resource: "operators"},
-		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorconditions"},
-		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorgroups"},
-
-		{Group: "operators.coreos.com", Version: "v2", Resource: "operatorconditions"},
-
-		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "catalogsources"},
-		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "clusterserviceversions"},
-		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "installplans"},
-		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "subscriptions"},
-		{Group: "operators.coreos.com", Version: "v1alpha2", Resource: "operatorgroups"},
-
-		{Group: "packages.operators.coreos.com", Version: "v1", Resource: "packagemanifests"},
-
 		// openshift.io groups:
 
 		{Group: "apiserver.openshift.io", Version: "v1", Resource: "apirequestcounts"},
@@ -165,6 +150,24 @@ var (
 
 		{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
 	}
+
+	olmTypes = []schema.GroupVersionResource{
+		{Group: "operators.coreos.com", Version: "v1", Resource: "olmconfigs"},
+		{Group: "operators.coreos.com", Version: "v1", Resource: "operators"},
+		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorconditions"},
+		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorgroups"},
+
+		{Group: "operators.coreos.com", Version: "v2", Resource: "operatorconditions"},
+
+		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "catalogsources"},
+		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "clusterserviceversions"},
+		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "installplans"},
+		{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "subscriptions"},
+		{Group: "operators.coreos.com", Version: "v1alpha2", Resource: "operatorgroups"},
+
+		{Group: "packages.operators.coreos.com", Version: "v1", Resource: "packagemanifests"},
+	}
+
 	mcoTypes = []schema.GroupVersionResource{
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
 		{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "controllerconfigs"},
@@ -517,6 +520,8 @@ func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
 				crdTypes = append(crdTypes, metal3Types...)
 			case configv1.ClusterVersionCapabilityNodeTuning:
 				crdTypes = append(crdTypes, nodeTuningTypes...)
+			case configv1.ClusterVersionCapabilityOperatorLifecycleManager:
+				crdTypes = append(crdTypes, olmTypes...)
 			}
 		}
 	}
