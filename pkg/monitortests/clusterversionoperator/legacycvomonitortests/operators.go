@@ -276,7 +276,13 @@ func testOperatorState(interestingCondition configv1.ClusterStatusConditionType,
 		if eventInterval.From == eventInterval.To {
 			continue
 		}
-		if !strings.Contains(eventInterval.Message, fmt.Sprintf("%v", interestingCondition)) {
+
+		condition := monitorapi.GetOperatorConditionStatus(eventInterval)
+		if condition == nil {
+			continue
+		}
+
+		if condition.Type != interestingCondition {
 			continue
 		}
 
