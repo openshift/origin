@@ -1,0 +1,35 @@
+FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.20-openshift-4.15 AS builder
+WORKDIR /go/src/github.com/openshift/api
+COPY . .
+ENV GO_PACKAGE github.com/openshift/api
+RUN make build --warn-undefined-variables
+
+FROM registry.ci.openshift.org/ocp/4.14:base
+
+# copy the built binaries to /usr/bin
+COPY --from=builder /go/src/github.com/openshift/api/render /usr/bin/
+COPY --from=builder /go/src/github.com/openshift/api/write-available-featuresets /usr/bin/
+
+# this directory is used to produce rendered manifests that the installer applies (but does not maintain) in bootkube
+RUN mkdir -p /usr/share/bootkube/manifests/manifests
+COPY config/v1/*_config-operator_*.yaml /usr/share/bootkube/manifests/manifests
+COPY quota/v1/*.crd.yaml /usr/share/bootkube/manifests/manifests
+COPY security/v1/*.crd.yaml /usr/share/bootkube/manifests/manifests
+COPY securityinternal/v1/*.crd.yaml /usr/share/bootkube/manifests/manifests
+COPY authorization/v1/*.crd.yaml /usr/share/bootkube/manifests/manifests
+COPY operator/v1alpha1/0000_10_config-operator_01_imagecontentsourcepolicy.crd.yaml /usr/share/bootkube/manifests/manifests
+
+# these are applied by the CVO
+COPY manifests /manifests
+# TODO copy these back when we're ready to make the switch from cluster-config-operator to here
+#COPY config/v1/*_config-operator_*.yaml /manifests
+#COPY quota/v1/*.crd.yaml /manifests
+#COPY security/v1/*.crd.yaml /manifests
+#COPY securityinternal/v1/*.crd.yaml /manifests
+#COPY authorization/v1/*.crd.yaml /manifests
+#COPY operator/v1alpha1/0000_10_config-operator_01_imagecontentsourcepolicy.crd.yaml /manifests
+#COPY operator/v1/0000_10_config-operator_*.yaml /manifests
+#COPY payload-command/empty-resources /manifests
+
+# TODO uncomment after all the other "add a new image" steps are complete.
+#LABEL io.openshift.release.operator true
