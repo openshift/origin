@@ -183,15 +183,12 @@ func (o *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
-		ClusterStabilityDuringTest: monitortestframework.Stable,
-	}
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.Out, o.DisplayFilterFn)
 	m := monitor.NewMonitor(
 		recorder,
 		restConfig,
 		o.ArtifactDir,
-		defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
+		o.MonitorTests,
 	)
 	if err := m.Start(ctx); err != nil {
 		return err
