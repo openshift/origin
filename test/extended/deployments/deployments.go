@@ -428,7 +428,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(waitForSyncedConfig(oc, dcName, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
 			g.By("tagging the initial test:v1 image")
-			_, err = oc.Run("tag").Args("image-registry.openshift-image-registry.svc:5000/openshift/cli:latest", "test:v1").Output()
+			_, err = oc.Run("tag").Args(image.LimitedShellImage(), "test:v1").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			expectLatestVersion := func(version int) {
@@ -459,7 +459,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(waitForSyncedConfig(oc, dcName, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
 			g.By("tagging a different image as test:v2")
-			_, err = oc.Run("tag").Args("image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "test:v2").Output()
+			_, err = oc.Run("tag").Args(image.ShellImage(), "test:v2").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("ensuring the deployment config latest version is 2 and rollout completed")
@@ -1535,7 +1535,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("tagging the tools image as test:v1 to create ImageStream")
-			out, err := oc.Run("tag").Args("image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "test:v1").Output()
+			out, err := oc.Run("tag").Args(image.ShellImage(), "test:v1").Output()
 			e2e.Logf("%s", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

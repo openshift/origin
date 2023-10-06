@@ -22,6 +22,7 @@ import (
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	exutilimage "github.com/openshift/origin/test/extended/util/image"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -74,7 +75,7 @@ func GetOpenshiftEtcdStorageData(namespace string) map[schema.GroupVersionResour
 
 		// github.com/openshift/api/apps/v1
 		gvr("apps.openshift.io", "v1", "deploymentconfigs"): {
-			Stub:             `{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "name": "container2"}]}}}}`,
+			Stub:             fmt.Sprintf(`{"metadata": {"name": "dc1g"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "%s", "name": "container2"}]}}}}`, exutilimage.ShellImage()),
 			ExpectedEtcdPath: "openshift.io/deploymentconfigs/" + namespace + "/dc1g",
 		},
 		// --

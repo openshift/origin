@@ -13,6 +13,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	exutilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
 var (
@@ -41,8 +42,8 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageTriggers] Annotation trigge
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(deployment.Spec.Template.Spec.Containers[0].Image).To(o.Equal(" "))
 
-		g.By("tagging the image-registry.openshift-image-registry.svc:5000/openshift/tools:latest as test:v1 image to create ImageStream")
-		out, err := oc.Run("tag").Args("image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "test:v1").Output()
+		g.By("tagging a new image as test:v1 image to create ImageStream")
+		out, err := oc.Run("tag").Args(exutilimage.ShellImage(), "test:v1").Output()
 		framework.Logf("%s", out)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

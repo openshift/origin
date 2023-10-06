@@ -25,6 +25,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	unidlingapi "github.com/openshift/api/unidling/v1alpha1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	exutilimage "github.com/openshift/origin/test/extended/util/image"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -134,7 +135,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
 								{
-									Image: "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
+									Image: exutilimage.ShellImage(),
 									Name:  "idle-test",
 									ReadinessProbe: &corev1.Probe{
 										ProbeHandler: corev1.ProbeHandler{
