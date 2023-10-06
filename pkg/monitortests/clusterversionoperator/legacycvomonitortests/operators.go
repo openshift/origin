@@ -18,23 +18,28 @@ import (
 )
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
+	// map from allowed interval regexps to exceptions
+	exceptions := map[*regexp.Regexp]string{
+		regexp.MustCompile(".*"): "We are not worried about Available=False or Degraded=True blips for stable-system tests yet.",
+	}
+
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, exceptions)
 }
 
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
-}
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType) []*junitapi.JUnitTestCase {
-	ret := []*junitapi.JUnitTestCase{}
-
 	// map from allowed interval regexps to exceptions
 	exceptions := map[*regexp.Regexp]string{
-		regexp.MustCompile(".*condition/Degraded.*"): "We are not worried about Degraded=True blips yet.",
+		regexp.MustCompile(".*condition/Degraded.*"): "We are not worried about Degraded=True blips for update tests yet.",
 
 		regexp.MustCompile(".*clusteroperator/authentication condition/Available reason/WellKnown_NotReady status/False[ :].*"):                                  "https://issues.redhat.com/browse/OCPBUGS-20056",
 		regexp.MustCompile(".*clusteroperator/control-plane-machine-set condition/Available reason/UnavailableReplicas status/False[ :].*"):                      "https://issues.redhat.com/browse/OCPBUGS-20061",
 		regexp.MustCompile(".*clusteroperator/kube-storage-version-migrator condition/Available reason/KubeStorageVersionMigrator_Deploying status/False[ :].*"): "https://issues.redhat.com/browse/OCPBUGS-20062",
 	}
+
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, exceptions)
+}
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, exceptions map[*regexp.Regexp]string) []*junitapi.JUnitTestCase {
+	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
 	for _, event := range events {
