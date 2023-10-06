@@ -231,6 +231,15 @@ var (
 		"[Skipped:NoOptionalCapabilities]": {
 			// This test requires a valid console url which doesn't exist when the optional console capability is disabled.
 			`\[sig-cli\] oc basics can show correct whoami result with console`,
+
+			// Image Registry Skips:
+			// Requires ImageRegistry to upload appended images
+			`\[sig-imageregistry\]\[Feature:ImageAppend\] Image append should create images by appending them`,
+			// Requires ImageRegistry to redirect blob pull
+			`\[sig-imageregistry\] Image registry \[apigroup:route.openshift.io\] should redirect on blob pull`,
+			// Requires ImageRegistry service to be active for OCM to be able to create pull secrets
+			`\[sig-devex\]\[Feature:OpenShiftControllerManager\] TestAutomaticCreationOfPullSecrets \[apigroup:config.openshift.io\]`,
+			`\[sig-devex\]\[Feature:OpenShiftControllerManager\] TestDockercfgTokenDeletedController \[apigroup:image.openshift.io\]`,
 		},
 	}
 )
