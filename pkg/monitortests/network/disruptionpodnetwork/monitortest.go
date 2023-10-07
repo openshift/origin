@@ -178,6 +178,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	pna.targetService = service
 
 	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
+	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LimitedShellImage()
 	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}

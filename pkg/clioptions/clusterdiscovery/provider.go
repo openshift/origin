@@ -8,6 +8,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
+	"github.com/openshift/origin/test/extended/util/image"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -67,6 +68,16 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 
 	// IPFamily constants are taken from kube e2e and used by tests
 	context.IPFamily = config.IPFamily
+
+	imageStreamString, _, err := exutil.NewCLIWithoutNamespace("").AsAdmin().Run("adm", "release", "info", `-ojsonpath={.references}`).Outputs()
+	if err != nil {
+		return err
+	}
+
+	if err := image.InitializeReleasePullSpecString(imageStreamString, config.HasNoOptionalCapabilities); err != nil {
+		return err
+	}
+
 	return nil
 }
 
