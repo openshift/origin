@@ -184,6 +184,10 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			}
 		}
 	}
+
+	// {by: " by other", substring: " "}, // always matches
+	failures = append(failures, fmt.Sprintf("%v - never deleted - %v", "ns/openshift-multus pod/network-metrics-daemon-5hqlg node/ci-op-svwbb2nj-23cd9-w8mkc-master-1", "reason/FailedCreatePodSandBox Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_network-metrics-daemon-5hqlg_openshift-multus_3a1cb564-1210-41e2-8356-27bb7b827df2_0(b6f26ac0d20571fe162cd5f8570db1eaf0942598bf3c4d01b3bcfc2707d59754): No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?"))
+
 	failuresBySubtest, flakesBySubtest := categorizeBySubset(bySubStrings, failures, flakes)
 	successes := []*junitapi.JUnitTestCase{}
 	for _, by := range bySubStrings {
