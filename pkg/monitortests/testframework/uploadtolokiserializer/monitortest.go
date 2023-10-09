@@ -191,13 +191,11 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals) error {
 
 	for _, i := range intervals {
 		logLine := map[string]string{
-			"_entry": i.Message,
+			"_entry": fmt.Sprintf("%s, from=%s, to=%s", i.Message, i.From.String(), i.To.String()),
 		}
 
+		// We don't care to ingest intervals for e2e-tests at this time.
 		if strings.HasPrefix(i.Locator, "e2e-test/\"") {
-			startIndex := strings.Index(i.Locator, "\"") + 1
-			endIndex := strings.LastIndex(i.Locator, "\"")
-			logLine["e2e-test"] = i.Locator[startIndex:endIndex]
 			continue
 		}
 
