@@ -153,9 +153,6 @@ func ShellImage() string {
 // has access to that contains bash and standard commandline tools.
 // This image should be used when you only need oc and can't use the shell image.
 // This image has oc.
-//
-// TODO: this will be removed when https://bugzilla.redhat.com/show_bug.cgi?id=1843232
-// is fixed
 func LimitedShellImage() string {
 	return "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
 }

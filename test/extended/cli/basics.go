@@ -17,6 +17,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	exutilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
 var (
@@ -67,7 +68,7 @@ var _ = g.Describe("[sig-cli] oc basics", func() {
 
 	g.It("can create deploymentconfig and clusterquota [apigroup:apps.openshift.io]", func() {
 		nginx := k8simage.GetE2EImage(k8simage.Nginx)
-		tools := "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+		tools := exutilimage.ShellImage()
 
 		err := oc.Run("create").Args("dc", "my-nginx", "--image="+nginx).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())

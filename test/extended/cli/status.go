@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	exutilimage "github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = g.Describe("[sig-cli] oc status", func() {
@@ -88,11 +89,12 @@ var _ = g.Describe("[sig-cli] oc status", func() {
 		}()
 
 		g.By("verify jobs are showing in status")
-		err = oc.Run("create").Args("job", "pi", "--image=image-registry.openshift-image-registry.svc:5000/openshift/tools:latest", "--namespace", projectStatus).Execute()
+		image := exutilimage.ShellImage()
+		err = oc.Run("create").Args("job", "pi", "--image", image, "--namespace", projectStatus).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		out, err = oc.Run("status", "--namespace", projectStatus).Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("job/pi manages image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"))
+		o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("job/pi manages %s", image)))
 	})
 })
