@@ -164,6 +164,58 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
+		g.It("check the quota after import-image with --all option [Skipped:Disconnected]", func() {
+			testProject := oc.SetupProject()
+			testResourceQuotaName := "my-imagestream-quota-" + testProject
+			clusterAdminKubeClient := oc.AdminKubeClient()
+
+			rq := &corev1.ResourceQuota{
+				ObjectMeta: metav1.ObjectMeta{Name: testResourceQuotaName, Namespace: testProject},
+				Spec: corev1.ResourceQuotaSpec{
+					Hard: corev1.ResourceList{
+						"openshift.io/imagestreams": resource.MustParse("10"),
+					},
+				},
+			}
+
+			g.By("create the imagestreams and checking the usage")
+			_, err := clusterAdminKubeClient.CoreV1().ResourceQuotas(testProject).Create(context.Background(), rq, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = waitForResourceQuotaStatus(clusterAdminKubeClient, testResourceQuotaName, testProject, func(actualResourceQuota *corev1.ResourceQuota) error {
+				expectedUsedStatus := corev1.ResourceList{
+					"openshift.io/imagestreams": resource.MustParse("0"),
+				}
+				if !equality.Semantic.DeepEqual(actualResourceQuota.Status.Used, expectedUsedStatus) {
+					return fmt.Errorf("unexpected current total usage: actual: %#v, expected: %#v", actualResourceQuota.Status.Used, expectedUsedStatus)
+				}
+				return nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("trying to tag a container image")
+			err = oc.AsAdmin().WithoutNamespace().Run("import-image").Args("centos", "--from=quay.io/openshifttest/alpine", "--confirm=true", "--all=true", "-n", testProject).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = oc.AsAdmin().WithoutNamespace().Run("tag").Args("quay.io/openshifttest/base-alpine@sha256:3126e4eed4a3ebd8bf972b2453fa838200988ee07c01b2251e3ea47e4b1f245c", "--source=docker", "mystream:latest", "-n", testProject).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = exutil.WaitForAnImageStreamTag(oc, testProject, "mystream", "latest")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("checking the imagestream usage again")
+			err = waitForResourceQuotaStatus(clusterAdminKubeClient, testResourceQuotaName, testProject, func(actualResourceQuota *corev1.ResourceQuota) error {
+				expectedUsedStatus := corev1.ResourceList{
+					"openshift.io/imagestreams": resource.MustParse("2"),
+				}
+				if !equality.Semantic.DeepEqual(actualResourceQuota.Status.Used, expectedUsedStatus) {
+					return fmt.Errorf("unexpected current total usage: actual: %#v, expected: %#v", actualResourceQuota.Status.Used, expectedUsedStatus)
+				}
+				return nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 	})
 })
 
