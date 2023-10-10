@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/onsi/ginkgo/v2"
@@ -75,7 +77,7 @@ func (o *TestOptions) Run(args []string) error {
 		return nil
 	}
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/openshift/origin/pkg/monitor"
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -16,7 +17,7 @@ import (
 // job run, and what tests flaked and failed. (successful tests are omitted)
 // This is intended to be later submitted to sippy for a risk analysis of how unusual the
 // test failures were, but that final step is handled elsewhere.
-func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteResults *junitapi.JUnitTestSuite, wasMasterNodeUpdated string) error {
+func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteResults *junitapi.JUnitTestSuite, wasMasterNodeUpdated, outputFileSubStr string) error {
 
 	tests := map[string]*passFail{}
 
@@ -38,14 +39,14 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 	// If we can't parse this, we submit without it, it is not required.
 	jobRunID, _ := strconv.Atoi(os.Getenv("BUILD_ID"))
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		return err
 	}
 	jr := ProwJobRun{
 		ID:          jobRunID,
 		ProwJob:     ProwJob{Name: os.Getenv("JOB_NAME")},
-		ClusterData: monitor.CollectClusterData(restConfig, wasMasterNodeUpdated),
+		ClusterData: clusterinfo.CollectClusterData(restConfig, wasMasterNodeUpdated),
 		Tests:       []ProwJobRunTest{},
 		TestCount:   len(tests),
 	}
@@ -70,8 +71,8 @@ func WriteJobRunTestFailureSummary(artifactDir, timeSuffix string, finalSuiteRes
 	if err != nil {
 		return err
 	}
-	outputFile := filepath.Join(artifactDir, fmt.Sprintf("%s%s.json",
-		testFailureSummaryFilePrefix, timeSuffix))
+	outputFile := filepath.Join(artifactDir, fmt.Sprintf("%s%s%s.json",
+		testFailureSummaryFilePrefix, outputFileSubStr, timeSuffix))
 	return ioutil.WriteFile(outputFile, jsonContent, 0644)
 }
 

@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
+
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/monitortestframework"
 
@@ -158,7 +160,7 @@ func (o *RunMonitorOptions) Run() error {
 
 	fmt.Fprintf(o.Out, "Starting the monitor.\n")
 
-	restConfig, err := monitor.GetMonitorRESTConfig()
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
 	if err != nil {
 		return err
 	}

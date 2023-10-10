@@ -1,4 +1,4 @@
-package monitor
+package clusterinfo
 
 import (
 	"context"
@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
-// TODO these don't belong here. They should move to a clioptions package about cluster info
 func WasMasterNodeUpdated(events monitorapi.Intervals) string {
 	nodeUpdates := events.Filter(monitorapi.NodeUpdate)
 
@@ -30,7 +29,6 @@ func WasMasterNodeUpdated(events monitorapi.Intervals) string {
 	return "N"
 }
 
-// TODO these don't belong here. They should move to a clioptions package about cluster info
 // TODO this should be taking a client, not a kubeconfig. Can't test a client.
 func CollectClusterData(adminKubeConfig *rest.Config, masterNodeUpdated string) platformidentification.ClusterData {
 	clusterData := platformidentification.ClusterData{}

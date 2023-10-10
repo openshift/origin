@@ -1,4 +1,4 @@
-package monitor
+package clusterinfo
 
 import (
 	"fmt"
