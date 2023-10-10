@@ -21,11 +21,11 @@ var _ = Describe("[sig-kubevirt] migration", func() {
 		mgmtFramework := e2e.NewDefaultFramework("mgmt-framework")
 		mgmtFramework.SkipNamespaceCreation = true
 
-		f1 := e2e.NewDefaultFramework("server-framework")
-		f1.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
+		hostedFramework := e2e.NewDefaultFramework("hosted-framework")
+		hostedFramework.NamespacePodSecurityEnforceLevel = admissionapi.LevelPrivileged
 		var (
 			numberOfReadyNodes = func() (int, error) {
-				nodeList, err := f1.ClientSet.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+				nodeList, err := hostedFramework.ClientSet.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 				if err != nil {
 					return 0, err
 				}
@@ -40,12 +40,24 @@ var _ = Describe("[sig-kubevirt] migration", func() {
 				return numberOfReadyNodes, nil
 			}
 		)
-		AfterLiveMigrateWorkersContext(mgmtFramework, func() {
-			It("should maintain node readiness", func() {
-				nodeList, err := f1.ClientSet.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		Context("and live migrate hosted control plane workers [Early]", func() {
+			var (
+				numberOfNodes = 0
+			)
+			BeforeEach(func() {
+				nodeList, err := hostedFramework.ClientSet.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 				Expect(err).ToNot(HaveOccurred())
-				numberOfNodes := len(nodeList.Items)
+				numberOfNodes = len(nodeList.Items)
 
+				Eventually(numberOfReadyNodes).
+					WithTimeout(2*time.Minute).
+					WithPolling(5*time.Second).
+					Should(Equal(numberOfNodes), "nodes should have ready state before migration")
+
+				setMgmtFramework(mgmtFramework)
+				expectNoError(migrateWorkers(mgmtFramework))
+			})
+			It("should maintain node readiness", func() {
 				By("Check node readiness is as expected")
 				isAWS, err := mgmtClusterIsAWS(mgmtFramework)
 				Expect(err).ToNot(HaveOccurred())
