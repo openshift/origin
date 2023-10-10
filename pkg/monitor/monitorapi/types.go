@@ -324,13 +324,48 @@ func (i Message) OldMessage() string {
 }
 
 func (i Locator) OldLocator() string {
-	keys := sets.NewString()
+	keys := []string{}
 	for k := range i.Keys {
-		keys.Insert(string(k))
+		keys = append(keys, string(k))
+	}
+	// Some components rely on the ordering of keys in the locator for groupings in interval charts.
+	// (i.e. namespace pod uid container, which groups container events with their pod.
+	// Blindly going through the keys results in alphabetical ordering, container comes first, and then we've
+	// got container events separated from their pod events on the intervals chart.
+	// This will hopefully eventually go away but for now we need it.
+
+	// Ensure these keys appear in this order. Other keys can be mixed in and their order will be preserved at the end,
+	// but we want these specific combos to come in this order so items appear together in interval charts
+	// which sort on locator.
+	// This function is courtesy of chatgpt, but unit tested.
+	keysToEnsure := []string{"namespace", "pod", "uid", "container"}
+
+	// Create a map to store the index of each key in the keysToEnsure slice
+	orderMap := make(map[string]int, len(keysToEnsure))
+	for i, key := range keysToEnsure {
+		orderMap[key] = i
 	}
 
+	// Use a custom sorting function to reorder the keys
+	customSort(keys, func(i, j int) bool {
+		idxI, foundI := orderMap[keys[i]]
+		idxJ, foundJ := orderMap[keys[j]]
+
+		// If either key is not in the keysToEnsure, keep their relative order
+		if !foundI && !foundJ {
+			return i < j
+		} else if !foundI {
+			return false
+		} else if !foundJ {
+			return true
+		}
+
+		// Compare the indices of keysToEnsure
+		return idxI < idxJ
+	})
+
 	annotations := []string{}
-	for _, k := range keys.List() {
+	for _, k := range keys {
 		v := i.Keys[LocatorKey(k)]
 		if LocatorKey(k) == LocatorE2ETestKey {
 			annotations = append(annotations, fmt.Sprintf("%v/%q", k, v))
@@ -338,9 +373,21 @@ func (i Locator) OldLocator() string {
 			annotations = append(annotations, fmt.Sprintf("%v/%v", k, v))
 		}
 	}
+
 	annotationString := strings.Join(annotations, " ")
 
 	return annotationString
+}
+
+// customSort sorts the keys slice using a custom sorting function
+func customSort(keys []string, less func(i, j int) bool) {
+	for i := 0; i < len(keys); i++ {
+		for j := i + 1; j < len(keys); j++ {
+			if less(j, i) {
+				keys[i], keys[j] = keys[j], keys[i]
+			}
+		}
+	}
 }
 
 type IntervalFilter func(i Interval) bool
