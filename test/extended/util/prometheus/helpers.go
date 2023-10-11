@@ -2,12 +2,12 @@ package prometheus
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -27,7 +27,6 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 )
 
 const (
@@ -44,14 +43,54 @@ type prometheusResponseData struct {
 	Result model.Vector `json:"result"`
 }
 
-// GetBearerTokenURL makes http request with bearer token
-func GetBearerTokenURL(url, bearer string) (string, error) {
-	cmd := fmt.Sprintf("curl --retry 15 --max-time 2 --retry-delay 1 -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	output, err := exec.Command("bash", "-e", "-c", cmd).Output()
-	if err != nil {
-		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+// GetURLWithToken makes an HTTP request with a bearer token.
+func GetURLWithToken(url, bearerToken string) (string, error) {
+	client := &http.Client{
+		Timeout: time.Duration(10 * time.Second),
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			// Use the HTTP proxy configured in the environment variables.
+			Proxy: http.ProxyFromEnvironment,
+		},
 	}
-	return string(output), nil
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", url, err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+bearerToken)
+
+	var (
+		body    []byte
+		lastErr error
+	)
+	condition := func(ctx context.Context) (bool, error) {
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("%s: request failed: %w", url, err)
+			return false, nil
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("%s: unexpected status code: %d", url, resp.StatusCode)
+			return false, nil
+		}
+
+		body, err = io.ReadAll(resp.Body)
+		if err != nil {
+			lastErr = fmt.Errorf("%s: failed to read response: %w", url, err)
+			return false, nil
+		}
+
+		return true, nil
+	}
+	if err = wait.PollUntilContextTimeout(context.Background(), time.Second, time.Minute, true, condition); err != nil {
+		return "", fmt.Errorf("%w: %w", err, lastErr)
+	}
+
+	return string(body), nil
 }
 
 func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountName string, timeout time.Duration) error {
@@ -269,38 +308,41 @@ func RunQueries(ctx context.Context, prometheusClient prometheusv1.API, promQuer
 	return errors.NewAggregate(errs)
 }
 
-// ExpectURLStatusCodeExec attempts connection to url returning an error
-// upon failure or if status return code is not equal to any of the statusCodes.
-func ExpectURLStatusCodeExec(url string, statusCodes ...int) error {
-	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
-	output, err := exec.Command("bash", "-e", "-c", cmd).Output()
-	if err != nil {
-		return fmt.Errorf("host command failed: %v\n%s", err, output)
+// ExpectHTTPStatusCode sends a GET request to the URL and checks the expected status code.
+// If bearerToken isn't empty, it will be used to authenticate against the endpoint.
+// It returns an error if the request fails or the status return code is not
+// equal to any of the statusCodes.
+func ExpectHTTPStatusCode(url, bearerToken string, statusCodes ...int) error {
+	client := &http.Client{
+		Timeout: time.Duration(10 * time.Second),
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			// Use the HTTP proxy configured in the environment variables.
+			Proxy: http.ProxyFromEnvironment,
+		},
 	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("%s: %w", url, err)
+	}
+
+	if len(bearerToken) > 0 {
+		req.Header.Add("Authorization", "Bearer "+bearerToken)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("%s: request failed: %w", url, err)
+	}
+	defer resp.Body.Close()
+
 	for _, statusCode := range statusCodes {
-		if string(output) == strconv.Itoa(statusCode) {
+		if resp.StatusCode == statusCode {
 			return nil
 		}
 	}
-
-	return fmt.Errorf("last response from server was not in %v: %s", statusCodes, output)
-}
-
-// ExpectURLStatusCodeExecViaPod attempts connection to url via exec pod and returns an error
-// upon failure or if status return code is not equal to any of the statusCodes.
-func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...int) error {
-	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return fmt.Errorf("host command failed: %v\n%s", err, output)
-	}
-	for _, statusCode := range statusCodes {
-		if output == strconv.Itoa(statusCode) {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("last response from server was not in %v: %s", statusCodes, output)
+	return fmt.Errorf("%s: last response from server was not in %v: %d", url, statusCodes, resp.StatusCode)
 }
 
 // ExpectPrometheusEndpoint attempts to connect to the metrics endpoint with
@@ -308,7 +350,7 @@ func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...i
 func ExpectPrometheusEndpoint(url string) {
 	var err error
 	for i := 0; i < maxPrometheusQueryAttempts; i++ {
-		err = ExpectURLStatusCodeExec(url, 401, 403)
+		err = ExpectHTTPStatusCode(url, "", 401, 403)
 		if err == nil {
 			break
 		}
@@ -322,7 +364,7 @@ func ExpectPrometheusEndpoint(url string) {
 // as a map of group names to lists of alerting rules.
 func FetchAlertingRules(promURL, bearerToken string) (map[string][]promv1.AlertingRule, error) {
 	url := fmt.Sprintf("%s/api/v1/rules", promURL)
-	contents, err := GetBearerTokenURL(url, bearerToken)
+	contents, err := GetURLWithToken(url, bearerToken)
 	if err != nil {
 		return nil, fmt.Errorf("unable to query %s: %v", url, err)
 	}
@@ -429,4 +471,13 @@ func ForEachAlertingRule(rules map[string][]promv1.AlertingRule, f func(a promv1
 	}
 
 	return fmt.Errorf("Incompliant rules detected:\n\n%s", strings.Join(allViolations.List(), "\n"))
+}
+
+// MustJoinUrlPath behaves like url.JoinPath but it will panic in case of error.
+func MustJoinUrlPath(base string, paths ...string) string {
+	path, err := url.JoinPath(base, paths...)
+	if err != nil {
+		panic(err)
+	}
+	return path
 }
