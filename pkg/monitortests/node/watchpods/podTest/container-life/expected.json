@@ -27,7 +27,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/without-label namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
             "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -79,7 +79,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/without-label namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -105,7 +105,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/without-label namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
             "message": "cause/ constructed/pod-lifecycle-constructor duration/6.00s reason/ContainerStart",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -133,7 +133,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/without-label namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
+            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {

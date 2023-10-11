@@ -328,41 +328,8 @@ func (i Locator) OldLocator() string {
 	for k := range i.Keys {
 		keys = append(keys, string(k))
 	}
-	// Some components rely on the ordering of keys in the locator for groupings in interval charts.
-	// (i.e. namespace pod uid container, which groups container events with their pod.
-	// Blindly going through the keys results in alphabetical ordering, container comes first, and then we've
-	// got container events separated from their pod events on the intervals chart.
-	// This will hopefully eventually go away but for now we need it.
 
-	// Ensure these keys appear in this order. Other keys can be mixed in and their order will be preserved at the end,
-	// but we want these specific combos to come in this order so items appear together in interval charts
-	// which sort on locator.
-	// This function is courtesy of chatgpt, but unit tested.
-	keysToEnsure := []string{"namespace", "pod", "uid", "container"}
-
-	// Create a map to store the index of each key in the keysToEnsure slice
-	orderMap := make(map[string]int, len(keysToEnsure))
-	for i, key := range keysToEnsure {
-		orderMap[key] = i
-	}
-
-	// Use a custom sorting function to reorder the keys
-	customSort(keys, func(i, j int) bool {
-		idxI, foundI := orderMap[keys[i]]
-		idxJ, foundJ := orderMap[keys[j]]
-
-		// If either key is not in the keysToEnsure, keep their relative order
-		if !foundI && !foundJ {
-			return i < j
-		} else if !foundI {
-			return false
-		} else if !foundJ {
-			return true
-		}
-
-		// Compare the indices of keysToEnsure
-		return idxI < idxJ
-	})
+	keys = sortKeys(keys)
 
 	annotations := []string{}
 	for _, k := range keys {
@@ -379,15 +346,49 @@ func (i Locator) OldLocator() string {
 	return annotationString
 }
 
-// customSort sorts the keys slice using a custom sorting function
-func customSort(keys []string, less func(i, j int) bool) {
-	for i := 0; i < len(keys); i++ {
-		for j := i + 1; j < len(keys); j++ {
-			if less(j, i) {
-				keys[i], keys[j] = keys[j], keys[i]
-			}
-		}
+// sortKeys ensures that some keys appear in the order we require (least specific to most), so rows with locators
+// are grouped together. (i.e. keeping containers within the same pod together, or rows for a specific container)
+// Blindly going through the keys results in alphabetical ordering, container comes first, and then we've
+// got container events separated from their pod events on the intervals chart.
+// This will hopefully eventually go away but for now we need it.
+// Courtesy of ChatGPT but unit tested.
+func sortKeys(keys []string) []string {
+
+	// Ensure these keys appear in this order. Other keys can be mixed in and will appear at the end in alphabetical
+	// order.
+	orderedKeys := []string{"namespace", "node", "pod", "uid", "server", "container", "shutdown"}
+
+	// Create a map to store the indices of keys in the orderedKeys array.
+	// This will allow us to efficiently check if a key is in orderedKeys and find its position.
+	orderedKeyIndices := make(map[string]int)
+
+	for i, key := range orderedKeys {
+		orderedKeyIndices[key] = i
 	}
+
+	// Define a custom sorting function that orders the keys based on the orderedKeys array.
+	sort.Slice(keys, func(i, j int) bool {
+		// Get the indices of keys i and j in orderedKeys.
+		indexI, existsI := orderedKeyIndices[keys[i]]
+		indexJ, existsJ := orderedKeyIndices[keys[j]]
+
+		// If both keys exist in orderedKeys, sort them based on their order.
+		if existsI && existsJ {
+			return indexI < indexJ
+		}
+
+		// If only one of the keys exists in orderedKeys, move it to the front.
+		if existsI {
+			return true
+		} else if existsJ {
+			return false
+		}
+
+		// If neither key is in orderedKeys, sort alphabetically so we have predictable ordering
+		return keys[i] < keys[j]
+	})
+
+	return keys
 }
 
 type IntervalFilter func(i Interval) bool

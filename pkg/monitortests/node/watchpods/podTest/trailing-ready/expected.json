@@ -27,7 +27,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/registry-server namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -79,7 +79,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/registry-server namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -105,7 +105,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/registry-server namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "cause/ constructed/pod-lifecycle-constructor duration/3.00s reason/ContainerStart",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -159,7 +159,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/registry-server namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -185,7 +185,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/registry-server namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
+            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady",
             "tempSource": "PodState",
             "tempStructuredLocator": {

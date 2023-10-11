@@ -27,7 +27,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/machine-config-operator namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -79,7 +79,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/machine-config-operator namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {

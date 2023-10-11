@@ -2,7 +2,7 @@
     "items": [
         {
             "level": "Info",
-            "locator": "container/fix-audit-permissions namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+            "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/fix-audit-permissions",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -53,7 +53,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/openshift-apiserver namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+            "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -79,7 +79,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/openshift-apiserver-check-endpoints namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+            "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver-check-endpoints",
             "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -105,7 +105,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/fix-audit-permissions namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+            "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/fix-audit-permissions",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -157,7 +157,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/openshift-apiserver namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+            "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {
@@ -183,7 +183,7 @@
         },
         {
             "level": "Info",
-            "locator": "container/openshift-apiserver-check-endpoints namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c",
+            "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver-check-endpoints",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {
