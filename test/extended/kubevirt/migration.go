@@ -55,7 +55,7 @@ var _ = Describe("[sig-kubevirt] migration", func() {
 					Should(Equal(numberOfNodes), "nodes should have ready state before migration")
 
 				setMgmtFramework(mgmtFramework)
-				expectNoError(migrateWorkers(mgmtFramework))
+				expectNoError(migrateWorker(mgmtFramework))
 			})
 			It("should maintain node readiness", func() {
 				By("Check node readiness is as expected")

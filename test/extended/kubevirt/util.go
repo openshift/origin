@@ -400,56 +400,54 @@ func composeVMIM(vmiNamespace, vmiName string) *unstructured.Unstructured {
 	return &vmim
 }
 
-func migrateWorkers(f *e2e.Framework) error {
+func migrateWorker(f *e2e.Framework) error {
 	By("migrating hosted cluster workers")
 	vmiClient := virtualMachineInstanceClient(f.DynamicClient)
 	vmiList, err := vmiClient.Namespace(f.Namespace.Name).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed retrieving workers VMs at namespace %s: %v", f.Namespace.Name, err)
 	}
+	if len(vmiList.Items) < 1 {
+		return fmt.Errorf("no workers to migrate")
+	}
+	selectedVMI := vmiList.Items[0]
 
 	vmimClient := virtualMachineInstanceMigrationClient(f.DynamicClient)
-	vmims := []*unstructured.Unstructured{}
-	for _, vmi := range vmiList.Items {
-		vmim := composeVMIM(vmi.GetNamespace(), vmi.GetName())
-		if vmim, err = vmimClient.Namespace(f.Namespace.Name).Create(context.Background(), vmim, metav1.CreateOptions{}); err != nil {
-			return fmt.Errorf("failed creating vmim %s/%s: %v", vmi.GetNamespace(), vmi.GetName(), err)
-		}
-		vmims = append(vmims, vmim)
+	vmim := composeVMIM(selectedVMI.GetNamespace(), selectedVMI.GetName())
+	if vmim, err = vmimClient.Namespace(f.Namespace.Name).Create(context.Background(), vmim, metav1.CreateOptions{}); err != nil {
+		return fmt.Errorf("failed creating vmim %s/%s: %v", selectedVMI.GetNamespace(), selectedVMI.GetName(), err)
 	}
-	for _, vmim := range vmims {
-		phase := ""
-		err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (done bool, err error) {
-			vmim, err = vmimClient.Namespace(f.Namespace.Name).Get(context.Background(), vmim.GetName(), metav1.GetOptions{})
-			if err != nil {
-				return false, err
-			}
-			statusIface, ok := vmim.UnstructuredContent()["status"]
-			if !ok {
-				return false, nil
-			}
-			status, ok := statusIface.(map[string]interface{})
-			if !ok {
-				return false, fmt.Errorf("bad vmim.status: %+v", statusIface)
-			}
-			phaseIface, ok := status["phase"]
-			if !ok {
-				return false, nil
-			}
-			phase, ok = phaseIface.(string)
-			if !ok {
-				return false, fmt.Errorf("bad vmim.status.phase: %+v", phaseIface)
-			}
-			return phase == "Succeeded" || phase == "Failed", nil
-		})
+	phase := ""
+	err = wait.PollImmediate(5*time.Second, 5*time.Minute, func() (done bool, err error) {
+		vmim, err = vmimClient.Namespace(f.Namespace.Name).Get(context.Background(), vmim.GetName(), metav1.GetOptions{})
 		if err != nil {
-			return err
+			return false, err
 		}
-		if phase == "Failed" {
-			dumpKubevirtArtifacts(f)
-			vmiName, _, _ := unstructured.NestedString(vmim.UnstructuredContent(), "spec", "vmiName")
-			return fmt.Errorf("migration failed for vmi %s", vmiName)
+		statusIface, ok := vmim.UnstructuredContent()["status"]
+		if !ok {
+			return false, nil
 		}
+		status, ok := statusIface.(map[string]interface{})
+		if !ok {
+			return false, fmt.Errorf("bad vmim.status: %+v", statusIface)
+		}
+		phaseIface, ok := status["phase"]
+		if !ok {
+			return false, nil
+		}
+		phase, ok = phaseIface.(string)
+		if !ok {
+			return false, fmt.Errorf("bad vmim.status.phase: %+v", phaseIface)
+		}
+		return phase == "Succeeded" || phase == "Failed", nil
+	})
+	if err != nil {
+		return err
+	}
+	if phase == "Failed" {
+		dumpKubevirtArtifacts(f)
+		vmiName, _, _ := unstructured.NestedString(vmim.UnstructuredContent(), "spec", "vmiName")
+		return fmt.Errorf("migration failed for vmi %s", vmiName)
 	}
 	return nil
 }
