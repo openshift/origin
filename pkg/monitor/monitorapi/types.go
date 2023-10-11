@@ -187,7 +187,7 @@ const (
 	NodeNotReadyReason IntervalReason = "NotReady"
 	NodeFailedLease    IntervalReason = "FailedToUpdateLease"
 
-	MachineConfigChangeReason  IntervalReason = "MachineConfigChanged"
+	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
 
 	Timeout IntervalReason = "Timeout"
