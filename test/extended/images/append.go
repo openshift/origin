@@ -93,6 +93,9 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		pod := cli.Create(cliPodWithPullSecret(oc, heredoc.Docf(`
 			set -x
 
+			# create a copy of the single manifest image from the original image for layer count
+			oc image append --insecure --from %[3]s --to %[2]s/%[1]s/tools:singlemanifest
+
 			# create a scratch image with fixed date
 			oc image append --insecure --to %[2]s/%[1]s/test:scratch1 --image='{"Cmd":["/bin/sleep"]}' --created-at=0
 
@@ -115,9 +118,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageAppend] Image append", func
 		`, ns, registry, image.ShellImage())))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)
 
-		// verify that the shell image matches our check - if the shell image changes, we'll need to look up a different image
-		o.Expect(image.ShellImage()).To(o.HaveSuffix("/openshift/tools:latest"))
-		baseTools, err := oc.ImageClient().ImageV1().ImageStreamTags("openshift").Get(context.Background(), "tools:latest", metav1.GetOptions{})
+		baseTools, err := oc.ImageClient().ImageV1().ImageStreamTags(ns).Get(context.Background(), "tools:singlemanifest", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// subsequent operations are expected to append to this image
 		baseLayerCount := len(baseTools.Image.DockerImageLayers)
