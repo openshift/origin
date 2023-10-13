@@ -3,12 +3,14 @@ package image
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
+	imageapi "github.com/openshift/api/image/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 )
@@ -18,6 +20,14 @@ var (
 	initialized        bool
 	fromRepository     string
 	images             map[string]string
+
+	releasePullSpecInitializationLock sync.RWMutex
+	releasePullSpecInitialized        bool
+	availablePullSpecs                = map[string]string{
+		"cli":   "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest",
+		"tools": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
+	}
+	imageRegistryPullSpecRegex = regexp.MustCompile(`image-registry\.openshift-image-registry\.svc:5000\/openshift\/([A-Za-z0-9._-]+)[@:A-Za-z0-9._-]*`)
 
 	allowedImages = map[string]k8simage.ImageID{
 		// used by jenkins tests
@@ -106,6 +116,27 @@ func ReplaceContents(data []byte) ([]byte, error) {
 		patterns[to] = re
 	}
 
+	// find any references to image-registry.openshift-image-registry.svc:5000/openshift/<image>:<tag>
+	// append pattern match for appropriate PullSpec if one exists
+	allMatches := imageRegistryPullSpecRegex.FindAllStringSubmatch(string(data), -1)
+	for _, match := range allMatches {
+		if len(match) != 2 {
+			continue
+		}
+		exactMatchedPullSpec := match[0]
+		tagMatchedPullSpec := match[1]
+		to, found := GetPullSpecFor(tagMatchedPullSpec)
+		if !found || to == exactMatchedPullSpec {
+			continue
+		}
+		pattern := fmt.Sprintf(exactImageFormat, regexp.QuoteMeta(exactMatchedPullSpec))
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, err
+		}
+		patterns[to] = re
+	}
+
 	for to, pattern := range patterns {
 		data = pattern.ReplaceAll(data, []byte(to))
 	}
@@ -146,7 +177,7 @@ the test/extended/util/image/README.md file.`, image))
 // to avoid the need to add packages by using simpler concepts or consider
 // extending an existing image.
 func ShellImage() string {
-	return "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
+	return GetPullSpecForOrPanic("tools")
 }
 
 // LimitedShellImage returns a docker pull spec that any pod on the cluster
@@ -154,7 +185,7 @@ func ShellImage() string {
 // This image should be used when you only need oc and can't use the shell image.
 // This image has oc.
 func LimitedShellImage() string {
-	return "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest"
+	return GetPullSpecForOrPanic("cli")
 }
 
 // OpenLDAPTestImage returns the LDAP test image.
@@ -235,4 +266,55 @@ func GetMappedImages(originalImages map[string]k8simage.ImageID, repo string) ma
 		configs[pullSpec] = fmt.Sprintf("%s/%s:%s", registry, destination, newTag)
 	}
 	return configs
+}
+
+func GetPullSpecFor(image string) (string, bool) {
+	if spec, found := availablePullSpecs[image]; found {
+		return spec, true
+	}
+	return "", false
+}
+
+func GetPullSpecForOrPanic(image string) string {
+	spec, found := GetPullSpecFor(image)
+	if !found {
+		panic(fmt.Sprintf("could not find PullSpec for (%s)", image))
+	}
+	return spec
+}
+
+// InitializeReleasePullSpecString initializes a mapping with the PullSpec ImageStream string from
+// the release payload
+//
+// When running in clusters that do not have ImageRegistry installed it is necessary to use the full
+// PullSpec for ImageRegistry containers such as `cli` or `tools`, Pass in an imageStreamString of
+// the discovered PullSpec (ex. oc adm release info `-ojsonpath='{.references}'). This method will then
+// initialize the package with the PullSpec for that release.
+//
+// Using GetPullSpecFor(), ShellImage() and LimitedShellImage() will return the appropriate
+// PullSpec, either the ReleasePayload or ImageRegistry.
+func InitializeReleasePullSpecString(imageStreamString string, hasNoImageRegistry bool) error {
+	releasePullSpecInitializationLock.Lock()
+	defer releasePullSpecInitializationLock.Unlock()
+	if releasePullSpecInitialized {
+		panic("attempt to double initialize ReleasePullSpec")
+	}
+	images := &imageapi.ImageStream{}
+	err := json.Unmarshal([]byte(imageStreamString), images)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal release ImageStream string: %w", err)
+	}
+
+	for _, tag := range images.Spec.Tags {
+		if tag.From.Kind != "DockerImage" {
+			continue
+		}
+		// If an available pullthrough spec is already defined, and we do have an ImageRegistry
+		// we leave it alone
+		if _, available := availablePullSpecs[tag.Name]; available && !hasNoImageRegistry {
+			continue
+		}
+		availablePullSpecs[tag.Name] = tag.From.Name
+	}
+	return nil
 }

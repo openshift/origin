@@ -9,6 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	kappsv1 "k8s.io/api/apps/v1"
 	kbatchv1 "k8s.io/api/batch/v1"
 	kapiv1 "k8s.io/api/core/v1"
@@ -28,7 +29,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	ctx := context.Background()
 
 	g.It("should update standard Kube object image fields when local names are on [apigroup:image.openshift.io]", func() {
-		err := oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
+		hasImageRegistry, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("set", "image-lookup").Args("busybox").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -68,8 +72,15 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 			g.Skip("default image resolution is not configured, can't verify pod resolution")
 		}
 
+		// When ImageRegistry is not present this should not get resolved and will remain
+		// and Attempt resolve meaning it will not get changed by the admission plugin
+		unknownImageSuffix := "busybox:unknown"
+		if hasImageRegistry {
+			unknownImageSuffix = "/" + oc.Namespace() + "/" + unknownImageSuffix
+		}
+
 		o.Expect(pod.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
-		o.Expect(pod.Spec.Containers[1].Image).To(o.HaveSuffix("/" + oc.Namespace() + "/busybox:unknown"))
+		o.Expect(pod.Spec.Containers[1].Image).To(o.HaveSuffix(unknownImageSuffix))
 		defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(ctx, pod.Name, metav1.DeleteOptions{}) }()
 
 		// replica sets should auto replace local references
@@ -219,7 +230,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 	})
 
 	g.It("should perform lookup when the object has the resolve-names annotation [apigroup:image.openshift.io]", func() {
-		err := oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
+		hasImageRegistry, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var internalImageReference string
@@ -258,8 +272,15 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 			g.Skip("default image resolution is not configured, can't verify pod resolution")
 		}
 
+		// When ImageRegistry is not present this should not get resolved and will remain
+		// and Attempt resolve meaning it will not get changed by the admission plugin
+		unknownImageSuffix := "busybox:unknown"
+		if hasImageRegistry {
+			unknownImageSuffix = "/" + oc.Namespace() + "/" + unknownImageSuffix
+		}
+
 		o.Expect(pod.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
-		o.Expect(pod.Spec.Containers[1].Image).To(o.HaveSuffix("/" + oc.Namespace() + "/busybox:unknown"))
+		o.Expect(pod.Spec.Containers[1].Image).To(o.HaveSuffix(unknownImageSuffix))
 
 		g.By("auto replacing local references on ReplicaSets")
 		rs, err := oc.KubeClient().AppsV1().ReplicaSets(oc.Namespace()).Create(ctx, &kappsv1.ReplicaSet{

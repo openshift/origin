@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	configv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -181,7 +182,10 @@ spec:
 	})
 
 	g.It("ensure it works with image streams [apigroup:image.openshift.io]", func() {
-		err := oc.Run("create").Args("-f", imageStreamsCentos).Execute()
+		hasImageRegistry, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("create").Args("-f", imageStreamsCentos).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = wait.Poll(cliInterval, cliTimeout, func() (bool, error) {
 			err := oc.Run("get").Args("imagestreamtags", "wildfly:latest").Execute()
@@ -190,9 +194,14 @@ spec:
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var out string
+		var resolvedImageMatcher = o.MatchRegexp("image:.*oc-debug-.*/wildfly@sha256")
+		if !hasImageRegistry {
+			resolvedImageMatcher = o.ContainSubstring("image: quay.io/wildfly/wildfly-centos7")
+		}
+
 		out, err = oc.Run("debug").Args("istag/wildfly:latest", "-o", "yaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.MatchRegexp("image:.*oc-debug-.*/wildfly@sha256"))
+		o.Expect(out).To(resolvedImageMatcher)
 
 		var sha string
 		sha, err = oc.Run("get").Args("istag/wildfly:latest", "--template", "{{ .image.metadata.name }}").Output()
