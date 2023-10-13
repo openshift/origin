@@ -179,6 +179,9 @@ func (m *Monitor) SerializeResults(ctx context.Context, junitSuiteName, timeSuff
 	}
 
 	fmt.Fprintf(os.Stderr, "Writing to storage.\n")
+	fmt.Fprintf(os.Stderr, "  m.startTime = %s\n", m.startTime)
+	fmt.Fprintf(os.Stderr, "  m.stopTime  = %s\n", m.stopTime)
+
 	monitorTestJunits, err := m.monitorTestRegistry.WriteContentToStorage(
 		ctx,
 		m.storageDir,
