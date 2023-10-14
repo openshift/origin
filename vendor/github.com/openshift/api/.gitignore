@@ -17,3 +17,5 @@ _output/
 tests/bin/
 
 models-schema
+/render
+/write-available-featuresets

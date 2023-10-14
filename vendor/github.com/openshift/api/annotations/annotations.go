@@ -25,4 +25,10 @@ const (
 
 	// OpenShiftLongDescriptionAnnotation is a resource's long description
 	OpenShiftLongDescriptionAnnotation = "openshift.io/long-description"
+
+	// OpenShiftComponent is a common, optional annotation that stores the owning component for a resource.
+	// The component is for whatever bug tracker we're using.  That used to be bugzilla, now it is
+	// a jira component and subcomponent in OCPBUGS.
+	// For example, "Etcd" or "Networking / ovn-kubernetes"
+	OpenShiftComponent = "openshift.io/owning-component"
 )

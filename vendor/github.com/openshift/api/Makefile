@@ -125,3 +125,47 @@ integration:
 
 tests-vendor:
 	make -C tests vendor
+
+##################################
+#
+# BEGIN: Build binaries and images
+#
+##################################
+
+.PHONY: build
+build: render write-available-featuresets
+
+render:
+	go build --mod=vendor -trimpath github.com/openshift/api/payload-command/cmd/render
+
+write-available-featuresets:
+	go build --mod=vendor -trimpath github.com/openshift/api/payload-command/cmd/write-available-featuresets
+
+.PHONY: clean
+clean:
+	rm render write-available-featuresets
+
+VERSION     ?= $(shell git describe --always --abbrev=7)
+MUTABLE_TAG ?= latest
+IMAGE       ?= registry.ci.openshift.org/openshift/api
+
+ifeq ($(shell command -v podman > /dev/null 2>&1 ; echo $$? ), 0)
+	ENGINE=podman
+else ifeq ($(shell command -v docker > /dev/null 2>&1 ; echo $$? ), 0)
+	ENGINE=docker
+endif
+
+USE_DOCKER ?= 0
+ifeq ($(USE_DOCKER), 1)
+	ENGINE=docker
+endif
+
+.PHONY: images
+images:
+	$(ENGINE) build -f Dockerfile.rhel8 -t "$(IMAGE):$(VERSION)" -t "$(IMAGE):$(MUTABLE_TAG)" ./
+
+################################
+#
+# END: Build binaries and images
+#
+################################

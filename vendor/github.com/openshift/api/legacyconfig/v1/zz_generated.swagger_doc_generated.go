@@ -364,7 +364,7 @@ var map_ImagePolicyConfig = map[string]string{
 	"scheduledImageImportMinimumIntervalSeconds": "ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams scheduled for background import are checked against the upstream repository. The default value is 15 minutes.",
 	"maxScheduledImageImportsPerMinute":          "MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the background per minute. The default value is 60. Set to -1 for unlimited.",
 	"allowedRegistriesForImport":                 "AllowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
-	"internalRegistryHostname":                   "InternalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format. For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY environment variable but this setting overrides the environment variable.",
+	"internalRegistryHostname":                   "InternalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format.",
 	"externalRegistryHostname":                   "ExternalRegistryHostname sets the hostname for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
 	"additionalTrustedCA":                        "AdditionalTrustedCA is a path to a pem bundle file containing additional CAs that should be trusted during imagestream import.",
 }
@@ -722,7 +722,7 @@ func (PodManifestConfig) SwaggerDoc() map[string]string {
 }
 
 var map_PolicyConfig = map[string]string{
-	"":                        "\n holds the necessary configuration options for",
+	"":                        "holds the necessary configuration options for",
 	"userAgentMatchingConfig": "UserAgentMatchingConfig controls how API calls from *voluntarily* identifying clients will be handled.  THIS DOES NOT DEFEND AGAINST MALICIOUS CLIENTS!",
 }
 
@@ -731,7 +731,7 @@ func (PolicyConfig) SwaggerDoc() map[string]string {
 }
 
 var map_ProjectConfig = map[string]string{
-	"":                       "\n holds the necessary configuration options for",
+	"":                       "holds the necessary configuration options for",
 	"defaultNodeSelector":    "DefaultNodeSelector holds default project node label selector",
 	"projectRequestMessage":  "ProjectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint",
 	"projectRequestTemplate": "ProjectRequestTemplate is the template to use for creating projects in response to projectrequest. It is in the format namespace/template and it is optional. If it is not specified, a default template is used.",
