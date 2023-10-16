@@ -69,13 +69,17 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 	// IPFamily constants are taken from kube e2e and used by tests
 	context.IPFamily = config.IPFamily
 
-	imageStreamString, _, err := exutil.NewCLIWithoutNamespace("").AsAdmin().Run("adm", "release", "info", `-ojsonpath={.references}`).Outputs()
-	if err != nil {
-		return err
-	}
+	// As an extra precaution for now, we do not run this check on all tests since some might fail to pull
+	// release payload information
+	if config.HasNoOptionalCapabilities {
+		imageStreamString, _, err := exutil.NewCLIWithoutNamespace("").AsAdmin().Run("adm", "release", "info", `-ojsonpath={.references}`).Outputs()
+		if err != nil {
+			return err
+		}
 
-	if err := image.InitializeReleasePullSpecString(imageStreamString, config.HasNoOptionalCapabilities); err != nil {
-		return err
+		if err := image.InitializeReleasePullSpecString(imageStreamString, config.HasNoOptionalCapabilities); err != nil {
+			return err
+		}
 	}
 
 	return nil
