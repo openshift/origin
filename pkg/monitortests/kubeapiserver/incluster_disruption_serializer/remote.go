@@ -208,6 +208,16 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 	return actualNamespace.Name, nil
 }
 
+func (i *InvariantInClusterDisruption) namespaceAlreadyCreated(ctx context.Context) bool {
+	namespaces, err := i.kubeClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{
+		LabelSelector: labels.Set{"network.openshift.io/incluster-disruption": "true"}.AsSelector().String(),
+	})
+	if err != nil {
+		return false
+	}
+	return len(namespaces.Items) != 0
+}
+
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
 	var err error
 	fmt.Printf("in-cluster monitor: payload image pull spec is %v\n", i.payloadImagePullSpec)
@@ -248,6 +258,12 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 
 	if ok, _ := exutil.IsMicroShiftCluster(i.kubeClient); ok {
 		i.notSupportedReason = "microshift clusters don't have load balancers"
+		return nil
+	}
+
+	// Exit early if another test has already created a namespace
+	if i.namespaceAlreadyCreated(ctx) {
+		i.notSupportedReason = "in-cluster monitor is already running"
 		return nil
 	}
 
