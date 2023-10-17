@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheustypes "github.com/prometheus/common/model"
+	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -296,15 +297,8 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 	case alerts.Type() == prometheustypes.ValMatrix:
 		matrixAlert := alerts.(prometheustypes.Matrix)
 		for _, alert := range matrixAlert {
-			alertName := alert.Metric[prometheustypes.AlertNameLabel]
 
-			lb := monitorapi.NewLocator().AlertFromNames(
-				string(alertName),
-				string(alert.Metric["instance"]),
-				string(alert.Metric["namespace"]),
-				string(alert.Metric["pod"]),
-				string(alert.Metric["container"]),
-			)
+			lb := monitorapi.NewLocator().AlertFromPromSampleStream(alert)
 
 			var level monitorapi.IntervalLevel
 			switch {
@@ -364,10 +358,7 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 		}
 
 	default:
-		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceAlert, monitorapi.Error).
-			Locator(monitorapi.NewLocator().AlertFromNames("all", "", "", "", "")).
-			Message(monitorapi.NewMessage().HumanMessagef("unhandled type: %v", alerts.Type())).
-			Build(startTime, time.Now()))
+		logrus.WithField("type", alerts.Type()).Warning("unhandled prometheus alert type received in alert monitor")
 	}
 
 	return ret, nil
