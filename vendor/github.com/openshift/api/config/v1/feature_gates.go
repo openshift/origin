@@ -163,16 +163,6 @@ var (
 		OwningProduct:       kubernetes,
 	}
 
-	FeatureGateAdmissionWebhookMatchConditions = FeatureGateName("AdmissionWebhookMatchConditions")
-	admissionWebhookMatchConditions            = FeatureGateDescription{
-		FeatureGateAttributes: FeatureGateAttributes{
-			Name: FeatureGateAdmissionWebhookMatchConditions,
-		},
-		OwningJiraComponent: "kube-apiserver",
-		ResponsiblePerson:   "benluddy",
-		OwningProduct:       kubernetes,
-	}
-
 	FeatureGateAzureWorkloadIdentity = FeatureGateName("AzureWorkloadIdentity")
 	azureWorkloadIdentity            = FeatureGateDescription{
 		FeatureGateAttributes: FeatureGateAttributes{

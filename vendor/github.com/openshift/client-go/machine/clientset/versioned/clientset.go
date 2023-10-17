@@ -19,8 +19,7 @@ type Interface interface {
 	MachineV1beta1() machinev1beta1.MachineV1beta1Interface
 }
 
-// Clientset contains the clients for groups. Each group has exactly one
-// version included in a Clientset.
+// Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
 	machineV1      *machinev1.MachineV1Client
