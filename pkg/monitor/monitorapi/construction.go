@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 )
@@ -92,23 +93,39 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 		Build()
 }
 
-func (b *LocatorBuilder) AlertFromNames(alertName, node, namespace, pod, container string) Locator {
+func (b *LocatorBuilder) AlertFromPromSampleStream(alert *model.SampleStream) Locator {
 	b.targetType = LocatorTypeAlert
+
+	alertName := string(alert.Metric[model.AlertNameLabel])
 	if len(alertName) > 0 {
 		b.annotations[LocatorAlertKey] = alertName
 	}
+	node := string(alert.Metric["instance"])
 	if len(node) > 0 {
 		b.annotations[LocatorNodeKey] = node
 	}
+	namespace := string(alert.Metric["namespace"])
 	if len(namespace) > 0 {
 		b.annotations[LocatorNamespaceKey] = namespace
 	}
+	pod := string(alert.Metric["pod"])
 	if len(pod) > 0 {
 		b.annotations[LocatorPodKey] = pod
 	}
+	container := string(alert.Metric["container"])
 	if len(container) > 0 {
 		b.annotations[LocatorContainerKey] = container
 	}
+
+	// Some alerts include a very useful name field, ClusterOperator[Down|Degraded] for example,
+	// always comes from the namespace openshift-cluster-version, but this field is the actual
+	// name of the operator that was detected to be down. This is very useful for locators and
+	// analysis.
+	additionalName := string(alert.Metric["name"])
+	if len(additionalName) > 0 {
+		b.annotations[LocatorNameKey] = additionalName
+	}
+
 	return b.Build()
 }
 
