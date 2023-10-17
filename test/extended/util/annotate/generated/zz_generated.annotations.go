@@ -1197,8 +1197,6 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][Late] Alerts shouldn't exceed the series limit of total series sent via telemetry from each cluster": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][Late] Alerts shouldn't report any unexpected alerts in firing or pending state": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have a runbook_url annotation if the alert is critical": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should have a valid severity label": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",

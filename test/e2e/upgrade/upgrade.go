@@ -38,7 +38,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades/node"
 
 	"github.com/openshift/origin/test/e2e/upgrade/adminack"
-	"github.com/openshift/origin/test/e2e/upgrade/alert"
 	"github.com/openshift/origin/test/e2e/upgrade/dns"
 	"github.com/openshift/origin/test/e2e/upgrade/manifestdelete"
 	"github.com/openshift/origin/test/extended/prometheus"
@@ -56,7 +55,6 @@ func AllTests() []upgrades.Test {
 	return []upgrades.Test{
 		&adminack.UpgradeTest{},
 		&manifestdelete.UpgradeTest{},
-		&alert.UpgradeTest{},
 
 		&node.SecretUpgradeTest{},
 		&apps.ReplicaSetUpgradeTest{},

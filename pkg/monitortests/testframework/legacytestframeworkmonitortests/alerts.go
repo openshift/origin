@@ -12,7 +12,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/sirupsen/logrus"
 
-	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
@@ -26,8 +25,10 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
+type AllowedAlertsFunc func(featureSet configv1.FeatureSet) (allowedFiringWithBugs, allowedFiring, allowedPendingWithBugs, allowedPending helper.MetricConditions)
+
 func testAlerts(events monitorapi.Intervals,
-	allowancesFunc alerts.AllowedAlertsFunc,
+	allowancesFunc AllowedAlertsFunc,
 	jobType *platformidentification.JobType,
 	restConfig *rest.Config,
 	duration time.Duration,
@@ -74,7 +75,7 @@ func testAlerts(events monitorapi.Intervals,
 }
 
 func RunAlertTests(jobType *platformidentification.JobType,
-	allowancesFunc alerts.AllowedAlertsFunc,
+	allowancesFunc AllowedAlertsFunc,
 	featureSet configv1.FeatureSet,
 	etcdAllowance allowedalerts2.AlertTestAllowanceCalculator,
 	events monitorapi.Intervals,
@@ -109,7 +110,7 @@ func RunAlertTests(jobType *platformidentification.JobType,
 // runBackstopTest will process the intervals for any alerts which do not have their own explicit test,
 // and look for any pending/firing intervals that are not within sufficient range.
 func runBackstopTest(
-	allowancesFunc alerts.AllowedAlertsFunc,
+	allowancesFunc AllowedAlertsFunc,
 	featureSet configv1.FeatureSet,
 	alertIntervals monitorapi.Intervals,
 	alertTests []allowedalerts2.AlertTest) []*junitapi.JUnitTestCase {

@@ -16,7 +16,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/pkg/alerts"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -250,12 +249,6 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 		if !nsExist {
 			g.Skip("openshift-monitoring namespace does not exist, skipping")
 		}
-	})
-
-	g.It("shouldn't report any unexpected alerts in firing or pending state", func() {
-		// we only consider samples since the beginning of the test
-		testDuration := exutil.DurationSinceStartInSeconds()
-		alerts.CheckAlerts(alerts.AllowedAlertsDuringConformance, oc.NewPrometheusClient(context.TODO()), oc.AdminConfigClient(), testDuration, nil)
 	})
 
 	g.It("shouldn't exceed the series limit of total series sent via telemetry from each cluster", func() {
