@@ -15,6 +15,15 @@ func AllAlertTests(jobType *platformidentification.JobType, etcdAllowance AlertT
 	ret = append(ret, newNamespacedAlert("KubePodNotReady", jobType).pending().neverFail().toTests()...)
 	ret = append(ret, newNamespacedAlert("KubePodNotReady", jobType).firing().toTests()...)
 
+	// ClusterOperatorDown and ClusterOperatorDegraded should not occur during a normal upgrade.
+	// In CI firing is rare, but does happen a few times a month. Pending however occurs all the time, which implies operators are routinely in
+	// a state they're not supposed to be during upgrade.
+	// https://github.com/openshift/enhancements/blob/cb81452fddf86c1099acd87610b88369cd6192db/dev-guide/cluster-version-operator/dev/clusteroperator.md#there-are-a-set-of-guarantees-components-are-expected-to-honor-in-return
+	ret = append(ret, newAlert("Cluster Version Operator", "ClusterOperatorDown", jobType).pending().alwaysFail().toTests()...)
+	ret = append(ret, newAlert("Cluster Version Operator", "ClusterOperatorDegraded", jobType).pending().alwaysFail().toTests()...)
+	ret = append(ret, newAlert("Cluster Version Operator", "ClusterOperatorDown", jobType).firing().alwaysFail().toTests()...)
+	ret = append(ret, newAlert("Cluster Version Operator", "ClusterOperatorDegraded", jobType).firing().alwaysFail().toTests()...)
+
 	ret = append(ret, newAlert("etcd", "etcdMembersDown", jobType).pending().neverFail().toTests()...)
 	ret = append(ret, newAlert("etcd", "etcdMembersDown", jobType).firing().toTests()...)
 	ret = append(ret, newAlert("etcd", "etcdGRPCRequestsSlow", jobType).pending().neverFail().toTests()...)

@@ -111,6 +111,11 @@ func (a *alertBuilder) neverFail() *alertBuilder {
 	return a
 }
 
+func (a *alertBuilder) alwaysFail() *alertBuilder {
+	a.allowanceCalculator = alwaysFail()
+	return a
+}
+
 func (a *alertBuilder) toTests() []AlertTest {
 	if !a.divideByNamespaces {
 		return []AlertTest{

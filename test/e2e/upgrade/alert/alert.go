@@ -48,8 +48,7 @@ func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-c
 
 	testDuration := time.Now().Sub(startTime).Round(time.Second)
 
-	alerts.CheckAlerts(alerts.AllowedAlertsDuringUpgrade, t.oc.AdminConfig(),
-		t.oc.NewPrometheusClient(context.TODO()), t.oc.AdminConfigClient(), testDuration, f)
+	alerts.CheckAlerts(alerts.AllowedAlertsDuringUpgrade, t.oc.NewPrometheusClient(context.TODO()), t.oc.AdminConfigClient(), testDuration, f)
 }
 
 // Teardown cleans up any remaining resources.

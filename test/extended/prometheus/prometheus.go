@@ -255,7 +255,7 @@ var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	g.It("shouldn't report any unexpected alerts in firing or pending state", func() {
 		// we only consider samples since the beginning of the test
 		testDuration := exutil.DurationSinceStartInSeconds()
-		alerts.CheckAlerts(alerts.AllowedAlertsDuringConformance, oc.AdminConfig(), oc.NewPrometheusClient(context.TODO()), oc.AdminConfigClient(), testDuration, nil)
+		alerts.CheckAlerts(alerts.AllowedAlertsDuringConformance, oc.NewPrometheusClient(context.TODO()), oc.AdminConfigClient(), testDuration, nil)
 	})
 
 	g.It("shouldn't exceed the series limit of total series sent via telemetry from each cluster", func() {

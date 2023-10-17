@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	allowedalerts "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	o "github.com/onsi/gomega"
@@ -18,7 +18,6 @@ import (
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -26,12 +25,7 @@ type AllowedAlertsFunc func(featureSet configv1.FeatureSet) (allowedFiringWithBu
 
 // CheckAlerts will query prometheus and ensure no-unexpected alerts were pending or firing.
 // Used by both upgrade and conformance suites, with different allowances for each.
-func CheckAlerts(allowancesFunc AllowedAlertsFunc,
-	restConfig *rest.Config,
-	prometheusClient prometheusv1.API, // TODO: remove
-	configClient configclient.Interface, // TODO: remove
-	testDuration time.Duration,
-	f *framework.Framework) {
+func CheckAlerts(allowancesFunc AllowedAlertsFunc, prometheusClient prometheusv1.API, configClient configclient.Interface, testDuration time.Duration, f *framework.Framework) {
 
 	featureSet := configv1.Default
 	featureGate, err := configClient.ConfigV1().FeatureGates().Get(context.TODO(), "cluster", metav1.GetOptions{})
@@ -46,11 +40,11 @@ func CheckAlerts(allowancesFunc AllowedAlertsFunc,
 	// In addition to the alert allowances passed in (which can differ for upgrades vs conformance),
 	// we also exclude alerts that have their own separate tests codified. This is a backstop test for
 	// everything else.
-	for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{},
-		allowedalerts2.DefaultAllowances) {
+	for _, alertTest := range allowedalerts.AllAlertTests(&platformidentification.JobType{},
+		allowedalerts.DefaultAllowances) {
 
 		switch alertTest.AlertState() {
-		case allowedalerts2.AlertPending:
+		case allowedalerts.AlertPending:
 			// a pending test covers pending and everything above (firing)
 			allowedPendingAlerts = append(allowedPendingAlerts,
 				helper.MetricCondition{
@@ -64,7 +58,7 @@ func CheckAlerts(allowancesFunc AllowedAlertsFunc,
 					Text:     "has a separate e2e test",
 				},
 			)
-		case allowedalerts2.AlertInfo:
+		case allowedalerts.AlertInfo:
 			// an info test covers all firing
 			allowedFiringAlerts = append(allowedFiringAlerts,
 				helper.MetricCondition{

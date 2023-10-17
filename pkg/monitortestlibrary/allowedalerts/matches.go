@@ -54,3 +54,21 @@ func (d *percentileAllowances) FlakeAfter(key historicaldata2.AlertDataKey) time
 func getClosestPercentilesValues(key historicaldata2.AlertDataKey) (historicaldata2.StatisticalDuration, string, error) {
 	return getCurrentResults().BestMatchDuration(key)
 }
+
+func alwaysFail() AlertTestAllowanceCalculator {
+	return &alwaysFailAllowance{}
+}
+
+// alwaysFailAllowance is for alerts we want to fail a test if they occur at all.
+type alwaysFailAllowance struct {
+}
+
+func (d *alwaysFailAllowance) FailAfter(key historicaldata2.AlertDataKey) (time.Duration, error) {
+	// TODO: right now we're just flaking until we're certain this doesn't happen too often. Once we're sure,
+	// change to 1 second.
+	return 24 * time.Hour, nil
+}
+
+func (d *alwaysFailAllowance) FlakeAfter(key historicaldata2.AlertDataKey) time.Duration {
+	return 1 * time.Second
+}
