@@ -111,8 +111,8 @@ func (a *alertBuilder) neverFail() *alertBuilder {
 	return a
 }
 
-func (a *alertBuilder) alwaysFail() *alertBuilder {
-	a.allowanceCalculator = alwaysFail()
+func (a *alertBuilder) alwaysFlake() *alertBuilder {
+	a.allowanceCalculator = alwaysFlake()
 	return a
 }
 
