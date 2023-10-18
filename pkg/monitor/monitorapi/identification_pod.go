@@ -13,10 +13,6 @@ func LocatePod(pod *corev1.Pod) string {
 	return fmt.Sprintf("ns/%s pod/%s node/%s uid/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, pod.UID)
 }
 
-func LocatePodContainer(pod *corev1.Pod, containerName string) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s uid/%s container/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, pod.UID, containerName)
-}
-
 // NonUniquePodLocatorFrom produces an inexact locator based on namespace and name.  This is useful when dealing with events
 // that are produced that do not contain UIDs.  Ultimately, we should use UIDs everywhere, but this is will keep some our
 // matching working until then.
@@ -26,6 +22,7 @@ func NonUniquePodLocatorFrom(locator string) string {
 	return fmt.Sprintf("ns/%s pod/%s", namespace, parts["pod"])
 }
 
+// TODO:  all callers should eventuall be using structured locator variant below:
 func PodFrom(locator string) PodReference {
 	parts := LocatorParts(locator)
 	namespace := NamespaceFrom(parts)
@@ -43,10 +40,27 @@ func PodFrom(locator string) PodReference {
 	}
 }
 
-func ContainerFrom(locator string) ContainerReference {
-	pod := PodFrom(locator)
-	parts := LocatorParts(locator)
-	name := parts["container"]
+// PodFromLocator is used to strip down a locator to just a pod. (as it may contain additional keys like container or node)
+// that we do not want for some uses.
+func PodFromLocator(locator Locator) PodReference {
+	namespace := locator.Keys[LocatorNamespaceKey]
+	name := locator.Keys[LocatorPodKey]
+	uid := locator.Keys[LocatorUIDKey]
+	if len(namespace) == 0 || len(name) == 0 {
+		return PodReference{}
+	}
+	return PodReference{
+		NamespacedReference: NamespacedReference{
+			Namespace: namespace,
+			Name:      name,
+			UID:       uid,
+		},
+	}
+}
+
+func ContainerFrom(locator Locator) ContainerReference {
+	pod := PodFrom(locator.OldLocator())
+	name := locator.Keys[LocatorContainerKey]
 	if len(name) == 0 || len(pod.UID) == 0 {
 		return ContainerReference{}
 	}
@@ -61,8 +75,8 @@ type PodReference struct {
 	NamespacedReference
 }
 
-func (r PodReference) ToLocator() string {
-	return fmt.Sprintf("ns/%s pod/%s uid/%s", r.Namespace, r.Name, r.UID)
+func (r PodReference) ToLocator() Locator {
+	return NewLocator().PodFromNames(r.Namespace, r.Name, r.UID)
 }
 
 type ContainerReference struct {
@@ -70,8 +84,8 @@ type ContainerReference struct {
 	ContainerName string
 }
 
-func (r ContainerReference) ToLocator() string {
-	return fmt.Sprintf("ns/%s pod/%s uid/%s container/%s", r.Pod.Namespace, r.Pod.Name, r.Pod.UID, r.ContainerName)
+func (r ContainerReference) ToLocator() Locator {
+	return NewLocator().ContainerFromNames(r.Pod.Namespace, r.Pod.Name, r.Pod.UID, r.ContainerName)
 }
 
 func AnnotationsFromMessage(message string) map[AnnotationKey]string {

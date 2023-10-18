@@ -2,22 +2,70 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
+      "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
       "message": "reason/Created ",
+      "tempStructuredLocator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "installer-3-ip-10-0-136-132.us-west-2.compute.internal",
+          "namespace": "openshift-kube-scheduler",
+          "node": "ip-10-0-136-132.us-west-2.compute.internal",
+          "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Created",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": null
+      },
       "from": "2022-03-10T22:46:20Z",
       "to": "2022-03-10T22:46:20Z"
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
+      "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
       "message": "reason/Scheduled node/ip-10-0-136-132.us-west-2.compute.internal",
+      "tempStructuredLocator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "installer-3-ip-10-0-136-132.us-west-2.compute.internal",
+          "namespace": "openshift-kube-scheduler",
+          "node": "ip-10-0-136-132.us-west-2.compute.internal",
+          "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Scheduled",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "node": "ip-10-0-136-132.us-west-2.compute.internal"
+        }
+      },
       "from": "2022-03-10T22:46:20Z",
       "to": "2022-03-10T22:46:20Z"
     },
     {
       "level": "Warning",
-      "locator": "ns/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9 container/installer",
+      "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9 container/installer",
       "message": "reason/NotReady ",
+      "tempStructuredLocator": {
+        "type": "Container",
+        "keys": {
+          "pod": "installer-3-ip-10-0-136-132.us-west-2.compute.internal",
+          "namespace": "openshift-kube-scheduler",
+          "node": "ip-10-0-136-132.us-west-2.compute.internal",
+          "container": "installer",
+          "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "NotReady",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": null
+      },
       "from": "2022-03-10T22:46:20Z",
       "to": "2022-03-10T22:46:20Z"
     }

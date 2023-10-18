@@ -2,68 +2,103 @@
     "items": [
         {
             "level": "Info",
-            "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
             "message": "constructed/pod-lifecycle-constructor reason/Created",
+            "tempSource": "PodState",
             "tempStructuredLocator": {
-                "type": "",
-                "keys": null
+                "type": "Pod",
+                "keys": {
+                    "namespace": "openshift-machine-config-operator",
+                    "pod": "machine-config-operator-7d5bf78cff-bbbwb",
+                    "uid": "27e57fd1-c8f9-4528-8a04-0054dad5d38f"
+                }
             },
             "tempStructuredMessage": {
-                "reason": "",
+                "reason": "Created",
                 "cause": "",
                 "humanMessage": "",
-                "annotations": null
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "reason": "Created"
+                }
             },
             "from": "2022-03-08T23:17:18Z",
             "to": "2022-03-08T23:17:18Z"
         },
         {
             "level": "Info",
-            "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
-            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-231-18.us-east-2.compute.internal reason/Scheduled",
+            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
+            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
+            "tempSource": "PodState",
             "tempStructuredLocator": {
-                "type": "",
-                "keys": null
+                "type": "Container",
+                "keys": {
+                    "container": "machine-config-operator",
+                    "namespace": "openshift-machine-config-operator",
+                    "pod": "machine-config-operator-7d5bf78cff-bbbwb",
+                    "uid": "27e57fd1-c8f9-4528-8a04-0054dad5d38f"
+                }
             },
             "tempStructuredMessage": {
-                "reason": "",
+                "reason": "NotReady",
+                "cause": "",
+                "humanMessage": "missed real \"NotReady\"",
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "reason": "NotReady"
+                }
+            },
+            "from": "2022-03-08T23:17:18Z",
+            "to": "2022-03-08T23:17:18Z"
+        },
+        {
+            "level": "Info",
+            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
+            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-231-18.us-east-2.compute.internal reason/Scheduled",
+            "tempSource": "PodState",
+            "tempStructuredLocator": {
+                "type": "Pod",
+                "keys": {
+                    "namespace": "openshift-machine-config-operator",
+                    "pod": "machine-config-operator-7d5bf78cff-bbbwb",
+                    "uid": "27e57fd1-c8f9-4528-8a04-0054dad5d38f"
+                }
+            },
+            "tempStructuredMessage": {
+                "reason": "Scheduled",
                 "cause": "",
                 "humanMessage": "",
-                "annotations": null
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "node": "ip-10-0-231-18.us-east-2.compute.internal",
+                    "reason": "Scheduled"
+                }
             },
             "from": "2022-03-08T23:17:18Z",
             "to": "2022-03-10T23:00:00Z"
         },
         {
             "level": "Info",
-            "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
-            "tempStructuredLocator": {
-                "type": "",
-                "keys": null
-            },
-            "tempStructuredMessage": {
-                "reason": "",
-                "cause": "",
-                "humanMessage": "",
-                "annotations": null
-            },
-            "from": "2022-03-08T23:17:18Z",
-            "to": "2022-03-08T23:17:18Z"
-        },
-        {
-            "level": "Info",
-            "locator": "ns/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
+            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
             "message": "constructed/pod-lifecycle-constructor reason/Ready",
+            "tempSource": "PodState",
             "tempStructuredLocator": {
-                "type": "",
-                "keys": null
+                "type": "Container",
+                "keys": {
+                    "container": "machine-config-operator",
+                    "namespace": "openshift-machine-config-operator",
+                    "pod": "machine-config-operator-7d5bf78cff-bbbwb",
+                    "uid": "27e57fd1-c8f9-4528-8a04-0054dad5d38f"
+                }
             },
             "tempStructuredMessage": {
-                "reason": "",
+                "reason": "Ready",
                 "cause": "",
                 "humanMessage": "",
-                "annotations": null
+                "annotations": {
+                    "constructed": "pod-lifecycle-constructor",
+                    "reason": "Ready"
+                }
             },
             "from": "2022-03-08T23:17:18Z",
             "to": "2022-03-10T23:00:00Z"

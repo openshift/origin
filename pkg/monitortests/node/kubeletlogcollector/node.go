@@ -225,7 +225,7 @@ func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
 				Locator(containerRef).
 				Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonReadinessFailed).Node(nodeName).HumanMessage(message)).
 				BuildCondition(),
@@ -255,7 +255,7 @@ func readinessError(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
 				Locator(containerRef).
 				Message(
 					monitorapi.NewMessage().
@@ -284,7 +284,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
 				Locator(containerRef).
 				Message(
 					monitorapi.NewMessage().
@@ -333,7 +333,7 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
 				Locator(containerRef).
 				Message(
 					monitorapi.NewMessage().
@@ -441,7 +441,7 @@ func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) m
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Error).
+			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Error).
 				Locator(nodeLocator).
 				Message(monitorapi.NewMessage().Reason("FailedToDeleteCGroupsPath").HumanMessage(logLine)).
 				BuildCondition(),
@@ -460,7 +460,7 @@ func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Error).
+			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Error).
 				Locator(nodeLocator).
 				Message(monitorapi.NewMessage().Reason("FailedToAuthenticateWithOpenShiftUser").HumanMessage(logLine)).
 				BuildCondition(),
@@ -514,7 +514,7 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
 				Locator(nodeLocator).
 				Message(
 					monitorapi.NewMessage().Reason(monitorapi.NodeFailedLease).HumanMessage(fmt.Sprintf("%s - %s", url, msg)),
@@ -559,7 +559,7 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
 		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
 				Locator(locator()).
 				Message(
 					monitorapi.NewMessage().Reason(reason).Node(nodeName).HumanMessage(message),

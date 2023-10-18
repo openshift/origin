@@ -62,8 +62,22 @@ func (b *IntervalBuilder) Build(from, to time.Time) Interval {
 	return ret
 }
 
+// BuildNow creates the final interval with a from/to timestamp of now.
+func (b *IntervalBuilder) BuildNow() Interval {
+	now := time.Now()
+	ret := Interval{
+		Condition: b.BuildCondition(),
+		Display:   b.display,
+		Source:    b.source,
+		From:      now,
+		To:        now,
+	}
+
+	return ret
+}
+
 func (b *IntervalBuilder) Message(mb *MessageBuilder) *IntervalBuilder {
-	b.structuredMessage = mb.build()
+	b.structuredMessage = mb.Build()
 	return b
 }
 
@@ -417,8 +431,8 @@ func (m *MessageBuilder) HumanMessagef(messageFormat string, args ...interface{}
 	return m.HumanMessage(fmt.Sprintf(messageFormat, args...))
 }
 
-// build creates the final StructuredMessage with all data assembled by this builder.
-func (m *MessageBuilder) build() Message {
+// Build creates the final StructuredMessage with all data assembled by this builder.
+func (m *MessageBuilder) Build() Message {
 	ret := Message{
 		Annotations: map[AnnotationKey]string{},
 	}

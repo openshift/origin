@@ -66,9 +66,11 @@ func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
 		events = append(events, monitorapi.Interval{
 			Source: monitorapi.IntervalSource(interval.Source),
 			Condition: monitorapi.Condition{
-				Level:   level,
-				Locator: interval.Locator,
-				Message: interval.Message,
+				Level:             level,
+				Locator:           interval.Locator,
+				Message:           interval.Message,
+				StructuredLocator: interval.StructuredLocator,
+				StructuredMessage: interval.StructuredMessage,
 			},
 
 			From: interval.From.Time,
@@ -176,8 +178,16 @@ func (intervals byTime) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	return intervals[i].Locator < intervals[j].Locator
+
+	switch d := intervals[i].To.Sub(intervals[j].To.Time); {
+	case d < 0:
+		return true
+	case d > 0:
+		return false
+	}
+	return intervals[i].Message < intervals[j].Message
 }
+
 func (intervals byTime) Len() int { return len(intervals) }
 func (intervals byTime) Swap(i, j int) {
 	intervals[i], intervals[j] = intervals[j], intervals[i]

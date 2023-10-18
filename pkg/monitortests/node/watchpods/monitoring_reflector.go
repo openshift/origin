@@ -18,8 +18,8 @@ type resourceTracker interface {
 	RecordResource(resourceType string, obj runtime.Object)
 }
 
-type conditionRecorder interface {
-	Record(conditions ...monitorapi.Condition)
+type intervalRecorder interface {
+	AddIntervals(intervals ...monitorapi.Interval)
 }
 
 type monitoringStore struct {
@@ -37,7 +37,7 @@ func newMonitoringStore(
 	updateHandlers []objUpdateFunc,
 	deleteHandlers []objDeleteFunc,
 	resourceTracker resourceTracker,
-	conditionRecorder conditionRecorder,
+	intervalRecorder intervalRecorder,
 ) *monitoringStore {
 	s := &monitoringStore{
 		FakeCustomStore:       &cache.FakeCustomStore{},
@@ -65,7 +65,7 @@ func newMonitoringStore(
 		}
 
 		for _, updateHandler := range updateHandlers {
-			conditionRecorder.Record(updateHandler(obj, oldObj)...)
+			intervalRecorder.AddIntervals(updateHandler(obj, oldObj)...)
 		}
 
 		return nil
@@ -86,7 +86,7 @@ func newMonitoringStore(
 		resourceTracker.RecordResource(resourceType, obj.(runtime.Object))
 
 		for _, createHandler := range createHandlers {
-			conditionRecorder.Record(createHandler(obj)...)
+			intervalRecorder.AddIntervals(createHandler(obj)...)
 		}
 
 		return nil
@@ -108,7 +108,7 @@ func newMonitoringStore(
 		resourceTracker.RecordResource(resourceType, obj.(runtime.Object))
 
 		for _, deleteHandler := range deleteHandlers {
-			conditionRecorder.Record(deleteHandler(obj)...)
+			intervalRecorder.AddIntervals(deleteHandler(obj)...)
 		}
 
 		return nil

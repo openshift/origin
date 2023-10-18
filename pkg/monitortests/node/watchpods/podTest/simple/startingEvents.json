@@ -2,57 +2,187 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
       "message": "reason/Created ",
+      "tempStructuredLocator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "openshift-apiserver-operator-845779f5d-975gr",
+          "namespace": "openshift-apiserver-operator",
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Created",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": null
+      },
       "from": "2022-03-22T22:02:53Z",
       "to": "2022-03-22T22:02:53Z"
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
       "message": "reason/Scheduled node/ci-op-ckiwry67-db044-lzjpd-master-0",
+      "tempStructuredLocator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "openshift-apiserver-operator-845779f5d-975gr",
+          "namespace": "openshift-apiserver-operator",
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Scheduled",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0"
+        }
+      },
       "from": "2022-03-22T22:02:53Z",
       "to": "2022-03-22T22:02:53Z"
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
       "message": "reason/Ready ",
+      "tempStructuredLocator": {
+        "type": "Container",
+        "keys": {
+          "pod": "openshift-apiserver-operator-845779f5d-975gr",
+          "namespace": "openshift-apiserver-operator",
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "container": "openshift-apiserver-operator",
+          "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Ready",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": null
+      },
       "from": "2022-03-22T22:02:53Z",
       "to": "2022-03-22T22:02:53Z"
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
       "message": "reason/GracefulDelete duration/30s",
+      "tempStructuredLocator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "openshift-apiserver-operator-845779f5d-975gr",
+          "namespace": "openshift-apiserver-operator",
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "GracefulDelete",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": {
+          "duration": "30s"
+        }
+      },
       "from": "2022-03-22T22:29:35Z",
       "to": "2022-03-22T22:29:35Z"
     },
     {
       "level": "Warning",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
       "message": "reason/NotReady ",
+      "tempStructuredLocator": {
+        "type": "Container",
+        "keys": {
+          "pod": "openshift-apiserver-operator-845779f5d-975gr",
+          "namespace": "openshift-apiserver-operator",
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "container": "openshift-apiserver-operator",
+          "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "NotReady",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": null
+      },
       "from": "2022-03-22T22:29:36Z",
       "to": "2022-03-22T22:29:36Z"
     },
     {
       "level": "Error",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
       "message": "reason/TerminationStateCleared lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)",
+      "tempStructuredLocator": {
+        "type": "Container",
+        "keys": {
+          "pod": "openshift-apiserver-operator-845779f5d-975gr",
+          "namespace": "openshift-apiserver-operator",
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "container": "openshift-apiserver-operator",
+          "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "TerminationStateCleared",
+        "cause": "",
+        "humanMessage": "lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)",
+        "annotations": null
+      },
       "from": "2022-03-22T22:29:36Z",
       "to": "2022-03-22T22:29:36Z"
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
       "message": "reason/ContainerExit code/0 cause/Completed ",
+      "tempStructuredLocator": {
+        "type": "Container",
+        "keys": {
+          "pod": "openshift-apiserver-operator-845779f5d-975gr",
+          "namespace": "openshift-apiserver-operator",
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "container": "openshift-apiserver-operator",
+          "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "ContainerExit",
+        "cause": "Completed",
+        "humanMessage": "",
+        "annotations": {
+          "code": "0"
+        }
+      },
       "from": "2022-03-22T22:29:36Z",
       "to": "2022-03-22T22:29:36Z"
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
+      "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr node/ci-op-ckiwry67-db044-lzjpd-master-0 uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
       "message": "reason/Deleted ",
+      "tempStructuredLocator": {
+        "type": "Pod",
+        "keys": {
+          "pod": "openshift-apiserver-operator-845779f5d-975gr",
+          "namespace": "openshift-apiserver-operator",
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Deleted",
+        "cause": "",
+        "humanMessage": "",
+        "annotations": null
+      },
       "from": "2022-03-22T22:29:36Z",
       "to": "2022-03-22T22:29:36Z"
     }

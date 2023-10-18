@@ -2,7 +2,6 @@ package watchnodes
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -16,7 +15,7 @@ import (
 )
 
 func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, client kubernetes.Interface) {
-	nodeReadyFn := func(node, oldNode *corev1.Node) []monitorapi.Condition {
+	nodeReadyFn := func(node, oldNode *corev1.Node) []monitorapi.Interval {
 		isCreate := false
 		if oldNode == nil {
 			isCreate = true
@@ -35,58 +34,60 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 
 		}
 
+		now := time.Now()
 		switch {
 		case isCreate && !isReady:
-			return []monitorapi.Condition{
-				{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("reason/NotReady roles/%s node is not ready", nodeRoles(node)),
-				},
+			return []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+					Message(monitorapi.NewMessage().Reason("NotReady").
+						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+						HumanMessage("node is not ready")).Build(now, now),
 			}
 
 		case isCreate && isReady:
-			return []monitorapi.Condition{
-				{
-					Level:   monitorapi.Info,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("reason/Ready roles/%s node is ready", nodeRoles(node)),
-				},
+			return []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+					Message(monitorapi.NewMessage().Reason("Ready").
+						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+						HumanMessage("node is ready")).Build(now, now),
 			}
 
 		case wasReady && !isReady:
-			return []monitorapi.Condition{
-				{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("reason/NotReady roles/%s node is not ready", nodeRoles(node)),
-				},
+			return []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+					Message(monitorapi.NewMessage().Reason("NotReady").
+						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+						HumanMessage("node is not ready")).Build(now, now),
 			}
 
 		case !wasReady && isReady:
-			return []monitorapi.Condition{
-				{
-					Level:   monitorapi.Info,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("reason/Ready roles/%s node is ready", nodeRoles(node)),
-				},
+			return []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+					Message(monitorapi.NewMessage().Reason("Ready").
+						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+						HumanMessage("node is ready")).Build(now, now),
 			}
 		}
 
 		return nil
 	}
 
-	nodeAddFns := []func(node *corev1.Node) []monitorapi.Condition{
-		func(node *corev1.Node) []monitorapi.Condition {
+	nodeAddFns := []func(node *corev1.Node) []monitorapi.Interval{
+		func(node *corev1.Node) []monitorapi.Interval {
 			return nodeReadyFn(node, nil)
 		},
 	}
-	nodeChangeFns := []func(node, oldNode *corev1.Node) []monitorapi.Condition{
+	nodeChangeFns := []func(node, oldNode *corev1.Node) []monitorapi.Interval{
 		nodeReadyFn,
-		func(node, oldNode *corev1.Node) []monitorapi.Condition {
-			var conditions []monitorapi.Condition
+		func(node, oldNode *corev1.Node) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
 			roles := nodeRoles(node)
 
+			now := time.Now()
 			for i := range node.Status.Conditions {
 				c := &node.Status.Conditions[i]
 				previous := findNodeCondition(oldNode.Status.Conditions, c.Type, i)
@@ -94,24 +95,32 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 					continue
 				}
 				if c.Status != previous.Status {
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   monitorapi.Warning,
-						Locator: monitorapi.NodeLocator(node.Name),
-						Message: fmt.Sprintf("condition/%s status/%s reason/%s roles/%s changed", c.Type, c.Status, c.Reason, roles),
-					})
+					intervals = append(intervals,
+						monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+							Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+							Message(monitorapi.NewMessage().Reason(monitorapi.IntervalReason(c.Reason)).
+								WithAnnotations(map[monitorapi.AnnotationKey]string{
+									monitorapi.AnnotationRoles: roles,
+								}).
+								HumanMessage("changed")).
+							Build(now, now))
 				}
 			}
 			if node.UID != oldNode.UID {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Error,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("roles/%s node was deleted and recreated", roles),
-				})
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Error).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().
+							WithAnnotations(map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationRoles: roles,
+							}).
+							HumanMessage("node was deleted and recreated")).
+						Build(now, now))
 			}
-			return conditions
+			return intervals
 		},
-		func(node, oldNode *corev1.Node) []monitorapi.Condition {
-			var conditions []monitorapi.Condition
+		func(node, oldNode *corev1.Node) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
 			roles := nodeRoles(node)
 
 			oldConfig := oldNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
@@ -119,21 +128,32 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			oldDesired := oldNode.Annotations["machineconfiguration.openshift.io/desiredConfig"]
 			newDesired := node.Annotations["machineconfiguration.openshift.io/desiredConfig"]
 
+			now := time.Now()
 			if newDesired != oldDesired {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("reason/MachineConfigChange config/%s roles/%s config change requested", newDesired, roles),
-				})
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.MachineConfigChangeReason).
+							WithAnnotations(map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationRoles:  roles,
+								monitorapi.AnnotationConfig: newDesired,
+							}).
+							HumanMessage("config change requested")).
+						Build(now, now))
 			}
 			if oldConfig != newConfig && newDesired == newConfig {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("reason/MachineConfigReached config/%s roles/%s reached desired config", newDesired, roles),
-				})
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.MachineConfigReachedReason).
+							WithAnnotations(map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationRoles:  roles,
+								monitorapi.AnnotationConfig: newDesired,
+							}).
+							HumanMessage("reached desired config")).
+						Build(now, now))
 			}
-			return conditions
+			return intervals
 		},
 	}
 
@@ -146,7 +166,7 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 					return
 				}
 				for _, fn := range nodeAddFns {
-					m.Record(fn(node)...)
+					m.AddIntervals(fn(node)...)
 				}
 			},
 			DeleteFunc: func(obj interface{}) {
@@ -154,11 +174,16 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 				if !ok {
 					return
 				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.NodeLocator(node.Name),
-					Message: fmt.Sprintf("roles/%s deleted", nodeRoles(node)),
-				})
+				now := time.Now()
+				i := monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+					Message(monitorapi.NewMessage().
+						WithAnnotations(map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationRoles: nodeRoles(node),
+						}).
+						HumanMessage("deleted")).
+					Build(now, now)
+				m.AddIntervals(i)
 			},
 			UpdateFunc: func(old, obj interface{}) {
 				node, ok := obj.(*corev1.Node)
@@ -170,7 +195,7 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 					return
 				}
 				for _, fn := range nodeChangeFns {
-					m.Record(fn(node, oldNode)...)
+					m.AddIntervals(fn(node, oldNode)...)
 				}
 			},
 		},
