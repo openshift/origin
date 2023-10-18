@@ -3302,7 +3302,6 @@ k8s.io/kubernetes/test/e2e/storage/vsphere
 k8s.io/kubernetes/test/e2e/testing-manifests
 k8s.io/kubernetes/test/e2e/upgrades
 k8s.io/kubernetes/test/e2e/upgrades/apps
-k8s.io/kubernetes/test/e2e/upgrades/network
 k8s.io/kubernetes/test/e2e/upgrades/node
 k8s.io/kubernetes/test/fixtures
 k8s.io/kubernetes/test/integration
