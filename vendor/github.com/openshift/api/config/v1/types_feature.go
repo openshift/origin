@@ -170,7 +170,6 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 		with(insightsConfigAPI).
 		with(retroactiveDefaultStorageClass).
 		with(dynamicResourceAllocation).
-		with(admissionWebhookMatchConditions).
 		with(gateGatewayAPI).
 		with(maxUnavailableStatefulSet).
 		without(eventedPleg).

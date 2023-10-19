@@ -507,6 +507,11 @@ spec:
                           required:
                             - type
                           type: object
+                          x-kubernetes-validations:
+                            - message: container cannot be specified unless type is Container
+                              rule: '!has(self.type) || self.type == "Container" || !has(self.container) || !has(self.container.maxLength) || self.container.maxLength == 1024'
+                            - message: container and syslog cannot both be specified at the same time
+                              rule: '!has(self.container) || !has(self.container.maxLength) || self.container.maxLength == 1024 || !has(self.syslog)'
                         httpCaptureCookies:
                           description: httpCaptureCookies specifies HTTP cookies that should be captured in access logs.  If this field is empty, no cookies are captured.
                           items:

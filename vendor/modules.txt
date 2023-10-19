@@ -681,7 +681,7 @@ github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/api v0.0.0-20231003083825-c3f7566f6ef6
+# github.com/openshift/api v0.0.0-20231010075512-1ccc6058c62d
 ## explicit; go 1.20
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -784,7 +784,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20230915115245-53bd8980dfb7
+# github.com/openshift/client-go v0.0.0-20230926161409-848405da69e1
 ## explicit; go 1.20
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal
@@ -905,7 +905,7 @@ github.com/openshift/client-go/user/informers/externalversions/internalinterface
 github.com/openshift/client-go/user/informers/externalversions/user
 github.com/openshift/client-go/user/informers/externalversions/user/v1
 github.com/openshift/client-go/user/listers/user/v1
-# github.com/openshift/library-go v0.0.0-20230915122714-b753831a0dce
+# github.com/openshift/library-go v0.0.0-20231016155954-11c72a39f742
 ## explicit; go 1.20
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
 github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout
@@ -916,6 +916,8 @@ github.com/openshift/library-go/pkg/authorization/authorizationutil
 github.com/openshift/library-go/pkg/authorization/hardcodedauthorizer
 github.com/openshift/library-go/pkg/authorization/scopemetadata
 github.com/openshift/library-go/pkg/build/naming
+github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphanalysis
+github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi
 github.com/openshift/library-go/pkg/client/openshiftrestmapper
 github.com/openshift/library-go/pkg/config/client
 github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers
