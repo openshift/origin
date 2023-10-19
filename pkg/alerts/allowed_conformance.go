@@ -33,6 +33,10 @@ func AllowedAlertsDuringConformance(featureSet configv1.FeatureSet) (allowedFiri
 			Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
 			Text:     "high CPU utilization during e2e runs is normal",
 		},
+		{
+			Selector: map[string]string{"alertname": "SystemMemoryExceedsReservation"},
+			Text:     "high memory utilization during e2e runs is normal",
+		},
 	}
 	pendingAlertsWithBugs := helper.MetricConditions{}
 	allowedPendingAlerts := helper.MetricConditions{
@@ -43,6 +47,10 @@ func AllowedAlertsDuringConformance(featureSet configv1.FeatureSet) (allowedFiri
 		{
 			Selector: map[string]string{"alertname": "ExtremelyHighIndividualControlPlaneCPU"},
 			Text:     "high CPU utilization during e2e runs is normal",
+		},
+		{
+			Selector: map[string]string{"alertname": "SystemMemoryExceedsReservation"},
+			Text:     "high memory utilization during e2e runs is normal",
 		},
 	}
 
