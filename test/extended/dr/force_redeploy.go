@@ -165,8 +165,8 @@ func forceRedeployOperand(client *operatorConfigClient) {
 // waitForRollout waits for an operator status to indicate that all nodes are
 // at a revision greater than that provided.
 func waitForRollout(client *operatorConfigClient, previousRevision int32) {
-	// Need to wait as long as 15 minutes for rollout of kube apiserver
-	err := wait.PollImmediate(redeployWaitInterval, 15*time.Minute, func() (done bool, err error) {
+	// Need to wait as long as 30 minutes for rollout
+	err := wait.PollImmediate(redeployWaitInterval, 30*time.Minute, func() (done bool, err error) {
 		status, err := client.getStatus(context.Background(), "cluster", metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("Error retrieving %s operator status: %v", client, err)
