@@ -20,15 +20,23 @@ const minJobRuns = 100
 
 type StatisticalDuration struct {
 	platformidentification.JobType `json:",inline"`
+	P50                            time.Duration
+	P75                            time.Duration
 	P95                            time.Duration
 	P99                            time.Duration
+	FirstObserved                  time.Time
+	LastObserved                   time.Time
 }
 
 type DisruptionStatisticalData struct {
-	DataKey `json:",inline"`
-	P95     float64
-	P99     float64
-	JobRuns int64
+	DataKey       `json:",inline"`
+	P50           float64
+	P75           float64
+	P95           float64
+	P99           float64
+	FirstObserved time.Time
+	LastObserved  time.Time
+	JobRuns       int64
 }
 
 type DataKey struct {
@@ -172,9 +180,13 @@ func (b *DisruptionBestMatcher) BestMatchP99(name string, jobType platformidenti
 
 func toStatisticalDuration(in DisruptionStatisticalData) StatisticalDuration {
 	return StatisticalDuration{
-		JobType: in.DataKey.JobType,
-		P95:     DurationOrDie(in.P95),
-		P99:     DurationOrDie(in.P99),
+		JobType:       in.DataKey.JobType,
+		P50:           DurationOrDie(in.P50),
+		P75:           DurationOrDie(in.P75),
+		P95:           DurationOrDie(in.P95),
+		P99:           DurationOrDie(in.P99),
+		FirstObserved: in.FirstObserved,
+		LastObserved:  in.LastObserved,
 	}
 }
 

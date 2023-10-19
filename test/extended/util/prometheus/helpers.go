@@ -161,9 +161,10 @@ func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
 
 func (c MetricConditions) MatchesInterval(alertInterval monitorapi.Interval) *MetricCondition {
 
-	// Parse out the alertInterval:
-	checkAlertName := monitorapi.AlertFromLocator(alertInterval.Locator)
-	checkAlertNamespace := monitorapi.NamespaceFromLocator(alertInterval.Locator)
+	// TODO: Source check for SourceAlert would be a good idea here.
+
+	checkAlertName := alertInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
+	checkAlertNamespace := alertInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
 
 	for _, condition := range c {
 		if checkAlertName == condition.AlertName && checkAlertNamespace == condition.AlertNamespace {
@@ -171,21 +172,6 @@ func (c MetricConditions) MatchesInterval(alertInterval monitorapi.Interval) *Me
 		}
 	}
 	return nil
-}
-
-func LabelsAsSelector(l model.LabelSet) string {
-	return l.String()
-}
-
-func StripLabels(m model.Metric, names ...string) model.LabelSet {
-	labels := make(model.LabelSet)
-	for k := range m {
-		labels[k] = m[k]
-	}
-	for _, name := range names {
-		delete(labels, model.LabelName(name))
-	}
-	return labels
 }
 
 func RunQuery(ctx context.Context, prometheusClient prometheusv1.API, query string) (*PrometheusResponse, error) {

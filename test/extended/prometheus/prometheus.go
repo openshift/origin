@@ -543,14 +543,11 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 		})
 
 		g.It("shouldn't report any alerts in firing state apart from Watchdog and AlertmanagerReceiversNotConfigured [Early][apigroup:config.openshift.io]", func() {
-			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
-			allowedAlertNames := []string{
-				"Watchdog",
-				"AlertmanagerReceiversNotConfigured",
-				"PrometheusRemoteWriteDesiredShards",
-				"KubeJobFailed", // this is a result of bug https://bugzilla.redhat.com/show_bug.cgi?id=2054426 .  We should catch these in the late test above.
-			}
+			// Copy so we can expand:
+			allowedAlertNames := make([]string, len(allowedalerts2.AllowedAlertNames))
+			copy(allowedAlertNames, allowedalerts2.AllowedAlertNames)
 
+			// Checking Watchdog alert state is done in "should have a Watchdog alert in firing state".
 			// we exclude alerts that have their own separate tests.
 			for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{}, allowedalerts2.DefaultAllowances) {
 				allowedAlertNames = append(allowedAlertNames, alertTest.AlertName())

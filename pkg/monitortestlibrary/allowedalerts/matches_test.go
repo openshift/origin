@@ -171,7 +171,7 @@ func TestGetClosestP99Value(t *testing.T) {
 // from bigquery and commit into origin. Test ensures we can parse it and the data looks sane.
 func TestAlertDataFileParsing(t *testing.T) {
 
-	alertMatcher := getCurrentResults()
+	alertMatcher := GetHistoricalData()
 
 	// The list of known alerts that goes into this file is composed of everything we've ever
 	// seen fire in that release. As such it can change from one release to the next as alerts

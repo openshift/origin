@@ -52,7 +52,7 @@ func (d *percentileAllowances) FlakeAfter(key historicaldata2.AlertDataKey) time
 // getClosestPercentilesValues uses the backend and information about the cluster to choose the best historical p99 to operate against.
 // We enforce "don't get worse" for disruption by watching the aggregate data in CI over many runs.
 func getClosestPercentilesValues(key historicaldata2.AlertDataKey) (historicaldata2.StatisticalDuration, string, error) {
-	return getCurrentResults().BestMatchDuration(key)
+	return GetHistoricalData().BestMatchDuration(key)
 }
 
 func alwaysFlake() AlertTestAllowanceCalculator {

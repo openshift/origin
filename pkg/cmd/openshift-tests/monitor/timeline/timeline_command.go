@@ -57,7 +57,7 @@ func NewTimelineOptions(ioStreams genericclioptions.IOStreams) *TimelineOptions 
 
 		IOStreams: ioStreams,
 		KnownRenderers: map[string]RenderFunc{
-			"json": monitorserialization.EventsToJSON,
+			"json": monitorserialization.IntervalsToJSON,
 			"html": renderHTML,
 		},
 		KnownTimelines: map[string]monitorapi.EventIntervalMatchesFunc{

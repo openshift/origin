@@ -6,7 +6,8 @@ import (
 	"strings"
 	"time"
 
-	allowedalerts2 "github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
+	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -47,8 +48,8 @@ func testAlerts(events monitorapi.Intervals,
 		featureSet = featureGate.Spec.FeatureSet
 	}
 
-	var etcdAllowance allowedalerts2.AlertTestAllowanceCalculator
-	etcdAllowance = allowedalerts2.DefaultAllowances
+	var etcdAllowance allowedalerts.AlertTestAllowanceCalculator
+	etcdAllowance = allowedalerts.DefaultAllowances
 	// if we have a restConfig,  use it.
 	var kubeClient *kubernetes.Clientset
 	if restConfig != nil {
@@ -56,7 +57,7 @@ func testAlerts(events monitorapi.Intervals,
 		if err != nil {
 			panic(err)
 		}
-		etcdAllowance, err = allowedalerts2.NewAllowedWhenEtcdRevisionChange(context.TODO(),
+		etcdAllowance, err = allowedalerts.NewAllowedWhenEtcdRevisionChange(context.TODO(),
 			kubeClient, duration)
 		if err != nil {
 			panic(err)
@@ -74,15 +75,17 @@ func testAlerts(events monitorapi.Intervals,
 	return ret
 }
 
+// RunAlertTests is a key entry point for running all per-Alert tests we've defined in all.go AllAlertTests,
+// as well as backstop tests on things we observe outside those specific tests.
 func RunAlertTests(jobType *platformidentification.JobType,
 	allowancesFunc AllowedAlertsFunc,
 	featureSet configv1.FeatureSet,
-	etcdAllowance allowedalerts2.AlertTestAllowanceCalculator,
+	etcdAllowance allowedalerts.AlertTestAllowanceCalculator,
 	events monitorapi.Intervals,
 	recordedResource monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
 
 	ret := []*junitapi.JUnitTestCase{}
-	alertTests := allowedalerts2.AllAlertTests(jobType, etcdAllowance)
+	alertTests := allowedalerts.AllAlertTests(jobType, etcdAllowance)
 
 	// Run the per-alert tests we've hardcoded:
 	for i := range alertTests {
@@ -101,8 +104,14 @@ func RunAlertTests(jobType *platformidentification.JobType,
 		ret = append(ret, junit...)
 	}
 
+	pendingIntervals := events.Filter(monitorapi.AlertPending())
+	firingIntervals := events.Filter(monitorapi.AlertFiring())
+
 	// Run the backstop catch all for all other alerts:
-	ret = append(ret, runBackstopTest(allowancesFunc, featureSet, events, alertTests)...)
+	ret = append(ret, runBackstopTest(allowancesFunc, featureSet, pendingIntervals, firingIntervals, alertTests)...)
+
+	// TODO: Run a test to ensure no new alerts fired:
+	ret = append(ret, runNoNewAlertsFiringTest(allowedalerts.GetHistoricalData(), firingIntervals)...)
 
 	return ret
 }
@@ -112,14 +121,13 @@ func RunAlertTests(jobType *platformidentification.JobType,
 func runBackstopTest(
 	allowancesFunc AllowedAlertsFunc,
 	featureSet configv1.FeatureSet,
-	alertIntervals monitorapi.Intervals,
-	alertTests []allowedalerts2.AlertTest) []*junitapi.JUnitTestCase {
+	pendingIntervals monitorapi.Intervals,
+	firingIntervals monitorapi.Intervals,
+	alertTests []allowedalerts.AlertTest) []*junitapi.JUnitTestCase {
 
 	firingAlertsWithBugs, allowedFiringAlerts, pendingAlertsWithBugs, allowedPendingAlerts :=
 		allowancesFunc(featureSet)
 
-	pendingIntervals := alertIntervals.Filter(monitorapi.AlertPending())
-	firingIntervals := alertIntervals.Filter(monitorapi.AlertFiring())
 	logrus.Infof("filtered down to %d pending intervals", len(pendingIntervals))
 	logrus.Infof("filtered down to %d firing intervals", len(firingIntervals))
 
@@ -129,7 +137,7 @@ func runBackstopTest(
 	for _, alertTest := range alertTests {
 
 		switch alertTest.AlertState() {
-		case allowedalerts2.AlertPending:
+		case allowedalerts.AlertPending:
 			// a pending test covers pending and everything above (firing)
 			allowedPendingAlerts = append(allowedPendingAlerts,
 				helper.MetricCondition{
@@ -143,7 +151,7 @@ func runBackstopTest(
 					Text:     "has a separate e2e test",
 				},
 			)
-		case allowedalerts2.AlertInfo:
+		case allowedalerts.AlertInfo:
 			// an info test covers all firing
 			allowedFiringAlerts = append(allowedFiringAlerts,
 				helper.MetricCondition{
@@ -162,6 +170,9 @@ func runBackstopTest(
 	// New version for alert testing against intervals instead of directly from prometheus:
 	for _, firing := range firingIntervals {
 		fan := monitorapi.AlertFromLocator(firing.Locator)
+		if isSkippedAlert(fan) {
+			continue
+		}
 		seconds := firing.To.Sub(firing.From)
 		violation := fmt.Sprintf("V2 alert %s fired for %s seconds with labels: %s", fan, seconds, firing.Message)
 		if cause := allowedFiringAlerts.MatchesInterval(firing); cause != nil {
@@ -178,6 +189,9 @@ func runBackstopTest(
 	// New version for alert testing against intervals instead of directly from prometheus:
 	for _, pending := range pendingIntervals {
 		fan := monitorapi.AlertFromLocator(pending.Locator)
+		if isSkippedAlert(fan) {
+			continue
+		}
 		seconds := pending.To.Sub(pending.From)
 		violation := fmt.Sprintf("V2 alert %s pending for %s seconds with labels: %s", fan, seconds, pending.Message)
 		if cause := allowedPendingAlerts.MatchesInterval(pending); cause != nil {
@@ -211,6 +225,84 @@ func runBackstopTest(
 		output := fmt.Sprintf("Unexpected alert behavior: \n\n%s", strings.Join(flakes.List(), "\n"))
 		ret = append(ret, &junitapi.JUnitTestCase{
 			Name: "[sig-trt][invariant] No alerts without an explicit test should be firing/pending more than historically",
+			FailureOutput: &junitapi.FailureOutput{
+				Output: output,
+			},
+			SystemOut: output,
+		})
+	}
+	return ret
+}
+
+func isSkippedAlert(alertName string) bool {
+	// Some alerts we always skip over in CI:
+	for _, a := range allowedalerts.AllowedAlertNames {
+		if a == alertName {
+			return true
+		}
+	}
+	return false
+}
+
+// runNoNewAlertsFiringTest checks all alerts to see if we:
+//  1. have no historical data for that alert in that namespace for this release
+//  2. have historical data but it was first observed less than 2 weeks ago
+//
+// If either is true, this test will fail. We do not want new product alerts being added to the product that
+// will trigger routinely and affect the fleet when they ship.
+// The two week limit is our window to address these kinds of problems, after that the failure will stop.
+func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
+	firingIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	testName := "[sig-trt][invariant] No new alerts should be firing"
+	ret := []*junitapi.JUnitTestCase{
+		{
+			// Success test to force a flake until we're ready to let things fail here.
+			Name: testName,
+		},
+	}
+
+	// accumulate all alerts firing that we have no historical data for this release, or we know it only
+	// recently appeared. (less than two weeks ago) Any alerts in either category will fail this test.
+	newAlertsFiring := []string{}
+
+	for _, interval := range firingIntervals {
+		alertName := interval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
+
+		if isSkippedAlert(alertName) {
+			continue
+		}
+
+		// Scan historical data to see if this alert appears new. Ignore release, namespace, level, everything but
+		// AlertName, just see if it's in the data file and when we first observed it in either of the two releases we expect in there.
+		var firstObserved *time.Time
+		var sawAlertName bool
+		for _, hd := range historicalData.HistoricalData {
+			if hd.AlertName == alertName {
+				sawAlertName = true
+				if firstObserved == nil || (!hd.FirstObserved.IsZero() && hd.FirstObserved.Before(*firstObserved)) {
+					firstObserved = &hd.FirstObserved
+				}
+			}
+		}
+
+		if !sawAlertName {
+			violation := fmt.Sprintf("%s has no test data, this alert appears new and should not be firing", alertName)
+			logrus.Warn(violation)
+			newAlertsFiring = append(newAlertsFiring, violation)
+		} else if firstObserved != nil && time.Now().Sub(*firstObserved) <= 14*24*time.Hour {
+			// if we did get data, check how old the first observed timestamp was, too new and we're going to fire as well.
+			violation := fmt.Sprintf("%s was first observed on %s, this alert appears new and should not be firing", alertName, firstObserved.UTC().Format(time.RFC3339))
+			logrus.Warn(violation)
+			newAlertsFiring = append(newAlertsFiring, violation)
+		}
+		// if firstObserved was still nil, we can't do the two week check, but we saw the alert, so assume a test pass, the alert must be known
+	}
+
+	if len(newAlertsFiring) > 0 {
+		output := fmt.Sprintf("Found alerts firing which are new or less than two weeks old, which should not be firing: \n\n%s",
+			strings.Join(newAlertsFiring, "\n"))
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: testName,
 			FailureOutput: &junitapi.FailureOutput{
 				Output: output,
 			},
