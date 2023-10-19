@@ -374,7 +374,8 @@ func (ut *Test) ToShell(i int) string {
 	if len(ut.ProxyHost) != 0 {
 		proxy = fmt.Sprintf("--connect-to ::%q", ut.ProxyHost)
 	}
-	cmd := fmt.Sprintf(`curl -X %s %s %s %s -s -S -o /tmp/body -D /tmp/headers %q`, ut.Req.Method, proxy, strings.Join(headers, " "), post, ut.Req.URL)
+	// curl's output for http/2 isn't parseable with go's net/http package, so force http/1.1 or older with --http1.1
+	cmd := fmt.Sprintf(`curl --http1.1 -X %s %s %s %s -s -S -o /tmp/body -D /tmp/headers %q`, ut.Req.Method, proxy, strings.Join(headers, " "), post, ut.Req.URL)
 	cmd += ` -w '{"code":%{http_code}}'`
 	if ut.SkipVerify {
 		cmd += ` -k`
