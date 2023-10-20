@@ -156,6 +156,10 @@ var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 
 	// etcd-quorum-guard can fail during upgrades.
 	regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
+	// Ingore the timeouts because cluster maybe not be ready yet
+	regexp.MustCompile(`reason/ProbeError.Readiness.probe.error:.Get.+net/http:.request.canceled.while.waiting.for.connection.\(Client.Timeout.exceeded.while.awaiting.headers\)`),
+	// Ignore the connection refused error because cluster may not be ready yet
+	regexp.MustCompile(`reason/.*dial tcp.*connection refused`),
 	// etcd can have unhealthy members during an upgrade
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: .*`),
 	// etcd-operator began to version etcd-endpoints configmap in 4.10 as part of static-pod-resource. During upgrade existing revisions will not contain the resource.
