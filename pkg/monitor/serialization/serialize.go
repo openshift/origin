@@ -44,7 +44,7 @@ func EventsToFile(filename string, events monitorapi.Intervals) error {
 	return ioutil.WriteFile(filename, json, 0644)
 }
 
-func EventsFromFile(filename string) (monitorapi.Intervals, error) {
+func IntervalsFromFile(filename string) (monitorapi.Intervals, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -59,6 +59,7 @@ func IntervalsFromJSON(data []byte) (monitorapi.Intervals, error) {
 	}
 	events := make(monitorapi.Intervals, 0, len(list.Items))
 	for _, interval := range list.Items {
+		// Convert from serialization type back into the original Interval
 		level, err := monitorapi.ConditionLevelFromString(interval.Level)
 		if err != nil {
 			return nil, err
@@ -106,7 +107,7 @@ func IntervalFromJSON(data []byte) (*monitorapi.Interval, error) {
 }
 
 func IntervalToOneLineJSON(interval monitorapi.Interval) ([]byte, error) {
-	outputEvent := monitorEventIntervalToEventInterval(interval)
+	outputEvent := MonitorIntervalToEventInterval(interval)
 
 	spacedBytes, err := json.Marshal(outputEvent)
 	if err != nil {
@@ -122,8 +123,13 @@ func IntervalToOneLineJSON(interval monitorapi.Interval) ([]byte, error) {
 
 func IntervalsToJSON(intervals monitorapi.Intervals) ([]byte, error) {
 	outputEvents := []EventInterval{}
+<<<<<<< HEAD
 	for _, curr := range intervals {
 		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
+=======
+	for _, curr := range events {
+		outputEvents = append(outputEvents, MonitorIntervalToEventInterval(curr))
+>>>>>>> a61162b8f6 (Revert "Revert "Improvements and fixes for Loki intervals uploader"")
 	}
 
 	sort.Sort(byTime(outputEvents))
@@ -147,7 +153,7 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 		if curr.From == curr.To && !curr.To.IsZero() {
 			continue
 		}
-		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
+		outputEvents = append(outputEvents, MonitorIntervalToEventInterval(curr))
 	}
 
 	sort.Sort(byTime(outputEvents))
@@ -155,7 +161,9 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 	return json.MarshalIndent(list, "", "    ")
 }
 
-func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
+// MonitorIntervalToEventInterval converts the source Interval to a type we use for serialization.
+// TODO: is maintaining two types still necessary?
+func MonitorIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
 	ret := EventInterval{
 		Level:             fmt.Sprintf("%v", interval.Level),
 		Locator:           interval.Locator,
