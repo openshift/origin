@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/openshift/api/config/v1"
 	"github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
@@ -105,6 +106,12 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 		withTargetType(LocatorTypeNode).
 		withNode(nodeName).
 		Build()
+}
+
+func (b *LocatorBuilder) ClusterVersion(cv *v1.ClusterVersion) Locator {
+	b.targetType = LocatorTypeClusterVersion
+	b.annotations[LocatorClusterVersionKey] = cv.Name
+	return b.Build()
 }
 
 func (b *LocatorBuilder) AlertFromPromSampleStream(alert *model.SampleStream) Locator {

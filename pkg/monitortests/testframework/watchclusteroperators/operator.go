@@ -96,22 +96,18 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 				if co.CreationTimestamp.Time.Before(startTime) {
 					return
 				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: monitorapi.OperatorLocator(co.Name),
-					Message: "created",
-				})
+				m.AddIntervals(monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, monitorapi.Info).
+					Locator(monitorapi.NewLocator().ClusterOperator(co.Name)).
+					Message(monitorapi.NewMessage().HumanMessage("created")).BuildNow())
 			},
 			DeleteFunc: func(obj interface{}) {
 				co, ok := obj.(*configv1.ClusterOperator)
 				if !ok {
 					return
 				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: monitorapi.OperatorLocator(co.Name),
-					Message: "deleted",
-				})
+				m.AddIntervals(monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, monitorapi.Warning).
+					Locator(monitorapi.NewLocator().ClusterOperator(co.Name)).
+					Message(monitorapi.NewMessage().HumanMessage("deleted")).BuildNow())
 			},
 			UpdateFunc: func(old, obj interface{}) {
 				co, ok := obj.(*configv1.ClusterOperator)
@@ -150,39 +146,33 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 		nil,
 	)
 
-	cvChangeFns := []func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Condition{
-		func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Condition {
-			var conditions []monitorapi.Condition
+	cvChangeFns := []func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Interval{
+		func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
 			if len(cv.Status.History) == 0 {
 				return nil
 			}
 			if len(oldCV.Status.History) == 0 {
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: locateClusterVersion(cv),
-					Message: fmt.Sprintf("cluster converging to %s", versionOrImage(cv.Status.History[0])),
-				})
-				return conditions
+				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, monitorapi.Warning).
+					Locator(monitorapi.NewLocator().ClusterVersion(cv)).
+					Message(monitorapi.NewMessage().HumanMessagef("cluster converging to %s", versionOrImage(cv.Status.History[0]))).BuildNow())
+				return intervals
 			}
 			cvNew, cvOld := cv.Status.History[0], oldCV.Status.History[0]
 			switch {
 			case cvNew.State == configv1.CompletedUpdate && cvOld.State != cvNew.State:
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: locateClusterVersion(cv),
-					Message: fmt.Sprintf("cluster reached %s", versionOrImage(cvNew)),
-				})
+				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, monitorapi.Warning).
+					Locator(monitorapi.NewLocator().ClusterVersion(cv)).
+					Message(monitorapi.NewMessage().HumanMessagef("cluster reached %s", versionOrImage(cvNew))).BuildNow())
 			case cvNew.State == configv1.PartialUpdate && cvOld.State == cvNew.State && cvOld.Image != cvNew.Image:
-				conditions = append(conditions, monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: locateClusterVersion(cv),
-					Message: fmt.Sprintf("cluster upgrading to %s without completing %s", versionOrImage(cvNew), versionOrImage(cvOld)),
-				})
+				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, monitorapi.Warning).
+					Locator(monitorapi.NewLocator().ClusterVersion(cv)).
+					Message(monitorapi.NewMessage().HumanMessagef("cluster upgrading to %s without completing %s", versionOrImage(cvNew), versionOrImage(cvOld))).BuildNow())
 			}
-			return conditions
+			return intervals
 		},
-		func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Condition {
-			var conditions []monitorapi.Condition
+		func(cv, oldCV *configv1.ClusterVersion) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
 			for i := range cv.Status.Conditions {
 				s := &cv.Status.Conditions[i]
 				previous := findOperatorStatusCondition(oldCV.Status.Conditions, s.Type)
@@ -206,14 +196,12 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 					if s.Type == configv1.ClusterStatusConditionType("Failing") && s.Status == configv1.ConditionTrue {
 						level = monitorapi.Error
 					}
-					conditions = append(conditions, monitorapi.Condition{
-						Level:   level,
-						Locator: locateClusterVersion(cv),
-						Message: msg,
-					})
+					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, level).
+						Locator(monitorapi.NewLocator().ClusterVersion(cv)).
+						Message(monitorapi.NewMessage().HumanMessage(msg)).BuildNow())
 				}
 			}
-			return conditions
+			return intervals
 		},
 	}
 
@@ -229,22 +217,18 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 				if cv.CreationTimestamp.Time.Before(startTime) {
 					return
 				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Info,
-					Locator: locateClusterVersion(cv),
-					Message: "created",
-				})
+				m.AddIntervals(monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, monitorapi.Info).
+					Locator(monitorapi.NewLocator().ClusterVersion(cv)).
+					Message(monitorapi.NewMessage().HumanMessage("created")).BuildNow())
 			},
 			DeleteFunc: func(obj interface{}) {
 				cv, ok := obj.(*configv1.ClusterVersion)
 				if !ok {
 					return
 				}
-				m.Record(monitorapi.Condition{
-					Level:   monitorapi.Warning,
-					Locator: locateClusterVersion(cv),
-					Message: "deleted",
-				})
+				m.AddIntervals(monitorapi.NewInterval(monitorapi.SourceClusterOperatorMonitor, monitorapi.Warning).
+					Locator(monitorapi.NewLocator().ClusterVersion(cv)).
+					Message(monitorapi.NewMessage().HumanMessage("deleted")).BuildNow())
 			},
 			UpdateFunc: func(old, obj interface{}) {
 				cv, ok := obj.(*configv1.ClusterVersion)
@@ -259,7 +243,7 @@ func startClusterOperatorMonitoring(ctx context.Context, m monitorapi.RecorderWr
 					return
 				}
 				for _, fn := range cvChangeFns {
-					m.Record(fn(cv, oldCV)...)
+					m.AddIntervals(fn(cv, oldCV)...)
 				}
 			},
 		},
@@ -273,10 +257,6 @@ func versionOrImage(h configv1.UpdateHistory) string {
 		return h.Image
 	}
 	return h.Version
-}
-
-func locateClusterVersion(cv *configv1.ClusterVersion) string {
-	return fmt.Sprintf("clusterversion/%s", cv.Name)
 }
 
 func findOperatorVersionChange(old, new []configv1.OperandVersion) []string {

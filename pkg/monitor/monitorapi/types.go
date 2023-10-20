@@ -108,6 +108,7 @@ const (
 	LocatorTypeKubeEvent         LocatorType = "KubeEvent"
 	LocatorTypeE2ETest           LocatorType = "E2ETest"
 	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
+	LocatorTypeClusterVersion    LocatorType = "ClusterVersion"
 )
 
 type LocatorKey string
@@ -116,6 +117,7 @@ const (
 	LocatorServer             LocatorKey = "server"   // TODO this looks like a bad name.  Aggregated apiserver?  Do we even need it?
 	LocatorShutdown           LocatorKey = "shutdown" // TODO this should not exist.  This is a reason and message
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
+	LocatorClusterVersionKey  LocatorKey = "clusterversion"
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
