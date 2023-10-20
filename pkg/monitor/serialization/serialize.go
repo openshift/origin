@@ -37,7 +37,7 @@ type EventIntervalList struct {
 }
 
 func EventsToFile(filename string, events monitorapi.Intervals) error {
-	json, err := EventsToJSON(events)
+	json, err := IntervalsToJSON(events)
 	if err != nil {
 		return err
 	}
@@ -49,10 +49,10 @@ func EventsFromFile(filename string) (monitorapi.Intervals, error) {
 	if err != nil {
 		return nil, err
 	}
-	return EventsFromJSON(data)
+	return IntervalsFromJSON(data)
 }
 
-func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
+func IntervalsFromJSON(data []byte) (monitorapi.Intervals, error) {
 	var list EventIntervalList
 	if err := json.Unmarshal(data, &list); err != nil {
 		return nil, err
@@ -68,8 +68,8 @@ func EventsFromJSON(data []byte) (monitorapi.Intervals, error) {
 			Condition: monitorapi.Condition{
 				Level:             level,
 				Locator:           interval.Locator,
-				Message:           interval.Message,
 				StructuredLocator: interval.StructuredLocator,
+				Message:           interval.Message,
 				StructuredMessage: interval.StructuredMessage,
 			},
 
@@ -120,9 +120,9 @@ func IntervalToOneLineJSON(interval monitorapi.Interval) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func EventsToJSON(events monitorapi.Intervals) ([]byte, error) {
+func IntervalsToJSON(intervals monitorapi.Intervals) ([]byte, error) {
 	outputEvents := []EventInterval{}
-	for _, curr := range events {
+	for _, curr := range intervals {
 		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
 	}
 
@@ -131,14 +131,16 @@ func EventsToJSON(events monitorapi.Intervals) ([]byte, error) {
 	return json.MarshalIndent(list, "", "    ")
 }
 
-func EventsIntervalsToFile(filename string, events monitorapi.Intervals) error {
-	json, err := EventsIntervalsToJSON(events)
+func IntervalsToFile(filename string, intervals monitorapi.Intervals) error {
+	json, err := EventsIntervalsToJSON(intervals)
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(filename, json, 0644)
 }
 
+// TODO: this is very similar but subtly different to the function above, what is the purpose of skipping those
+// with from/to equal or empty to?
 func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 	outputEvents := []EventInterval{}
 	for _, curr := range events {
@@ -165,7 +167,6 @@ func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInte
 		From: metav1.Time{Time: interval.From},
 		To:   metav1.Time{Time: interval.To},
 	}
-
 	return ret
 }
 

@@ -22,7 +22,7 @@ var (
 	historicalData *historicaldata.AlertBestMatcher
 )
 
-func getCurrentResults() *historicaldata.AlertBestMatcher {
+func GetHistoricalData() *historicaldata.AlertBestMatcher {
 	readResults.Do(
 		func() {
 			var err error
@@ -33,4 +33,15 @@ func getCurrentResults() *historicaldata.AlertBestMatcher {
 		})
 
 	return historicalData
+}
+
+// AllowedAlertNames is a  list of alerts we do not test against.
+var AllowedAlertNames = []string{
+	"Watchdog",
+	"AlertmanagerReceiversNotConfigured",
+	"PrometheusRemoteWriteDesiredShards",
+	"KubeJobFailed", // this is a result of bug https://bugzilla.redhat.com/show_bug.cgi?id=2054426 .  We should catch these in the prometheus tests.
+
+	// indicates a problem in the external Telemeter service, presently very common, does not impact our ability to e2e test:
+	"TelemeterClientFailures",
 }

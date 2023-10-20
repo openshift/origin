@@ -31,6 +31,7 @@ type AlertTest interface {
 
 // AlertState is the state of the alert. They are logically ordered, so if a test says it limits on "pending", then
 // any state above pending (like info or warning) will cause the test to fail.
+// TODO this looks wrong, AlertState (pending|firing) and AlertLevel (info|warning|critical) are different things, but they seem lumped together here.
 type AlertState string
 
 const (
@@ -108,6 +109,11 @@ func (a *alertBuilder) critical() *alertBuilder {
 
 func (a *alertBuilder) neverFail() *alertBuilder {
 	a.allowanceCalculator = neverFail(a.allowanceCalculator)
+	return a
+}
+
+func (a *alertBuilder) alwaysFlake() *alertBuilder {
+	a.allowanceCalculator = alwaysFlake()
 	return a
 }
 

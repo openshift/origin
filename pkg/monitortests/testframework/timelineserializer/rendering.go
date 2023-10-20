@@ -53,7 +53,7 @@ func (r eventIntervalRenderer) writeEventData(artifactDir, filenameBase string, 
 	errs := []error{}
 	interestingEvents := events.Filter(r.filter)
 
-	if err := monitorserialization.EventsIntervalsToFile(filepath.Join(artifactDir, fmt.Sprintf("%s.json", filenameBase)), interestingEvents); err != nil {
+	if err := monitorserialization.IntervalsToFile(filepath.Join(artifactDir, fmt.Sprintf("%s.json", filenameBase)), interestingEvents); err != nil {
 		errs = append(errs, err)
 	}
 

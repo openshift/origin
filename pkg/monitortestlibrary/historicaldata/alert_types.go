@@ -12,11 +12,15 @@ import (
 )
 
 type AlertStatisticalData struct {
-	AlertDataKey `json:",inline"`
-	Name         string
-	P95          float64
-	P99          float64
-	JobRuns      int64
+	AlertDataKey  `json:",inline"`
+	Name          string
+	P50           float64
+	P75           float64
+	P95           float64
+	P99           float64
+	FirstObserved time.Time
+	LastObserved  time.Time
+	JobRuns       int64
 }
 
 type AlertDataKey struct {
@@ -80,11 +84,11 @@ func NewAlertMatcherWithHistoricalData(data map[AlertDataKey]AlertStatisticalDat
 
 func (b *AlertBestMatcher) bestMatch(key AlertDataKey) (AlertStatisticalData, string, error) {
 	exactMatchKey := key
-	logrus.WithField("alertName", key.AlertName).Infof("searching for bestMatch for %+v", key.JobType)
-	logrus.Infof("historicalData has %d entries", len(b.HistoricalData))
+	logrus.WithField("alertName", key.AlertName).WithField("entries", len(b.HistoricalData)).
+		Debugf("searching for best match for %+v", key.JobType)
 
 	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok {
-		if percentiles.JobRuns > minJobRuns {
+		if percentiles.JobRuns >= minJobRuns {
 			logrus.Infof("found exact match: %+v", percentiles)
 			return percentiles, "", nil
 		}
@@ -159,8 +163,12 @@ func (b *AlertBestMatcher) BestMatchP99(key AlertDataKey) (*time.Duration, strin
 
 func toAlertStatisticalDuration(in AlertStatisticalData) StatisticalDuration {
 	return StatisticalDuration{
-		JobType: in.AlertDataKey.JobType,
-		P95:     DurationOrDie(in.P95),
-		P99:     DurationOrDie(in.P99),
+		JobType:       in.AlertDataKey.JobType,
+		P50:           DurationOrDie(in.P50),
+		P75:           DurationOrDie(in.P75),
+		P95:           DurationOrDie(in.P95),
+		P99:           DurationOrDie(in.P99),
+		FirstObserved: in.FirstObserved,
+		LastObserved:  in.LastObserved,
 	}
 }

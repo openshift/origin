@@ -199,6 +199,8 @@ const (
 type AnnotationKey string
 
 const (
+	AnnotationAlertState         AnnotationKey = "alertstate"
+	AnnotationSeverity           AnnotationKey = "severity"
 	AnnotationReason             AnnotationKey = "reason"
 	AnnotationContainerExitCode  AnnotationKey = "code"
 	AnnotationCause              AnnotationKey = "cause"

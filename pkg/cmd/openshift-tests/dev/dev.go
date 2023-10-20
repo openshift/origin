@@ -135,7 +135,7 @@ func readIntervalsFromFile(intervalsFile string) (monitorapi.Intervals, error) {
 		return nil, err
 	}
 
-	return monitorserialization.EventsFromJSON(jsonBytes)
+	return monitorserialization.IntervalsFromJSON(jsonBytes)
 }
 
 func newRunDisruptionInvariantsCommand() *cobra.Command {

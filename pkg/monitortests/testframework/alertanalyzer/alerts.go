@@ -312,15 +312,22 @@ func createEventIntervalsForAlerts(ctx context.Context, alerts prometheustypes.V
 				level = monitorapi.Warning
 			case alert.Metric["severity"] == "critical":
 				level = monitorapi.Error
-			case alert.Metric["severity"] == "info":
+			case alert.Metric["severity"] == "info": // this case may not exist
 				level = monitorapi.Info
 			default:
 				level = monitorapi.Error
 			}
+			msg := monitorapi.NewMessage().HumanMessage(alert.Metric.String())
+			if len(string(alert.Metric["alertstate"])) > 0 {
+				msg = msg.WithAnnotation(monitorapi.AnnotationAlertState, string(alert.Metric["alertstate"]))
+			}
+			if len(string(alert.Metric["severity"])) > 0 {
+				msg = msg.WithAnnotation(monitorapi.AnnotationSeverity, string(alert.Metric["severity"]))
+			}
 			alertIntervalTemplate :=
 				monitorapi.NewInterval(monitorapi.SourceAlert, level).
 					Locator(lb).
-					Message(monitorapi.NewMessage().HumanMessage(alert.Metric.String()))
+					Message(msg)
 
 			var alertStartTime *time.Time
 			var lastTime *time.Time
