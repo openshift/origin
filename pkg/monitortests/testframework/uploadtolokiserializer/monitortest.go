@@ -162,6 +162,10 @@ func pushBatch(client *http.Client, bearerToken, invoker, namespace string, valu
 				return fmt.Errorf("logs push to loki failed with http status %d", status)
 			}
 
+			// Give loki a little time to process to see if this helps the ingesters keep up as we may be pushing several
+			// batches quite quickly.
+			time.Sleep(2 * time.Second)
+
 			return nil
 		})
 }
@@ -213,6 +217,7 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string, dr
 	// per stream (set of labels), which includes namespace. Any intervals without a namespace, or in a non-openshift
 	// namespace, will be under the key ""
 	nsIntervals := map[string][][]interface{}{}
+	var intervalsPushed int
 
 	for _, i := range intervals {
 		namespace, logLine, err := intervalToLogLine(i, timeSuffix)
@@ -233,6 +238,7 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string, dr
 			strconv.FormatInt(i.From.UnixNano(), 10),
 			string(logLineJson),
 		})
+		intervalsPushed += 1
 
 		if len(nsIntervals[namespace]) == batchSize {
 			err := pushBatch(client, bearerToken, invoker, namespace, nsIntervals[namespace], dryRun)
@@ -242,9 +248,17 @@ func UploadIntervalsToLoki(intervals monitorapi.Intervals, timeSuffix string, dr
 			nsIntervals[namespace] = make([][]interface{}, 0)
 		}
 	}
+	logrus.Infof("pushed %d intervals due to batch size being reached", intervalsPushed)
 
-	// Push the final batches for each namespace:
-	logrus.Info("pushing final batches for each remaining namespace")
+	var streams, remainingIntervals int
+	for _, v := range nsIntervals {
+		if len(v) > 0 {
+			streams += 1
+			remainingIntervals += len(v)
+		}
+	}
+	logrus.Infof("pushing final batches for remaining %d intervals across %d namespace streams",
+		remainingIntervals, streams)
 	for namespace, v := range nsIntervals {
 		if len(v) > 0 {
 			err := pushBatch(client, bearerToken, invoker, namespace, nsIntervals[namespace], dryRun)

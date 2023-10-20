@@ -123,13 +123,8 @@ func IntervalToOneLineJSON(interval monitorapi.Interval) ([]byte, error) {
 
 func IntervalsToJSON(intervals monitorapi.Intervals) ([]byte, error) {
 	outputEvents := []EventInterval{}
-<<<<<<< HEAD
 	for _, curr := range intervals {
-		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
-=======
-	for _, curr := range events {
 		outputEvents = append(outputEvents, MonitorIntervalToEventInterval(curr))
->>>>>>> a61162b8f6 (Revert "Revert "Improvements and fixes for Loki intervals uploader"")
 	}
 
 	sort.Sort(byTime(outputEvents))
