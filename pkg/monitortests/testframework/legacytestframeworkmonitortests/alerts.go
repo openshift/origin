@@ -244,9 +244,10 @@ func isSkippedAlert(alertName string) bool {
 	return false
 }
 
-// runNoNewAlertsFiringTest checks all alerts to see if we:
-//  1. have no historical data for that alert in that namespace for this release
-//  2. have historical data but it was first observed less than 2 weeks ago
+// runNoNewAlertsFiringTest checks all firing non-info alerts to see if we:
+//
+//   - have no historical data for that alert in that namespace for this release, or
+//   - have historical data but it was first observed less than 2 weeks ago
 //
 // If either is true, this test will fail. We do not want new product alerts being added to the product that
 // will trigger routinely and affect the fleet when they ship.
@@ -269,6 +270,13 @@ func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
 		alertName := interval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
 
 		if isSkippedAlert(alertName) {
+			continue
+		}
+
+		// Skip alerts with severity info, I don't totally understand the semantics here but it appears some components
+		// use this for informational alerts. (saw two examples from Insights)
+		// We're only interested in warning+critical for the purposes of this test.
+		if interval.StructuredMessage.Annotations[monitorapi.AnnotationSeverity] == "info" {
 			continue
 		}
 

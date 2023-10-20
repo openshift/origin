@@ -83,6 +83,35 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 			expectedStatus:  []string{"pass", "fail"},
 		},
 		{
+			name: "firing severity info alert never seen before",
+			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
+				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
+			firingIntervals: monitorapi.Intervals{monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Warning,
+					StructuredLocator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypeAlert,
+						Keys: map[monitorapi.LocatorKey]string{
+							monitorapi.LocatorAlertKey:     "FakeAlert",
+							monitorapi.LocatorNamespaceKey: "fakens",
+						},
+					},
+					StructuredMessage: monitorapi.Message{
+						HumanMessage: "jibberish",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationAlertState: "firing",
+							monitorapi.AnnotationSeverity:   "info",
+						},
+					},
+				},
+				Source:  monitorapi.SourceAlert,
+				Display: false,
+				From:    time.Now().Add(-5 * time.Hour),
+				To:      time.Now().Add(-6 * time.Hour),
+			}},
+			expectedStatus: []string{"pass"}, // info severity alerts should not fail this test
+		},
+		{
 			name: "firing alert observed more than two weeks ago",
 			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
 				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{
