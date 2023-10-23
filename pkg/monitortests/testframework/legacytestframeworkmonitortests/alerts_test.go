@@ -73,14 +73,14 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 					},
 				}),
 			firingIntervals: monitorapi.Intervals{interval},
-			expectedStatus:  []string{"pass", "fail"},
+			expectedStatus:  []string{"fail"},
 		},
 		{
 			name: "firing alert never seen before",
 			historicalData: historicaldata.NewAlertMatcherWithHistoricalData(
 				map[historicaldata.AlertDataKey]historicaldata.AlertStatisticalData{}),
 			firingIntervals: monitorapi.Intervals{interval},
-			expectedStatus:  []string{"pass", "fail"},
+			expectedStatus:  []string{"fail"},
 		},
 		{
 			name: "firing severity info alert never seen before",

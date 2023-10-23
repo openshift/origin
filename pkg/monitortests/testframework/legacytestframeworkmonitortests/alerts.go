@@ -255,13 +255,6 @@ func isSkippedAlert(alertName string) bool {
 func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
 	firingIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-trt][invariant] No new alerts should be firing"
-	ret := []*junitapi.JUnitTestCase{
-		{
-			// Success test to force a flake until we're ready to let things fail here.
-			Name: testName,
-		},
-	}
-
 	// accumulate all alerts firing that we have no historical data for this release, or we know it only
 	// recently appeared. (less than two weeks ago) Any alerts in either category will fail this test.
 	newAlertsFiring := []string{}
@@ -306,7 +299,10 @@ func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
 		// if firstObserved was still nil, we can't do the two week check, but we saw the alert, so assume a test pass, the alert must be known
 	}
 
+	ret := []*junitapi.JUnitTestCase{}
+
 	if len(newAlertsFiring) > 0 {
+		// test failed
 		output := fmt.Sprintf("Found alerts firing which are new or less than two weeks old, which should not be firing: \n\n%s",
 			strings.Join(newAlertsFiring, "\n"))
 		ret = append(ret, &junitapi.JUnitTestCase{
@@ -316,6 +312,12 @@ func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
 			},
 			SystemOut: output,
 		})
+	} else {
+		// test passed
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: testName,
+		})
 	}
+
 	return ret
 }
