@@ -1,27 +1,13 @@
 package timeline
 
 import (
-	"archive/zip"
 	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-
 	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
-
-	"github.com/openshift/origin/pkg/defaultmonitortests"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
@@ -213,14 +199,6 @@ func (o *Timeline) Run() error {
 		return err
 	}
 
-	recordedResources := monitorapi.ResourcesMap{}
-	if len(o.PodResourceFilename) > 0 {
-		recordedResources, err = loadKnownPods(o.PodResourceFilename)
-		if err != nil {
-			return err
-		}
-	}
-
 	filteredEvents := consumedEvents.Filter(o.TimelineFilter)
 	if len(o.Namespaces) > 0 {
 		filteredEvents = filteredEvents.Filter(monitorapi.IsInNamespaces(sets.NewString(o.Namespaces...)))
@@ -233,7 +211,6 @@ func (o *Timeline) Run() error {
 		filteredEvents = filteredEvents.Filter(monitorapi.NotContainsAllParts(o.RemovedLocatorMatcher))
 	}
 	// compute intervals from raw
-	from := time.Time{}
 	var to time.Time
 
 	if o.EndDate == nil {
@@ -251,22 +228,6 @@ func (o *Timeline) Run() error {
 	} else {
 		to = *o.EndDate
 	}
-
-	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
-		ClusterStabilityDuringTest: monitortestframework.Stable,
-	}
-	invariantRegistry := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
-	computedIntervals, _, err := invariantRegistry.ConstructComputedIntervals(
-		context.TODO(),
-		filteredEvents,
-		recordedResources,
-		from,
-		to)
-	if err != nil {
-		// these errors are represented as junit, always continue to the next step
-		fmt.Fprintf(os.Stderr, "Error computing intervals, continuing, junit will reflect this. %v\n", err)
-	}
-	filteredEvents = append(filteredEvents, computedIntervals...)
 
 	output, err := o.Renderer(filteredEvents)
 	if err != nil {
@@ -292,61 +253,4 @@ func renderHTML(events monitorapi.Intervals) ([]byte, error) {
 	e2eChartHTML = bytes.ReplaceAll(e2eChartHTML, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)
 
 	return e2eChartHTML, nil
-}
-
-func loadKnownPods(filename string) (monitorapi.ResourcesMap, error) {
-
-	zipReader, err := zip.OpenReader(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer zipReader.Close()
-
-	pods := monitorapi.InstanceMap{}
-	for _, f := range zipReader.File {
-		rc, err := f.Open()
-		if err != nil {
-			return nil, err
-		}
-		currBytes, err := ioutil.ReadAll(rc)
-		if err != nil {
-			return nil, err
-		}
-		_ = rc.Close()
-
-		// there has to be a better way, but this functions, ugly as it is.
-		unstructuredObject := map[string]interface{}{}
-		if err := json.Unmarshal(currBytes, &unstructuredObject); err != nil {
-			return nil, fmt.Errorf("error unmarshalling list: %w", err)
-		}
-		unstructuredObj := &unstructured.Unstructured{
-			Object: unstructuredObject,
-		}
-		unstructuredList, err := unstructuredObj.ToList()
-		if err != nil {
-			return nil, err
-		}
-		//nsList := &unstructured.UnstructuredList{}
-
-		for _, item := range unstructuredList.Items {
-			item.SetKind("Pod")
-			item.SetAPIVersion("v1")
-
-			pod := &corev1.Pod{}
-			err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, pod)
-			if err != nil {
-				return nil, err
-			}
-			instanceKey := monitorapi.InstanceKey{
-				Namespace: pod.Namespace,
-				Name:      pod.Name,
-				UID:       fmt.Sprintf("%v", pod.UID),
-			}
-			pods[instanceKey] = pod
-		}
-	}
-
-	return monitorapi.ResourcesMap{
-		"pods": pods,
-	}, nil
 }
