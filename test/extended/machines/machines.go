@@ -144,6 +144,22 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 	g.It("[sig-scheduling][Early] control plane machine set operator should not have any events", func() {
 		ctx := context.Background()
 
+		nodeClient := oc.KubeClient().CoreV1().Nodes()
+		nodeList, err := nodeClient.List(ctx, metav1.ListOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// We want to skip this test on single-node clusters
+		// as the control plane machine set does not get generated.
+		// No other topology should match this condition.
+		if len(nodeList.Items) == 1 {
+			_, isWorker := nodeList.Items[0].Labels["node-role.kubernetes.io/worker"]
+			_, isControlPlane := nodeList.Items[0].Labels["node-role.kubernetes.io/control-plane"]
+
+			if isWorker && isControlPlane {
+				g.Skip("Skipping test due to a cluster being a single node cluster")
+			}
+		}
+
 		configClient, err := configclient.NewForConfig(oc.KubeFramework().ClientConfig())
 		o.Expect(err).ToNot(o.HaveOccurred())
 
