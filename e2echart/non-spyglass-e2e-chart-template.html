@@ -442,11 +442,11 @@
     }
 
     function isNodeState(eventInterval) {
-        if (eventInterval.locator.includes("node/")) {
-            return (eventInterval.message.includes("reason/NodeUpdate ") || eventInterval.message.includes("node is not ready"))
-        }
-        return false
+        return eventInterval.tempStructuredLocator.type === "Node" &&
+            (eventInterval.tempStructuredMessage.reason === "NodeUpdate" ||
+                eventInterval.tempStructuredMessage.reason === "NotReady");
     }
+
 
     function isAlert(eventInterval) {
         if (eventInterval.locator.includes("alert/")) {
@@ -528,24 +528,21 @@
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
         let roles = ""
-        let i = item.message.indexOf("roles/")
-        if (i != -1) {
-            roles = item.message.substring(i+"roles/".length)
-            let j = roles.indexOf(" ")
-            if (j != -1) {
-                roles = roles.substring(0, j)
-            }
+        if (item.tempStructuredMessage.hasOwnProperty('roles')) {
+            roles = item.tempStructuredMessage.roles
         }
 
-        if (item.message.includes("node is not ready")) {
+        if (item.tempStructuredMessage.reason === 'NotReady') {
             return [item.locator, ` (${roles},not ready)`, "NodeNotReady"]
         }
+        // TODO: would like to get this to a structured field as well
         let m = item.message.match(rePhase);
         if (m && m[2] != "Update") {
             return [item.locator, ` (${roles},update phases)`, m[2]];
         }
         return [item.locator, ` (${roles},updates)`, "Update"];
     }
+
 
     function alertSeverity(item) {
         // the other types can be pending, so check pending first
