@@ -52410,19 +52410,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isGracefulShutdownActivity(eventInterval) {
-        if (eventInterval.locator.includes("shutdown/graceful")) {
-            return true
-        }
-
-        return false
-    }
-
-    function isAPIServerShutdownEventActivity(eventInterval) {
-        if (eventInterval.locator.includes("shutdown/apiserver")) {
-            return true
-        }
-
-        return false
+        return (eventInterval.tempSource === "APIServerGracefulShutdown")
     }
 
     function isEndpointConnectivity(eventInterval) {
@@ -52715,11 +52703,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups.push({group: "endpoint-availability", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
 
-        timelineGroups.push({group: "shutdown-interval", data: []})
+        timelineGroups.push({group: "apiserver-shutdown", data: []})
         createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
-
-        timelineGroups.push({group: "shutdown-events", data: []})
-        createTimelineData(apiserverShutdownEventsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIServerShutdownEventActivity, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)

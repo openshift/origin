@@ -263,7 +263,7 @@ const (
 	SourceSystemJournalScanner    IntervalSource = "KubeletLogScanner"
 	SourcePodLog                  IntervalSource = "PodLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
-	SourceKubeEvent               IntervalSource = "KubeEvent"
+	APIServerGracefulShutdown     IntervalSource = "APIServerGracefulShutdown"
 	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 	SourceClusterOperatorMonitor  IntervalSource = "ClusterOperatorMonitor"

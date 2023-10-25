@@ -12,7 +12,7 @@ func TestBuilder(t *testing.T) {
 	podRef := monitorapi.PodFrom(oldLocator)
 	nodeName, _ := monitorapi.NodeFromLocator(oldLocator)
 
-	interval := monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+	interval := monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Info).
 		Locator(monitorapi.NewLocator().
 			LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name, true),
 		).
