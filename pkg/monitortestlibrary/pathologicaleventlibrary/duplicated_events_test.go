@@ -122,23 +122,33 @@ func TestUpgradeEventRegexExcluder(t *testing.T) {
 
 }
 
+func buildInterval(message string) monitorapi.Interval {
+	return monitorapi.Interval{
+		Condition: monitorapi.Condition{Message: message},
+		From:      time.Unix(872827200, 0).In(time.UTC),
+		To:        time.Unix(872827200, 0).In(time.UTC),
+	}
+}
+
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
 		knownRepeatedEventsBugs:      []KnownProblem{},
 	}
+	from := time.Unix(872827200, 0).In(time.UTC)
+	to := time.Unix(872827200, 0).In(time.UTC)
 
 	tests := []struct {
 		name            string
-		messages        []string
 		namespace       string
 		platform        v1.PlatformType
 		topology        v1.TopologyMode
+		intervals       []monitorapi.Interval
 		expectedMessage string
 	}{
 		{
 			name:            "matches 22 with namespace openshift",
-			messages:        []string{`ns/openshift - reason/SomeEvent1 foo (22 times)`},
+			intervals:       []monitorapi.Interval{buildInterval("ns/openshift - reason/SomeEvent1 foo (22 times)")},
 			namespace:       "openshift",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
@@ -146,7 +156,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 		},
 		{
 			name:            "matches 22 with namespace e2e",
-			messages:        []string{`ns/random - reason/SomeEvent1 foo (22 times)`},
+			intervals:       []monitorapi.Interval{buildInterval(`ns/random - reason/SomeEvent1 foo (22 times)`)},
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
@@ -154,7 +164,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 		},
 		{
 			name:            "matches 22 with no namespace",
-			messages:        []string{`reason/SomeEvent1 foo (22 times)`},
+			intervals:       []monitorapi.Interval{buildInterval(`reason/SomeEvent1 foo (22 times)`)},
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
@@ -162,27 +172,50 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 		},
 		{
 			name:            "matches 12 with namespace openshift",
-			messages:        []string{`ns/openshift - reason/SomeEvent1 foo (12 times)`},
+			intervals:       []monitorapi.Interval{buildInterval(`ns/openshift - reason/SomeEvent1 foo (12 times)`)},
 			namespace:       "openshift",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
 			expectedMessage: "",
 		},
+		{
+			// This is ignored because it was during a master NodeUpdate interval
+			name: "matches 22 with namespace openshift FailedScheduling during NodeUpdate",
+			intervals: []monitorapi.Interval{
+				monitorapi.Interval{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{}, // what node doesn't matter, all we can do is see if masters are updating
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.NodeUpdateReason,
+							HumanMessage: "config/rendered-master-5ab4844b3b5a58958785e2c27d99f50f phase/Update roles/control-plane,master reached desired config roles/control-plane,master",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationConstructed: "node-lifecycle-constructor",
+								monitorapi.AnnotationPhase:       "Update",
+								monitorapi.AnnotationRoles:       "control-plane,master",
+							},
+						},
+					},
+					Source: monitorapi.SourceNodeState,
+					From:   from.Add(-1 * time.Minute),
+					To:     to.Add(1 * time.Minute),
+				},
+				buildInterval(`reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+			namespace:       "openshift",
+			platform:        v1.AWSPlatformType,
+			topology:        v1.HighlyAvailableTopologyMode,
+			expectedMessage: "",
+		},
+		// TODO: Add outside NodeUpdate
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			events := monitorapi.Intervals{}
-			for _, message := range test.messages {
-
-				events = append(events,
-					monitorapi.Interval{
-						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(872827200, 0).In(time.UTC),
-						To:        time.Unix(872827200, 0).In(time.UTC)},
-				)
-			}
+			events := monitorapi.Intervals(test.intervals)
 
 			evaluator.platform = test.platform
 			evaluator.topology = test.topology
@@ -197,7 +230,9 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 				if (junit.Name == jUnitName) && (test.expectedMessage != "") {
 					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
-					assert.Nil(t, junit.FailureOutput, "expected success but got failure output")
+					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output") {
+						t.Logf(junit.FailureOutput.Output)
+					}
 				}
 			}
 

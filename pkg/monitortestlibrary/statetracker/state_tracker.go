@@ -34,11 +34,12 @@ type intervalCreationFunc func(locator monitorapi.Locator,
 
 func SimpleInterval(constructedBy monitorapi.ConstructionOwner,
 	source monitorapi.IntervalSource, level monitorapi.IntervalLevel,
-	reason monitorapi.IntervalReason, message string) intervalCreationFunc {
+	reason monitorapi.IntervalReason, message string, messageAnnotations map[monitorapi.AnnotationKey]string) intervalCreationFunc {
 	return func(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool) {
 		interval := monitorapi.NewInterval(source, level).Locator(locator).
 			Message(monitorapi.NewMessage().Reason(reason).
 				WithAnnotation(monitorapi.AnnotationConstructed, string(constructedBy)).
+				WithAnnotations(messageAnnotations).
 				HumanMessage(message))
 		return interval, true
 	}
@@ -162,7 +163,7 @@ func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]
 		l := t.locators[locator]
 		for stateName := range states {
 			message := fmt.Sprintf("%v state/%v never completed", strings.Join(annotationStrings, " "), stateName.stateName)
-			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.constructedBy, t.intervalSource, monitorapi.Warning, stateName.reason, message), end)...)
+			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.constructedBy, t.intervalSource, monitorapi.Warning, stateName.reason, message, map[monitorapi.AnnotationKey]string{}), end)...)
 		}
 	}
 

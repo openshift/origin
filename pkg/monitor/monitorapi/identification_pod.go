@@ -123,7 +123,7 @@ func ConstructionOwnerFrom(message string) IntervalReason {
 
 func PhaseFrom(message string) string {
 	annotations := AnnotationsFromMessage(message)
-	return annotations[AnnotationPodPhase]
+	return annotations[AnnotationPhase]
 }
 
 const (
