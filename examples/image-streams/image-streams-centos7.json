@@ -195,28 +195,6 @@
             }
           },
           {
-            "name": "2.4-el8",
-            "annotations": {
-              "description": "Build and serve static content via Apache HTTP Server (httpd) 2.4 on CentOS 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
-              "iconClass": "icon-apache",
-              "openshift.io/display-name": "Apache HTTP Server 2.4 (CentOS 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/sclorg/httpd-ex.git",
-              "supports": "httpd",
-              "tags": "builder,httpd,hidden",
-              "version": "2.4"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/httpd-24-centos8:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
             "name": "2.4-el7",
             "annotations": {
               "description": "Build and serve static content via Apache HTTP Server (httpd) 2.4 on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
@@ -442,26 +420,6 @@
             }
           },
           {
-            "name": "10.3-el8",
-            "annotations": {
-              "description": "Provides a MariaDB 10.3 database on CentOS 8. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.3/README.md.",
-              "iconClass": "icon-mariadb",
-              "openshift.io/display-name": "MariaDB 10.3 (CentOS 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "database,mariadb",
-              "version": "10.3"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/mariadb-103-centos8:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
             "name": "10.3-el7",
             "annotations": {
               "description": "Provides a MariaDB 10.3 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mariadb-container/tree/master/10.3/README.md.",
@@ -534,26 +492,6 @@
             "from": {
               "kind": "ImageStreamTag",
               "name": "8.0-el8"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "8.0-el8",
-            "annotations": {
-              "description": "Provides a MySQL 8.0 database on CentOS 8. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
-              "iconClass": "icon-mysql-database",
-              "openshift.io/display-name": "MySQL 8.0 (CentOS 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "mysql",
-              "version": "8.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/mysql-80-centos8:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -1329,26 +1267,6 @@
             }
           },
           {
-            "name": "12-el8",
-            "annotations": {
-              "description": "Provides a PostgreSQL 12 database on CentOS 8. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
-              "iconClass": "icon-postgresql",
-              "openshift.io/display-name": "PostgreSQL 12 (CentOS 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "database,postgresql",
-              "version": "12"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/postgresql-12-centos8:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
             "name": "13-el7",
             "annotations": {
               "description": "Provides a PostgreSQL 13 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
@@ -1401,26 +1319,6 @@
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/centos7/postgresql-12-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "10-el8",
-            "annotations": {
-              "description": "Provides a PostgreSQL 10 database on CentOS 8. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/README.md.",
-              "iconClass": "icon-postgresql",
-              "openshift.io/display-name": "PostgreSQL 10 (CentOS 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "database,postgresql",
-              "version": "10"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/postgresql-10-centos8:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -1675,26 +1573,6 @@
             "from": {
               "kind": "ImageStreamTag",
               "name": "5-el8"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "5-el8",
-            "annotations": {
-              "description": "Provides a Redis 5 database on CentOS 8. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/redis-container/tree/master/5/README.md.",
-              "iconClass": "icon-redis",
-              "openshift.io/display-name": "Redis 5 (CentOS 8)",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "redis",
-              "version": "5"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/centos/redis-5-centos8:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -1972,226 +1850,6 @@
             "from": {
               "kind": "DockerImage",
               "name": "quay.io/wildfly/wildfly-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "8.1",
-            "annotations": {
-              "description": "Build and run WildFly 8.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 8.1",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:8.1,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "8.1"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-81-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "9.0",
-            "annotations": {
-              "description": "Build and run WildFly 9.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 9.0",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:9.0,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "9.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-90-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "10.0",
-            "annotations": {
-              "description": "Build and run WildFly 10.0 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 10.0",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:10.0,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "10.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-100-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "10.1",
-            "annotations": {
-              "description": "Build and run WildFly 10.1 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 10.1",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:10.1,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "10.1"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-101-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "11.0",
-            "annotations": {
-              "description": "Build and run WildFly 11 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 11",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:11,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "11.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-110-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "12.0",
-            "annotations": {
-              "description": "Build and run WildFly 12 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 12",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:12,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "12.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-120-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "13.0",
-            "annotations": {
-              "description": "Build and run WildFly 13 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 13",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:13,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "13.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-130-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "14.0",
-            "annotations": {
-              "description": "Build and run WildFly 14 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 14",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:14,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "14.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-140-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "15.0",
-            "annotations": {
-              "description": "Build and run WildFly 15 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 15",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:15,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "15.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-150-centos7:latest"
-            },
-            "generation": null,
-            "importPolicy": {},
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "name": "16.0",
-            "annotations": {
-              "description": "Build and run WildFly 16 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/openshift-s2i/s2i-wildfly/blob/master/README.md.",
-              "iconClass": "icon-wildfly",
-              "openshift.io/display-name": "WildFly 16",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git",
-              "supports": "wildfly:16,jee,java",
-              "tags": "builder,wildfly,java",
-              "version": "16.0"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "docker.io/openshift/wildfly-160-centos7:latest"
             },
             "generation": null,
             "importPolicy": {},
