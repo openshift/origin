@@ -87,7 +87,7 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 			}
 
 			computedIntervals = append(computedIntervals,
-				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+				monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Info).
 					Locator(monitorapi.NewLocator().
 						LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name, true),
 					).
@@ -107,7 +107,7 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 		nodeName, _ := monitorapi.NodeFromLocator(fakeLocator)
 
 		computedIntervals = append(computedIntervals,
-			monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Error).
+			monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Error).
 				Locator(monitorapi.NewLocator().
 					LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name, true),
 				).
