@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+
 	"github.com/openshift/api/annotations"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	corev1 "k8s.io/api/core/v1"
@@ -81,19 +83,33 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if !acceptConfigMap(&configMap) {
 				continue
 			}
+
 			details, err := InspectConfigMap(&configMap)
 			if details != nil {
 				caBundles = append(caBundles, details)
 
+				var revisionSource *certgraphapi.InClusterConfigMapLocation
+				if metadata, err := meta.Accessor(configMap); err != nil {
+					errs = append(errs, err)
+				} else {
+					if revisionNamespace, revisionName, revisioned := isRevisioned(metadata); revisioned {
+						revisionSource = &certgraphapi.InClusterConfigMapLocation{
+							Namespace: revisionNamespace,
+							Name:      revisionName,
+						}
+					}
+				}
+
 				inClusterResourceData.CertificateAuthorityBundles = append(inClusterResourceData.CertificateAuthorityBundles,
-					certgraphapi.PKIRegistryInClusterCABundle{
+					certgraphapi.RawPKIRegistryInClusterCABundle{
 						ConfigMapLocation: certgraphapi.InClusterConfigMapLocation{
 							Namespace: configMap.Namespace,
 							Name:      configMap.Name,
 						},
-						CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
+						CABundleInfo: certgraphapi.RawPKIRegistryCertificateAuthorityInfo{
 							OwningJiraComponent: configMap.Annotations[annotations.OpenShiftComponent],
 							Description:         configMap.Annotations[annotations.OpenShiftDescription],
+							RevisionedSource:    revisionSource,
 						},
 					})
 			}
@@ -116,15 +132,28 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if details != nil {
 				certs = append(certs, details)
 
+				var revisionSource *certgraphapi.InClusterSecretLocation
+				if metadata, err := meta.Accessor(secret); err != nil {
+					errs = append(errs, err)
+				} else {
+					if revisionNamespace, revisionName, revisioned := isRevisioned(metadata); revisioned {
+						revisionSource = &certgraphapi.InClusterSecretLocation{
+							Namespace: revisionNamespace,
+							Name:      revisionName,
+						}
+					}
+				}
+
 				inClusterResourceData.CertKeyPairs = append(inClusterResourceData.CertKeyPairs,
-					certgraphapi.PKIRegistryInClusterCertKeyPair{
+					certgraphapi.RawPKIRegistryInClusterCertKeyPair{
 						SecretLocation: certgraphapi.InClusterSecretLocation{
 							Namespace: secret.Namespace,
 							Name:      secret.Name,
 						},
-						CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
+						CertKeyInfo: certgraphapi.RawPKIRegistryCertKeyPairInfo{
 							OwningJiraComponent: secret.Annotations[annotations.OpenShiftComponent],
 							Description:         secret.Annotations[annotations.OpenShiftDescription],
+							RevisionedSource:    revisionSource,
 						},
 					})
 			}
@@ -136,6 +165,26 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 
 	pkiList := PKIListFromParts(ctx, inClusterResourceData, certs, caBundles, nodes)
 	return pkiList, errors.NewAggregate(errs)
+}
+
+// returns namespace, name, isRevisioned
+func isRevisioned(metadata metav1.Object) (string, string, bool) {
+	revisioned := false
+	for _, curr := range metadata.GetOwnerReferences() {
+		if strings.HasPrefix(curr.Name, "revision-status-") {
+			revisioned = true
+			break
+		}
+	}
+	if !revisioned {
+		return "", "", false
+	}
+	suffixIndex := strings.LastIndex(metadata.GetName(), "-")
+	if suffixIndex < 1 {
+		return "", "", false
+	}
+
+	return metadata.GetNamespace(), metadata.GetName()[:suffixIndex-1], true
 }
 
 func PKIListFromParts(ctx context.Context, inClusterResourceData *certgraphapi.PerInClusterResourceData, certs []*certgraphapi.CertKeyPair, caBundles []*certgraphapi.CertificateAuthorityBundle, nodes map[string]int) *certgraphapi.PKIList {

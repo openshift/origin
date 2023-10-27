@@ -22,9 +22,55 @@ type PKIList struct {
 // It will be stitched together by a generator after the fact.
 type PerInClusterResourceData struct {
 	// +mapType:=atomic
-	CertificateAuthorityBundles []PKIRegistryInClusterCABundle `json:"certificateAuthorityBundles"`
+	CertificateAuthorityBundles []RawPKIRegistryInClusterCABundle `json:"certificateAuthorityBundles"`
 	// +mapType:=atomic
-	CertKeyPairs []PKIRegistryInClusterCertKeyPair `json:"certKeyPairs"`
+	CertKeyPairs []RawPKIRegistryInClusterCertKeyPair `json:"certKeyPairs"`
+}
+
+// RawPKIRegistryInClusterCertKeyPair identifies certificate key pair and stores its metadata
+type RawPKIRegistryInClusterCertKeyPair struct {
+	// SecretLocation points to the secret location
+	SecretLocation InClusterSecretLocation `json:"secretLocation"`
+	// CertKeyInfo stores metadata for certificate key pair
+	CertKeyInfo RawPKIRegistryCertKeyPairInfo `json:"certKeyInfo"`
+}
+
+// RawPKIRegistryCertKeyPairInfo holds information about certificate key pair
+type RawPKIRegistryCertKeyPairInfo struct {
+	// OwningJiraComponent is a component name when a new OCP issue is filed in Jira
+	OwningJiraComponent string `json:"owningJiraComponent"`
+	// Description is a one sentence description of the certificate pair purpose
+	Description string `json:"description"`
+
+	// revisionedSource indicates which secret this one is revisioned from.
+	// If it is nil, then this secret is not revisioned.
+	// Revisioned secrets are the "foo-%d" secrets you see.
+	RevisionedSource *InClusterSecretLocation `json:"revisionedSource"`
+
+	//CertificateData PKIRegistryCertKeyMetadata
+}
+
+// RawPKIRegistryInClusterCABundle holds information about certificate authority bundle
+type RawPKIRegistryInClusterCABundle struct {
+	// ConfigMapLocation points to the configmap location
+	ConfigMapLocation InClusterConfigMapLocation `json:"configMapLocation"`
+	// CABundleInfo stores metadata for the certificate authority bundle
+	CABundleInfo RawPKIRegistryCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo"`
+}
+
+// RawPKIRegistryCertificateAuthorityInfo holds information about certificate authority bundle
+type RawPKIRegistryCertificateAuthorityInfo struct {
+	// OwningJiraComponent is a component name when a new OCP issue is filed in Jira
+	OwningJiraComponent string `json:"owningJiraComponent"`
+	// Description is a one sentence description of the certificate pair purpose
+	Description string `json:"description"`
+
+	// revisionedSource indicates which configmap this one is revisioned from.
+	// If it is nil, then this configmap is not revisioned.
+	// Revisioned secrets are the "foo-%d" secrets you see.
+	RevisionedSource *InClusterConfigMapLocation `json:"revisionedSource"`
+
+	//CertificateData []PKIRegistryCertKeyMetadata
 }
 
 type CertificateAuthorityBundleList struct {
