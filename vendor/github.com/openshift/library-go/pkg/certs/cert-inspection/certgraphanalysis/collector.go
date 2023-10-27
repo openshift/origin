@@ -184,7 +184,7 @@ func isRevisioned(metadata metav1.Object) (string, string, bool) {
 		return "", "", false
 	}
 
-	return metadata.GetNamespace(), metadata.GetName()[:suffixIndex-1], true
+	return metadata.GetNamespace(), metadata.GetName()[:suffixIndex], true
 }
 
 func PKIListFromParts(ctx context.Context, inClusterResourceData *certgraphapi.PerInClusterResourceData, certs []*certgraphapi.CertKeyPair, caBundles []*certgraphapi.CertificateAuthorityBundle, nodes map[string]int) *certgraphapi.PKIList {

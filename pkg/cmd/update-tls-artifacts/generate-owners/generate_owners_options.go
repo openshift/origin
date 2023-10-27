@@ -238,21 +238,33 @@ func (o *GenerateOwnersOptions) GetPKIInfoFromRawData() (*certgraphapi.PKIRegist
 
 		for i := range currPKI.InClusterResourceData.CertKeyPairs {
 			currCert := currPKI.InClusterResourceData.CertKeyPairs[i]
+			if currCert.CertKeyInfo.RevisionedSource != nil {
+				continue
+			}
 			existing, ok := certs[currCert.SecretLocation]
 			if ok && !reflect.DeepEqual(existing, currCert.CertKeyInfo) {
 				return fmt.Errorf("mismatch of certificate info")
 			}
 
-			certs[currCert.SecretLocation] = currCert.CertKeyInfo
+			certs[currCert.SecretLocation] = certgraphapi.PKIRegistryCertKeyPairInfo{
+				OwningJiraComponent: currCert.CertKeyInfo.OwningJiraComponent,
+				Description:         currCert.CertKeyInfo.Description,
+			}
 		}
 		for i := range currPKI.InClusterResourceData.CertificateAuthorityBundles {
 			currCert := currPKI.InClusterResourceData.CertificateAuthorityBundles[i]
+			if currCert.CABundleInfo.RevisionedSource != nil {
+				continue
+			}
 			existing, ok := caBundles[currCert.ConfigMapLocation]
 			if ok && !reflect.DeepEqual(existing, currCert.CABundleInfo) {
 				return fmt.Errorf("mismatch of certificate info")
 			}
 
-			caBundles[currCert.ConfigMapLocation] = currCert.CABundleInfo
+			caBundles[currCert.ConfigMapLocation] = certgraphapi.PKIRegistryCertificateAuthorityInfo{
+				OwningJiraComponent: currCert.CABundleInfo.OwningJiraComponent,
+				Description:         currCert.CABundleInfo.Description,
+			}
 		}
 
 		return nil
