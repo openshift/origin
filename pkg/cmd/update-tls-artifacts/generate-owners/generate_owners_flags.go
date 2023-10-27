@@ -13,6 +13,7 @@ import (
 type GenerateOwnersFlags struct {
 	RawTLSInfoDir       string
 	TLSOwnershipInfoDir string
+	ViolationDir        string
 	Verify              bool
 
 	genericclioptions.IOStreams
@@ -49,22 +50,27 @@ func NewGenerateOwnersFlags(streams genericclioptions.IOStreams) *GenerateOwners
 	return &GenerateOwnersFlags{
 		RawTLSInfoDir:       "tls/raw-data",
 		TLSOwnershipInfoDir: "tls/ownership",
+		ViolationDir:        "tls/violations/ownership",
 		IOStreams:           streams,
 	}
 }
 
 func (f *GenerateOwnersFlags) BindFlags(flags *pflag.FlagSet) {
-	flags.StringVar(&f.RawTLSInfoDir, "raw-tls-info-dir", f.RawTLSInfoDir, "The directory where the raw TLS info is located.")
-	flags.StringVar(&f.TLSOwnershipInfoDir, "ownership-info-dir", f.TLSOwnershipInfoDir, "The directory where the  TLS ownership info is should be written.")
+	flags.StringVar(&f.RawTLSInfoDir, "raw-tls-dir", f.RawTLSInfoDir, "The directory where the raw TLS info is located.")
+	flags.StringVar(&f.TLSOwnershipInfoDir, "ownership-dir", f.TLSOwnershipInfoDir, "The directory where the  TLS ownership info is should be written.")
+	flags.StringVar(&f.ViolationDir, "violation-dir", f.ViolationDir, "The directory where the  TLS ownership info is should be written.")
 	flags.BoolVar(&f.Verify, "verify", f.Verify, "Verify content, don't mutate.")
 }
 
 func (f *GenerateOwnersFlags) Validate() error {
 	if len(f.RawTLSInfoDir) == 0 {
-		return fmt.Errorf("--raw-tls-info-dir must be specified")
+		return fmt.Errorf("--raw-tls-dir must be specified")
 	}
 	if len(f.TLSOwnershipInfoDir) == 0 {
-		return fmt.Errorf("--ownership-info-dir must be specified")
+		return fmt.Errorf("--ownership-dir must be specified")
+	}
+	if len(f.ViolationDir) == 0 {
+		return fmt.Errorf("--violation-dir must be specified")
 	}
 	return nil
 }
@@ -73,6 +79,7 @@ func (f *GenerateOwnersFlags) ToOptions() (*GenerateOwnersOptions, error) {
 	return &GenerateOwnersOptions{
 		RawTLSInfoDir:       f.RawTLSInfoDir,
 		TLSOwnershipInfoDir: f.TLSOwnershipInfoDir,
+		ViolationDir:        f.ViolationDir,
 		Verify:              f.Verify,
 		IOStreams:           f.IOStreams,
 	}, nil

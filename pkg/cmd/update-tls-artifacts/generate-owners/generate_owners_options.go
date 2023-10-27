@@ -19,6 +19,7 @@ import (
 type GenerateOwnersOptions struct {
 	RawTLSInfoDir       string
 	TLSOwnershipInfoDir string
+	ViolationDir        string
 	Verify              bool
 
 	genericclioptions.IOStreams
@@ -29,7 +30,7 @@ func (o *GenerateOwnersOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	jsonBytes, err := json.MarshalIndent(result, "", "    ")
+	ownershipJSONBytes, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		return err
 	}
@@ -37,15 +38,30 @@ func (o *GenerateOwnersOptions) Run() error {
 	if err != nil {
 		return err
 	}
+	violations := GenerateViolationJSON(result)
+	violationJSONBytes, err := json.MarshalIndent(violations, "", "    ")
+	if err != nil {
+		return err
+	}
 
 	if o.Verify {
-		existingJSONBytes, err := os.ReadFile(o.jsonFilename())
+		existingOwnershipJSONBytes, err := os.ReadFile(o.jsonFilename())
 		switch {
 		case os.IsNotExist(err): // do nothing
 		case err != nil:
 			return err
 		}
-		if diff := cmp.Diff(existingJSONBytes, jsonBytes); len(diff) > 0 {
+		if diff := cmp.Diff(existingOwnershipJSONBytes, ownershipJSONBytes); len(diff) > 0 {
+			return fmt.Errorf(diff)
+		}
+
+		existingViolationsJSONBytes, err := os.ReadFile(o.violationsFilename())
+		switch {
+		case os.IsNotExist(err): // do nothing
+		case err != nil:
+			return err
+		}
+		if diff := cmp.Diff(existingViolationsJSONBytes, violationJSONBytes); len(diff) > 0 {
 			return fmt.Errorf(diff)
 		}
 
@@ -64,8 +80,11 @@ func (o *GenerateOwnersOptions) Run() error {
 		if err := os.MkdirAll(o.TLSOwnershipInfoDir, 0755); err != nil {
 			return err
 		}
+		if err := os.MkdirAll(o.ViolationDir, 0755); err != nil {
+			return err
+		}
 
-		err = os.WriteFile(o.jsonFilename(), jsonBytes, 0644)
+		err = os.WriteFile(o.jsonFilename(), ownershipJSONBytes, 0644)
 		if err != nil {
 			return err
 		}
@@ -73,9 +92,36 @@ func (o *GenerateOwnersOptions) Run() error {
 		if err != nil {
 			return err
 		}
+		err = os.WriteFile(o.violationsFilename(), violationJSONBytes, 0644)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func GenerateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.PKIRegistryInfo {
+	ret := &certgraphapi.PKIRegistryInfo{}
+
+	const unknownOwner = "Unknown"
+
+	for i := range pkiInfo.CertKeyPairs {
+		curr := pkiInfo.CertKeyPairs[i]
+		owner := curr.CertKeyInfo.OwningJiraComponent
+		if len(owner) == 0 || owner == unknownOwner {
+			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
+		}
+	}
+	for i := range pkiInfo.CertificateAuthorityBundles {
+		curr := pkiInfo.CertificateAuthorityBundles[i]
+		owner := curr.CABundleInfo.OwningJiraComponent
+		if len(owner) == 0 || owner == unknownOwner {
+			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
+		}
+	}
+
+	return ret
 }
 
 // TODO make this output include which configuration the certificates exist on.
@@ -153,6 +199,10 @@ func GenerateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 	}
 
 	return md.Bytes(), nil
+}
+
+func (o *GenerateOwnersOptions) violationsFilename() string {
+	return filepath.Join(o.ViolationDir, "ownership-violations.json")
 }
 
 func (o *GenerateOwnersOptions) jsonFilename() string {
