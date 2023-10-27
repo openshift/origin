@@ -182,7 +182,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			// This is ignored because it was during a master NodeUpdate interval
 			name: "matches 22 with namespace openshift FailedScheduling during NodeUpdate",
 			intervals: []monitorapi.Interval{
-				monitorapi.Interval{
+				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
 						StructuredLocator: monitorapi.Locator{

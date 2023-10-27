@@ -202,6 +202,7 @@ type AnnotationKey string
 
 const (
 	AnnotationAlertState         AnnotationKey = "alertstate"
+	AnnotationState              AnnotationKey = "state"
 	AnnotationSeverity           AnnotationKey = "severity"
 	AnnotationReason             AnnotationKey = "reason"
 	AnnotationContainerExitCode  AnnotationKey = "code"
@@ -212,9 +213,9 @@ const (
 	AnnotationEtcdTerm           AnnotationKey = "term"
 	AnnotationEtcdLeader         AnnotationKey = "leader"
 	AnnotationPreviousEtcdLeader AnnotationKey = "prev-leader"
-	AnnotationConstructed AnnotationKey = "constructed"
-	AnnotationPhase       AnnotationKey = "phase"
-	AnnotationIsStaticPod AnnotationKey = "mirrored"
+	AnnotationConstructed        AnnotationKey = "constructed"
+	AnnotationPhase              AnnotationKey = "phase"
+	AnnotationIsStaticPod        AnnotationKey = "mirrored"
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
 	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
