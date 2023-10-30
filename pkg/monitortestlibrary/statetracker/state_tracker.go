@@ -161,6 +161,7 @@ func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]
 		l := t.locators[locator]
 		for stateName := range states {
 			annotations[monitorapi.AnnotationState] = stateName.stateName
+			annotations[monitorapi.AnnotationConstructed] = string(t.constructedBy)
 			mb := monitorapi.NewMessage().WithAnnotations(annotations).HumanMessage("never completed").Reason(stateName.reason)
 			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.constructedBy, t.intervalSource, monitorapi.Warning, mb), end)...)
 		}
