@@ -1012,7 +1012,7 @@ func (LoadBalancerStrategy) SwaggerDoc() map[string]string {
 }
 
 var map_LoggingDestination = map[string]string{
-	"":          "LoggingDestination describes a destination for log messages. ",
+	"":          "LoggingDestination describes a destination for log messages.",
 	"type":      "type is the type of destination for logs.  It must be one of the following:\n\n* Container\n\nThe ingress operator configures the sidecar container named \"logs\" on the ingress controller pod and configures the ingress controller to write logs to the sidecar.  The logs are then available as container logs.  The expectation is that the administrator configures a custom logging solution that reads logs from this sidecar.  Note that using container logs means that logs may be dropped if the rate of logs exceeds the container runtime's or the custom logging solution's capacity.\n\n* Syslog\n\nLogs are sent to a syslog endpoint.  The administrator must specify an endpoint that can receive syslog messages.  The expectation is that the administrator has configured a custom syslog instance.",
 	"syslog":    "syslog holds parameters for a syslog endpoint.  Present only if type is Syslog.",
 	"container": "container holds parameters for the Container logging destination. Present only if type is Container.",

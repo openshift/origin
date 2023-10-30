@@ -2,6 +2,7 @@ package certgraphapi
 
 import (
 	"encoding/json"
+	"strings"
 )
 
 type PKIList struct {
@@ -174,4 +175,45 @@ func (t *CertificateAuthorityBundle) DeepCopy() *CertificateAuthorityBundle {
 	}
 
 	return ret
+}
+
+type ConfigMapRefByNamespaceName []InClusterConfigMapLocation
+type SecretRefByNamespaceName []InClusterSecretLocation
+type SecretInfoByNamespaceName map[InClusterSecretLocation]PKIRegistryCertKeyPairInfo
+type ConfigMapInfoByNamespaceName map[InClusterConfigMapLocation]PKIRegistryCertificateAuthorityInfo
+
+func (n SecretRefByNamespaceName) Len() int {
+	return len(n)
+}
+func (n SecretRefByNamespaceName) Swap(i, j int) {
+	n[i], n[j] = n[j], n[i]
+}
+func (n SecretRefByNamespaceName) Less(i, j int) bool {
+	diff := strings.Compare(n[i].Namespace, n[j].Namespace)
+	switch {
+	case diff < 0:
+		return true
+	case diff > 0:
+		return false
+	}
+
+	return strings.Compare(n[i].Name, n[j].Name) < 0
+}
+
+func (n ConfigMapRefByNamespaceName) Len() int {
+	return len(n)
+}
+func (n ConfigMapRefByNamespaceName) Swap(i, j int) {
+	n[i], n[j] = n[j], n[i]
+}
+func (n ConfigMapRefByNamespaceName) Less(i, j int) bool {
+	diff := strings.Compare(n[i].Namespace, n[j].Namespace)
+	switch {
+	case diff < 0:
+		return true
+	case diff > 0:
+		return false
+	}
+
+	return strings.Compare(n[i].Name, n[j].Name) < 0
 }

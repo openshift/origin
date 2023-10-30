@@ -92,6 +92,12 @@ type OpenstackProviderSpec struct {
 	// The volume metadata to boot from
 	RootVolume *RootVolume `json:"rootVolume,omitempty"`
 
+	// additionalBlockDevices is a list of specifications for additional block devices to attach to the server instance
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	AdditionalBlockDevices []AdditionalBlockDevice `json:"additionalBlockDevices,omitempty"`
+
 	// The server group to assign the machine to.
 	ServerGroupID string `json:"serverGroupID,omitempty"`
 
@@ -366,3 +372,68 @@ type RootVolume struct {
 	// Deprecated: deviceType will be silently ignored. There is no replacement.
 	DeprecatedDeviceType string `json:"deviceType,omitempty"`
 }
+
+// blockDeviceStorage is the storage type of a block device to create and
+// contains additional storage options.
+// +union
+type BlockDeviceStorage struct {
+	// type is the type of block device to create.
+	// This can be either "Volume" or "Local".
+	// +kubebuilder:validation:Required
+	// +unionDiscriminator
+	Type BlockDeviceType `json:"type"`
+
+	// volume contains additional storage options for a volume block device.
+	// +optional
+	// +unionMember,optional
+	Volume *BlockDeviceVolume `json:"volume,omitempty"`
+}
+
+// blockDeviceVolume contains additional storage options for a volume block device.
+type BlockDeviceVolume struct {
+	// type is the Cinder volume type of the volume.
+	// If omitted, the default Cinder volume type that is configured in the OpenStack cloud
+	// will be used.
+	// +optional
+	Type string `json:"type,omitempty"`
+
+	// availabilityZone is the volume availability zone to create the volume in.
+	// If omitted, the availability zone of the server will be used.
+	// The availability zone must NOT contain spaces otherwise it will lead to volume that belongs
+	// to this availability zone register failure, see kubernetes/cloud-provider-openstack#1379 for
+	// further information.
+	// +optional
+	AvailabilityZone string `json:"availabilityZone,omitempty"`
+}
+
+// additionalBlockDevice is a block device to attach to the server.
+type AdditionalBlockDevice struct {
+	// name of the block device in the context of a machine.
+	// If the block device is a volume, the Cinder volume will be named
+	// as a combination of the machine name and this name.
+	// Also, this name will be used for tagging the block device.
+	// Information about the block device tag can be obtained from the OpenStack
+	// metadata API or the config drive.
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// sizeGiB is the size of the block device in gibibytes (GiB).
+	// +kubebuilder:validation:Required
+	SizeGiB int `json:"sizeGiB"`
+
+	// storage specifies the storage type of the block device and
+	// additional storage options.
+	// +kubebuilder:validation:Required
+	Storage BlockDeviceStorage `json:"storage"`
+}
+
+// BlockDeviceType defines the type of block device to create.
+type BlockDeviceType string
+
+const (
+	// LocalBlockDevice is an ephemeral block device attached to the server.
+	LocalBlockDevice BlockDeviceType = "Local"
+
+	// VolumeBlockDevice is a volume block device attached to the server.
+	VolumeBlockDevice BlockDeviceType = "Volume"
+)

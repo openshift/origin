@@ -244,10 +244,11 @@ func (ControlPlaneMachineSetTemplateObjectMeta) SwaggerDoc() map[string]string {
 
 var map_FailureDomains = map[string]string{
 	"":          "FailureDomain represents the different configurations required to spread Machines across failure domains on different platforms.",
-	"platform":  "Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, and GCP.",
+	"platform":  "Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, GCP, OpenStack, and VSphere.",
 	"aws":       "AWS configures failure domain information for the AWS platform.",
 	"azure":     "Azure configures failure domain information for the Azure platform.",
 	"gcp":       "GCP configures failure domain information for the GCP platform.",
+	"vsphere":   "vsphere configures failure domain information for the VSphere platform.",
 	"openstack": "OpenStack configures failure domain information for the OpenStack platform.",
 }
 
@@ -293,6 +294,15 @@ var map_RootVolume = map[string]string{
 
 func (RootVolume) SwaggerDoc() map[string]string {
 	return map_RootVolume
+}
+
+var map_VSphereFailureDomain = map[string]string{
+	"":     "VSphereFailureDomain configures failure domain information for the vSphere platform",
+	"name": "name of the failure domain in which the vSphere machine provider will create the VM. Failure domains are defined in a cluster's config.openshift.io/Infrastructure resource. When balancing machines across failure domains, the control plane machine set will inject configuration from the Infrastructure resource into the machine providerSpec to allocate the machine to a failure domain.",
+}
+
+func (VSphereFailureDomain) SwaggerDoc() map[string]string {
+	return map_VSphereFailureDomain
 }
 
 var map_NutanixCategory = map[string]string{

@@ -622,7 +622,7 @@ type GCPResourceLabel struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	// +kubebuilder:validation:Pattern=`^[a-z][0-9a-z_-]+$`
+	// +kubebuilder:validation:Pattern=`^[a-z][0-9a-z_-]{0,62}$`
 	Key string `json:"key"`
 
 	// value is the value part of the label. A label value can have a maximum of 63 characters and cannot be empty.
@@ -630,7 +630,7 @@ type GCPResourceLabel struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	// +kubebuilder:validation:Pattern=`^[0-9a-z_-]+$`
+	// +kubebuilder:validation:Pattern=`^[0-9a-z_-]{1,63}$`
 	Value string `json:"value"`
 }
 
@@ -1010,6 +1010,22 @@ type VSpherePlatformTopology struct {
 	// +kubebuilder:validation:Pattern=`^/.*?/vm/.*?`
 	// +optional
 	Folder string `json:"folder,omitempty"`
+
+	// template is the full inventory path of the virtual machine or template
+	// that will be cloned when creating new machines in this failure domain.
+	// The maximum length of the path is 2048 characters.
+	//
+	// When omitted, the template will be calculated by the control plane
+	// machineset operator based on the region and zone defined in
+	// VSpherePlatformFailureDomainSpec.
+	// For example, for zone=zonea, region=region1, and infrastructure name=test,
+	// the template path would be calculated as /<datacenter>/vm/test-rhcos-region1-zonea.
+	// +openshift:enable:FeatureSets=CustomNoUpgrade;TechPreviewNoUpgrade
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
+	// +kubebuilder:validation:Pattern=`^/.*?/vm/.*?`
+	// +optional
+	Template string `json:"template,omitempty"`
 }
 
 // VSpherePlatformVCenterSpec stores the vCenter connection fields.
@@ -1209,13 +1225,13 @@ type IBMCloudPlatformStatus struct {
 	// for the cluster's base domain
 	DNSInstanceCRN string `json:"dnsInstanceCRN,omitempty"`
 
-        // serviceEndpoints is a list of custom endpoints which will override the default
-        // service endpoints of an IBM Cloud service. These endpoints are consumed by
+	// serviceEndpoints is a list of custom endpoints which will override the default
+	// service endpoints of an IBM Cloud service. These endpoints are consumed by
 	// components within the cluster to reach the respective IBM Cloud Services.
-        // +listType=map
-        // +listMapKey=name
-        // +optional
-        ServiceEndpoints []IBMCloudServiceEndpoint `json:"serviceEndpoints,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	ServiceEndpoints []IBMCloudServiceEndpoint `json:"serviceEndpoints,omitempty"`
 }
 
 // KubevirtPlatformSpec holds the desired state of the kubevirt infrastructure provider.

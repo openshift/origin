@@ -1,0 +1,110 @@
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
+name: "[TechPreviewNoUpgrade] Authentication"
+crd: 0000_10_config-operator_01_authentication.crd-TechPreviewNoUpgrade.yaml
+tests:
+  onCreate:
+  - name: Should be able to create a minimal Authentication
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Authentication
+      spec: {} # No spec is required for a Authentication
+    expected: |
+      apiVersion: config.openshift.io/v1
+      kind: Authentication
+      spec: {}
+  - name: Cannot set username claim prefix with policy NoPrefix
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Authentication
+      spec:
+        type: OIDC
+        oidcProviders:
+        - name: myoidc
+          issuer:
+            issuerURL: https://meh.tld
+            audiences: ['openshift-aud']
+          claimMappings:
+            username:
+              claim: "preferred_username"
+              prefixPolicy: NoPrefix
+              prefix:
+                prefixString: "myoidc:"
+    expectedError: "prefix must be set if prefixPolicy is 'Prefix', but must remain unset otherwise"
+  - name: Can set username claim prefix with policy Prefix
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Authentication
+      spec:
+        type: OIDC
+        oidcProviders:
+        - name: myoidc
+          issuer:
+            issuerURL: https://meh.tld
+            audiences: ['openshift-aud']
+          claimMappings:
+            username:
+              claim: "preferred_username"
+              prefixPolicy: Prefix
+              prefix:
+                prefixString: "myoidc:"
+    expected: |
+      apiVersion: config.openshift.io/v1
+      kind: Authentication
+      spec:
+        type: OIDC
+        oidcProviders:
+        - name: myoidc
+          issuer:
+            issuerURL: https://meh.tld
+            audiences: ['openshift-aud']
+          claimMappings:
+            username:
+              claim: "preferred_username"
+              prefixPolicy: Prefix
+              prefix:
+                prefixString: "myoidc:"
+  - name: Cannot leave username claim prefix blank with policy Prefix
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Authentication
+      spec:
+        type: OIDC
+        oidcProviders:
+        - name: myoidc
+          issuer:
+            issuerURL: https://meh.tld
+            audiences: ['openshift-aud']
+          claimMappings:
+            username:
+              claim: "preferred_username"
+              prefixPolicy: Prefix
+    expectedError: "prefix must be set if prefixPolicy is 'Prefix', but must remain unset otherwise"
+  - name: Can set OIDC providers with no username prefixing
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Authentication
+      spec:
+        type: OIDC
+        oidcProviders:
+        - name: myoidc
+          issuer:
+            issuerURL: https://meh.tld
+            audiences: ['openshift-aud']
+          claimMappings:
+            username:
+              claim: "preferred_username"
+              prefixPolicy: NoPrefix
+    expected: |
+      apiVersion: config.openshift.io/v1
+      kind: Authentication
+      spec:
+        type: OIDC
+        oidcProviders:
+        - name: myoidc
+          issuer:
+            issuerURL: https://meh.tld
+            audiences: ['openshift-aud']
+          claimMappings:
+            username:
+              claim: "preferred_username"
+              prefixPolicy: NoPrefix

@@ -1,0 +1,6 @@
+schemapatch:
+  requiredFeatureSets:
+  - ""
+  - "Default"
+  - "TechPreviewNoUpgrade"
+  - "CustomNoUpgrade"
