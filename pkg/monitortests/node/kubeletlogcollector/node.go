@@ -62,11 +62,20 @@ func intervalsFromNodeLogs(ctx context.Context, kubeClient kubernetes.Interface,
 			}
 			newNetworkManagerIntervals := intervalsFromNetworkManagerLogs(nodeName, networkManagerLogs)
 
+			crioLogs, err := getNodeLog(ctx, kubeClient, nodeName, "crio")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error getting node crio logs from %s: %s", nodeName, err.Error())
+				errCh <- err
+				return
+			}
+			newCRIOEvents := eventsFromCRIOLogs(nodeName, crioLogs)
+
 			lock.Lock()
 			defer lock.Unlock()
 			ret = append(ret, newEvents...)
 			ret = append(ret, newOVSEvents...)
 			ret = append(ret, newNetworkManagerIntervals...)
+			ret = append(ret, newCRIOEvents...)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -161,6 +170,40 @@ func unreasonablyLongPollInterval(logLine, nodeLocator string) monitorapi.Interv
 }
 
 var unreasonablyLongPollIntervalRE = regexp.MustCompile(`Unreasonably long (\d+)ms poll interval`)
+
+// eventsFromCRIOLogs returns the produced intervals.  Any errors during this creation are logged, but
+// not returned because this is a best effort step
+func eventsFromCRIOLogs(nodeName string, crioLogs []byte) monitorapi.Intervals {
+	ret := monitorapi.Intervals{}
+
+	scanner := bufio.NewScanner(bytes.NewBuffer(crioLogs))
+	for scanner.Scan() {
+		currLine := scanner.Text()
+		ret = append(ret, updateDefaultCNINetworkName(currLine, nodeName)...)
+	}
+
+	return ret
+}
+
+// updateDefaultCNINetworkName searches for messages such as:
+// Oct 11 15:31:48.726706 ip-10-0-5-202 crio[1223]: time="2023-10-11 15:31:48.723699958Z" level=info msg="Updated default CNI network name to "
+// The name will not be populated when system is rebooting, and it will be when it comes back online. (multus-cni-network)
+func updateDefaultCNINetworkName(logLine, nodeName string) monitorapi.Intervals {
+	searchFor := "Updated default CNI network name to "
+	if !strings.Contains(logLine, searchFor) {
+		return nil
+	}
+
+	fromTime := systemdJournalLogTime(logLine)
+	message := logLine[strings.Index(logLine, searchFor) : len(logLine)-1]
+	return monitorapi.Intervals{
+		monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
+			Locator(monitorapi.NewLocator().NodeFromName(nodeName)).
+			Message(monitorapi.NewMessage().HumanMessage(message)).
+			Display().
+			Build(fromTime, fromTime),
+	}
+}
 
 // intervalsFromNetworkManagerLogs returns the produced intervals.  Any errors during this creation are logged, but
 // not returned because this is a best effort step

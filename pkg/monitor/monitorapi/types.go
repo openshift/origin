@@ -260,7 +260,7 @@ const (
 	SourceE2ETest                 IntervalSource = "E2ETest"
 	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
-	SourceSystemJournalScanner    IntervalSource = "KubeletLogScanner"
+	SourceSystemJournalScanner    IntervalSource = "JournalLogScanner"
 	SourcePodLog                  IntervalSource = "PodLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
 	APIServerGracefulShutdown     IntervalSource = "APIServerGracefulShutdown"
