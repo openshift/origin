@@ -367,8 +367,9 @@ var map_AuthenticationSpec = map[string]string{
 	"type":                       "type identifies the cluster managed, user facing authentication mode in use. Specifically, it manages the component that responds to login attempts. The default is IntegratedOAuth.",
 	"oauthMetadata":              "oauthMetadata contains the discovery endpoint data for OAuth 2.0 Authorization Server Metadata for an external OAuth server. This discovery document can be viewed from its served location: oc get --raw '/.well-known/oauth-authorization-server' For further details, see the IETF Draft: https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 If oauthMetadata.name is non-empty, this value has precedence over any metadata reference stored in status. The key \"oauthMetadata\" is used to locate the data. If specified and the config map or expected key is not found, no metadata is served. If the specified metadata is not valid, no metadata is served. The namespace for this config map is openshift-config.",
 	"webhookTokenAuthenticators": "webhookTokenAuthenticators is DEPRECATED, setting it has no effect.",
-	"webhookTokenAuthenticator":  "webhookTokenAuthenticator configures a remote token reviewer. These remote authentication webhooks can be used to verify bearer tokens via the tokenreviews.authentication.k8s.io REST API. This is required to honor bearer tokens that are provisioned by an external authentication service.",
+	"webhookTokenAuthenticator":  "webhookTokenAuthenticator configures a remote token reviewer. These remote authentication webhooks can be used to verify bearer tokens via the tokenreviews.authentication.k8s.io REST API. This is required to honor bearer tokens that are provisioned by an external authentication service.\n\nCan only be set if \"Type\" is set to \"None\".",
 	"serviceAccountIssuer":       "serviceAccountIssuer is the identifier of the bound service account token issuer. The default is https://kubernetes.default.svc WARNING: Updating this field will not result in immediate invalidation of all bound tokens with the previous issuer value. Instead, the tokens issued by previous service account issuer will continue to be trusted for a time period chosen by the platform (currently set to 24h). This time period is subject to change over time. This allows internal components to transition to use new service account issuer without service distruption.",
+	"oidcProviders":              "OIDCProviders are OIDC identity providers that can issue tokens for this cluster Can only be set if \"Type\" is set to \"OIDC\".\n\nAt most one provider can be configured.",
 }
 
 func (AuthenticationSpec) SwaggerDoc() map[string]string {
@@ -390,6 +391,78 @@ var map_DeprecatedWebhookTokenAuthenticator = map[string]string{
 
 func (DeprecatedWebhookTokenAuthenticator) SwaggerDoc() map[string]string {
 	return map_DeprecatedWebhookTokenAuthenticator
+}
+
+var map_OIDCProvider = map[string]string{
+	"name":                 "Name of the OIDC provider",
+	"issuer":               "Issuer describes atributes of the OIDC token issuer",
+	"claimMappings":        "ClaimMappings describes rules on how to transform information from an ID token into a cluster identity",
+	"claimValidationRules": "ClaimValidationRules are rules that are applied to validate token claims to authenticate users.",
+}
+
+func (OIDCProvider) SwaggerDoc() map[string]string {
+	return map_OIDCProvider
+}
+
+var map_PrefixedClaimMapping = map[string]string{
+	"prefix": "Prefix is a string to prefix the value from the token in the result of the claim mapping.\n\nBy default, no prefixing occurs.\n\nExample: if `prefix` is set to \"myoidc:\"\" and the `claim` in JWT contains an array of strings \"a\", \"b\" and  \"c\", the mapping will result in an array of string \"myoidc:a\", \"myoidc:b\" and \"myoidc:c\".",
+}
+
+func (PrefixedClaimMapping) SwaggerDoc() map[string]string {
+	return map_PrefixedClaimMapping
+}
+
+var map_TokenClaimMapping = map[string]string{
+	"claim": "Claim is a JWT token claim to be used in the mapping",
+}
+
+func (TokenClaimMapping) SwaggerDoc() map[string]string {
+	return map_TokenClaimMapping
+}
+
+var map_TokenClaimMappings = map[string]string{
+	"username": "Username is a name of the claim that should be used to construct usernames for the cluster identity.\n\nDefault value: \"sub\"",
+	"groups":   "Groups is a name of the claim that should be used to construct groups for the cluster identity. The referenced claim must use array of strings values.",
+}
+
+func (TokenClaimMappings) SwaggerDoc() map[string]string {
+	return map_TokenClaimMappings
+}
+
+var map_TokenClaimValidationRule = map[string]string{
+	"type":          "Type sets the type of the validation rule",
+	"requiredClaim": "RequiredClaim allows configuring a required claim name and its expected value",
+}
+
+func (TokenClaimValidationRule) SwaggerDoc() map[string]string {
+	return map_TokenClaimValidationRule
+}
+
+var map_TokenIssuer = map[string]string{
+	"issuerURL":                  "URL is the serving URL of the token issuer. Must use the https:// scheme.",
+	"audiences":                  "Audiences is an array of audiences that the token was issued for. Valid tokens must include at least one of these values in their \"aud\" claim. Must be set to exactly one value.",
+	"issuerCertificateAuthority": "CertificateAuthority is a reference to a config map in the configuration namespace. The .data of the configMap must contain the \"ca-bundle.crt\" key. If unset, system trust is used instead.",
+}
+
+func (TokenIssuer) SwaggerDoc() map[string]string {
+	return map_TokenIssuer
+}
+
+var map_TokenRequiredClaim = map[string]string{
+	"claim":         "Claim is a name of a required claim. Only claims with string values are supported.",
+	"requiredValue": "RequiredValue is the required value for the claim.",
+}
+
+func (TokenRequiredClaim) SwaggerDoc() map[string]string {
+	return map_TokenRequiredClaim
+}
+
+var map_UsernameClaimMapping = map[string]string{
+	"prefixPolicy": "PrefixPolicy specifies how a prefix should apply.\n\nBy default, claims other than `email` will be prefixed with the issuer URL to prevent naming clashes with other plugins.\n\nSet to \"NoPrefix\" to disable prefixing.\n\nExample:\n    (1) `prefix` is set to \"myoidc:\" and `claim` is set to \"username\".\n        If the JWT claim `username` contains value `userA`, the resulting\n        mapped value will be \"myoidc:userA\".\n    (2) `prefix` is set to \"myoidc:\" and `claim` is set to \"email\". If the\n        JWT `email` claim contains value \"userA@myoidc.tld\", the resulting\n        mapped value will be \"myoidc:userA@myoidc.tld\".\n    (3) `prefix` is unset, `issuerURL` is set to `https://myoidc.tld`,\n        the JWT claims include \"username\":\"userA\" and \"email\":\"userA@myoidc.tld\",\n        and `claim` is set to:\n        (a) \"username\": the mapped value will be \"https://myoidc.tld#userA\"\n        (b) \"email\": the mapped value will be \"userA@myoidc.tld\"",
+}
+
+func (UsernameClaimMapping) SwaggerDoc() map[string]string {
+	return map_UsernameClaimMapping
 }
 
 var map_WebhookTokenAuthenticator = map[string]string{
@@ -1636,6 +1709,7 @@ var map_VSpherePlatformTopology = map[string]string{
 	"datastore":      "datastore is the absolute path of the datastore in which the virtual machine is located. The absolute path is of the form /<datacenter>/datastore/<datastore> The maximum length of the path is 2048 characters.",
 	"resourcePool":   "resourcePool is the absolute path of the resource pool where virtual machines will be created. The absolute path is of the form /<datacenter>/host/<cluster>/Resources/<resourcepool>. The maximum length of the path is 2048 characters.",
 	"folder":         "folder is the absolute path of the folder where virtual machines are located. The absolute path is of the form /<datacenter>/vm/<folder>. The maximum length of the path is 2048 characters.",
+	"template":       "template is the full inventory path of the virtual machine or template that will be cloned when creating new machines in this failure domain. The maximum length of the path is 2048 characters.\n\nWhen omitted, the template will be calculated by the control plane machineset operator based on the region and zone defined in VSpherePlatformFailureDomainSpec. For example, for zone=zonea, region=region1, and infrastructure name=test, the template path would be calculated as /<datacenter>/vm/test-rhcos-region1-zonea.",
 }
 
 func (VSpherePlatformTopology) SwaggerDoc() map[string]string {
