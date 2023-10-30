@@ -89,7 +89,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				caBundles = append(caBundles, details)
 
 				var revisionSource *certgraphapi.InClusterConfigMapLocation
-				if metadata, err := meta.Accessor(configMap); err != nil {
+				if metadata, err := meta.Accessor(&configMap); err != nil {
 					errs = append(errs, err)
 				} else {
 					if revisionNamespace, revisionName, revisioned := isRevisioned(metadata); revisioned {
@@ -133,7 +133,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				certs = append(certs, details)
 
 				var revisionSource *certgraphapi.InClusterSecretLocation
-				if metadata, err := meta.Accessor(secret); err != nil {
+				if metadata, err := meta.Accessor(&secret); err != nil {
 					errs = append(errs, err)
 				} else {
 					if revisionNamespace, revisionName, revisioned := isRevisioned(metadata); revisioned {
