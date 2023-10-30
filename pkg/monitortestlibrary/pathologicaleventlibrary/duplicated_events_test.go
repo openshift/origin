@@ -180,7 +180,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 		},
 		{
 			// This is ignored because it was during a master NodeUpdate interval
-			name: "matches 22 with namespace openshift FailedScheduling during NodeUpdate",
+			name: "ignore FailedScheduling in openshift-controller-manager if masters are updating",
 			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
@@ -203,13 +203,53 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 					From:   from.Add(-1 * time.Minute),
 					To:     to.Add(1 * time.Minute),
 				},
-				buildInterval(`reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
-			namespace:       "openshift",
+				buildInterval(`ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+			namespace:       "openshift-controller-manager",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
 			expectedMessage: "",
 		},
-		// TODO: Add outside NodeUpdate
+		{
+			// This is not ignored because there were no masters in NodeUpdate
+			name: "match FailedScheduling in openshift-controller-manager when masters are not updating",
+			intervals: []monitorapi.Interval{
+				buildInterval(`ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+			namespace:       "openshift-controller-manager",
+			platform:        v1.AWSPlatformType,
+			topology:        v1.HighlyAvailableTopologyMode,
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. From: 04:00:00Z To: 04:00:00Z result=reject ",
+		},
+		{
+			// This still matches despite the masters updating because it's not in an openshift namespace
+			name: "match FailedScheduling outside openshift namespaces if masters are updating",
+			intervals: []monitorapi.Interval{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{}, // what node doesn't matter, all we can do is see if masters are updating
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.NodeUpdateReason,
+							HumanMessage: "config/rendered-master-5ab4844b3b5a58958785e2c27d99f50f phase/Update roles/control-plane,master reached desired config roles/control-plane,master",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationConstructed: "node-lifecycle-constructor",
+								monitorapi.AnnotationPhase:       "Update",
+								monitorapi.AnnotationRoles:       "control-plane,master",
+							},
+						},
+					},
+					Source: monitorapi.SourceNodeState,
+					From:   from.Add(-1 * time.Minute),
+					To:     to.Add(1 * time.Minute),
+				},
+				buildInterval(`ns/mynamespace reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+			namespace:       "mynamespace",
+			platform:        v1.AWSPlatformType,
+			topology:        v1.HighlyAvailableTopologyMode,
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/mynamespace reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. From: 04:00:00Z To: 04:00:00Z result=reject ",
+		},
 	}
 
 	for _, test := range tests {

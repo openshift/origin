@@ -237,18 +237,20 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 
 	displayToCount := map[string]*pathologicalEvents{}
 	for _, event := range events {
-		// Filter out FailedScheduling events while masters are updating
-		var foundOverlap bool
-		for _, nui := range nodeUpdateIntervals {
-			// TODO: port to use structured message reason once kube event intervals are ported over
-			if strings.Contains(event.Message, "reason/FailedScheduling") && nui.From.Before(event.From) && nui.To.After(event.To) {
-				logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", event, nui)
-				foundOverlap = true
-				break
+		// TODO: port to use structured message reason once kube event intervals are ported over
+		if strings.Contains(event.Message, "reason/FailedScheduling") {
+			// Filter out FailedScheduling events while masters are updating
+			var foundOverlap bool
+			for _, nui := range nodeUpdateIntervals {
+				if nui.From.Before(event.From) && nui.To.After(event.To) {
+					logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", event, nui)
+					foundOverlap = true
+					break
+				}
 			}
-		}
-		if foundOverlap {
-			break
+			if foundOverlap {
+				continue
+			}
 		}
 		eventDisplayMessage, times := GetTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
 		if times > DuplicateEventThreshold {
