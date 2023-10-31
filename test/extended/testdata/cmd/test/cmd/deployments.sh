@@ -122,7 +122,7 @@ os::cmd::try_until_success 'oc rollout history dc/database --revision=2'
 # rolling back to the same revision should fail
 os::cmd::expect_failure 'oc rollback dc/database --to-version=2'
 # undo --dry-run should report the original image
-os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'quay.io/sclorg/mysql-80-c8s:latest'
+os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'registry.redhat.io/rhel8/mysql-80:latest'
 echo "rollback: ok"
 os::test::junit::declare_suite_end
 
