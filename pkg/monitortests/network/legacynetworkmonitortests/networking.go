@@ -93,22 +93,19 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		failures = append(failures, fmt.Sprintf("error determining platform type: %v", err))
 	}
 
-	// Filter out a list of NodeUpdate events, we use these to ignore some other potential pathological events that are
-	// expected during NodeUpdate.
-	nodeUpdateIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceNodeState &&
+	// Filter out a list of node NotReady events, we use these to ignore some other potential problems
+	nodeNotReadyIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceNodeMonitor &&
 			eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeNode &&
-			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerNodeLifecycle &&
-			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPhase] == "Update" &&
-			strings.Contains(eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationRoles], "master")
+			eventInterval.StructuredMessage.Reason == monitorapi.NodeNotReadyReason
 	})
-	logrus.Infof("found %d NodeUpdate intervals", len(nodeUpdateIntervals))
+	logrus.Infof("found %d node NotReady intervals", len(nodeNotReadyIntervals))
 
 	for _, event := range events {
-	
+
 		// Skip pod sandbox failures when nodes are updating
 		var foundOverlap bool
-		for _, nui := range nodeUpdateIntervals {
+		for _, nui := range nodeNotReadyIntervals {
 			if nui.From.Before(event.From) && nui.To.After(event.To) {
 				logrus.Infof("%s was found to overlap with %s, ignoring pod sandbox error as we expect these if the node is NotReady", event, nui)
 				foundOverlap = true
