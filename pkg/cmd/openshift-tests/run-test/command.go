@@ -1,7 +1,10 @@
 package run_test
 
 import (
+	"fmt"
+	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"os"
+	"strings"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
@@ -17,6 +20,7 @@ import (
 
 func NewRunTestCommand(streams genericclioptions.IOStreams) *cobra.Command {
 	testOpt := testginkgo.NewTestOptions(streams)
+	monitorNames := defaultmonitortests.ListAllMonitorTests()
 
 	cmd := &cobra.Command{
 		Use:   "run-test NAME",
@@ -71,5 +75,8 @@ func NewRunTestCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&testOpt.DryRun, "dry-run", testOpt.DryRun, "Print the test to run without executing them.")
+	cmd.Flags().StringSliceVar(&testOpt.ExactMonitorTests, "monitor", testOpt.ExactMonitorTests,
+		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
+	cmd.Flags().StringSliceVar(&testOpt.DisableMonitorTests, "disable-monitor", testOpt.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
 	return cmd
 }

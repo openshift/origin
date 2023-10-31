@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -66,6 +67,9 @@ type GinkgoRunSuiteOptions struct {
 	FromRepository string
 
 	StartTime time.Time
+
+	ExactMonitorTests   []string
+	DisableMonitorTests []string
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -75,6 +79,9 @@ func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSui
 }
 
 func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
+
+	monitorNames := defaultmonitortests.ListAllMonitorTests()
+
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
 	flags.BoolVar(&o.PrintCommands, "print-commands", o.PrintCommands, "Print the sub-commands that would be executed instead.")
 	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive. Empty default will be treated as Stable.")
@@ -84,6 +91,9 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.DurationVar(&o.Timeout, "timeout", o.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&o.IncludeSuccessOutput, "include-success", o.IncludeSuccessOutput, "Print output from successful tests.")
 	flags.IntVar(&o.Parallelism, "max-parallel-tests", o.Parallelism, "Maximum number of tests running in parallel. 0 defaults to test suite recommended value, which is different in each suite.")
+	flags.StringSliceVar(&o.ExactMonitorTests, "monitor", o.ExactMonitorTests,
+		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
+	flags.StringSliceVar(&o.DisableMonitorTests, "disable-monitor", o.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
@@ -260,12 +270,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
+	monitorTests, err := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
+	if err != nil {
+		logrus.Errorf("Error getting monitor tests: %v", err)
+	}
+
 	monitorEventRecorder := monitor.NewRecorder()
 	m := monitor.NewMonitor(
 		monitorEventRecorder,
 		restConfig,
 		o.JUnitDir,
-		defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
+		monitorTests,
 	)
 	if err := m.Start(ctx); err != nil {
 		return err

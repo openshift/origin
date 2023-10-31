@@ -19,7 +19,7 @@ var (
 	Stable ClusterStabilityDuringTest = "Stable"
 	// TODO only bring this back if we have some reason to collect Upgrade specific information.  I can't think of reason.
 	// TODO please contact @deads2k for vetting if you think you found something
-	//Upgrade    ClusterStabilityDuringTest = "Upgrade"
+	// Upgrade    ClusterStabilityDuringTest = "Upgrade"
 	// Disruptive means that the suite is expected to induce outages to the cluster.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
 )
@@ -28,6 +28,12 @@ type MonitorTestInitializationInfo struct {
 	ClusterStabilityDuringTest ClusterStabilityDuringTest
 	// UpgradeTargetImage is only set for upgrades.  It is set to the *final* destination version.
 	UpgradeTargetPayloadImagePullSpec string
+
+	// ExactMonitorTests will filter the available monitor tests down to only those contained in the provided list
+	ExactMonitorTests []string
+
+	// DisableMonitorTests will remove any monitor tests contained in the provided list
+	DisableMonitorTests []string
 }
 
 type MonitorTest interface {
