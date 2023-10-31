@@ -52471,6 +52471,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 return [item.locator, ` + "`" + ` (pathological new)` + "`" + `, "PathologicalNew"];
             }
         }
+        // TODO: hack that can likely be removed when we get to structured intervals for these
+        if (item.message.includes("interesting/true") && item.message.includes("pod sandbox")) {
+            return [item.locator, ` + "`" + ` (pod sandbox)` + "`" + `, "PodSandbox"];
+        }
         if (item.message.includes("interesting/true")) {
 		    return [item.locator, ` + "`" + ` (interesting event)` + "`" + `, "InterestingEvent"];
         }
@@ -52764,7 +52768,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         const myChart = TimelinesChart();
         var ordinalScale = d3.scaleOrdinal()
             .domain([
-                'InterestingEvent', 'PathologicalKnown', "PathologicalNew", // interesting and pathological events
+                'InterestingEvent', 'PathologicalKnown', "PathologicalNew", "PodSandbox", // interesting and pathological events
                 'AlertInfo', 'AlertPending', 'AlertWarning', 'AlertCritical', // alerts
                 'OperatorUnavailable', 'OperatorDegraded', 'OperatorProgressing', // operators
                 'Update', 'Drain', 'Reboot', 'OperatingSystemUpdate', 'NodeNotReady', // nodes
@@ -52774,7 +52778,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'Degraded', 'Upgradeable', 'False', 'Unknown',
                 'PodLogInfo', 'PodLogWarning', 'PodLogError'])
             .range([
-                '#6E6E6E', '#0000ff', '#d0312d', // pathological and interesting events
+                '#6E6E6E', '#0000ff', '#d0312d', '#ffa500', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
                 '#d0312d', '#ffa500', '#fada5e', // operators
                 '#1e7bd9', '#4294e6', '#6aaef2', '#96cbff', '#fada5e', // nodes
