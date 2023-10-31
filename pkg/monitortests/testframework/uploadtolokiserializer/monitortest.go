@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ import (
 )
 
 type lokiSerializer struct {
+	monitorStartTime time.Time
 }
 
 func NewUploadSerializer() monitortestframework.MonitorTest {
@@ -32,6 +34,14 @@ func NewUploadSerializer() monitortestframework.MonitorTest {
 }
 
 func (w *lokiSerializer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	// Immediately before the call to monitorTestRegistry.StartCollection(),
+	// we get the current time and use that as the Monitor.startTime.
+	// MonitorTestRegistry.StartCollection calls startCollectionWithPanicProtection
+	// for each monitorTest which calls monitorTest.StartCollection, which is when
+	// this method is called. As such, our call to time.Now() captures the time when
+	// the data collection starts and is about the same time as the monitor's
+	// startTime.
+	w.monitorStartTime = time.Now()
 	return nil
 }
 
@@ -47,9 +57,25 @@ func (*lokiSerializer) EvaluateTestsFromConstructedIntervals(ctx context.Context
 	return nil, nil
 }
 
-func (*lokiSerializer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+func (w *lokiSerializer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	fmt.Fprintf(os.Stderr, "Uploading to loki.\n")
-	if err := UploadIntervalsToLoki(finalIntervals); err != nil {
+
+	// Some monitor tests can return intervals that occurred before the time we started
+	// monitoring (e.g., in-cluster disruption pollers that scrape pod logs which run
+	// during the upgrade phase and could return quite old intervals).  Given this, we
+	// we remove these older intervals before pushing them to loki as loki has a limit
+	// on the age of entries consumed.  Intervals exceeding that limit will not be
+	// successfully pushed and will result in the "entry too far behind" error).
+	intervalsToUse := finalIntervals
+	first := sort.Search(len(finalIntervals), func(i int) bool {
+		return !finalIntervals[i].To.Before(w.monitorStartTime) // equal to or after
+	})
+	// If all intervals happened on or after the monitorStartTime, we keep the final intervals as is.
+	if first != -1 {
+		// Otherwise, we only use only the ones after the startTime.
+		intervalsToUse = finalIntervals[first:]
+	}
+	if err := UploadIntervalsToLoki(intervalsToUse); err != nil {
 		// Best effort, we do not want to error out here:
 		// TODO do we need to have a junit return option from this function to allow us to find failures?
 		logrus.WithError(err).Warn("unable to upload intervals to loki")
