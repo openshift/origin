@@ -247,7 +247,7 @@ func renderHTML(events monitorapi.Intervals) ([]byte, error) {
 		return nil, err
 
 	}
-	e2eChartTemplate := testdata.MustAsset("e2echart/non-spyglass-e2e-chart-template.html")
+	e2eChartTemplate := testdata.MustAsset("e2echart/e2e-chart-template.html")
 	e2eChartTitle := "Timeline"
 	e2eChartHTML := bytes.ReplaceAll(e2eChartTemplate, []byte("EVENT_INTERVAL_TITLE_GOES_HERE"), []byte(e2eChartTitle))
 	e2eChartHTML = bytes.ReplaceAll(e2eChartHTML, []byte("EVENT_INTERVAL_JSON_GOES_HERE"), eventIntervalsJSON)

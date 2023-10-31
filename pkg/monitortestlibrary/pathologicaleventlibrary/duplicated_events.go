@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -223,8 +224,34 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		eventMessage string // holds original message so you can compare with d.knownRepeatedEventsBugs
 	}
 
+	// Filter out a list of NodeUpdate events, we use these to ignore some other potential pathological events that are
+	// expected during NodeUpdate.
+	nodeUpdateIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceNodeState &&
+			eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeNode &&
+			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerNodeLifecycle &&
+			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPhase] == "Update" &&
+			strings.Contains(eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationRoles], "master")
+	})
+	logrus.Infof("found %d NodeUpdate intervals", len(nodeUpdateIntervals))
+
 	displayToCount := map[string]*pathologicalEvents{}
 	for _, event := range events {
+		// TODO: port to use structured message reason once kube event intervals are ported over
+		if strings.Contains(event.Message, "reason/FailedScheduling") {
+			// Filter out FailedScheduling events while masters are updating
+			var foundOverlap bool
+			for _, nui := range nodeUpdateIntervals {
+				if nui.From.Before(event.From) && nui.To.After(event.To) {
+					logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", event, nui)
+					foundOverlap = true
+					break
+				}
+			}
+			if foundOverlap {
+				continue
+			}
+		}
 		eventDisplayMessage, times := GetTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
 		if times > DuplicateEventThreshold {
 

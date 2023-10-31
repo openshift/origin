@@ -2,7 +2,6 @@ package statetracker
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -34,12 +33,10 @@ type intervalCreationFunc func(locator monitorapi.Locator,
 
 func SimpleInterval(constructedBy monitorapi.ConstructionOwner,
 	source monitorapi.IntervalSource, level monitorapi.IntervalLevel,
-	reason monitorapi.IntervalReason, message string) intervalCreationFunc {
+	messageBuilder *monitorapi.MessageBuilder) intervalCreationFunc {
 	return func(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool) {
 		interval := monitorapi.NewInterval(source, level).Locator(locator).
-			Message(monitorapi.NewMessage().Reason(reason).
-				WithAnnotation(monitorapi.AnnotationConstructed, string(constructedBy)).
-				HumanMessage(message))
+			Message(messageBuilder)
 		return interval, true
 	}
 }
@@ -155,14 +152,18 @@ func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]
 	ret := []monitorapi.Interval{}
 	for locator, states := range t.locatorToStateMap {
 		annotationStrings := []string{}
+		annotations := map[monitorapi.AnnotationKey]string{}
 		for k, v := range locatorToMessageAnnotations[locator] {
 			annotationStrings = append(annotationStrings, fmt.Sprintf("%v/%v", k, v))
+			annotations[monitorapi.AnnotationKey(k)] = v
 		}
 
 		l := t.locators[locator]
 		for stateName := range states {
-			message := fmt.Sprintf("%v state/%v never completed", strings.Join(annotationStrings, " "), stateName.stateName)
-			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.constructedBy, t.intervalSource, monitorapi.Warning, stateName.reason, message), end)...)
+			annotations[monitorapi.AnnotationState] = stateName.stateName
+			annotations[monitorapi.AnnotationConstructed] = string(t.constructedBy)
+			mb := monitorapi.NewMessage().WithAnnotations(annotations).HumanMessage("never completed").Reason(stateName.reason)
+			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.constructedBy, t.intervalSource, monitorapi.Warning, mb), end)...)
 		}
 	}
 

@@ -3,7 +3,7 @@
         {
             "level": "Info",
             "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
-            "message": "constructed/node-lifecycle-constructor reason/NodeUpdate phase/Drain roles/worker drained node",
+            "message": "constructed/node-lifecycle-constructor phase/Drain reason/NodeUpdate roles/worker drained node",
             "tempSource": "NodeState",
             "tempStructuredLocator": {
                 "type": "Node",
@@ -14,10 +14,12 @@
             "tempStructuredMessage": {
                 "reason": "NodeUpdate",
                 "cause": "",
-                "humanMessage": "phase/Drain roles/worker drained node",
+                "humanMessage": "drained node",
                 "annotations": {
                     "constructed": "node-lifecycle-constructor",
-                    "reason": "NodeUpdate"
+                    "phase": "Drain",
+                    "reason": "NodeUpdate",
+                    "roles": "worker"
                 }
             },
             "from": "2023-07-18T16:40:16Z",
@@ -37,10 +39,12 @@
             "tempStructuredMessage": {
                 "reason": "NodeUpdate",
                 "cause": "",
-                "humanMessage": "role/worker state/OperatingSystemUpdate never completed",
+                "humanMessage": "never completed",
                 "annotations": {
                     "constructed": "node-lifecycle-constructor",
-                    "reason": "NodeUpdate"
+                    "reason": "NodeUpdate",
+                    "role": "worker",
+                    "state": "OperatingSystemUpdate"
                 }
             },
             "from": "2023-07-18T16:41:49Z",
