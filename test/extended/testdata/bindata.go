@@ -3294,6 +3294,26 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             }
           },
           {
+            "name": "8.0-el8",
+            "annotations": {
+              "description": "Provides a MySQL 8.0 database on CentOS 8 Stream. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
+              "iconClass": "icon-mysql-database",
+              "openshift.io/display-name": "MySQL 8.0 (CentOS 8 Stream)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "tags": "mysql",
+              "version": "8.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "quay.io/sclorg/mysql-80-c8s:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
             "name": "8.0-el7",
             "annotations": {
               "description": "Provides a MySQL 8.0 database on CentOS 7. For more information about using this database image, including OpenShift considerations, see https://github.com/sclorg/mysql-container/blob/master/README.md.",
@@ -5274,7 +5294,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "rhel8/mysql-80:latest",
+                "image": "quay.io/sclorg/mysql-80-c8s:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -5769,7 +5789,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "rhel8/mysql-80:latest",
+                "image": "quay.io/sclorg/mysql-80-c8s:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -6274,7 +6294,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "rhel8/mysql-80:latest",
+                "image": "quay.io/sclorg/mysql-80-c8s:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -32619,7 +32639,7 @@ os::cmd::try_until_success 'oc rollout history dc/database --revision=2'
 # rolling back to the same revision should fail
 os::cmd::expect_failure 'oc rollback dc/database --to-version=2'
 # undo --dry-run should report the original image
-os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'registry.redhat.io/rhel8/mysql-80:latest'
+os::cmd::expect_success_and_text 'oc rollout undo dc/database --dry-run' 'quay.io/sclorg/mysql-80-c8s:latest'
 echo "rollback: ok"
 os::test::junit::declare_suite_end
 
@@ -34895,7 +34915,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateDockerbuildJson = 
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "registry.redhat.io/rhel8/mysql-80:latest",
+                "image": "quay.io/sclorg/mysql-80-c8s:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -38016,7 +38036,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "rhel8/mysql-80:latest",
+                "image": "quay.io/sclorg/mysql-80-c8s:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
@@ -38679,7 +38699,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "rhel8/mysql-80:latest",
+                "image": "quay.io/sclorg/mysql-80-c8s:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
