@@ -52436,6 +52436,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 eventInterval.tempStructuredMessage.reason === "NotReady");
     }
 
+    function isCloudMetrics(eventInterval) {
+        return eventInterval.tempSource === "CloudMetrics";
+    }
+
     function isAlert(eventInterval) {
         if (eventInterval.locator.includes("alert/")) {
             return true
@@ -52529,6 +52533,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         }
         let m = item.tempStructuredMessage.annotations.phase;
         return [item.locator, ` + "`" + ` (${roles})` + "`" + `, m];
+    }
+
+    function cloudMetricsValue(item) {
+        return [item.locator, "", "CloudMetric"];
     }
 
     function alertSeverity(item) {
@@ -52705,6 +52713,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
             return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
+
+        timelineGroups.push({group: "cloud-metrics", data: []})
+        createTimelineData(cloudMetricsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCloudMetrics, regex)
 
         timelineGroups.push({group: "endpoint-availability", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
