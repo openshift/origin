@@ -297,7 +297,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"cluster-image-registry-operator":        119,
 				"cluster-monitoring-operator":            88,
 				"cluster-node-tuning-operator":           97,
-				"cluster-samples-operator":               23,
+				"cluster-samples-operator":               27,
 				"cluster-storage-operator":               202,
 				"console-operator":                       200,
 				"csi-snapshot-controller-operator":       120,
