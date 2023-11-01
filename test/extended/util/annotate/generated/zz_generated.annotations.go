@@ -717,6 +717,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc builds get buildconfig [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc builds import necessary images [Early]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc builds new-build [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc builds patch buildconfig [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
