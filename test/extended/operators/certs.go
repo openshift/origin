@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		tlsArtifactFilename := fmt.Sprintf("raw-tls-artifacts-%s-%s-%s-%s.json", jobType.Topology, jobType.Architecture, jobType.Platform, jobType.Network)
 
-		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient)
+		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient, certgraphanalysis.SkipRevisioned, certgraphanalysis.SkipHashed, certgraphanalysis.RewriteNames)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// the content here is good, but proxy-ca contains a lot of entries for system-trust that doesn't help
@@ -73,7 +73,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			nodes[node.Name] = i
 		}
 
-		actualPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient)
+		actualPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient, certgraphanalysis.SkipRevisioned, certgraphanalysis.SkipHashed, certgraphanalysis.RewriteNames)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		expectedPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIOwnership)
@@ -136,7 +136,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			nodes[node.Name] = i
 		}
 
-		actualPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient)
+		actualPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient, certgraphanalysis.SkipRevisioned, certgraphanalysis.SkipHashed, certgraphanalysis.RewriteNames)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		expectedPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIOwnership)
