@@ -103,6 +103,10 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 
 	for _, event := range events {
 
+		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
+			continue
+		}
+
 		// Skip pod sandbox failures when nodes are updating
 		var foundOverlap bool
 		for _, nui := range nodeNotReadyIntervals {
@@ -116,9 +120,6 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			continue
 		}
 
-		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
-			continue
-		}
 		if strings.Contains(event.Locator, "pod/simpletest-rc-to-be-deleted") &&
 			(strings.Contains(event.Message, "not found") ||
 				strings.Contains(event.Message, "pod was already deleted") ||
