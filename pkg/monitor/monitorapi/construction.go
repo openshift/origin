@@ -14,11 +14,14 @@ import (
 type IntervalBuilder struct {
 	level             IntervalLevel
 	source            IntervalSource
+	subSource         IntervalSubSource
 	display           bool
 	structuredLocator Locator
 	structuredMessage Message
 }
 
+// NewInterval creates a new interval builder. Source is an indicator of what created this interval, used for
+// safely identifying intervals we're looking for, and for grouping in charts.
 func NewInterval(source IntervalSource, level IntervalLevel) *IntervalBuilder {
 	return &IntervalBuilder{
 		level:  level,
@@ -29,6 +32,14 @@ func NewInterval(source IntervalSource, level IntervalLevel) *IntervalBuilder {
 // Display is a coarse grained hint that any UI should display this interval to a user.
 func (b *IntervalBuilder) Display() *IntervalBuilder {
 	b.display = true
+	return b
+}
+
+// SubSource is an optional way to classify the interval. It is used in charting to isolate separate rows within
+// a group that would otherwise have the same locator. (i.e. node upgrade, node upgrade phases, and node not ready, all
+// show on separate rows despite being in the same group)
+func (b *IntervalBuilder) SubSource(subSource IntervalSubSource) *IntervalBuilder {
+	b.subSource = subSource
 	return b
 }
 
@@ -56,6 +67,7 @@ func (b *IntervalBuilder) Build(from, to time.Time) Interval {
 		Condition: b.BuildCondition(),
 		Display:   b.display,
 		Source:    b.source,
+		SubSource: b.subSource,
 		From:      from,
 		To:        to,
 	}

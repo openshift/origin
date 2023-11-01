@@ -31,12 +31,11 @@ type stateTracker struct {
 type intervalCreationFunc func(locator monitorapi.Locator,
 	from, to time.Time) (*monitorapi.IntervalBuilder, bool)
 
-func SimpleInterval(constructedBy monitorapi.ConstructionOwner,
-	source monitorapi.IntervalSource, level monitorapi.IntervalLevel,
-	messageBuilder *monitorapi.MessageBuilder) intervalCreationFunc {
+func SimpleInterval(source monitorapi.IntervalSource, level monitorapi.IntervalLevel, messageBuilder *monitorapi.MessageBuilder,
+	subSource monitorapi.IntervalSubSource) intervalCreationFunc {
 	return func(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool) {
 		interval := monitorapi.NewInterval(source, level).Locator(locator).
-			Message(messageBuilder)
+			Message(messageBuilder).SubSource(subSource)
 		return interval, true
 	}
 }
@@ -163,7 +162,7 @@ func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]
 			annotations[monitorapi.AnnotationState] = stateName.stateName
 			annotations[monitorapi.AnnotationConstructed] = string(t.constructedBy)
 			mb := monitorapi.NewMessage().WithAnnotations(annotations).HumanMessage("never completed").Reason(stateName.reason)
-			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.constructedBy, t.intervalSource, monitorapi.Warning, mb), end)...)
+			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.intervalSource, monitorapi.Warning, mb, ""), end)...)
 		}
 	}
 

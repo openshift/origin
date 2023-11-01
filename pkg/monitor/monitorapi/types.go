@@ -273,10 +273,21 @@ const (
 	SourcePodState                               = "PodState"
 )
 
+// IntervalSubSource is an optional further categorization of the interval, used to differentiate intervals we intend to
+// chart within the same source, but which we'd want displayed on separate rows.
+type IntervalSubSource string
+
+const (
+	SubSourceNodeUpdate       IntervalSubSource = "NodeUpdate"
+	SubSourceNodeUpdatePhases IntervalSubSource = "NodeUpdatePhases"
+	SubSourceNodeNotReady     IntervalSubSource = "NodeNotReady"
+)
+
 type Interval struct {
 	// Deprecated: We hope to fold this into Interval itself.
 	Condition
-	Source IntervalSource
+	Source    IntervalSource
+	SubSource IntervalSubSource
 
 	// Display is a very coarse hint to any UI that this event was considered important enough to *possibly* be displayed by the source that produced it.
 	// UI may apply further filtering.

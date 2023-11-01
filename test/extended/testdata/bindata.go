@@ -52520,19 +52520,20 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
         let roles = ""
-        if (item.tempStructuredMessage.hasOwnProperty('roles')) {
-            roles = item.tempStructuredMessage.roles
+        if (item.tempStructuredMessage.annotations.hasOwnProperty('roles')) {
+            roles = item.tempStructuredMessage.annotations.roles
         }
 
         if (item.tempStructuredMessage.reason === 'NotReady') {
             return [item.locator, ` + "`" + ` (${roles},not ready)` + "`" + `, "NodeNotReady"]
         }
         // TODO: would like to get this to a structured field as well
-        let m = item.message.match(rePhase);
-        if (m && m[2] != "Update") {
-            return [item.locator, ` + "`" + ` (${roles},update phases)` + "`" + `, m[2]];
+        let m = item.tempStructuredMessage.annotations.phase;
+        let ss = item.tempSubSource
+        if (m != "Update") {
+            return [item.locator, ` + "`" + ` (${roles},${ss})` + "`" + `, m];
         }
-        return [item.locator, ` + "`" + ` (${roles},updates)` + "`" + `, "Update"];
+        return [item.locator, ` + "`" + ` (${roles},${ss})` + "`" + `, m];
     }
 
     function alertSeverity(item) {
