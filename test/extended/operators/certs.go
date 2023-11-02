@@ -142,12 +142,18 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		expectedPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIOwnership)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		violationsPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIViolations)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		messages := []string{}
 
 		for _, currCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
 			currLocation := currCertKeyPair.SecretLocation
 			expectedSecret, err := certgraphutils.LocateCertKeyPair(currLocation, expectedPKIContent.CertKeyPairs)
 			if err != nil {
+				continue
+			}
+			if _, err := certgraphutils.LocateCertKeyPair(currLocation, violationsPKIContent.CertKeyPairs); err == nil {
 				continue
 			}
 			errorMessage := o.Equal(expectedSecret.CertKeyInfo).FailureMessage(currCertKeyPair.CertKeyInfo)
@@ -160,6 +166,9 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			currLocation := currCABundle.ConfigMapLocation
 			expectedCABundle, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, expectedPKIContent.CertificateAuthorityBundles)
 			if err != nil {
+				continue
+			}
+			if _, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, violationsPKIContent.CertificateAuthorityBundles); err == nil {
 				continue
 			}
 			errorMessage := o.Equal(expectedCABundle.CABundleInfo).FailureMessage(currCABundle.CABundleInfo)
