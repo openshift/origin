@@ -147,6 +147,7 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 		if curr.From == curr.To && !curr.To.IsZero() {
 			continue
 		}
+
 		outputEvents = append(outputEvents, monitorEventIntervalToEventInterval(curr))
 	}
 

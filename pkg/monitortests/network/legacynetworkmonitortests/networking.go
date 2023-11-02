@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -92,10 +93,33 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		failures = append(failures, fmt.Sprintf("error determining platform type: %v", err))
 	}
 
+	// Filter out a list of node NotReady events, we use these to ignore some other potential problems
+	nodeNotReadyIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceNodeMonitor &&
+			eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeNode &&
+			eventInterval.StructuredMessage.Reason == monitorapi.NodeNotReadyReason
+	})
+	logrus.Infof("found %d node NotReady intervals", len(nodeNotReadyIntervals))
+
 	for _, event := range events {
+
 		if !strings.Contains(event.Message, "reason/FailedCreatePodSandBox Failed to create pod sandbox") {
 			continue
 		}
+
+		// Skip pod sandbox failures when nodes are updating
+		var foundOverlap bool
+		for _, nui := range nodeNotReadyIntervals {
+			if nui.From.Before(event.From) && nui.To.After(event.To) {
+				logrus.Infof("%s was found to overlap with %s, ignoring pod sandbox error as we expect these if the node is NotReady", event, nui)
+				foundOverlap = true
+				break
+			}
+		}
+		if foundOverlap {
+			continue
+		}
+
 		if strings.Contains(event.Locator, "pod/simpletest-rc-to-be-deleted") &&
 			(strings.Contains(event.Message, "not found") ||
 				strings.Contains(event.Message, "pod was already deleted") ||

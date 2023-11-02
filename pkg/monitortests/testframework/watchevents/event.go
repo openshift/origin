@@ -226,24 +226,27 @@ func recordAddOrUpdateEvent(
 		Condition: condition,
 	}
 
+	// The matching here needs to mimic what is being done in the synthetictests/testDuplicatedEvents function.
+	eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
+	isInteresting := allRepeatedEventPatterns.MatchString(eventDisplayMessage) ||
+		checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count)
+
 	if obj.Count > 1 {
 
-		// The matching here needs to mimic what is being done in the synthetictests/testDuplicatedEvents function.
-		eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
-
 		updatedMessage := event.Message
-		if allRepeatedEventPatterns.MatchString(eventDisplayMessage) || checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count) {
+		if isInteresting {
 			// This is a repeated event that we know about
 			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, updatedMessage)
 		}
 
-		if obj.Count > pathologicaleventlibrary.DuplicateEventThreshold && pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage) {
+		isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold && pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage)
+		if isPathological {
 			// This is a repeated event that exceeds threshold
 			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, updatedMessage)
 		}
 
 		condition.Message = updatedMessage
-		if strings.Contains(condition.Message, pathologicaleventlibrary.InterestingMark) || strings.Contains(condition.Message, pathologicaleventlibrary.PathologicalMark) {
+		if isInteresting || isPathological {
 
 			// Remove the "(n times)" portion of the message, and get the first 10 characters of the hash of the message
 			// so we can add it to the locator. This incorporates the message into the locator without the resulting
@@ -263,6 +266,18 @@ func recordAddOrUpdateEvent(
 		inter := recorder.StartInterval(pathoFrom, condition)
 		recorder.EndInterval(inter, to)
 
+	} else if strings.Contains(condition.Message, "pod sandbox") {
+		// gross hack until we port these to structured intervals. serialize.go EventsIntervalsToJSON will filter out
+		// any intervals where from == to, which kube events normally do other than interesting/pathological above,
+		// which is only applied to things with a count. to get pod sandbox intervals charted we have to get a little creative.
+		// structured intervals should come here soon.
+
+		// fake interesting flag
+		updatedMessage := fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, condition.Message)
+		condition.Message = updatedMessage
+		// make sure we add 1 second to the to timestamp so it doesn't get filtered
+		inter := recorder.StartInterval(pathoFrom, condition)
+		recorder.EndInterval(inter, to)
 	} else {
 		recorder.RecordAt(t, condition)
 	}
