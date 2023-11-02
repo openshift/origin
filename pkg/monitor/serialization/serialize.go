@@ -144,7 +144,7 @@ func IntervalsToFile(filename string, intervals monitorapi.Intervals) error {
 func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 	outputEvents := []EventInterval{}
 	for _, curr := range events {
-		if !curr.Display || (curr.From == curr.To && !curr.To.IsZero()) {
+		if curr.From == curr.To && !curr.To.IsZero() {
 			continue
 		}
 
