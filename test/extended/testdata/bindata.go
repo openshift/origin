@@ -52524,15 +52524,11 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             roles = item.tempStructuredMessage.annotations.roles
         }
 
-        if (item.tempStructuredMessage.reason === 'NotReady') {
-            return [item.locator, ` + "`" + ` (${roles},not ready)` + "`" + `, "NodeNotReady"]
-        }
-        // TODO: would like to get this to a structured field as well
-        let m = item.tempStructuredMessage.annotations.phase;
         let ss = item.tempSubSource
-        if (m != "Update") {
-            return [item.locator, ` + "`" + ` (${roles},${ss})` + "`" + `, m];
+        if (item.tempStructuredMessage.reason === 'NotReady') {
+            return [item.locator, ` + "`" + ` (${roles},${ss})` + "`" + `, "NodeNotReady"]
         }
+        let m = item.tempStructuredMessage.annotations.phase;
         return [item.locator, ` + "`" + ` (${roles},${ss})` + "`" + `, m];
     }
 
