@@ -423,6 +423,8 @@ type Intervals []Interval
 var _ sort.Interface = Intervals{}
 
 func (intervals Intervals) Less(i, j int) bool {
+	// currently synced with https://github.com/openshift/origin/blob/9b001745ec8006eb406bd92e3555d1070b9b656e/pkg/monitor/serialization/serialize.go#L175
+
 	switch d := intervals[i].From.Sub(intervals[j].From); {
 	case d < 0:
 		return true
@@ -435,7 +437,11 @@ func (intervals Intervals) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	return intervals[i].Message < intervals[j].Message
+	if intervals[i].Message != intervals[j].Message {
+		return intervals[i].Message < intervals[j].Message
+	}
+
+	return intervals[i].Locator < intervals[j].Locator
 }
 func (intervals Intervals) Len() int { return len(intervals) }
 func (intervals Intervals) Swap(i, j int) {

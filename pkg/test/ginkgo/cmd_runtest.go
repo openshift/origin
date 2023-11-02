@@ -3,6 +3,7 @@ package ginkgo
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 	"strings"
@@ -36,6 +37,9 @@ type TestOptions struct {
 
 	DryRun bool
 	genericclioptions.IOStreams
+
+	ExactMonitorTests   []string
+	DisableMonitorTests []string
 }
 
 var _ ginkgo.GinkgoTestingT = &TestOptions{}
@@ -83,16 +87,23 @@ func (o *TestOptions) Run(args []string) error {
 	}
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest: monitortestframework.Stable,
+		ExactMonitorTests:          o.ExactMonitorTests,
+		DisableMonitorTests:        o.DisableMonitorTests,
 	}
 	var m monitor.Interface
 	if o.EnableMonitor {
 		// individual tests are always stable, it's the jobs that aren't.
+		monitorTests, err := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
+		if err != nil {
+			logrus.Errorf("Error getting monitor tests: %v", err)
+		}
+
 		monitorEventRecorder := monitor.NewRecorder()
 		m = monitor.NewMonitor(
 			monitorEventRecorder,
 			restConfig,
 			"",
-			defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
+			monitorTests,
 		)
 		if err := m.Start(ctx); err != nil {
 			return err

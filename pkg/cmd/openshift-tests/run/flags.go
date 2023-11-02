@@ -2,7 +2,6 @@ package run
 
 import (
 	"fmt"
-
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/clioptions/kubeconfig"

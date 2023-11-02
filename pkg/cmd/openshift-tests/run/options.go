@@ -82,6 +82,8 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest: monitortestframework.ClusterStabilityDuringTest(stabilitySetting),
+		ExactMonitorTests:          o.GinkgoRunSuiteOptions.ExactMonitorTests,
+		DisableMonitorTests:        o.GinkgoRunSuiteOptions.DisableMonitorTests,
 	}
 
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()

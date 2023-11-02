@@ -173,6 +173,8 @@ func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInte
 type byTime []EventInterval
 
 func (intervals byTime) Less(i, j int) bool {
+	// currently synced with https://github.com/openshift/origin/blob/9b001745ec8006eb406bd92e3555d1070b9b656e/pkg/monitor/monitorapi/types.go#L425
+
 	switch d := intervals[i].From.Sub(intervals[j].From.Time); {
 	case d < 0:
 		return true
@@ -186,7 +188,11 @@ func (intervals byTime) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	return intervals[i].Message < intervals[j].Message
+	if intervals[i].Message != intervals[j].Message {
+		return intervals[i].Message < intervals[j].Message
+	}
+
+	return intervals[i].Locator < intervals[j].Locator
 }
 
 func (intervals byTime) Len() int { return len(intervals) }

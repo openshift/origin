@@ -82,11 +82,7 @@ func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Comm
 }
 
 func (f *RunMonitorFlags) BindFlags(flags *pflag.FlagSet) {
-	allMonitors, _ := f.getMonitorTestRegistry()
-	monitorNames := []string{}
-	if allMonitors != nil {
-		monitorNames = allMonitors.ListMonitorTests().List()
-	}
+	monitorNames := defaultmonitortests.ListAllMonitorTests()
 
 	flags.StringVar(&f.ArtifactDir, "artifact-dir", f.ArtifactDir, "The directory where monitor events will be stored.")
 	flags.BoolVar(&f.DisplayFromNow, "display-from-now", f.DisplayFromNow, "Only display intervals from at or after this comand was started.")
@@ -125,21 +121,10 @@ func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
 func (f *RunMonitorFlags) getMonitorTestRegistry() (monitortestframework.MonitorTestRegistry, error) {
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest: monitortestframework.Stable,
+		ExactMonitorTests:          f.ExactMonitorTests,
+		DisableMonitorTests:        f.DisableMonitorTests,
 	}
-	startingRegistry := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
-
-	switch {
-	case len(f.ExactMonitorTests) > 0:
-		return startingRegistry.GetRegistryFor(f.ExactMonitorTests...)
-
-	case len(f.DisableMonitorTests) > 0:
-		testsToInclude := startingRegistry.ListMonitorTests()
-		testsToInclude.Delete(f.DisableMonitorTests...)
-		return startingRegistry.GetRegistryFor(testsToInclude.List()...)
-
-	default:
-		return startingRegistry, nil
-	}
+	return defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
 }
 
 type RunMonitorOptions struct {

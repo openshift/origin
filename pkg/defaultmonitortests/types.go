@@ -2,6 +2,7 @@ package defaultmonitortests
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 
@@ -45,15 +46,49 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchevents"
 )
 
-func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
+// ListAllMonitorTests is a helper that returns a simple list of
+// available monitor tests names
+func ListAllMonitorTests() []string {
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest: monitortestframework.Stable,
+	}
+	allMonitors, err := NewMonitorTestsFor(monitorTestInfo)
+	if err != nil {
+		logrus.Errorf("Error listing all monitor tests: %v", err)
+	}
+	monitorNames := []string{}
+	if allMonitors != nil {
+		monitorNames = allMonitors.ListMonitorTests().List()
+	}
+
+	return monitorNames
+}
+
+func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo) (monitortestframework.MonitorTestRegistry, error) {
+
+	// get tests and apply any filtering defined in info
+	var startingRegistry monitortestframework.MonitorTestRegistry
+
 	switch info.ClusterStabilityDuringTest {
 	case monitortestframework.Stable:
-		return newDefaultMonitorTests(info)
+		startingRegistry = newDefaultMonitorTests(info)
 	case monitortestframework.Disruptive:
-		return newDisruptiveMonitorTests()
+		startingRegistry = newDisruptiveMonitorTests()
 	default:
 		panic(fmt.Sprintf("unknown cluster stability level: %q", info.ClusterStabilityDuringTest))
 	}
+
+	switch {
+	case len(info.ExactMonitorTests) > 0:
+		return startingRegistry.GetRegistryFor(info.ExactMonitorTests...)
+
+	case len(info.DisableMonitorTests) > 0:
+		testsToInclude := startingRegistry.ListMonitorTests()
+		testsToInclude.Delete(info.DisableMonitorTests...)
+		return startingRegistry.GetRegistryFor(testsToInclude.List()...)
+	}
+
+	return startingRegistry, nil
 }
 
 func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTestRegistry {
@@ -84,11 +119,11 @@ func newDisruptiveMonitorTests() monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry.AddRegistryOrDie(newUniversalMonitorTests())
 
 	// this data would be interesting, but I'm betting we cannot scrub the data after the fact to exclude these.
-	//monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewRecordAvailabilityOnly())
-	//monitorTestRegistry.AddMonitorTestOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewRecordAvailabilityOnly())
-	//monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
-	//monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewRecordAvailabilityOnly())
-	//monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewRecordAvailabilityOnly())
+	// monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewRecordAvailabilityOnly())
+	// monitorTestRegistry.AddMonitorTestOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewRecordAvailabilityOnly())
+	// monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
+	// monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewRecordAvailabilityOnly())
+	// monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewRecordAvailabilityOnly())
 
 	return monitorTestRegistry
 }
