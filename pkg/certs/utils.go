@@ -39,7 +39,7 @@ func GetPKIInfoFromRawData(rawTLSInfoDir string) (*certgraphapi.PKIRegistryInfo,
 			currCert := currPKI.InClusterResourceData.CertKeyPairs[i]
 			existing, ok := certs[currCert.SecretLocation]
 			if ok && !reflect.DeepEqual(existing, currCert.CertKeyInfo) {
-				return fmt.Errorf("mismatch of certificate info")
+				return fmt.Errorf("mismatch of certificate info in --namespace=%s --name=%s key pair", currCert.SecretLocation.Namespace, currCert.SecretLocation.Name)
 			}
 
 			certs[currCert.SecretLocation] = currCert.CertKeyInfo
@@ -48,7 +48,7 @@ func GetPKIInfoFromRawData(rawTLSInfoDir string) (*certgraphapi.PKIRegistryInfo,
 			currCert := currPKI.InClusterResourceData.CertificateAuthorityBundles[i]
 			existing, ok := caBundles[currCert.ConfigMapLocation]
 			if ok && !reflect.DeepEqual(existing, currCert.CABundleInfo) {
-				return fmt.Errorf("mismatch of certificate info")
+				return fmt.Errorf("mismatch of certificate info in --namespace=%s --name=%s ca bundle", currCert.ConfigMapLocation.Namespace, currCert.ConfigMapLocation.Name)
 			}
 
 			caBundles[currCert.ConfigMapLocation] = currCert.CABundleInfo
