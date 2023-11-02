@@ -89,7 +89,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				continue
 			}
 			name, namespace := options.rewriteConfigMap(&configMap)
-			details, err := InspectConfigMap(&configMap)
+			details, err := InspectConfigMap(&configMap, name, namespace)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -127,7 +127,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			}
 
 			name, namespace := options.rewriteSecret(&secret)
-			details, err := InspectSecret(&secret)
+			details, err := InspectSecret(&secret, name, namespace)
 			if err != nil {
 				errs = append(errs, err)
 				continue

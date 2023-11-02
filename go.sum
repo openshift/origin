@@ -855,8 +855,8 @@ github.com/vishvananda/netns v0.0.4 h1:Oeaw1EM2JMxD51g9uhtC0D7erkIjgmj8+JZc26m1Y
 github.com/vishvananda/netns v0.0.4/go.mod h1:SpkAiCQRtJ6TvvxPnOSyH3BMl6unz3xZlaprSwhNNJM=
 github.com/vmware/govmomi v0.30.0 h1:Fm8ugPnnlMSTSceDKY9goGvjmqc6eQLPUSUeNXdpeXA=
 github.com/vmware/govmomi v0.30.0/go.mod h1:F7adsVewLNHsW/IIm7ziFURaXDaHEwcc+ym4r3INMdY=
-github.com/vrutkovs/library-go v0.0.0-20231102101455-d318cca232d7 h1:Ho+L76kMfZSMG3eH3YWFtygBE8BBTS7MUyaDMByVnCo=
-github.com/vrutkovs/library-go v0.0.0-20231102101455-d318cca232d7/go.mod h1:8UzmrBMCn7+GzouL8DVYkL9COBQTB1Ggd13/mHJQCUg=
+github.com/vrutkovs/library-go v0.0.0-20231102105549-5a4247b8f30f h1:1lRTK0fmXzPArTAUa7tyQNV2ATdq/jpE8Cuu5H0DIfk=
+github.com/vrutkovs/library-go v0.0.0-20231102105549-5a4247b8f30f/go.mod h1:8UzmrBMCn7+GzouL8DVYkL9COBQTB1Ggd13/mHJQCUg=
 github.com/xanzy/ssh-agent v0.2.1 h1:TCbipTQL2JiiCprBWx9frJ2eJlCYT00NmctrHxVAr70=
 github.com/xanzy/ssh-agent v0.2.1/go.mod h1:mLlQY/MoOhWBj+gOGMQkOeiEvkx+8pJSI+0Bx9h2kr4=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f h1:J9EGpcZtP0E/raorCMxlFGSTBrsSlaDGf3jU/qvAE2c=

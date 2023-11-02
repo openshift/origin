@@ -9,8 +9,14 @@ import (
 	"k8s.io/client-go/util/cert"
 )
 
-func InspectSecret(obj *corev1.Secret) (*certgraphapi.CertKeyPair, error) {
-	resourceString := fmt.Sprintf("secrets/%s[%s]", obj.Name, obj.Namespace)
+func InspectSecret(obj *corev1.Secret, name, namespace string) (*certgraphapi.CertKeyPair, error) {
+	if len(name) == 0 {
+		name = obj.Name
+	}
+	if len(namespace) == 0 {
+		namespace = obj.Namespace
+	}
+	resourceString := fmt.Sprintf("secrets/%s[%s]", name, namespace)
 	tlsCrt, isTLS := obj.Data["tls.crt"]
 	if !isTLS {
 		return nil, nil
@@ -29,7 +35,7 @@ func InspectSecret(obj *corev1.Secret) (*certgraphapi.CertKeyPair, error) {
 		if err != nil {
 			return nil, err
 		}
-		detail = addSecretLocation(detail, obj.Namespace, obj.Name)
+		detail = addSecretLocation(detail, namespace, name)
 		return detail, nil
 	}
 	return nil, fmt.Errorf("didn't see that coming")
@@ -59,7 +65,13 @@ func InspectCSR(obj *certificatesv1.CertificateSigningRequest) (*certgraphapi.Ce
 	return inspectCSR(resourceString, obj.Name, obj.Status.Certificate)
 }
 
-func InspectConfigMap(obj *corev1.ConfigMap) (*certgraphapi.CertificateAuthorityBundle, error) {
+func InspectConfigMap(obj *corev1.ConfigMap, name, namespace string) (*certgraphapi.CertificateAuthorityBundle, error) {
+	if len(name) == 0 {
+		name = obj.Name
+	}
+	if len(namespace) == 0 {
+		namespace = obj.Namespace
+	}
 	caBundle, ok := obj.Data["ca-bundle.crt"]
 	if !ok {
 		return nil, nil
@@ -76,7 +88,7 @@ func InspectConfigMap(obj *corev1.ConfigMap) (*certgraphapi.CertificateAuthority
 	if err != nil {
 		return nil, err
 	}
-	caBundleDetail = addConfigMapLocation(caBundleDetail, obj.Namespace, obj.Name)
+	caBundleDetail = addConfigMapLocation(caBundleDetail, namespace, name)
 
 	return caBundleDetail, nil
 }
