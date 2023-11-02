@@ -48,7 +48,7 @@ func isPlatformNamespace(nsName string) bool {
 }
 
 type configMapFilterFunc func(configMap *corev1.ConfigMap) bool
-type configMapRewriteFunc func(caBundle *certgraphapi.CertificateAuthorityBundle, nodes map[string]int)
+type configMapRewriteFunc func(configMap *corev1.ConfigMap, nodes map[string]int) (string, string)
 
 func allConfigMaps(_ *corev1.ConfigMap) bool {
 	return true
@@ -58,7 +58,7 @@ func platformConfigMaps(obj *corev1.ConfigMap) bool {
 }
 
 type secretFilterFunc func(secret *corev1.Secret) bool
-type secretRewriteFunc func(keyPair *certgraphapi.CertKeyPair, nodes map[string]int)
+type secretRewriteFunc func(secret *corev1.Secret, nodes map[string]int) (string, string)
 
 func allSecrets(_ *corev1.Secret) bool {
 	return true
@@ -88,7 +88,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if options.rejectConfigMap(&configMap) {
 				continue
 			}
-
+			name, namespace := options.rewriteConfigMap(&configMap)
 			details, err := InspectConfigMap(&configMap)
 			if err != nil {
 				errs = append(errs, err)
@@ -97,14 +97,13 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if details == nil {
 				continue
 			}
-			options.rewriteConfigMap(details)
 			caBundles = append(caBundles, details)
 
 			inClusterResourceData.CertificateAuthorityBundles = append(inClusterResourceData.CertificateAuthorityBundles,
 				certgraphapi.PKIRegistryInClusterCABundle{
 					ConfigMapLocation: certgraphapi.InClusterConfigMapLocation{
-						Namespace: configMap.Namespace,
-						Name:      configMap.Name,
+						Namespace: namespace,
+						Name:      name,
 					},
 					CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
 						OwningJiraComponent: configMap.Annotations[annotations.OpenShiftComponent],
@@ -127,6 +126,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				continue
 			}
 
+			name, namespace := options.rewriteSecret(&secret)
 			details, err := InspectSecret(&secret)
 			if err != nil {
 				errs = append(errs, err)
@@ -135,14 +135,13 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if details == nil {
 				continue
 			}
-			options.rewriteSecret(details)
 			certs = append(certs, details)
 
 			inClusterResourceData.CertKeyPairs = append(inClusterResourceData.CertKeyPairs,
 				certgraphapi.PKIRegistryInClusterCertKeyPair{
 					SecretLocation: certgraphapi.InClusterSecretLocation{
-						Namespace: secret.Namespace,
-						Name:      secret.Name,
+						Namespace: namespace,
+						Name:      name,
 					},
 					CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
 						OwningJiraComponent: secret.Annotations[annotations.OpenShiftComponent],

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -28,15 +27,20 @@ var (
 		},
 	}
 	RewriteNames = &certGenerationOptions{
-		rewriteConfigMap: func(caBundle *certgraphapi.CertificateAuthorityBundle, nodes map[string]int) {},
-		rewriteSecret: func(keyPair *certgraphapi.CertKeyPair, nodes map[string]int) {
-			for i := range keyPair.Spec.SecretLocations {
-				location := keyPair.Spec.SecretLocations[i]
-				rewriteEtcdServingMetricsCertificateName(&location, nodes)
-				rewriteEtcdServingCertificateName(&location, nodes)
-				rewriteEtcdPeerCertificateName(&location, nodes)
-				keyPair.Spec.SecretLocations[i] = location
+		rewriteConfigMap: func(configMap *corev1.ConfigMap, nodes map[string]int) (string, string) {
+			return configMap.Name, configMap.Namespace
+		},
+		rewriteSecret: func(secret *corev1.Secret, nodes map[string]int) (string, string) {
+			if name := rewriteEtcdServingMetricsCertificateName(secret, nodes); name != secret.Name {
+				return name, secret.Namespace
 			}
+			if name := rewriteEtcdServingCertificateName(secret, nodes); name != secret.Name {
+				return name, secret.Namespace
+			}
+			if name := rewriteEtcdPeerCertificateName(secret, nodes); name != secret.Name {
+				return name, secret.Namespace
+			}
+			return secret.Name, secret.Namespace
 		},
 	}
 	SkipHashed = &certGenerationOptions{
@@ -93,22 +97,26 @@ func (l certGenerationOptionList) rejectSecret(secret *corev1.Secret) bool {
 	return false
 }
 
-func (l certGenerationOptionList) rewriteConfigMap(caBundle *certgraphapi.CertificateAuthorityBundle) {
+func (l certGenerationOptionList) rewriteConfigMap(configMap *corev1.ConfigMap) (string, string) {
+	var name, namespace string
 	for _, option := range l.options {
 		if option.rewriteConfigMap == nil {
 			continue
 		}
-		option.rewriteConfigMap(caBundle, l.nodes)
+		name, namespace = option.rewriteConfigMap(configMap, l.nodes)
 	}
+	return name, namespace
 }
 
-func (l certGenerationOptionList) rewriteSecret(keyPair *certgraphapi.CertKeyPair) {
+func (l certGenerationOptionList) rewriteSecret(secret *corev1.Secret) (string, string) {
+	var name, namespace string
 	for _, option := range l.options {
 		if option.rewriteSecret == nil {
 			continue
 		}
-		option.rewriteSecret(keyPair, l.nodes)
+		name, namespace = option.rewriteSecret(secret, l.nodes)
 	}
+	return name, namespace
 }
 
 func isRevisioned(ownerReferences []metav1.OwnerReference) bool {
@@ -126,35 +134,35 @@ func hasMonitoringHashLabel(labels map[string]string) bool {
 	return ok
 }
 
-func rewriteEtcdServingMetricsCertificateName(location *certgraphapi.InClusterSecretLocation, nodes map[string]int) {
-	if location.Namespace != "openshift-etcd" {
-		return
+func rewriteEtcdServingCertificateName(secret *corev1.Secret, nodes map[string]int) string {
+	if secret.Namespace != "openshift-etcd" {
+		return secret.Name
 	}
-	if !strings.HasPrefix(location.Name, "etcd-serving-") {
-		return
+	if !strings.HasPrefix(secret.Name, "etcd-serving-") {
+		return secret.Name
 	}
-	master := location.Name[len("etcd-serving-"):]
-	location.Name = fmt.Sprintf("etcd-serving-for-master-%d", nodes[master])
+	master := secret.Name[len("etcd-serving-"):]
+	return fmt.Sprintf("etcd-serving-for-master-%d", nodes[master])
 }
 
-func rewriteEtcdServingCertificateName(location *certgraphapi.InClusterSecretLocation, nodes map[string]int) {
-	if location.Namespace != "openshift-etcd" {
-		return
+func rewriteEtcdServingMetricsCertificateName(secret *corev1.Secret, nodes map[string]int) string {
+	if secret.Namespace != "openshift-etcd" {
+		return secret.Name
 	}
-	if !strings.HasPrefix(location.Name, "etcd-serving-metrics-") {
-		return
+	if !strings.HasPrefix(secret.Name, "etcd-serving-metrics-") {
+		return secret.Name
 	}
-	master := location.Name[len("etcd-serving-metrics-"):]
-	location.Name = fmt.Sprintf("etcd-metrics-for-master-%d", nodes[master])
+	master := secret.Name[len("etcd-serving-metrics-"):]
+	return fmt.Sprintf("etcd-metrics-for-master-%d", nodes[master])
 }
 
-func rewriteEtcdPeerCertificateName(location *certgraphapi.InClusterSecretLocation, nodes map[string]int) {
-	if location.Namespace != "openshift-etcd" {
-		return
+func rewriteEtcdPeerCertificateName(secret *corev1.Secret, nodes map[string]int) string {
+	if secret.Namespace != "openshift-etcd" {
+		return secret.Name
 	}
-	if !strings.HasPrefix(location.Name, "etcd-peer-") {
-		return
+	if !strings.HasPrefix(secret.Name, "etcd-peer-") {
+		return secret.Name
 	}
-	master := location.Name[len("etcd-peer-"):]
-	location.Name = fmt.Sprintf("etcd-peer-for-master-%d", nodes[master])
+	master := secret.Name[len("etcd-peer-"):]
+	return fmt.Sprintf("etcd-peer-for-master-%d", nodes[master])
 }
