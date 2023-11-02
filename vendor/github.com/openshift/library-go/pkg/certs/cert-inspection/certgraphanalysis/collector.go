@@ -14,12 +14,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func GatherCertsFromAllNamespaces(ctx context.Context, kubeClient kubernetes.Interface) (*certgraphapi.PKIList, error) {
-	return gatherFilteredCerts(ctx, kubeClient, allConfigMaps, allSecrets)
+func GatherCertsFromAllNamespaces(ctx context.Context, kubeClient kubernetes.Interface, options ...*certGenerationOptions) (*certgraphapi.PKIList, error) {
+	return gatherFilteredCerts(ctx, kubeClient, allConfigMaps, allSecrets, options)
 }
 
-func GatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface) (*certgraphapi.PKIList, error) {
-	return gatherFilteredCerts(ctx, kubeClient, platformConfigMaps, platformSecrets)
+func GatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, options ...*certGenerationOptions) (*certgraphapi.PKIList, error) {
+	return gatherFilteredCerts(ctx, kubeClient, platformConfigMaps, platformSecrets, options)
 }
 
 var wellKnownPlatformNamespaces = sets.NewString(
@@ -58,7 +58,7 @@ func platformSecrets(obj *corev1.Secret) bool {
 	return isPlatformNamespace(obj.Namespace)
 }
 
-func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, acceptConfigMap configMapFilterFunc, acceptSecret secretFilterFunc) (*certgraphapi.PKIList, error) {
+func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, acceptConfigMap configMapFilterFunc, acceptSecret secretFilterFunc, options certGenerationOptionList) (*certgraphapi.PKIList, error) {
 	inClusterResourceData := &certgraphapi.PerInClusterResourceData{}
 	certs := []*certgraphapi.CertKeyPair{}
 	caBundles := []*certgraphapi.CertificateAuthorityBundle{}
@@ -72,6 +72,9 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 		nodes[node.Name] = i
 	}
 
+	// TODO here is the point where need to collect data like node names and IPs that need to be replaced
+	//  this will be something like options.Discovery(kubeClient, configClient).
+
 	configMapList, err := kubeClient.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{})
 	switch {
 	case err != nil:
@@ -81,8 +84,14 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if !acceptConfigMap(&configMap) {
 				continue
 			}
+			if options.rejectConfigMap(&configMap) {
+				continue
+			}
+
 			details, err := InspectConfigMap(&configMap)
 			if details != nil {
+				// TODO something like options.RewriteCABundleDetails(details) (details, namespace, name)
+				//  this will allow us to rewrite node names and IP values
 				caBundles = append(caBundles, details)
 
 				inClusterResourceData.CertificateAuthorityBundles = append(inClusterResourceData.CertificateAuthorityBundles,
@@ -112,8 +121,14 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if !acceptSecret(&secret) {
 				continue
 			}
+			if options.rejectSecret(&secret) {
+				continue
+			}
+
 			details, err := InspectSecret(&secret)
 			if details != nil {
+				// TODO something like options.RewriteCertKeyPairDetails(details) (details, namespace, name)
+				//  this will allow us to rewrite node names and IP values
 				certs = append(certs, details)
 
 				inClusterResourceData.CertKeyPairs = append(inClusterResourceData.CertKeyPairs,
