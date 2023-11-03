@@ -2,7 +2,6 @@ package watchevents
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"sort"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
@@ -145,31 +145,19 @@ func recordAddOrUpdateEvent(
 			obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339))
 
 	}
-	t := obj.LastTimestamp.Time
-	if t.IsZero() {
-		t = obj.EventTime.Time
-	}
-	if t.IsZero() {
-		t = obj.CreationTimestamp.Time
-	}
-	if t.Before(significantlyBeforeNow) {
-		if osEvent {
-			fmt.Printf("OS update event filtered for being too old: %s - %s - %s (now: %s)\n",
-				obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339),
-				time.Now().Format(time.RFC3339))
-		}
-		return
-	}
 
-	message := obj.Message
+	message := monitorapi.NewMessage().HumanMessage(obj.Message)
 	if obj.Count > 1 {
-		message += fmt.Sprintf(" (%d times)", obj.Count)
+		message = message.WithAnnotation(monitorapi.AnnotationCount, string(obj.Count))
 	}
 
 	if obj.InvolvedObject.Kind == "Node" {
 		if node, err := client.CoreV1().Nodes().Get(ctx, obj.InvolvedObject.Name, metav1.GetOptions{}); err == nil {
-			message = fmt.Sprintf("roles/%s %s", nodeRoles(node), message)
+			message = message.WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node))
 		}
+	}
+	if obj.Reason != "" {
+		message = message.Reason(monitorapi.IntervalReason(obj.Reason))
 	}
 
 	// special case some very common events
@@ -178,39 +166,34 @@ func recordAddOrUpdateEvent(
 	case "Killing":
 		if obj.InvolvedObject.Kind == "Pod" {
 			if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
-				message = fmt.Sprintf("container/%s reason/%s", containerName, obj.Reason)
+				message = message.WithAnnotation(monitorapi.AnnotationContainer, containerName)
 				break
 			}
 		}
-		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	case "Pulling", "Pulled":
 		if obj.InvolvedObject.Kind == "Pod" {
 			if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
 				if m := reMatchFirstQuote.FindStringSubmatch(obj.Message); m != nil {
 					if len(m) > 3 {
 						if d, err := time.ParseDuration(m[3]); err == nil {
-							message = fmt.Sprintf("container/%s reason/%s duration/%.3fs image/%s", containerName, obj.Reason, d.Seconds(), m[1])
+							message = message.WithAnnotation(monitorapi.AnnotationContainer, containerName)
+							message = message.WithAnnotation(monitorapi.AnnotationDuration, fmt.Sprintf("%.3fs", d.Seconds()))
+							message = message.WithAnnotation(monitorapi.AnnotationImage, m[1])
 							break
 						}
 					}
-					message = fmt.Sprintf("container/%s reason/%s image/%s", containerName, obj.Reason, m[1])
+					message = message.WithAnnotation(monitorapi.AnnotationContainer, containerName)
+					message = message.WithAnnotation(monitorapi.AnnotationImage, m[1])
 					break
 				}
 			}
 		}
-		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	default:
-		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	}
 
-	condition := monitorapi.Condition{
-		Level:   monitorapi.Info,
-		Locator: locateEvent(obj),
-		Message: message,
-	}
-
+	level := monitorapi.Info
 	if obj.Type == corev1.EventTypeWarning {
-		condition.Level = monitorapi.Warning
+		level = monitorapi.Warning
 	}
 
 	pathoFrom := obj.LastTimestamp.Time
@@ -220,67 +203,57 @@ func recordAddOrUpdateEvent(
 	if pathoFrom.IsZero() {
 		pathoFrom = obj.CreationTimestamp.Time
 	}
-	to := pathoFrom.Add(1 * time.Second)
-
-	event := monitorapi.Interval{
-		Condition: condition,
+	if pathoFrom.Before(significantlyBeforeNow) {
+		if osEvent {
+			logrus.Infof("OS update event filtered for being too old: %s - %s - %s",
+				obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339))
+		}
+		return
 	}
+	to := pathoFrom // we may override later for some events we want to have a duration and get charted
+	locator := monitorapi.NewLocator().KubeEvent(obj)
 
+	// TODO: kill it with fire
 	// The matching here needs to mimic what is being done in the synthetictests/testDuplicatedEvents function.
-	eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
+	//eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
 	isInteresting := allRepeatedEventPatterns.MatchString(eventDisplayMessage) ||
 		checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count)
 
 	if obj.Count > 1 {
 
-		updatedMessage := event.Message
 		if isInteresting {
 			// This is a repeated event that we know about
-			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, updatedMessage)
+			message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
 		}
 
 		isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold && pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage)
 		if isPathological {
 			// This is a repeated event that exceeds threshold
-			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, updatedMessage)
+			message = message.WithAnnotation(monitorapi.AnnotationPathological, "true")
 		}
-
-		condition.Message = updatedMessage
-		if isInteresting || isPathological {
-
-			// Remove the "(n times)" portion of the message, and get the first 10 characters of the hash of the message
-			// so we can add it to the locator. This incorporates the message into the locator without the resulting
-			// string being too much longer and makes it so that the spyglass chart shows locators that incorporate the message.
-			removeNTimes := regexp.MustCompile(`\s+\(\d+ times\)`)
-			newMessage := removeNTimes.ReplaceAllString(condition.Message, "")
-
-			hash := sha256.Sum256([]byte(newMessage))
-			hashStr := fmt.Sprintf("%x", hash)[:10]
-
-			condition.Locator = fmt.Sprintf("%s hmsg/%s", condition.Locator, hashStr)
-		}
-
-		fmt.Printf("processed event: %+v\nresulting new interval: %s from: %s to %s\n", *obj, message, pathoFrom, to)
-
-		// Add the interval.
-		inter := recorder.StartInterval(pathoFrom, condition)
-		recorder.EndInterval(inter, to)
-
-	} else if strings.Contains(condition.Message, "pod sandbox") {
-		// gross hack until we port these to structured intervals. serialize.go EventsIntervalsToJSON will filter out
+		to = pathoFrom.Add(1 * time.Second)
+	} else if strings.Contains(obj.Message, "pod sandbox") {
+		// TODO: gross hack until we port these to structured intervals. serialize.go EventsIntervalsToJSON will filter out
 		// any intervals where from == to, which kube events normally do other than interesting/pathological above,
 		// which is only applied to things with a count. to get pod sandbox intervals charted we have to get a little creative.
 		// structured intervals should come here soon.
 
-		// fake interesting flag
-		updatedMessage := fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, condition.Message)
-		condition.Message = updatedMessage
-		// make sure we add 1 second to the to timestamp so it doesn't get filtered
-		inter := recorder.StartInterval(pathoFrom, condition)
-		recorder.EndInterval(inter, to)
-	} else {
-		recorder.RecordAt(t, condition)
+		// TODO: fake interesting flag, accomodate flagging this interesting in the new duplicated events patterns definitions
+		message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
+
+		// make sure we add 1 second to the to timestamp so it doesn't get filtered out when creating the spyglass html
+		to = pathoFrom.Add(1 * time.Second)
 	}
+
+	interval := monitorapi.NewInterval(monitorapi.SourceKubeEvent, level).
+		Locator(locator).
+		Message(message).Build(pathoFrom, to)
+
+	logrus.WithField("event", *obj).Info("processed event")
+	logrus.WithField("locator", interval.StructuredLocator).Info("resulting interval locator")
+	logrus.WithField("message", interval.StructuredMessage).Info("resulting interval message")
+
+	recorder.AddIntervals(interval)
 }
 
 func eventForContainer(fieldPath string) (string, bool) {
