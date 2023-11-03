@@ -219,6 +219,10 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": " [Serial]",
 
+	"[sig-arch][Late] all registered tls artifacts must have expected owners": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-arch][Late] all tls artifacts must be registered": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Late] collect certificate data": " [Suite:openshift/conformance/parallel]",

@@ -159,14 +159,12 @@ func PKIListFromParts(ctx context.Context, inClusterResourceData *certgraphapi.P
 	for i := range certs {
 		certList.Items = append(certList.Items, *certs[i])
 	}
-	guessLogicalNamesForCertKeyPairList(certList, nodes)
 
 	caBundles = deduplicateCABundles(caBundles)
 	caBundleList := &certgraphapi.CertificateAuthorityBundleList{}
 	for i := range caBundles {
 		caBundleList.Items = append(caBundleList.Items, *caBundles[i])
 	}
-	guessLogicalNamesForCABundleList(caBundleList)
 
 	ret := &certgraphapi.PKIList{
 		CertificateAuthorityBundles: *caBundleList,

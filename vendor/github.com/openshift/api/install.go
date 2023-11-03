@@ -26,7 +26,6 @@ import (
 	keventsv1 "k8s.io/api/events/v1"
 	keventsv1beta1 "k8s.io/api/events/v1beta1"
 	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
-	kflowcontrolv1alpha1 "k8s.io/api/flowcontrol/v1alpha1"
 	kflowcontrolv1beta1 "k8s.io/api/flowcontrol/v1beta1"
 	kflowcontrolv1beta2 "k8s.io/api/flowcontrol/v1beta2"
 	kimagepolicyv1alpha1 "k8s.io/api/imagepolicy/v1alpha1"
@@ -143,7 +142,6 @@ var (
 		keventsv1.AddToScheme,
 		keventsv1beta1.AddToScheme,
 		kextensionsv1beta1.AddToScheme,
-		kflowcontrolv1alpha1.AddToScheme,
 		kflowcontrolv1beta1.AddToScheme,
 		kflowcontrolv1beta2.AddToScheme,
 		kimagepolicyv1alpha1.AddToScheme,

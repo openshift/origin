@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
 	"os"
 	"path/filepath"
-	"reflect"
-	"sort"
-	"strings"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	"github.com/openshift/origin/pkg/certs"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -26,7 +25,7 @@ type GenerateOwnersOptions struct {
 }
 
 func (o *GenerateOwnersOptions) Run() error {
-	result, err := o.GetPKIInfoFromRawData()
+	result, err := certs.GetPKIInfoFromRawData(o.RawTLSInfoDir)
 	if err != nil {
 		return err
 	}
@@ -211,115 +210,4 @@ func (o *GenerateOwnersOptions) jsonFilename() string {
 
 func (o *GenerateOwnersOptions) markdownFilename() string {
 	return filepath.Join(o.TLSOwnershipInfoDir, "ownership.md")
-}
-
-func (o *GenerateOwnersOptions) GetPKIInfoFromRawData() (*certgraphapi.PKIRegistryInfo, error) {
-	certs := map[certgraphapi.InClusterSecretLocation]certgraphapi.PKIRegistryCertKeyPairInfo{}
-	caBundles := map[certgraphapi.InClusterConfigMapLocation]certgraphapi.PKIRegistryCertificateAuthorityInfo{}
-
-	err := filepath.WalkDir(o.RawTLSInfoDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-
-		filename := filepath.Join(o.RawTLSInfoDir, d.Name())
-		currBytes, err := os.ReadFile(filename)
-		if err != nil {
-			return err
-		}
-		currPKI := &certgraphapi.PKIList{}
-		err = json.Unmarshal(currBytes, currPKI)
-		if err != nil {
-			return err
-		}
-
-		for i := range currPKI.InClusterResourceData.CertKeyPairs {
-			currCert := currPKI.InClusterResourceData.CertKeyPairs[i]
-			existing, ok := certs[currCert.SecretLocation]
-			if ok && !reflect.DeepEqual(existing, currCert.CertKeyInfo) {
-				return fmt.Errorf("mismatch of certificate info")
-			}
-
-			certs[currCert.SecretLocation] = currCert.CertKeyInfo
-		}
-		for i := range currPKI.InClusterResourceData.CertificateAuthorityBundles {
-			currCert := currPKI.InClusterResourceData.CertificateAuthorityBundles[i]
-			existing, ok := caBundles[currCert.ConfigMapLocation]
-			if ok && !reflect.DeepEqual(existing, currCert.CABundleInfo) {
-				return fmt.Errorf("mismatch of certificate info")
-			}
-
-			caBundles[currCert.ConfigMapLocation] = currCert.CABundleInfo
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	result := &certgraphapi.PKIRegistryInfo{}
-
-	certKeys := sets.KeySet[certgraphapi.InClusterSecretLocation, certgraphapi.PKIRegistryCertKeyPairInfo](certs).UnsortedList()
-	sort.Sort(SecretRefByNamespaceName(certKeys))
-	for _, key := range certKeys {
-		result.CertKeyPairs = append(result.CertKeyPairs, certgraphapi.PKIRegistryInClusterCertKeyPair{
-			SecretLocation: key,
-			CertKeyInfo:    certs[key],
-		})
-	}
-
-	caKeys := sets.KeySet[certgraphapi.InClusterConfigMapLocation, certgraphapi.PKIRegistryCertificateAuthorityInfo](caBundles).UnsortedList()
-	sort.Sort(ConfigMapRefByNamespaceName(caKeys))
-	for _, key := range caKeys {
-		result.CertificateAuthorityBundles = append(result.CertificateAuthorityBundles, certgraphapi.PKIRegistryInClusterCABundle{
-			ConfigMapLocation: key,
-			CABundleInfo:      caBundles[key],
-		})
-	}
-
-	return result, nil
-}
-
-type SecretRefByNamespaceName []certgraphapi.InClusterSecretLocation
-
-func (n SecretRefByNamespaceName) Len() int {
-	return len(n)
-}
-func (n SecretRefByNamespaceName) Swap(i, j int) {
-	n[i], n[j] = n[j], n[i]
-}
-func (n SecretRefByNamespaceName) Less(i, j int) bool {
-	diff := strings.Compare(n[i].Namespace, n[j].Namespace)
-	switch {
-	case diff < 0:
-		return true
-	case diff > 0:
-		return false
-	}
-
-	return strings.Compare(n[i].Name, n[j].Name) < 0
-}
-
-type ConfigMapRefByNamespaceName []certgraphapi.InClusterConfigMapLocation
-
-func (n ConfigMapRefByNamespaceName) Len() int {
-	return len(n)
-}
-func (n ConfigMapRefByNamespaceName) Swap(i, j int) {
-	n[i], n[j] = n[j], n[i]
-}
-func (n ConfigMapRefByNamespaceName) Less(i, j int) bool {
-	diff := strings.Compare(n[i].Namespace, n[j].Namespace)
-	switch {
-	case diff < 0:
-		return true
-	case diff > 0:
-		return false
-	}
-
-	return strings.Compare(n[i].Name, n[j].Name) < 0
 }

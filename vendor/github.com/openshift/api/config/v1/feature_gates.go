@@ -53,16 +53,6 @@ var (
 		OwningProduct:       ocpSpecific,
 	}
 
-	FeatureGateRetroactiveDefaultStorageClass = FeatureGateName("RetroactiveDefaultStorageClass")
-	retroactiveDefaultStorageClass            = FeatureGateDescription{
-		FeatureGateAttributes: FeatureGateAttributes{
-			Name: FeatureGateRetroactiveDefaultStorageClass,
-		},
-		OwningJiraComponent: "storage",
-		ResponsiblePerson:   "RomanBednar",
-		OwningProduct:       kubernetes,
-	}
-
 	FeatureGateExternalCloudProvider = FeatureGateName("ExternalCloudProvider")
 	externalCloudProvider            = FeatureGateDescription{
 		FeatureGateAttributes: FeatureGateAttributes{
@@ -289,6 +279,46 @@ var (
 		},
 		OwningJiraComponent: "ecoproject",
 		ResponsiblePerson:   "msluiter",
+		OwningProduct:       ocpSpecific,
+	}
+
+	FeatureGateDNSNameResolver = FeatureGateName("DNSNameResolver")
+	dnsNameResolver            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateDNSNameResolver,
+		},
+		OwningJiraComponent: "dns",
+		ResponsiblePerson:   "miciah",
+		OwningProduct:       ocpSpecific,
+	}
+
+	FeatureGateVSphereControlPlaneMachineset = FeatureGateName("VSphereControlPlaneMachineSet")
+	vSphereControlPlaneMachineset            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateVSphereControlPlaneMachineset,
+		},
+		OwningJiraComponent: "splat",
+		ResponsiblePerson:   "rvanderp3",
+		OwningProduct:       ocpSpecific,
+	}
+
+	FeatureGateMachineConfigNodes = FeatureGateName("MachineConfigNodes")
+	machineConfigNodes            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateMachineConfigNodes,
+		},
+		OwningJiraComponent: "MachineConfigOperator",
+		ResponsiblePerson:   "cdoern",
+		OwningProduct:       ocpSpecific,
+	}
+
+	FeatureGateClusterAPIInstall = FeatureGateName("ClusterAPIInstall")
+	clusterAPIInstall            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateClusterAPIInstall,
+		},
+		OwningJiraComponent: "Installer",
+		ResponsiblePerson:   "vincepri",
 		OwningProduct:       ocpSpecific,
 	}
 )

@@ -111,7 +111,7 @@ var _ = g.Describe("[sig-cli] oc set image", func() {
 		err = wait.PollImmediate(time.Second, 2*time.Minute, func() (bool, error) {
 			err := oc.Run("set").Args("image", "pods,dc", "*=ruby:2.7-ubi8", "--all", "--source=imagestreamtag").Execute()
 			if err != nil {
-				klog.Warning("one of pods failed when setting image %v", err)
+				klog.Warningf("one of pods failed when setting image %v", err)
 				return false, nil
 			}
 			return true, nil
