@@ -78,14 +78,13 @@ type AllowedDupeEvent struct {
 }
 
 // Matches checks if the given locator/messagebuilder matches this allowed dupe event.
-func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, mb *monitorapi.MessageBuilder, kubeClientConfig *rest.Config) bool {
+func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config) bool {
 	for lk, r := range ade.LocatorKeyRegexes {
 		if !r.MatchString(l.Keys[lk]) {
 			logrus.WithField("allower", ade.Name).Infof("key %s did not match", lk)
 			return false
 		}
 	}
-	msg := mb.Build()
 	if ade.MessageHumanRegex != nil && !ade.MessageHumanRegex.MatchString(msg.HumanMessage) {
 		logrus.WithField("allower", ade.Name).Info("human message did not match")
 		return false
@@ -97,11 +96,11 @@ func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, mb *monitorapi.Messag
 	return true
 }
 
-func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, mb *monitorapi.MessageBuilder, kubeClientConfig *rest.Config) (bool, string) {
+func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config) (bool, string) {
 	for _, ad := range allowedDupes {
-		allowed := ad.Matches(l, mb, kubeClientConfig)
+		allowed := ad.Matches(l, msg, kubeClientConfig)
 		if allowed {
-			logrus.WithField("message", mb.Build()).WithField("locator", l).Infof("duplicated event allowed by %s", ad.Name)
+			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", ad.Name)
 			return allowed, ad.Name
 		}
 	}
@@ -507,7 +506,7 @@ func IsOperatorMatchRegexMessage(monitorEvent monitorapi.Interval, operatorName 
 
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
 // regExp defines the pattern of the monitorEvent message. Named match is used in the pattern using `(?P<>)`.
-//The names are placed inside <>. See example below
+// The names are placed inside <>. See example below
 // `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$`
 func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
 	if kubeClientConfig == nil {

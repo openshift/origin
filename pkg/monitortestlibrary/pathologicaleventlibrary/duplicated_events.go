@@ -33,6 +33,7 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 		allowedRepeatedEventPatterns: allowedPatterns,
 		allowedRepeatedEventFns:      AllowedRepeatedEventFns,
 		knownRepeatedEventsBugs:      KnownEventsBugs,
+		// TODO: pass in the list of new allowance structs here
 	}
 
 	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
@@ -93,11 +94,14 @@ func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
 }
 
 type duplicateEventsEvaluator struct {
+	// TODO: replace all three of these with allowedDupeEvents once they're all ported in patterns file
 	allowedRepeatedEventPatterns []*regexp.Regexp
 	allowedRepeatedEventFns      []IsRepeatedEventOKFunc
-
 	// knownRepeatedEventsBugs are duplicates that are considered bugs and should flake, but not  fail a Test
 	knownRepeatedEventsBugs []KnownProblem
+
+	// allowedDupeEvents is the list of matchers we use to see if a repeat kube event is allowed or not.
+	allowedDupeEvents []*AllowedDupeEvent
 
 	// platform contains the current platform of the cluster under Test.
 	platform v1.PlatformType

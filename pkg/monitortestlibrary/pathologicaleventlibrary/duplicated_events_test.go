@@ -15,9 +15,9 @@ import (
 func TestAllowedRepeatedEvents(t *testing.T) {
 	//message: `ns/ pod/pfpod node/ - reason/Unhealthy `,
 	tests := []struct {
-		name       string
-		locator    monitorapi.Locator
-		msgBuilder *monitorapi.MessageBuilder
+		name    string
+		locator monitorapi.Locator
+		msg     monitorapi.Message
 		// expectedMatchName is the name of the AllowedDupeEvent we expect to be returned as allowing this duplicated event.
 		expectedMatchName string
 	}{
@@ -30,15 +30,15 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 					monitorapi.LocatorNodeKey:      "ci-op-g1d5csj7-b08f5-fgrqd-worker-b-xj89f",
 				},
 			},
-			msgBuilder: monitorapi.NewMessage().HumanMessage("Readiness probe failed: some error goes here").
-				Reason("Unhealthy"),
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: some error goes here").
+				Reason("Unhealthy").Build(),
 			expectedMatchName: unhealthyE2EPortForwardingPod.Name,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			allowed, matchedAllower := MatchesAny(AllowedRepeatedEvents, test.locator,
-				test.msgBuilder, nil)
+				test.msg, nil)
 			if test.expectedMatchName != "" {
 				require.True(t, allowed, "duplicated event should have been allowed")
 				assert.Equal(t, test.expectedMatchName, matchedAllower, "duplicated event was not allowed by the correct AllowedDupeEvent")
