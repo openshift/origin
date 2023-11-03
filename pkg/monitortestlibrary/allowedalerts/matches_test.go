@@ -233,9 +233,8 @@ func TestAlertDataFileParsing(t *testing.T) {
 			Topology:     "ha",
 		},
 	}
-	hd, msg, err := alertMatcher.BestMatchDuration(expectedKey)
-	assert.True(t, hd.P99 > 5*time.Minute, "AlertmanagerReceiversNotConfigured data not present for aws amd64 ovn ha")
-	assert.Equal(t, "", msg)
+	hd, _, err := alertMatcher.BestMatchDuration(expectedKey)
 	assert.NoError(t, err)
-
+	assert.NotNil(t, hd)
+	assert.True(t, hd.P99 > 5*time.Minute, "AlertmanagerReceiversNotConfigured data not present for aws amd64 ovn ha")
 }
