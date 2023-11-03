@@ -404,7 +404,7 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kube
 	regExp := regexp.MustCompile(ConsoleReadinessRegExpStr)
 	// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 	// then this probe failure is unexpected and should fail.
-	return IsEventDuringInstallation(monitorEvent, kubeClientConfig, regExp)
+	return IsEventAfterInstallation(monitorEvent, kubeClientConfig, regExp)
 }
 
 // isConfigOperatorReadinessFailed returns true if the event matches a readinessFailed error that timed out
@@ -505,11 +505,11 @@ func IsOperatorMatchRegexMessage(monitorEvent monitorapi.Interval, operatorName 
 	return true
 }
 
-// isEventDuringInstallation returns true if the monitorEvent represents a real event that happened after installation.
-// regExp defines the pattern of the monitorEvent message. Named match is used in the pattern using `(?P<>)`. The names are placed inside <>. See example below
+// IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
+// regExp defines the pattern of the monitorEvent message. Named match is used in the pattern using `(?P<>)`.
+//The names are placed inside <>. See example below
 // `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$`
-// TODO: func name looks off, IsEventDuringInstallation returns true if the event is NOT during installation according to above
-func IsEventDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
+func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
 	if kubeClientConfig == nil {
 		// default to OK
 		return true, nil

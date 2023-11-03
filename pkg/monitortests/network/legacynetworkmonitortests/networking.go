@@ -327,7 +327,7 @@ func testOvnNodeReadinessProbe(events monitorapi.Intervals, kubeClientConfig *re
 				if times > pathologicaleventlibrary.DuplicateEventThreshold {
 					// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 					// then this probe failure is unexpected and should fail.
-					isDuringInstall, err := pathologicaleventlibrary.IsEventDuringInstallation(event, kubeClientConfig, regExp)
+					isDuringInstall, err := pathologicaleventlibrary.IsEventAfterInstallation(event, kubeClientConfig, regExp)
 					if err != nil {
 						failureOutput += fmt.Sprintf("error [%v] happened when processing event [%s]\n", err, eventDisplayMessage)
 					} else if !isDuringInstall {
