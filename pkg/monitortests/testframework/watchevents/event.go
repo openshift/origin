@@ -210,14 +210,22 @@ func recordAddOrUpdateEvent(
 		}
 		return
 	}
+	// We start with to equal to from, the majority of kube event intervals had this, and these get filtered out
+	// when generating spyglass html. For interesting/pathological events, we're adding a second, which causes them
+	// to get included in the html.
+	// TODO: Probably should switch to using Display() and use a consistent time + 1s for the To.
 	to := pathoFrom // we may override later for some events we want to have a duration and get charted
 	locator := monitorapi.NewLocator().KubeEvent(obj)
 
 	// TODO: kill it with fire
 	// The matching here needs to mimic what is being done in the synthetictests/testDuplicatedEvents function.
 	//eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
-	isInteresting := allRepeatedEventPatterns.MatchString(eventDisplayMessage) ||
-		checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count)
+	isInteresting := false
+	/*
+		isInteresting := allRepeatedEventPatterns.MatchString(eventDisplayMessage) ||
+			checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count)
+
+	*/
 
 	if obj.Count > 1 {
 
@@ -226,11 +234,15 @@ func recordAddOrUpdateEvent(
 			message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
 		}
 
-		isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold && pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage)
-		if isPathological {
-			// This is a repeated event that exceeds threshold
-			message = message.WithAnnotation(monitorapi.AnnotationPathological, "true")
-		}
+		/*
+			isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold &&
+				pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage)
+			if isPathological {
+				// This is a repeated event that exceeds threshold
+				message = message.WithAnnotation(monitorapi.AnnotationPathological, "true")
+			}
+		*/
+
 		to = pathoFrom.Add(1 * time.Second)
 	} else if strings.Contains(obj.Message, "pod sandbox") {
 		// TODO: gross hack until we port these to structured intervals. serialize.go EventsIntervalsToJSON will filter out

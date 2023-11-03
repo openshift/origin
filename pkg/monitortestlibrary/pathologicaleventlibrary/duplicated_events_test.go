@@ -9,47 +9,46 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestEventCountExtractor(t *testing.T) {
+func TestAllowedRepeatedEvents(t *testing.T) {
+	//message: `ns/ pod/pfpod node/ - reason/Unhealthy `,
 	tests := []struct {
-		name    string
-		input   string
-		message string
-		times   int
+		name       string
+		locator    monitorapi.Locator
+		msgBuilder *monitorapi.MessageBuilder
+		// expectedMatchName is the name of the AllowedDupeEvent we expect to be returned as allowing this duplicated event.
+		expectedMatchName string
 	}{
 		{
-			name:    "simple",
-			input:   `pod/network-check-target-5f44k node/ip-10-0-210-155.us-west-2.compute.internal - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started? (24 times)`,
-			message: `pod/network-check-target-5f44k node/ip-10-0-210-155.us-west-2.compute.internal - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?`,
-			times:   24,
-		},
-		{
-			name:    "new lines",
-			input:   "ns/e2e-container-probe-7285 pod/liveness-f0fce2c6-6eed-4ace-bf69-2df5e5b8b1ea node/ci-op-sti304mj-2a78c-pq5zv-worker-b-sknbn reason/ProbeWarning Liveness probe warning: <a href=\"http://0.0.0.0/\">Found</a>.\n\n (22 times)",
-			message: "ns/e2e-container-probe-7285 pod/liveness-f0fce2c6-6eed-4ace-bf69-2df5e5b8b1ea node/ci-op-sti304mj-2a78c-pq5zv-worker-b-sknbn reason/ProbeWarning Liveness probe warning: <a href=\"http://0.0.0.0/\">Found</a>.\n\n",
-			times:   22,
-		},
-		{
-			name:  "other message",
-			input: "some node message",
-			times: 0,
-		},
-		{
-			name:    "pod eviction failure",
-			input:   "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb (79 times)",
-			message: "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb",
-			times:   79,
+			name: "unhealthy e2e port forwarding pod readiness probe",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-port-forwarding-588",
+					monitorapi.LocatorPodKey:       "pfpod",
+					monitorapi.LocatorNodeKey:      "ci-op-g1d5csj7-b08f5-fgrqd-worker-b-xj89f",
+				},
+			},
+			msgBuilder: monitorapi.NewMessage().HumanMessage("Readiness probe failed: some error goes here").
+				Reason("Unhealthy"),
+			expectedMatchName: unhealthyE2EPortForwardingPod.Name,
 		},
 	}
-
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actualMessage, actualCount := GetTimesAnEventHappened(test.input)
-			assert.Equal(t, test.times, actualCount)
-			assert.Equal(t, test.message, actualMessage)
+			allowed, matchedAllower := MatchesAny(AllowedRepeatedEvents, test.locator,
+				test.msgBuilder, nil)
+			if test.expectedMatchName != "" {
+				require.True(t, allowed, "duplicated event should have been allowed")
+				assert.Equal(t, test.expectedMatchName, matchedAllower, "duplicated event was not allowed by the correct AllowedDupeEvent")
+			} else {
+				require.False(t, allowed, "duplicated event should not have been allowed")
+				assert.Empty(t, matchedAllower, "duplicated event should not have been allowed by matcher")
+			}
 		})
 	}
+
 }
 
 func TestEventRegexExcluder(t *testing.T) {

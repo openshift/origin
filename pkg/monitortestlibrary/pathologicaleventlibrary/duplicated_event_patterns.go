@@ -10,6 +10,7 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -50,12 +51,108 @@ const (
 	InterestingMark                   = "interesting/true"
 )
 
+// TODO: Remove this, it's an annotation on the structured message now
 var EventCountExtractor = regexp.MustCompile(`(?s)(.*) \((\d+) times\).*`)
 
+// AllowedDupeEvent allows the definition of events that can repeat more than the threshold we allow during a job run.
+// TODO: document well
+type AllowedDupeEvent struct {
+	Name               string
+	LocatorKeyRegexes  map[monitorapi.LocatorKey]*regexp.Regexp
+	MessageReasonRegex *regexp.Regexp
+	MessageHumanRegex  *regexp.Regexp
+
+	// Platform limits the exception to a specific OpenShift platform.
+	Platform *v1.PlatformType
+
+	// Topology limits the exception to a specific topology (e.g. single replica)
+	Topology *v1.TopologyMode
+
+	// TestSuite limits the exception to a specific test suite (e.g. openshift/builds)
+	TestSuite *string
+
+	// TODO: Interval may not be created yet, work off Locator and MessageBuilder?
+	IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
+
+	Jira string
+}
+
+// Matches checks if the given locator/messagebuilder matches this allowed dupe event.
+func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, mb *monitorapi.MessageBuilder, kubeClientConfig *rest.Config) bool {
+	for lk, r := range ade.LocatorKeyRegexes {
+		if !r.MatchString(l.Keys[lk]) {
+			logrus.WithField("allower", ade.Name).Infof("key %s did not match", lk)
+			return false
+		}
+	}
+	msg := mb.Build()
+	if ade.MessageHumanRegex != nil && !ade.MessageHumanRegex.MatchString(msg.HumanMessage) {
+		logrus.WithField("allower", ade.Name).Info("human message did not match")
+		return false
+	}
+	if ade.MessageReasonRegex != nil && !ade.MessageReasonRegex.MatchString(string(msg.Reason)) {
+		logrus.WithField("allower", ade.Name).Info("message reason did not match")
+		return false
+	}
+	return true
+}
+
+func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, mb *monitorapi.MessageBuilder, kubeClientConfig *rest.Config) (bool, string) {
+	for _, ad := range allowedDupes {
+		allowed := ad.Matches(l, mb, kubeClientConfig)
+		if allowed {
+			logrus.WithField("message", mb.Build()).WithField("locator", l).Infof("duplicated event allowed by %s", ad.Name)
+			return allowed, ad.Name
+		}
+	}
+	return false, ""
+}
+
+// unhealthyE2EStatefulSet tolerates:
+// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
+// PauseNewPods intentionally causes readiness probe to fail.
+var unhealthyE2EStatefulSet = &AllowedDupeEvent{
+	Name: "UnhealthyE2EStatefulSet",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-statefulset-[0-9]+`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`ss-[0-9]`),
+		monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
+	},
+	MessageReasonRegex:    regexp.MustCompile(`^Unhealthy$`),
+	MessageHumanRegex:     regexp.MustCompile(`Readiness probe failed: `),
+	Platform:              nil,
+	Topology:              nil,
+	TestSuite:             nil,
+	IsRepeatedEventOKFunc: nil,
+	Jira:                  "",
+}
+
+// Kubectl Port forwarding ***
+// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
+// This results in hundreds of events while the pod isn't ready.
+var unhealthyE2EPortForwardingPod = &AllowedDupeEvent{
+	Name: "UnhealthyE2EPortForwarding",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-port-forwarding-[0-9]+`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`^pfpod$`),
+		monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
+	},
+	MessageReasonRegex:    regexp.MustCompile(`^Unhealthy$`),
+	MessageHumanRegex:     regexp.MustCompile(`Readiness probe failed: `),
+	Platform:              nil,
+	Topology:              nil,
+	TestSuite:             nil,
+	IsRepeatedEventOKFunc: nil,
+	Jira:                  "",
+}
+
+// AllowedRepeatedEvents is the list of all allowed duplicate events on all jobs, including upgrade.
+var AllowedRepeatedEvents = []*AllowedDupeEvent{
+	unhealthyE2EStatefulSet,
+	unhealthyE2EPortForwardingPod,
+}
+
 var AllowedRepeatedEventPatterns = []*regexp.Regexp{
-	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
-	// PauseNewPods intentionally causes readiness probe to fail.
-	regexp.MustCompile(`ns/e2e-statefulset-[0-9]+ pod/ss-[0-9] node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
 
 	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]
 	// breakPodHTTPProbe intentionally causes readiness probe to fail.
@@ -65,11 +162,6 @@ var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 	// these tests intentionally cause repeated probe failures to ensure good handling
 	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ .* probe failed: `),
 	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ .* probe warning: `),
-
-	// Kubectl Port forwarding ***
-	// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
-	// This results in hundreds of events while the pod isn't ready.
-	regexp.MustCompile(`ns/e2e-port-forwarding-[0-9]+ pod/pfpod node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed:`),
 
 	// should not start app containers if init containers fail on a RestartAlways pod
 	// the init container intentionally fails to start
@@ -301,6 +393,7 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kube
 	if !strings.Contains(monitorEvent.Locator, "pod/console-") {
 		return false, nil
 	}
+	// TODO: bugged, these wouldn't be in the locator, they'd be in the message
 	if !strings.Contains(monitorEvent.Locator, "Readiness probe") {
 		return false, nil
 	}
@@ -415,6 +508,7 @@ func IsOperatorMatchRegexMessage(monitorEvent monitorapi.Interval, operatorName 
 // isEventDuringInstallation returns true if the monitorEvent represents a real event that happened after installation.
 // regExp defines the pattern of the monitorEvent message. Named match is used in the pattern using `(?P<>)`. The names are placed inside <>. See example below
 // `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$`
+// TODO: func name looks off, IsEventDuringInstallation returns true if the event is NOT during installation according to above
 func IsEventDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
 	if kubeClientConfig == nil {
 		// default to OK
