@@ -723,16 +723,34 @@ func (c *CLI) NewPrometheusClient(ctx context.Context) prometheusv1.API {
 	// TODO update library-go and use the client helpers
 	kubeClient, err := kubernetes.NewForConfig(c.AdminConfig())
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to create Kubernetes client: %w", err))
 	}
+
 	routeClient, err := routev1client.NewForConfig(c.AdminConfig())
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to create Route client: %w", err))
 	}
-	prometheusClient, err := metrics.NewPrometheusClient(ctx, kubeClient, routeClient)
+
+	var (
+		lastErr          error
+		prometheusClient prometheusv1.API
+	)
+	err = wait.PollUntilContextTimeout(ctx, time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
+		prometheusClient, err = metrics.NewPrometheusClient(ctx, kubeClient, routeClient)
+		if err != nil {
+			if ctx.Err() == nil {
+				lastErr = err
+			}
+
+			return false, nil
+		}
+
+		return true, nil
+	})
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to create Prometheus client: %w: %w", err, lastErr))
 	}
+
 	return prometheusClient
 }
 
