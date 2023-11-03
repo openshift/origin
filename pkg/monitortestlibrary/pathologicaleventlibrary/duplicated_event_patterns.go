@@ -55,25 +55,30 @@ const (
 var EventCountExtractor = regexp.MustCompile(`(?s)(.*) \((\d+) times\).*`)
 
 // AllowedDupeEvent allows the definition of events that can repeat more than the threshold we allow during a job run.
-// TODO: document well
+// All specified fields must match the interval.
 type AllowedDupeEvent struct {
-	Name               string
-	LocatorKeyRegexes  map[monitorapi.LocatorKey]*regexp.Regexp
+	// Name is a unique CamelCase friendly name that briefly describes the allowed dupe events. It's used in
+	// logging and unit tests to make sure we match on what we expect.
+	Name string
+	// LocatorKeyRegexes is a map of LocatorKey to regex that key must match for this allowance to trigger.
+	LocatorKeyRegexes map[monitorapi.LocatorKey]*regexp.Regexp
+	// MessageReasonRegex checks the Reason on a structured interval Message.
 	MessageReasonRegex *regexp.Regexp
-	MessageHumanRegex  *regexp.Regexp
-
+	// MessageReasonRegex checks the HumanMessage on a structured interval Message.
+	MessageHumanRegex *regexp.Regexp
 	// Platform limits the exception to a specific OpenShift platform.
 	Platform *v1.PlatformType
-
-	// Topology limits the exception to a specific topology (e.g. single replica)
+	// Topology limits the exception to a specific topology. (e.g. single replica)
 	Topology *v1.TopologyMode
-
-	// TestSuite limits the exception to a specific test suite (e.g. openshift/builds)
+	// TestSuite limits the exception to a specific test suite. (e.g. openshift/builds)
 	TestSuite *string
 
 	// TODO: Interval may not be created yet, work off Locator and MessageBuilder?
+	// IsRepeatedEventOKFunc allows for additional more fine grained checks for this interval.
 	IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
 
+	// Jira is a link to a Jira (or legacy Bugzilla). If set it implies we consider this event a problem but there's
+	// been a bug filed, and as such if matching duplicated events are found a test should flake.
 	Jira string
 }
 
