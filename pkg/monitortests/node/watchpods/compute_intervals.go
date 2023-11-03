@@ -16,7 +16,6 @@ import (
 func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
 	podStateTracker := statetracker.NewStateTracker(monitorapi.ConstructionOwnerPodLifecycle, monitorapi.SourcePodState, beginning)
-	locatorToMessageAnnotations := map[string]map[string]string{}
 
 	for _, event := range events {
 		if _, ok := event.StructuredLocator.Keys[monitorapi.LocatorPodKey]; !ok {
@@ -43,7 +42,7 @@ func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end 
 				podPendingState, pendingPodCondition, event.From)...)
 		}
 	}
-	intervals = append(intervals, podStateTracker.CloseAllIntervals(locatorToMessageAnnotations, end)...)
+	intervals = append(intervals, podStateTracker.CloseAllIntervals(end)...)
 
 	return intervals
 }

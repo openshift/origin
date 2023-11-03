@@ -1,7 +1,6 @@
 package statetracker
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -31,11 +30,10 @@ type stateTracker struct {
 type intervalCreationFunc func(locator monitorapi.Locator,
 	from, to time.Time) (*monitorapi.IntervalBuilder, bool)
 
-func SimpleInterval(source monitorapi.IntervalSource, level monitorapi.IntervalLevel, messageBuilder *monitorapi.MessageBuilder,
-	subSource monitorapi.IntervalSubSource) intervalCreationFunc {
+func SimpleInterval(source monitorapi.IntervalSource, level monitorapi.IntervalLevel, messageBuilder *monitorapi.MessageBuilder) intervalCreationFunc {
 	return func(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool) {
 		interval := monitorapi.NewInterval(source, level).Locator(locator).
-			Message(messageBuilder).SubSource(subSource)
+			Message(messageBuilder)
 		return interval, true
 	}
 }
@@ -147,22 +145,17 @@ func (t *stateTracker) CloseInterval(locator monitorapi.Locator, state StateInfo
 	return []monitorapi.Interval{ib.Build(from, to)}
 }
 
-func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]map[string]string, end time.Time) []monitorapi.Interval {
+func (t *stateTracker) CloseAllIntervals(end time.Time) []monitorapi.Interval {
 	ret := []monitorapi.Interval{}
 	for locator, states := range t.locatorToStateMap {
-		annotationStrings := []string{}
 		annotations := map[monitorapi.AnnotationKey]string{}
-		for k, v := range locatorToMessageAnnotations[locator] {
-			annotationStrings = append(annotationStrings, fmt.Sprintf("%v/%v", k, v))
-			annotations[monitorapi.AnnotationKey(k)] = v
-		}
 
 		l := t.locators[locator]
 		for stateName := range states {
 			annotations[monitorapi.AnnotationState] = stateName.stateName
 			annotations[monitorapi.AnnotationConstructed] = string(t.constructedBy)
 			mb := monitorapi.NewMessage().WithAnnotations(annotations).HumanMessage("never completed").Reason(stateName.reason)
-			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.intervalSource, monitorapi.Warning, mb, ""), end)...)
+			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.intervalSource, monitorapi.Warning, mb), end)...)
 		}
 	}
 

@@ -65,8 +65,7 @@ func IntervalsFromJSON(data []byte) (monitorapi.Intervals, error) {
 			return nil, err
 		}
 		events = append(events, monitorapi.Interval{
-			Source:    monitorapi.IntervalSource(interval.Source),
-			SubSource: monitorapi.IntervalSubSource(interval.SubSource),
+			Source: monitorapi.IntervalSource(interval.Source),
 			Condition: monitorapi.Condition{
 				Level:             level,
 				Locator:           interval.Locator,
@@ -93,8 +92,7 @@ func IntervalFromJSON(data []byte) (*monitorapi.Interval, error) {
 		return nil, err
 	}
 	return &monitorapi.Interval{
-		Source:    monitorapi.IntervalSource(serializedInterval.Source),
-		SubSource: monitorapi.IntervalSubSource(serializedInterval.SubSource),
+		Source: monitorapi.IntervalSource(serializedInterval.Source),
 		Condition: monitorapi.Condition{
 			Level:             level,
 			Locator:           serializedInterval.Locator,
@@ -167,7 +165,6 @@ func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInte
 		StructuredLocator: interval.StructuredLocator,
 		StructuredMessage: interval.StructuredMessage,
 		Source:            string(interval.Source),
-		SubSource:         string(interval.SubSource),
 
 		From: metav1.Time{Time: interval.From},
 		To:   metav1.Time{Time: interval.To},
