@@ -101,15 +101,18 @@ func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Messag
 	return true
 }
 
-func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config) (bool, string) {
+// TODO: ShouldFlake function, return true if Jira field is set, used by duplicateEventMatcher to determine
+// if we should flake a test or not.
+
+func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config) (bool, *AllowedDupeEvent) {
 	for _, ad := range allowedDupes {
 		allowed := ad.Matches(l, msg, kubeClientConfig)
 		if allowed {
 			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", ad.Name)
-			return allowed, ad.Name
+			return allowed, ad
 		}
 	}
-	return false, ""
+	return false, nil
 }
 
 // unhealthyE2EStatefulSet tolerates:

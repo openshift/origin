@@ -37,14 +37,15 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			allowed, matchedAllower := MatchesAny(AllowedRepeatedEvents, test.locator,
+			allowed, matchedAllowedDupe := MatchesAny(AllowedRepeatedEvents, test.locator,
 				test.msg, nil)
 			if test.expectedMatchName != "" {
-				require.True(t, allowed, "duplicated event should have been allowed")
-				assert.Equal(t, test.expectedMatchName, matchedAllower, "duplicated event was not allowed by the correct AllowedDupeEvent")
+				assert.True(t, allowed, "duplicated event should have been allowed")
+				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
+				assert.Equal(t, test.expectedMatchName, matchedAllowedDupe.Name, "duplicated event was not allowed by the correct AllowedDupeEvent")
 			} else {
 				require.False(t, allowed, "duplicated event should not have been allowed")
-				assert.Empty(t, matchedAllower, "duplicated event should not have been allowed by matcher")
+				assert.Nil(t, matchedAllowedDupe, "duplicated event should not have been allowed by matcher")
 			}
 		})
 	}
