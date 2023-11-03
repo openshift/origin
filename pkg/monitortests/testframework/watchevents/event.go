@@ -79,6 +79,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 
 var allRepeatedEventPatterns = combinedDuplicateEventPatterns()
 
+// TODO: delete this
 func combinedDuplicateEventPatterns() *regexp.Regexp {
 	s := ""
 	for _, r := range pathologicaleventlibrary.AllowedRepeatedEventPatterns {
@@ -220,7 +221,9 @@ func recordAddOrUpdateEvent(
 	// TODO: kill it with fire
 	// The matching here needs to mimic what is being done in the synthetictests/testDuplicatedEvents function.
 	//eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
-	isInteresting := false
+	// TODO: accommodate upgrade events as well, and see if we need to pass kube config
+	isInteresting, _ := pathologicaleventlibrary.MatchesAny(pathologicaleventlibrary.AllowedRepeatedEvents,
+		locator, message.Build(), nil)
 	/*
 		isInteresting := allRepeatedEventPatterns.MatchString(eventDisplayMessage) ||
 			checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count)
@@ -234,14 +237,11 @@ func recordAddOrUpdateEvent(
 			message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
 		}
 
-		/*
-			isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold &&
-				pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage)
-			if isPathological {
-				// This is a repeated event that exceeds threshold
-				message = message.WithAnnotation(monitorapi.AnnotationPathological, "true")
-			}
-		*/
+		isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold
+		if isPathological {
+			// This is a repeated event that exceeds threshold
+			message = message.WithAnnotation(monitorapi.AnnotationPathological, "true")
+		}
 
 		to = pathoFrom.Add(1 * time.Second)
 	} else if strings.Contains(obj.Message, "pod sandbox") {
