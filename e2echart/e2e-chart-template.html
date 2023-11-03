@@ -372,7 +372,15 @@
     }
 
     function defaultToolTip(item) {
-        return item.message + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
+        let tt = item.message
+        if ('tempSource' in item) {
+            tt = tt + " source/" + item.tempSource
+        }
+        if ('display' in item) {
+            tt = tt + " display/" + item.display
+        }
+        tt = tt + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
+        return tt
     }
 
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc, regex) {
