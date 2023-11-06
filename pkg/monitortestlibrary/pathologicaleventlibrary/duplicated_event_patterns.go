@@ -224,6 +224,10 @@ var KnownEventsBugs = []KnownProblem{
 		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2006975",
 	},
 	{
+		Regexp: regexp.MustCompile("reason/TopologyAwareHintsDisabled"),
+		BZ:     "https://issues.redhat.com/browse/OCPBUGS-13366",
+	},
+	{
 		Regexp:   regexp.MustCompile("ns/.*reason/.*APICheckFailed.*503.*"),
 		BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
 		Topology: TopologyPointer(v1.SingleReplicaTopologyMode),
