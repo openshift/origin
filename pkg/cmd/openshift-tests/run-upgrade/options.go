@@ -36,9 +36,6 @@ type RunUpgradeSuiteOptions struct {
 	CloseFn iooptions.CloseFunc
 
 	genericclioptions.IOStreams
-
-	ExactMonitorTests   []string
-	DisableMonitorTests []string
 }
 
 func (o *RunUpgradeSuiteOptions) TestCommandEnvironment() []string {
@@ -112,8 +109,8 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest:        monitortestframework.Stable,
 		UpgradeTargetPayloadImagePullSpec: o.ToImage,
-		ExactMonitorTests:                 o.ExactMonitorTests,
-		DisableMonitorTests:               o.DisableMonitorTests,
+		ExactMonitorTests:                 o.GinkgoRunSuiteOptions.ExactMonitorTests,
+		DisableMonitorTests:               o.GinkgoRunSuiteOptions.DisableMonitorTests,
 	}
 
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
