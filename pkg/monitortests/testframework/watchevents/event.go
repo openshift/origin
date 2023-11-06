@@ -218,16 +218,12 @@ func recordAddOrUpdateEvent(
 	to := pathoFrom // we may override later for some events we want to have a duration and get charted
 	locator := monitorapi.NewLocator().KubeEvent(obj)
 
-	// TODO: kill it with fire
-	// The matching here needs to mimic what is being done in the synthetictests/testDuplicatedEvents function.
-	//eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
 	// TODO: accommodate upgrade events as well, and see if we need to pass kube config
 	isInteresting, _ := pathologicaleventlibrary.MatchesAny(pathologicaleventlibrary.AllowedRepeatedEvents,
 		locator, message.Build(), nil)
 	/*
 		isInteresting := allRepeatedEventPatterns.MatchString(eventDisplayMessage) ||
 			checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count)
-
 	*/
 
 	if obj.Count > 1 {

@@ -153,7 +153,8 @@ var unhealthyE2EPortForwardingPod = &AllowedDupeEvent{
 	Jira:                  "",
 }
 
-// AllowedRepeatedEvents is the list of all allowed duplicate events on all jobs, including upgrade.
+// AllowedRepeatedEvents is the list of all allowed duplicate events on all jobs. Upgrade has an additional
+// list which is combined with this one.
 var AllowedRepeatedEvents = []*AllowedDupeEvent{
 	unhealthyE2EStatefulSet,
 	unhealthyE2EPortForwardingPod,
