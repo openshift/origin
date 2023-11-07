@@ -98,25 +98,26 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			expectedMessage: "pathological/true interesting/true reason/SomethingHappened Readiness probe failed (40 times)",
 		},
 		{
-			name: "allowed pathological event with known bug",
+			name: "allowed pathological event with known bug (BZ 2000234)",
 			args: args{
 				ctx: context.TODO(),
 				m:   monitor.NewRecorder(),
 				kubeEvent: &corev1.Event{
 					Count:  40,
-					Reason: "TopologyAwareHintsDisabled",
+					Reason: "ns/openshift-etcd pod/etcd-quorum-guard-42 node/worker-42 - reason/Unhealthy",
 					InvolvedObject: corev1.ObjectReference{
 						Kind:      "Pod",
-						Namespace: "any",
-						Name:      "any",
+						Namespace: "openshift-etcd",
+						Name:      "etcd-quorum-guard-42",
 					},
-					Message:       "irrelevant",
+					Message:       "Readiness probe failed:",
 					LastTimestamp: metav1.Now(),
 				},
 				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
 			},
-			expectedLocator: "ns/any pod/any hmsg/e13faa98ab",
-			expectedMessage: "pathological/true interesting/true reason/TopologyAwareHintsDisabled irrelevant (40 times)",
+			// hmsg in expectedLocator is the hash of the entire expectedMessage except the number of times
+			expectedLocator: "ns/openshift-etcd pod/etcd-quorum-guard-42 hmsg/9100aa725d",
+			expectedMessage: "pathological/true interesting/true reason/ns/openshift-etcd pod/etcd-quorum-guard-42 node/worker-42 - reason/Unhealthy Readiness probe failed: (40 times)",
 		},
 	}
 	for _, tt := range tests {
