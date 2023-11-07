@@ -40,7 +40,7 @@ var _ = Describe("[sig-kubevirt] migration", func() {
 				return numberOfReadyNodes, nil
 			}
 		)
-		Context("and live migrate hosted control plane workers [Early]", func() {
+		Context("and live migrate hosted control plane workers [Early][Late]", func() {
 			var (
 				numberOfNodes = 0
 			)
