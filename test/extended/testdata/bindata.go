@@ -52524,12 +52524,11 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             roles = item.tempStructuredMessage.annotations.roles
         }
 
-        let ss = item.tempSubSource
         if (item.tempStructuredMessage.reason === 'NotReady') {
-            return [item.locator, ` + "`" + ` (${roles},${ss})` + "`" + `, "NodeNotReady"]
+            return [item.locator, ` + "`" + ` (${roles})` + "`" + `, "NodeNotReady"]
         }
         let m = item.tempStructuredMessage.annotations.phase;
-        return [item.locator, ` + "`" + ` (${roles},${ss})` + "`" + `, m];
+        return [item.locator, ` + "`" + ` (${roles})` + "`" + `, m];
     }
 
     function alertSeverity(item) {
@@ -53345,14 +53344,10 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         }
 
         if (item.tempStructuredMessage.reason === 'NotReady') {
-            return [item.locator, ` + "`" + ` (${roles},not ready)` + "`" + `, "NodeNotReady"]
+            return [item.locator, ` + "`" + ` (${roles})` + "`" + `, "NodeNotReady"]
         }
-        // TODO: would like to get this to a structured field as well
-        let m = item.message.match(rePhase);
-        if (m && m[2] != "Update") {
-            return [item.locator, ` + "`" + ` (${roles},update phases)` + "`" + `, m[2]];
-        }
-        return [item.locator, ` + "`" + ` (${roles},updates)` + "`" + `, "Update"];
+        let m = item.tempStructuredMessage.annotations.phase;
+        return [item.locator, ` + "`" + ` (${roles})` + "`" + `, m];
     }
 
 
@@ -53403,7 +53398,15 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function defaultToolTip(item) {
-        return item.message + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
+        let tt = item.message
+        if ('tempSource' in item) {
+            tt = tt + " source/" + item.tempSource
+        }
+        if ('display' in item) {
+            tt = tt + " display/" + item.display
+        }
+        tt = tt + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
+        return tt
     }
 
     function createTimelineData(timelineVal, timelineData, filteredEventIntervals, category) {
