@@ -32,7 +32,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: some error goes here").
 				Reason("Unhealthy").Build(),
-			expectedMatchName: unhealthyE2EPortForwardingPod.Name,
+			expectedMatchName: "UnhealthyE2EPortForwarding",
 		},
 		{
 			name: "scc-test-3",
@@ -44,7 +44,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.").
 				Reason("FailedScheduling").Build(),
-			expectedMatchName: e2eSCCFailedScheduling.Name,
+			expectedMatchName: "E2ESCCFailedScheduling",
 		},
 		{
 			name: "non-root",
@@ -56,7 +56,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Error: container's runAsUser breaks non-root policy (pod: \"explicit-root-uid_e2e-security-context-test-6596(22bf29d0-e546-4a15-8dd7-8acd9165c924)\", container: explicit-root-uid)").
 				Reason("Failed").Build(),
-			expectedMatchName: e2eSecurityContextBreaksNonRootPolicy.Name,
+			expectedMatchName: "E2ESecurityContextBreaksNonRootPolicy",
 		},
 		{
 			name: "local-volume-failed-scheduling",
@@ -68,7 +68,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)").
 				Reason("FailedScheduling").Build(),
-			expectedMatchName: e2ePersistentVolumesFailedScheduling.Name,
+			expectedMatchName: "E2EPersistentVolumesFailedScheduling",
 		},
 	}
 	for _, test := range tests {

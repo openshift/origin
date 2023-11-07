@@ -117,121 +117,110 @@ func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, msg moni
 }
 
 // unhealthyE2EStatefulSet tolerates:
-// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
-// PauseNewPods intentionally causes readiness probe to fail.
-var unhealthyE2EStatefulSet = &AllowedDupeEvent{
-	Name: "UnhealthyE2EStatefulSet",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-statefulset-[0-9]+`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`ss-[0-9]`),
-		monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
-	MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed: `),
-}
-
-// Kubectl Port forwarding ***
-// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
-// This results in hundreds of events while the pod isn't ready.
-var unhealthyE2EPortForwardingPod = &AllowedDupeEvent{
-	Name: "UnhealthyE2EPortForwarding",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-port-forwarding-[0-9]+`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`^pfpod$`),
-		monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
-	MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed: `),
-}
-
-// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]
-// breakPodHTTPProbe intentionally causes readiness probe to fail.
-var unhealthyE2EStatefulSetPod = &AllowedDupeEvent{
-	Name: "UnhealthyStatefulSetPod",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-statefulset-[0-9]+`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`ss2-[0-9]`),
-		monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
-	MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed: HTTP probe failed with statuscode: 404`),
-}
-
-// [sig-node] Probing container ***
-// these tests intentionally cause repeated probe failures to ensure good handling
-var e2eContainerProbeFailedOrWarning = &AllowedDupeEvent{
-	Name: "E2EContainerProbeFailedOrWarning",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-container-probe-[0-9]+`),
-	},
-	MessageHumanRegex: regexp.MustCompile(`probe (failed|warning):`),
-}
-
-// should not start app containers if init containers fail on a RestartAlways pod
-// the init container intentionally fails to start
-var e2eInitContainerRestartBackOff = &AllowedDupeEvent{
-	Name: "E2EInitContainerRestartBackoff",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-init-container-[0-9]+`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`pod-init-[a-z0-9.-]+`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
-	MessageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
-}
-
-// TestAllowedSCCViaRBAC and TestPodUpdateSCCEnforcement
-// The pod is shaped to intentionally not be scheduled.  Looks like an artifact of the old integration testing.
-var e2eSCCFailedScheduling = &AllowedDupeEvent{
-	Name: "E2ESCCFailedScheduling",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-test-scc-[a-z0-9]+`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`FailedScheduling`),
-}
-
-// Security Context ** should not run with an explicit root user ID
-// Security Context ** should not run without a specified user ID
-// This container should never run
-var e2eSecurityContextBreaksNonRootPolicy = &AllowedDupeEvent{
-	Name: "E2ESecurityContextBreaksNonRootPolicy",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-security-context-test-[0-9]+`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`.*-root-uid`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`^Failed$`),
-	MessageHumanRegex:  regexp.MustCompile(`Error: container's runAsUser breaks non-root policy.*`),
-}
-
-// PersistentVolumes-local tests should not run the pod when there is a volume node
-// affinity and node selector conflicts.
-var e2ePersistentVolumesFailedScheduling = &AllowedDupeEvent{
-	Name: "E2EPersistentVolumesFailedScheduling",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-persistent-local-volumes-test-[0-9]+`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`pod-[a-z0-9.-]+`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
-}
-
-// various DeploymentConfig tests trigger this by canceling multiple rollouts
-var e2eDeploymentConfigCancellation = &AllowedDupeEvent{
-	Name:               "E2EDeploymentConfigCancellation",
-	MessageReasonRegex: regexp.MustCompile(`^DeploymentAwaitingCancellation$`),
-	MessageHumanRegex:  regexp.MustCompile(`Deployment of version [0-9]+ awaiting cancellation of older running deployments`),
-}
 
 // AllowedRepeatedEvents is the list of all allowed duplicate events on all jobs. Upgrade has an additional
 // list which is combined with this one.
 var AllowedRepeatedEvents = []*AllowedDupeEvent{
-	unhealthyE2EStatefulSet,
-	unhealthyE2EPortForwardingPod,
-	unhealthyE2EStatefulSetPod,
-	e2eContainerProbeFailedOrWarning,
-	e2eInitContainerRestartBackOff,
-	e2eSCCFailedScheduling,
-	e2eSecurityContextBreaksNonRootPolicy,
-	e2ePersistentVolumesFailedScheduling,
-	e2eDeploymentConfigCancellation,
+	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
+	// PauseNewPods intentionally causes readiness probe to fail.
+	{
+		Name: "UnhealthyE2EStatefulSet",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-statefulset-[0-9]+`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`ss-[0-9]`),
+			monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed: `),
+	},
+
+	// Kubectl Port forwarding ***
+	// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
+	// This results in hundreds of events while the pod isn't ready.
+	{
+		Name: "UnhealthyE2EPortForwarding",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-port-forwarding-[0-9]+`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^pfpod$`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed: `),
+	},
+
+	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]
+	// breakPodHTTPProbe intentionally causes readiness probe to fail.
+	{
+		Name: "UnhealthyStatefulSetPod",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-statefulset-[0-9]+`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`ss2-[0-9]`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed: HTTP probe failed with statuscode: 404`),
+	},
+
+	// [sig-node] Probing container ***
+	// these tests intentionally cause repeated probe failures to ensure good handling
+	{
+		Name: "E2EContainerProbeFailedOrWarning",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-container-probe-[0-9]+`),
+		},
+		MessageHumanRegex: regexp.MustCompile(`probe (failed|warning):`),
+	},
+
+	// should not start app containers if init containers fail on a RestartAlways pod
+	// the init container intentionally fails to start
+	{
+		Name: "E2EInitContainerRestartBackoff",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-init-container-[0-9]+`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`pod-init-[a-z0-9.-]+`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
+		MessageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
+	},
+
+	// TestAllowedSCCViaRBAC and TestPodUpdateSCCEnforcement
+	// The pod is shaped to intentionally not be scheduled.  Looks like an artifact of the old integration testing.
+	{
+		Name: "E2ESCCFailedScheduling",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-test-scc-[a-z0-9]+`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`FailedScheduling`),
+	},
+
+	// Security Context ** should not run with an explicit root user ID
+	// Security Context ** should not run without a specified user ID
+	// This container should never run
+	{
+		Name: "E2ESecurityContextBreaksNonRootPolicy",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-security-context-test-[0-9]+`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`.*-root-uid`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^Failed$`),
+		MessageHumanRegex:  regexp.MustCompile(`Error: container's runAsUser breaks non-root policy.*`),
+	},
+
+	// PersistentVolumes-local tests should not run the pod when there is a volume node
+	// affinity and node selector conflicts.
+	{
+		Name: "E2EPersistentVolumesFailedScheduling",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-persistent-local-volumes-test-[0-9]+`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`pod-[a-z0-9.-]+`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
+	},
+
+	// various DeploymentConfig tests trigger this by cancelling multiple rollouts
+	{
+		Name:               "E2EDeploymentConfigCancellation",
+		MessageReasonRegex: regexp.MustCompile(`^DeploymentAwaitingCancellation$`),
+		MessageHumanRegex:  regexp.MustCompile(`Deployment of version [0-9]+ awaiting cancellation of older running deployments`),
+	},
 }
 
 var AllowedRepeatedEventPatterns = []*regexp.Regexp{
