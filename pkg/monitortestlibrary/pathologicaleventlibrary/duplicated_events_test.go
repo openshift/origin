@@ -34,6 +34,42 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("Unhealthy").Build(),
 			expectedMatchName: unhealthyE2EPortForwardingPod.Name,
 		},
+		{
+			name: "scc-test-3",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-test-scc-578l5",
+					monitorapi.LocatorPodKey:       "test3",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.").
+				Reason("FailedScheduling").Build(),
+			expectedMatchName: e2eSCCFailedScheduling.Name,
+		},
+		{
+			name: "non-root",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-security-context-test-6596",
+					monitorapi.LocatorPodKey:       "explicit-root-uid",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Error: container's runAsUser breaks non-root policy (pod: \"explicit-root-uid_e2e-security-context-test-6596(22bf29d0-e546-4a15-8dd7-8acd9165c924)\", container: explicit-root-uid)").
+				Reason("Failed").Build(),
+			expectedMatchName: e2eSecurityContextBreaksNonRootPolicy.Name,
+		},
+		{
+			name: "local-volume-failed-scheduling",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-persistent-local-volumes-test-7012",
+					monitorapi.LocatorPodKey:       "pod-940713ce-7645-4d8c-bba0-5705350a5655",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)").
+				Reason("FailedScheduling").Build(),
+			expectedMatchName: e2ePersistentVolumesFailedScheduling.Name,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -72,20 +108,8 @@ func TestEventRegexExcluder(t *testing.T) {
 			message: `ns/e2e-init-container-368 pod/pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856 node/ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97 - reason/BackOff Back-off restarting failed container`,
 		},
 		{
-			name:    "scc-test-3",
-			message: `ns/e2e-test-scc-578l5 pod/test3 - reason/FailedScheduling 0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.`,
-		},
-		{
 			name:    "missing image",
 			message: `ns/e2e-deployment-478 pod/webserver-deployment-795d758f88-fdr4d node/ci-op-h1wxg6l0-16f7c-mb4sj-worker-b-wcdcf - reason/BackOff Back-off pulling image "webserver:404"`,
-		},
-		{
-			name:    "non-root",
-			message: `ns/e2e-security-context-test-6596 pod/explicit-root-uid node/ci-op-isj7rd3k-2a78c-kk69w-worker-a-v4kdb - reason/Failed Error: container's runAsUser breaks non-root policy (pod: "explicit-root-uid_e2e-security-context-test-6596(22bf29d0-e546-4a15-8dd7-8acd9165c924)", container: explicit-root-uid)`,
-		},
-		{
-			name:    "local-volume-failed-scheduling",
-			message: `ns/e2e-persistent-local-volumes-test-7012 pod/pod-940713ce-7645-4d8c-bba0-5705350a5655 reason/FailedScheduling 0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)`,
 		},
 	}
 
