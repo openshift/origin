@@ -528,7 +528,7 @@
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
         let roles = ""
-        if (item.tempStructuredMessage.hasOwnProperty('roles')) {
+        if (item.tempStructuredMessage.annotations.hasOwnProperty('roles')) {
             roles = item.tempStructuredMessage.roles
         }
 

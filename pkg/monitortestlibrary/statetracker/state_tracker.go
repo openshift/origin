@@ -1,7 +1,6 @@
 package statetracker
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -140,7 +139,6 @@ func (t *stateTracker) CloseInterval(locator monitorapi.Locator, state StateInfo
 	}
 	delete(states, state)
 	locatorKey := locator.OldLocator()
-	fmt.Printf("locatorKey = %s\n", locatorKey)
 	t.locatorToStateMap[locatorKey] = states
 	t.locators[locatorKey] = locator
 	locatorWithRow := locator.DeepCopy()
