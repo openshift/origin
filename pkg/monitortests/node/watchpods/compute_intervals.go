@@ -29,7 +29,7 @@ func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end 
 			continue
 		}
 
-		podPendingState := statetracker.State("Pending", "PodWasPending")
+		podPendingState := statetracker.State("Pending", "", "PodWasPending")
 
 		switch reason {
 		case monitorapi.PodPendingReason:

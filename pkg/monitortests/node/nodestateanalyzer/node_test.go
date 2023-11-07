@@ -27,7 +27,7 @@ func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	assert.Equal(t, "constructed/node-lifecycle-constructor phase/OperatingSystemUpdate reason/NodeUpdate roles/worker updated operating system",
 		changes[1].Message, "unexpected event")
 	assert.Equal(t, "constructed/node-lifecycle-constructor phase/Reboot reason/NodeUpdate roles/worker rebooted and kubelet started",
-		changes[0].Message, "unexpected event")
+		changes[2].Message, "unexpected event")
 }
 
 func TestNodeUpdateCreation(t *testing.T) {
