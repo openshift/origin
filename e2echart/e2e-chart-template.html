@@ -302,12 +302,11 @@
             roles = item.tempStructuredMessage.annotations.roles
         }
 
-        let ss = item.tempSubSource
         if (item.tempStructuredMessage.reason === 'NotReady') {
-            return [item.locator, ` (${roles},${ss})`, "NodeNotReady"]
+            return [item.locator, ` (${roles})`, "NodeNotReady"]
         }
         let m = item.tempStructuredMessage.annotations.phase;
-        return [item.locator, ` (${roles},${ss})`, m];
+        return [item.locator, ` (${roles})`, m];
     }
 
     function alertSeverity(item) {
