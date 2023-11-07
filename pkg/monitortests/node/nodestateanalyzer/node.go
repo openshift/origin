@@ -100,7 +100,6 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		case "OSUpdateStarted":
 			// Not ported, so we don't have a Source to check
 			nodeLocator := monitorapi.NewLocator().NodeFromNameWithRow(node, "NodeUpdatePhases")
-			nodeStateTracker.OpenInterval(nodeLocator, drainState, event.From)
 			mb := monitorapi.NewMessage().Reason(monitorapi.NodeUpdateReason).
 				HumanMessage(msgPhaseDrain).
 				WithAnnotation(monitorapi.AnnotationConstructed, monitorapi.ConstructionOwnerNodeLifecycle).
@@ -112,7 +111,6 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 			nodeStateTracker.OpenInterval(nodeLocator, osUpdateState, event.From)
 		case "Reboot":
 			nodeLocator := monitorapi.NewLocator().NodeFromNameWithRow(node, "NodeUpdatePhases")
-			nodeStateTracker.OpenInterval(nodeLocator, drainState, event.From)
 			// Not ported, so we don't have a Source to check
 			mb := monitorapi.NewMessage().Reason(monitorapi.NodeUpdateReason).
 				HumanMessage(msgPhaseDrain).
@@ -135,7 +133,6 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		case "Starting":
 			// Not ported, so we don't have a Source to check
 			nodeLocator := monitorapi.NewLocator().NodeFromNameWithRow(node, "NodeUpdatePhases")
-			nodeStateTracker.OpenInterval(nodeLocator, drainState, event.From)
 			mb := monitorapi.NewMessage().Reason(monitorapi.NodeUpdateReason).
 				HumanMessage(msgPhaseDrain).
 				WithAnnotation(monitorapi.AnnotationConstructed, monitorapi.ConstructionOwnerNodeLifecycle).
