@@ -42,7 +42,7 @@ func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end 
 				podPendingState, pendingPodCondition, event.From)...)
 		}
 	}
-	intervals = append(intervals, podStateTracker.CloseAllIntervals(end)...)
+	intervals = append(intervals, podStateTracker.CloseAllIntervals(map[string]map[string]string{}, end)...)
 
 	return intervals
 }
