@@ -155,10 +155,13 @@ func (t *stateTracker) CloseInterval(locator monitorapi.Locator, state StateInfo
 	return []monitorapi.Interval{ib.Build(from, to)}
 }
 
-func (t *stateTracker) CloseAllIntervals(end time.Time) []monitorapi.Interval {
+func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]map[string]string, end time.Time) []monitorapi.Interval {
 	ret := []monitorapi.Interval{}
 	for locator, states := range t.locatorToStateMap {
 		annotations := map[monitorapi.AnnotationKey]string{}
+		for k, v := range locatorToMessageAnnotations[locator] {
+			annotations[monitorapi.AnnotationKey(k)] = v
+		}
 
 		l := t.locators[locator]
 		for state := range states {

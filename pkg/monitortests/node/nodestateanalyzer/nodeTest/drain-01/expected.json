@@ -29,7 +29,7 @@
         {
             "level": "Warning",
             "locator": "node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7 row/NodeUpdatePhases",
-            "message": "constructed/node-lifecycle-constructor reason/NodeUpdate role/worker state/OperatingSystemUpdate never completed",
+            "message": "constructed/node-lifecycle-constructor reason/NodeUpdate roles/worker state/OperatingSystemUpdate never completed",
             "tempSource": "NodeState",
             "tempStructuredLocator": {
                 "type": "Node",

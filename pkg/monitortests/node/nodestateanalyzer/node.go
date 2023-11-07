@@ -17,6 +17,7 @@ const (
 func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.ResourcesMap, beginning, end time.Time) monitorapi.Intervals {
 	var intervals monitorapi.Intervals
 	nodeStateTracker := statetracker.NewStateTracker(monitorapi.ConstructionOwnerNodeLifecycle, monitorapi.SourceNodeState, beginning)
+	locatorToMessageAnnotations := map[string]map[string]string{}
 
 	for _, event := range events {
 		// TODO: dangerous assumptions here without using interval source, we ended up picking up container
@@ -35,14 +36,11 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		roles := monitorapi.GetNodeRoles(event)
 
 		nodeLocator := monitorapi.NewLocator().NodeFromName(node)
-		/*
-			nodeLocatorKey := nodeLocator.OldLocator()
-			if _, ok := locatorToMessageAnnotations[nodeLocatorKey]; !ok {
-				locatorToMessageAnnotations[nodeLocatorKey] = map[string]string{}
-			}
-			locatorToMessageAnnotations[nodeLocatorKey]["role"] = roles
-
-		*/
+		nodeLocatorKey := nodeLocator.OldLocator()
+		if _, ok := locatorToMessageAnnotations[nodeLocatorKey]; !ok {
+			locatorToMessageAnnotations[nodeLocatorKey] = map[string]string{}
+		}
+		locatorToMessageAnnotations[nodeLocatorKey][string(monitorapi.AnnotationRoles)] = roles
 
 		notReadyState := statetracker.State("NotReady", "NodeNotReady", monitorapi.NodeNotReadyReason)
 		updateState := statetracker.State("Update", "NodeUpdate", monitorapi.NodeUpdateReason)
@@ -153,7 +151,7 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		}
 	}
 	// Close all node intervals left hanging open:
-	intervals = append(intervals, nodeStateTracker.CloseAllIntervals(end)...)
+	intervals = append(intervals, nodeStateTracker.CloseAllIntervals(locatorToMessageAnnotations, end)...)
 
 	return intervals
 }
