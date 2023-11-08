@@ -221,16 +221,27 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		MessageReasonRegex: regexp.MustCompile(`^DeploymentAwaitingCancellation$`),
 		MessageHumanRegex:  regexp.MustCompile(`Deployment of version [0-9]+ awaiting cancellation of older running deployments`),
 	},
-}
-
-var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// this image is used specifically to be one that cannot be pulled in our tests
-	regexp.MustCompile(`.*reason/BackOff Back-off pulling image "webserver:404"`),
+	{
+		Name:               "BackOffPullingWebserverImage404",
+		MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
+		MessageHumanRegex:  regexp.MustCompile(`Back-off pulling image "webserver:404"`),
+	},
 
 	// If image pulls in e2e namespaces fail catastrophically we'd expect them to lead to test failures
 	// We are deliberately not ignoring image pull failures for core component namespaces
-	regexp.MustCompile(`ns/e2e-.* reason/BackOff Back-off pulling image`),
+	{
+		Name: "E2EImagePullBackOff",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^e2e-.*`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
+		MessageHumanRegex:  regexp.MustCompile(`Back-off pulling image`),
+	},
+}
+
+var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// promtail crashlooping as its being started by sideloading manifests.  per @vrutkovs
 	regexp.MustCompile("ns/openshift-e2e-loki pod/loki-promtail.*Readiness probe"),

@@ -70,6 +70,18 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("FailedScheduling").Build(),
 			expectedMatchName: "E2EPersistentVolumesFailedScheduling",
 		},
+		{
+			name: "missing image",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-deployment-478",
+					monitorapi.LocatorPodKey:       "webserver-deployment-795d758f88-fdr4d ",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"webserver:404\"").
+				Reason("BackOff").Build(),
+			expectedMatchName: "BackOffPullingWebserverImage404",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -106,10 +118,6 @@ func TestEventRegexExcluder(t *testing.T) {
 		{
 			name:    "failing-init-container",
 			message: `ns/e2e-init-container-368 pod/pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856 node/ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97 - reason/BackOff Back-off restarting failed container`,
-		},
-		{
-			name:    "missing image",
-			message: `ns/e2e-deployment-478 pod/webserver-deployment-795d758f88-fdr4d node/ci-op-h1wxg6l0-16f7c-mb4sj-worker-b-wcdcf - reason/BackOff Back-off pulling image "webserver:404"`,
 		},
 	}
 
