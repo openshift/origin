@@ -170,14 +170,6 @@ func TestUpgradeEventRegexExcluder(t *testing.T) {
 
 }
 
-func buildInterval(message string) monitorapi.Interval {
-	return monitorapi.Interval{
-		Condition: monitorapi.Condition{Message: message},
-		From:      time.Unix(872827200, 0).In(time.UTC),
-		To:        time.Unix(872827200, 0).In(time.UTC),
-	}
-}
-
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
@@ -195,32 +187,62 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			name:            "matches 22 with namespace openshift",
-			intervals:       []monitorapi.Interval{buildInterval("ns/openshift - reason/SomeEvent1 foo (22 times)")},
+			name: "matches 22 with namespace openshift",
+			intervals: []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift",
+					}}).Message(
+					monitorapi.NewMessage().Reason("SomeEvent1").HumanMessage("foo").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "openshift",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/openshift - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/openshift - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
-			name:            "matches 22 with namespace e2e",
-			intervals:       []monitorapi.Interval{buildInterval(`ns/random - reason/SomeEvent1 foo (22 times)`)},
+			name: "matches 22 with namespace e2e",
+			intervals: []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "random",
+					}}).Message(
+					monitorapi.NewMessage().Reason("SomeEvent1").HumanMessage("foo").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/random - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/random - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
-			name:            "matches 22 with no namespace",
-			intervals:       []monitorapi.Interval{buildInterval(`reason/SomeEvent1 foo (22 times)`)},
+			name: "matches 22 with no namespace",
+			intervals: []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{}}).Message(
+					monitorapi.NewMessage().Reason("SomeEvent1").HumanMessage("foo").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
 			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
-			name:            "matches 12 with namespace openshift",
-			intervals:       []monitorapi.Interval{buildInterval(`ns/openshift - reason/SomeEvent1 foo (12 times)`)},
+			name: "matches 12 with namespace openshift",
+			intervals: []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift",
+					}}).Message(
+					monitorapi.NewMessage().Reason("SomeEvent1").HumanMessage("foo").
+						WithAnnotation(monitorapi.AnnotationCount, "12")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "openshift",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
@@ -251,7 +273,16 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 					From:   from.Add(-1 * time.Minute),
 					To:     to.Add(1 * time.Minute),
 				},
-				buildInterval(`ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift-controller-manager",
+					}}).Message(
+					monitorapi.NewMessage().Reason("FailedScheduling").
+						HumanMessage("0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod..").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "openshift-controller-manager",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
@@ -261,11 +292,19 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			// This is not ignored because there were no masters in NodeUpdate
 			name: "match FailedScheduling in openshift-controller-manager when masters are not updating",
 			intervals: []monitorapi.Interval{
-				buildInterval(`ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift-controller-manager",
+					}}).Message(
+					monitorapi.NewMessage().Reason("FailedScheduling").
+						HumanMessage("0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod..").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "openshift-controller-manager",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/openshift-controller-manager - reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
 			// This still matches despite the masters updating because it's not in an openshift namespace
@@ -292,7 +331,15 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 					From:   from.Add(-1 * time.Minute),
 					To:     to.Add(1 * time.Minute),
 				},
-				buildInterval(`ns/mynamespace reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "mynamespace",
+					}}).Message(
+					monitorapi.NewMessage().Reason("FailedScheduling").
+						HumanMessage("0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod..").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "mynamespace",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
@@ -316,6 +363,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			jUnitName := getJUnitName(testName, test.namespace)
 			for _, junit := range junits {
 				if (junit.Name == jUnitName) && (test.expectedMessage != "") {
+					require.NotNil(t, junit.FailureOutput, "expected junit to have failure output")
 					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
 					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output") {

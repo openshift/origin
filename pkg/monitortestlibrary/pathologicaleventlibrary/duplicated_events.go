@@ -242,6 +242,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 	displayToCount := map[string]*pathologicalEvents{}
 	for _, event := range events {
 		// TODO: port to use structured message reason once kube event intervals are ported over
+		// TODO: moved to an allowed patho
 		if strings.Contains(event.Message, "reason/FailedScheduling") {
 			// Filter out FailedScheduling events while masters are updating
 			var foundOverlap bool
@@ -256,15 +257,26 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 				continue
 			}
 		}
-		eventDisplayMessage, times := GetTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
+
+		times := GetTimesAnEventHappened(event)
 		if times > DuplicateEventThreshold {
 
 			// If we marked this message earlier in recordAddOrUpdateEvent as interesting/true, we know it matched one of
-			// the existing patterns or one of the AllowedRepeatedEventFns functions returned true.
-			if strings.Contains(eventDisplayMessage, InterestingMark) {
+			// the existing patterns
+			if _, ok := event.StructuredMessage.Annotations[monitorapi.AnnotationInteresting]; ok {
 				continue
 			}
 
+			// key used in a map to identify the common interval that is repeating and we may
+			// encounter multiple times.
+			eventDisplayMessage := fmt.Sprintf("%s - reason/%s %s", event.Locator,
+				event.StructuredMessage.Reason, event.StructuredMessage.HumanMessage)
+
+			// TODO: use of this string as a map keep looks busted because it contains from/to,
+			// each time we encounter the same message and locator, these timestamps would change
+			// resulting in the count not being incremented. I think this can be seen in failures
+			// of this test with lots of hits.
+			// I suspect this was meant to be eventDisplayMessage? Needs unit testing to be sure.
 			eventMessageString := eventDisplayMessage + " From: " + event.From.Format("15:04:05Z") + " To: " + event.To.Format("15:04:05Z")
 			if _, ok := displayToCount[eventMessageString]; !ok {
 				tmp := &pathologicalEvents{
@@ -326,19 +338,17 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 	return tests
 }
 
-func GetTimesAnEventHappened(message string) (string, int) {
-	matches := EventCountExtractor.FindAllStringSubmatch(message, -1)
-	if len(matches) != 1 { // not present or weird
-		return "", 0
+func GetTimesAnEventHappened(interval monitorapi.Interval) int {
+	countStr, ok := interval.StructuredMessage.Annotations[monitorapi.AnnotationCount]
+	if !ok {
+		return 1
 	}
-	if len(matches[0]) < 2 { // no capture
-		return "", 0
-	}
-	times, err := strconv.ParseInt(matches[0][2], 10, 0)
+	times, err := strconv.ParseInt(countStr, 10, 0)
 	if err != nil { // not an int somehow
-		return "", 0
+		logrus.Warnf("interval had a non-integer count? %+v", interval)
+		return 0
 	}
-	return matches[0][1], int(times)
+	return int(times)
 }
 
 func (d *duplicateEventsEvaluator) getClusterInfo(c *rest.Config) (err error) {

@@ -25,7 +25,6 @@ const (
 	NodeHasSufficientMemoryRegExpStr = "reason/NodeHasSufficientMemory.*status is now: NodeHasSufficientMemory"
 	NodeHasSufficientPIDRegExpStr    = "reason/NodeHasSufficientPID.*status is now: NodeHasSufficientPID"
 
-	OvnReadinessRegExpStr                   = `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
 	ConsoleReadinessRegExpStr               = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
 	MarketplaceStartupProbeFailureRegExpStr = `ns/(?P<NS>openshift-marketplace) pod/(?P<POD>(community-operators|redhat-operators)-[a-z0-9-]+).*Startup probe failed`
 
@@ -270,12 +269,23 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
 		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed`),
 	},
+	AllowOVNReadiness,
+}
+
+// Some broken out matchers are re-used in a test for that specific event
+
+// reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
+var AllowOVNReadiness = &AllowedDupeEvent{
+	Name: "OVNReadinessProbeFailed",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-ovn-kubernetes`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`ovnkube-node-`),
+	},
+	MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+	MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed:`),
 }
 
 var AllowedRepeatedEventPatterns = []*regexp.Regexp{
-
-	// we have a separate test for this
-	regexp.MustCompile(OvnReadinessRegExpStr),
 
 	// Separated out in testBackoffPullingRegistryRedhatImage
 	regexp.MustCompile(ImagePullRedhatRegEx),
@@ -465,10 +475,10 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kube
 		return false, nil
 	}
 
-	regExp := regexp.MustCompile(ConsoleReadinessRegExpStr)
+	//regExp := regexp.MustCompile(ConsoleReadinessRegExpStr)
 	// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 	// then this probe failure is unexpected and should fail.
-	return IsEventAfterInstallation(monitorEvent, kubeClientConfig, regExp)
+	return IsEventAfterInstallation(monitorEvent, kubeClientConfig)
 }
 
 // isConfigOperatorReadinessFailed returns true if the event matches a readinessFailed error that timed out
@@ -570,10 +580,7 @@ func IsOperatorMatchRegexMessage(monitorEvent monitorapi.Interval, operatorName 
 }
 
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
-// regExp defines the pattern of the monitorEvent message. Named match is used in the pattern using `(?P<>)`.
-// The names are placed inside <>. See example below
-// `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$`
-func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
+func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config) (bool, error) {
 	if kubeClientConfig == nil {
 		// default to OK
 		return true, nil
@@ -583,15 +590,18 @@ func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig
 		return true, nil
 	}
 
-	message := fmt.Sprintf("%s - %s", monitorEvent.Locator, monitorEvent.Message)
-	namespace, pod, _, reason, msg, err := getMatchedElementsFromMonitorEventMsg(regExp, message)
-	if err != nil {
-		return false, err
-	}
+	namespace := monitorEvent.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+	pod := monitorEvent.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+	reason := monitorEvent.StructuredMessage.Reason
+	msg := monitorEvent.StructuredMessage.HumanMessage
 	kubeClient, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return true, nil
 	}
+
+	// TODO: listing all kube events when we already have intervals for them seems drastic.
+	// It appears to be so we could get FirstTimestamp, but we could perhaps store that in a message
+	// annotation when we receive events.
 	kubeEvents, err := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return true, nil
@@ -599,11 +609,14 @@ func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig
 	for _, event := range kubeEvents.Items {
 		if event.Related == nil ||
 			event.Related.Name != pod ||
-			event.Reason != reason ||
+			event.Reason != string(reason) ||
 			!strings.Contains(event.Message, msg) {
 			continue
 		}
 
+		// TODO: if an event happened 21 times, and only the first was during install, we're going
+		// to return true here when we shouldn't... to do this properly we'd need to separate out
+		// a count of how many occurred *after* install, and that's going to be quite difficult.
 		if event.FirstTimestamp.After(installCompletionTime.Time) {
 			return false, nil
 		}

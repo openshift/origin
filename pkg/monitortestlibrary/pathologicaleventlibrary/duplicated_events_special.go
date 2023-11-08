@@ -36,13 +36,13 @@ func (s *singleEventCheckRegex) Test(events monitorapi.Intervals) []*junitapi.JU
 	for _, e := range events {
 		if s.recognizer(e) {
 
-			msg := fmt.Sprintf("%s - %s", e.Locator, e.Message)
-			eventDisplayMessage, times := GetTimesAnEventHappened(msg)
+			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
+			times := GetTimesAnEventHappened(e)
 			switch {
 			case s.failThreshold > 0 && times > s.failThreshold:
-				failureOutput = append(failureOutput, fmt.Sprintf("event [%s] happened %d times", eventDisplayMessage, times))
+				failureOutput = append(failureOutput, fmt.Sprintf("event [%s] happened %d times", msg, times))
 			case times > s.flakeThreshold:
-				flakeOutput = append(flakeOutput, fmt.Sprintf("event [%s] happened %d times", eventDisplayMessage, times))
+				flakeOutput = append(flakeOutput, fmt.Sprintf("event [%s] happened %d times", msg, times))
 			}
 		}
 	}
@@ -113,7 +113,7 @@ func eventMatchThresholdTest(testName string, events monitorapi.Intervals, event
 			// (in artifacts) when viewing the Test failure output.
 			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.Message)
 
-			_, times := GetTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
+			times := GetTimesAnEventHappened(event)
 
 			// find the largest grouping of these events
 			if times > maxTimes {
