@@ -239,29 +239,40 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
 		MessageHumanRegex:  regexp.MustCompile(`Back-off pulling image`),
 	},
-}
 
-var AllowedRepeatedEventPatterns = []*regexp.Regexp{
+	// Several allowances were related to Loki, I think we can generally ignore any repeating event
+	// from the Loki NS, this should not fail tests.
+	{
+		Name: "LokiPromtailReadinessProbe",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-e2e-loki$`),
+		},
+	},
 
-	// promtail crashlooping as its being started by sideloading manifests.  per @vrutkovs
-	regexp.MustCompile("ns/openshift-e2e-loki pod/loki-promtail.*Readiness probe"),
-
-	// Related to known bug below, but we do not need to report on loki: https://bugzilla.redhat.com/show_bug.cgi?id=1986370
-	regexp.MustCompile("ns/openshift-e2e-loki pod/loki-promtail.*reason/NetworkNotReady"),
-
-	// kube-apiserver guard probe failing due to kube-apiserver operands getting rolled out
+	// kube apiserver, controller-manager and scheduler guard pod probes can fail due to operands getting rolled out
 	// multiple times during the bootstrapping phase of a cluster installation
-	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*ProbeError Readiness probe error"),
-	// the same thing happens for kube-controller-manager and kube-scheduler
-	regexp.MustCompile("ns/openshift-kube-controller-manager pod/kube-controller-manager-guard.*ProbeError Readiness probe error"),
-	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*ProbeError Readiness probe error"),
+
+	{
+		Name: "KubeControlPlaneGuardReadinessProbeError",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-kube-*`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^kube.*guard.*`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe error`),
+	},
 
 	// this is the less specific even sent by the kubelet when a probe was executed successfully but returned false
 	// we ignore this event because openshift has a patch in patch_prober that sends a more specific event about
 	// readiness failures in openshift-* namespaces.  We will catch the more specific ProbeError events.
-	regexp.MustCompile("Unhealthy Readiness probe failed"),
-	// readiness probe errors during pod termination are expected, so we do not fail on them.
-	regexp.MustCompile("TerminatingPodProbeError"),
+	{
+		Name:               "KubeletUnhealthyReadinessProbeFailed",
+		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed`),
+	},
+}
+
+var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// we have a separate test for this
 	regexp.MustCompile(OvnReadinessRegExpStr),
