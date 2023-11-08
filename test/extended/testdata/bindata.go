@@ -53605,12 +53605,10 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "node-state", data: []});
         createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "node_state");
+        // Sort the node-state intervals so rows are grouped by node
         timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-            if (e1.label.includes("master") && e2.label.includes("worker")) {
-                return -1
-            }
-            return 0
-        });
+            return e1.label < e2.label ? -1 : e1.label > e2.label;
+        })
 
         timelineGroups.push({group: "endpoint-availability", data: []});
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "endpoint_availability");
