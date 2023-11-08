@@ -53339,7 +53339,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
         let roles = ""
-        if (item.tempStructuredMessage.hasOwnProperty('roles')) {
+        if (item.tempStructuredMessage.annotations.hasOwnProperty('roles')) {
             roles = item.tempStructuredMessage.roles
         }
 
