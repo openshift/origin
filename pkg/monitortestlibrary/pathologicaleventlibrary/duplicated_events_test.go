@@ -82,6 +82,30 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("BackOff").Build(),
 			expectedMatchName: "BackOffPullingWebserverImage404",
 		},
+		{
+			name: "port-forward",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-port-forwarding-588",
+					monitorapi.LocatorPodKey:       "pfpod",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed").
+				Reason("Unhealthy").Build(),
+			expectedMatchName: "KubeletUnhealthyReadinessProbeFailed",
+		},
+		{
+			name: "container-probe",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-container-probe-3794",
+					monitorapi.LocatorPodKey:       "test-webserver-3faa80d6-05f2-42a7-9846-099e8a4cf28c",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: Get \"http://10.131.0.54:81/\": dial tcp 10.131.0.54:81: connect: connection refused").
+				Reason("Unhealthy").Build(),
+			expectedMatchName: "E2EContainerProbeFailedOrWarning",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -107,14 +131,6 @@ func TestEventRegexExcluder(t *testing.T) {
 		name    string
 		message string
 	}{
-		{
-			name:    "port-forward",
-			message: `ns/e2e-port-forwarding-588 pod/pfpod node/ci-op-g1d5csj7-b08f5-fgrqd-worker-b-xj89f - reason/Unhealthy Readiness probe failed:`,
-		},
-		{
-			name:    "container-probe",
-			message: ` ns/e2e-container-probe-3794 pod/test-webserver-3faa80d6-05f2-42a7-9846-099e8a4cf28c node/ci-op-gzm3mjwm-875d2-tvchv-worker-c-w47mw - reason/Unhealthy Readiness probe failed: Get "http://10.131.0.54:81/": dial tcp 10.131.0.54:81: connect: connection refused`,
-		},
 		{
 			name:    "failing-init-container",
 			message: `ns/e2e-init-container-368 pod/pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856 node/ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97 - reason/BackOff Back-off restarting failed container`,
