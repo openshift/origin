@@ -36,7 +36,9 @@ func testErrorReconcilingNode(events monitorapi.Intervals) []*junitapi.JUnitTest
 // to happen over a certain threshold and marks it as a failure or flake accordingly.
 func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-arch] pathological event should not see excessive pull back-off on registry.redhat.io"
-	return pathologicaleventlibrary.NewSingleEventCheckRegex(testName, pathologicaleventlibrary.ImagePullRedhatRegEx, math.MaxInt, pathologicaleventlibrary.ImagePullRedhatFlakeThreshold).Test(events)
+	return pathologicaleventlibrary.NewSingleEventCheckRegex(testName,
+		pathologicaleventlibrary.ImagePullRedhatRegEx, math.MaxInt,
+		pathologicaleventlibrary.ImagePullRedhatFlakeThreshold).Test(events)
 }
 
 // testBackoffStartingFailedContainer looks for this symptom in core namespaces:

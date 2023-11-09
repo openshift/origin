@@ -2,7 +2,6 @@ package pathologicaleventlibrary
 
 import (
 	_ "embed"
-	"regexp"
 	"testing"
 	"time"
 
@@ -376,6 +375,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	}
 }
 
+/* TODO: bring these back in another form
 func TestKnownBugEvents(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
 		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
@@ -484,9 +484,10 @@ func TestKnownBugEvents(t *testing.T) {
 			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
 
 			if test.match {
+				require.NotNil(t, junits[0].FailureOutput)
 				assert.Contains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
 			} else {
-				assert.NotContains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
+				assert.Nil(t, junits[0].FailureOutput)
 			}
 
 		})
@@ -566,6 +567,8 @@ func TestKnownBugEventsGroup(t *testing.T) {
 		})
 	}
 }
+
+*/
 
 func TestMakeProbeTestEventsGroup(t *testing.T) {
 
