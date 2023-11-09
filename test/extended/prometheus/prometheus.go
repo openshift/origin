@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -358,7 +360,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
-			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
+			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
 				results, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
@@ -391,16 +393,14 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")
-
-			err = helper.ExpectURLStatusCodeExec(helper.MustJoinUrlPath(queryURL, "api/v1/targets"), bearerToken, 200)
-
+			err = expectBearerTokenURLStatusCodeExec(fmt.Sprintf("%s/api/v1/targets", queryURL), bearerToken, 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to access the Prometheus API")
 			// expect all endpoints within 60 seconds
 			var lastErrs []error
-			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-				contents, err := helper.GetBearerTokenURL(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
+				contents, err := getBearerTokenURL(fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
@@ -449,7 +449,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 			g.By("verifying all targets are exposing metrics over secure channel")
 			var insecureTargets []error
-			contents, err := helper.GetBearerTokenURL(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+			contents, err := getBearerTokenURL(fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			targets := &prometheusTargets{}
@@ -569,8 +569,8 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 
 		g.It("should provide ingress metrics", func() {
 			var lastErrs []error
-			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 4*time.Minute, true, func(ctx context.Context) (bool, error) {
-				contents, err := helper.GetBearerTokenURL(helper.MustJoinUrlPath(prometheusURL, "api/v1/targets"), bearerToken)
+			o.Expect(wait.PollImmediate(10*time.Second, 4*time.Minute, func() (bool, error) {
+				contents, err := getBearerTokenURL(fmt.Sprintf("%s/api/v1/targets", prometheusURL), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &prometheusTargets{}
@@ -746,6 +746,27 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 		}
 	}
 	return result
+}
+
+func expectBearerTokenURLStatusCodeExec(url, bearer string, statusCode int) error {
+	cmd := fmt.Sprintf("curl -k -s -H 'Authorization: Bearer %s' -o /dev/null -w '%%{http_code}' %q", bearer, url)
+	output, err := exec.Command("bash", "-e", "-c", cmd).Output()
+	if err != nil {
+		return fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	if string(output) != strconv.Itoa(statusCode) {
+		return fmt.Errorf("last response from server was not %d: %s", statusCode, output)
+	}
+	return nil
+}
+
+func getBearerTokenURL(url, bearer string) (string, error) {
+	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
+	output, err := exec.Command("bash", "-e", "-c", cmd).Output()
+	if err != nil {
+		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	return string(output), nil
 }
 
 func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
