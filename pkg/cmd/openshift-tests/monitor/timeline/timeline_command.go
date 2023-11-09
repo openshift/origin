@@ -255,7 +255,8 @@ func (o *Timeline) Run() error {
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest: monitortestframework.Stable,
 	}
-	invariantRegistry := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
+	// code is removed in 4.15, adding minimal change and ignoring any returned error
+	invariantRegistry, _ := defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
 	computedIntervals, _, err := invariantRegistry.ConstructComputedIntervals(
 		context.TODO(),
 		filteredEvents,
@@ -326,7 +327,7 @@ func loadKnownPods(filename string) (monitorapi.ResourcesMap, error) {
 		if err != nil {
 			return nil, err
 		}
-		//nsList := &unstructured.UnstructuredList{}
+		// nsList := &unstructured.UnstructuredList{}
 
 		for _, item := range unstructuredList.Items {
 			item.SetKind("Pod")

@@ -75,6 +75,8 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 	// TODO the gingkoRunSuiteOptions needs to have flags then calculated options to express specified versus computed values
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest: monitortestframework.ClusterStabilityDuringTest(o.GinkgoRunSuiteOptions.ClusterStabilityDuringTest),
+		ExactMonitorTests:          o.GinkgoRunSuiteOptions.ExactMonitorTests,
+		DisableMonitorTests:        o.GinkgoRunSuiteOptions.DisableMonitorTests,
 	}
 
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
