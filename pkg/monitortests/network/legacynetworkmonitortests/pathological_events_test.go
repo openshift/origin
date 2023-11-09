@@ -41,25 +41,25 @@ func Test_testErrorUpdatingEndpointSlices(t *testing.T) {
 					To:   time.Unix(1, 0),
 				},
 			}
-			junit_tests := testErrorUpdatingEndpointSlices(e)
+			junits := testErrorUpdatingEndpointSlices(e)
 			switch tt.kind {
 			case "pass":
-				if len(junit_tests) != 1 {
-					t.Errorf("This should've been a single passing Test, but got %d tests", len(junit_tests))
+				if len(junits) != 1 {
+					t.Errorf("This should've been a single passing Test, but got %d tests", len(junits))
 				}
-				if len(junit_tests[0].SystemOut) != 0 {
-					t.Errorf("This should've been a pass, but got %s", junit_tests[0].SystemErr)
+				if len(junits[0].SystemOut) != 0 {
+					t.Errorf("This should've been a pass, but got %s", junits[0].SystemErr)
 				}
 			case "fail":
-				if len(junit_tests) != 1 {
-					t.Errorf("This should've been a single failing Test, but got %d tests", len(junit_tests))
+				if len(junits) != 1 {
+					t.Errorf("This should've been a single failing Test, but got %d tests", len(junits))
 				}
-				if len(junit_tests[0].SystemOut) == 0 {
+				if len(junits[0].SystemOut) == 0 {
 					t.Error("This should've been a failure but got no output")
 				}
 			case "flake":
-				if len(junit_tests) != 2 {
-					t.Errorf("This should've been a two tests as flake, but got %d tests", len(junit_tests))
+				if len(junits) != 2 {
+					t.Errorf("This should've been a two tests as flake, but got %d tests", len(junits))
 				}
 			default:
 				t.Errorf("Unknown Test kind")

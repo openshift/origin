@@ -584,7 +584,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 		name            string
 		messages        []string
 		match           bool
-		regEx           string
+		matcher         *AllowedDupeEvent
 		operator        string
 		expectedMessage string
 	}{
@@ -617,7 +617,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			regEx:           ProbeErrorLivenessMessageRegExpStr,
+			matcher:         OauthApiserverProbeErrorLiveness,
 			expectedMessage: "",
 		},
 		{
@@ -625,7 +625,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			regEx:           ProbeErrorReadinessMessageRegExpStr,
+			matcher:         OauthAPIProbeErrorReadiness,
 			expectedMessage: "00:00:01 reason/ProbeError Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
 		},
 		{

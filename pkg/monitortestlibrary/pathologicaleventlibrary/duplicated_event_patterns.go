@@ -2,8 +2,6 @@ package pathologicaleventlibrary
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -17,7 +15,6 @@ import (
 )
 
 const (
-	RequiredResourcesMissingRegEx    = `reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-[0-9]+`
 	ErrorUpdatingEndpointSlicesRegex = `reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices`
 	NodeHasNoDiskPressureRegExpStr   = "reason/NodeHasNoDiskPressure.*status is now: NodeHasNoDiskPressure"
 	NodeHasSufficientMemoryRegExpStr = "reason/NodeHasSufficientMemory.*status is now: NodeHasSufficientMemory"
@@ -32,15 +29,10 @@ const (
 	ErrorUpdatingEndpointSlicesFailedThreshold = -1 // flake only
 	ErrorUpdatingEndpointSlicesFlakeThreshold  = 10
 
-	ReadinessFailedMessageRegExpStr           = "reason/ReadinessFailed.*Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded"
-	ProbeErrorReadinessMessageRegExpStr       = "reason/ProbeError.*Readiness probe error.*Client.Timeout exceeded while awaiting headers"
-	ProbeErrorLivenessMessageRegExpStr        = "reason/(ProbeError|Unhealthy).*Liveness probe error.*Client.Timeout exceeded while awaiting headers"
-	ProbeErrorConnectionRefusedRegExpStr      = "reason/ProbeError.*Readiness probe error.*connection refused"
 	SingleNodeErrorConnectionRefusedRegExpStr = "reason/.*dial tcp.*connection refused"
 
-	ErrorReconcilingNode  = "reason/ErrorReconcilingNode roles/worker .*annotation not found for node"
-	FailedScheduling      = "reason/FailedScheduling .*nodes are available.*didn't match Pod's node affinity/selector"
-	OperatorStatusChanged = "reason/OperatorStatusChanged Status for clusteroperator/etcd changed.*No unhealthy members found"
+	ErrorReconcilingNode = "reason/ErrorReconcilingNode roles/worker .*annotation not found for node"
+	FailedScheduling     = "reason/FailedScheduling .*nodes are available.*didn't match Pod's node affinity/selector"
 
 	DuplicateEventThreshold           = 20
 	DuplicateSingleNodeEventThreshold = 30
@@ -271,6 +263,14 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 
 	AllowOVNReadiness,
 	AllowImagePullFromRedHatRegistry,
+	EtcdRequiredResourcesMissing,
+	EtcdClusterOperatorStatusChanged,
+	ConfigOperatorProbeErrorReadiness,
+	ConfigOperatorProbeErrorLiveness,
+	OauthAPIProbeErrorReadiness,
+	OauthApiserverProbeErrorLiveness,
+	ConfigOperatorReadinessFailed,
+	OauthApiserverReadinessFailed,
 }
 
 // Some broken out matchers are re-used in a test for that specific event
@@ -299,10 +299,110 @@ var AllowBackOffRestartingFailedContainer = &AllowedDupeEvent{
 	MessageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
 }
 
-var AllowedRepeatedEventPatterns = []*regexp.Regexp{
+// Separated out in testRequiredInstallerResourcesMissing
+var EtcdRequiredResourcesMissing = &AllowedDupeEvent{
+	Name:               "EtcdRequiredResourcesMissing",
+	MessageReasonRegex: regexp.MustCompile(`^RequiredInstallerResourcesMissing$`),
+	MessageHumanRegex:  regexp.MustCompile(`secrets: etcd-all-certs-[0-9]+`),
+}
 
-	// Separated out in testRequiredInstallerResourcesMissing
-	regexp.MustCompile(RequiredResourcesMissingRegEx),
+// reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy" to "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: No unhealthy members found"
+var EtcdClusterOperatorStatusChanged = &AllowedDupeEvent{
+	Name: "EtcdClusterOperatorStatusChanged",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`^openshift-etcd`),
+	},
+	MessageReasonRegex: regexp.MustCompile(`^OperatorStatusChanged$`),
+	MessageHumanRegex:  regexp.MustCompile(`Status for clusteroperator/etcd changed.*No unhealthy members found`),
+}
+
+// TODO: duplicated messages for different namespaces here. We could (a|b|c) them, but they're used
+// in specific tests right now and we wouldn't want those matching intervals from another ns.
+
+// matches if ProbeError Readiness Probe message in the openshift-config-operator.
+// Ex:
+// reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+var ConfigOperatorProbeErrorReadiness = &AllowedDupeEvent{
+	Name: "ConfigOperatorProbeErrorReadiness",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-config-operator`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-config-operator`),
+	},
+	MessageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+	MessageHumanRegex:  regexp.MustCompile(`Readiness probe error.*Client.Timeout exceeded while awaiting headers`),
+}
+
+// matches if ProbeError Readiness Probe message in the openshift-config-operator.
+// Ex:
+// ...ns/openshift-oauth-apiserver pod/apiserver-65fd7ffc59-bt5sf node/q72hs3bx-ac890-4pxpm-master-2 - reason/ProbeError Readiness probe error: Get "https://10.129.0.8:8443/readyz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
+var OauthAPIProbeErrorReadiness = &AllowedDupeEvent{
+	Name: "OAuthAPIProbeErrorReadiness",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-oauth-apiserver`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-oauth-apiserver`),
+	},
+	MessageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+	MessageHumanRegex:  regexp.MustCompile(`Readiness probe error.*Client.Timeout exceeded while awaiting headers`),
+}
+
+// ConfigOperatorProbeErrorLiveness matches a ProbeError Liveness Probe message
+// in the openshift-config-operator.
+// like this:
+// ...reason/ProbeError Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+var ConfigOperatorProbeErrorLiveness = &AllowedDupeEvent{
+	Name: "ConfigOperatorProbeErrorLiveness",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-config-operator`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-config-operator`),
+	},
+	MessageReasonRegex: regexp.MustCompile(`^(ProbeError|Unhealthy)$`),
+	MessageHumanRegex:  regexp.MustCompile(`Liveness probe error.*Client.Timeout exceeded while awaiting headers`),
+}
+
+// isOauthApiserverProbeErrorLivenessFailed returns true if the event matches a ProbeError Liveness Probe message
+// in the openshift-oauth-operator.
+// like this:
+// ...reason/ProbeError Liveness probe error: Get "https://10.130.0.68:8443/healthz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
+var OauthApiserverProbeErrorLiveness = &AllowedDupeEvent{
+	Name: "OauthApiserverProbeErrorLiveness",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-oauth-apiserver`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-oauth-apiserver`),
+	},
+	MessageReasonRegex: regexp.MustCompile(`^(ProbeError|Unhealthy)$`),
+	MessageHumanRegex:  regexp.MustCompile(`Liveness probe error.*Client.Timeout exceeded while awaiting headers`),
+}
+
+// isConfigOperatorReadinessFailed returns true if the event matches a readinessFailed error that timed out
+// in the openshift-config-operator.
+// like this:
+// ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+var ConfigOperatorReadinessFailed = &AllowedDupeEvent{
+	Name: "ConfigOperatorReadinessFailed",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-config-operator`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-config-operator`),
+	},
+	MessageReasonRegex: regexp.MustCompile(`^ReadinessFailed$`),
+	MessageHumanRegex:  regexp.MustCompile(`Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded`),
+}
+
+// isOauthApiserverProbeErrorConnectionRefusedFailed returns true if the event matches a ProbeError Readiness Probe connection refused message
+// in the openshift-oauth-operator.
+// like this:
+// ...ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused
+var OauthApiserverReadinessFailed = &AllowedDupeEvent{
+	Name: "OauthApiserverReadinessFailed",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-oauth-apiserver`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-oauth-apiserver`),
+	},
+	MessageReasonRegex: regexp.MustCompile(`^ReadinessFailed$`),
+	MessageHumanRegex:  regexp.MustCompile(`Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded`),
+}
+
+var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testErrorUpdatingEndpointSlices
 	regexp.MustCompile(ErrorUpdatingEndpointSlicesRegex),
@@ -339,8 +439,6 @@ var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	// etcd-operator began to version etcd-endpoints configmap in 4.10 as part of static-pod-resource. During upgrade existing revisions will not contain the resource.
 	// The condition reconciles with the next revision which the result of the upgrade. TODO(hexfusion) remove in 4.11
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
-	// There is a separate test to catch this specific case
-	regexp.MustCompile(RequiredResourcesMissingRegEx),
 
 	// Separated out in testMarketplaceStartupProbeFailure
 	regexp.MustCompile(MarketplaceStartupProbeFailureRegExpStr),
@@ -436,15 +534,8 @@ type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConf
 
 var AllowedRepeatedEventFns = []IsRepeatedEventOKFunc{
 	isConsoleReadinessDuringInstallation,
-	isConfigOperatorReadinessFailed,
-	isConfigOperatorProbeErrorReadinessFailed,
-	isConfigOperatorProbeErrorLivenessFailed,
-	isOauthApiserverProbeErrorReadinessFailed,
-	isOauthApiserverProbeErrorLivenessFailed,
-	isOauthApiserverProbeErrorConnectionRefusedFailed,
 	isErrorReconcilingNode,
 	isFailedScheduling,
-	isOperatorStatusChanged,
 }
 
 var AllowedSingleNodeRepeatedEventFns = []IsRepeatedEventOKFunc{
@@ -489,60 +580,6 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kube
 	return IsEventAfterInstallation(monitorEvent, kubeClientConfig)
 }
 
-// isConfigOperatorReadinessFailed returns true if the event matches a readinessFailed error that timed out
-// in the openshift-config-operator.
-// like this:
-// ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ReadinessFailedMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
-}
-
-// isConfigOperatorProbeErrorReadinessFailed returns true if the event matches a ProbeError Readiness Probe message
-// in the openshift-config-operator.
-// like this:
-// reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorProbeErrorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorReadinessMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
-}
-
-// isConfigOperatorProbeErrorLivenessFailed returns true if the event matches a ProbeError Liveness Probe message
-// in the openshift-config-operator.
-// like this:
-// ...reason/ProbeError Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorProbeErrorLivenessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorLivenessMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
-}
-
-// isOauthApiserverProbeErrorReadinessFailed returns true if the event matches a ProbeError Readiness Probe message
-// in the openshift-oauth-operator.
-// like this:
-// ...ns/openshift-oauth-apiserver pod/apiserver-65fd7ffc59-bt5sf node/q72hs3bx-ac890-4pxpm-master-2 - reason/ProbeError Readiness probe error: Get "https://10.129.0.8:8443/readyz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-func isOauthApiserverProbeErrorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorReadinessMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
-}
-
-// isOauthApiserverProbeErrorLivenessFailed returns true if the event matches a ProbeError Liveness Probe message
-// in the openshift-oauth-operator.
-// like this:
-// ...reason/ProbeError Liveness probe error: Get "https://10.130.0.68:8443/healthz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-func isOauthApiserverProbeErrorLivenessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorLivenessMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
-}
-
-// isOauthApiserverProbeErrorConnectionRefusedFailed returns true if the event matches a ProbeError Readiness Probe connection refused message
-// in the openshift-oauth-operator.
-// like this:
-// ...ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused
-func isOauthApiserverProbeErrorConnectionRefusedFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorConnectionRefusedRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
-}
-
 // reason/ErrorReconcilingNode roles/worker [k8s.ovn.org/node-chassis-id annotation not found for node ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86, macAddress annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86" , k8s.ovn.org/l3-gateway-config annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86"]
 func isErrorReconcilingNode(monitorEvent monitorapi.Interval, _ *rest.Config, count int) (bool, error) {
 	regExp := regexp.MustCompile(ErrorReconcilingNode)
@@ -552,13 +589,7 @@ func isErrorReconcilingNode(monitorEvent monitorapi.Interval, _ *rest.Config, co
 // reason/FailedScheduling 0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod anti-affinity rules, 2 node(s) were unschedulable. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling..
 func isFailedScheduling(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
 	regExp := regexp.MustCompile(FailedScheduling)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-route-controller-manager", regExp), nil
-}
-
-// reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy" to "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: No unhealthy members found"
-func isOperatorStatusChanged(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(OperatorStatusChanged)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-etcd", regExp), nil
+	return IntervalMatchesOperator(monitorEvent, "openshift-route-controller-manager", regExp), nil
 }
 
 // isConnectionRefusedOnSingleNode returns true if the event matched has a connection refused message for single node events and is with in threshold.
@@ -567,9 +598,9 @@ func isConnectionRefusedOnSingleNode(monitorEvent monitorapi.Interval, _ *rest.C
 	return regExp.MatchString(monitorEvent.String()) && count < DuplicateSingleNodeEventThreshold, nil
 }
 
-// IsOperatorMatchRegexMessage returns true if this monitorEvent is for the operator identified by the operatorName
-// and its message matches the given regex.
-func IsOperatorMatchRegexMessage(monitorEvent monitorapi.Interval, operatorName string, regExp *regexp.Regexp) bool {
+// IntervalMatchesOperator returns true if this monitorEvent is for the operator identified by the operatorName
+// and its message matches.
+func IntervalMatchesOperator(monitorEvent monitorapi.Interval, operatorName string, regExp *regexp.Regexp) bool {
 	locatorParts := monitorapi.LocatorParts(monitorEvent.Locator)
 	if ns, ok := locatorParts["ns"]; ok {
 		if ns != operatorName {
@@ -644,34 +675,4 @@ func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
 		return nil
 	}
 	return clusterVersion.Status.History[len(clusterVersion.Status.History)-1].CompletionTime
-}
-
-func getMatchedElementsFromMonitorEventMsg(regExp *regexp.Regexp, message string) (string, string, string, string, string, error) {
-	var namespace, pod, node, reason, msg string
-	if !regExp.MatchString(message) {
-		return namespace, pod, node, reason, msg, errors.New("regex match error")
-	}
-	subMatches := regExp.FindStringSubmatch(message)
-	subNames := regExp.SubexpNames()
-	for i, name := range subNames {
-		switch name {
-		case "NS":
-			namespace = subMatches[i]
-		case "POD":
-			pod = subMatches[i]
-		case "NODE":
-			node = subMatches[i]
-		case "REASON":
-			reason = subMatches[i]
-		case "MSG":
-			msg = subMatches[i]
-		}
-	}
-	if len(namespace) == 0 ||
-		len(pod) == 0 ||
-		len(node) == 0 ||
-		len(msg) == 0 {
-		return namespace, pod, node, reason, msg, fmt.Errorf("regex match expects non-empty elements, got namespace: %s, pod: %s, node: %s, msg: %s", namespace, pod, node, msg)
-	}
-	return namespace, pod, node, reason, msg, nil
 }

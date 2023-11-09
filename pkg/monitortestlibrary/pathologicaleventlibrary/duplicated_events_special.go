@@ -94,23 +94,20 @@ func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Interv
 		Test(events.Filter(monitorapi.IsInE2ENamespace))
 }
 
-func MakeProbeTest(testName string, events monitorapi.Intervals, operatorName string, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
-	messageRegExp := regexp.MustCompile(regExStr)
-	return eventMatchThresholdTest(testName, events, func(event monitorapi.Interval) bool {
-		return IsOperatorMatchRegexMessage(event, operatorName, messageRegExp)
-	}, eventFlakeThreshold)
+func MakeProbeTest(testName string, events monitorapi.Intervals, operatorName string,
+	matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+	return eventMatchThresholdTest(testName, events, matcher, eventFlakeThreshold)
 }
 
-func EventExprMatchThresholdTest(testName string, events monitorapi.Intervals, regExStr string, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
-	messageRegExp := regexp.MustCompile(regExStr)
-	return eventMatchThresholdTest(testName, events, func(event monitorapi.Interval) bool { return messageRegExp.MatchString(event.Message) }, eventFlakeThreshold)
+func EventExprMatchThresholdTest(testName string, events monitorapi.Intervals, matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+	return eventMatchThresholdTest(testName, events, matcher, eventFlakeThreshold)
 }
 
-func eventMatchThresholdTest(testName string, events monitorapi.Intervals, eventMatch eventRecognizerFunc, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+func eventMatchThresholdTest(testName string, events monitorapi.Intervals, matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	var maxFailureOutput string
 	maxTimes := 0
 	for _, event := range events {
-		if eventMatch(event) {
+		if matcher.Matches(event.StructuredLocator, event.StructuredMessage, nil) {
 			// Place the failure time in the message to avoid having to extract the time from the events json file
 			// (in artifacts) when viewing the Test failure output.
 			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.Message)
