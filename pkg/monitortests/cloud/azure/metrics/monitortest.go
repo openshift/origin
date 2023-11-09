@@ -23,6 +23,13 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	// avgOSDiskQueueDepthThreshold defines the threshold for average OS Disk Queue Depth metric.
+	// If the metric average is over the threshold, an interval will be created. This can be adjusted
+	// based on value collected in real test environment.
+	avgOSDiskQueueDepthThreshold = 3.0
+)
+
 type azureMetricsCollector struct {
 	adminRESTConfig *rest.Config
 }
@@ -88,7 +95,7 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 	metricsMap := map[string]metricTest{
 		"OS Disk Queue Depth": {
 			interval:     "PT1M",
-			avgThreshold: 3.0,
+			avgThreshold: avgOSDiskQueueDepthThreshold,
 		},
 	}
 
@@ -105,17 +112,17 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 				Metricnamespace: nil,
 			})
 			if err != nil {
-				logrus.Infof("error getting metrics %+v", err)
+				logrus.WithError(err).Error("error getting metrics")
 				return nil, err
 			}
 			for _, value := range resp.Value {
 				for _, ts := range value.Timeseries {
 					for _, d := range ts.Data {
 						if d.Average != nil && *d.Average > test.avgThreshold {
-							message := fmt.Sprintf("Average value of %f for metric %s is over the threshold of %f", *d.Average, metric, test.avgThreshold)
-							ret = append(ret, monitorapi.NewInterval(monitorapi.SourceCloudMetrics, monitorapi.Error).
+							message := fmt.Sprintf("Average value of %.2f for metric %s is over the threshold of %.2f", *d.Average, metric, test.avgThreshold)
+							ret = append(ret, monitorapi.NewInterval(monitorapi.SourceCloudMetrics, monitorapi.Warning).
 								Locator(monitorapi.NewLocator().CloudNodeMetric(machineName, metric)).
-								Message(monitorapi.NewMessage().Reason(monitorapi.IntervalReason(monitorapi.CloudMetricsExtrenuous)).HumanMessage(message)).
+								Message(monitorapi.NewMessage().Reason(monitorapi.CloudMetricsExtrenuous).HumanMessage(message)).
 								Display().
 								Build(d.TimeStamp.Add(-1*time.Minute), *d.TimeStamp),
 							)
@@ -162,7 +169,7 @@ func (w *azureMetricsCollector) CollectData(ctx context.Context, storageDir stri
 	// create azure metrics client
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
-		logrus.Errorf("Default azure credential does not exist: %+v", err)
+		logrus.WithError(err).Error("default azure credential does not exist")
 		// we do not want to fail this because of missing azure credentials
 		return nil, nil, nil
 	}
