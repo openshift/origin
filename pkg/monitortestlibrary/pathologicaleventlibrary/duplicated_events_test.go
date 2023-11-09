@@ -105,6 +105,19 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				Reason("Unhealthy").Build(),
 			expectedMatchName: "E2EContainerProbeFailedOrWarning",
 		},
+		{
+			name: "failing-init-container",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-init-container-368",
+					monitorapi.LocatorPodKey:       "pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856",
+					monitorapi.LocatorNodeKey:      "ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off restarting failed container").
+				Reason("BackOff").Build(),
+			expectedMatchName: "E2EInitContainerRestartBackoff",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -129,12 +142,7 @@ func TestEventRegexExcluder(t *testing.T) {
 	tests := []struct {
 		name    string
 		message string
-	}{
-		{
-			name:    "failing-init-container",
-			message: `ns/e2e-init-container-368 pod/pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856 node/ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97 - reason/BackOff Back-off restarting failed container`,
-		},
-	}
+	}{}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -649,6 +657,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			assert.GreaterOrEqual(t, len(junits), 1, "Didn't get junit for duplicated event")
 
 			if test.match {
+				require.NotNil(t, junits[0].FailureOutput)
 				assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
 			} else {
 				assert.Nil(t, junits[0].FailureOutput, "expected case to not match, but it did: %s", test.name)

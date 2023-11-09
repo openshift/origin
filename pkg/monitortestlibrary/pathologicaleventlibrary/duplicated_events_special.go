@@ -19,9 +19,9 @@ func matchEventForRegexOrDie(regex string) eventRecognizerFunc {
 	}
 }
 
-type singleEventCheckRegex struct {
+type singleEventThresholdCheck struct {
 	testName       string
-	recognizer     eventRecognizerFunc
+	matcher        *AllowedDupeEvent
 	failThreshold  int
 	flakeThreshold int
 }
@@ -30,12 +30,11 @@ type singleEventCheckRegex struct {
 // if a match is found, marks it as failure or flake depending on if the pattern occurs
 // above the fail/flake thresholds (this allows us to track the occurence as a specific
 // Test. If the fail threshold is set to -1, the Test will only flake.
-func (s *singleEventCheckRegex) Test(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	success := &junitapi.JUnitTestCase{Name: s.testName}
 	var failureOutput, flakeOutput []string
 	for _, e := range events {
-		if s.recognizer(e) {
-
+		if s.matcher.Matches(e.StructuredLocator, e.StructuredMessage, nil) {
 			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
 			times := GetTimesAnEventHappened(e)
 			switch {
@@ -72,10 +71,10 @@ func (s *singleEventCheckRegex) Test(events monitorapi.Intervals) []*junitapi.JU
 	return []*junitapi.JUnitTestCase{success}
 }
 
-func NewSingleEventCheckRegex(testName, regex string, failThreshold, flakeThreshold int) *singleEventCheckRegex {
-	return &singleEventCheckRegex{
+func NewSingleEventThresholdCheck(testName string, matcher *AllowedDupeEvent, failThreshold, flakeThreshold int) *singleEventThresholdCheck {
+	return &singleEventThresholdCheck{
 		testName:       testName,
-		recognizer:     matchEventForRegexOrDie(regex),
+		matcher:        matcher,
 		failThreshold:  failThreshold,
 		flakeThreshold: flakeThreshold,
 	}
@@ -84,11 +83,14 @@ func NewSingleEventCheckRegex(testName, regex string, failThreshold, flakeThresh
 // testBackoffStartingFailedContainerForE2ENamespaces looks for this symptom in e2e namespaces:
 //
 //	reason/BackOff Back-off restarting failed container
+//
+// TODO: why is this showing up unused?
 func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers in e2e namespaces"
 
 	// always flake for now
-	return NewSingleEventCheckRegex(testName, BackoffRestartingFailedRegEx, math.MaxInt, BackoffRestartingFlakeThreshold).
+	return NewSingleEventThresholdCheck(testName, AllowBackOffRestartingFailedContainer,
+		math.MaxInt, BackoffRestartingFlakeThreshold).
 		Test(events.Filter(monitorapi.IsInE2ENamespace))
 }
 

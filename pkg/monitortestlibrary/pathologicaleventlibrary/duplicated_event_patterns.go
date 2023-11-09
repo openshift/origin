@@ -17,9 +17,7 @@ import (
 )
 
 const (
-	ImagePullRedhatRegEx             = `reason/[a-zA-Z]+ .*Back-off pulling image .*registry.redhat.io`
 	RequiredResourcesMissingRegEx    = `reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-[0-9]+`
-	BackoffRestartingFailedRegEx     = `reason/BackOff Back-off restarting failed container`
 	ErrorUpdatingEndpointSlicesRegex = `reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices`
 	NodeHasNoDiskPressureRegExpStr   = "reason/NodeHasNoDiskPressure.*status is now: NodeHasNoDiskPressure"
 	NodeHasSufficientMemoryRegExpStr = "reason/NodeHasSufficientMemory.*status is now: NodeHasSufficientMemory"
@@ -167,19 +165,6 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		},
 		MessageHumanRegex: regexp.MustCompile(`probe (failed|warning):`),
 	},
-
-	// should not start app containers if init containers fail on a RestartAlways pod
-	// the init container intentionally fails to start
-	{
-		Name: "E2EInitContainerRestartBackoff",
-		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-init-container-[0-9]+`),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(`pod-init-[a-z0-9.-]+`),
-		},
-		MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
-		MessageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
-	},
-
 	// TestAllowedSCCViaRBAC and TestPodUpdateSCCEnforcement
 	// The pod is shaped to intentionally not be scheduled.  Looks like an artifact of the old integration testing.
 	{
@@ -269,7 +254,23 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
 		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed`),
 	},
+
+	// should not start app containers if init containers fail on a RestartAlways pod
+	// the init container intentionally fails to start
+	// This looks duplicated with AllowBackOffRestartingFailedContainer
+	{
+		Name: "E2EInitContainerRestartBackoff",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-init-container-[0-9]+`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`pod-init-[a-z0-9.-]+`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
+		MessageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
+	},
+	AllowBackOffRestartingFailedContainer,
+
 	AllowOVNReadiness,
+	AllowImagePullFromRedHatRegistry,
 }
 
 // Some broken out matchers are re-used in a test for that specific event
@@ -285,16 +286,23 @@ var AllowOVNReadiness = &AllowedDupeEvent{
 	MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed:`),
 }
 
-var AllowedRepeatedEventPatterns = []*regexp.Regexp{
+// Separated out in testBackoffPullingRegistryRedhatImage
+var AllowImagePullFromRedHatRegistry = &AllowedDupeEvent{
+	Name:              "AllowImagePullBackOffFromRedHatRegistry",
+	MessageHumanRegex: regexp.MustCompile(`Back-off pulling image .*registry.redhat.io`),
+}
 
-	// Separated out in testBackoffPullingRegistryRedhatImage
-	regexp.MustCompile(ImagePullRedhatRegEx),
+// Separated out in testBackoffStartingFailedContainer
+var AllowBackOffRestartingFailedContainer = &AllowedDupeEvent{
+	Name:               "AllowBackOffRestartingFailedContainer",
+	MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
+	MessageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
+}
+
+var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testRequiredInstallerResourcesMissing
 	regexp.MustCompile(RequiredResourcesMissingRegEx),
-
-	// Separated out in testBackoffStartingFailedContainer
-	regexp.MustCompile(BackoffRestartingFailedRegEx),
 
 	// Separated out in testErrorUpdatingEndpointSlices
 	regexp.MustCompile(ErrorUpdatingEndpointSlicesRegex),

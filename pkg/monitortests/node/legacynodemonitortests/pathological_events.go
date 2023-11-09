@@ -36,8 +36,8 @@ func testErrorReconcilingNode(events monitorapi.Intervals) []*junitapi.JUnitTest
 // to happen over a certain threshold and marks it as a failure or flake accordingly.
 func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-arch] pathological event should not see excessive pull back-off on registry.redhat.io"
-	return pathologicaleventlibrary.NewSingleEventCheckRegex(testName,
-		pathologicaleventlibrary.ImagePullRedhatRegEx, math.MaxInt,
+	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName,
+		pathologicaleventlibrary.AllowImagePullFromRedHatRegistry, math.MaxInt,
 		pathologicaleventlibrary.ImagePullRedhatFlakeThreshold).Test(events)
 }
 
@@ -47,7 +47,8 @@ func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junit
 func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers"
 
-	return pathologicaleventlibrary.NewSingleEventCheckRegex(testName, pathologicaleventlibrary.BackoffRestartingFailedRegEx, pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.BackoffRestartingFlakeThreshold).
+	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.AllowBackOffRestartingFailedContainer,
+		pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.BackoffRestartingFlakeThreshold).
 		Test(events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)))
 }
 
