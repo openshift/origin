@@ -43,7 +43,8 @@ var _ ginkgo.GinkgoTestingT = &TestOptions{}
 
 func NewTestOptions(streams genericclioptions.IOStreams) *TestOptions {
 	return &TestOptions{
-		IOStreams: streams,
+		IOStreams:           streams,
+		DisableMonitorTests: []string{"apiserver-new-disruption-invariant", "pod-network-avalibility", "upload-to-loki-serializer"},
 	}
 }
 

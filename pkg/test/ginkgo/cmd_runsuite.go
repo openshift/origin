@@ -72,6 +72,7 @@ func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSui
 	return &GinkgoRunSuiteOptions{
 		IOStreams:                  streams,
 		ClusterStabilityDuringTest: string(Stable),
+		DisableMonitorTests:        []string{"apiserver-new-disruption-invariant", "pod-network-avalibility", "upload-to-loki-serializer"},
 	}
 }
 
@@ -93,6 +94,7 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
+
 	switch o.ClusterStabilityDuringTest {
 	case string(Stable), string(Disruptive):
 	default:
