@@ -240,8 +240,8 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		from time.Time
 		to   time.Time
 	}
-	buildTopologyHintAllowedTimeRange := true
-	topologyHintAllowedTimeRange := []*timeRange{}
+	buildTopologyHintAllowedTimeRanges := true
+	topologyHintAllowedTimeRanges := []*timeRange{}
 
 	displayToCount := map[string]*pathologicalEvents{}
 	for _, event := range events {
@@ -262,7 +262,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		}
 		if strings.Contains(event.Message, "reason/TopologyAwareHintsDisabled") {
 			// Build the allowed time range only once
-			if buildTopologyHintAllowedTimeRange {
+			if buildTopologyHintAllowedTimeRanges {
 				taintManagerTestIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
 					return eventInterval.Source == monitorapi.SourceE2ETest &&
 						strings.Contains(eventInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey], "NoExecuteTaintManager")
@@ -270,7 +270,8 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 				// Start the allowed time range from time range of the tests. But events lag behind the tests since the tests do not wait
 				// until all dns pods are properly scheduled and reach ready state. So we will need to expand the allowed time range after.
 				for _, test := range taintManagerTestIntervals {
-					topologyHintAllowedTimeRange = append(topologyHintAllowedTimeRange, &timeRange{from: test.From, to: test.To})
+					topologyHintAllowedTimeRanges = append(topologyHintAllowedTimeRanges, &timeRange{from: test.From, to: test.To})
+					logrus.WithField("from", test.From).WithField("to", test.To).Infof("found time range for test: %s", testName)
 				}
 				dnsUpdateIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
 					return eventInterval.Source == monitorapi.SourcePodState &&
@@ -280,7 +281,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 				})
 
 				// Now expand the allowed time range until the replacement dns pod gets ready
-				for _, r := range topologyHintAllowedTimeRange {
+				for _, r := range topologyHintAllowedTimeRanges {
 					var lastReadyTime time.Time
 					count := 0
 					for _, interval := range dnsUpdateIntervals {
@@ -305,11 +306,15 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 						}
 					}
 				}
-				buildTopologyHintAllowedTimeRange = false
+				// Log final adjusted time ranges
+				for _, test := range taintManagerTestIntervals {
+					logrus.WithField("from", test.From).WithField("to", test.To).Infof("adjusted time range for test: %s", testName)
+				}
+				buildTopologyHintAllowedTimeRanges = false
 			}
 			// Filter out TopologyAwareHintsDisabled events within allowed time range
 			var allowed bool
-			for _, r := range topologyHintAllowedTimeRange {
+			for _, r := range topologyHintAllowedTimeRanges {
 				if r.from.Before(event.From) && r.to.After(event.To) {
 					logrus.Infof("%s was found to fall into the allowed time range %+v, ignoring pathological event as we expect these during NoExecuteTaintManager test", event, r)
 					allowed = true
