@@ -2,13 +2,14 @@
     "items": [
         {
             "level": "Info",
-            "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
+            "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm row/NodeUpdatePhases",
             "message": "constructed/node-lifecycle-constructor phase/Drain reason/NodeUpdate roles/worker drained node",
             "tempSource": "NodeState",
             "tempStructuredLocator": {
                 "type": "Node",
                 "keys": {
-                    "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
+                    "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
+                    "row": "NodeUpdatePhases"
                 }
             },
             "tempStructuredMessage": {
@@ -27,13 +28,14 @@
         },
         {
             "level": "Warning",
-            "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
-            "message": "constructed/node-lifecycle-constructor reason/NodeUpdate role/worker state/OperatingSystemUpdate never completed",
+            "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm row/NodeUpdatePhases",
+            "message": "constructed/node-lifecycle-constructor reason/NodeUpdate roles/worker state/OperatingSystemUpdate never completed",
             "tempSource": "NodeState",
             "tempStructuredLocator": {
                 "type": "Node",
                 "keys": {
-                    "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
+                    "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
+                    "row": "NodeUpdatePhases"
                 }
             },
             "tempStructuredMessage": {
@@ -43,7 +45,7 @@
                 "annotations": {
                     "constructed": "node-lifecycle-constructor",
                     "reason": "NodeUpdate",
-                    "role": "worker",
+                    "roles": "worker",
                     "state": "OperatingSystemUpdate"
                 }
             },

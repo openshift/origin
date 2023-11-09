@@ -137,6 +137,7 @@ const (
 	LocatorConnectionKey            LocatorKey = "connection"
 	LocatorProtocolKey              LocatorKey = "protocol"
 	LocatorTargetKey                LocatorKey = "target"
+	LocatorRowKey                   LocatorKey = "row"
 	LocatorShutdownKey              LocatorKey = "shutdown"
 	LocatorServerKey                LocatorKey = "server"
 )
@@ -361,7 +362,7 @@ func sortKeys(keys []string) []string {
 
 	// Ensure these keys appear in this order. Other keys can be mixed in and will appear at the end in alphabetical
 	// order.
-	orderedKeys := []string{"namespace", "node", "pod", "uid", "server", "container", "shutdown"}
+	orderedKeys := []string{"namespace", "node", "pod", "uid", "server", "container", "shutdown", "row"}
 
 	// Create a map to store the indices of keys in the orderedKeys array.
 	// This will allow us to efficiently check if a key is in orderedKeys and find its position.

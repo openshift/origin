@@ -19,6 +19,8 @@ type IntervalBuilder struct {
 	structuredMessage Message
 }
 
+// NewInterval creates a new interval builder. Source is an indicator of what created this interval, used for
+// safely identifying intervals we're looking for, and for grouping in charts.
 func NewInterval(source IntervalSource, level IntervalLevel) *IntervalBuilder {
 	return &IntervalBuilder{
 		level:  level,
@@ -105,6 +107,14 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 	return b.
 		withTargetType(LocatorTypeNode).
 		withNode(nodeName).
+		Build()
+}
+
+func (b *LocatorBuilder) NodeFromNameWithRow(nodeName, row string) Locator {
+	return b.
+		withTargetType(LocatorTypeNode).
+		withNode(nodeName).
+		withRow(row).
 		Build()
 }
 
@@ -198,6 +208,11 @@ func (b *LocatorBuilder) withNamespace(namespace string) *LocatorBuilder {
 
 func (b *LocatorBuilder) withNode(nodeName string) *LocatorBuilder {
 	b.annotations[LocatorNodeKey] = nodeName
+	return b
+}
+
+func (b *LocatorBuilder) withRow(row string) *LocatorBuilder {
+	b.annotations[LocatorRowKey] = row
 	return b
 }
 

@@ -1,7 +1,6 @@
 package statetracker
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -31,9 +30,7 @@ type stateTracker struct {
 type intervalCreationFunc func(locator monitorapi.Locator,
 	from, to time.Time) (*monitorapi.IntervalBuilder, bool)
 
-func SimpleInterval(constructedBy monitorapi.ConstructionOwner,
-	source monitorapi.IntervalSource, level monitorapi.IntervalLevel,
-	messageBuilder *monitorapi.MessageBuilder) intervalCreationFunc {
+func SimpleInterval(source monitorapi.IntervalSource, level monitorapi.IntervalLevel, messageBuilder *monitorapi.MessageBuilder) intervalCreationFunc {
 	return func(locator monitorapi.Locator, from, to time.Time) (*monitorapi.IntervalBuilder, bool) {
 		interval := monitorapi.NewInterval(source, level).Locator(locator).
 			Message(messageBuilder)
@@ -58,7 +55,10 @@ type stateMap map[StateInfo]time.Time
 
 type StateInfo struct {
 	stateName string
-	reason    monitorapi.IntervalReason
+	// row is an optional differentiator to be added as a locator row key, causing intervals to be broken out
+	// into separate rows within one group/section. Leave blank to not use.
+	row    string
+	reason monitorapi.IntervalReason
 }
 
 func (t *stateTracker) getStates(locator monitorapi.Locator) stateMap {
@@ -92,9 +92,10 @@ func (t *stateTracker) hasOpenedState(locator monitorapi.Locator, stateName stri
 	return states.Has(stateName)
 }
 
-func State(stateName string, reason monitorapi.IntervalReason) StateInfo {
+func State(stateName, row string, reason monitorapi.IntervalReason) StateInfo {
 	return StateInfo{
 		stateName: stateName,
+		row:       row,
 		reason:    reason,
 	}
 }
@@ -140,8 +141,12 @@ func (t *stateTracker) CloseInterval(locator monitorapi.Locator, state StateInfo
 	locatorKey := locator.OldLocator()
 	t.locatorToStateMap[locatorKey] = states
 	t.locators[locatorKey] = locator
+	locatorWithRow := locator.DeepCopy()
+	if state.row != "" {
+		locatorWithRow.Keys[monitorapi.LocatorRowKey] = state.row
+	}
 
-	ib, hasCondition := intervalCreator(locator, from, to)
+	ib, hasCondition := intervalCreator(*locatorWithRow, from, to)
 	if !hasCondition {
 		return nil
 	}
@@ -151,19 +156,17 @@ func (t *stateTracker) CloseInterval(locator monitorapi.Locator, state StateInfo
 func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]map[string]string, end time.Time) []monitorapi.Interval {
 	ret := []monitorapi.Interval{}
 	for locator, states := range t.locatorToStateMap {
-		annotationStrings := []string{}
 		annotations := map[monitorapi.AnnotationKey]string{}
 		for k, v := range locatorToMessageAnnotations[locator] {
-			annotationStrings = append(annotationStrings, fmt.Sprintf("%v/%v", k, v))
 			annotations[monitorapi.AnnotationKey(k)] = v
 		}
 
 		l := t.locators[locator]
-		for stateName := range states {
-			annotations[monitorapi.AnnotationState] = stateName.stateName
+		for state := range states {
+			annotations[monitorapi.AnnotationState] = state.stateName
 			annotations[monitorapi.AnnotationConstructed] = string(t.constructedBy)
-			mb := monitorapi.NewMessage().WithAnnotations(annotations).HumanMessage("never completed").Reason(stateName.reason)
-			ret = append(ret, t.CloseInterval(l, stateName, SimpleInterval(t.constructedBy, t.intervalSource, monitorapi.Warning, mb), end)...)
+			mb := monitorapi.NewMessage().WithAnnotations(annotations).HumanMessage("never completed").Reason(state.reason)
+			ret = append(ret, t.CloseInterval(l, state, SimpleInterval(t.intervalSource, monitorapi.Warning, mb), end)...)
 		}
 	}
 

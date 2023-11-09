@@ -298,19 +298,15 @@
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
         let roles = ""
-        if (item.tempStructuredMessage.hasOwnProperty('roles')) {
-            roles = item.tempStructuredMessage.roles
+        if (item.tempStructuredMessage.annotations.hasOwnProperty('roles')) {
+            roles = item.tempStructuredMessage.annotations.roles
         }
 
         if (item.tempStructuredMessage.reason === 'NotReady') {
-            return [item.locator, ` (${roles},not ready)`, "NodeNotReady"]
+            return [item.locator, ` (${roles})`, "NodeNotReady"]
         }
-        // TODO: would like to get this to a structured field as well
-        let m = item.message.match(rePhase);
-        if (m && m[2] != "Update") {
-            return [item.locator, ` (${roles},update phases)`, m[2]];
-        }
-        return [item.locator, ` (${roles},updates)`, "Update"];
+        let m = item.tempStructuredMessage.annotations.phase;
+        return [item.locator, ` (${roles})`, m];
     }
 
     function alertSeverity(item) {
@@ -375,7 +371,15 @@
     }
 
     function defaultToolTip(item) {
-        return item.message + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
+        let tt = item.message
+        if ('tempSource' in item) {
+            tt = tt + " source/" + item.tempSource
+        }
+        if ('display' in item) {
+            tt = tt + " display/" + item.display
+        }
+        tt = tt + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
+        return tt
     }
 
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc, regex) {
@@ -475,11 +479,9 @@
 
         timelineGroups.push({group: "node-state", data: []})
         createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState, regex)
+        // Sort the node-state intervals so rows are grouped by node
         timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-            if (e1.label.includes("master") && e2.label.includes("worker")) {
-                return -1
-            }
-            return 0
+            return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
 
         timelineGroups.push({group: "endpoint-availability", data: []})
