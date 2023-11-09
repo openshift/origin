@@ -16,9 +16,6 @@ import (
 
 const (
 	ErrorUpdatingEndpointSlicesRegex = `reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices`
-	NodeHasNoDiskPressureRegExpStr   = "reason/NodeHasNoDiskPressure.*status is now: NodeHasNoDiskPressure"
-	NodeHasSufficientMemoryRegExpStr = "reason/NodeHasSufficientMemory.*status is now: NodeHasSufficientMemory"
-	NodeHasSufficientPIDRegExpStr    = "reason/NodeHasSufficientPID.*status is now: NodeHasSufficientPID"
 
 	ConsoleReadinessRegExpStr               = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
 	MarketplaceStartupProbeFailureRegExpStr = `ns/(?P<NS>openshift-marketplace) pod/(?P<POD>(community-operators|redhat-operators)-[a-z0-9-]+).*Startup probe failed`
@@ -271,6 +268,9 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 	OauthApiserverProbeErrorLiveness,
 	ConfigOperatorReadinessFailed,
 	OauthApiserverReadinessFailed,
+	NodeHasNoDiskPressure,
+	NodeHasSufficientMemory,
+	NodeHasSufficientPID,
 }
 
 // Some broken out matchers are re-used in a test for that specific event
@@ -402,6 +402,27 @@ var OauthApiserverReadinessFailed = &AllowedDupeEvent{
 	MessageHumanRegex:  regexp.MustCompile(`Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded`),
 }
 
+// Separated out in testNodeHasNoDiskPressure
+var NodeHasNoDiskPressure = &AllowedDupeEvent{
+	Name:               "NodeHasNoDiskPressure",
+	MessageReasonRegex: regexp.MustCompile(`^NodeHasNoDiskPressure$`),
+	MessageHumanRegex:  regexp.MustCompile(`status is now: NodeHasNoDiskPressure`),
+}
+
+// Separated out in testNodeHasSufficientMemory
+var NodeHasSufficientMemory = &AllowedDupeEvent{
+	Name:               "NodeHasSufficientMemory",
+	MessageReasonRegex: regexp.MustCompile(`^NodeHasSufficientMemory$`),
+	MessageHumanRegex:  regexp.MustCompile(`status is now: NodeHasSufficientMemory`),
+}
+
+// Separated out in testNodeHasSufficientPID
+var NodeHasSufficientPID = &AllowedDupeEvent{
+	Name:               "NodeHasSufficientPID",
+	MessageReasonRegex: regexp.MustCompile(`^NodeHasSufficientPID$`),
+	MessageHumanRegex:  regexp.MustCompile(`status is now: NodeHasSufficientPID`),
+}
+
 var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// Separated out in testErrorUpdatingEndpointSlices
@@ -410,15 +431,6 @@ var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
 	// installation to succeed. Hence, we can ignore it.
 	regexp.MustCompile(`reason/FailedCreate .* error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
-
-	// Separated out in testNodeHasNoDiskPressure
-	regexp.MustCompile(NodeHasNoDiskPressureRegExpStr),
-
-	// Separated out in testNodeHasSufficientMemory
-	regexp.MustCompile(NodeHasSufficientMemoryRegExpStr),
-
-	// Separated out in testNodeHasSufficientPID
-	regexp.MustCompile(NodeHasSufficientPIDRegExpStr),
 
 	// Separated out in testMarketplaceStartupProbeFailure
 	regexp.MustCompile(MarketplaceStartupProbeFailureRegExpStr),

@@ -10,17 +10,19 @@ import (
 
 func testNodeHasNoDiskPressure(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] pathological event NodeHasNoDiskPressure condition does not occur too often"
-	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.NodeHasNoDiskPressureRegExpStr, pathologicaleventlibrary.DuplicateEventThreshold)
+	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.NodeHasNoDiskPressure,
+		pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
 func testNodeHasSufficientMemory(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] pathological event NodeHasSufficeintMemory condition does not occur too often"
-	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.NodeHasSufficientMemoryRegExpStr, pathologicaleventlibrary.DuplicateEventThreshold)
+	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.NodeHasSufficientMemory, pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
 func testNodeHasSufficientPID(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] pathological event NodeHasSufficientPID condition does not occur too often"
-	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.NodeHasSufficientPIDRegExpStr, pathologicaleventlibrary.DuplicateEventThreshold)
+	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.NodeHasSufficientPID,
+		pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
 func testErrorReconcilingNode(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
