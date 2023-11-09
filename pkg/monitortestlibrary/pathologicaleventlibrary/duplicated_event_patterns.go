@@ -15,8 +15,6 @@ import (
 )
 
 const (
-	ErrorUpdatingEndpointSlicesRegex = `reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices`
-
 	ConsoleReadinessRegExpStr               = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
 	MarketplaceStartupProbeFailureRegExpStr = `ns/(?P<NS>openshift-marketplace) pod/(?P<POD>(community-operators|redhat-operators)-[a-z0-9-]+).*Startup probe failed`
 
@@ -27,9 +25,6 @@ const (
 	ErrorUpdatingEndpointSlicesFlakeThreshold  = 10
 
 	SingleNodeErrorConnectionRefusedRegExpStr = "reason/.*dial tcp.*connection refused"
-
-	ErrorReconcilingNode = "reason/ErrorReconcilingNode roles/worker .*annotation not found for node"
-	FailedScheduling     = "reason/FailedScheduling .*nodes are available.*didn't match Pod's node affinity/selector"
 
 	DuplicateEventThreshold           = 20
 	DuplicateSingleNodeEventThreshold = 30
@@ -271,6 +266,8 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 	NodeHasNoDiskPressure,
 	NodeHasSufficientMemory,
 	NodeHasSufficientPID,
+	FailedScheduling,
+	ErrorUpdatingEndpointSlices,
 }
 
 // Some broken out matchers are re-used in a test for that specific event
@@ -423,10 +420,21 @@ var NodeHasSufficientPID = &AllowedDupeEvent{
 	MessageHumanRegex:  regexp.MustCompile(`status is now: NodeHasSufficientPID`),
 }
 
-var AllowedRepeatedEventPatterns = []*regexp.Regexp{
+// reason/FailedScheduling 0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod anti-affinity rules, 2 node(s) were unschedulable. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling..
+var FailedScheduling = &AllowedDupeEvent{
+	Name:               "FailedScheduling",
+	MessageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
+	MessageHumanRegex:  regexp.MustCompile(`nodes are available.*didn't match Pod's node affinity/selector`),
+}
 
-	// Separated out in testErrorUpdatingEndpointSlices
-	regexp.MustCompile(ErrorUpdatingEndpointSlicesRegex),
+// Separated out in testErrorUpdatingEndpointSlices
+var ErrorUpdatingEndpointSlices = &AllowedDupeEvent{
+	Name:               "ErrorUpdatingEndpointSlices",
+	MessageReasonRegex: regexp.MustCompile(`^FailedToUpdateEndpointSlices$`),
+	MessageHumanRegex:  regexp.MustCompile(`Error updating Endpoint Slices`),
+}
+
+var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
 	// installation to succeed. Hence, we can ignore it.
@@ -546,8 +554,6 @@ type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConf
 
 var AllowedRepeatedEventFns = []IsRepeatedEventOKFunc{
 	isConsoleReadinessDuringInstallation,
-	isErrorReconcilingNode,
-	isFailedScheduling,
 }
 
 var AllowedSingleNodeRepeatedEventFns = []IsRepeatedEventOKFunc{
@@ -590,18 +596,6 @@ func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kube
 	// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 	// then this probe failure is unexpected and should fail.
 	return IsEventAfterInstallation(monitorEvent, kubeClientConfig)
-}
-
-// reason/ErrorReconcilingNode roles/worker [k8s.ovn.org/node-chassis-id annotation not found for node ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86, macAddress annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86" , k8s.ovn.org/l3-gateway-config annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86"]
-func isErrorReconcilingNode(monitorEvent monitorapi.Interval, _ *rest.Config, count int) (bool, error) {
-	regExp := regexp.MustCompile(ErrorReconcilingNode)
-	return regExp.MatchString(monitorEvent.String()) && count < DuplicateSingleNodeEventThreshold, nil
-}
-
-// reason/FailedScheduling 0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod anti-affinity rules, 2 node(s) were unschedulable. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling..
-func isFailedScheduling(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(FailedScheduling)
-	return IntervalMatchesOperator(monitorEvent, "openshift-route-controller-manager", regExp), nil
 }
 
 // isConnectionRefusedOnSingleNode returns true if the event matched has a connection refused message for single node events and is with in threshold.

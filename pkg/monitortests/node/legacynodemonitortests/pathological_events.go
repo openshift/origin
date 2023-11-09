@@ -25,11 +25,6 @@ func testNodeHasSufficientPID(events monitorapi.Intervals) []*junitapi.JUnitTest
 		pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
-func testErrorReconcilingNode(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] pathological event ErrorReconcilingNode condition does not occur too often"
-	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.ErrorReconcilingNode, pathologicaleventlibrary.DuplicateEventThreshold)
-}
-
 // testBackoffPullingRegistryRedhatImage looks for this symptom:
 //
 //	reason/ContainerWait ... Back-off pulling image "registry.redhat.io/openshift4/ose-oauth-proxy:latest"

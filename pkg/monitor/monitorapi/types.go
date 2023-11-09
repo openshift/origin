@@ -525,6 +525,11 @@ func IsInE2ENamespace(eventInterval Interval) bool {
 
 func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
+		// For new, structured locators:
+		if ns, ok := eventInterval.StructuredLocator.Keys[LocatorNamespaceKey]; ok {
+			return namespaces.Has(ns)
+		}
+		// TODO: For legacy locators, can be removed soon
 		ns := NamespaceFromLocator(eventInterval.Locator)
 		return namespaces.Has(ns)
 	}

@@ -125,6 +125,13 @@ func Test_testOperatorStatusChanged(t *testing.T) {
 			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
+					StructuredLocator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypePod,
+						Keys: map[monitorapi.LocatorKey]string{
+							monitorapi.LocatorNamespaceKey: "openshift-etcd",
+							monitorapi.LocatorPodKey:       "openshift-etcd-foobar",
+						},
+					},
 					StructuredMessage: monitorapi.Message{
 						Reason:       monitorapi.IntervalReason("OperatorStatusChanged"),
 						HumanMessage: "Status for clusteroperator/etcd changed: Degraded message changed from \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy\" to \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: No unhealthy members found\"",
@@ -142,6 +149,13 @@ func Test_testOperatorStatusChanged(t *testing.T) {
 			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
+					StructuredLocator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypePod,
+						Keys: map[monitorapi.LocatorKey]string{
+							monitorapi.LocatorNamespaceKey: "openshift-etcd",
+							monitorapi.LocatorPodKey:       "openshift-etcd-foobar",
+						},
+					},
 					StructuredMessage: monitorapi.Message{
 						Reason:       monitorapi.IntervalReason("OperatorStatusChanged"),
 						HumanMessage: "Status for clusteroperator/etcd changed: Degraded message changed from \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy\" to \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: No unhealthy members found\"",
