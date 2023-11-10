@@ -23,16 +23,10 @@ const (
 	ErrorUpdatingEndpointSlicesFailedThreshold = -1 // flake only
 	ErrorUpdatingEndpointSlicesFlakeThreshold  = 10
 
-	SingleNodeErrorConnectionRefusedRegExpStr = "reason/.*dial tcp.*connection refused"
-
-	DuplicateEventThreshold           = 20
-	DuplicateSingleNodeEventThreshold = 30
-	PathologicalMark                  = "pathological/true"
-	InterestingMark                   = "interesting/true"
+	DuplicateEventThreshold = 20
+	PathologicalMark        = "pathological/true"
+	InterestingMark         = "interesting/true"
 )
-
-// TODO: Remove this, it's an annotation on the structured message now
-var EventCountExtractor = regexp.MustCompile(`(?s)(.*) \((\d+) times\).*`)
 
 // AllowedDupeEvent allows the definition of events that can repeat more than the threshold we allow during a job run.
 // All specified fields must match the interval for it to be allowed. If or logic is required,
@@ -54,6 +48,10 @@ type AllowedDupeEvent struct {
 	// TestSuite limits the exception to a specific test suite. (e.g. openshift/builds)
 	TestSuite *string
 
+	// RepeatThresholdOverride allows a matcher to allow more than our default number of repeats.
+	// Less will not work as the matcher will not be invoked if we're over our threshold.
+	RepeatThresholdOverride int
+
 	// TODO: Interval may not be created yet, work off Locator and MessageBuilder?
 	// IsRepeatedEventOKFunc allows for additional more fine grained checks for this interval.
 	IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
@@ -64,7 +62,7 @@ type AllowedDupeEvent struct {
 }
 
 // Matches checks if the given locator/messagebuilder matches this allowed dupe event.
-func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config) bool {
+func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config, topology *v1.TopologyMode) bool {
 	for lk, r := range ade.LocatorKeyRegexes {
 		if !r.MatchString(l.Keys[lk]) {
 			logrus.WithField("allower", ade.Name).Infof("key %s did not match", lk)
@@ -79,15 +77,27 @@ func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Messag
 		logrus.WithField("allower", ade.Name).Info("message reason did not match")
 		return false
 	}
+
+	/* TODO
+	if ade.RepeatThresholdOverride != 0 {
+		count :=
+	}
+
+	*/
+
+	if ade.Topology != nil && *ade.Topology != *topology {
+		logrus.WithField("allower", ade.Name).Info("cluster did not match topology")
+		return false
+	}
 	return true
 }
 
 // TODO: ShouldFlake function, return true if Jira field is set, used by duplicateEventMatcher to determine
 // if we should flake a test or not.
 
-func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config) (bool, *AllowedDupeEvent) {
+func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config, topology *v1.TopologyMode) (bool, *AllowedDupeEvent) {
 	for _, ad := range allowedDupes {
-		allowed := ad.Matches(l, msg, kubeClientConfig)
+		allowed := ad.Matches(l, msg, kubeClientConfig, topology)
 		if allowed {
 			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", ad.Name)
 			return allowed, ad
@@ -457,6 +467,15 @@ var AllowedRepeatedUpgradeEvents = []*AllowedDupeEvent{
 		MessageReasonRegex: regexp.MustCompile(`^UnhealthyEtcdMember$`),
 		MessageHumanRegex:  regexp.MustCompile(`unhealthy members`),
 	},
+
+	// Allow a little more connection refused than normally if we're on single node, which experiences
+	// more downtime during upgrades
+	{
+		Name:                    "ConnectionRefusedSingleNode",
+		MessageHumanRegex:       regexp.MustCompile(`dial tcp.*connection refused`),
+		Topology:                TopologyPointer(v1.SingleReplicaTopologyMode),
+		RepeatThresholdOverride: 30,
+	},
 }
 
 // TODO: update all references to use the new list above
@@ -553,14 +572,6 @@ var KnownEventsBugs = []KnownProblem{
 // Use this to handle cases where, "if X is true, then the repeated event is ok".
 type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
 
-var AllowedRepeatedEventFns = []IsRepeatedEventOKFunc{
-	isConsoleReadinessDuringInstallation,
-}
-
-var AllowedSingleNodeRepeatedEventFns = []IsRepeatedEventOKFunc{
-	isConnectionRefusedOnSingleNode,
-}
-
 func TopologyPointer(topology v1.TopologyMode) *v1.TopologyMode {
 	return &topology
 }
@@ -571,58 +582,6 @@ func PlatformPointer(platform v1.PlatformType) *v1.PlatformType {
 
 func StringPointer(testSuite string) *string {
 	return &testSuite
-}
-
-// isConsoleReadinessDuringInstallation returns true if the event is for console readiness and it happens during the
-// initial installation of the cluster.
-// we're looking for something like
-// > ns/openshift-console pod/console-7c6f797fd9-5m94j node/ip-10-0-158-106.us-west-2.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.129.0.49:8443/health": dial tcp 10.129.0.49:8443: connect: connection refused
-// with a firstTimestamp before the cluster completed the initial installation
-func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, _ int) (bool, error) {
-	if !strings.Contains(monitorEvent.Locator, "ns/openshift-console") {
-		return false, nil
-	}
-	if !strings.Contains(monitorEvent.Locator, "pod/console-") {
-		return false, nil
-	}
-	// TODO: bugged, these wouldn't be in the locator, they'd be in the message
-	if !strings.Contains(monitorEvent.Locator, "Readiness probe") {
-		return false, nil
-	}
-	if !strings.Contains(monitorEvent.Locator, "connect: connection refused") {
-		return false, nil
-	}
-
-	//regExp := regexp.MustCompile(ConsoleReadinessRegExpStr)
-	// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
-	// then this probe failure is unexpected and should fail.
-	return IsEventAfterInstallation(monitorEvent, kubeClientConfig)
-}
-
-// isConnectionRefusedOnSingleNode returns true if the event matched has a connection refused message for single node events and is with in threshold.
-func isConnectionRefusedOnSingleNode(monitorEvent monitorapi.Interval, _ *rest.Config, count int) (bool, error) {
-	regExp := regexp.MustCompile(SingleNodeErrorConnectionRefusedRegExpStr)
-	return regExp.MatchString(monitorEvent.String()) && count < DuplicateSingleNodeEventThreshold, nil
-}
-
-// IntervalMatchesOperator returns true if this monitorEvent is for the operator identified by the operatorName
-// and its message matches.
-func IntervalMatchesOperator(monitorEvent monitorapi.Interval, operatorName string, regExp *regexp.Regexp) bool {
-	locatorParts := monitorapi.LocatorParts(monitorEvent.Locator)
-	if ns, ok := locatorParts["ns"]; ok {
-		if ns != operatorName {
-			return false
-		}
-	}
-	if pod, ok := locatorParts["pod"]; ok {
-		if !strings.HasPrefix(pod, operatorName) {
-			return false
-		}
-	}
-	if !regExp.MatchString(monitorEvent.Message) {
-		return false
-	}
-	return true
 }
 
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.

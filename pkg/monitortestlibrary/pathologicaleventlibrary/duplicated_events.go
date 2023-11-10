@@ -31,7 +31,6 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 	allowedDupeEvents = append(allowedDupeEvents, AllowedRepeatedUpgradeEvents...)
 
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventFns: AllowedRepeatedEventFns,
 		knownRepeatedEventsBugs: KnownEventsBugs,
 		// TODO: pass in the list of new allowance structs here
 		allowedDupeEvents: allowedDupeEvents,
@@ -39,10 +38,6 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 
 	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
 		e2e.Logf("could not fetch cluster info: %w", err)
-	}
-
-	if evaluator.topology == v1.SingleReplicaTopologyMode {
-		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, AllowedSingleNodeRepeatedEventFns...)
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -54,11 +49,11 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventFns: AllowedRepeatedEventFns,
 		knownRepeatedEventsBugs: KnownEventsBugs,
 		allowedDupeEvents:       AllowedRepeatedEvents,
 	}
 
+	/* TODO: restore
 	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
 	if err != nil {
 		panic(err)
@@ -68,13 +63,10 @@ func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 		panic(fmt.Errorf("unable to construct duplicated events allowance for etcd, err = %v", err))
 	}
 	evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, etcdAllowance.allowEtcdGuardReadinessProbeFailure)
+	*/
 
 	if err := evaluator.getClusterInfo(clientConfig); err != nil {
 		e2e.Logf("could not fetch cluster info: %w", err)
-	}
-
-	if evaluator.topology == v1.SingleReplicaTopologyMode {
-		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, AllowedSingleNodeRepeatedEventFns...)
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -95,8 +87,6 @@ func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
 }
 
 type duplicateEventsEvaluator struct {
-	// TODO: replace all three of these with allowedDupeEvents once they're all ported in patterns file
-	allowedRepeatedEventFns []IsRepeatedEventOKFunc
 	// knownRepeatedEventsBugs are duplicates that are considered bugs and should flake, but not  fail a Test
 	knownRepeatedEventsBugs []KnownProblem
 
@@ -265,7 +255,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 			// implying it matches some pattern, but that happens even for upgrade patterns occurring in non-upgrade jobs,
 			// so we were ignoring patterns that were meant to be allowed only in upgrade jobs in all jobs. The list of
 			// allowed patterns passed to this object wasn't even used.
-			if allowed, _ := MatchesAny(d.allowedDupeEvents, event.StructuredLocator, event.StructuredMessage, kubeClientConfig); allowed {
+			if allowed, _ := MatchesAny(d.allowedDupeEvents, event.StructuredLocator, event.StructuredMessage, kubeClientConfig, &d.topology); allowed {
 				continue
 			}
 

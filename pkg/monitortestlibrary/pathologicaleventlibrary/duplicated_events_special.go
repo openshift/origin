@@ -3,21 +3,11 @@ package pathologicaleventlibrary
 import (
 	"fmt"
 	"math"
-	"regexp"
 	"strings"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
-
-type eventRecognizerFunc func(event monitorapi.Interval) bool
-
-func matchEventForRegexOrDie(regex string) eventRecognizerFunc {
-	regExp := regexp.MustCompile(regex)
-	return func(e monitorapi.Interval) bool {
-		return regExp.MatchString(e.Message)
-	}
-}
 
 type singleEventThresholdCheck struct {
 	testName       string
@@ -34,7 +24,7 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	success := &junitapi.JUnitTestCase{Name: s.testName}
 	var failureOutput, flakeOutput []string
 	for _, e := range events {
-		if s.matcher.Matches(e.StructuredLocator, e.StructuredMessage, nil) {
+		if s.matcher.Matches(e.StructuredLocator, e.StructuredMessage, nil, nil) {
 			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
 			times := GetTimesAnEventHappened(e)
 			switch {
@@ -113,7 +103,7 @@ func eventMatchThresholdTest(testName, operatorName string, events monitorapi.In
 			continue
 		}
 
-		if matcher.Matches(event.StructuredLocator, event.StructuredMessage, nil) {
+		if matcher.Matches(event.StructuredLocator, event.StructuredMessage, nil, nil) {
 			// Place the failure time in the message to avoid having to extract the time from the events json file
 			// (in artifacts) when viewing the Test failure output.
 			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.String())

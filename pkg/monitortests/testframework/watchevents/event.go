@@ -203,7 +203,7 @@ func recordAddOrUpdateEvent(
 	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedRepeatedEvents...)
 	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedRepeatedUpgradeEvents...)
 	isInteresting, _ := pathologicaleventlibrary.MatchesAny(allowedDupeEvents,
-		locator, message.Build(), adminRESTConfig)
+		locator, message.Build(), adminRESTConfig, nil)
 
 	if obj.Count > 1 {
 

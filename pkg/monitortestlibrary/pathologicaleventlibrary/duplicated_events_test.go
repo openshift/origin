@@ -122,7 +122,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			allowed, matchedAllowedDupe := MatchesAny(AllowedRepeatedEvents, test.locator,
-				test.msg, nil)
+				test.msg, nil, nil)
 			if test.expectedMatchName != "" {
 				assert.True(t, allowed, "duplicated event should have been allowed")
 				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
