@@ -120,6 +120,7 @@ const (
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
 	LocatorClusterVersionKey  LocatorKey = "clusterversion"
 	LocatorNamespaceKey       LocatorKey = "namespace"
+	LocatorDeploymentKey      LocatorKey = "deployment"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
 	LocatorKindKey            LocatorKey = "kind"

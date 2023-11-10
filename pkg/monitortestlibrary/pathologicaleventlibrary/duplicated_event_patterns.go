@@ -250,6 +250,15 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
 		MessageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
 	},
+
+	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
+	// installation to succeed. Hence, we can ignore it.
+	{
+		Name:               "FailedCreateEC2InsufficientInstanceCapacity",
+		MessageReasonRegex: regexp.MustCompile(`^FailedCreate$`),
+		MessageHumanRegex:  regexp.MustCompile(`error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
+	},
+
 	AllowBackOffRestartingFailedContainer,
 
 	AllowOVNReadiness,
@@ -412,29 +421,49 @@ var MarketplaceStartupProbeFailure = &AllowedDupeEvent{
 	MessageHumanRegex: regexp.MustCompile(`Startup probe failed`),
 }
 
-var AllowedRepeatedEventPatterns = []*regexp.Regexp{
-
-	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
-	// installation to succeed. Hence, we can ignore it.
-	regexp.MustCompile(`reason/FailedCreate .* error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
-}
-
-// AllowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
-var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
+// AllowedRepeatedUpgradeEvents is the list of all allowed duplicate events on upgrade jobs. It is combined
+// with the above list for all jobs, so entries do not need to be added to both.
+// list which is combined with this one.
+var AllowedRepeatedUpgradeEvents = []*AllowedDupeEvent{
 	// Operators that use library-go can report about multiple versions during upgrades.
-	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
-	regexp.MustCompile(`ns/openshift-kube-apiserver-operator deployment/kube-apiserver-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
-	regexp.MustCompile(`ns/openshift-kube-controller-manager-operator deployment/kube-controller-manager-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
-	regexp.MustCompile(`ns/openshift-kube-scheduler-operator deployment/openshift-kube-scheduler-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
+	{
+		Name: "OperatorMultipleVersions",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`(openshift-etcd-operator|openshift-kube-apiserver-operator|openshift-kube-controller-manager-operator|openshift-kube-scheduler-operator)`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`(etcd-operator|kube-apiserver-operator|kube-controller-manager-operator|openshift-kube-scheduler-operator)`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^MultipleVersions$`),
+		MessageHumanRegex:  regexp.MustCompile(`multiple versions found, probably in transition`),
+	},
 
 	// etcd-quorum-guard can fail during upgrades.
-	regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
+	{
+		Name: "EtcdQuorumGuardReadinessProbe",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-quorum-guard.*`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed:`),
+	},
+
 	// etcd can have unhealthy members during an upgrade
-	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: .*`),
-	// etcd-operator began to version etcd-endpoints configmap in 4.10 as part of static-pod-resource. During upgrade existing revisions will not contain the resource.
-	// The condition reconciles with the next revision which the result of the upgrade. TODO(hexfusion) remove in 4.11
-	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
+	{
+		Name: "EtcdUnhealthyMembers",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`openshift-etcd-operator`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`etcd-operator`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^UnhealthyEtcdMember$`),
+		MessageHumanRegex:  regexp.MustCompile(`unhealthy members`),
+	},
 }
+
+// TODO: update all references to use the new list above
+var AllowedRepeatedEventPatterns = []*regexp.Regexp{}
+
+// AllowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
+var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{}
 
 type KnownProblem struct {
 	Regexp *regexp.Regexp
