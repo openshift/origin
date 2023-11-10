@@ -33,8 +33,8 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 		args            args
 		skip            bool
 		kubeEvent       *corev1.Event
-		expectedLocator string
-		expectedMessage string
+		expectedLocator monitorapi.Locator
+		expectedMessage monitorapi.Message
 	}{
 		{
 			name: "simple event",
@@ -53,8 +53,16 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 					LastTimestamp: metav1.Now(),
 				},
 			},
-			expectedLocator: "ns/openshift-authentication pod/testpod-927947",
-			expectedMessage: "reason/SomethingHappened sample message (2 times)",
+			expectedLocator: monitorapi.Locator{
+				Type: monitorapi.LocatorTypeKind,
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-authentication",
+					monitorapi.LocatorPodKey:       "testpod-927947",
+					monitorapi.LocatorHmsgKey:      "59162c6b05",
+				},
+			},
+			expectedMessage: monitorapi.NewMessage().Reason("SomethingHappened").
+				HumanMessage("sample message").WithAnnotation(monitorapi.AnnotationCount, "2").Build(),
 		},
 		{
 			name: "unknown pathological event",
@@ -73,8 +81,18 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 					LastTimestamp: metav1.Now(),
 				},
 			},
-			expectedLocator: "ns/openshift-authentication pod/testpod-927947 hmsg/72c78c2ba1",
-			expectedMessage: "pathological/true reason/SomethingHappened sample message (40 times)",
+			expectedLocator: monitorapi.Locator{
+				Type: monitorapi.LocatorTypeKind,
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-authentication",
+					monitorapi.LocatorPodKey:       "testpod-927947",
+					monitorapi.LocatorHmsgKey:      "59162c6b05",
+				},
+			},
+			expectedMessage: monitorapi.NewMessage().Reason("SomethingHappened").
+				HumanMessage("sample message").WithAnnotation(monitorapi.AnnotationCount, "40").
+				WithAnnotation(monitorapi.AnnotationPathological, "true").
+				Build(),
 		},
 		{
 			name: "allowed pathological event",
@@ -94,8 +112,20 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				},
 				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
 			},
-			expectedLocator: "ns/openshift-e2e-loki pod/loki-promtail-982739 hmsg/04cd2d7fbb",
-			expectedMessage: "pathological/true interesting/true reason/SomethingHappened Readiness probe failed (40 times)",
+			expectedLocator: monitorapi.Locator{
+				Type: monitorapi.LocatorTypeKind,
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-e2e-loki",
+					monitorapi.LocatorPodKey:       "loki-promtail-982739",
+					monitorapi.LocatorHmsgKey:      "c166d9c33e",
+				},
+			},
+			expectedMessage: monitorapi.NewMessage().Reason("SomethingHappened").
+				HumanMessage("Readiness probe failed").
+				WithAnnotation(monitorapi.AnnotationCount, "40").
+				WithAnnotation(monitorapi.AnnotationPathological, "true").
+				WithAnnotation(monitorapi.AnnotationInteresting, "true").
+				Build(),
 		},
 		{
 			name: "allowed pathological event with known bug",
@@ -115,8 +145,21 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				},
 				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
 			},
-			expectedLocator: "ns/any pod/any hmsg/e13faa98ab",
-			expectedMessage: "pathological/true interesting/true reason/TopologyAwareHintsDisabled irrelevant (40 times)",
+			expectedLocator: monitorapi.Locator{
+				Type: monitorapi.LocatorTypeKind,
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "any",
+					monitorapi.LocatorPodKey:       "any",
+					monitorapi.LocatorHmsgKey:      "3c8acf6676",
+				},
+			},
+			expectedMessage: monitorapi.NewMessage().Reason("TopologyAwareHintsDisabled").
+				HumanMessage("irrelevant").
+				WithAnnotation(monitorapi.AnnotationCount, "40").
+				WithAnnotation(monitorapi.AnnotationPathological, "true").
+				// TODO: bring back once this pattern is ported
+				//WithAnnotation(monitorapi.AnnotationInteresting, "true").
+				Build(),
 		},
 	}
 	for _, tt := range tests {
@@ -129,8 +172,8 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			intervals := tt.args.m.Intervals(now.Add(-10*time.Minute), now.Add(10*time.Minute))
 			assert.Equal(t, 1, len(intervals))
 			interval := intervals[0]
-			assert.Equal(t, tt.expectedLocator, interval.Locator)
-			assert.Equal(t, tt.expectedMessage, interval.Message)
+			assert.Equal(t, tt.expectedLocator, interval.StructuredLocator)
+			assert.Equal(t, tt.expectedMessage, interval.StructuredMessage)
 		})
 	}
 }

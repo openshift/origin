@@ -149,7 +149,7 @@ func recordAddOrUpdateEvent(
 
 	message := monitorapi.NewMessage().HumanMessage(obj.Message)
 	if obj.Count > 1 {
-		message = message.WithAnnotation(monitorapi.AnnotationCount, string(obj.Count))
+		message = message.WithAnnotation(monitorapi.AnnotationCount, fmt.Sprintf("%d", obj.Count))
 	}
 
 	if obj.InvolvedObject.Kind == "Node" {
