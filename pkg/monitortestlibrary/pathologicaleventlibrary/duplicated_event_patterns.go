@@ -78,12 +78,13 @@ func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Messag
 		return false
 	}
 
-	/* TODO
 	if ade.RepeatThresholdOverride != 0 {
-		count :=
+		count := GetTimesAnEventHappened(msg)
+		if count > ade.RepeatThresholdOverride {
+			logrus.WithField("allower", ade.Name).Infof("event repeated over threshold override: %d", ade.RepeatThresholdOverride)
+			return false
+		}
 	}
-
-	*/
 
 	if ade.Topology != nil && *ade.Topology != *topology {
 		logrus.WithField("allower", ade.Name).Info("cluster did not match topology")

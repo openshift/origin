@@ -26,7 +26,7 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	for _, e := range events {
 		if s.matcher.Matches(e.StructuredLocator, e.StructuredMessage, nil, nil) {
 			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
-			times := GetTimesAnEventHappened(e)
+			times := GetTimesAnEventHappened(e.StructuredMessage)
 			switch {
 			case s.failThreshold > 0 && times > s.failThreshold:
 				failureOutput = append(failureOutput, fmt.Sprintf("event [%s] happened %d times", msg, times))
@@ -108,7 +108,7 @@ func eventMatchThresholdTest(testName, operatorName string, events monitorapi.In
 			// (in artifacts) when viewing the Test failure output.
 			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.String())
 
-			times := GetTimesAnEventHappened(event)
+			times := GetTimesAnEventHappened(event.StructuredMessage)
 
 			// find the largest grouping of these events
 			if times > maxTimes {

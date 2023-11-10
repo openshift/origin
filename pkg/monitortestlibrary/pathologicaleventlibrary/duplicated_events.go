@@ -248,7 +248,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 			}
 		}
 
-		times := GetTimesAnEventHappened(event)
+		times := GetTimesAnEventHappened(event.StructuredMessage)
 		if times > DuplicateEventThreshold {
 
 			// Check if we have an allowance for this event. This code used to just check if it had an interesting flag,
@@ -330,14 +330,14 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 	return tests
 }
 
-func GetTimesAnEventHappened(interval monitorapi.Interval) int {
-	countStr, ok := interval.StructuredMessage.Annotations[monitorapi.AnnotationCount]
+func GetTimesAnEventHappened(msg monitorapi.Message) int {
+	countStr, ok := msg.Annotations[monitorapi.AnnotationCount]
 	if !ok {
 		return 1
 	}
 	times, err := strconv.ParseInt(countStr, 10, 0)
 	if err != nil { // not an int somehow
-		logrus.Warnf("interval had a non-integer count? %+v", interval)
+		logrus.Warnf("interval had a non-integer count? %+v", msg)
 		return 0
 	}
 	return int(times)

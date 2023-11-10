@@ -324,7 +324,7 @@ func testOvnNodeReadinessProbe(events monitorapi.Intervals, kubeClientConfig *re
 
 			if _, ok := msgMap[msg]; !ok {
 				msgMap[msg] = true
-				times := pathologicaleventlibrary.GetTimesAnEventHappened(event)
+				times := pathologicaleventlibrary.GetTimesAnEventHappened(event.StructuredMessage)
 				if times > pathologicaleventlibrary.DuplicateEventThreshold {
 					// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 					// then this probe failure is unexpected and should fail.
