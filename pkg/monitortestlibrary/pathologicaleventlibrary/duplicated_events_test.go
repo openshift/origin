@@ -179,8 +179,8 @@ func TestUpgradeEventRegexExcluder(t *testing.T) {
 
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs:      []KnownProblem{},
+		allowedDupeEvents:       AllowedRepeatedEvents,
+		knownRepeatedEventsBugs: []KnownProblem{},
 	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)

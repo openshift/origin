@@ -103,27 +103,6 @@ func combinedDuplicateEventPatterns() *regexp.Regexp {
 	return regexp.MustCompile(s)
 }
 
-// checkAllowedRepeatedEventOKFns loops through all of the IsRepeatedEventOKFunc funcs
-// and returns true if this event is an event we already know about.  Some functions
-// require a kubeconfig, but also handle the kubeconfig being nil (in case we cannot
-// successfully get a kubeconfig).
-func checkAllowedRepeatedEventOKFns(adminRESTConfig *rest.Config, event monitorapi.Interval, times int32) bool {
-	for _, isRepeatedEventOKFuncList := range [][]pathologicaleventlibrary.IsRepeatedEventOKFunc{pathologicaleventlibrary.AllowedRepeatedEventFns, pathologicaleventlibrary.AllowedSingleNodeRepeatedEventFns} {
-		for _, allowRepeatedEventFn := range isRepeatedEventOKFuncList {
-			allowed, err := allowRepeatedEventFn(event, adminRESTConfig, int(times))
-			if err != nil {
-				// for errors, we'll default to no match.
-				fmt.Printf("Error processing pathological event: %v\n", err)
-				return false
-			}
-			if allowed {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func recordAddOrUpdateEvent(
 	ctx context.Context,
 	recorder monitorapi.RecorderWriter,
@@ -218,13 +197,13 @@ func recordAddOrUpdateEvent(
 	to := pathoFrom // we may override later for some events we want to have a duration and get charted
 	locator := monitorapi.NewLocator().KubeEvent(obj)
 
-	// TODO: accommodate upgrade events as well, and see if we need to pass kube config
-	isInteresting, _ := pathologicaleventlibrary.MatchesAny(pathologicaleventlibrary.AllowedRepeatedEvents,
-		locator, message.Build(), nil)
-	/*
-		isInteresting := allRepeatedEventPatterns.MatchString(eventDisplayMessage) ||
-			checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count)
-	*/
+	// Flag any event that matches one of our allowances as "interesting", regardless how many
+	// times it occurred. We include upgrade allowances here.
+	allowedDupeEvents := []*pathologicaleventlibrary.AllowedDupeEvent{}
+	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedRepeatedEvents...)
+	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedRepeatedUpgradeEvents...)
+	isInteresting, _ := pathologicaleventlibrary.MatchesAny(allowedDupeEvents,
+		locator, message.Build(), adminRESTConfig)
 
 	if obj.Count > 1 {
 

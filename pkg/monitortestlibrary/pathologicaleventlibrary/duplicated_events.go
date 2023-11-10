@@ -25,15 +25,16 @@ import (
 )
 
 func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	allowedPatterns := []*regexp.Regexp{}
-	allowedPatterns = append(allowedPatterns, AllowedRepeatedEventPatterns...)
-	allowedPatterns = append(allowedPatterns, AllowedUpgradeRepeatedEventPatterns...)
+	// append upgrade allowances to the main slice
+	allowedDupeEvents := []*AllowedDupeEvent{}
+	allowedDupeEvents = append(allowedDupeEvents, AllowedRepeatedEvents...)
+	allowedDupeEvents = append(allowedDupeEvents, AllowedRepeatedUpgradeEvents...)
 
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: allowedPatterns,
-		allowedRepeatedEventFns:      AllowedRepeatedEventFns,
-		knownRepeatedEventsBugs:      KnownEventsBugs,
+		allowedRepeatedEventFns: AllowedRepeatedEventFns,
+		knownRepeatedEventsBugs: KnownEventsBugs,
 		// TODO: pass in the list of new allowance structs here
+		allowedDupeEvents: allowedDupeEvents,
 	}
 
 	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
@@ -53,9 +54,9 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		allowedRepeatedEventFns:      AllowedRepeatedEventFns,
-		knownRepeatedEventsBugs:      KnownEventsBugs,
+		allowedRepeatedEventFns: AllowedRepeatedEventFns,
+		knownRepeatedEventsBugs: KnownEventsBugs,
+		allowedDupeEvents:       AllowedRepeatedEvents,
 	}
 
 	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
@@ -95,8 +96,7 @@ func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
 
 type duplicateEventsEvaluator struct {
 	// TODO: replace all three of these with allowedDupeEvents once they're all ported in patterns file
-	allowedRepeatedEventPatterns []*regexp.Regexp
-	allowedRepeatedEventFns      []IsRepeatedEventOKFunc
+	allowedRepeatedEventFns []IsRepeatedEventOKFunc
 	// knownRepeatedEventsBugs are duplicates that are considered bugs and should flake, but not  fail a Test
 	knownRepeatedEventsBugs []KnownProblem
 
@@ -114,7 +114,7 @@ type duplicateEventsEvaluator struct {
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] Test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
+func (d *duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
 	return d.testDuplicatedEvents(testName, false, events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)), kubeClientConfig, false)
@@ -124,7 +124,7 @@ func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monit
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] Test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
+func (d *duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically in e2e namespaces"
 
 	return d.testDuplicatedEvents(testName, true, events.Filter(monitorapi.IsInE2ENamespace), kubeClientConfig, true)
@@ -221,7 +221,7 @@ func generateJUnitTestCasesE2ENamespaces(testName string, nsResults map[string]*
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] Test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config, isE2E bool) []*junitapi.JUnitTestCase {
+func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config, isE2E bool) []*junitapi.JUnitTestCase {
 
 	type pathologicalEvents struct {
 		count        int    // max number of times the message occurred
@@ -261,9 +261,11 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 		times := GetTimesAnEventHappened(event)
 		if times > DuplicateEventThreshold {
 
-			// If we marked this message earlier in recordAddOrUpdateEvent as interesting/true, we know it matched one of
-			// the existing patterns
-			if _, ok := event.StructuredMessage.Annotations[monitorapi.AnnotationInteresting]; ok {
+			// Check if we have an allowance for this event. This code used to just check if it had an interesting flag,
+			// implying it matches some pattern, but that happens even for upgrade patterns occurring in non-upgrade jobs,
+			// so we were ignoring patterns that were meant to be allowed only in upgrade jobs in all jobs. The list of
+			// allowed patterns passed to this object wasn't even used.
+			if allowed, _ := MatchesAny(d.allowedDupeEvents, event.StructuredLocator, event.StructuredMessage, kubeClientConfig); allowed {
 				continue
 			}
 
