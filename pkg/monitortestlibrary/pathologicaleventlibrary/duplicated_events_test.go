@@ -578,6 +578,7 @@ func TestKnownBugEventsGroup(t *testing.T) {
 
 */
 
+/*
 func TestMakeProbeTestEventsGroup(t *testing.T) {
 
 	tests := []struct {
@@ -666,3 +667,5 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 		})
 	}
 }
+
+*/

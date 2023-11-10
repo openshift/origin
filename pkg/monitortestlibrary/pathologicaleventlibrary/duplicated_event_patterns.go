@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	ConsoleReadinessRegExpStr               = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
-	MarketplaceStartupProbeFailureRegExpStr = `ns/(?P<NS>openshift-marketplace) pod/(?P<POD>(community-operators|redhat-operators)-[a-z0-9-]+).*Startup probe failed`
+	ConsoleReadinessRegExpStr = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
 
 	ImagePullRedhatFlakeThreshold              = 5
 	RequiredResourceMissingFlakeThreshold      = 10
@@ -268,6 +267,7 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 	NodeHasSufficientPID,
 	FailedScheduling,
 	ErrorUpdatingEndpointSlices,
+	MarketplaceStartupProbeFailure,
 }
 
 // Some broken out matchers are re-used in a test for that specific event
@@ -434,14 +434,21 @@ var ErrorUpdatingEndpointSlices = &AllowedDupeEvent{
 	MessageHumanRegex:  regexp.MustCompile(`Error updating Endpoint Slices`),
 }
 
+// Separated out in testMarketplaceStartupProbeFailure
+var MarketplaceStartupProbeFailure = &AllowedDupeEvent{
+	Name: "MarketplaceStartupProbeFailure",
+	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-marketplace`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`(community-operators|redhat-operators)-[a-z0-9-]+`),
+	},
+	MessageHumanRegex: regexp.MustCompile(`Startup probe failed`),
+}
+
 var AllowedRepeatedEventPatterns = []*regexp.Regexp{
 
 	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
 	// installation to succeed. Hence, we can ignore it.
 	regexp.MustCompile(`reason/FailedCreate .* error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
-
-	// Separated out in testMarketplaceStartupProbeFailure
-	regexp.MustCompile(MarketplaceStartupProbeFailureRegExpStr),
 }
 
 // AllowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
@@ -459,9 +466,6 @@ var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
 	// etcd-operator began to version etcd-endpoints configmap in 4.10 as part of static-pod-resource. During upgrade existing revisions will not contain the resource.
 	// The condition reconciles with the next revision which the result of the upgrade. TODO(hexfusion) remove in 4.11
 	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
-
-	// Separated out in testMarketplaceStartupProbeFailure
-	regexp.MustCompile(MarketplaceStartupProbeFailureRegExpStr),
 }
 
 type KnownProblem struct {

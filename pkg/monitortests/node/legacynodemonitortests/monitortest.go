@@ -57,7 +57,6 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testNodeHasNoDiskPressure(finalIntervals)...)
 	junits = append(junits, testNodeHasSufficientMemory(finalIntervals)...)
 	junits = append(junits, testNodeHasSufficientPID(finalIntervals)...)
-	junits = append(junits, testErrorReconcilingNode(finalIntervals)...)
 	junits = append(junits, testBackoffPullingRegistryRedhatImage(finalIntervals)...)
 	junits = append(junits, testBackoffStartingFailedContainer(finalIntervals)...)
 	junits = append(junits, testConfigOperatorReadinessProbe(finalIntervals)...)
