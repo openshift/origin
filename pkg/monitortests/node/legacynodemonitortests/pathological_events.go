@@ -51,17 +51,17 @@ func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi
 
 func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] pathological event openshift-config-operator readiness probe should not fail due to timeout"
-	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-config-operator", pathologicaleventlibrary.ConfigOperatorProbeErrorReadiness, pathologicaleventlibrary.DuplicateEventThreshold)
+	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-config-operator", pathologicaleventlibrary.ProbeErrorTimeoutAwaitingHeaders, pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
 func testConfigOperatorProbeErrorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] pathological event openshift-config-operator should not get probe error on readiness probe due to timeout"
-	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-config-operator", pathologicaleventlibrary.ConfigOperatorProbeErrorReadiness, pathologicaleventlibrary.DuplicateEventThreshold)
+	const testName = "[sig-node] pathological event openshift-config-operator should not get probe error on readiness probe due to connection refused"
+	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-config-operator", pathologicaleventlibrary.ProbeErrorConnectionRefused, pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
 func testConfigOperatorProbeErrorLivenessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] pathological event openshift-config-operator should not get probe error on liveness probe due to timeout"
-	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-config-operator", pathologicaleventlibrary.ConfigOperatorProbeErrorLiveness, pathologicaleventlibrary.DuplicateEventThreshold)
+	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-config-operator", pathologicaleventlibrary.ProbeErrorLiveness, pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
 func testFailedScheduling(events monitorapi.Intervals) []*junitapi.JUnitTestCase {

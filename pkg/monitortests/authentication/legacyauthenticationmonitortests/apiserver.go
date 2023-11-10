@@ -8,17 +8,17 @@ import (
 )
 
 func testOauthApiserverProbeErrorLiveness(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on liveiness probe due to timeout"
-	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-oauth-apiserver", pathologicaleventlibrary.OauthApiserverProbeErrorLiveness, pathologicaleventlibrary.DuplicateEventThreshold)
+	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on liveness probe due to timeout"
+	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-oauth-apiserver", pathologicaleventlibrary.ProbeErrorLiveness, pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
 func testOauthApiserverProbeErrorReadiness(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiiness probe due to timeout"
-	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-oauth-apiserver", pathologicaleventlibrary.OauthAPIProbeErrorReadiness, pathologicaleventlibrary.DuplicateEventThreshold)
+	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiness probe due to timeout"
+	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-oauth-apiserver", pathologicaleventlibrary.ProbeErrorTimeoutAwaitingHeaders, pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
 func testOauthApiserverProbeErrorConnectionRefused(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiiness probe due to connection refused"
+	const testName = "[bz-apiserver-auth] openshift-oauth-apiserver should not get probe error on readiness probe due to connection refused"
 	return pathologicaleventlibrary.MakeProbeTest(testName, events, "openshift-oauth-apiserver",
-		pathologicaleventlibrary.OauthApiserverReadinessFailed, pathologicaleventlibrary.DuplicateEventThreshold)
+		pathologicaleventlibrary.ProbeErrorConnectionRefused, pathologicaleventlibrary.DuplicateEventThreshold)
 }

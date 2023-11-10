@@ -96,21 +96,27 @@ func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Interv
 
 func MakeProbeTest(testName string, events monitorapi.Intervals, operatorName string,
 	matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
-	return eventMatchThresholdTest(testName, events, matcher, eventFlakeThreshold)
+	return eventMatchThresholdTest(testName, operatorName, events, matcher, eventFlakeThreshold)
 }
 
 func EventExprMatchThresholdTest(testName string, events monitorapi.Intervals, matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
-	return eventMatchThresholdTest(testName, events, matcher, eventFlakeThreshold)
+	return eventMatchThresholdTest(testName, "", events, matcher, eventFlakeThreshold)
 }
 
-func eventMatchThresholdTest(testName string, events monitorapi.Intervals, matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+func eventMatchThresholdTest(testName, operatorName string, events monitorapi.Intervals, matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	var maxFailureOutput string
 	maxTimes := 0
 	for _, event := range events {
+		// Layer in an additional namespace check, our matcher may work against multiple namespaces/operators, but we
+		// want to limit to a specific one specific tests against a namespace/operator:
+		if operatorName != "" && event.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] != operatorName {
+			continue
+		}
+
 		if matcher.Matches(event.StructuredLocator, event.StructuredMessage, nil) {
 			// Place the failure time in the message to avoid having to extract the time from the events json file
 			// (in artifacts) when viewing the Test failure output.
-			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.Message)
+			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.String())
 
 			times := GetTimesAnEventHappened(event)
 

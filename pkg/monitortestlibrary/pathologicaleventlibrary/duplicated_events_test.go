@@ -578,63 +578,102 @@ func TestKnownBugEventsGroup(t *testing.T) {
 
 */
 
-/*
 func TestMakeProbeTestEventsGroup(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		messages        []string
+		intervals       monitorapi.Intervals
 		match           bool
 		matcher         *AllowedDupeEvent
 		operator        string
 		expectedMessage string
 	}{
 		{
-			name:            "matches 22 before",
-			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
+			name: "matches 22 before",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "", "ProbeError",
+					"foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred", 22),
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "", "ProbeError",
+					"foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred", 21),
+			},
 			match:           true,
-			operator:        "e2e",
-			regEx:           ProbeErrorLivenessMessageRegExpStr,
-			expectedMessage: "00:00:01 ns/e2e - reason/ProbeError foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
+			operator:        "openshift-oauth-apiserver",
+			matcher:         ProbeErrorLiveness,
+			expectedMessage: "I namespace/openshift-oauth-apiserver count/22 reason/ProbeError foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred\n",
 		},
 		{
-			name:            "no matches 22 before",
-			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
+			name: "no matches 22 before",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("e2e", "", "ProbeError",
+					"foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred",
+					22),
+				BuildTestDupeKubeEvent("e2e", "", "ProbeError",
+					"foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred",
+					21),
+			},
 			match:           false,
 			operator:        "e2e",
-			regEx:           ProbeErrorConnectionRefusedRegExpStr,
+			matcher:         ProbeErrorConnectionRefused,
 			expectedMessage: "",
 		},
 		{
-			name:            "matches 25 after",
-			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
+			name: "matches 25 after",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "apiserver-647fc6c7bf-s8b4h", "ProbeError",
+					"Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred",
+					22),
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "apiserver-647fc6c7bf-s8b4h", "ProbeError",
+					"Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred",
+					25),
+			},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			regEx:           ProbeErrorConnectionRefusedRegExpStr,
-			expectedMessage: "00:00:01 ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)\n",
+			matcher:         ProbeErrorConnectionRefused,
+			expectedMessage: "I namespace/openshift-oauth-apiserver pod/openshift-oauth-apiserver count/25 reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred\n",
 		},
 		{
-			name:            "no matches 25 after",
-			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
+			name: "no matches 25 after",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "apiserver-647fc6c7bf-s8b4h", "ProbeError",
+					"Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred",
+					22),
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "apiserver-647fc6c7bf-s8b4h", "ProbeError",
+					"Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred",
+					25),
+			},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			matcher:         OauthApiserverProbeErrorLiveness,
+			matcher:         ProbeErrorLiveness,
 			expectedMessage: "",
 		},
 		{
-			name:            "matches 22 below with below threshold following",
-			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
+			name: "matches 22 below with below threshold following",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "", "ProbeError",
+					"Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred ",
+					22),
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "", "ProbeError",
+					"Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred ",
+					5),
+			},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			matcher:         OauthAPIProbeErrorReadiness,
-			expectedMessage: "00:00:01 reason/ProbeError Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
+			matcher:         ProbeErrorTimeoutAwaitingHeaders,
+			expectedMessage: "I namespace/openshift-oauth-apiserver count/22 reason/ProbeError Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred\n",
 		},
 		{
-			name:            "no matches 22 below with below threshold following",
-			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
+			name: "no matches 22 below with below threshold following",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("", "", "ProbeError",
+					"Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred",
+					22),
+				BuildTestDupeKubeEvent("", "", "ProbeError",
+					"Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred",
+					5),
+			},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			regEx:           ProbeErrorConnectionRefusedRegExpStr,
+			matcher:         ProbeErrorConnectionRefused,
 			expectedMessage: "",
 		},
 	}
@@ -642,24 +681,15 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			events := monitorapi.Intervals{}
-			for _, message := range test.messages {
+			events := test.intervals
 
-				events = append(events,
-					monitorapi.Interval{
-						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(1, 0).In(time.UTC),
-						To:        time.Unix(1, 0).In(time.UTC)},
-				)
-			}
-
-			junits := MakeProbeTest("Test Test", events, test.operator, test.regEx, DuplicateEventThreshold)
+			junits := MakeProbeTest("Test Test", events, test.operator, test.matcher, DuplicateEventThreshold)
 
 			assert.GreaterOrEqual(t, len(junits), 1, "Didn't get junit for duplicated event")
 
 			if test.match {
 				require.NotNil(t, junits[0].FailureOutput)
-				assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
+				assert.Contains(t, junits[0].FailureOutput.Output, test.expectedMessage)
 			} else {
 				assert.Nil(t, junits[0].FailureOutput, "expected case to not match, but it did: %s", test.name)
 			}
@@ -667,5 +697,3 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 		})
 	}
 }
-
-*/

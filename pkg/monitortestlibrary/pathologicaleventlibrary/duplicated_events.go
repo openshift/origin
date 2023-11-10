@@ -433,28 +433,25 @@ func getBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient opera
 // more brief.
 func BuildTestDupeKubeEvent(namespace, pod, reason, msg string, count int) monitorapi.Interval {
 
-	i := monitorapi.Interval{
-		Condition: monitorapi.Condition{
-			Level: monitorapi.Info,
-			StructuredLocator: monitorapi.Locator{
-				Type: monitorapi.LocatorTypePod,
-				Keys: map[monitorapi.LocatorKey]string{},
-			},
-			StructuredMessage: monitorapi.Message{
-				Reason:       monitorapi.IntervalReason(reason),
-				HumanMessage: msg,
-				Annotations: map[monitorapi.AnnotationKey]string{
-					monitorapi.AnnotationCount: fmt.Sprintf("%d", count),
-				},
-			},
-		},
-		Source: monitorapi.SourceKubeEvent,
+	l := monitorapi.Locator{
+		Type: monitorapi.LocatorTypePod,
+		Keys: map[monitorapi.LocatorKey]string{},
 	}
 	if namespace != "" {
-		i.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] = namespace
+		l.Keys[monitorapi.LocatorNamespaceKey] = namespace
 	}
 	if pod != "" {
-		i.StructuredLocator.Keys[monitorapi.LocatorPodKey] = namespace
+		l.Keys[monitorapi.LocatorPodKey] = namespace
 	}
+
+	i := monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+		Locator(l).
+		Message(
+			monitorapi.NewMessage().
+				Reason(monitorapi.IntervalReason(reason)).
+				HumanMessage(msg).
+				WithAnnotation(monitorapi.AnnotationCount, fmt.Sprintf("%d", count))).
+		BuildNow()
+
 	return i
 }

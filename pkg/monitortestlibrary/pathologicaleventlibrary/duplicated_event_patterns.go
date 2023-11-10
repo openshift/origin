@@ -256,12 +256,10 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 	AllowImagePullFromRedHatRegistry,
 	EtcdRequiredResourcesMissing,
 	EtcdClusterOperatorStatusChanged,
-	ConfigOperatorProbeErrorReadiness,
-	ConfigOperatorProbeErrorLiveness,
-	OauthAPIProbeErrorReadiness,
-	OauthApiserverProbeErrorLiveness,
-	ConfigOperatorReadinessFailed,
-	OauthApiserverReadinessFailed,
+	ProbeErrorTimeoutAwaitingHeaders,
+	ProbeErrorLiveness,
+	ReadinessFailed,
+	ProbeErrorConnectionRefused,
 	NodeHasNoDiskPressure,
 	NodeHasSufficientMemory,
 	NodeHasSufficientPID,
@@ -317,83 +315,53 @@ var EtcdClusterOperatorStatusChanged = &AllowedDupeEvent{
 // TODO: duplicated messages for different namespaces here. We could (a|b|c) them, but they're used
 // in specific tests right now and we wouldn't want those matching intervals from another ns.
 
-// matches if ProbeError Readiness Probe message in the openshift-config-operator.
-// Ex:
+// ProbeErrorTimeoutAwaitingHeaders matches events in specific namespaces such as:
 // reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-var ConfigOperatorProbeErrorReadiness = &AllowedDupeEvent{
-	Name: "ConfigOperatorProbeErrorReadiness",
+//
+// These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
+var ProbeErrorTimeoutAwaitingHeaders = &AllowedDupeEvent{
+	Name: "ProbeErrorTimeoutAwaitingHeaders",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-config-operator`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-config-operator`),
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
 	},
 	MessageReasonRegex: regexp.MustCompile(`^ProbeError$`),
 	MessageHumanRegex:  regexp.MustCompile(`Readiness probe error.*Client.Timeout exceeded while awaiting headers`),
 }
 
-// matches if ProbeError Readiness Probe message in the openshift-config-operator.
-// Ex:
-// ...ns/openshift-oauth-apiserver pod/apiserver-65fd7ffc59-bt5sf node/q72hs3bx-ac890-4pxpm-master-2 - reason/ProbeError Readiness probe error: Get "https://10.129.0.8:8443/readyz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-var OauthAPIProbeErrorReadiness = &AllowedDupeEvent{
-	Name: "OAuthAPIProbeErrorReadiness",
+// ProbeErrorConnectionRefused matches events in specific namespaces.
+//
+// These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
+var ProbeErrorConnectionRefused = &AllowedDupeEvent{
+	Name: "ProbeErrorConnectionRefused",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-oauth-apiserver`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-oauth-apiserver`),
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
 	},
 	MessageReasonRegex: regexp.MustCompile(`^ProbeError$`),
-	MessageHumanRegex:  regexp.MustCompile(`Readiness probe error.*Client.Timeout exceeded while awaiting headers`),
+	MessageHumanRegex:  regexp.MustCompile(`Readiness probe error.*connection refused`),
 }
 
-// ConfigOperatorProbeErrorLiveness matches a ProbeError Liveness Probe message
-// in the openshift-config-operator.
-// like this:
-// ...reason/ProbeError Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-var ConfigOperatorProbeErrorLiveness = &AllowedDupeEvent{
-	Name: "ConfigOperatorProbeErrorLiveness",
+// ProbeErrorLiveness matches events in specific namespaces such as:
+// Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+//
+// These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
+var ProbeErrorLiveness = &AllowedDupeEvent{
+	Name: "ProbeErrorLiveness",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-config-operator`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-config-operator`),
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
 	},
 	MessageReasonRegex: regexp.MustCompile(`^(ProbeError|Unhealthy)$`),
 	MessageHumanRegex:  regexp.MustCompile(`Liveness probe error.*Client.Timeout exceeded while awaiting headers`),
 }
 
-// isOauthApiserverProbeErrorLivenessFailed returns true if the event matches a ProbeError Liveness Probe message
-// in the openshift-oauth-operator.
-// like this:
-// ...reason/ProbeError Liveness probe error: Get "https://10.130.0.68:8443/healthz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-var OauthApiserverProbeErrorLiveness = &AllowedDupeEvent{
-	Name: "OauthApiserverProbeErrorLiveness",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-oauth-apiserver`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-oauth-apiserver`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`^(ProbeError|Unhealthy)$`),
-	MessageHumanRegex:  regexp.MustCompile(`Liveness probe error.*Client.Timeout exceeded while awaiting headers`),
-}
-
-// isConfigOperatorReadinessFailed returns true if the event matches a readinessFailed error that timed out
-// in the openshift-config-operator.
-// like this:
+// ReadinessFailed matches events in specific namespaces such as:
 // ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-var ConfigOperatorReadinessFailed = &AllowedDupeEvent{
-	Name: "ConfigOperatorReadinessFailed",
+//
+// These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
+var ReadinessFailed = &AllowedDupeEvent{
+	Name: "ReadinessFailed",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-config-operator`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-config-operator`),
-	},
-	MessageReasonRegex: regexp.MustCompile(`^ReadinessFailed$`),
-	MessageHumanRegex:  regexp.MustCompile(`Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded`),
-}
-
-// isOauthApiserverProbeErrorConnectionRefusedFailed returns true if the event matches a ProbeError Readiness Probe connection refused message
-// in the openshift-oauth-operator.
-// like this:
-// ...ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused
-var OauthApiserverReadinessFailed = &AllowedDupeEvent{
-	Name: "OauthApiserverReadinessFailed",
-	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-oauth-apiserver`),
-		monitorapi.LocatorPodKey:       regexp.MustCompile(`openshift-oauth-apiserver`),
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
+		//monitorapi.LocatorPodKey:       regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
 	},
 	MessageReasonRegex: regexp.MustCompile(`^ReadinessFailed$`),
 	MessageHumanRegex:  regexp.MustCompile(`Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded`),
