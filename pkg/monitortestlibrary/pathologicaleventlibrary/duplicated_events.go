@@ -53,7 +53,9 @@ func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 		allowedDupeEvents:       AllowedRepeatedEvents,
 	}
 
-	/* TODO: restore
+	/* TODO: restore, but it looks like this has been busted for ages, we append to a list of
+	functions that are never used
+
 	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
 	if err != nil {
 		panic(err)
