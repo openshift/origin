@@ -3,12 +3,12 @@ package run
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
-
-	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -25,8 +25,10 @@ import (
 )
 
 type RunMonitorFlags struct {
-	ArtifactDir    string
-	DisplayFromNow bool
+	ArtifactDir         string
+	DisplayFromNow      bool
+	ExactMonitorTests   []string
+	DisableMonitorTests []string
 
 	genericclioptions.IOStreams
 }
@@ -75,8 +77,13 @@ func newRunCommand(name string, streams genericclioptions.IOStreams) *cobra.Comm
 }
 
 func (f *RunMonitorFlags) BindFlags(flags *pflag.FlagSet) {
+	monitorNames := defaultmonitortests.ListAllMonitorTests()
+
 	flags.StringVar(&f.ArtifactDir, "artifact-dir", f.ArtifactDir, "The directory where monitor events will be stored.")
 	flags.BoolVar(&f.DisplayFromNow, "display-from-now", f.DisplayFromNow, "Only display intervals from at or after this comand was started.")
+	flags.StringSliceVar(&f.ExactMonitorTests, "monitor", f.ExactMonitorTests,
+		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
+	flags.StringSliceVar(&f.DisableMonitorTests, "disable-monitor", f.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
 }
 
 func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
@@ -91,16 +98,32 @@ func (f *RunMonitorFlags) ToOptions() (*RunMonitorOptions, error) {
 		}
 	}
 
+	monitorTestRegistry, err := f.getMonitorTestRegistry()
+	if err != nil {
+		return nil, err
+	}
+
 	return &RunMonitorOptions{
 		ArtifactDir:     f.ArtifactDir,
 		DisplayFilterFn: displayFilterFn,
+		MonitorTests:    monitorTestRegistry,
 		IOStreams:       f.IOStreams,
 	}, nil
+}
+
+func (f *RunMonitorFlags) getMonitorTestRegistry() (monitortestframework.MonitorTestRegistry, error) {
+	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
+		ClusterStabilityDuringTest: monitortestframework.Stable,
+		ExactMonitorTests:          f.ExactMonitorTests,
+		DisableMonitorTests:        f.DisableMonitorTests,
+	}
+	return defaultmonitortests.NewMonitorTestsFor(monitorTestInfo)
 }
 
 type RunMonitorOptions struct {
 	ArtifactDir     string
 	DisplayFilterFn monitorapi.EventIntervalMatchesFunc
+	MonitorTests    monitortestframework.MonitorTestRegistry
 
 	genericclioptions.IOStreams
 }
@@ -137,15 +160,12 @@ func (f *RunMonitorOptions) Run() error {
 	}()
 	signal.Notify(abortCh, syscall.SIGINT, syscall.SIGTERM)
 
-	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
-		ClusterStabilityDuringTest: monitortestframework.Stable,
-	}
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), f.Out, f.DisplayFilterFn)
 	m := monitor.NewMonitor(
 		recorder,
 		restConfig,
 		f.ArtifactDir,
-		defaultmonitortests.NewMonitorTestsFor(monitorTestInfo),
+		f.MonitorTests,
 	)
 	if err := m.Start(ctx); err != nil {
 		return err

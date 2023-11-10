@@ -2,6 +2,7 @@ package monitortestframework
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"time"
 
 	"k8s.io/client-go/rest"
@@ -17,7 +18,7 @@ var (
 	Stable ClusterStabilityDuringTest = "Stable"
 	// TODO only bring this back if we have some reason to collect Upgrade specific information.  I can't think of reason.
 	// TODO please contact @deads2k for vetting if you think you found something
-	//Upgrade    ClusterStabilityDuringTest = "Upgrade"
+	// Upgrade    ClusterStabilityDuringTest = "Upgrade"
 	// Disruptive means that the suite is expected to induce outages to the cluster.
 	Disruptive ClusterStabilityDuringTest = "Disruptive"
 )
@@ -26,6 +27,12 @@ type MonitorTestInitializationInfo struct {
 	ClusterStabilityDuringTest ClusterStabilityDuringTest
 	// UpgradeTargetImage is only set for upgrades.  It is set to the *final* destination version.
 	UpgradeTargetPayloadImagePullSpec string
+
+	// ExactMonitorTests will filter the available monitor tests down to only those contained in the provided list
+	ExactMonitorTests []string
+
+	// DisableMonitorTests will remove any monitor tests contained in the provided list
+	DisableMonitorTests []string
 }
 
 type MonitorTest interface {
@@ -74,6 +81,9 @@ type MonitorTestRegistry interface {
 	AddMonitorTest(name, jiraComponent string, monitorTest MonitorTest) error
 
 	AddMonitorTestOrDie(name, jiraComponent string, monitorTest MonitorTest)
+
+	GetRegistryFor(names ...string) (MonitorTestRegistry, error)
+	ListMonitorTests() sets.String
 
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.

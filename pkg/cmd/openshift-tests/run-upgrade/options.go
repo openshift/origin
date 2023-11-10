@@ -29,7 +29,7 @@ type RunUpgradeSuiteOptions struct {
 	ToImage        string
 	FromRepository string
 	// I don't see where this is initialized in this flow
-	//CloudProviderJSON string
+	// CloudProviderJSON string
 
 	TestOptions []string
 
@@ -42,7 +42,7 @@ func (o *RunUpgradeSuiteOptions) TestCommandEnvironment() []string {
 	var args []string
 	args = append(args, "KUBE_TEST_REPO_LIST=") // explicitly prevent selective override
 	args = append(args, fmt.Sprintf("KUBE_TEST_REPO=%s", o.FromRepository))
-	//args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", o.CloudProviderJSON))  I don't think we actually have this.
+	// args = append(args, fmt.Sprintf("TEST_PROVIDER=%s", o.CloudProviderJSON))  I don't think we actually have this.
 	args = append(args, fmt.Sprintf("TEST_JUNIT_DIR=%s", o.GinkgoRunSuiteOptions.JUnitDir))
 	for i := 10; i > 0; i-- {
 		if klog.V(klog.Level(i)).Enabled() {
@@ -109,6 +109,8 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 	monitorTestInfo := monitortestframework.MonitorTestInitializationInfo{
 		ClusterStabilityDuringTest:        monitortestframework.ClusterStabilityDuringTest(o.GinkgoRunSuiteOptions.ClusterStabilityDuringTest),
 		UpgradeTargetPayloadImagePullSpec: o.ToImage,
+		ExactMonitorTests:                 o.GinkgoRunSuiteOptions.ExactMonitorTests,
+		DisableMonitorTests:               o.GinkgoRunSuiteOptions.DisableMonitorTests,
 	}
 
 	o.GinkgoRunSuiteOptions.CommandEnv = o.TestCommandEnvironment()
