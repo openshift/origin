@@ -45,6 +45,23 @@ func LoadConfigFile() ([]byte, error) {
 	return data, nil
 }
 
+// ExportAzureCredentials read azure credentials from file pointed by `AZURE_AUTH_LOCATION` and
+// then export ENVs for Azure API
+func ExportAzureCredentials() error {
+	settings, err := getAuthFile()
+	if err != nil {
+		return err
+	}
+	if err = os.Setenv("AZURE_CLIENT_ID", settings.ClientID); err != nil {
+		return err
+	}
+	if err = os.Setenv("AZURE_CLIENT_SECRET", settings.ClientSecret); err != nil {
+		return err
+	}
+	err = os.Setenv("AZURE_TENANT_ID", settings.TenantID)
+	return err
+}
+
 func cloudProviderConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*azure.Config, error) {
 	cm, err := client.ConfigMaps("openshift-config").Get(context.Background(), "cloud-provider-config", metav1.GetOptions{})
 	if err != nil {
