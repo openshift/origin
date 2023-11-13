@@ -41,12 +41,8 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		tlsArtifactFilename := fmt.Sprintf("raw-tls-artifacts-%s-%s-%s-%s.json", jobType.Topology, jobType.Architecture, jobType.Platform, jobType.Network)
 
-		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient, certgraphanalysis.SkipRevisioned)
+		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient, certgraphanalysis.SkipRevisioned, certgraphanalysis.ElideProxyCADetails)
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// the content here is good, but proxy-ca contains a lot of entries for system-trust that doesn't help
-		// us visualize the OCP certs, so if we detect that condition snip it
-		pruneSystemTrust(currentPKIContent)
 
 		jsonBytes, err := json.MarshalIndent(currentPKIContent, "", "  ")
 		o.Expect(err).NotTo(o.HaveOccurred())
