@@ -1413,6 +1413,8 @@ var Annotations = map[string]string{
 
 	"[sig-node-tuning] NTO should OCP-66086 NTO Prevent from stalld continually restarting [Slow]": "",
 
+	"[sig-node-tuning] NTO should SNO installation does not finish due to wait for non-existing machine-config [Early]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-node] Managed cluster record the number of nodes at the beginning of the tests [Early]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node] Managed cluster should report ready nodes the entire duration of the test run [Late][apigroup:monitoring.coreos.com]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
