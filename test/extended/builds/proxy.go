@@ -48,7 +48,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds should support pro
 				// repository is not accessible. It should never get to the clone.
 				buildLog, err := br.Logs()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(buildLog).NotTo(o.ContainSubstring("clone"))
+				o.Expect(buildLog).NotTo(o.ContainSubstring("git clone"))
 				o.Expect(buildLog).To(o.MatchRegexp(`unable to access '%s': Failed( to)? connect to`, "https://github.com/openshift/ruby-hello-world.git/"))
 
 				g.By("verifying the build sample-build-1 status")

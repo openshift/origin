@@ -110,6 +110,7 @@ const (
 	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
 	LocatorTypeClusterVersion    LocatorType = "ClusterVersion"
 	LocatorTypeKind              LocatorType = "Kind"
+	LocatorTypeCloudMetrics      LocatorType = "CloudMetrics"
 )
 
 type LocatorKey string
@@ -143,6 +144,7 @@ const (
 	LocatorRowKey                   LocatorKey = "row"
 	LocatorShutdownKey              LocatorKey = "shutdown"
 	LocatorServerKey                LocatorKey = "server"
+	LocatorMetricKey                LocatorKey = "metric"
 )
 
 type Locator struct {
@@ -200,6 +202,8 @@ const (
 
 	E2ETestStarted  IntervalReason = "E2ETestStarted"
 	E2ETestFinished IntervalReason = "E2ETestFinished"
+
+	CloudMetricsExtrenuous IntervalReason = "CloudMetricsExtrenuous"
 )
 
 type AnnotationKey string
@@ -281,6 +285,7 @@ const (
 	SourceOperatorState           IntervalSource = "OperatorState"
 	SourceNodeState                              = "NodeState"
 	SourcePodState                               = "PodState"
+	SourceCloudMetrics                           = "CloudMetrics"
 )
 
 type Interval struct {

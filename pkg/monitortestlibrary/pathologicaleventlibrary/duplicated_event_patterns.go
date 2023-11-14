@@ -295,18 +295,7 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 	},
 
 	{
-		Name: "TopologyAwareHintsDisabled",
-		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(``),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(``),
-		},
-		MessageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
-		MessageHumanRegex:  regexp.MustCompile(``),
-		Jira:               "https://issues.redhat.com/browse/OCPBUGS-13366",
-	},
-
-	{
-		Name: "",
+		Name: "OpenShiftAPICheckFailed",
 		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(``),
 			monitorapi.LocatorPodKey:       regexp.MustCompile(``),
@@ -316,6 +305,17 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		// TODO: Jira long closed as stale, and this problem occurs well outside single node now.
 		// A new bug should probably be filed.
 		Jira: "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
+	},
+
+	// stale condition challenge reset
+	{
+		Name: "",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(``),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(``),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^$`),
+		MessageHumanRegex:  regexp.MustCompile(`message changed from "\x{FEFF}`),
 	},
 
 	AllowBackOffRestartingFailedContainer,

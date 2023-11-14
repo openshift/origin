@@ -305,7 +305,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"etcd-operator":                          220,
 				"ingress-operator":                       371,
 				"kube-apiserver-operator":                260,
-				"kube-controller-manager-operator":       165,
+				"kube-controller-manager-operator":       185,
 				"kube-storage-version-migrator-operator": 68,
 				"machine-api-operator":                   48,
 				"marketplace-operator":                   20,

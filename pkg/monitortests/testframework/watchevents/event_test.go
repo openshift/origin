@@ -137,10 +137,10 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 					Reason: "TopologyAwareHintsDisabled",
 					InvolvedObject: corev1.ObjectReference{
 						Kind:      "Pod",
-						Namespace: "any",
-						Name:      "any",
+						Namespace: "openshift-etcd",
+						Name:      "etcd-quorum-guard-42",
 					},
-					Message:       "irrelevant",
+					Message:       "Readiness probe failed:",
 					LastTimestamp: metav1.Now(),
 				},
 				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
@@ -148,13 +148,13 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			expectedLocator: monitorapi.Locator{
 				Type: monitorapi.LocatorTypeKind,
 				Keys: map[monitorapi.LocatorKey]string{
-					monitorapi.LocatorNamespaceKey: "any",
-					monitorapi.LocatorPodKey:       "any",
-					monitorapi.LocatorHmsgKey:      "3c8acf6676",
+					monitorapi.LocatorNamespaceKey: "openshift-etcd",
+					monitorapi.LocatorPodKey:       "etcd-quorum-guard-42",
+					monitorapi.LocatorHmsgKey:      "417e6fe177",
 				},
 			},
 			expectedMessage: monitorapi.NewMessage().Reason("TopologyAwareHintsDisabled").
-				HumanMessage("irrelevant").
+				HumanMessage("Readiness probe failed:").
 				WithAnnotation(monitorapi.AnnotationCount, "40").
 				WithAnnotation(monitorapi.AnnotationPathological, "true").
 				WithAnnotation(monitorapi.AnnotationInteresting, "true").

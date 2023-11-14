@@ -119,6 +119,14 @@ func (b *LocatorBuilder) NodeFromNameWithRow(nodeName, row string) Locator {
 		Build()
 }
 
+func (b *LocatorBuilder) CloudNodeMetric(nodeName string, metric string) Locator {
+	return b.
+		withTargetType(LocatorTypeCloudMetrics).
+		withNode(nodeName).
+		withMetric(metric).
+		Build()
+}
+
 func (b *LocatorBuilder) ClusterVersion(cv *v1.ClusterVersion) Locator {
 	b.targetType = LocatorTypeClusterVersion
 	b.annotations[LocatorClusterVersionKey] = cv.Name
@@ -214,6 +222,11 @@ func (b *LocatorBuilder) withNode(nodeName string) *LocatorBuilder {
 
 func (b *LocatorBuilder) withRow(row string) *LocatorBuilder {
 	b.annotations[LocatorRowKey] = row
+	return b
+}
+
+func (b *LocatorBuilder) withMetric(metricName string) *LocatorBuilder {
+	b.annotations[LocatorMetricKey] = metricName
 	return b
 }
 

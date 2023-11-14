@@ -14,11 +14,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func GatherCertsFromAllNamespaces(ctx context.Context, kubeClient kubernetes.Interface, options ...*certGenerationOptions) (*certgraphapi.PKIList, error) {
+func GatherCertsFromAllNamespaces(ctx context.Context, kubeClient kubernetes.Interface, options ...certGenerationOptions) (*certgraphapi.PKIList, error) {
 	return gatherFilteredCerts(ctx, kubeClient, allConfigMaps, allSecrets, options)
 }
 
-func GatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, options ...*certGenerationOptions) (*certgraphapi.PKIList, error) {
+func GatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, options ...certGenerationOptions) (*certgraphapi.PKIList, error) {
 	return gatherFilteredCerts(ctx, kubeClient, platformConfigMaps, platformSecrets, options)
 }
 
@@ -40,16 +40,13 @@ func isPlatformNamespace(nsName string) bool {
 	return wellKnownPlatformNamespaces.Has(nsName)
 }
 
-type configMapFilterFunc func(configMap *corev1.ConfigMap) bool
-
 func allConfigMaps(_ *corev1.ConfigMap) bool {
 	return true
 }
+
 func platformConfigMaps(obj *corev1.ConfigMap) bool {
 	return isPlatformNamespace(obj.Namespace)
 }
-
-type secretFilterFunc func(configMap *corev1.Secret) bool
 
 func allSecrets(_ *corev1.Secret) bool {
 	return true
@@ -147,6 +144,13 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				errs = append(errs, err)
 			}
 		}
+	}
+
+	for i := range caBundles {
+		options.rewriteCABundle(caBundles[i])
+	}
+	for i := range certs {
+		options.rewriteCertKeyPair(certs[i])
 	}
 
 	pkiList := PKIListFromParts(ctx, inClusterResourceData, certs, caBundles, nodes)
