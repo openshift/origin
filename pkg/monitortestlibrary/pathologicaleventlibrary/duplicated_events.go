@@ -348,25 +348,6 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 		intervalMsgWithTime := intervalDisplayMsg + " From: " + interval.From.Format("15:04:05Z") + " To: " + interval.To.Format("15:04:05Z")
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v",
 			GetTimesAnEventHappened(interval.StructuredMessage), intervalMsgWithTime)
-		flake := false
-		/*
-			for _, kp := range d.knownRepeatedEventsBugs {
-				if kp.Regexp != nil && kp.Regexp.MatchString(pathoItem.eventMessage) {
-					// Check if this exception only applies to our specific platform
-					if kp.Platform != nil && *kp.Platform != d.platform {
-						continue
-					}
-
-					// Check if this exception only applies to a specific topology
-					if kp.Topology != nil && *kp.Topology != d.topology {
-						continue
-					}
-
-					msg += " - " + kp.BZ
-					flake = true
-				}
-			}
-		*/
 
 		// We only create junit for known namespaces
 		if !platformidentification.KnownNamespaces.Has(namespace) {
@@ -377,7 +358,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 			tmp := &eventResult{}
 			nsResults[namespace] = tmp
 		}
-		if flake || flakeOnly {
+		if flakeOnly {
 			nsResults[namespace].flakes = append(nsResults[namespace].flakes, appendToFirstLine(msg, " result=allow "))
 		} else {
 			nsResults[namespace].failures = append(nsResults[namespace].failures, appendToFirstLine(msg, " result=reject "))
