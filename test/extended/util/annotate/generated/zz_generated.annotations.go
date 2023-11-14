@@ -1211,6 +1211,8 @@ var Annotations = map[string]string{
 
 	"[sig-kubevirt] migration when running openshift cluster on KubeVirt virtual machines and live migrate hosted control plane workers [Early] should maintain node readiness": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-kubevirt] node reboot when running openshift cluster on KubeVirt virtual machines when an hosted control plane worker is rebooted [Early] should maintain node readiness": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from guest cluster PodNetwork pod via LoadBalancer service across different guest nodes": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow connections to pods from guest hostNetwork pod via NodePort across different guest nodes": " [Suite:openshift/conformance/parallel]",
