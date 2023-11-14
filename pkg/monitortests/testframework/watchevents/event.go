@@ -77,32 +77,6 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 	go reflector.Run(ctx.Done())
 }
 
-var allRepeatedEventPatterns = combinedDuplicateEventPatterns()
-
-// TODO: delete this
-func combinedDuplicateEventPatterns() *regexp.Regexp {
-	s := ""
-	for _, r := range pathologicaleventlibrary.AllowedRepeatedEventPatterns {
-		if s != "" {
-			s += "|"
-		}
-		s += r.String()
-	}
-	for _, r := range pathologicaleventlibrary.AllowedUpgradeRepeatedEventPatterns {
-		if s != "" {
-			s += "|"
-		}
-		s += r.String()
-	}
-	for _, r := range pathologicaleventlibrary.KnownEventsBugs {
-		if s != "" {
-			s += "|"
-		}
-		s += r.Regexp.String()
-	}
-	return regexp.MustCompile(s)
-}
-
 func recordAddOrUpdateEvent(
 	ctx context.Context,
 	recorder monitorapi.RecorderWriter,

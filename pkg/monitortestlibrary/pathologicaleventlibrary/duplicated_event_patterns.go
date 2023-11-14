@@ -54,7 +54,7 @@ type AllowedDupeEvent struct {
 
 	// TODO: Interval may not be created yet, work off Locator and MessageBuilder?
 	// IsRepeatedEventOKFunc allows for additional more fine grained checks for this interval.
-	IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
+	//IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
 
 	// Jira is a link to a Jira (or legacy Bugzilla). If set it implies we consider this event a problem but there's
 	// been a bug filed, and as such if matching duplicated events are found a test should flake.
@@ -270,6 +270,54 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		MessageHumanRegex:  regexp.MustCompile(`error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
 	},
 
+	// This was originally filed as a bug in 2021, closed as fixed, but the events continue repeating in 2023.
+	// They only occur in the namespace for a specific horizontal pod autoscaling test. Ignoring permanently,
+	// as they have been for the past two years.
+	// https://bugzilla.redhat.com/show_bug.cgi?id=1993985
+	{
+		Name: "E2EHorizontalPodAutoscalingFailedToGetCPUUtilization",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`horizontalpodautoscaler`),
+		},
+		MessageHumanRegex: regexp.MustCompile(`failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API`),
+	},
+
+	// Formerly bug: https://bugzilla.redhat.com/show_bug.cgi?id=2075204
+	// Left stale and closed automatically. Assuming we can live with it now.
+	{
+		Name: "EtcdGuardProbeErrorConnectionRefused",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`etcd-guard.*`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe error: .* connect: connection refused`),
+	},
+
+	{
+		Name: "TopologyAwareHintsDisabled",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(``),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(``),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+		MessageHumanRegex:  regexp.MustCompile(``),
+		Jira:               "https://issues.redhat.com/browse/OCPBUGS-13366",
+	},
+
+	{
+		Name: "",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(``),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(``),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^OpenShiftAPICheckFailed$`),
+		MessageHumanRegex:  regexp.MustCompile(`user.openshift.io.v1.*503`),
+		// TODO: Jira long closed as stale, and this problem occurs well outside single node now.
+		// A new bug should probably be filed.
+		Jira: "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
+	},
+
 	AllowBackOffRestartingFailedContainer,
 
 	AllowOVNReadiness,
@@ -477,6 +525,19 @@ var AllowedRepeatedUpgradeEvents = []*AllowedDupeEvent{
 		Topology:                TopologyPointer(v1.SingleReplicaTopologyMode),
 		RepeatThresholdOverride: 30,
 	},
+
+	// Ignore NetworkNotReady repeat events.
+	// This was originally linked to bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1986370
+	// The bug has been closed as NOTABUG.
+	// We used to allow this for three namespaces (openshift-multus, openshift-e2e-loki, and openshift-network-diagnostics),
+	// however a quick search of the intervals in bigquery shows this happening a ton in lots of namespaces,
+	// and killing jobs when it does. Given the bug status, I am ignoring these events, whenever they occur, in
+	// all upgrade jobs for now. - dgoodwin
+	{
+		Name:               "NetworkNotReady",
+		MessageReasonRegex: regexp.MustCompile(`^NetworkNotReady$`),
+		MessageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file.*Has your network provider started\?`),
+	},
 }
 
 // TODO: update all references to use the new list above
@@ -484,89 +545,6 @@ var AllowedRepeatedEventPatterns = []*regexp.Regexp{}
 
 // AllowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
 var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{}
-
-type KnownProblem struct {
-	Regexp *regexp.Regexp
-	BZ     string
-
-	// Platform limits the exception to a specific OpenShift platform.
-	Platform *v1.PlatformType
-
-	// Topology limits the exception to a specific topology (e.g. single replica)
-	Topology *v1.TopologyMode
-
-	// TestSuite limits the exception to a specific test suite (e.g. openshift/builds)
-	TestSuite *string
-}
-
-var KnownEventsBugs = []KnownProblem{
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-multus pod/network-metrics-daemon-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-e2e-loki pod/loki-promtail-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-network-diagnostics pod/network-check-target-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/.* service/.* - reason/FailedToDeleteOVNLoadBalancer .*`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1990631",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/.*horizontalpodautoscaler.*failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API.*`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1993985",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/.*unable to ensure pod container exists: failed to create container.*slice already exists.*`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1993980",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2000234",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-.* node/.* - reason/ProbeError Readiness probe error: .* connect: connection refused`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2075204",
-	},
-	{
-		Regexp: regexp.MustCompile("ns/openshift-etcd-operator namespace/openshift-etcd-operator -.*rpc error: code = Canceled desc = grpc: the client connection is closing.*"),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2006975",
-	},
-	{
-		Regexp: regexp.MustCompile("reason/TopologyAwareHintsDisabled"),
-		BZ:     "https://issues.redhat.com/browse/OCPBUGS-13366",
-	},
-	{
-		Regexp:   regexp.MustCompile("ns/.*reason/.*APICheckFailed.*503.*"),
-		BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
-		Topology: TopologyPointer(v1.SingleReplicaTopologyMode),
-	},
-	// builds tests trigger many changes in the config which creates new rollouts -> event for each pod
-	// working as intended (not a bug) and needs to be tolerated
-	{
-		Regexp:    regexp.MustCompile(`ns/openshift-route-controller-manager deployment/route-controller-manager - reason/ScalingReplicaSet \(combined from similar events\): Scaled (down|up) replica set route-controller-manager-[a-z0-9-]+ to [0-9]+`),
-		TestSuite: StringPointer("openshift/build"),
-	},
-	// builds tests trigger many changes in the config which creates new rollouts -> event for each pod
-	// working as intended (not a bug) and needs to be tolerated
-	{
-		Regexp:    regexp.MustCompile(`ns/openshift-controller-manager deployment/controller-manager - reason/ScalingReplicaSet \(combined from similar events\): Scaled (down|up) replica set controller-manager-[a-z0-9-]+ to [0-9]+`),
-		TestSuite: StringPointer("openshift/build"),
-	},
-	//{ TODO this should only be skipped for single-node
-	//	name:    "single=node-storage",
-	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
-	//	message: "ns/openshift-cluster-csi-drivers pod/aws-ebs-csi-driver-controller-66469455cd-2thfv node/ip-10-0-161-38.us-east-2.compute.internal - reason/BackOff Back-off restarting failed container",
-	//},
-	{
-		Regexp: regexp.MustCompile(`reason/ErrorReconcilingNode.*annotation not found for node.*macAddress annotation not found for node`),
-		BZ:     "https://issues.redhat.com/browse/OCPBUGS-13400",
-	},
-}
 
 // IsRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
 // This commonly happens for known bugs and for cases where events are repeated intentionally by tests.

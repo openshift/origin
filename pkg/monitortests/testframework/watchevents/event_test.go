@@ -157,8 +157,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				HumanMessage("irrelevant").
 				WithAnnotation(monitorapi.AnnotationCount, "40").
 				WithAnnotation(monitorapi.AnnotationPathological, "true").
-				// TODO: bring back once this pattern is ported
-				//WithAnnotation(monitorapi.AnnotationInteresting, "true").
+				WithAnnotation(monitorapi.AnnotationInteresting, "true").
 				Build(),
 		},
 	}

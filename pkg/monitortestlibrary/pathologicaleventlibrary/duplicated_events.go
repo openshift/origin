@@ -31,8 +31,6 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 	allowedDupeEvents = append(allowedDupeEvents, AllowedRepeatedUpgradeEvents...)
 
 	evaluator := duplicateEventsEvaluator{
-		knownRepeatedEventsBugs: KnownEventsBugs,
-		// TODO: pass in the list of new allowance structs here
 		allowedDupeEvents: allowedDupeEvents,
 	}
 
@@ -49,8 +47,7 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 
 	evaluator := duplicateEventsEvaluator{
-		knownRepeatedEventsBugs: KnownEventsBugs,
-		allowedDupeEvents:       AllowedRepeatedEvents,
+		allowedDupeEvents: AllowedRepeatedEvents,
 	}
 
 	/* TODO: restore, but it looks like this has been busted for ages, we append to a list of
@@ -89,9 +86,6 @@ func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
 }
 
 type duplicateEventsEvaluator struct {
-	// knownRepeatedEventsBugs are duplicates that are considered bugs and should flake, but not  fail a Test
-	knownRepeatedEventsBugs []KnownProblem
-
 	// allowedDupeEvents is the list of matchers we use to see if a repeat kube event is allowed or not.
 	allowedDupeEvents []*AllowedDupeEvent
 
@@ -290,24 +284,26 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 		namespace := monitorapi.NamespaceFromLocator(msgWithTime)
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", pathoItem.count, msgWithTime)
 		flake := false
-		for _, kp := range d.knownRepeatedEventsBugs {
-			if kp.Regexp != nil && kp.Regexp.MatchString(pathoItem.eventMessage) {
-				// Check if this exception only applies to our specific platform
-				if kp.Platform != nil && *kp.Platform != d.platform {
-					continue
-				}
+		/*
+			for _, kp := range d.knownRepeatedEventsBugs {
+				if kp.Regexp != nil && kp.Regexp.MatchString(pathoItem.eventMessage) {
+					// Check if this exception only applies to our specific platform
+					if kp.Platform != nil && *kp.Platform != d.platform {
+						continue
+					}
 
-				// Check if this exception only applies to a specific topology
-				if kp.Topology != nil && *kp.Topology != d.topology {
-					continue
-				}
+					// Check if this exception only applies to a specific topology
+					if kp.Topology != nil && *kp.Topology != d.topology {
+						continue
+					}
 
-				msg += " - " + kp.BZ
-				flake = true
+					msg += " - " + kp.BZ
+					flake = true
+				}
 			}
-		}
+		*/
 
-		// We only creates junit for known namespaces
+		// We only create junit for known namespaces
 		if !platformidentification.KnownNamespaces.Has(namespace) {
 			namespace = ""
 		}
