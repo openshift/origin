@@ -1,38 +1,24 @@
 package certgraphanalysis
 
 import (
-	"strings"
-
+	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type certGenerationOptions struct {
-	rejectConfigMap configMapFilterFunc
-	rejectSecret    secretFilterFunc
+type certGenerationOptions interface {
+	approved()
 }
 
-var (
-	SkipRevisioned = &certGenerationOptions{
-		rejectConfigMap: func(configMap *corev1.ConfigMap) bool {
-			if isRevisioned(configMap.OwnerReferences) {
-				return true
-			}
-			return false
-		},
-		rejectSecret: func(secret *corev1.Secret) bool {
-			if isRevisioned(secret.OwnerReferences) {
-				return true
-			}
-			return false
-		},
-	}
-)
+type certGenerationOptionList []certGenerationOptions
 
-type certGenerationOptionList []*certGenerationOptions
+// TODO randomize order of traversal in these functions
 
 func (l certGenerationOptionList) rejectConfigMap(configMap *corev1.ConfigMap) bool {
-	for _, option := range l {
+	for _, curr := range l {
+		option, ok := curr.(*resourceFilteringOptions)
+		if !ok {
+			continue
+		}
 		if option.rejectConfigMap == nil {
 			continue
 		}
@@ -44,7 +30,11 @@ func (l certGenerationOptionList) rejectConfigMap(configMap *corev1.ConfigMap) b
 }
 
 func (l certGenerationOptionList) rejectSecret(secret *corev1.Secret) bool {
-	for _, option := range l {
+	for _, curr := range l {
+		option, ok := curr.(*resourceFilteringOptions)
+		if !ok {
+			continue
+		}
 		if option.rejectSecret == nil {
 			continue
 		}
@@ -55,12 +45,28 @@ func (l certGenerationOptionList) rejectSecret(secret *corev1.Secret) bool {
 	return false
 }
 
-func isRevisioned(ownerReferences []metav1.OwnerReference) bool {
-	for _, curr := range ownerReferences {
-		if strings.HasPrefix(curr.Name, "revision-status-") {
-			return true
+func (l certGenerationOptionList) rewriteCABundle(caBundle *certgraphapi.CertificateAuthorityBundle) {
+	for _, curr := range l {
+		option, ok := curr.(*metadataOptions)
+		if !ok {
+			continue
 		}
+		if option.rewriteCABundle == nil {
+			continue
+		}
+		option.rewriteCABundle(caBundle)
 	}
+}
 
-	return false
+func (l certGenerationOptionList) rewriteCertKeyPair(certKeyPair *certgraphapi.CertKeyPair) {
+	for _, curr := range l {
+		option, ok := curr.(*metadataOptions)
+		if !ok {
+			continue
+		}
+		if option.rewriteCertKeyPair == nil {
+			continue
+		}
+		option.rewriteCertKeyPair(certKeyPair)
+	}
 }
