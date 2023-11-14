@@ -699,8 +699,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 
 func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs:      []KnownProblem{},
+		allowedDupeEvents: AllowedRepeatedEvents,
 	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)
@@ -708,8 +707,6 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 	tests := []struct {
 		name            string
 		namespace       string
-		platform        v1.PlatformType
-		topology        v1.TopologyMode
 		intervals       []monitorapi.Interval
 		expectedMessage string
 	}{
@@ -756,8 +753,24 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Message: "pathological/true reason/TopologyAwareHintsDisabled Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4 (23 times)",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: "",
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorNamespaceKey:   "openshift-dns",
+								monitorapi.LocatorKey("service"): "dns-default",
+								monitorapi.LocatorHmsgKey:        "ade328ddf3",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       "TopologyAwareHintsDisabled",
+							HumanMessage: "Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason:       "TopologyAwareHintsDisabled",
+								monitorapi.AnnotationPathological: "true",
+								monitorapi.AnnotationCount:        "23",
+							},
+						},
 					},
 					From: from.Add(11 * time.Minute),
 					To:   to.Add(12 * time.Minute),
@@ -832,16 +845,31 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "ns/openshift-dns service/dns-default hmsg/ade328ddf3",
-						Message: "pathological/true reason/TopologyAwareHintsDisabled Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4 (23 times)",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: "",
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorNamespaceKey:   "openshift-dns",
+								monitorapi.LocatorKey("service"): "dns-default",
+								monitorapi.LocatorHmsgKey:        "ade328ddf3",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       "TopologyAwareHintsDisabled",
+							HumanMessage: "Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason:       "TopologyAwareHintsDisabled",
+								monitorapi.AnnotationPathological: "true",
+								monitorapi.AnnotationCount:        "23",
+							},
+						},
 					},
 					From: from.Add(11 * time.Minute),
 					To:   to.Add(12 * time.Minute),
 				},
 			},
 			namespace:       "openshift-dns",
-			expectedMessage: "1 events happened too frequently\n\nevent happened 23 times, something is wrong: ns/openshift-dns service/dns-default hmsg/ade328ddf3 - pathological/true reason/TopologyAwareHintsDisabled Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4 From: 04:11:00Z To: 04:12:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 23 times, something is wrong:  - reason/TopologyAwareHintsDisabled Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4 From: 04:11:00Z To: 04:12:00Z result=reject ",
 		},
 	}
 
@@ -854,10 +882,12 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 			junits := evaluator.testDuplicatedEvents(testName, false, events, nil, false)
 			jUnitName := getJUnitName(testName, test.namespace)
 			for _, junit := range junits {
+				t.Logf("checking junit: %s", junit.Name)
 				if (junit.Name == jUnitName) && (test.expectedMessage != "") {
+					require.NotNil(t, junit.FailureOutput)
 					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
-					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output") {
+					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output for junit: %s", junit.Name) {
 						t.Logf(junit.FailureOutput.Output)
 					}
 				}

@@ -65,29 +65,29 @@ type AllowedDupeEvent struct {
 func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config, topology *v1.TopologyMode) bool {
 	for lk, r := range ade.LocatorKeyRegexes {
 		if !r.MatchString(l.Keys[lk]) {
-			logrus.WithField("allower", ade.Name).Infof("key %s did not match", lk)
+			logrus.WithField("allower", ade.Name).Debugf("key %s did not match", lk)
 			return false
 		}
 	}
 	if ade.MessageHumanRegex != nil && !ade.MessageHumanRegex.MatchString(msg.HumanMessage) {
-		logrus.WithField("allower", ade.Name).Info("human message did not match")
+		logrus.WithField("allower", ade.Name).Debugf("human message did not match")
 		return false
 	}
 	if ade.MessageReasonRegex != nil && !ade.MessageReasonRegex.MatchString(string(msg.Reason)) {
-		logrus.WithField("allower", ade.Name).Info("message reason did not match")
+		logrus.WithField("allower", ade.Name).Debugf("message reason did not match")
 		return false
 	}
 
 	if ade.RepeatThresholdOverride != 0 {
 		count := GetTimesAnEventHappened(msg)
 		if count > ade.RepeatThresholdOverride {
-			logrus.WithField("allower", ade.Name).Infof("event repeated over threshold override: %d", ade.RepeatThresholdOverride)
+			logrus.WithField("allower", ade.Name).Debugf("event repeated over threshold override: %d", ade.RepeatThresholdOverride)
 			return false
 		}
 	}
 
 	if ade.Topology != nil && *ade.Topology != *topology {
-		logrus.WithField("allower", ade.Name).Info("cluster did not match topology")
+		logrus.WithField("allower", ade.Name).Debugf("cluster did not match topology")
 		return false
 	}
 	return true

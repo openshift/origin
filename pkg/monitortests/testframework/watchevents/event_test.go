@@ -127,39 +127,6 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				WithAnnotation(monitorapi.AnnotationInteresting, "true").
 				Build(),
 		},
-		{
-			name: "allowed pathological event with known bug",
-			args: args{
-				ctx: context.TODO(),
-				m:   monitor.NewRecorder(),
-				kubeEvent: &corev1.Event{
-					Count:  40,
-					Reason: "TopologyAwareHintsDisabled",
-					InvolvedObject: corev1.ObjectReference{
-						Kind:      "Pod",
-						Namespace: "openshift-etcd",
-						Name:      "etcd-quorum-guard-42",
-					},
-					Message:       "Readiness probe failed:",
-					LastTimestamp: metav1.Now(),
-				},
-				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
-			},
-			expectedLocator: monitorapi.Locator{
-				Type: monitorapi.LocatorTypeKind,
-				Keys: map[monitorapi.LocatorKey]string{
-					monitorapi.LocatorNamespaceKey: "openshift-etcd",
-					monitorapi.LocatorPodKey:       "etcd-quorum-guard-42",
-					monitorapi.LocatorHmsgKey:      "417e6fe177",
-				},
-			},
-			expectedMessage: monitorapi.NewMessage().Reason("TopologyAwareHintsDisabled").
-				HumanMessage("Readiness probe failed:").
-				WithAnnotation(monitorapi.AnnotationCount, "40").
-				WithAnnotation(monitorapi.AnnotationPathological, "true").
-				WithAnnotation(monitorapi.AnnotationInteresting, "true").
-				Build(),
-		},
 	}
 	for _, tt := range tests {
 		if tt.skip {

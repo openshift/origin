@@ -210,11 +210,6 @@ func generateJUnitTestCasesE2ENamespaces(testName string, nsResults map[string]*
 // I hate regexes, so I only do this because I really have to.
 func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config, isE2E bool) []*junitapi.JUnitTestCase {
 
-	type pathologicalEvents struct {
-		count        int    // max number of times the message occurred
-		eventMessage string // holds original message so you can compare with d.knownRepeatedEventsBugs
-	}
-
 	// Filter out a list of NodeUpdate events, we use these to ignore some other potential pathological events that are
 	// expected during NodeUpdate.
 	nodeUpdateIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
@@ -233,7 +228,9 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 	buildTopologyHintAllowedTimeRanges := true
 	topologyHintAllowedTimeRanges := []*timeRange{}
 
-	displayToCount := map[string]*pathologicalEvents{}
+	// displayToCount maps a static display message to the matching repeating interval we saw with the highest count
+	displayToCount := map[string]monitorapi.Interval{}
+
 	for _, event := range events {
 		// TODO: port to use structured message reason once kube event intervals are ported over
 		// TODO: moved to an allowed patho
@@ -331,32 +328,26 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 
 			// key used in a map to identify the common interval that is repeating and we may
 			// encounter multiple times.
+			// TODO: we're just using reason and human message here, this should be sufficient
 			eventDisplayMessage := fmt.Sprintf("%s - reason/%s %s", event.Locator,
 				event.StructuredMessage.Reason, event.StructuredMessage.HumanMessage)
 
-			// TODO: use of this string as a map keep looks busted because it contains from/to,
-			// each time we encounter the same message and locator, these timestamps would change
-			// resulting in the count not being incremented. I think this can be seen in failures
-			// of this test with lots of hits.
-			// I suspect this was meant to be eventDisplayMessage? Needs unit testing to be sure.
-			eventMessageString := eventDisplayMessage + " From: " + event.From.Format("15:04:05Z") + " To: " + event.To.Format("15:04:05Z")
-			if _, ok := displayToCount[eventMessageString]; !ok {
-				tmp := &pathologicalEvents{
-					count:        times,
-					eventMessage: eventDisplayMessage,
-				}
-				displayToCount[eventMessageString] = tmp
+			if _, ok := displayToCount[eventDisplayMessage]; !ok {
+				displayToCount[eventDisplayMessage] = event
 			}
-			if times > displayToCount[eventMessageString].count {
-				displayToCount[eventMessageString].count = times
+			if times > GetTimesAnEventHappened(displayToCount[eventDisplayMessage].StructuredMessage) {
+				// Update to the latest interval we saw with the higher count, so from/to are more accurate
+				displayToCount[eventDisplayMessage] = event
 			}
 		}
 	}
 
 	nsResults := map[string]*eventResult{}
-	for msgWithTime, pathoItem := range displayToCount {
-		namespace := monitorapi.NamespaceFromLocator(msgWithTime)
-		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", pathoItem.count, msgWithTime)
+	for intervalDisplayMsg, interval := range displayToCount {
+		namespace := interval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+		intervalMsgWithTime := intervalDisplayMsg + " From: " + interval.From.Format("15:04:05Z") + " To: " + interval.To.Format("15:04:05Z")
+		msg := fmt.Sprintf("event happened %d times, something is wrong: %v",
+			GetTimesAnEventHappened(interval.StructuredMessage), intervalMsgWithTime)
 		flake := false
 		/*
 			for _, kp := range d.knownRepeatedEventsBugs {
