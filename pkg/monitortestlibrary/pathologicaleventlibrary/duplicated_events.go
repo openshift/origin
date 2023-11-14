@@ -232,9 +232,9 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 	displayToCount := map[string]monitorapi.Interval{}
 
 	for _, event := range events {
-		// TODO: port to use structured message reason once kube event intervals are ported over
-		// TODO: moved to an allowed patho
-		if strings.Contains(event.Message, "reason/FailedScheduling") {
+		// TODO: would be nice to move these two exceptions to duplicated_event_patterns, but it's tricky for them
+		// to only calculate the data they need one time...
+		if event.StructuredMessage.Reason == "FailedScheduling" {
 			// Filter out FailedScheduling events while masters are updating
 			var foundOverlap bool
 			for _, nui := range nodeUpdateIntervals {

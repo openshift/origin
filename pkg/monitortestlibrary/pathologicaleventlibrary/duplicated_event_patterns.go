@@ -28,6 +28,11 @@ const (
 	InterestingMark         = "interesting/true"
 )
 
+// IsRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
+// This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
+// Use this to handle cases where, "if X is true, then the repeated event is ok".
+type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
+
 // AllowedDupeEvent allows the definition of events that can repeat more than the threshold we allow during a job run.
 // All specified fields must match the interval for it to be allowed. If or logic is required,
 // it could be implemented within an IsRepeatedEventOKFunc.
@@ -545,11 +550,6 @@ var AllowedRepeatedEventPatterns = []*regexp.Regexp{}
 
 // AllowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
 var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{}
-
-// IsRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
-// This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
-// Use this to handle cases where, "if X is true, then the repeated event is ok".
-type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
 
 func TopologyPointer(topology v1.TopologyMode) *v1.TopologyMode {
 	return &topology
