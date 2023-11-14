@@ -29,7 +29,8 @@ func NewRunUpgradeCommand(streams genericclioptions.IOStreams) *cobra.Command {
 		Supported options:
 
 		* abort-at=NUMBER - Set to a number between 0 and 100 to control the percent of operators
-		at which to stop the current upgrade and roll back to the current version.
+		at which to stop the current upgrade and roll back to the current version (100 to require a
+		complete update).
 		* disrupt-reboot=POLICY - During upgrades, periodically reboot master nodes. If set to 'graceful'
 		the reboot will allow the node to shut down services in an orderly fashion. If set to 'force' the
 		machine will terminate immediately without clean shutdown.

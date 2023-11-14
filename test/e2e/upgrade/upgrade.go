@@ -544,7 +544,7 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 					return false, err
 				}
 
-				if !aborted && monitor.ShouldUpgradeAbort(abortAt) {
+				if !aborted && monitor.ShouldUpgradeAbort(abortAt, desired) {
 					framework.Logf("Instructing the cluster to return to %s / %s", original.Status.Desired.Version, original.Status.Desired.Image)
 					desired = configv1.Update{
 						Image: original.Status.Desired.Image,
