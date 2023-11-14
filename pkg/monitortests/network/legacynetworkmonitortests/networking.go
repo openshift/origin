@@ -166,12 +166,6 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 				continue
 			}
 		}
-		if strings.Contains(event.Message, "kuryr") && strings.Contains(event.Message, "deleted while processing the CNI ADD request") {
-			// This happens from time to time with Kuryr. Creating ports in Neutron for pod can take long and a controller might delete the pod before,
-			// effectively cancelling Kuryr CNI ADD request.
-			flakes = append(flakes, fmt.Sprintf("%v - pod got deleted while kuryr was still processing its creation - %v", event.Locator, event.Message))
-			continue
-		}
 
 		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
 		if deletionTime := getPodDeletionTime(eventsForPods[partialLocator], event.Locator); deletionTime == nil {
