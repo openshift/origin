@@ -33,6 +33,14 @@ var (
 			return false
 		},
 	}
+	SkipHashed = &resourceFilteringOptions{
+		rejectConfigMap: func(configMap *corev1.ConfigMap) bool {
+			return hasMonitoringHashLabel(configMap.Labels)
+		},
+		rejectSecret: func(secret *corev1.Secret) bool {
+			return hasMonitoringHashLabel(secret.Labels)
+		},
+	}
 )
 
 func isRevisioned(ownerReferences []metav1.OwnerReference) bool {
@@ -43,4 +51,9 @@ func isRevisioned(ownerReferences []metav1.OwnerReference) bool {
 	}
 
 	return false
+}
+
+func hasMonitoringHashLabel(labels map[string]string) bool {
+	_, ok := labels["monitoring.openshift.io/hash"]
+	return ok
 }

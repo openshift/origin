@@ -86,26 +86,28 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			}
 
 			details, err := InspectConfigMap(&configMap)
-			if details != nil {
-				// TODO something like options.RewriteCABundleDetails(details) (details, namespace, name)
-				//  this will allow us to rewrite node names and IP values
-				caBundles = append(caBundles, details)
-
-				inClusterResourceData.CertificateAuthorityBundles = append(inClusterResourceData.CertificateAuthorityBundles,
-					certgraphapi.PKIRegistryInClusterCABundle{
-						ConfigMapLocation: certgraphapi.InClusterConfigMapLocation{
-							Namespace: configMap.Namespace,
-							Name:      configMap.Name,
-						},
-						CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
-							OwningJiraComponent: configMap.Annotations[annotations.OpenShiftComponent],
-							Description:         configMap.Annotations[annotations.OpenShiftDescription],
-						},
-					})
-			}
 			if err != nil {
 				errs = append(errs, err)
+				continue
 			}
+			if details == nil {
+				continue
+			}
+			options.rewriteCABundle(details)
+
+			caBundles = append(caBundles, details)
+
+			inClusterResourceData.CertificateAuthorityBundles = append(inClusterResourceData.CertificateAuthorityBundles,
+				certgraphapi.PKIRegistryInClusterCABundle{
+					ConfigMapLocation: certgraphapi.InClusterConfigMapLocation{
+						Namespace: configMap.Namespace,
+						Name:      configMap.Name,
+					},
+					CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
+						OwningJiraComponent: configMap.Annotations[annotations.OpenShiftComponent],
+						Description:         configMap.Annotations[annotations.OpenShiftDescription],
+					},
+				})
 		}
 	}
 
@@ -123,26 +125,27 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			}
 
 			details, err := InspectSecret(&secret)
-			if details != nil {
-				// TODO something like options.RewriteCertKeyPairDetails(details) (details, namespace, name)
-				//  this will allow us to rewrite node names and IP values
-				certs = append(certs, details)
-
-				inClusterResourceData.CertKeyPairs = append(inClusterResourceData.CertKeyPairs,
-					certgraphapi.PKIRegistryInClusterCertKeyPair{
-						SecretLocation: certgraphapi.InClusterSecretLocation{
-							Namespace: secret.Namespace,
-							Name:      secret.Name,
-						},
-						CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
-							OwningJiraComponent: secret.Annotations[annotations.OpenShiftComponent],
-							Description:         secret.Annotations[annotations.OpenShiftDescription],
-						},
-					})
-			}
 			if err != nil {
 				errs = append(errs, err)
+				continue
 			}
+			if details == nil {
+				continue
+			}
+			options.rewriteCertKeyPair(details)
+			certs = append(certs, details)
+
+			inClusterResourceData.CertKeyPairs = append(inClusterResourceData.CertKeyPairs,
+				certgraphapi.PKIRegistryInClusterCertKeyPair{
+					SecretLocation: certgraphapi.InClusterSecretLocation{
+						Namespace: secret.Namespace,
+						Name:      secret.Name,
+					},
+					CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
+						OwningJiraComponent: secret.Annotations[annotations.OpenShiftComponent],
+						Description:         secret.Annotations[annotations.OpenShiftDescription],
+					},
+				})
 		}
 	}
 

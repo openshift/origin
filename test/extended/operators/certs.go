@@ -41,7 +41,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		tlsArtifactFilename := fmt.Sprintf("raw-tls-artifacts-%s-%s-%s-%s.json", jobType.Topology, jobType.Architecture, jobType.Platform, jobType.Network)
 
-		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient, certgraphanalysis.SkipRevisioned, certgraphanalysis.ElideProxyCADetails)
+		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient, certgraphanalysis.SkipRevisioned, certgraphanalysis.ElideProxyCADetails, certgraphanalysis.SkipHashed)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		jsonBytes, err := json.MarshalIndent(currentPKIContent, "", "  ")
