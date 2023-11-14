@@ -28,7 +28,7 @@ require (
 	github.com/openshift/apiserver-library-go v0.0.0-20230915134751-5c71e94d6f05
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/client-go v0.0.0-20230926161409-848405da69e1
-	github.com/openshift/library-go v0.0.0-20231102154438-cfcf2b4fbc87
+	github.com/openshift/library-go v0.0.0-20231114105342-8fcee5af3f13
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
