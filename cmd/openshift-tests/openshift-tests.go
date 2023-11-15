@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/serviceability"
+	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/images"
@@ -86,6 +87,7 @@ func main() {
 		run_resourcewatch.NewRunResourceWatchCommand(),
 		timeline.NewTimelineCommand(ioStreams),
 		run_disruption.NewRunInClusterDisruptionMonitorCommand(ioStreams),
+		collectdiskcertificates.NewRunCollectDiskCertificatesCommand(ioStreams),
 	)
 
 	f := flag.CommandLine.Lookup("v")
