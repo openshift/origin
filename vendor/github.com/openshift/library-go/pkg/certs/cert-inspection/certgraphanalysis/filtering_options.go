@@ -70,3 +70,29 @@ func (l certGenerationOptionList) rewriteCertKeyPair(certKeyPair *certgraphapi.C
 		option.rewriteCertKeyPair(certKeyPair)
 	}
 }
+
+func (l certGenerationOptionList) rewriteConfigMap(configMap *corev1.ConfigMap) {
+	for _, curr := range l {
+		option, ok := curr.(*metadataOptions)
+		if !ok {
+			continue
+		}
+		if option.rewriteConfigMap == nil {
+			continue
+		}
+		option.rewriteConfigMap(configMap)
+	}
+}
+
+func (l certGenerationOptionList) rewriteSecret(secret *corev1.Secret) {
+	for _, curr := range l {
+		option, ok := curr.(*metadataOptions)
+		if !ok {
+			continue
+		}
+		if option.rewriteSecret == nil {
+			continue
+		}
+		option.rewriteSecret(secret)
+	}
+}

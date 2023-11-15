@@ -41,7 +41,14 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		tlsArtifactFilename := fmt.Sprintf("raw-tls-artifacts-%s-%s-%s-%s.json", jobType.Topology, jobType.Architecture, jobType.Platform, jobType.Network)
 
-		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient, certgraphanalysis.SkipRevisioned, certgraphanalysis.ElideProxyCADetails)
+		controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
+		nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient,
+			certgraphanalysis.SkipRevisioned,
+			certgraphanalysis.ElideProxyCADetails,
+			certgraphanalysis.RewriteNodeIPs(nodeList.Items))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		jsonBytes, err := json.MarshalIndent(currentPKIContent, "", "  ")
