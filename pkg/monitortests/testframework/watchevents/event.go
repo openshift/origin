@@ -204,7 +204,7 @@ func recordAddOrUpdateEvent(
 		// which is only applied to things with a count. to get pod sandbox intervals charted we have to get a little creative.
 		// structured intervals should come here soon.
 
-		// TODO: fake interesting flag, accomodate flagging this interesting in the new duplicated events patterns definitions
+		// TODO: fake interesting flag, accommodate flagging this interesting in the new duplicated events patterns definitions
 		message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
 
 		// make sure we add 1 second to the to timestamp so it doesn't get filtered out when creating the spyglass html
@@ -234,31 +234,6 @@ func eventForContainer(fieldPath string) (string, bool) {
 		return strings.TrimPrefix(fieldPath, "spec.initContainers{"), true
 	default:
 		return "", false
-	}
-}
-
-// TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
-func locateEvent(event *corev1.Event) string {
-	switch {
-	case event.InvolvedObject.Kind == "Namespace":
-		// namespace better match the event itself.
-		return monitorapi.NewLocator().LocateNamespace(event.InvolvedObject.Name).OldLocator()
-
-	case event.InvolvedObject.Kind == "Node":
-		return monitorapi.NewLocator().NodeFromName(event.InvolvedObject.Name).OldLocator()
-
-	case len(event.InvolvedObject.Namespace) == 0:
-		if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
-			return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
-		}
-		return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-
-	default:
-		// involved object is namespaced
-		if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
-			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
-		}
-		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 	}
 }
 

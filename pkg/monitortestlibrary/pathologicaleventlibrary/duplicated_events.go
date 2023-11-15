@@ -405,13 +405,6 @@ func GetClusterInfraInfo(c *rest.Config) (platform v1.PlatformType, topology v1.
 	return platform, topology, nil
 }
 
-type etcdRevisionChangeAllowance struct {
-	allowedGuardProbeFailurePattern        *regexp.Regexp
-	maxAllowedGuardProbeFailurePerRevision int
-
-	currentRevision int
-}
-
 // newDuplicatedEventsAllowedWhenEtcdRevisionChange tolerates etcd readiness probe failures unless we receive more
 // than the allowance per revisions of etcd.
 func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clientConfig *rest.Config) (*PathologicalEventMatcher, error) {

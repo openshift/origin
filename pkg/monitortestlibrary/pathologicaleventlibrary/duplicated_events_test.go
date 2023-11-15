@@ -12,13 +12,14 @@ import (
 )
 
 func TestAllowedRepeatedEvents(t *testing.T) {
-	//message: `ns/ pod/pfpod node/ - reason/Unhealthy `,
 	tests := []struct {
 		name    string
 		locator monitorapi.Locator
 		msg     monitorapi.Message
 		// expectedMatchName is the name of the PathologicalEventMatcher we expect to be returned as allowing this duplicated event.
 		expectedMatchName string
+		// topology is an optional topology to fake we're in
+		topology v1.TopologyMode
 	}{
 		{
 			name: "unhealthy e2e port forwarding pod readiness probe",
@@ -82,6 +83,18 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			expectedMatchName: "BackOffPullingWebserverImage404",
 		},
 		{
+			name: "no match for missing image in core namespace ",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-controller-manager",
+					monitorapi.LocatorPodKey:       "doesntmatter",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"foobar\"").
+				Reason("BackOff").Build(),
+			expectedMatchName: "",
+		},
+		{
 			name: "port-forward",
 			locator: monitorapi.Locator{
 				Keys: map[monitorapi.LocatorKey]string{
@@ -121,9 +134,9 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			allowed, matchedAllowedDupe := MatchesAny(AllowedPathologicalEvents, test.locator, test.msg, "")
+			allowed, matchedAllowedDupe := MatchesAny(AllowedPathologicalEvents, test.locator, test.msg, test.topology)
 			if test.expectedMatchName != "" {
-				assert.True(t, allowed, "duplicated event should have been allowed")
+				assert.True(t, allowed, "duplicated event should have been allowed, but we matched: %s", matchedAllowedDupe.Name)
 				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
 				assert.Equal(t, test.expectedMatchName, matchedAllowedDupe.Name, "duplicated event was not allowed by the correct PathologicalEventMatcher")
 			} else {
@@ -339,201 +352,6 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 		})
 	}
 }
-
-/* TODO: bring these back in another form
-func TestKnownBugEvents(t *testing.T) {
-	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs: []KnownProblem{
-			{
-				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
-				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent2.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Topology: TopologyPointer(v1.SingleReplicaTopologyMode),
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent3.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: PlatformPointer(v1.AWSPlatformType),
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent4.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Topology: TopologyPointer(v1.HighlyAvailableTopologyMode),
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent5.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: PlatformPointer(v1.GCPPlatformType),
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent6.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: PlatformPointer(""),
-			},
-		},
-	}
-
-	tests := []struct {
-		name     string
-		message  string
-		match    bool
-		platform v1.PlatformType
-		topology v1.TopologyMode
-	}{
-		{
-			name:     "matches without platform or topology",
-			message:  `ns/e2e - reason/SomeEvent1 foo (21 times)`,
-			match:    true,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-		},
-		{
-			name:     "matches with topology",
-			message:  `ns/e2e - reason/SomeEvent2 foo (21 times)`,
-			match:    true,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-		},
-		{
-			name:     "matches with topology and platform",
-			message:  `ns/e2e - reason/SomeEvent3 foo (21 times)`,
-			match:    true,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-		},
-		{
-			name:     "does not match against different topology",
-			message:  `ns/e2e - reason/SomeEvent4 foo (21 times)`,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-			match:    false,
-		},
-		{
-			name:     "does not match against different platform",
-			message:  `ns/e2e - reason/SomeEvent5 foo (21 times)`,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-			match:    false,
-		},
-		{
-			name:     "empty platform matches empty platform",
-			message:  `ns/e2e - reason/SomeEvent6 foo (21 times)`,
-			platform: "",
-			match:    true,
-		},
-		{
-			name:     "empty platform doesn't match another platform",
-			message:  `ns/e2e - reason/SomeEvent6 foo (21 times)`,
-			platform: v1.AWSPlatformType,
-			match:    false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			events := monitorapi.Intervals{}
-			events = append(events,
-				monitorapi.Interval{
-					Condition: monitorapi.Condition{Message: test.message},
-					From:      time.Unix(1, 0).In(time.UTC),
-					To:        time.Unix(1, 0).In(time.UTC)},
-			)
-			evaluator.platform = test.platform
-			evaluator.topology = test.topology
-
-			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
-			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
-
-			if test.match {
-				require.NotNil(t, junits[0].FailureOutput)
-				assert.Contains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
-			} else {
-				assert.Nil(t, junits[0].FailureOutput)
-			}
-
-		})
-	}
-}
-
-func TestKnownBugEventsGroup(t *testing.T) {
-	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs: []KnownProblem{
-			{
-				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
-				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-			},
-		},
-	}
-
-	tests := []struct {
-		name            string
-		messages        []string
-		platform        v1.PlatformType
-		topology        v1.TopologyMode
-		expectedMessage string
-	}{
-		{
-			name:            "matches 22 before",
-			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (21 times)`},
-			platform:        v1.AWSPlatformType,
-			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
-		},
-		{
-			name:            "matches 25 after",
-			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (21 times)`, `ns/e2e - reason/SomeEvent1 foo (25 times)`},
-			platform:        v1.AWSPlatformType,
-			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 25 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
-		},
-		{
-			name:            "matches 22 below with below threshold following",
-			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (5 times)`},
-			platform:        v1.AWSPlatformType,
-			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
-		},
-		{
-			name:            "matches 22 with multiple line message",
-			messages:        []string{"ns/e2e - reason/SomeEvent1 foo \nbody:\n (22 times)"},
-			platform:        v1.AWSPlatformType,
-			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo  result=allow \nbody:\n From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-
-			events := monitorapi.Intervals{}
-			for _, message := range test.messages {
-
-				events = append(events,
-					monitorapi.Interval{
-						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(872827200, 0).In(time.UTC),
-						To:        time.Unix(872827200, 0).In(time.UTC)},
-				)
-			}
-
-			evaluator.platform = test.platform
-			evaluator.topology = test.topology
-
-			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
-			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
-
-			assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
-
-		})
-	}
-}
-
-*/
 
 func TestMakeProbeTestEventsGroup(t *testing.T) {
 

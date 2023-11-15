@@ -512,15 +512,6 @@ var AllowedPathologicalUpgradeEvents = []*PathologicalEventMatcher{
 		MessageHumanRegex:  regexp.MustCompile(`unhealthy members`),
 	},
 
-	// Allow a little more connection refused than normally if we're on single node, which experiences
-	// more downtime during upgrades
-	{
-		Name:                    "ConnectionRefusedSingleNode",
-		MessageHumanRegex:       regexp.MustCompile(`dial tcp.*connection refused`),
-		Topology:                TopologyPointer(v1.SingleReplicaTopologyMode),
-		RepeatThresholdOverride: 30,
-	},
-
 	// Ignore NetworkNotReady repeat events.
 	// This was originally linked to bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1986370
 	// The bug has been closed as NOTABUG.
