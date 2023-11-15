@@ -84,7 +84,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if details == nil {
 				continue
 			}
-			options.rewriteCABundle(details)
+			options.rewriteCABundle(configMap.ObjectMeta, details)
 
 			caBundles = append(caBundles, details)
 
@@ -123,7 +123,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 			if details == nil {
 				continue
 			}
-			options.rewriteCertKeyPair(details)
+			options.rewriteCertKeyPair(secret.ObjectMeta, details)
 			certs = append(certs, details)
 
 			inClusterResourceData.CertKeyPairs = append(inClusterResourceData.CertKeyPairs,

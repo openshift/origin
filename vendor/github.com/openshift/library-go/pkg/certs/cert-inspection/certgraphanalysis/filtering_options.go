@@ -3,6 +3,7 @@ package certgraphanalysis
 import (
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type certGenerationOptions interface {
@@ -45,7 +46,7 @@ func (l certGenerationOptionList) rejectSecret(secret *corev1.Secret) bool {
 	return false
 }
 
-func (l certGenerationOptionList) rewriteCABundle(caBundle *certgraphapi.CertificateAuthorityBundle) {
+func (l certGenerationOptionList) rewriteCABundle(metadata metav1.ObjectMeta, caBundle *certgraphapi.CertificateAuthorityBundle) {
 	for _, curr := range l {
 		option, ok := curr.(*metadataOptions)
 		if !ok {
@@ -54,11 +55,11 @@ func (l certGenerationOptionList) rewriteCABundle(caBundle *certgraphapi.Certifi
 		if option.rewriteCABundle == nil {
 			continue
 		}
-		option.rewriteCABundle(caBundle)
+		option.rewriteCABundle(metadata, caBundle)
 	}
 }
 
-func (l certGenerationOptionList) rewriteCertKeyPair(certKeyPair *certgraphapi.CertKeyPair) {
+func (l certGenerationOptionList) rewriteCertKeyPair(metadata metav1.ObjectMeta, certKeyPair *certgraphapi.CertKeyPair) {
 	for _, curr := range l {
 		option, ok := curr.(*metadataOptions)
 		if !ok {
@@ -67,7 +68,7 @@ func (l certGenerationOptionList) rewriteCertKeyPair(certKeyPair *certgraphapi.C
 		if option.rewriteCertKeyPair == nil {
 			continue
 		}
-		option.rewriteCertKeyPair(certKeyPair)
+		option.rewriteCertKeyPair(metadata, certKeyPair)
 	}
 }
 
