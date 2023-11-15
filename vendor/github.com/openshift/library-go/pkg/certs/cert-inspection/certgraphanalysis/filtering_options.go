@@ -1,7 +1,6 @@
 package certgraphanalysis
 
 import (
-	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -43,30 +42,4 @@ func (l certGenerationOptionList) rejectSecret(secret *corev1.Secret) bool {
 		}
 	}
 	return false
-}
-
-func (l certGenerationOptionList) rewriteCABundle(caBundle *certgraphapi.CertificateAuthorityBundle) {
-	for _, curr := range l {
-		option, ok := curr.(*metadataOptions)
-		if !ok {
-			continue
-		}
-		if option.rewriteCABundle == nil {
-			continue
-		}
-		option.rewriteCABundle(caBundle)
-	}
-}
-
-func (l certGenerationOptionList) rewriteCertKeyPair(certKeyPair *certgraphapi.CertKeyPair) {
-	for _, curr := range l {
-		option, ok := curr.(*metadataOptions)
-		if !ok {
-			continue
-		}
-		if option.rewriteCertKeyPair == nil {
-			continue
-		}
-		option.rewriteCertKeyPair(certKeyPair)
-	}
 }

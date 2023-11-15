@@ -21,16 +21,10 @@ func (resourceFilteringOptions) approved() {}
 var (
 	SkipRevisioned = &resourceFilteringOptions{
 		rejectConfigMap: func(configMap *corev1.ConfigMap) bool {
-			if isRevisioned(configMap.OwnerReferences) {
-				return true
-			}
-			return false
+			return isRevisioned(configMap.OwnerReferences)
 		},
 		rejectSecret: func(secret *corev1.Secret) bool {
-			if isRevisioned(secret.OwnerReferences) {
-				return true
-			}
-			return false
+			return isRevisioned(secret.OwnerReferences)
 		},
 	}
 	SkipHashed = &resourceFilteringOptions{
