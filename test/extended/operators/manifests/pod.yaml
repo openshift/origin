@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: e2e-collect-certificate
+  namespace: e2e-collect-certificate
+spec:
+  containers:
+  - name: collector
+    command:
+    - openshift-tests
+    - collect-disk-certificates
+    - --output-file=/var/log/pkiList.json
+    image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
+    volumeMounts:
+    - mountPath: /var/log
+      name: logs
+  serviceAccountName: collect-certificate-sa
+  securityContext:
+    privileged: true
+    runAsUser: 0
+  volumes:
+  - hostPath:
+      path: /var/log
+      type: DirectoryOrCreate
+    name: logs
+  tolerations:
+  - key: node-role.kubernetes.io/master
+    effect: NoSchedule
