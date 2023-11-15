@@ -21,6 +21,21 @@ func GatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernete
 	return gatherFilteredCerts(ctx, kubeClient, platformConfigMaps, platformSecrets, options)
 }
 
+func GatherCertsFromDisk(ctx context.Context, kubeClient kubernetes.Interface, dir string, options ...certGenerationOptions) (*certgraphapi.PKIList, error) {
+	errs := []error{}
+
+	certs, err := gatherSecretsFromDisk(ctx, dir, options...)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	caBundles, err := gatherCABundlesFromDisk(ctx, dir, options...)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	pkiList := PKIListFromParts(ctx, nil, certs, caBundles)
+	return pkiList, errors.NewAggregate(errs)
+}
+
 var wellKnownPlatformNamespaces = sets.NewString(
 	"openshift",
 	"default",
@@ -166,4 +181,30 @@ func PKIListFromParts(ctx context.Context, inClusterResourceData *certgraphapi.P
 	}
 
 	return ret
+}
+
+func MergePKILists(ctx context.Context, first, second *certgraphapi.PKIList) *certgraphapi.PKIList {
+
+	certList := &certgraphapi.CertKeyPairList{
+		Items: append(first.CertKeyPairs.Items, second.CertKeyPairs.Items...),
+	}
+	certList = deduplicateCertKeyPairList(certList)
+
+	caBundlesList := &certgraphapi.CertificateAuthorityBundleList{
+		Items: append(first.CertificateAuthorityBundles.Items, second.CertificateAuthorityBundles.Items...),
+	}
+	caBundlesList = deduplicateCABundlesList(caBundlesList)
+
+	inClusterData := certgraphapi.PerInClusterResourceData{}
+	inClusterData.CertKeyPairs = append(inClusterData.CertKeyPairs, first.InClusterResourceData.CertKeyPairs...)
+	inClusterData.CertKeyPairs = append(inClusterData.CertKeyPairs, second.InClusterResourceData.CertKeyPairs...)
+	inClusterData.CertificateAuthorityBundles = append(inClusterData.CertificateAuthorityBundles, first.InClusterResourceData.CertificateAuthorityBundles...)
+	inClusterData.CertificateAuthorityBundles = append(inClusterData.CertificateAuthorityBundles, second.InClusterResourceData.CertificateAuthorityBundles...)
+	//TODO[vrutkovs] deduplicate inClusterData?
+
+	return &certgraphapi.PKIList{
+		CertificateAuthorityBundles: *caBundlesList,
+		CertKeyPairs:                *certList,
+		InClusterResourceData:       inClusterData,
+	}
 }

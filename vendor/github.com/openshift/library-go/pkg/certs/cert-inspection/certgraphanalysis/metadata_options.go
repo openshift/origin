@@ -8,8 +8,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const lastRewrittenByAnnotation = "openshift.io/last-rewritten-by"
-
 type configMapRewriteFunc func(configMap *corev1.ConfigMap)
 type secretRewriteFunc func(secret *corev1.Secret)
 type caBundleRewriteFunc func(caBundle *certgraphapi.CertificateAuthorityBundle)
@@ -124,7 +122,6 @@ func rewriteIPInEtcdServingSecret(secret *corev1.Secret, nodes map[string]int) {
 	if secret.Namespace == "openshift-etcd" && strings.HasPrefix(secret.Name, "etcd-serving-") {
 		master := secret.Name[len("etcd-serving-"):]
 		secret.Name = fmt.Sprintf("etcd-serving-for-master-%d", nodes[master])
-		setSecretRewrittenAnnotation(secret, "rewriteIPInEtcdServingSecret")
 	}
 }
 
@@ -132,7 +129,6 @@ func rewriteIPInEtcdServingMetricsSecret(secret *corev1.Secret, nodes map[string
 	if secret.Namespace == "openshift-etcd" && strings.HasPrefix(secret.Name, "etcd-serving-metrics-") {
 		master := secret.Name[len("etcd-serving-metrics-"):]
 		secret.Name = fmt.Sprintf("etcd-metrics-for-master-%d", nodes[master])
-		setSecretRewrittenAnnotation(secret, "rewriteIPInEtcdServingMetricsSecret")
 	}
 }
 
@@ -140,13 +136,5 @@ func rewriteIPInEtcdPeerSecret(secret *corev1.Secret, nodes map[string]int) {
 	if secret.Namespace == "openshift-etcd" && strings.HasPrefix(secret.Name, "etcd-peer-") {
 		master := secret.Name[len("etcd-peer-"):]
 		secret.Name = fmt.Sprintf("etcd-peer-for-master-%d", nodes[master])
-		setSecretRewrittenAnnotation(secret, "rewriteIPInEtcdPeerSecret")
 	}
-}
-
-func setSecretRewrittenAnnotation(secret *corev1.Secret, value string) {
-	if len(secret.Annotations) == 0 {
-		secret.Annotations = map[string]string{}
-	}
-	secret.Annotations[lastRewrittenByAnnotation] = value
 }
