@@ -344,7 +344,8 @@ const (
 
 // GetDockerRegistryURL returns a cluster URL of internal container image registry if available.
 func GetDockerRegistryURL(oc *exutil.CLI) (string, error) {
-	return oc.Run("registry").Args("info").Output()
+	stdout, _, err := oc.Run("registry").Args("info").Outputs()
+	return stdout, err
 }
 
 // RegistriConfiguration holds desired configuration options for the integrated registry. *nil* stands for
