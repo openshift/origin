@@ -116,6 +116,7 @@ func toCertKeyMetadata(certificate *x509.Certificate) certgraphapi.CertKeyMetada
 		ret.PublicKeyBitSize = fmt.Sprintf("%d bit, %v curve", publicKey.Params().BitSize, publicKey.Params().Name)
 	case *rsa.PublicKey:
 		ret.PublicKeyBitSize = fmt.Sprintf("%d bit", publicKey.Size()*8)
+		ret.CertIdentifier.PubkeyModulus = publicKey.N.String()
 	default:
 		fmt.Fprintf(os.Stderr, "%T\n", publicKey)
 	}
