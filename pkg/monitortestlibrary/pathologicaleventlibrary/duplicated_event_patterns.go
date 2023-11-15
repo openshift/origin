@@ -56,7 +56,7 @@ type PathologicalEventMatcher struct {
 }
 
 // Matches checks if the given locator/messagebuilder matches this allowed dupe event.
-func (ade *PathologicalEventMatcher) Matches(l monitorapi.Locator, msg monitorapi.Message, topology *v1.TopologyMode) bool {
+func (ade *PathologicalEventMatcher) Matches(l monitorapi.Locator, msg monitorapi.Message, topology v1.TopologyMode) bool {
 	for lk, r := range ade.LocatorKeyRegexes {
 		if !r.MatchString(l.Keys[lk]) {
 			logrus.WithField("allower", ade.Name).Debugf("key %s did not match", lk)
@@ -80,14 +80,14 @@ func (ade *PathologicalEventMatcher) Matches(l monitorapi.Locator, msg monitorap
 		}
 	}
 
-	if ade.Topology != nil && *ade.Topology != *topology {
+	if ade.Topology != nil && *ade.Topology != topology {
 		logrus.WithField("allower", ade.Name).Debugf("cluster did not match topology")
 		return false
 	}
 	return true
 }
 
-func MatchesAny(allowedDupes []*PathologicalEventMatcher, l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config, topology *v1.TopologyMode) (bool, *PathologicalEventMatcher) {
+func MatchesAny(allowedDupes []*PathologicalEventMatcher, l monitorapi.Locator, msg monitorapi.Message, topology v1.TopologyMode) (bool, *PathologicalEventMatcher) {
 	for _, ad := range allowedDupes {
 		allowed := ad.Matches(l, msg, topology)
 		if allowed {

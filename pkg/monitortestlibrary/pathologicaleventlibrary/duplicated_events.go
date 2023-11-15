@@ -8,10 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/sirupsen/logrus"
 
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -35,8 +33,13 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 		allowedDupeEvents: allowedDupeEvents,
 	}
 
-	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
-		e2e.Logf("could not fetch cluster info: %w", err)
+	platform, topology, err := GetClusterInfraInfo(kubeClientConfig)
+	if err != nil {
+		logrus.WithError(err).Error("could not fetch cluster infra info")
+	} else {
+		// These could be coming out "" in theory
+		evaluator.platform = platform
+		evaluator.topology = topology
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -65,8 +68,13 @@ func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 	evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, etcdAllowance.allowEtcdGuardReadinessProbeFailure)
 	*/
 
-	if err := evaluator.getClusterInfo(clientConfig); err != nil {
-		e2e.Logf("could not fetch cluster info: %w", err)
+	platform, topology, err := GetClusterInfraInfo(clientConfig)
+	if err != nil {
+		logrus.WithError(err).Error("could not fetch cluster infra info")
+	} else {
+		// These could be coming out "" in theory
+		evaluator.platform = platform
+		evaluator.topology = topology
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -322,7 +330,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 			// implying it matches some pattern, but that happens even for upgrade patterns occurring in non-upgrade jobs,
 			// so we were ignoring patterns that were meant to be allowed only in upgrade jobs in all jobs. The list of
 			// allowed patterns passed to this object wasn't even used.
-			if allowed, _ := MatchesAny(d.allowedDupeEvents, event.StructuredLocator, event.StructuredMessage, kubeClientConfig, &d.topology); allowed {
+			if allowed, _ := MatchesAny(d.allowedDupeEvents, event.StructuredLocator, event.StructuredMessage, d.topology); allowed {
 				continue
 			}
 
@@ -386,29 +394,28 @@ func GetTimesAnEventHappened(msg monitorapi.Message) int {
 	return int(times)
 }
 
-func (d *duplicateEventsEvaluator) getClusterInfo(c *rest.Config) (err error) {
+func GetClusterInfraInfo(c *rest.Config) (platform v1.PlatformType, topology v1.TopologyMode, err error) {
 	if c == nil {
 		return
 	}
 
 	oc, err := configclient.NewForConfig(c)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 	infra, err := oc.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		return err
+		return "", "", err
 	}
-
 	if infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type != "" {
-		d.platform = infra.Status.PlatformStatus.Type
+		platform = infra.Status.PlatformStatus.Type
 	}
 
 	if infra.Status.ControlPlaneTopology != "" {
-		d.topology = infra.Status.ControlPlaneTopology
+		topology = infra.Status.ControlPlaneTopology
 	}
 
-	return nil
+	return platform, topology, nil
 }
 
 type etcdRevisionChangeAllowance struct {

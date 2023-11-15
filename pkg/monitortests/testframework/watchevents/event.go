@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/sirupsen/logrus"
 
@@ -33,6 +34,11 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 	// we've already recorded.
 	processedEventUIDs := map[types.UID]string{}
 
+	_, topology, err := pathologicaleventlibrary.GetClusterInfraInfo(adminRESTConfig)
+	if err != nil {
+		logrus.WithError(err).Error("could not fetch cluster infra info")
+	}
+
 	listWatch := cache.NewListWatchFromClient(client.CoreV1().RESTClient(), "events", "", fields.Everything())
 	customStore := &cache.FakeCustomStore{
 		// ReplaceFunc called when we do our initial list on starting the reflector. With no resync period,
@@ -56,7 +62,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, adminRESTConfig, client, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -67,7 +73,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, adminRESTConfig, client, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -80,7 +86,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 func recordAddOrUpdateEvent(
 	ctx context.Context,
 	recorder monitorapi.RecorderWriter,
-	adminRESTConfig *rest.Config,
+	topology v1.TopologyMode,
 	client kubernetes.Interface,
 	significantlyBeforeNow time.Time,
 	obj *corev1.Event) {
@@ -176,8 +182,7 @@ func recordAddOrUpdateEvent(
 	allowedDupeEvents := []*pathologicaleventlibrary.PathologicalEventMatcher{}
 	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedPathologicalEvents...)
 	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedPathologicalUpgradeEvents...)
-	isInteresting, _ := pathologicaleventlibrary.MatchesAny(allowedDupeEvents,
-		locator, message.Build(), adminRESTConfig, nil)
+	isInteresting, _ := pathologicaleventlibrary.MatchesAny(allowedDupeEvents, locator, message.Build(), topology)
 
 	if obj.Count > 1 {
 
