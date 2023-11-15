@@ -280,6 +280,7 @@ func testReachableHTTPWithMinSuccessCount(url string, successCount int, timeout 
 	consecutiveSuccessCnt := 0
 	err := wait.PollImmediate(1*time.Second, timeout, func() (bool, error) {
 		resp, err := httpGetNoConnectionPoolTimeout(url, 10*time.Second)
+		fmt.Fprintf(os.Stderr, "consecutiveSuccessCnt %d\n", consecutiveSuccessCnt)
 		if err != nil {
 			consecutiveSuccessCnt = 0
 			return false, nil
