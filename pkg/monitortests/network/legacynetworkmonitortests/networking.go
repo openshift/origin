@@ -319,8 +319,7 @@ func testOvnNodeReadinessProbe(events monitorapi.Intervals, kubeClientConfig *re
 	msgMap := map[string]bool{}
 	for _, event := range events {
 		msg := fmt.Sprintf("%s - %s", event.Locator, event.Message)
-		if pathologicaleventlibrary.AllowOVNReadiness.Matches(event.StructuredLocator,
-			event.StructuredMessage, nil, nil) {
+		if pathologicaleventlibrary.AllowOVNReadiness.Matches(event.StructuredLocator, event.StructuredMessage, nil) {
 
 			if _, ok := msgMap[msg]; !ok {
 				msgMap[msg] = true

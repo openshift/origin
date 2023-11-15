@@ -27,9 +27,9 @@ import (
 
 func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	// append upgrade allowances to the main slice
-	allowedDupeEvents := []*AllowedDupeEvent{}
-	allowedDupeEvents = append(allowedDupeEvents, AllowedRepeatedEvents...)
-	allowedDupeEvents = append(allowedDupeEvents, AllowedRepeatedUpgradeEvents...)
+	allowedDupeEvents := []*PathologicalEventMatcher{}
+	allowedDupeEvents = append(allowedDupeEvents, AllowedPathologicalEvents...)
+	allowedDupeEvents = append(allowedDupeEvents, AllowedPathologicalUpgradeEvents...)
 
 	evaluator := duplicateEventsEvaluator{
 		allowedDupeEvents: allowedDupeEvents,
@@ -48,7 +48,7 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 
 	evaluator := duplicateEventsEvaluator{
-		allowedDupeEvents: AllowedRepeatedEvents,
+		allowedDupeEvents: AllowedPathologicalEvents,
 	}
 
 	/* TODO: restore, but it looks like this has been busted for ages, we append to a list of
@@ -88,7 +88,7 @@ func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
 
 type duplicateEventsEvaluator struct {
 	// allowedDupeEvents is the list of matchers we use to see if a repeat kube event is allowed or not.
-	allowedDupeEvents []*AllowedDupeEvent
+	allowedDupeEvents []*PathologicalEventMatcher
 
 	// platform contains the current platform of the cluster under Test.
 	platform v1.PlatformType

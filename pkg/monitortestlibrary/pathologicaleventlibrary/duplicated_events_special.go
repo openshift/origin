@@ -11,7 +11,7 @@ import (
 
 type singleEventThresholdCheck struct {
 	testName       string
-	matcher        *AllowedDupeEvent
+	matcher        *PathologicalEventMatcher
 	failThreshold  int
 	flakeThreshold int
 }
@@ -24,7 +24,7 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	success := &junitapi.JUnitTestCase{Name: s.testName}
 	var failureOutput, flakeOutput []string
 	for _, e := range events {
-		if s.matcher.Matches(e.StructuredLocator, e.StructuredMessage, nil, nil) {
+		if s.matcher.Matches(e.StructuredLocator, e.StructuredMessage, nil) {
 			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
 			times := GetTimesAnEventHappened(e.StructuredMessage)
 			switch {
@@ -61,7 +61,7 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	return []*junitapi.JUnitTestCase{success}
 }
 
-func NewSingleEventThresholdCheck(testName string, matcher *AllowedDupeEvent, failThreshold, flakeThreshold int) *singleEventThresholdCheck {
+func NewSingleEventThresholdCheck(testName string, matcher *PathologicalEventMatcher, failThreshold, flakeThreshold int) *singleEventThresholdCheck {
 	return &singleEventThresholdCheck{
 		testName:       testName,
 		matcher:        matcher,
@@ -85,15 +85,15 @@ func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Interv
 }
 
 func MakeProbeTest(testName string, events monitorapi.Intervals, operatorName string,
-	matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+	matcher *PathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	return eventMatchThresholdTest(testName, operatorName, events, matcher, eventFlakeThreshold)
 }
 
-func EventExprMatchThresholdTest(testName string, events monitorapi.Intervals, matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+func EventExprMatchThresholdTest(testName string, events monitorapi.Intervals, matcher *PathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	return eventMatchThresholdTest(testName, "", events, matcher, eventFlakeThreshold)
 }
 
-func eventMatchThresholdTest(testName, operatorName string, events monitorapi.Intervals, matcher *AllowedDupeEvent, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+func eventMatchThresholdTest(testName, operatorName string, events monitorapi.Intervals, matcher *PathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	var maxFailureOutput string
 	maxTimes := 0
 	for _, event := range events {
@@ -103,7 +103,7 @@ func eventMatchThresholdTest(testName, operatorName string, events monitorapi.In
 			continue
 		}
 
-		if matcher.Matches(event.StructuredLocator, event.StructuredMessage, nil, nil) {
+		if matcher.Matches(event.StructuredLocator, event.StructuredMessage, nil) {
 			// Place the failure time in the message to avoid having to extract the time from the events json file
 			// (in artifacts) when viewing the Test failure output.
 			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.String())

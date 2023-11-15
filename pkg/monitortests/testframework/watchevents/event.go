@@ -173,9 +173,9 @@ func recordAddOrUpdateEvent(
 
 	// Flag any event that matches one of our allowances as "interesting", regardless how many
 	// times it occurred. We include upgrade allowances here.
-	allowedDupeEvents := []*pathologicaleventlibrary.AllowedDupeEvent{}
-	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedRepeatedEvents...)
-	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedRepeatedUpgradeEvents...)
+	allowedDupeEvents := []*pathologicaleventlibrary.PathologicalEventMatcher{}
+	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedPathologicalEvents...)
+	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedPathologicalUpgradeEvents...)
 	isInteresting, _ := pathologicaleventlibrary.MatchesAny(allowedDupeEvents,
 		locator, message.Build(), adminRESTConfig, nil)
 

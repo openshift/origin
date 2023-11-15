@@ -17,7 +17,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 		name    string
 		locator monitorapi.Locator
 		msg     monitorapi.Message
-		// expectedMatchName is the name of the AllowedDupeEvent we expect to be returned as allowing this duplicated event.
+		// expectedMatchName is the name of the PathologicalEventMatcher we expect to be returned as allowing this duplicated event.
 		expectedMatchName string
 	}{
 		{
@@ -121,12 +121,12 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			allowed, matchedAllowedDupe := MatchesAny(AllowedRepeatedEvents, test.locator,
+			allowed, matchedAllowedDupe := MatchesAny(AllowedPathologicalEvents, test.locator,
 				test.msg, nil, nil)
 			if test.expectedMatchName != "" {
 				assert.True(t, allowed, "duplicated event should have been allowed")
 				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
-				assert.Equal(t, test.expectedMatchName, matchedAllowedDupe.Name, "duplicated event was not allowed by the correct AllowedDupeEvent")
+				assert.Equal(t, test.expectedMatchName, matchedAllowedDupe.Name, "duplicated event was not allowed by the correct PathologicalEventMatcher")
 			} else {
 				require.False(t, allowed, "duplicated event should not have been allowed")
 				assert.Nil(t, matchedAllowedDupe, "duplicated event should not have been allowed by matcher")
@@ -136,33 +136,9 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 
 }
 
-func TestUpgradeEventRegexExcluder(t *testing.T) {
-	allowedRepeatedEventsRegex := combinedRegexp(AllowedUpgradeRepeatedEventPatterns...)
-
-	tests := []struct {
-		name    string
-		message string
-	}{
-		{
-			name:    "etcd-member",
-			message: `ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: ip-10-0-198-128.ec2.internal`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actual := allowedRepeatedEventsRegex.MatchString(test.message)
-			if !actual {
-				t.Fatal("did not match")
-			}
-		})
-	}
-
-}
-
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedDupeEvents: AllowedRepeatedEvents,
+		allowedDupeEvents: AllowedPathologicalEvents,
 	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)
@@ -566,7 +542,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 		name            string
 		intervals       monitorapi.Intervals
 		match           bool
-		matcher         *AllowedDupeEvent
+		matcher         *PathologicalEventMatcher
 		operator        string
 		expectedMessage string
 	}{
@@ -682,7 +658,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 
 func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedDupeEvents: AllowedRepeatedEvents,
+		allowedDupeEvents: AllowedPathologicalEvents,
 	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)

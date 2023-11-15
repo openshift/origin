@@ -31,14 +31,13 @@ const (
 // Use this to handle cases where, "if X is true, then the repeated event is ok".
 type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
 
-// AllowedDupeEvent allows the definition of events that can repeat more than the threshold we allow during a job run.
-// All specified fields must match the interval for it to be allowed. If or logic is required,
-// it could be implemented within an IsRepeatedEventOKFunc.
-type AllowedDupeEvent struct {
+// PathologicalEventMatcher allows the definition of kube event intervals that can repeat more than the threshold we allow during a job run.
+// All specified fields must match the interval for it to be allowed.
+type PathologicalEventMatcher struct {
 	// Name is a unique CamelCase friendly name that briefly describes the allowed dupe events. It's used in
 	// logging and unit tests to make sure we match on what we expect.
 	Name string
-	// LocatorKeyRegexes is a map of LocatorKey to regex that key must match for this allowance to trigger.
+	// LocatorKeyRegexes is a map of LocatorKey to regex that key must match.
 	LocatorKeyRegexes map[monitorapi.LocatorKey]*regexp.Regexp
 	// MessageReasonRegex checks the Reason on a structured interval Message.
 	MessageReasonRegex *regexp.Regexp
@@ -46,24 +45,18 @@ type AllowedDupeEvent struct {
 	MessageHumanRegex *regexp.Regexp
 	// Topology limits the exception to a specific topology. (e.g. single replica)
 	Topology *v1.TopologyMode
-	// TestSuite limits the exception to a specific test suite. (e.g. openshift/builds)
-	TestSuite *string
 
 	// RepeatThresholdOverride allows a matcher to allow more than our default number of repeats.
 	// Less will not work as the matcher will not be invoked if we're over our threshold.
 	RepeatThresholdOverride int
 
-	// TODO: Interval may not be created yet, work off Locator and MessageBuilder?
-	// IsRepeatedEventOKFunc allows for additional more fine grained checks for this interval.
-	//IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
-
 	// Jira is a link to a Jira (or legacy Bugzilla). If set it implies we consider this event a problem but there's
-	// been a bug filed, and as such if matching duplicated events are found a test should flake.
+	// been a bug filed.
 	Jira string
 }
 
 // Matches checks if the given locator/messagebuilder matches this allowed dupe event.
-func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config, topology *v1.TopologyMode) bool {
+func (ade *PathologicalEventMatcher) Matches(l monitorapi.Locator, msg monitorapi.Message, topology *v1.TopologyMode) bool {
 	for lk, r := range ade.LocatorKeyRegexes {
 		if !r.MatchString(l.Keys[lk]) {
 			logrus.WithField("allower", ade.Name).Debugf("key %s did not match", lk)
@@ -94,12 +87,9 @@ func (ade *AllowedDupeEvent) Matches(l monitorapi.Locator, msg monitorapi.Messag
 	return true
 }
 
-// TODO: ShouldFlake function, return true if Jira field is set, used by duplicateEventMatcher to determine
-// if we should flake a test or not.
-
-func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config, topology *v1.TopologyMode) (bool, *AllowedDupeEvent) {
+func MatchesAny(allowedDupes []*PathologicalEventMatcher, l monitorapi.Locator, msg monitorapi.Message, kubeClientConfig *rest.Config, topology *v1.TopologyMode) (bool, *PathologicalEventMatcher) {
 	for _, ad := range allowedDupes {
-		allowed := ad.Matches(l, msg, kubeClientConfig, topology)
+		allowed := ad.Matches(l, msg, topology)
 		if allowed {
 			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", ad.Name)
 			return allowed, ad
@@ -108,11 +98,9 @@ func MatchesAny(allowedDupes []*AllowedDupeEvent, l monitorapi.Locator, msg moni
 	return false, nil
 }
 
-// unhealthyE2EStatefulSet tolerates:
-
-// AllowedRepeatedEvents is the list of all allowed duplicate events on all jobs. Upgrade has an additional
+// AllowedPathologicalEvents is the list of all allowed duplicate events on all jobs. Upgrade has an additional
 // list which is combined with this one.
-var AllowedRepeatedEvents = []*AllowedDupeEvent{
+var AllowedPathologicalEvents = []*PathologicalEventMatcher{
 	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
 	// PauseNewPods intentionally causes readiness probe to fail.
 	{
@@ -347,7 +335,7 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 // Some broken out matchers are re-used in a test for that specific event
 
 // reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
-var AllowOVNReadiness = &AllowedDupeEvent{
+var AllowOVNReadiness = &PathologicalEventMatcher{
 	Name: "OVNReadinessProbeFailed",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-ovn-kubernetes`),
@@ -358,27 +346,27 @@ var AllowOVNReadiness = &AllowedDupeEvent{
 }
 
 // Separated out in testBackoffPullingRegistryRedhatImage
-var AllowImagePullFromRedHatRegistry = &AllowedDupeEvent{
+var AllowImagePullFromRedHatRegistry = &PathologicalEventMatcher{
 	Name:              "AllowImagePullBackOffFromRedHatRegistry",
 	MessageHumanRegex: regexp.MustCompile(`Back-off pulling image .*registry.redhat.io`),
 }
 
 // Separated out in testBackoffStartingFailedContainer
-var AllowBackOffRestartingFailedContainer = &AllowedDupeEvent{
+var AllowBackOffRestartingFailedContainer = &PathologicalEventMatcher{
 	Name:               "AllowBackOffRestartingFailedContainer",
 	MessageReasonRegex: regexp.MustCompile(`^BackOff$`),
 	MessageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
 }
 
 // Separated out in testRequiredInstallerResourcesMissing
-var EtcdRequiredResourcesMissing = &AllowedDupeEvent{
+var EtcdRequiredResourcesMissing = &PathologicalEventMatcher{
 	Name:               "EtcdRequiredResourcesMissing",
 	MessageReasonRegex: regexp.MustCompile(`^RequiredInstallerResourcesMissing$`),
 	MessageHumanRegex:  regexp.MustCompile(`secrets: etcd-all-certs-[0-9]+`),
 }
 
 // reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy" to "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: No unhealthy members found"
-var EtcdClusterOperatorStatusChanged = &AllowedDupeEvent{
+var EtcdClusterOperatorStatusChanged = &PathologicalEventMatcher{
 	Name: "EtcdClusterOperatorStatusChanged",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
@@ -395,7 +383,7 @@ var EtcdClusterOperatorStatusChanged = &AllowedDupeEvent{
 // reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
 //
 // These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
-var ProbeErrorTimeoutAwaitingHeaders = &AllowedDupeEvent{
+var ProbeErrorTimeoutAwaitingHeaders = &PathologicalEventMatcher{
 	Name: "ProbeErrorTimeoutAwaitingHeaders",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
@@ -407,7 +395,7 @@ var ProbeErrorTimeoutAwaitingHeaders = &AllowedDupeEvent{
 // ProbeErrorConnectionRefused matches events in specific namespaces.
 //
 // These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
-var ProbeErrorConnectionRefused = &AllowedDupeEvent{
+var ProbeErrorConnectionRefused = &PathologicalEventMatcher{
 	Name: "ProbeErrorConnectionRefused",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
@@ -420,7 +408,7 @@ var ProbeErrorConnectionRefused = &AllowedDupeEvent{
 // Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
 //
 // These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
-var ProbeErrorLiveness = &AllowedDupeEvent{
+var ProbeErrorLiveness = &PathologicalEventMatcher{
 	Name: "ProbeErrorLiveness",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
@@ -433,7 +421,7 @@ var ProbeErrorLiveness = &AllowedDupeEvent{
 // ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
 //
 // These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
-var ReadinessFailed = &AllowedDupeEvent{
+var ReadinessFailed = &PathologicalEventMatcher{
 	Name: "ReadinessFailed",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
@@ -444,42 +432,42 @@ var ReadinessFailed = &AllowedDupeEvent{
 }
 
 // Separated out in testNodeHasNoDiskPressure
-var NodeHasNoDiskPressure = &AllowedDupeEvent{
+var NodeHasNoDiskPressure = &PathologicalEventMatcher{
 	Name:               "NodeHasNoDiskPressure",
 	MessageReasonRegex: regexp.MustCompile(`^NodeHasNoDiskPressure$`),
 	MessageHumanRegex:  regexp.MustCompile(`status is now: NodeHasNoDiskPressure`),
 }
 
 // Separated out in testNodeHasSufficientMemory
-var NodeHasSufficientMemory = &AllowedDupeEvent{
+var NodeHasSufficientMemory = &PathologicalEventMatcher{
 	Name:               "NodeHasSufficientMemory",
 	MessageReasonRegex: regexp.MustCompile(`^NodeHasSufficientMemory$`),
 	MessageHumanRegex:  regexp.MustCompile(`status is now: NodeHasSufficientMemory`),
 }
 
 // Separated out in testNodeHasSufficientPID
-var NodeHasSufficientPID = &AllowedDupeEvent{
+var NodeHasSufficientPID = &PathologicalEventMatcher{
 	Name:               "NodeHasSufficientPID",
 	MessageReasonRegex: regexp.MustCompile(`^NodeHasSufficientPID$`),
 	MessageHumanRegex:  regexp.MustCompile(`status is now: NodeHasSufficientPID`),
 }
 
 // reason/FailedScheduling 0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod anti-affinity rules, 2 node(s) were unschedulable. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling..
-var FailedScheduling = &AllowedDupeEvent{
+var FailedScheduling = &PathologicalEventMatcher{
 	Name:               "FailedScheduling",
 	MessageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
 	MessageHumanRegex:  regexp.MustCompile(`nodes are available.*didn't match Pod's node affinity/selector`),
 }
 
 // Separated out in testErrorUpdatingEndpointSlices
-var ErrorUpdatingEndpointSlices = &AllowedDupeEvent{
+var ErrorUpdatingEndpointSlices = &PathologicalEventMatcher{
 	Name:               "ErrorUpdatingEndpointSlices",
 	MessageReasonRegex: regexp.MustCompile(`^FailedToUpdateEndpointSlices$`),
 	MessageHumanRegex:  regexp.MustCompile(`Error updating Endpoint Slices`),
 }
 
 // Separated out in testMarketplaceStartupProbeFailure
-var MarketplaceStartupProbeFailure = &AllowedDupeEvent{
+var MarketplaceStartupProbeFailure = &PathologicalEventMatcher{
 	Name: "MarketplaceStartupProbeFailure",
 	LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-marketplace`),
@@ -488,10 +476,10 @@ var MarketplaceStartupProbeFailure = &AllowedDupeEvent{
 	MessageHumanRegex: regexp.MustCompile(`Startup probe failed`),
 }
 
-// AllowedRepeatedUpgradeEvents is the list of all allowed duplicate events on upgrade jobs. It is combined
+// AllowedPathologicalUpgradeEvents is the list of all allowed duplicate events on upgrade jobs. It is combined
 // with the above list for all jobs, so entries do not need to be added to both.
 // list which is combined with this one.
-var AllowedRepeatedUpgradeEvents = []*AllowedDupeEvent{
+var AllowedPathologicalUpgradeEvents = []*PathologicalEventMatcher{
 	// Operators that use library-go can report about multiple versions during upgrades.
 	{
 		Name: "OperatorMultipleVersions",
@@ -548,12 +536,6 @@ var AllowedRepeatedUpgradeEvents = []*AllowedDupeEvent{
 	},
 }
 
-// TODO: update all references to use the new list above
-var AllowedRepeatedEventPatterns = []*regexp.Regexp{}
-
-// AllowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
-var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{}
-
 func TopologyPointer(topology v1.TopologyMode) *v1.TopologyMode {
 	return &topology
 }
@@ -602,6 +584,7 @@ func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig
 	}
 	return true, nil
 }
+
 func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
 	configClient, err := configclient.NewForConfig(kubeClientConfig)
 	if err != nil {
