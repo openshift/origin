@@ -478,7 +478,6 @@ var MarketplaceStartupProbeFailure = &PathologicalEventMatcher{
 
 // AllowedPathologicalUpgradeEvents is the list of all allowed duplicate events on upgrade jobs. It is combined
 // with the above list for all jobs, so entries do not need to be added to both.
-// list which is combined with this one.
 var AllowedPathologicalUpgradeEvents = []*PathologicalEventMatcher{
 	// Operators that use library-go can report about multiple versions during upgrades.
 	{

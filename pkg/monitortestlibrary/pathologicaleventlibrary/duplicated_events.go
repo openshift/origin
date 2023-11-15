@@ -33,6 +33,12 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 		allowedDupeEvents: allowedDupeEvents,
 	}
 
+	etcdAllowance, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), kubeClientConfig)
+	if err != nil {
+		logrus.WithError(err).Fatal("unable to construct pathological events allowance for etcd")
+	}
+	evaluator.allowedDupeEvents = append(evaluator.allowedDupeEvents, etcdAllowance)
+
 	platform, topology, err := GetClusterInfraInfo(kubeClientConfig)
 	if err != nil {
 		logrus.WithError(err).Error("could not fetch cluster infra info")
@@ -54,19 +60,11 @@ func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 		allowedDupeEvents: AllowedPathologicalEvents,
 	}
 
-	/* TODO: restore, but it looks like this has been busted for ages, we append to a list of
-	functions that are never used
-
-	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
+	etcdAllowance, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), clientConfig)
 	if err != nil {
-		panic(err)
+		logrus.WithError(err).Fatal("unable to construct pathological events allowance for etcd")
 	}
-	etcdAllowance, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), operatorClient)
-	if err != nil {
-		panic(fmt.Errorf("unable to construct duplicated events allowance for etcd, err = %v", err))
-	}
-	evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, etcdAllowance.allowEtcdGuardReadinessProbeFailure)
-	*/
+	evaluator.allowedDupeEvents = append(evaluator.allowedDupeEvents, etcdAllowance)
 
 	platform, topology, err := GetClusterInfraInfo(clientConfig)
 	if err != nil {
@@ -81,17 +79,6 @@ func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 	tests = append(tests, evaluator.testDuplicatedCoreNamespaceEvents(events, clientConfig)...)
 	tests = append(tests, evaluator.testDuplicatedE2ENamespaceEvents(events, clientConfig)...)
 	return tests
-}
-
-func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
-	s := ""
-	for _, r := range arr {
-		if s != "" {
-			s += "|"
-		}
-		s += r.String()
-	}
-	return regexp.MustCompile(s)
 }
 
 type duplicateEventsEvaluator struct {
@@ -425,29 +412,32 @@ type etcdRevisionChangeAllowance struct {
 	currentRevision int
 }
 
-func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (*etcdRevisionChangeAllowance, error) {
-	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
+// newDuplicatedEventsAllowedWhenEtcdRevisionChange tolerates etcd readiness probe failures unless we receive more
+// than the allowance per revisions of etcd.
+func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clientConfig *rest.Config) (*PathologicalEventMatcher, error) {
+	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	return &etcdRevisionChangeAllowance{
-		allowedGuardProbeFailurePattern:        regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-.* node/[a-z0-9.-]+ - reason/(Unhealthy|ProbeError) Readiness probe.*`),
-		maxAllowedGuardProbeFailurePerRevision: 60 / 5, // 60s for starting a new pod, divided by the probe interval
-		currentRevision:                        currentRevision,
-	}, nil
-}
-
-// allowEtcdGuardReadinessProbeFailure tolerates events that match allowedGuardProbeFailurePattern unless we receive more than a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision
-func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monitorEvent monitorapi.Interval, _ *rest.Config, times int) (bool, error) {
-	eventMessage := fmt.Sprintf("%s - %s", monitorEvent.Locator, monitorEvent.Message)
-
-	// allow for a.maxAllowedGuardProbeFailurePerRevision * a.currentRevision failed readiness probe from the etcd-guard pods
-	// since the guards are static and the etcd pods come and go during a rollout
-	// which causes allowedGuardProbeFailurePattern to fire
-	if a.allowedGuardProbeFailurePattern.MatchString(eventMessage) && a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision > times {
-		return true, nil
+	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
+	if err != nil {
 	}
-	return false, nil
+	repeatThresholdOverride := currentRevision * (60 / 5)
+	logrus.WithFields(logrus.Fields{
+		"etcdRevision":   currentRevision,
+		"allowedRepeats": repeatThresholdOverride,
+	}).Info("created toleration for etcd readiness probes per revision")
+
+	return &PathologicalEventMatcher{
+		Name: "EtcdRevisionChange",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-etcd$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-guard-`),
+		},
+		MessageReasonRegex:      regexp.MustCompile(`^(Unhealthy|ProbeError)$`),
+		MessageHumanRegex:       regexp.MustCompile(`Readiness probe`),
+		RepeatThresholdOverride: repeatThresholdOverride, // 60s for starting a new pod, divided by the probe interval
+	}, nil
 }
 
 // getBiggestRevisionForEtcdOperator calculates the biggest revision among replicas of the most recently successful deployment
