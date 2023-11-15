@@ -1,16 +1,23 @@
 package certgraphanalysis
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	corev1 "k8s.io/api/core/v1"
 )
 
+type configMapRewriteFunc func(configMap *corev1.ConfigMap)
+type secretRewriteFunc func(secret *corev1.Secret)
 type caBundleRewriteFunc func(caBundle *certgraphapi.CertificateAuthorityBundle)
-
 type certKeyPairRewriteFunc func(certKeyPair *certgraphapi.CertKeyPair)
 
 type metadataOptions struct {
 	rewriteCABundle    caBundleRewriteFunc
 	rewriteCertKeyPair certKeyPairRewriteFunc
+	rewriteConfigMap   configMapRewriteFunc
+	rewriteSecret      secretRewriteFunc
 }
 
 func (metadataOptions) approved() {}
@@ -44,3 +51,24 @@ var (
 		},
 	}
 )
+
+func RewriteNodeIPs(nodeList []corev1.Node) *metadataOptions {
+	nodes := map[string]int{}
+	for i, node := range nodeList {
+		nodes[node.Name] = i
+	}
+	return &metadataOptions{
+		rewriteSecret: func(secret *corev1.Secret) {
+			for nodeName, masterID := range nodes {
+				name := strings.ReplaceAll(secret.Name, nodeName, fmt.Sprintf("<master-%d>", masterID))
+				if secret.Name != name {
+					secret.Name = name
+					if len(secret.Annotations) == 0 {
+						secret.Annotations = map[string]string{}
+					}
+					secret.Annotations["openshift.io/last-rewritten-by"] = "RewriteNodeIPs"
+				}
+			}
+		},
+	}
+}
