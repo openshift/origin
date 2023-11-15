@@ -328,7 +328,6 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 
 			// key used in a map to identify the common interval that is repeating and we may
 			// encounter multiple times.
-			// TODO: we're just using reason and human message here, this should be sufficient
 			eventDisplayMessage := fmt.Sprintf("%s - reason/%s %s", event.Locator,
 				event.StructuredMessage.Reason, event.StructuredMessage.HumanMessage)
 

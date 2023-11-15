@@ -15,8 +15,6 @@ import (
 )
 
 const (
-	ConsoleReadinessRegExpStr = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
-
 	ImagePullRedhatFlakeThreshold              = 5
 	RequiredResourceMissingFlakeThreshold      = 10
 	BackoffRestartingFlakeThreshold            = 10
@@ -46,8 +44,6 @@ type AllowedDupeEvent struct {
 	MessageReasonRegex *regexp.Regexp
 	// MessageReasonRegex checks the HumanMessage on a structured interval Message.
 	MessageHumanRegex *regexp.Regexp
-	// Platform limits the exception to a specific OpenShift platform.
-	Platform *v1.PlatformType
 	// Topology limits the exception to a specific topology. (e.g. single replica)
 	Topology *v1.TopologyMode
 	// TestSuite limits the exception to a specific test suite. (e.g. openshift/builds)
@@ -312,15 +308,22 @@ var AllowedRepeatedEvents = []*AllowedDupeEvent{
 		Jira: "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
 	},
 
-	// stale condition challenge reset
 	{
-		Name: "",
+		Name:              "StaleConditionChallengeReset",
+		MessageHumanRegex: regexp.MustCompile(`message changed from "\x{FEFF}`),
+	},
+
+	// This was originally intended to be limited to only during the openshift/build test suite, however it was
+	// never hooked up and was just ignored everywhere. We do not have the capability to detect if
+	// events were within specific test suites yet. Leaving them as an always allow for now.
+	{
+		Name: "ScaledReplicaSet",
 		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(``),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(``),
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`(openshift-controller-manager|openshift-route-controller-manager)`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`(controller-manager|route-controller-manager)`),
 		},
-		MessageReasonRegex: regexp.MustCompile(`^$`),
-		MessageHumanRegex:  regexp.MustCompile(`message changed from "\x{FEFF}`),
+		MessageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
+		MessageHumanRegex:  regexp.MustCompile(`\(combined from similar events\): Scaled (down|up) replica set.*controller-manager-[a-z0-9-]+ to [0-9]+`),
 	},
 
 	AllowBackOffRestartingFailedContainer,
@@ -553,14 +556,6 @@ var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{}
 
 func TopologyPointer(topology v1.TopologyMode) *v1.TopologyMode {
 	return &topology
-}
-
-func PlatformPointer(platform v1.PlatformType) *v1.PlatformType {
-	return &platform
-}
-
-func StringPointer(testSuite string) *string {
-	return &testSuite
 }
 
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.

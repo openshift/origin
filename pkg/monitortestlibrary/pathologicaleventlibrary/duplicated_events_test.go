@@ -136,23 +136,6 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 
 }
 
-func TestEventRegexExcluder(t *testing.T) {
-	allowedRepeatedEventsRegex := combinedRegexp(AllowedRepeatedEventPatterns...)
-
-	tests := []struct {
-		name    string
-		message string
-	}{}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actual := allowedRepeatedEventsRegex.MatchString(test.message)
-			assert.True(t, actual, "did not match")
-		})
-	}
-
-}
-
 func TestUpgradeEventRegexExcluder(t *testing.T) {
 	allowedRepeatedEventsRegex := combinedRegexp(AllowedUpgradeRepeatedEventPatterns...)
 
