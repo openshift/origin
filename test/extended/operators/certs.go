@@ -11,16 +11,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphanalysis"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
-
 	"github.com/openshift/origin/pkg/certs"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	ownership "github.com/openshift/origin/tls"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -44,11 +43,15 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
 		nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		masters := []*corev1.Node{}
+		for i := range nodeList.Items {
+			masters = append(masters, &nodeList.Items[i])
+		}
 
 		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient,
 			certgraphanalysis.SkipRevisioned,
 			certgraphanalysis.ElideProxyCADetails,
-			certgraphanalysis.RewriteNodeIPs(nodeList.Items))
+			certgraphanalysis.RewriteNodeIPs(masters))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		jsonBytes, err := json.MarshalIndent(currentPKIContent, "", "  ")
