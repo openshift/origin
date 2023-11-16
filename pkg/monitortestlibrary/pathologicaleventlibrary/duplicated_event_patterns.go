@@ -401,6 +401,68 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	return registry
 }
 
+// NewUpgradePathologicalEventMatchers creates the registry for allowed events during upgrade.
+// Contains everything in the universal set as well.
+func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals monitorapi.Intervals) *AllowedPathologicalEventRegistry {
+
+	// Start with the main list of matchers:
+	registry := NewUniversalPathologicalEventMatchers(kubeConfig, finalIntervals)
+
+	// Now add in the matchers we only want to apply during upgrade:
+
+	// Operators that use library-go can report about multiple versions during upgrades.
+	registry.AddPathologicalEventMatcherOrDie("OperatorMultipleVersions", &SimplePathologicalEventMatcher{
+		Name: "OperatorMultipleVersions",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`(openshift-etcd-operator|openshift-kube-apiserver-operator|openshift-kube-controller-manager-operator|openshift-kube-scheduler-operator)`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`(etcd-operator|kube-apiserver-operator|kube-controller-manager-operator|openshift-kube-scheduler-operator)`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^MultipleVersions$`),
+		MessageHumanRegex:  regexp.MustCompile(`multiple versions found, probably in transition`),
+	})
+
+	// etcd-quorum-guard can fail during upgrades.
+	registry.AddPathologicalEventMatcherOrDie("EtcdQuorumGuardReadinessProbe", &SimplePathologicalEventMatcher{
+		Name: "EtcdQuorumGuardReadinessProbe",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-quorum-guard.*`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed:`),
+	})
+
+	// etcd can have unhealthy members during an upgrade
+	registry.AddPathologicalEventMatcherOrDie("EtcdUnhealthyMembers", &SimplePathologicalEventMatcher{
+		Name: "EtcdUnhealthyMembers",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`openshift-etcd-operator`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`etcd-operator`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^UnhealthyEtcdMember$`),
+		MessageHumanRegex:  regexp.MustCompile(`unhealthy members`),
+	})
+
+	// Ignore NetworkNotReady repeat events.
+	// This was originally linked to bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1986370
+	// The bug has been closed as NOTABUG.
+	// We used to allow this for three namespaces (openshift-multus, openshift-e2e-loki, and openshift-network-diagnostics),
+	// however a quick search of the intervals in bigquery shows this happening a ton in lots of namespaces,
+	// and killing jobs when it does. Given the bug status, I am ignoring these events, whenever they occur, in
+	// all upgrade jobs for now. - dgoodwin
+	registry.AddPathologicalEventMatcherOrDie("NetworkNotReady", &SimplePathologicalEventMatcher{
+		Name:               "NetworkNotReady",
+		MessageReasonRegex: regexp.MustCompile(`^NetworkNotReady$`),
+		MessageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file.*Has your network provider started\?`),
+	})
+
+	// Allow FailedScheduling repeat events during node upgrades:
+	m := newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie("FailedSchedulingDuringNodeUpdate", m)
+
+	return registry
+}
+
 // Some broken out matchers are re-used in a test for that specific event, keeping them as package vars
 // for compile time protection.
 
@@ -540,66 +602,6 @@ var MarketplaceStartupProbeFailure = &SimplePathologicalEventMatcher{
 		monitorapi.LocatorPodKey:       regexp.MustCompile(`(community-operators|redhat-operators)-[a-z0-9-]+`),
 	},
 	MessageHumanRegex: regexp.MustCompile(`Startup probe failed`),
-}
-
-func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals monitorapi.Intervals) *AllowedPathologicalEventRegistry {
-
-	// Start with the main list of matchers:
-	registry := NewUniversalPathologicalEventMatchers(kubeConfig, finalIntervals)
-
-	// Now add in the matchers we only want to apply during upgrade:
-
-	// Operators that use library-go can report about multiple versions during upgrades.
-	registry.AddPathologicalEventMatcherOrDie("OperatorMultipleVersions", &SimplePathologicalEventMatcher{
-		Name: "OperatorMultipleVersions",
-		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`(openshift-etcd-operator|openshift-kube-apiserver-operator|openshift-kube-controller-manager-operator|openshift-kube-scheduler-operator)`),
-			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`(etcd-operator|kube-apiserver-operator|kube-controller-manager-operator|openshift-kube-scheduler-operator)`),
-		},
-		MessageReasonRegex: regexp.MustCompile(`^MultipleVersions$`),
-		MessageHumanRegex:  regexp.MustCompile(`multiple versions found, probably in transition`),
-	})
-
-	// etcd-quorum-guard can fail during upgrades.
-	registry.AddPathologicalEventMatcherOrDie("EtcdQuorumGuardReadinessProbe", &SimplePathologicalEventMatcher{
-		Name: "EtcdQuorumGuardReadinessProbe",
-		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-quorum-guard.*`),
-		},
-		MessageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
-		MessageHumanRegex:  regexp.MustCompile(`Readiness probe failed:`),
-	})
-
-	// etcd can have unhealthy members during an upgrade
-	registry.AddPathologicalEventMatcherOrDie("EtcdUnhealthyMembers", &SimplePathologicalEventMatcher{
-		Name: "EtcdUnhealthyMembers",
-		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`openshift-etcd-operator`),
-			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`etcd-operator`),
-		},
-		MessageReasonRegex: regexp.MustCompile(`^UnhealthyEtcdMember$`),
-		MessageHumanRegex:  regexp.MustCompile(`unhealthy members`),
-	})
-
-	// Ignore NetworkNotReady repeat events.
-	// This was originally linked to bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1986370
-	// The bug has been closed as NOTABUG.
-	// We used to allow this for three namespaces (openshift-multus, openshift-e2e-loki, and openshift-network-diagnostics),
-	// however a quick search of the intervals in bigquery shows this happening a ton in lots of namespaces,
-	// and killing jobs when it does. Given the bug status, I am ignoring these events, whenever they occur, in
-	// all upgrade jobs for now. - dgoodwin
-	registry.AddPathologicalEventMatcherOrDie("NetworkNotReady", &SimplePathologicalEventMatcher{
-		Name:               "NetworkNotReady",
-		MessageReasonRegex: regexp.MustCompile(`^NetworkNotReady$`),
-		MessageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file.*Has your network provider started\?`),
-	})
-
-	// Allow FailedScheduling repeat events during node upgrades:
-	m := newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals)
-	registry.AddPathologicalEventMatcherOrDie("FailedSchedulingDuringNodeUpdate", m)
-
-	return registry
 }
 
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
