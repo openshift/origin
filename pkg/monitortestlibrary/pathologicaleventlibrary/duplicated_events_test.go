@@ -135,7 +135,13 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 	for _, test := range tests {
 		registry := NewUniversalPathologicalEventMatchers(nil, nil)
 		t.Run(test.name, func(t *testing.T) {
-			allowed, matchName, matchedAllowedDupe := registry.MatchesAny(test.locator, test.msg, test.topology)
+			i := monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					StructuredMessage: test.msg,
+					StructuredLocator: test.locator,
+				},
+			}
+			allowed, matchName, matchedAllowedDupe := registry.MatchesAny(i, test.topology)
 			if test.expectedMatchName != "" {
 				assert.True(t, allowed, "duplicated event should have been allowed, but we matched: %s", matchName)
 				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
@@ -150,9 +156,6 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 }
 
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
-	evaluator := duplicateEventsEvaluator{
-		registry: NewUniversalPathologicalEventMatchers(nil, nil),
-	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)
 
@@ -330,8 +333,14 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 
 			events := monitorapi.Intervals(test.intervals)
 
-			evaluator.platform = test.platform
-			evaluator.topology = test.topology
+			// Using upgrade for now, this has everything:
+			registry := NewUpgradePathologicalEventMatchers(nil, test.intervals)
+
+			evaluator := duplicateEventsEvaluator{
+				registry: registry,
+				platform: test.platform,
+				topology: test.topology,
+			}
 
 			testName := "events should not repeat"
 			junits := evaluator.testDuplicatedEvents(testName, false, events, nil, false)

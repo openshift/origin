@@ -34,7 +34,7 @@ const (
 type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
 
 type EventMatcher interface {
-	Matches(l monitorapi.Locator, msg monitorapi.Message, topology v1.TopologyMode) bool
+	Matches(i monitorapi.Interval, topology v1.TopologyMode) bool
 }
 
 // SimplePathologicalEventMatcher allows the definition of kube event intervals that can repeat more than the threshold we allow during a job run.
@@ -62,7 +62,9 @@ type SimplePathologicalEventMatcher struct {
 }
 
 // Matches checks if the given locator/messagebuilder matches this allowed dupe event.
-func (ade *SimplePathologicalEventMatcher) Matches(l monitorapi.Locator, msg monitorapi.Message, topology v1.TopologyMode) bool {
+func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval, topology v1.TopologyMode) bool {
+	l := i.StructuredLocator
+	msg := i.StructuredMessage
 	for lk, r := range ade.LocatorKeyRegexes {
 		if !r.MatchString(l.Keys[lk]) {
 			logrus.WithField("allower", ade.Name).Debugf("key %s did not match", lk)
@@ -118,12 +120,12 @@ func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcherOrDie(name
 // MatchesAny checks if the given event locator and message match any registered matcher.
 // Returns true if so, the matcher name, and the matcher itself.
 func (r *AllowedPathologicalEventRegistry) MatchesAny(
-	l monitorapi.Locator,
-	msg monitorapi.Message,
+	i monitorapi.Interval,
 	topology v1.TopologyMode) (bool, string, EventMatcher) {
-
+	l := i.StructuredLocator
+	msg := i.StructuredMessage
 	for k, m := range r.matchers {
-		allowed := m.Matches(l, msg, topology)
+		allowed := m.Matches(i, topology)
 		if allowed {
 			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", k)
 			return allowed, k, m
@@ -439,9 +441,6 @@ var EtcdClusterOperatorStatusChanged = &SimplePathologicalEventMatcher{
 	MessageHumanRegex:  regexp.MustCompile(`Status for clusteroperator/etcd changed.*No unhealthy members found`),
 }
 
-// TODO: duplicated messages for different namespaces here. We could (a|b|c) them, but they're used
-// in specific tests right now and we wouldn't want those matching intervals from another ns.
-
 // ProbeErrorTimeoutAwaitingHeaders matches events in specific namespaces such as:
 // reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
 //
@@ -591,6 +590,11 @@ func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals
 		MessageReasonRegex: regexp.MustCompile(`^NetworkNotReady$`),
 		MessageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file.*Has your network provider started\?`),
 	})
+
+	// Allow FailedScheduling repeat events during node upgrades:
+	m := newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie("FailedSchedulingDuringNodeUpdate", m)
+
 	return registry
 }
 
@@ -683,4 +687,53 @@ func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clien
 		MessageHumanRegex:       regexp.MustCompile(`Readiness probe`),
 		RepeatThresholdOverride: repeatThresholdOverride, // 60s for starting a new pod, divided by the probe interval
 	}, nil
+}
+
+func newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	// Filter out a list of NodeUpdate events, we use these to ignore some other potential pathological events that are
+	// expected during NodeUpdate.
+	nodeUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceNodeState &&
+			eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeNode &&
+			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerNodeLifecycle &&
+			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPhase] == "Update" &&
+			strings.Contains(eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationRoles], "master")
+	})
+	logrus.Infof("found %d NodeUpdate intervals", len(nodeUpdateIntervals))
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			Name:               "FailedSchedulingDuringNodeUpdate",
+			MessageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
+		},
+		allowIfWithinIntervals: nodeUpdateIntervals,
+	}
+}
+
+// OverlapOtherIntervalsPathologicalEventMatcher is an implementation containing a regular
+// matcher, plus additional logic that will allow the event only if it is contained
+// within another set of intervals provided. (i.e. used to allow FailedScheduling pathological
+// events if they are contained within NodeUpdate intervals)
+type OverlapOtherIntervalsPathologicalEventMatcher struct {
+	// delegate is a normal event matcher.
+	delegate *SimplePathologicalEventMatcher
+	// allowIfWithinIntervals is the list of intervals that the incoming pathological event will
+	// match if it contained within one of these.
+	allowIfWithinIntervals monitorapi.Intervals
+}
+
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Matches(i monitorapi.Interval, topology v1.TopologyMode) bool {
+
+	// Check the delegate matcher first, if it matches, proceed to additional checks
+	if !ade.delegate.Matches(i, topology) {
+		return false
+	}
+
+	// Match the pathological event if it overlaps with any of the given set of intervals.
+	for _, nui := range ade.allowIfWithinIntervals {
+		if nui.From.Before(i.From) && nui.To.After(i.To) {
+			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", i, nui)
+			return true
+		}
+	}
+	return false
 }

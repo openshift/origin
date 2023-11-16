@@ -178,11 +178,19 @@ func recordAddOrUpdateEvent(
 	locator := monitorapi.NewLocator().KubeEvent(obj)
 
 	// Flag any event that matches one of our allowances as "interesting", regardless how many
-	// times it occurred. We include upgrade allowances here.
+	// times it occurred. We include upgrade allowances here. (the upgrade set contains both)
 	// We do not pass a Kubeconfig or list of final intervals (as final intervals obviously do not exist), so a small subset of more matchers will not be active,
 	// and will not get flagged as "interesting" as a result.
 	registry := pathologicaleventlibrary.NewUpgradePathologicalEventMatchers(nil, nil)
-	isInteresting, _, _ := registry.MatchesAny(locator, message.Build(), topology)
+
+	// We don't yet have a full interval, create one for the purpose of matching the simple matchers.
+	tmpInterval := monitorapi.Interval{
+		Condition: monitorapi.Condition{
+			StructuredLocator: locator,
+			StructuredMessage: message.Build(),
+		},
+	}
+	isInteresting, _, _ := registry.MatchesAny(tmpInterval, topology)
 
 	if obj.Count > 1 {
 

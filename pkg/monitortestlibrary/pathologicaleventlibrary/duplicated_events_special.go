@@ -24,7 +24,7 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	success := &junitapi.JUnitTestCase{Name: s.testName}
 	var failureOutput, flakeOutput []string
 	for _, e := range events {
-		if s.matcher.Matches(e.StructuredLocator, e.StructuredMessage, "") {
+		if s.matcher.Matches(e, "") {
 			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
 			times := GetTimesAnEventHappened(e.StructuredMessage)
 			switch {
@@ -103,7 +103,7 @@ func eventMatchThresholdTest(testName, operatorName string, events monitorapi.In
 			continue
 		}
 
-		if matcher.Matches(event.StructuredLocator, event.StructuredMessage, "") {
+		if matcher.Matches(event, "") {
 			// Place the failure time in the message to avoid having to extract the time from the events json file
 			// (in artifacts) when viewing the Test failure output.
 			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.String())

@@ -189,17 +189,6 @@ func generateJUnitTestCasesE2ENamespaces(testName string, nsResults map[string]*
 // I hate regexes, so I only do this because I really have to.
 func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config, isE2E bool) []*junitapi.JUnitTestCase {
 
-	// Filter out a list of NodeUpdate events, we use these to ignore some other potential pathological events that are
-	// expected during NodeUpdate.
-	nodeUpdateIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceNodeState &&
-			eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeNode &&
-			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerNodeLifecycle &&
-			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPhase] == "Update" &&
-			strings.Contains(eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationRoles], "master")
-	})
-	logrus.Infof("found %d NodeUpdate intervals", len(nodeUpdateIntervals))
-
 	type timeRange struct {
 		from time.Time
 		to   time.Time
@@ -211,22 +200,6 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 	displayToCount := map[string]monitorapi.Interval{}
 
 	for _, event := range events {
-		// TODO: would be nice to move these two exceptions to duplicated_event_patterns, but it's tricky for them
-		// to only calculate the data they need one time...
-		if event.StructuredMessage.Reason == "FailedScheduling" {
-			// Filter out FailedScheduling events while masters are updating
-			var foundOverlap bool
-			for _, nui := range nodeUpdateIntervals {
-				if nui.From.Before(event.From) && nui.To.After(event.To) {
-					logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", event, nui)
-					foundOverlap = true
-					break
-				}
-			}
-			if foundOverlap {
-				continue
-			}
-		}
 
 		if event.StructuredMessage.Reason == "TopologyAwareHintsDisabled" {
 			// Build the allowed time range only once
@@ -301,7 +274,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 			// implying it matches some pattern, but that happens even for upgrade patterns occurring in non-upgrade jobs,
 			// so we were ignoring patterns that were meant to be allowed only in upgrade jobs in all jobs. The list of
 			// allowed patterns passed to this object wasn't even used.
-			if allowed, _, _ := d.registry.MatchesAny(event.StructuredLocator, event.StructuredMessage, d.topology); allowed {
+			if allowed, _, _ := d.registry.MatchesAny(event, d.topology); allowed {
 				continue
 			}
 
