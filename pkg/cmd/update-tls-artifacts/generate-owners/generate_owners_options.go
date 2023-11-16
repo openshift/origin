@@ -1,7 +1,6 @@
 package generate_owners
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -150,50 +149,66 @@ func GenerateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 		caBundlesByOwner[owner] = append(caBundlesByOwner[owner], curr)
 	}
 
-	md := &bytes.Buffer{}
+	md := NewMarkdown("Certificate Ownership")
 
 	if len(certsWithoutOwners) > 0 || len(caBundlesWithoutOwners) > 0 {
-		fmt.Fprintln(md, "## Missing Owners")
+		md.Title(2, fmt.Sprintf("Missing Owners (%d)", len(certsWithoutOwners)+len(caBundlesWithoutOwners)))
 		if len(certsWithoutOwners) > 0 {
-			fmt.Fprintln(md, "### Certificates")
-			for i, curr := range certsWithoutOwners {
-				fmt.Fprintf(md, "%d. ns/%v secret/%v\n\n", i+1, curr.SecretLocation.Namespace, curr.SecretLocation.Name)
-				fmt.Fprintf(md, "     **Description:** %v\n", curr.CertKeyInfo.Description)
+			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certsWithoutOwners)))
+			md.OrderedListStart()
+			for _, curr := range certsWithoutOwners {
+				md.NewOrderedListItem()
+				md.Textf("ns/%v secret/%v\n", curr.SecretLocation.Namespace, curr.SecretLocation.Name)
+				md.Textf("**Description:** %v", curr.CertKeyInfo.Description)
+				md.Text("\n")
 			}
-			fmt.Fprintln(md, "")
+			md.OrderedListEnd()
+			md.Text("\n")
 		}
 		if len(caBundlesWithoutOwners) > 0 {
-			fmt.Fprintln(md, "### Certificate Authority Bundles")
-			for i, curr := range caBundlesWithoutOwners {
-				fmt.Fprintf(md, "%d. ns/%v configmap/%v\n\n", i+1, curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
-				fmt.Fprintf(md, "     **Description:** %v\n", curr.CABundleInfo.Description)
+			md.Title(3, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundlesWithoutOwners)))
+			md.OrderedListStart()
+			for _, curr := range caBundlesWithoutOwners {
+				md.NewOrderedListItem()
+				md.Textf("ns/%v configmap/%v\n", curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
+				md.Textf("**Description:** %v", curr.CABundleInfo.Description)
+				md.Text("\n")
 			}
-			fmt.Fprintln(md, "")
+			md.OrderedListEnd()
+			md.Text("\n")
 		}
 	}
 
 	allOwners := sets.StringKeySet(certsByOwner)
 	allOwners.Insert(sets.StringKeySet(caBundlesByOwner).UnsortedList()...)
 	for _, owner := range allOwners.List() {
-		fmt.Fprintf(md, "## %v\n", owner)
+		md.Title(2, fmt.Sprintf("%s (%d)", owner, len(certsByOwner[owner])+len(caBundlesByOwner[owner])))
 		certs := certsByOwner[owner]
 		if len(certs) > 0 {
-			fmt.Fprintln(md, "### Certificates")
-			for i, curr := range certs {
-				fmt.Fprintf(md, "%d. ns/%v secret/%v\n\n", i+1, curr.SecretLocation.Namespace, curr.SecretLocation.Name)
-				fmt.Fprintf(md, "     **Description:** %v\n", curr.CertKeyInfo.Description)
+			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certs)))
+			md.OrderedListStart()
+			for _, curr := range certs {
+				md.NewOrderedListItem()
+				md.Textf("ns/%v secret/%v\n", curr.SecretLocation.Namespace, curr.SecretLocation.Name)
+				md.Textf("**Description:** %v", curr.CertKeyInfo.Description)
+				md.Text("\n")
 			}
-			fmt.Fprintln(md, "")
+			md.OrderedListEnd()
+			md.Text("\n")
 		}
 
 		caBundles := caBundlesByOwner[owner]
 		if len(caBundles) > 0 {
-			fmt.Fprintln(md, "### Certificate Authority Bundles")
-			for i, curr := range caBundles {
-				fmt.Fprintf(md, "%d. ns/%v configmap/%v\n\n", i+1, curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
-				fmt.Fprintf(md, "     **Description:** %v\n", curr.CABundleInfo.Description)
+			md.Title(3, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
+			md.OrderedListStart()
+			for _, curr := range caBundles {
+				md.NewOrderedListItem()
+				md.Textf("ns/%v configmap/%v\n", curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
+				md.Textf("**Description:** %v", curr.CABundleInfo.Description)
+				md.Text("\n")
 			}
-			fmt.Fprintln(md, "")
+			md.OrderedListEnd()
+			md.Text("\n")
 		}
 	}
 
