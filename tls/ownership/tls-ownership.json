@@ -123,6 +123,16 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-cluster-csi-drivers",
+                "Name": "shared-resource-csi-driver-operator-trusted-ca-bundle"
+            },
+            "certificateAuthorityBundleInfo": {
+                "owningJiraComponent": "",
+                "description": ""
+            }
+        },
+        {
+            "configMapLocation": {
+                "Namespace": "openshift-cluster-csi-drivers",
                 "Name": "vmware-vsphere-csi-driver-trusted-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
@@ -306,7 +316,7 @@
                 "Name": "service-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -393,167 +403,7 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca-9"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
                 "Name": "etcd-metrics-proxy-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca-9"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "Etcd",
@@ -573,167 +423,7 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca-9"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
                 "Name": "etcd-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca-9"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "Etcd",
@@ -823,86 +513,6 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca-9"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
                 "Name": "kube-apiserver-server-ca"
             },
             "certificateAuthorityBundleInfo": {
@@ -913,167 +523,7 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca-9"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
                 "Name": "kubelet-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca-9"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "",
@@ -1186,87 +636,7 @@
                 "Name": "service-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "service-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "service-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "service-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "service-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "service-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "service-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "service-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "service-ca-9"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1274,86 +644,6 @@
             "configMapLocation": {
                 "Namespace": "openshift-kube-controller-manager",
                 "Name": "serviceaccount-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca-2"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca-3"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca-9"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "",
@@ -1404,66 +694,6 @@
             "configMapLocation": {
                 "Namespace": "openshift-kube-scheduler",
                 "Name": "serviceaccount-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serviceaccount-ca-4"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serviceaccount-ca-5"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serviceaccount-ca-6"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serviceaccount-ca-7"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serviceaccount-ca-8"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serviceaccount-ca-9"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "",
@@ -1646,7 +876,7 @@
                 "Name": "signing-cabundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         }
@@ -1668,7 +898,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1678,7 +908,7 @@
                 "Name": "openshift-apiserver-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1688,7 +918,7 @@
                 "Name": "v4-0-config-system-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1698,7 +928,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1708,7 +938,7 @@
                 "Name": "cloud-credential-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1718,7 +948,37 @@
                 "Name": "pod-identity-webhook"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-cluster-api",
+                "Name": "capi-operator-webhook-service-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-cluster-api",
+                "Name": "capi-webhook-service-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-cluster-api",
+                "Name": "cluster-capi-operator-webhook-service-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1728,7 +988,7 @@
                 "Name": "aws-ebs-csi-driver-controller-metrics-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1738,7 +998,7 @@
                 "Name": "azure-disk-csi-driver-controller-metrics-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1748,7 +1008,7 @@
                 "Name": "azure-file-csi-driver-controller-metrics-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1758,7 +1018,37 @@
                 "Name": "gcp-pd-csi-driver-controller-metrics-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-cluster-csi-drivers",
+                "Name": "shared-resource-csi-driver-node-metrics-serving-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-cluster-csi-drivers",
+                "Name": "shared-resource-csi-driver-operator-metrics-serving-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-cluster-csi-drivers",
+                "Name": "shared-resource-csi-driver-webhook-serving-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1768,7 +1058,7 @@
                 "Name": "vmware-vsphere-csi-driver-controller-metrics-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1778,7 +1068,7 @@
                 "Name": "vmware-vsphere-csi-driver-operator-metrics-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1788,7 +1078,7 @@
                 "Name": "vmware-vsphere-csi-driver-webhook-secret"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1798,7 +1088,7 @@
                 "Name": "machine-approver-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1808,7 +1098,7 @@
                 "Name": "node-tuning-operator-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1818,7 +1108,17 @@
                 "Name": "performance-addon-operator-webhook-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-cluster-olm-operator",
+                "Name": "cluster-olm-operator-serving-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1828,7 +1128,7 @@
                 "Name": "samples-operator-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1838,7 +1138,7 @@
                 "Name": "cluster-storage-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1848,7 +1148,7 @@
                 "Name": "csi-snapshot-webhook-secret"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1858,7 +1158,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1868,7 +1168,7 @@
                 "Name": "vsphere-problem-detector-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1878,7 +1178,7 @@
                 "Name": "cluster-version-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1948,7 +1248,7 @@
                 "Name": "config-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1958,7 +1258,7 @@
                 "Name": "console-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1968,7 +1268,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1978,7 +1278,7 @@
                 "Name": "webhook-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1988,7 +1288,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -1998,7 +1298,7 @@
                 "Name": "openshift-controller-manager-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -2008,7 +1308,7 @@
                 "Name": "dns-default-metrics-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -2018,7 +1318,7 @@
                 "Name": "metrics-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -2028,7 +1328,7 @@
                 "Name": "proxy-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -2045,7 +1345,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-g5pnim41-33512-jz62c-master-0"
+                "Name": "etcd-peer-\u003cmaster-0\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2055,7 +1355,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-g5pnim41-33512-jz62c-master-1"
+                "Name": "etcd-peer-\u003cmaster-1\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2065,7 +1365,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-g5pnim41-33512-jz62c-master-2"
+                "Name": "etcd-peer-\u003cmaster-2\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2075,7 +1375,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-jlvtv5kv-aa265-cwrxb-master-0"
+                "Name": "etcd-serving-\u003cmaster-0\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2085,7 +1385,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-jlvtv5kv-aa265-cwrxb-master-1"
+                "Name": "etcd-serving-\u003cmaster-1\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2095,7 +1395,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-jlvtv5kv-aa265-cwrxb-master-2"
+                "Name": "etcd-serving-\u003cmaster-2\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2105,7 +1405,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-n3182v35-9b4d1-bbs9b-master-0"
+                "Name": "etcd-serving-metrics-\u003cmaster-0\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2115,7 +1415,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-n3182v35-9b4d1-bbs9b-master-1"
+                "Name": "etcd-serving-metrics-\u003cmaster-1\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2125,847 +1425,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-n3182v35-9b4d1-bbs9b-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-qgr0brt0-19614-glmmx-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-qgr0brt0-19614-glmmx-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-qgr0brt0-19614-glmmx-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-xyrw9zpv-d33e2-nlz6f-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-xyrw9zpv-d33e2-nlz6f-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ci-op-xyrw9zpv-d33e2-nlz6f-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-control-plane-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-control-plane-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-control-plane-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-host2.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-host3.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-host4.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ip-10-0-11-28.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ip-10-0-111-241.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ip-10-0-116-148.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ip-10-0-120-52.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ip-10-0-28-192.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ip-10-0-8-227.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-ip-10-0-90-130.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-master-0.ostest.test.metalkube.org"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-master-1.ostest.test.metalkube.org"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-master-2.ostest.test.metalkube.org"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-g5pnim41-33512-jz62c-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-g5pnim41-33512-jz62c-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-g5pnim41-33512-jz62c-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-jlvtv5kv-aa265-cwrxb-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-jlvtv5kv-aa265-cwrxb-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-jlvtv5kv-aa265-cwrxb-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-n3182v35-9b4d1-bbs9b-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-n3182v35-9b4d1-bbs9b-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-n3182v35-9b4d1-bbs9b-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-qgr0brt0-19614-glmmx-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-qgr0brt0-19614-glmmx-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-qgr0brt0-19614-glmmx-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-xyrw9zpv-d33e2-nlz6f-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-xyrw9zpv-d33e2-nlz6f-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ci-op-xyrw9zpv-d33e2-nlz6f-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-control-plane-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-control-plane-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-control-plane-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-host2.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-host3.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-host4.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ip-10-0-11-28.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ip-10-0-111-241.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ip-10-0-116-148.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ip-10-0-120-52.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ip-10-0-28-192.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ip-10-0-8-227.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ip-10-0-90-130.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-master-0.ostest.test.metalkube.org"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-master-1.ostest.test.metalkube.org"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-master-2.ostest.test.metalkube.org"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-g5pnim41-33512-jz62c-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-g5pnim41-33512-jz62c-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-g5pnim41-33512-jz62c-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-jlvtv5kv-aa265-cwrxb-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-jlvtv5kv-aa265-cwrxb-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-jlvtv5kv-aa265-cwrxb-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-n3182v35-9b4d1-bbs9b-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-n3182v35-9b4d1-bbs9b-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-n3182v35-9b4d1-bbs9b-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-qgr0brt0-19614-glmmx-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-qgr0brt0-19614-glmmx-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-qgr0brt0-19614-glmmx-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-xyrw9zpv-d33e2-nlz6f-master-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-xyrw9zpv-d33e2-nlz6f-master-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ci-op-xyrw9zpv-d33e2-nlz6f-master-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-control-plane-0"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-control-plane-1"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-control-plane-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-host2.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-host3.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-host4.cluster4.ocpci.eng.rdu2.redhat.com"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ip-10-0-11-28.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ip-10-0-111-241.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ip-10-0-116-148.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ip-10-0-120-52.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ip-10-0-28-192.us-west-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ip-10-0-8-227.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-ip-10-0-90-130.us-east-2.compute.internal"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-master-0.ostest.test.metalkube.org"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-master-1.ostest.test.metalkube.org"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-master-2.ostest.test.metalkube.org"
+                "Name": "etcd-serving-metrics-\u003cmaster-2\u003e"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -2978,7 +1438,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3008,7 +1468,7 @@
                 "Name": "etcd-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3018,7 +1478,7 @@
                 "Name": "image-registry-operator-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3028,7 +1488,7 @@
                 "Name": "image-registry-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3048,7 +1508,7 @@
                 "Name": "router-metrics-certs-default"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3058,7 +1518,7 @@
                 "Name": "metrics-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3078,7 +1538,7 @@
                 "Name": "openshift-insights-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3116,86 +1576,6 @@
             "secretLocation": {
                 "Namespace": "openshift-kube-apiserver",
                 "Name": "etcd-client"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client-3"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client-4"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client-5"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client-6"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client-7"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client-8"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client-9"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "Etcd",
@@ -3245,86 +1625,6 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey-3"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey-4"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey-5"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey-6"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey-7"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey-8"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey-9"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
                 "Name": "localhost-serving-cert-certkey"
             },
             "certKeyInfo": {
@@ -3358,7 +1658,7 @@
                 "Name": "kube-apiserver-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3468,87 +1768,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serving-cert-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serving-cert-3"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serving-cert-4"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serving-cert-5"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serving-cert-6"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serving-cert-7"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serving-cert-8"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serving-cert-9"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3578,7 +1798,7 @@
                 "Name": "kube-controller-manager-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3598,87 +1818,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serving-cert-2"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serving-cert-3"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serving-cert-4"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serving-cert-5"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serving-cert-6"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serving-cert-7"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serving-cert-8"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serving-cert-9"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3688,7 +1828,7 @@
                 "Name": "kube-scheduler-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3698,7 +1838,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3708,7 +1848,7 @@
                 "Name": "baremetal-operator-webhook-server-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3718,7 +1858,7 @@
                 "Name": "cluster-autoscaler-operator-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3728,7 +1868,7 @@
                 "Name": "cluster-baremetal-operator-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3738,7 +1878,7 @@
                 "Name": "cluster-baremetal-webhook-server-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3748,7 +1888,7 @@
                 "Name": "control-plane-machine-set-operator-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3758,7 +1898,7 @@
                 "Name": "machine-api-controllers-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3768,7 +1908,7 @@
                 "Name": "machine-api-operator-machine-webhook-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3778,7 +1918,7 @@
                 "Name": "machine-api-operator-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3788,7 +1928,7 @@
                 "Name": "machine-api-operator-webhook-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3818,7 +1958,7 @@
                 "Name": "mcc-proxy-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3828,7 +1968,7 @@
                 "Name": "mco-proxy-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3838,7 +1978,7 @@
                 "Name": "proxy-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3848,7 +1988,7 @@
                 "Name": "marketplace-operator-metrics"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3858,7 +1998,7 @@
                 "Name": "alertmanager-main-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3868,7 +2008,7 @@
                 "Name": "cluster-monitoring-operator-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3888,7 +2028,7 @@
                 "Name": "kube-state-metrics-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3908,7 +2048,7 @@
                 "Name": "monitoring-plugin-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3918,7 +2058,7 @@
                 "Name": "node-exporter-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -3928,14 +2068,14 @@
                 "Name": "openshift-state-metrics-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-4bqugojq2547i"
+                "Name": "prometheus-adapter-1jrrf5sh987qh"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -3945,7 +2085,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-6eibhc7krdmo6"
+                "Name": "prometheus-adapter-2ttjql23nmvum"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -3955,7 +2095,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-8kfg5cg8r5q04"
+                "Name": "prometheus-adapter-3n9p82int7pnq"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -3965,7 +2105,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-9f3c9i72f9l5l"
+                "Name": "prometheus-adapter-42i2lr8j9g696"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -3975,7 +2115,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-9mvu94os67rin"
+                "Name": "prometheus-adapter-5rmeiq3sf69eu"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -3985,7 +2125,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-al2gjtsg7gt99"
+                "Name": "prometheus-adapter-74idanhao9aal"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -3995,7 +2135,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-d1pql6oeon2qi"
+                "Name": "prometheus-adapter-9ii5h10cim14b"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -4005,7 +2145,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-drobri32cuqrv"
+                "Name": "prometheus-adapter-ab3868p6l6a8q"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -4015,7 +2155,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-e35hju4plodlp"
+                "Name": "prometheus-adapter-djb2u06co5t92"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -4025,7 +2165,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-fv6teddem53uj"
+                "Name": "prometheus-adapter-f7jlisa6ht5ai"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -4035,7 +2175,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-rl85jl6onm9u"
+                "Name": "prometheus-adapter-fvvh3ei4of3gc"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -4048,7 +2188,7 @@
                 "Name": "prometheus-adapter-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4058,7 +2198,7 @@
                 "Name": "prometheus-k8s-thanos-sidecar-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4068,7 +2208,7 @@
                 "Name": "prometheus-k8s-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4078,7 +2218,7 @@
                 "Name": "prometheus-operator-admission-webhook-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4088,7 +2228,7 @@
                 "Name": "prometheus-operator-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4098,7 +2238,7 @@
                 "Name": "telemeter-client-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4108,7 +2248,7 @@
                 "Name": "thanos-querier-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4118,7 +2258,7 @@
                 "Name": "metrics-daemon-secret"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4128,7 +2268,7 @@
                 "Name": "multus-admission-controller-secret"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4158,7 +2298,7 @@
                 "Name": "metrics-tls"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4188,7 +2328,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4198,7 +2338,7 @@
                 "Name": "catalog-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4208,7 +2348,7 @@
                 "Name": "olm-operator-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4218,7 +2358,7 @@
                 "Name": "package-server-manager-serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4268,7 +2408,7 @@
                 "Name": "ovn-control-plane-metrics-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4278,7 +2418,7 @@
                 "Name": "ovn-node-metrics-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4308,7 +2448,37 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-rukpak",
+                "Name": "core-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-rukpak",
+                "Name": "helm-provisioner-cert"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
+                "description": ""
+            }
+        },
+        {
+            "secretLocation": {
+                "Namespace": "openshift-rukpak",
+                "Name": "rukpak-webhook-certificate"
+            },
+            "certKeyInfo": {
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4318,7 +2488,7 @@
                 "Name": "sdn-controller-metrics-certs"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4328,7 +2498,7 @@
                 "Name": "sdn-metrics-certs"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4338,7 +2508,7 @@
                 "Name": "signing-key"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         },
@@ -4348,7 +2518,7 @@
                 "Name": "serving-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "service-ca",
                 "description": ""
             }
         }
