@@ -11,7 +11,7 @@ import (
 
 type singleEventThresholdCheck struct {
 	testName       string
-	matcher        *PathologicalEventMatcher
+	matcher        *SimplePathologicalEventMatcher
 	failThreshold  int
 	flakeThreshold int
 }
@@ -61,7 +61,7 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	return []*junitapi.JUnitTestCase{success}
 }
 
-func NewSingleEventThresholdCheck(testName string, matcher *PathologicalEventMatcher, failThreshold, flakeThreshold int) *singleEventThresholdCheck {
+func NewSingleEventThresholdCheck(testName string, matcher *SimplePathologicalEventMatcher, failThreshold, flakeThreshold int) *singleEventThresholdCheck {
 	return &singleEventThresholdCheck{
 		testName:       testName,
 		matcher:        matcher,
@@ -85,15 +85,15 @@ func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Interv
 }
 
 func MakeProbeTest(testName string, events monitorapi.Intervals, operatorName string,
-	matcher *PathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+	matcher *SimplePathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	return eventMatchThresholdTest(testName, operatorName, events, matcher, eventFlakeThreshold)
 }
 
-func EventExprMatchThresholdTest(testName string, events monitorapi.Intervals, matcher *PathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+func EventExprMatchThresholdTest(testName string, events monitorapi.Intervals, matcher *SimplePathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	return eventMatchThresholdTest(testName, "", events, matcher, eventFlakeThreshold)
 }
 
-func eventMatchThresholdTest(testName, operatorName string, events monitorapi.Intervals, matcher *PathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
+func eventMatchThresholdTest(testName, operatorName string, events monitorapi.Intervals, matcher *SimplePathologicalEventMatcher, eventFlakeThreshold int) []*junitapi.JUnitTestCase {
 	var maxFailureOutput string
 	maxTimes := 0
 	for _, event := range events {

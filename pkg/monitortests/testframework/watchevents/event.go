@@ -179,10 +179,10 @@ func recordAddOrUpdateEvent(
 
 	// Flag any event that matches one of our allowances as "interesting", regardless how many
 	// times it occurred. We include upgrade allowances here.
-	allowedDupeEvents := []*pathologicaleventlibrary.PathologicalEventMatcher{}
-	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedPathologicalEvents...)
-	allowedDupeEvents = append(allowedDupeEvents, pathologicaleventlibrary.AllowedPathologicalUpgradeEvents...)
-	isInteresting, _ := pathologicaleventlibrary.MatchesAny(allowedDupeEvents, locator, message.Build(), topology)
+	// We do not pass a Kubeconfig or list of final intervals (as final intervals obviously do not exist), so a small subset of more matchers will not be active,
+	// and will not get flagged as "interesting" as a result.
+	registry := pathologicaleventlibrary.NewUpgradePathologicalEventMatchers(nil, nil)
+	isInteresting, _, _ := registry.MatchesAny(locator, message.Build(), topology)
 
 	if obj.Count > 1 {
 

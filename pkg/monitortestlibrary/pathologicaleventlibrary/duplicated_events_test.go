@@ -16,7 +16,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 		name    string
 		locator monitorapi.Locator
 		msg     monitorapi.Message
-		// expectedMatchName is the name of the PathologicalEventMatcher we expect to be returned as allowing this duplicated event.
+		// expectedMatchName is the name of the SimplePathologicalEventMatcher we expect to be returned as allowing this duplicated event.
 		expectedMatchName string
 		// topology is an optional topology to fake we're in
 		topology v1.TopologyMode
@@ -32,7 +32,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: some error goes here").
 				Reason("Unhealthy").Build(),
-			expectedMatchName: "UnhealthyE2EPortForwarding",
+			expectedMatchName: "KubeletUnhealthyReadinessProbeFailed",
 		},
 		{
 			name: "scc-test-3",
@@ -44,7 +44,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.").
 				Reason("FailedScheduling").Build(),
-			expectedMatchName: "E2ESCCFailedScheduling",
+			expectedMatchName: "FailedScheduling",
 		},
 		{
 			name: "non-root",
@@ -68,7 +68,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)").
 				Reason("FailedScheduling").Build(),
-			expectedMatchName: "E2EPersistentVolumesFailedScheduling",
+			expectedMatchName: "FailedScheduling",
 		},
 		{
 			name: "missing image",
@@ -80,7 +80,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"webserver:404\"").
 				Reason("BackOff").Build(),
-			expectedMatchName: "BackOffPullingWebserverImage404",
+			expectedMatchName: "E2EImagePullBackOff",
 		},
 		{
 			name: "no match for missing image in core namespace ",
@@ -116,7 +116,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: Get \"http://10.131.0.54:81/\": dial tcp 10.131.0.54:81: connect: connection refused").
 				Reason("Unhealthy").Build(),
-			expectedMatchName: "E2EContainerProbeFailedOrWarning",
+			expectedMatchName: "KubeletUnhealthyReadinessProbeFailed",
 		},
 		{
 			name: "failing-init-container",
@@ -129,16 +129,17 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Back-off restarting failed container").
 				Reason("BackOff").Build(),
-			expectedMatchName: "E2EInitContainerRestartBackoff",
+			expectedMatchName: "AllowBackOffRestartingFailedContainer",
 		},
 	}
 	for _, test := range tests {
+		registry := NewUniversalPathologicalEventMatchers(nil, nil)
 		t.Run(test.name, func(t *testing.T) {
-			allowed, matchedAllowedDupe := MatchesAny(AllowedPathologicalEvents, test.locator, test.msg, test.topology)
+			allowed, matchName, matchedAllowedDupe := registry.MatchesAny(test.locator, test.msg, test.topology)
 			if test.expectedMatchName != "" {
-				assert.True(t, allowed, "duplicated event should have been allowed, but we matched: %s", matchedAllowedDupe.Name)
+				assert.True(t, allowed, "duplicated event should have been allowed, but we matched: %s", matchName)
 				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
-				assert.Equal(t, test.expectedMatchName, matchedAllowedDupe.Name, "duplicated event was not allowed by the correct PathologicalEventMatcher")
+				assert.Equal(t, test.expectedMatchName, matchName, "duplicated event was not allowed by the correct SimplePathologicalEventMatcher")
 			} else {
 				require.False(t, allowed, "duplicated event should not have been allowed")
 				assert.Nil(t, matchedAllowedDupe, "duplicated event should not have been allowed by matcher")
@@ -150,7 +151,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedDupeEvents: AllowedPathologicalEvents,
+		registry: NewUniversalPathologicalEventMatchers(nil, nil),
 	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)
@@ -359,7 +360,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 		name            string
 		intervals       monitorapi.Intervals
 		match           bool
-		matcher         *PathologicalEventMatcher
+		matcher         *SimplePathologicalEventMatcher
 		operator        string
 		expectedMessage string
 	}{
@@ -475,7 +476,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 
 func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 	evaluator := duplicateEventsEvaluator{
-		allowedDupeEvents: AllowedPathologicalEvents,
+		registry: NewUniversalPathologicalEventMatchers(nil, nil),
 	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)

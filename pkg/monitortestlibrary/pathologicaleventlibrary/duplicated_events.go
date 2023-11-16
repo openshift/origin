@@ -3,7 +3,6 @@ package pathologicaleventlibrary
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -24,20 +23,11 @@ import (
 )
 
 func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	// append upgrade allowances to the main slice
-	allowedDupeEvents := []*PathologicalEventMatcher{}
-	allowedDupeEvents = append(allowedDupeEvents, AllowedPathologicalEvents...)
-	allowedDupeEvents = append(allowedDupeEvents, AllowedPathologicalUpgradeEvents...)
+	registry := NewUpgradePathologicalEventMatchers(kubeClientConfig, events)
 
 	evaluator := duplicateEventsEvaluator{
-		allowedDupeEvents: allowedDupeEvents,
+		registry: registry,
 	}
-
-	etcdAllowance, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), kubeClientConfig)
-	if err != nil {
-		logrus.WithError(err).Fatal("unable to construct pathological events allowance for etcd")
-	}
-	evaluator.allowedDupeEvents = append(evaluator.allowedDupeEvents, etcdAllowance)
 
 	platform, topology, err := GetClusterInfraInfo(kubeClientConfig)
 	if err != nil {
@@ -55,16 +45,11 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 }
 
 func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+	registry := NewUniversalPathologicalEventMatchers(clientConfig, events)
 
 	evaluator := duplicateEventsEvaluator{
-		allowedDupeEvents: AllowedPathologicalEvents,
+		registry: registry,
 	}
-
-	etcdAllowance, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), clientConfig)
-	if err != nil {
-		logrus.WithError(err).Fatal("unable to construct pathological events allowance for etcd")
-	}
-	evaluator.allowedDupeEvents = append(evaluator.allowedDupeEvents, etcdAllowance)
 
 	platform, topology, err := GetClusterInfraInfo(clientConfig)
 	if err != nil {
@@ -82,8 +67,7 @@ func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 }
 
 type duplicateEventsEvaluator struct {
-	// allowedDupeEvents is the list of matchers we use to see if a repeat kube event is allowed or not.
-	allowedDupeEvents []*PathologicalEventMatcher
+	registry *AllowedPathologicalEventRegistry
 
 	// platform contains the current platform of the cluster under Test.
 	platform v1.PlatformType
@@ -317,7 +301,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 			// implying it matches some pattern, but that happens even for upgrade patterns occurring in non-upgrade jobs,
 			// so we were ignoring patterns that were meant to be allowed only in upgrade jobs in all jobs. The list of
 			// allowed patterns passed to this object wasn't even used.
-			if allowed, _ := MatchesAny(d.allowedDupeEvents, event.StructuredLocator, event.StructuredMessage, d.topology); allowed {
+			if allowed, _, _ := d.registry.MatchesAny(event.StructuredLocator, event.StructuredMessage, d.topology); allowed {
 				continue
 			}
 
@@ -403,34 +387,6 @@ func GetClusterInfraInfo(c *rest.Config) (platform v1.PlatformType, topology v1.
 	}
 
 	return platform, topology, nil
-}
-
-// newDuplicatedEventsAllowedWhenEtcdRevisionChange tolerates etcd readiness probe failures unless we receive more
-// than the allowance per revisions of etcd.
-func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clientConfig *rest.Config) (*PathologicalEventMatcher, error) {
-	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
-	if err != nil {
-	}
-	repeatThresholdOverride := currentRevision * (60 / 5)
-	logrus.WithFields(logrus.Fields{
-		"etcdRevision":   currentRevision,
-		"allowedRepeats": repeatThresholdOverride,
-	}).Info("created toleration for etcd readiness probes per revision")
-
-	return &PathologicalEventMatcher{
-		Name: "EtcdRevisionChange",
-		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-etcd$`),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-guard-`),
-		},
-		MessageReasonRegex:      regexp.MustCompile(`^(Unhealthy|ProbeError)$`),
-		MessageHumanRegex:       regexp.MustCompile(`Readiness probe`),
-		RepeatThresholdOverride: repeatThresholdOverride, // 60s for starting a new pod, divided by the probe interval
-	}, nil
 }
 
 // getBiggestRevisionForEtcdOperator calculates the biggest revision among replicas of the most recently successful deployment
