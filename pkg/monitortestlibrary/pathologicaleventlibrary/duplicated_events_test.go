@@ -484,9 +484,6 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 }
 
 func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
-	evaluator := duplicateEventsEvaluator{
-		registry: NewUniversalPathologicalEventMatchers(nil, nil),
-	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)
 
@@ -663,6 +660,9 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			events := monitorapi.Intervals(test.intervals)
+			evaluator := duplicateEventsEvaluator{
+				registry: NewUniversalPathologicalEventMatchers(nil, events),
+			}
 
 			testName := "events should not repeat"
 			junits := evaluator.testDuplicatedEvents(testName, false, events, nil, false)

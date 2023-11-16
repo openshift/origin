@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -394,6 +395,9 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		registry.AddPathologicalEventMatcherOrDie(etcdMatcher.Name, etcdMatcher)
 	}
 
+	topologyAwareMatcher := newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie("TopologyAwareHintsDisabledDuringTaintManagerTests", topologyAwareMatcher)
+
 	return registry
 }
 
@@ -736,4 +740,68 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Matches(i monitorapi.I
 		}
 	}
 	return false
+}
+
+func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+
+	taintManagerTestIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey], "NoExecuteTaintManager")
+	})
+
+	adjustedTaintTestIntervals := monitorapi.Intervals{}
+
+	// Start the allowed time range from time range of the tests. But events lag behind the tests since the tests do not wait
+	// until all dns pods are properly scheduled and reach ready state. So we will need to expand the allowed time range after.
+	for _, test := range taintManagerTestIntervals {
+		ti := test.DeepCopy()
+		adjustedTaintTestIntervals = append(adjustedTaintTestIntervals, *ti)
+		logrus.WithField("from", test.From).WithField("to", test.To).Infof("found time range for test: %s", test.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey])
+	}
+	dnsUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourcePodState &&
+			(eventInterval.StructuredLocator.Type == monitorapi.LocatorTypePod || eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeContainer) &&
+			eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == "openshift-dns" &&
+			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerPodLifecycle
+	})
+
+	// Now expand the allowed time range until the replacement dns pod gets ready
+	for i, r := range adjustedTaintTestIntervals {
+		var lastReadyTime time.Time
+		count := 0
+		for _, interval := range dnsUpdateIntervals {
+			if interval.From.Before(r.From) {
+				continue
+			}
+			// If there is a GracefulDelete of dns-default pod, we will have to wait until the replacement dns container becomes ready
+			if interval.StructuredMessage.Reason == monitorapi.PodReasonGracefulDeleteStarted &&
+				strings.Contains(interval.StructuredLocator.Keys[monitorapi.LocatorPodKey], "dns-default") {
+				count++
+			}
+			if interval.StructuredMessage.Reason == monitorapi.ContainerReasonReady &&
+				interval.StructuredLocator.Keys[monitorapi.LocatorContainerKey] == "dns" && count > 0 {
+				lastReadyTime = interval.From
+				count--
+			}
+			if interval.From.After(r.To) && count == 0 {
+				if lastReadyTime.After(r.To) {
+					adjustedTaintTestIntervals[i].To = lastReadyTime
+				}
+				break
+			}
+		}
+	}
+	// Log final adjusted time ranges
+	for _, testInterval := range adjustedTaintTestIntervals {
+		logrus.WithField("from", testInterval.From).WithField("to", testInterval.To).Infof("adjusted time range for test: %s", testInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey])
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			Name:               "TopologyAwareHintsDisabledDuringTaintManagerTests",
+			MessageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+		},
+		allowIfWithinIntervals: adjustedTaintTestIntervals,
+	}
+
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/sirupsen/logrus"
@@ -189,83 +188,10 @@ func generateJUnitTestCasesE2ENamespaces(testName string, nsResults map[string]*
 // I hate regexes, so I only do this because I really have to.
 func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config, isE2E bool) []*junitapi.JUnitTestCase {
 
-	type timeRange struct {
-		from time.Time
-		to   time.Time
-	}
-	buildTopologyHintAllowedTimeRanges := true
-	topologyHintAllowedTimeRanges := []*timeRange{}
-
 	// displayToCount maps a static display message to the matching repeating interval we saw with the highest count
 	displayToCount := map[string]monitorapi.Interval{}
 
 	for _, event := range events {
-
-		if event.StructuredMessage.Reason == "TopologyAwareHintsDisabled" {
-			// Build the allowed time range only once
-			if buildTopologyHintAllowedTimeRanges {
-				taintManagerTestIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
-					return eventInterval.Source == monitorapi.SourceE2ETest &&
-						strings.Contains(eventInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey], "NoExecuteTaintManager")
-				})
-				// Start the allowed time range from time range of the tests. But events lag behind the tests since the tests do not wait
-				// until all dns pods are properly scheduled and reach ready state. So we will need to expand the allowed time range after.
-				for _, test := range taintManagerTestIntervals {
-					topologyHintAllowedTimeRanges = append(topologyHintAllowedTimeRanges, &timeRange{from: test.From, to: test.To})
-					logrus.WithField("from", test.From).WithField("to", test.To).Infof("found time range for test: %s", testName)
-				}
-				dnsUpdateIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
-					return eventInterval.Source == monitorapi.SourcePodState &&
-						(eventInterval.StructuredLocator.Type == monitorapi.LocatorTypePod || eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeContainer) &&
-						eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == "openshift-dns" &&
-						eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerPodLifecycle
-				})
-
-				// Now expand the allowed time range until the replacement dns pod gets ready
-				for _, r := range topologyHintAllowedTimeRanges {
-					var lastReadyTime time.Time
-					count := 0
-					for _, interval := range dnsUpdateIntervals {
-						if interval.From.Before(r.from) {
-							continue
-						}
-						// If there is a GracefulDelete of dns-default pod, we will have to wait until the replacement dns container becomes ready
-						if interval.StructuredMessage.Reason == monitorapi.PodReasonGracefulDeleteStarted &&
-							strings.Contains(interval.StructuredLocator.Keys[monitorapi.LocatorPodKey], "dns-default") {
-							count++
-						}
-						if interval.StructuredMessage.Reason == monitorapi.ContainerReasonReady &&
-							interval.StructuredLocator.Keys[monitorapi.LocatorContainerKey] == "dns" && count > 0 {
-							lastReadyTime = interval.From
-							count--
-						}
-						if interval.From.After(r.to) && count == 0 {
-							if lastReadyTime.After(r.to) {
-								r.to = lastReadyTime
-							}
-							break
-						}
-					}
-				}
-				// Log final adjusted time ranges
-				for _, test := range taintManagerTestIntervals {
-					logrus.WithField("from", test.From).WithField("to", test.To).Infof("adjusted time range for test: %s", testName)
-				}
-				buildTopologyHintAllowedTimeRanges = false
-			}
-			// Filter out TopologyAwareHintsDisabled events within allowed time range
-			var allowed bool
-			for _, r := range topologyHintAllowedTimeRanges {
-				if r.from.Before(event.From) && r.to.After(event.To) {
-					logrus.Infof("%s was found to fall into the allowed time range %+v, ignoring pathological event as we expect these during NoExecuteTaintManager test", event, r)
-					allowed = true
-					break
-				}
-			}
-			if allowed {
-				continue
-			}
-		}
 
 		times := GetTimesAnEventHappened(event.StructuredMessage)
 		if times > DuplicateEventThreshold {
