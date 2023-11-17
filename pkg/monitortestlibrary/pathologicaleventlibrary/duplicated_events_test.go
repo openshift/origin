@@ -141,11 +141,11 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 					StructuredLocator: test.locator,
 				},
 			}
-			allowed, matchName, matchedAllowedDupe := registry.AllowedByAny(i, test.topology)
+			allowed, matchedAllowedDupe := registry.AllowedByAny(i, test.topology)
 			if test.expectedMatchName != "" {
-				assert.True(t, allowed, "duplicated event should have been allowed, but we matched: %s", matchName)
+				assert.True(t, allowed, "duplicated event should have been allowed, but we matched: %s", matchedAllowedDupe.Name())
 				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
-				assert.Equal(t, test.expectedMatchName, matchName, "duplicated event was not allowed by the correct SimplePathologicalEventMatcher")
+				assert.Equal(t, test.expectedMatchName, matchedAllowedDupe.Name(), "duplicated event was not allowed by the correct SimplePathologicalEventMatcher")
 			} else {
 				require.False(t, allowed, "duplicated event should not have been allowed")
 				assert.Nil(t, matchedAllowedDupe, "duplicated event should not have been allowed by matcher")

@@ -142,17 +142,17 @@ func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcherOrDie(even
 // MatchesAny checks if the given event locator and message match any registered matcher.
 // Returns true if so, the matcher name, and the matcher itself.
 // It does NOT check if the interval should be allowed.
-func (r *AllowedPathologicalEventRegistry) MatchesAny(i monitorapi.Interval) (bool, string, EventMatcher) {
+func (r *AllowedPathologicalEventRegistry) MatchesAny(i monitorapi.Interval) (bool, EventMatcher) {
 	l := i.StructuredLocator
 	msg := i.StructuredMessage
 	for k, m := range r.matchers {
 		allowed := m.Matches(i)
 		if allowed {
 			logrus.WithField("message", msg).WithField("locator", l).Infof("event interval matches %s", k)
-			return allowed, k, m
+			return allowed, m
 		}
 	}
-	return false, "", nil
+	return false, nil
 }
 
 // AllowedByAny checks if the given event locator and message match any registered matcher, and if
@@ -160,17 +160,17 @@ func (r *AllowedPathologicalEventRegistry) MatchesAny(i monitorapi.Interval) (bo
 // Returns true if so, the matcher name, and the matcher itself.
 func (r *AllowedPathologicalEventRegistry) AllowedByAny(
 	i monitorapi.Interval,
-	topology v1.TopologyMode) (bool, string, EventMatcher) {
+	topology v1.TopologyMode) (bool, EventMatcher) {
 	l := i.StructuredLocator
 	msg := i.StructuredMessage
 	for k, m := range r.matchers {
 		allowed := m.Allows(i, topology)
 		if allowed {
 			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", k)
-			return allowed, k, m
+			return allowed, m
 		}
 	}
-	return false, "", nil
+	return false, nil
 }
 
 func (r *AllowedPathologicalEventRegistry) GetMatcherByName(name string) (EventMatcher, error) {

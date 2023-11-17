@@ -200,7 +200,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 			// implying it matches some pattern, but that happens even for upgrade patterns occurring in non-upgrade jobs,
 			// so we were ignoring patterns that were meant to be allowed only in upgrade jobs in all jobs. The list of
 			// allowed patterns passed to this object wasn't even used.
-			if allowed, _, _ := d.registry.AllowedByAny(event, d.topology); allowed {
+			if allowed, _ := d.registry.AllowedByAny(event, d.topology); allowed {
 				continue
 			}
 
