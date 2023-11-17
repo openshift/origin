@@ -173,7 +173,6 @@ func recordAddOrUpdateEvent(
 	// We start with to equal to from, the majority of kube event intervals had this, and these get filtered out
 	// when generating spyglass html. For interesting/pathological events, we're adding a second, which causes them
 	// to get included in the html.
-	// TODO: Probably should switch to using Display() and use a consistent time + 1s for the To.
 	to := pathoFrom // we may override later for some events we want to have a duration and get charted
 	locator := monitorapi.NewLocator().KubeEvent(obj)
 
@@ -182,6 +181,8 @@ func recordAddOrUpdateEvent(
 	// We do not pass a Kubeconfig or list of final intervals (as final intervals obviously do not exist), so a small subset of more matchers will not be active,
 	// and will not get flagged as "interesting" as a result.
 	registry := pathologicaleventlibrary.NewUpgradePathologicalEventMatchers(nil, nil)
+
+	intervalBuilder := monitorapi.NewInterval(monitorapi.SourceKubeEvent, level)
 
 	// We don't yet have a full interval, create one for the purpose of matching the simple matchers.
 	tmpInterval := monitorapi.Interval{
@@ -197,30 +198,33 @@ func recordAddOrUpdateEvent(
 		if isInteresting {
 			// This is a repeated event that we know about
 			message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
+			intervalBuilder = intervalBuilder.Display()
 		}
 
 		isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold
 		if isPathological {
 			// This is a repeated event that exceeds threshold
 			message = message.WithAnnotation(monitorapi.AnnotationPathological, "true")
+			intervalBuilder = intervalBuilder.Display()
 		}
 
+		// serialize.go EventsIntervalsToJSON filters out any with from == to, so we add a second here to
+		// allow these to be charted.
 		to = pathoFrom.Add(1 * time.Second)
 	} else if strings.Contains(obj.Message, "pod sandbox") {
 		// TODO: gross hack until we port these to structured intervals. serialize.go EventsIntervalsToJSON will filter out
 		// any intervals where from == to, which kube events normally do other than interesting/pathological above,
 		// which is only applied to things with a count. to get pod sandbox intervals charted we have to get a little creative.
-		// structured intervals should come here soon.
 
 		// TODO: fake interesting flag, accommodate flagging this interesting in the new duplicated events patterns definitions
 		message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
+		intervalBuilder = intervalBuilder.Display()
 
 		// make sure we add 1 second to the to timestamp so it doesn't get filtered out when creating the spyglass html
 		to = pathoFrom.Add(1 * time.Second)
 	}
 
-	interval := monitorapi.NewInterval(monitorapi.SourceKubeEvent, level).
-		Locator(locator).
+	interval := intervalBuilder.Locator(locator).
 		Message(message).Build(pathoFrom, to)
 
 	logrus.WithField("event", *obj).Info("processed event")
