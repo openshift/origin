@@ -191,7 +191,7 @@ func recordAddOrUpdateEvent(
 			StructuredMessage: message.Build(),
 		},
 	}
-	isInteresting, _, _ := registry.MatchesAny(tmpInterval, topology)
+	isInteresting, _, _ := registry.MatchesAny(tmpInterval)
 
 	if obj.Count > 1 {
 

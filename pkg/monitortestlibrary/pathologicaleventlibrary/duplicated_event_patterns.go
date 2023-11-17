@@ -29,14 +29,17 @@ const (
 	InterestingMark         = "interesting/true"
 )
 
-// IsRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
-// This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
-// Use this to handle cases where, "if X is true, then the repeated event is ok".
-type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
-
 type EventMatcher interface {
+	// Name returns a unique name (enforced by registry) for this matcher.
 	Name() string
-	Matches(i monitorapi.Interval, topology v1.TopologyMode) bool
+
+	// Matches returns true if the given interval looks relevant to this matcher, but does not
+	// indicate the interval should be allowed to repeat pathologically. For that use Allows.
+	Matches(i monitorapi.Interval) bool
+
+	// Allows returns true if the given interval should be allowed to repeat as many times
+	// as it did. It performs the Matches, check, and layers in additional logic from runtime.
+	Allows(i monitorapi.Interval, topology v1.TopologyMode) bool
 }
 
 // SimplePathologicalEventMatcher allows the definition of kube event intervals that can repeat more than the threshold we allow during a job run.
@@ -51,24 +54,26 @@ type SimplePathologicalEventMatcher struct {
 	MessageReasonRegex *regexp.Regexp
 	// MessageReasonRegex checks the HumanMessage on a structured interval Message.
 	MessageHumanRegex *regexp.Regexp
-	// Topology limits the exception to a specific topology. (e.g. single replica)
-	Topology *v1.TopologyMode
-
-	// RepeatThresholdOverride allows a matcher to allow more than our default number of repeats.
-	// Less will not work as the matcher will not be invoked if we're over our threshold.
-	RepeatThresholdOverride int
 
 	// Jira is a link to a Jira (or legacy Bugzilla). If set it implies we consider this event a problem but there's
 	// been a bug filed.
 	Jira string
+
+	// RepeatThresholdOverride allows a matcher to allow more than our default number of repeats.
+	// Less will not work as the matcher will not be invoked if we're over our threshold.
+	// This is only considered in the context of Allows, not Matches.
+	RepeatThresholdOverride int
+
+	// Topology limits the exception to a specific topology. (e.g. single replica)
+	// This is only considered in the context of Allows, not Matches.
+	Topology *v1.TopologyMode
 }
 
 func (ade *SimplePathologicalEventMatcher) Name() string {
 	return ade.name
 }
 
-// Matches checks if the given locator/messagebuilder matches this allowed dupe event.
-func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval, topology v1.TopologyMode) bool {
+func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval) bool {
 	l := i.StructuredLocator
 	msg := i.StructuredMessage
 	for lk, r := range ade.LocatorKeyRegexes {
@@ -83,6 +88,17 @@ func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval, topolo
 	}
 	if ade.MessageReasonRegex != nil && !ade.MessageReasonRegex.MatchString(string(msg.Reason)) {
 		logrus.WithField("allower", ade.Name).Debugf("message reason did not match")
+		return false
+	}
+
+	return true
+}
+
+// Allows checks if the given locator/messagebuilder matches this allowed dupe event, and if the
+// interval should be allowed to repeat pathologically.
+func (ade *SimplePathologicalEventMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
+	msg := i.StructuredMessage
+	if !ade.Matches(i) {
 		return false
 	}
 
@@ -125,13 +141,30 @@ func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcherOrDie(even
 
 // MatchesAny checks if the given event locator and message match any registered matcher.
 // Returns true if so, the matcher name, and the matcher itself.
-func (r *AllowedPathologicalEventRegistry) MatchesAny(
+// It does NOT check if the interval should be allowed.
+func (r *AllowedPathologicalEventRegistry) MatchesAny(i monitorapi.Interval) (bool, string, EventMatcher) {
+	l := i.StructuredLocator
+	msg := i.StructuredMessage
+	for k, m := range r.matchers {
+		allowed := m.Matches(i)
+		if allowed {
+			logrus.WithField("message", msg).WithField("locator", l).Infof("event interval matches %s", k)
+			return allowed, k, m
+		}
+	}
+	return false, "", nil
+}
+
+// AllowedByAny checks if the given event locator and message match any registered matcher, and if
+// the repeating event should be allowed.
+// Returns true if so, the matcher name, and the matcher itself.
+func (r *AllowedPathologicalEventRegistry) AllowedByAny(
 	i monitorapi.Interval,
 	topology v1.TopologyMode) (bool, string, EventMatcher) {
 	l := i.StructuredLocator
 	msg := i.StructuredMessage
 	for k, m := range r.matchers {
-		allowed := m.Matches(i, topology)
+		allowed := m.Allows(i, topology)
 		if allowed {
 			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", k)
 			return allowed, k, m
@@ -739,10 +772,14 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Name() string {
 	return ade.delegate.Name()
 }
 
-func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Matches(i monitorapi.Interval, topology v1.TopologyMode) bool {
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Matches(i monitorapi.Interval) bool {
+	return ade.delegate.Matches(i)
+}
+
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
 
 	// Check the delegate matcher first, if it matches, proceed to additional checks
-	if !ade.delegate.Matches(i, topology) {
+	if !ade.delegate.Allows(i, topology) {
 		return false
 	}
 
