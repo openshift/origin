@@ -148,6 +148,20 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			expectedAllowName: "",
 			expectedMatchName: "PodSandbox",
 		},
+		{
+			name: "etcd readiness probe failure matches but is not allowed to repeat pathologically",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-etcd",
+					monitorapi.LocatorPodKey:       "etcd-guard-ip-10-0-30-87.us-east-2.compute.internal",
+				},
+			},
+
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: Get \"https://10.0.30.87:9980/readyz\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)").
+				Reason("ProbeError").Build(),
+			expectedAllowName: "",
+			expectedMatchName: "EtcdReadinessProbeFailuresPerRevisionChange",
+		},
 	}
 	for _, test := range tests {
 		registry := NewUniversalPathologicalEventMatchers(nil, nil)

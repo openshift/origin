@@ -725,8 +725,22 @@ func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
 // newDuplicatedEventsAllowedWhenEtcdRevisionChange tolerates etcd readiness probe failures unless we receive more
 // than the allowance per revisions of etcd.
 func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clientConfig *rest.Config) (*SimplePathologicalEventMatcher, error) {
+	matcher := &SimplePathologicalEventMatcher{
+		name: "EtcdReadinessProbeFailuresPerRevisionChange",
+		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-etcd$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-guard-`),
+		},
+		MessageReasonRegex: regexp.MustCompile(`^(Unhealthy|ProbeError)$`),
+		MessageHumanRegex:  regexp.MustCompile(`Readiness probe`),
+	}
 	if clientConfig == nil {
-		return nil, fmt.Errorf("no kubeconfig provided, cannot lookup number of etcd revisions")
+		// We were not given a kubeconfig likely because the caller is looking for runtime
+		// checks for interesting events, and not actually evaluating which repeated pathologically yet.
+		// In this case, return a matcher capable of flagging Etcd readiness probe errors
+		// as interesting, but not allowing them to repeat pathologically.
+		matcher.NeverAllow = true
+		return matcher, nil
 	}
 	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
 	if err != nil {
@@ -740,20 +754,24 @@ func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clien
 		"etcdRevision":   currentRevision,
 		"allowedRepeats": repeatThresholdOverride,
 	}).Info("created toleration for etcd readiness probes per revision")
+	matcher.RepeatThresholdOverride = repeatThresholdOverride
 
-	return &SimplePathologicalEventMatcher{
-		name: "EtcdReadinessProbeFailuresPerRevisionChange",
-		LocatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-etcd$`),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-guard-`),
-		},
-		MessageReasonRegex:      regexp.MustCompile(`^(Unhealthy|ProbeError)$`),
-		MessageHumanRegex:       regexp.MustCompile(`Readiness probe`),
-		RepeatThresholdOverride: repeatThresholdOverride, // 60s for starting a new pod, divided by the probe interval
-	}, nil
+	return matcher, nil
 }
 
 func newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	if finalIntervals == nil || len(finalIntervals) == 0 {
+		// We were not given final intervals likely because the caller is looking for runtime
+		// checks for interesting events, and not actually evaluating which repeated pathologically yet.
+		// In this case, return a matcher capable of flagging FailedScheduling
+		// as interesting, but not allowing them to repeat pathologically.
+		return &SimplePathologicalEventMatcher{
+			name:               "FailedSchedulingDuringNodeUpdate",
+			MessageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
+			NeverAllow:         true,
+		}
+	}
+
 	// Filter out a list of NodeUpdate events, we use these to ignore some other potential pathological events that are
 	// expected during NodeUpdate.
 	nodeUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
@@ -811,6 +829,18 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 }
 
 func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+
+	if finalIntervals == nil || len(finalIntervals) == 0 {
+		// We were not given final intervals likely because the caller is looking for runtime
+		// checks for interesting events, and not actually evaluating which repeated pathologically yet.
+		// In this case, return a matcher capable of flagging TopologyAwareHintsDisabled
+		// as interesting, but not allowing them to repeat pathologically.
+		return &SimplePathologicalEventMatcher{
+			name:               "TopologyAwareHintsDisabledDuringTaintManagerTests",
+			MessageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+			NeverAllow:         true,
+		}
+	}
 
 	taintManagerTestIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		return eventInterval.Source == monitorapi.SourceE2ETest &&
