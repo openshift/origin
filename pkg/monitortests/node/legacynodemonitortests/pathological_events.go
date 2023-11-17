@@ -25,6 +25,20 @@ func testNodeHasSufficientPID(events monitorapi.Intervals) []*junitapi.JUnitTest
 		pathologicaleventlibrary.DuplicateEventThreshold)
 }
 
+// testBackoffStartingFailedContainerForE2ENamespaces looks for this symptom in e2e namespaces:
+//
+//	reason/BackOff Back-off restarting failed container
+//
+// TODO: why is this showing up unused?
+func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers in e2e namespaces"
+
+	// always flake for now
+	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.AllowBackOffRestartingFailedContainer,
+		math.MaxInt, pathologicaleventlibrary.BackoffRestartingFlakeThreshold).
+		Test(events.Filter(monitorapi.IsInE2ENamespace))
+}
+
 // testBackoffPullingRegistryRedhatImage looks for this symptom:
 //
 //	reason/ContainerWait ... Back-off pulling image "registry.redhat.io/openshift4/ose-oauth-proxy:latest"

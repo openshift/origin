@@ -2,7 +2,6 @@ package pathologicaleventlibrary
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -68,20 +67,6 @@ func NewSingleEventThresholdCheck(testName string, matcher *SimplePathologicalEv
 		failThreshold:  failThreshold,
 		flakeThreshold: flakeThreshold,
 	}
-}
-
-// testBackoffStartingFailedContainerForE2ENamespaces looks for this symptom in e2e namespaces:
-//
-//	reason/BackOff Back-off restarting failed container
-//
-// TODO: why is this showing up unused?
-func testBackoffStartingFailedContainerForE2ENamespaces(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers in e2e namespaces"
-
-	// always flake for now
-	return NewSingleEventThresholdCheck(testName, AllowBackOffRestartingFailedContainer,
-		math.MaxInt, BackoffRestartingFlakeThreshold).
-		Test(events.Filter(monitorapi.IsInE2ENamespace))
 }
 
 func MakeProbeTest(testName string, events monitorapi.Intervals, operatorName string,
