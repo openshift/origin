@@ -211,15 +211,9 @@ func recordAddOrUpdateEvent(
 		// serialize.go EventsIntervalsToJSON filters out any with from == to, so we add a second here to
 		// allow these to be charted.
 		to = pathoFrom.Add(1 * time.Second)
-	} else if strings.Contains(obj.Message, "pod sandbox") {
-		// TODO: gross hack until we port these to structured intervals. serialize.go EventsIntervalsToJSON will filter out
-		// any intervals where from == to, which kube events normally do other than interesting/pathological above,
-		// which is only applied to things with a count. to get pod sandbox intervals charted we have to get a little creative.
-
-		// TODO: fake interesting flag, accommodate flagging this interesting in the new duplicated events patterns definitions
+	} else if isInteresting {
 		message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
 		intervalBuilder = intervalBuilder.Display()
-
 		// make sure we add 1 second to the to timestamp so it doesn't get filtered out when creating the spyglass html
 		to = pathoFrom.Add(1 * time.Second)
 	}
