@@ -16,7 +16,9 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 		name    string
 		locator monitorapi.Locator
 		msg     monitorapi.Message
-		// expectedMatchName is the name of the SimplePathologicalEventMatcher we expect to be returned as allowing this duplicated event.
+		// expectedAllowName is the name of the SimplePathologicalEventMatcher we expect to be returned as allowing this duplicated event.
+		expectedAllowName string
+		// expectedMatchName is the optional name of the SimplePathologicalEventMatcher we expect to be returned as matching this duplicated event.
 		expectedMatchName string
 		// topology is an optional topology to fake we're in
 		topology v1.TopologyMode
@@ -32,7 +34,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: some error goes here").
 				Reason("Unhealthy").Build(),
-			expectedMatchName: "KubeletUnhealthyReadinessProbeFailed",
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
 		},
 		{
 			name: "scc-test-3",
@@ -44,7 +46,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.").
 				Reason("FailedScheduling").Build(),
-			expectedMatchName: "FailedScheduling",
+			expectedAllowName: "FailedScheduling",
 		},
 		{
 			name: "non-root",
@@ -56,7 +58,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Error: container's runAsUser breaks non-root policy (pod: \"explicit-root-uid_e2e-security-context-test-6596(22bf29d0-e546-4a15-8dd7-8acd9165c924)\", container: explicit-root-uid)").
 				Reason("Failed").Build(),
-			expectedMatchName: "E2ESecurityContextBreaksNonRootPolicy",
+			expectedAllowName: "E2ESecurityContextBreaksNonRootPolicy",
 		},
 		{
 			name: "local-volume-failed-scheduling",
@@ -68,7 +70,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)").
 				Reason("FailedScheduling").Build(),
-			expectedMatchName: "FailedScheduling",
+			expectedAllowName: "FailedScheduling",
 		},
 		{
 			name: "missing image",
@@ -80,7 +82,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"webserver:404\"").
 				Reason("BackOff").Build(),
-			expectedMatchName: "E2EImagePullBackOff",
+			expectedAllowName: "E2EImagePullBackOff",
 		},
 		{
 			name: "no match for missing image in core namespace ",
@@ -92,7 +94,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"foobar\"").
 				Reason("BackOff").Build(),
-			expectedMatchName: "",
+			expectedAllowName: "",
 		},
 		{
 			name: "port-forward",
@@ -104,7 +106,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed").
 				Reason("Unhealthy").Build(),
-			expectedMatchName: "KubeletUnhealthyReadinessProbeFailed",
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
 		},
 		{
 			name: "container-probe",
@@ -116,7 +118,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: Get \"http://10.131.0.54:81/\": dial tcp 10.131.0.54:81: connect: connection refused").
 				Reason("Unhealthy").Build(),
-			expectedMatchName: "KubeletUnhealthyReadinessProbeFailed",
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
 		},
 		{
 			name: "failing-init-container",
@@ -129,7 +131,22 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			},
 			msg: monitorapi.NewMessage().HumanMessage("Back-off restarting failed container").
 				Reason("BackOff").Build(),
-			expectedMatchName: "AllowBackOffRestartingFailedContainer",
+			expectedAllowName: "AllowBackOffRestartingFailedContainer",
+		},
+
+		{
+			name: "pod sandbox matches but is not allowed to repeat pathologically",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-init-container-368",
+					monitorapi.LocatorPodKey:       "pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856",
+					monitorapi.LocatorNodeKey:      "ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_testpod_e2e-test-tuning-w8jbx_b37c6413-3851-48b6-9139-b2fa70f6dba9_0(f83d07e1222b7010b9c16a6c1b5d995119b14fcc7a65d0e5474f633149795b81): error adding pod e2e-test-tuning-w8jbx_testpod to CNI network \"multus-cni-network\": plugin type=\"multus-shim\" name=\"multus-cni-network\" failed (add): CmdAdd (shim): CNI request failed with status 400: SNIP").
+				Reason("FailedCreatePodSandbox").Build(),
+			expectedAllowName: "",
+			expectedMatchName: "PodSandbox",
 		},
 	}
 	for _, test := range tests {
@@ -142,10 +159,20 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				},
 			}
 			allowed, matchedAllowedDupe := registry.AllowedByAny(i, test.topology)
+
+			// In some tests we also want to check that the matcher Matches, even if it doesn't
+			// Allow the event to repeat pathologically:
 			if test.expectedMatchName != "" {
+				matches, matcher := registry.MatchesAny(i)
+				assert.True(t, matches, "event should have matched")
+				require.NotNil(t, matcher, "a matcher should have been returned")
+				assert.Equal(t, test.expectedMatchName, matcher.Name(), "event was not matched by the correct matcher")
+			}
+
+			if test.expectedAllowName != "" {
 				assert.True(t, allowed, "duplicated event should have been allowed, but we matched: %s", matchedAllowedDupe.Name())
 				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
-				assert.Equal(t, test.expectedMatchName, matchedAllowedDupe.Name(), "duplicated event was not allowed by the correct SimplePathologicalEventMatcher")
+				assert.Equal(t, test.expectedAllowName, matchedAllowedDupe.Name(), "duplicated event was not allowed by the correct SimplePathologicalEventMatcher")
 			} else {
 				require.False(t, allowed, "duplicated event should not have been allowed")
 				assert.Nil(t, matchedAllowedDupe, "duplicated event should not have been allowed by matcher")

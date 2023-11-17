@@ -64,6 +64,10 @@ type SimplePathologicalEventMatcher struct {
 	// This is only considered in the context of Allows, not Matches.
 	RepeatThresholdOverride int
 
+	// NeverAllow is for matchers we may use to get things flagged as "interesting" and thus charted, but
+	// we don't want to allow to repeat pathologically.
+	NeverAllow bool
+
 	// Topology limits the exception to a specific topology. (e.g. single replica)
 	// This is only considered in the context of Allows, not Matches.
 	Topology *v1.TopologyMode
@@ -97,6 +101,11 @@ func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval) bool {
 // Allows checks if the given locator/messagebuilder matches this allowed dupe event, and if the
 // interval should be allowed to repeat pathologically.
 func (ade *SimplePathologicalEventMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
+
+	if ade.NeverAllow {
+		return false
+	}
+
 	msg := i.StructuredMessage
 	if !ade.Matches(i) {
 		return false
@@ -405,6 +414,14 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		},
 		MessageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
 		MessageHumanRegex:  regexp.MustCompile(`\(combined from similar events\): Scaled (down|up) replica set.*controller-manager-[a-z0-9-]+ to [0-9]+`),
+	})
+
+	// Match pod sandbox errors as "interesting" so they get charted, but we do not ever allow them to repeat
+	// pathologically.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:              "PodSandbox",
+		MessageHumanRegex: regexp.MustCompile(`pod sandbox`),
+		NeverAllow:        true,
 	})
 
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
