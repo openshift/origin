@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: e2e-collect-certificate-
+  namespace: e2e-collect-certificate
+spec:
+  containers:
+  - name: collector
+    command:
+    - openshift-tests
+    - collect-disk-certificates
+    - --output-file=/rootfs/var/log/pkiList.json
+    - --prefix=/rootfs
+    - --collect-dir=/etc/kubernetes
+    - --collect-dir=/etc/cni
+    - --collect-dir=/var/lib/ovn-ic/etc
+    - --collect-dir=/var/lib/openvswitch/pki
+    image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
+    imagePullPolicy: Always
+    securityContext:
+      privileged: true
+      runAsUser: 0
+    volumeMounts:
+    - mountPath: /rootfs
+      name: rootfs
+  hostNetwork: true
+  restartPolicy: Never
+  serviceAccountName: collect-certificate-sa
+  volumes:
+  - hostPath:
+      path: /
+      type: DirectoryOrCreate
+    name: rootfs
+  tolerations:
+  - key: node-role.kubernetes.io/master
+    effect: NoSchedule

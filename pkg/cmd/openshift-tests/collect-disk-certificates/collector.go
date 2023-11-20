@@ -17,8 +17,11 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/util/templates"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 type RunCollectDiskCertificatesFlags struct {
@@ -128,22 +131,20 @@ func (f *RunCollectDiskCertificatesFlags) ToOptions() (*RunCollectDiskCertificat
 	}
 
 	return &RunCollectDiskCertificatesOptions{
-		KubeClient:       kubeClient,
-		KubeClientConfig: restConfig,
-		OutputFile:       f.OutputFlags.OutFile,
-		CloseFn:          closeFn,
-		OriginalOutFile:  originalOutStream,
-		IOStreams:        f.IOStreams,
-		CollectDirs:      f.CollectDirs,
-		Prefix:           f.Prefix,
+		KubeClient:      kubeClient,
+		OutputFile:      f.OutputFlags.OutFile,
+		CloseFn:         closeFn,
+		OriginalOutFile: originalOutStream,
+		IOStreams:       f.IOStreams,
+		CollectDirs:     f.CollectDirs,
+		Prefix:          f.Prefix,
 	}, nil
 }
 
 // RunCollectDiskCertificatesOptions sets options for api server disruption monitor
 type RunCollectDiskCertificatesOptions struct {
-	KubeClient       kubernetes.Interface
-	KubeClientConfig *rest.Config
-	OutputFile       string
+	KubeClient kubernetes.Interface
+	OutputFile string
 
 	CollectDirs []string
 	Prefix      string
@@ -160,11 +161,23 @@ func (o *RunCollectDiskCertificatesOptions) Run(ctx context.Context) error {
 	pkiList := &certgraphapi.PKIList{}
 	errs := []error{}
 
+	controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
+
+	nodeList, err := o.KubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
+	if err != nil {
+		return fmt.Errorf("failed to list nodes: %v", err)
+	}
+	masters := []*corev1.Node{}
+	for i := range nodeList.Items {
+		masters = append(masters, &nodeList.Items[i])
+	}
+
 	for _, srcDir := range o.CollectDirs {
 		dirPKIList, err := certgraphanalysis.GatherCertsFromDisk(ctx, o.KubeClient, o.Prefix, srcDir,
 			certgraphanalysis.ElideProxyCADetails,
 			certgraphanalysis.SkipRevisioned,
-			certgraphanalysis.SkipHashed)
+			certgraphanalysis.SkipHashed,
+			certgraphanalysis.RewriteNodeIPs(masters))
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %s", srcDir, err))
 		}
