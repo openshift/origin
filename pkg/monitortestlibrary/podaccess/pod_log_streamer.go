@@ -68,6 +68,8 @@ func (s *PodStreamer) Run(ctx context.Context) error {
 	defer cancelFn()
 	s.localStop = cancelFn
 
+	// do we need a wait here in case there is a write to s.errs to ensure that the write has completed before the close?
+	// or do that in streamLogsReader?
 	return wait.PollUntilContextCancel(ctx, time.Second, true, s.streamLogs)
 }
 
@@ -96,11 +98,23 @@ func (s *PodStreamer) streamLogs(ctx context.Context) (bool, error) {
 	}
 
 	exit := make(chan struct{})
+	// if we fire off a thread here
+	// but the context gets closed
+	// we wait for 100ms below in that case
+	// but is it enough time for streamLogsReader to attempt to get the logs, encounter an error and write to the err channel
+	// before we return and that channel gets closed?
+	// shouldn't we validate the ctx prior to writing the error?
+	// why wouldn't we just wait for exit to get closed and skip the ctx.Done case?
+	// or use a waitGroup?
 	go func(ctx context.Context, currPod *corev1.Pod) {
 		defer utilruntime.HandleCrash()
 		defer close(exit)
 		s.streamLogsReader(ctx, currPod)
 	}(ctx, currPod)
+
+	// why wouldn't we just wait for exit to get closed and skip the ctx.Done case?
+	// <-exit
+	// return false, nil
 
 	select {
 	case <-exit:
@@ -133,10 +147,13 @@ func (s *PodStreamer) streamLogsReader(ctx context.Context, currPod *corev1.Pod)
 		Timestamps: true,
 	}).Stream(context.Background())
 	if err != nil {
-		s.errs <- LogError{
-			Pod:     currPod,
-			Locator: locator,
-			Error:   err,
+		// don't attempt to write the error if we have been stopped
+		if ctx.Err() == nil {
+			s.errs <- LogError{
+				Pod:     currPod,
+				Locator: locator,
+				Error:   err,
+			}
 		}
 		return
 	}
