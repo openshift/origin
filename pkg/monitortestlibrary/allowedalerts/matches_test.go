@@ -209,6 +209,7 @@ func TestAlertDataFileParsing(t *testing.T) {
 		}
 	}
 	currentRelease = historicaldata.CurrentReleaseFromMap(releasesInQueryResults)
+	t.Logf("currentRelease = %s", currentRelease)
 	assert.Greater(t, dataOver100Runs, 5,
 		"expected at least 5 entries in query_results.json to have over 100 runs")
 	assert.True(t, foundAWSOVN, "no aws ovn job data in query_results.json")
@@ -226,7 +227,7 @@ func TestAlertDataFileParsing(t *testing.T) {
 		AlertLevel:     "Warning",
 		JobType: platformidentification.JobType{
 			Release:      currentRelease,
-			FromRelease:  currentRelease,
+			FromRelease:  "",
 			Platform:     "aws",
 			Architecture: "amd64",
 			Network:      "ovn",
@@ -236,5 +237,8 @@ func TestAlertDataFileParsing(t *testing.T) {
 	hd, _, err := alertMatcher.BestMatchDuration(expectedKey)
 	assert.NoError(t, err)
 	assert.NotNil(t, hd)
+	// NOTE: when this test has failed, it's often been because the job key above doesn't have the
+	// required 100 runs to be returned, in the past week. Make sure we use a key above that has at
+	// least 100 runs.
 	assert.True(t, hd.P99 > 5*time.Minute, "AlertmanagerReceiversNotConfigured data not present for aws amd64 ovn ha")
 }
