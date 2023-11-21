@@ -3,7 +3,6 @@ package legacycvomonitortests
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,28 +16,66 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// exceptionCallback consumes a suspicious condition and returns an
+// exception string if does not think the condition should be fatal.
+type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition) (string, error)
+
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	// map from allowed interval regexps to exceptions
-	exceptions := map[*regexp.Regexp]string{
-		regexp.MustCompile(".*"): "We are not worried about Available=False or Degraded=True blips for stable-system tests yet.",
+	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition) (string, error) {
+		if condition.Status == configv1.ConditionTrue {
+			if condition.Type == configv1.OperatorAvailable {
+				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		} else if condition.Status == configv1.ConditionFalse {
+			if condition.Type == configv1.OperatorDegraded {
+				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		}
+
+		return "We are not worried about Available=False or Degraded=True blips for stable-system tests yet.", nil
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, exceptions)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
 }
 
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	// map from allowed interval regexps to exceptions
-	exceptions := map[*regexp.Regexp]string{
-		regexp.MustCompile(".*condition/Degraded.*"): "We are not worried about Degraded=True blips for update tests yet.",
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition) (string, error) {
+		if condition.Status == configv1.ConditionTrue {
+			if condition.Type == configv1.OperatorAvailable {
+				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		} else if condition.Status == configv1.ConditionFalse {
+			if condition.Type == configv1.OperatorDegraded {
+				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		}
 
-		regexp.MustCompile(".*clusteroperator/authentication condition/Available reason/WellKnown_NotReady status/False[ :].*"):                                  "https://issues.redhat.com/browse/OCPBUGS-20056",
-		regexp.MustCompile(".*clusteroperator/control-plane-machine-set condition/Available reason/UnavailableReplicas status/False[ :].*"):                      "https://issues.redhat.com/browse/OCPBUGS-20061",
-		regexp.MustCompile(".*clusteroperator/kube-storage-version-migrator condition/Available reason/KubeStorageVersionMigrator_Deploying status/False[ :].*"): "https://issues.redhat.com/browse/OCPBUGS-20062",
+		if condition.Type == configv1.OperatorDegraded {
+			return "We are not worried about Degraded=True blips for update tests yet.", nil
+		}
+
+		switch operator {
+		case "authentication":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "WellKnown_NotReady" {
+				return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
+			}
+		case "control-plane-machine-set":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "UnavailableReplicas" {
+				return "https://issues.redhat.com/browse/OCPBUGS-20061", nil
+			}
+		case "kube-storage-version-migrator":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
+				return "https://issues.redhat.com/browse/OCPBUGS-20062", nil
+			}
+		}
+
+		return "", nil
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, exceptions)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
 }
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, exceptions map[*regexp.Regexp]string) []*junitapi.JUnitTestCase {
+
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -54,13 +91,13 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 
 	eventsByOperator := getEventsByOperator(events)
 	e2eEventIntervals := operatorstateanalyzer.E2ETestEventIntervals(events)
-	for _, condition := range conditionTypes {
+	for _, conditionType := range conditionTypes {
 		for _, operatorName := range platformidentification.KnownOperators.List() {
 			bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
 			if bzComponent == "Unknown" {
 				bzComponent = operatorName
 			}
-			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, condition)
+			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, conditionType)
 			operatorEvents := eventsByOperator[operatorName]
 			if len(operatorEvents) == 0 {
 				ret = append(ret, &junitapi.JUnitTestCase{
@@ -70,26 +107,52 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				continue
 			}
 
-			failures := testOperatorState(condition, operatorEvents, e2eEventIntervals)
-			if len(failures) == 0 {
-				continue
-			}
-
 			excepted := []string{}
 			fatal := []string{}
-			for _, failure := range failures {
-				exception := ""
-				for regexp, e := range exceptions {
-					if regexp.MatchString(failure) {
-						exception = e
-						break
-					}
+
+			for _, eventInterval := range operatorEvents {
+				condition := monitorapi.GetOperatorConditionStatus(eventInterval)
+				if condition == nil {
+					continue // ignore non-condition intervals
 				}
-				if exception == "" {
+				if len(condition.Type) == 0 {
+					fatal = append(fatal, fmt.Sprintf("failed to convert %v into a condition with a type", eventInterval))
+				}
+
+				if condition.Type != conditionType {
+					continue
+				}
+
+				// if there was any switch, it was wrong/unexpected at some point
+				failure := fmt.Sprintf("%v", eventInterval)
+
+				overlappingE2EIntervals := operatorstateanalyzer.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
+				concurrentE2E := []string{}
+				for _, overlap := range overlappingE2EIntervals {
+					if overlap.Level == monitorapi.Info {
+						continue
+					}
+					e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.StructuredLocator)
+					if !ok {
+						continue
+					}
+					concurrentE2E = append(concurrentE2E, fmt.Sprintf("%v", e2eTest))
+				}
+
+				if len(concurrentE2E) > 0 {
+					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n"))
+				}
+
+				exception, err := except(operatorName, condition)
+				if err != nil || exception == "" {
 					fatal = append(fatal, failure)
 				} else {
 					excepted = append(excepted, fmt.Sprintf("%s (exception: %s)", failure, exception))
 				}
+			}
+
+			if len(fatal) == 0 && len(excepted) == 0 {
+				continue // nothing to complain about
 			}
 
 			output := fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run", len(fatal))
@@ -108,7 +171,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 			ret = append(ret, &junitapi.JUnitTestCase{
 				Name:      testName,
 				Duration:  duration,
-				SystemOut: strings.Join(failures, "\n"),
+				SystemOut: output,
 				FailureOutput: &junitapi.FailureOutput{
 					Output: output,
 				},
@@ -316,45 +379,4 @@ func getEventsByOperator(events monitorapi.Intervals) map[string]monitorapi.Inte
 		eventsByClusterOperator[operatorName] = append(eventsByClusterOperator[operatorName], event)
 	}
 	return eventsByClusterOperator
-}
-
-func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, eventIntervals monitorapi.Intervals, e2eEventIntervals monitorapi.Intervals) []string {
-	failures := []string{}
-
-	for _, eventInterval := range eventIntervals {
-		// ignore non-interval eventInterval intervals
-		if eventInterval.From == eventInterval.To {
-			continue
-		}
-
-		condition := monitorapi.GetOperatorConditionStatus(eventInterval)
-		if condition == nil {
-			continue
-		}
-
-		if condition.Type != interestingCondition {
-			continue
-		}
-
-		// if there was any switch, it was wrong/unexpected at some point
-		failures = append(failures, fmt.Sprintf("%v", eventInterval))
-
-		overlappingE2EIntervals := operatorstateanalyzer.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
-		concurrentE2E := []string{}
-		for _, overlap := range overlappingE2EIntervals {
-			if overlap.Level == monitorapi.Info {
-				continue
-			}
-			e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.StructuredLocator)
-			if !ok {
-				continue
-			}
-			concurrentE2E = append(concurrentE2E, fmt.Sprintf("%v", e2eTest))
-		}
-
-		if len(concurrentE2E) > 0 {
-			failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n")))
-		}
-	}
-	return failures
 }
