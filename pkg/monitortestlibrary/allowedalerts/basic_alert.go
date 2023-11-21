@@ -46,6 +46,7 @@ type alertBuilder struct {
 	bugzillaComponent  string
 	divideByNamespaces bool
 	alertName          string
+	alertNamespace     string
 	alertState         AlertState
 	jobType            *platformidentification2.JobType
 
@@ -62,7 +63,8 @@ type basicAlertTest struct {
 	allowanceCalculator AlertTestAllowanceCalculator
 }
 
-func newAlert(bugzillaComponent, alertName string, jobType *platformidentification2.JobType) *alertBuilder {
+// newAlertTest creates a single alert test with no consideration of namespace.
+func newAlertTest(bugzillaComponent, alertName string, jobType *platformidentification2.JobType) *alertBuilder {
 	return &alertBuilder{
 		bugzillaComponent:   bugzillaComponent,
 		alertName:           alertName,
@@ -72,7 +74,20 @@ func newAlert(bugzillaComponent, alertName string, jobType *platformidentificati
 	}
 }
 
-func newNamespacedAlert(alertName string, jobType *platformidentification2.JobType) *alertBuilder {
+// newAlertTestWithNamespace creates a single alert test within a specific namespace.
+func newAlertTestWithNamespace(bugzillaComponent, alertName, alertNamespace string, jobType *platformidentification2.JobType) *alertBuilder {
+	return &alertBuilder{
+		bugzillaComponent:   bugzillaComponent,
+		alertName:           alertName,
+		alertNamespace:      alertNamespace,
+		alertState:          AlertPending,
+		allowanceCalculator: DefaultAllowances,
+		jobType:             jobType,
+	}
+}
+
+// newAlertTestPerNamespace creates an alert test builder per entry in the hardcoded list of namespaces we're interested in.
+func newAlertTestPerNamespace(alertName string, jobType *platformidentification2.JobType) *alertBuilder {
 	return &alertBuilder{
 		divideByNamespaces:  true,
 		alertName:           alertName,
@@ -112,8 +127,17 @@ func (a *alertBuilder) neverFail() *alertBuilder {
 	return a
 }
 
+// alwaysFlake will flake the test if the alert enters the given state for any amount of time,
+// regardless of historical data.
 func (a *alertBuilder) alwaysFlake() *alertBuilder {
 	a.allowanceCalculator = alwaysFlake()
+	return a
+}
+
+// alwaysFail will fail the test if the alert enters the given state for any amount of time,
+// regardless of historical data.
+func (a *alertBuilder) alwaysFail() *alertBuilder {
+	a.allowanceCalculator = failOnAny()
 	return a
 }
 
@@ -123,6 +147,7 @@ func (a *alertBuilder) toTests() []AlertTest {
 			&basicAlertTest{
 				bugzillaComponent:   a.bugzillaComponent,
 				alertName:           a.alertName,
+				namespace:           a.alertNamespace, // will be populated if we're creating for a specific namespace
 				alertState:          a.alertState,
 				allowanceCalculator: a.allowanceCalculator,
 				jobType:             a.jobType,

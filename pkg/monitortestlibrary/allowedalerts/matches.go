@@ -6,6 +6,8 @@ import (
 	historicaldata2 "github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
 )
 
+// neverFailAllowance will ignore historical data and impose a FailAfter limit that should not be
+// reachable in a CI job run, so the test can never fail, only flake if beyond historical limits.
 type neverFailAllowance struct {
 	flakeDelegate AlertTestAllowanceCalculator
 }
@@ -70,4 +72,21 @@ func (d *alwaysFlakeAllowance) FailAfter(key historicaldata2.AlertDataKey) (time
 
 func (d *alwaysFlakeAllowance) FlakeAfter(key historicaldata2.AlertDataKey) time.Duration {
 	return 1 * time.Second
+}
+
+func failOnAny() AlertTestAllowanceCalculator {
+	return &alwaysFailAllowance{}
+}
+
+// alwaysFailAllowance is for alerts we want to fail a test if they occur at all.
+type alwaysFailAllowance struct {
+}
+
+func (d *alwaysFailAllowance) FailAfter(key historicaldata2.AlertDataKey) (time.Duration, error) {
+	return 1 * time.Second, nil
+}
+
+func (d *alwaysFailAllowance) FlakeAfter(key historicaldata2.AlertDataKey) time.Duration {
+	// flake is irrelevant here, we're going to fail on ANY duration
+	return 24 * time.Hour
 }
