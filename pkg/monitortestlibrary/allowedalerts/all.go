@@ -34,8 +34,8 @@ func AllAlertTests(jobType *platformidentification.JobType, etcdAllowance AlertT
 
 	// A rare and pretty serious failure, should always be accompanied by other failures but we want to see a specific test failure for this.
 	// It likely means a kubelet is down.
-	ret = append(ret, newAlertTestWithNamespace(
-		"sig-node", "TargetDown", "kube-system", jobType).
+	ret = append(ret, newAlertTest(
+		"sig-node", "TargetDown", jobType).inNamespace("kube-system").
 		firing().alwaysFail().toTests()...)
 
 	ret = append(ret, newAlertTest("bz-etcd", "etcdHighNumberOfLeaderChanges", jobType).pending().neverFail().toTests()...)

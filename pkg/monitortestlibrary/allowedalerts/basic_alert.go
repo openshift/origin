@@ -74,18 +74,6 @@ func newAlertTest(bugzillaComponent, alertName string, jobType *platformidentifi
 	}
 }
 
-// newAlertTestWithNamespace creates a single alert test within a specific namespace.
-func newAlertTestWithNamespace(bugzillaComponent, alertName, alertNamespace string, jobType *platformidentification2.JobType) *alertBuilder {
-	return &alertBuilder{
-		bugzillaComponent:   bugzillaComponent,
-		alertName:           alertName,
-		alertNamespace:      alertNamespace,
-		alertState:          AlertPending,
-		allowanceCalculator: DefaultAllowances,
-		jobType:             jobType,
-	}
-}
-
 // newAlertTestPerNamespace creates an alert test builder per entry in the hardcoded list of namespaces we're interested in.
 func newAlertTestPerNamespace(alertName string, jobType *platformidentification2.JobType) *alertBuilder {
 	return &alertBuilder{
@@ -104,6 +92,12 @@ func (a *alertBuilder) withAllowance(allowanceCalculator AlertTestAllowanceCalcu
 
 func (a *alertBuilder) pending() *alertBuilder {
 	a.alertState = AlertPending
+	return a
+}
+
+// inNamespace limits the alert test to a specific namespace.
+func (a *alertBuilder) inNamespace(namespace string) *alertBuilder {
+	a.alertNamespace = namespace
 	return a
 }
 
