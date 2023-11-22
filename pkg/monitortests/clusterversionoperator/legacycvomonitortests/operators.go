@@ -67,6 +67,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
 				return "https://issues.redhat.com/browse/OCPBUGS-20062", nil
 			}
+		case "machine-config":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "MachineConfigControllerFailed" && strings.Contains(condition.Message, "notAfter: Required value") {
+				return "https://issues.redhat.com/browse/OCPBUGS-22364", nil
+			}
 		}
 
 		return "", nil
