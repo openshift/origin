@@ -200,16 +200,23 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	// PauseNewPods intentionally causes readiness probe to fail.
 	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]
 	// breakPodHTTPProbe intentionally causes readiness probe to fail.
-	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
-		name: "E2EStatefulSetReadinessProbeFailed",
-		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
-			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-statefulset-[0-9]+`),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(`ss-[0-9]`),
-			monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
-		},
-		messageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
-		messageHumanRegex:  regexp.MustCompile(`Readiness probe failed: `),
-	})
+	/*
+
+					This is duplicated with KubeletUnhealthyReadinessProbeFailed, I am keeping
+					commented out as a historical artifact in case the blanked Unhealthy readiness probe
+					matcher is removed some day and this specific case starts firing again.
+
+		registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+			name: "E2EStatefulSetReadinessProbeFailed",
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-statefulset-[0-9]+`),
+				monitorapi.LocatorPodKey:       regexp.MustCompile(`ss2-[0-9]`),
+				monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
+			},
+			messageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+			messageHumanRegex:  regexp.MustCompile(`Readiness probe failed: `),
+		})
+	*/
 
 	// Kubectl Port forwarding ***
 	// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
