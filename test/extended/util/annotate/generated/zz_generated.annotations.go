@@ -1367,7 +1367,7 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should override the route host with a custom value": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should run even if it has no access to update status [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should run even if it has no access to update status": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router should serve the correct routes when running with the haproxy config manager": " [Suite:openshift/conformance/parallel]",
 
