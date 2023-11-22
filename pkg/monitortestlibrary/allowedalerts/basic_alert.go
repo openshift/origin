@@ -181,11 +181,11 @@ func (a *alertBuilder) toTests() []AlertTest {
 func (a *basicAlertTest) InvariantTestName() string {
 	switch {
 	case len(a.namespace) == 0:
-		return fmt.Sprintf("[bz-%v][invariant] alert/%s should not be at or above %s", a.bugzillaComponent, a.alertName, a.alertState)
+		return fmt.Sprintf("[%v][invariant] alert/%s should not be at or above %s", a.bugzillaComponent, a.alertName, a.alertState)
 	case a.namespace == platformidentification2.NamespaceOther:
-		return fmt.Sprintf("[bz-%v][invariant] alert/%s should not be at or above %s in all the other namespaces", a.bugzillaComponent, a.alertName, a.alertState)
+		return fmt.Sprintf("[%v][invariant] alert/%s should not be at or above %s in all the other namespaces", a.bugzillaComponent, a.alertName, a.alertState)
 	default:
-		return fmt.Sprintf("[bz-%v][invariant] alert/%s should not be at or above %s in ns/%s", a.bugzillaComponent, a.alertName, a.alertState, a.namespace)
+		return fmt.Sprintf("[%v][invariant] alert/%s should not be at or above %s in ns/%s", a.bugzillaComponent, a.alertName, a.alertState, a.namespace)
 	}
 }
 
