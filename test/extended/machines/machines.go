@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -12,32 +13,47 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/stretchr/objx"
 
+	v1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
+	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 const (
-	operatorWait = 1 * time.Minute
+	operatorWait               = 1 * time.Minute
+	masterMachineLabelSelector = "machine.openshift.io/cluster-api-machine-role=master"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster should", func() {
 	defer g.GinkgoRecover()
+	oc := exutil.NewCLIWithoutNamespace("control-plane-machines").AsAdmin()
+
+	var cfg *rest.Config
+	var c *kubernetes.Clientset
+	var dc *dynamic.DynamicClient
+	var err error
+
+	g.BeforeEach(func() {
+		cfg, err = e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		c, err = e2e.LoadClientset()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		dc, err = dynamic.NewForConfig(cfg)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
 
 	g.It("have machine resources [apigroup:machine.openshift.io]", func() {
-		cfg, err := e2e.LoadConfig()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		c, err := e2e.LoadClientset()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		dc, err := dynamic.NewForConfig(cfg)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
 		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
@@ -99,6 +115,91 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 			e2e.Logf("Machines:\n%s", buf.String())
 			e2e.Failf("Machine resources missing for nodes: %s", strings.Join(nodeNames.List(), ", "))
 		}
+	})
+
+	g.It("[sig-scheduling][Early] control plane machine set operator should not cause an early rollout", func() {
+		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		pattern := `^([a-zA-Z0-9]+-)+master-\d+$`
+
+		g.By("checking for the openshift machine api operator")
+		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+
+		g.By("ensuring every node is linked to a machine api resource")
+		allControlPlaneMachines, err := machineClientSet.MachineV1beta1().Machines("openshift-machine-api").List(context.Background(), metav1.ListOptions{
+			LabelSelector: masterMachineLabelSelector,
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		regex, err := regexp.Compile(pattern)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		for _, m := range allControlPlaneMachines.Items {
+			matched := regex.MatchString(m.Name)
+			o.Expect(matched).To(o.BeTrue(), fmt.Sprintf("unexpected name of a control machine occured during early stages: %s", m.Name))
+		}
+	})
+
+	g.It("[sig-scheduling][Early] control plane machine set operator should not have any events", func() {
+		ctx := context.Background()
+
+		nodeClient := oc.KubeClient().CoreV1().Nodes()
+		nodeList, err := nodeClient.List(ctx, metav1.ListOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// We want to skip this test on single-node clusters
+		// as the control plane machine set does not get generated.
+		// No other topology should match this condition.
+		if len(nodeList.Items) == 1 {
+			_, isWorker := nodeList.Items[0].Labels["node-role.kubernetes.io/worker"]
+			_, isControlPlane := nodeList.Items[0].Labels["node-role.kubernetes.io/control-plane"]
+
+			if isWorker && isControlPlane {
+				g.Skip("Skipping test due to a cluster being a single node cluster")
+			}
+		}
+
+		configClient, err := configclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		infrastructure, err := configClient.Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		platform := infrastructure.Status.PlatformStatus.Type
+
+		switch platform {
+		case v1.AWSPlatformType,
+			v1.AzurePlatformType,
+			v1.GCPPlatformType,
+			v1.NutanixPlatformType,
+			v1.OpenStackPlatformType:
+			// Continue with the test
+		default:
+			g.Skip(fmt.Sprintf("Skipping test on platform: %s", platform))
+		}
+
+		machineClientSet, err := machineclient.NewForConfig(oc.KubeFramework().ClientConfig())
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.By("checking for the openshift machine api operator")
+		skipUnlessMachineAPIOperator(dc, c.CoreV1().Namespaces())
+
+		g.By("getting the control plane machine set")
+		cpmsClient := machineClientSet.MachineV1().ControlPlaneMachineSets("openshift-machine-api")
+		cpms, err := cpmsClient.Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.By("getting the events from the control plane machine set")
+		eventsClient := oc.KubeClient().CoreV1().Events("openshift-machine-api")
+		fieldSelector := fmt.Sprintf("involvedObject.kind=%s,involvedObject.name=%s", cpms.Kind, cpms.Name)
+		cpmsEvents, err := eventsClient.List(ctx, metav1.ListOptions{
+			FieldSelector: fieldSelector,
+		})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.By("the control plane machine set should not have any events")
+		o.Expect(cpmsEvents.Items).Should(o.BeEmpty())
 	})
 })
 

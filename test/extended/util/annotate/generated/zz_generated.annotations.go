@@ -911,6 +911,10 @@ var Annotations = map[string]string{
 
 	"[sig-cluster-lifecycle] TestAdminAck should succeed [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cluster-lifecycle][Feature:Machines] Managed cluster should [sig-scheduling][Early] control plane machine set operator should not cause an early rollout": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-cluster-lifecycle][Feature:Machines] Managed cluster should [sig-scheduling][Early] control plane machine set operator should not have any events": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cluster-lifecycle][Feature:Machines] Managed cluster should have machine resources [apigroup:machine.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cluster-lifecycle][Feature:Machines][Disruptive] Managed cluster should recover from deleted worker machines [apigroup:machine.openshift.io]": " [Serial]",
