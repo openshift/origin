@@ -312,7 +312,7 @@ func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 	} else if event.InvolvedObject.Kind == "Node" {
 		return b.
 			withTargetType(LocatorTypeNode).
-			withNode(event.InvolvedObject.Kind).
+			withNode(event.InvolvedObject.Name).
 			Build()
 	}
 
