@@ -56,7 +56,7 @@
                 "Name": "ccm-trusted-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Cloud Compute / Cloud Controller Manager",
                 "description": ""
             }
         },
@@ -116,7 +116,7 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -166,7 +166,7 @@
                 "Name": "default-ingress-cert"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / router",
                 "description": ""
             }
         },
@@ -216,7 +216,7 @@
                 "Name": "kubelet-serving-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-controller-manager",
                 "description": ""
             }
         },
@@ -237,7 +237,7 @@
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Service CA configmap contains the data for the PEM-encoded CA signing bundle which will be injected to resources annotated with 'service.beta.openshift.io/inject-cabundle=true'"
             }
         },
         {
@@ -256,7 +256,7 @@
                 "Name": "default-ingress-cert"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / router",
                 "description": ""
             }
         },
@@ -306,7 +306,7 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -336,7 +336,7 @@
                 "Name": "etcd-peer-client-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -356,7 +356,7 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -446,7 +446,7 @@
                 "Name": "kubelet-serving-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-controller-manager",
                 "description": ""
             }
         },
@@ -557,7 +557,7 @@
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Service CA configmap contains the data for the PEM-encoded CA signing bundle which will be injected to resources annotated with 'service.beta.openshift.io/inject-cabundle=true'"
             }
         },
         {
@@ -596,7 +596,7 @@
                 "Name": "csr-controller-signer-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-controller-manager",
                 "description": ""
             }
         },
@@ -726,7 +726,7 @@
                 "Name": "network-node-identity-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -746,7 +746,7 @@
                 "Name": "ovn-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -756,7 +756,7 @@
                 "Name": "signer-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -777,7 +777,7 @@
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Service CA configmap contains the data for the PEM-encoded CA signing bundle which will be injected to resources annotated with 'service.beta.openshift.io/inject-cabundle=true'"
             }
         }
     ],
@@ -799,7 +799,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service api/openshift-apiserver and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -809,7 +809,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-apiserver-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-apiserver-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -819,7 +819,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service oauth-openshift/openshift-authentication and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: v4-0-config-system-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -829,7 +829,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-authentication-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -839,7 +839,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service cco-metrics/openshift-cloud-credential-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cloud-credential-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -849,7 +849,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service pod-identity-webhook/openshift-cloud-credential-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: pod-identity-webhook'. The certificate is valid for 2 years."
             }
         },
         {
@@ -859,7 +859,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service aws-ebs-csi-driver-controller-metrics/openshift-cluster-csi-drivers and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: aws-ebs-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -869,7 +869,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service machine-approver/openshift-cluster-machine-approver and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-approver-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -879,7 +879,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service node-tuning-operator/openshift-cluster-node-tuning-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: node-tuning-operator-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -889,7 +889,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service performance-addon-operator-service/openshift-cluster-node-tuning-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: performance-addon-operator-webhook-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -899,7 +899,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-cluster-samples-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: samples-operator-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -909,7 +909,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service cluster-storage-operator-metrics/openshift-cluster-storage-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-storage-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -919,7 +919,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service csi-snapshot-webhook/openshift-cluster-storage-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: csi-snapshot-webhook-secret'. The certificate is valid for 2 years."
             }
         },
         {
@@ -929,7 +929,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service csi-snapshot-controller-operator-metrics/openshift-cluster-storage-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -939,7 +939,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service cluster-version-operator/openshift-cluster-version and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-version-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1009,7 +1009,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-config-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: config-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1019,7 +1019,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service console/openshift-console and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: console-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1029,7 +1029,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-console-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1039,7 +1039,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service webhook/openshift-console-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: webhook-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1049,7 +1049,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service controller-manager/openshift-controller-manager and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1059,7 +1059,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-controller-manager-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-controller-manager-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1069,7 +1069,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service dns-default/openshift-dns and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: dns-default-metrics-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1079,7 +1079,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-dns-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1089,7 +1089,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service promtail/openshift-e2e-loki and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1199,7 +1199,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service etcd/openshift-etcd and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1229,7 +1229,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-etcd-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: etcd-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1239,7 +1239,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service image-registry-operator/openshift-image-registry and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: image-registry-operator-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1249,7 +1249,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service image-registry/openshift-image-registry and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: image-registry-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1269,7 +1269,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service router-internal-default/openshift-ingress and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: router-metrics-certs-default'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1279,7 +1279,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-ingress-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1288,7 +1288,7 @@
                 "Name": "router-ca"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / router",
                 "description": ""
             }
         },
@@ -1299,7 +1299,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-insights and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-insights-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1409,7 +1409,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
+                "description": "Signer for the kube-apiserver to create client certificates for aggregated apiservers to recognize as a front-proxy."
             }
         },
         {
@@ -1419,7 +1419,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-kube-apiserver-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-apiserver-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1429,7 +1429,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
+                "description": "Signer for the kube-apiserver-to-kubelet-client so kubelets can recognize the kube-apiserver."
             }
         },
         {
@@ -1439,7 +1439,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
+                "description": "Signer for kube-controller-manager and kube-scheduler client certificates."
             }
         },
         {
@@ -1449,7 +1449,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
+                "description": "Signer used by the kube-apiserver operator to create serving certificates for the kube-apiserver via internal and external load balancers."
             }
         },
         {
@@ -1469,7 +1469,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
+                "description": "Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via localhost."
             }
         },
         {
@@ -1499,7 +1499,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
+                "description": "Signer used by the kube-apiserver to create serving certificates for the kube-apiserver via the service network."
             }
         },
         {
@@ -1529,7 +1529,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service kube-controller-manager/openshift-kube-controller-manager and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1538,7 +1538,7 @@
                 "Name": "csr-signer"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-controller-manager",
                 "description": ""
             }
         },
@@ -1548,7 +1548,7 @@
                 "Name": "csr-signer-signer"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-controller-manager",
                 "description": ""
             }
         },
@@ -1559,7 +1559,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-kube-controller-manager-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-controller-manager-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1579,7 +1579,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service scheduler/openshift-kube-scheduler and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1589,7 +1589,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-kube-scheduler-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-scheduler-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1599,7 +1599,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-kube-storage-version-migrator-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1609,7 +1609,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service cluster-autoscaler-operator/openshift-machine-api and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-autoscaler-operator-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1619,7 +1619,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service cluster-baremetal-operator-service/openshift-machine-api and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-baremetal-operator-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1629,7 +1629,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service cluster-baremetal-webhook-service/openshift-machine-api and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-baremetal-webhook-server-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1639,7 +1639,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service control-plane-machine-set-operator/openshift-machine-api and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: control-plane-machine-set-operator-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1649,7 +1649,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service machine-api-controllers/openshift-machine-api and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-controllers-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1659,7 +1659,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service machine-api-operator-machine-webhook/openshift-machine-api and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-machine-webhook-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1669,7 +1669,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service machine-api-operator/openshift-machine-api and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1679,7 +1679,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service machine-api-operator-webhook/openshift-machine-api and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: machine-api-operator-webhook-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1699,7 +1699,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service machine-config-controller/openshift-machine-config-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: mcc-proxy-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1709,7 +1709,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service machine-config-operator/openshift-machine-config-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: mco-proxy-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1719,7 +1719,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service machine-config-daemon/openshift-machine-config-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1729,7 +1729,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service marketplace-operator-metrics/openshift-marketplace and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: marketplace-operator-metrics'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1739,7 +1739,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service alertmanager-main/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: alertmanager-main-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1749,7 +1749,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service cluster-monitoring-operator/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cluster-monitoring-operator-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1769,7 +1769,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service kube-state-metrics/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-state-metrics-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1789,7 +1789,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service monitoring-plugin/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: monitoring-plugin-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1799,7 +1799,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service node-exporter/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: node-exporter-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1809,13 +1809,13 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service openshift-state-metrics/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-state-metrics-tls'. The certificate is valid for 2 years."
             }
         },
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-2h00aqagi7m9i"
+                "Name": "prometheus-adapter-e3ihmvv2tuqs4"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -1829,7 +1829,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service prometheus-adapter/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-adapter-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1839,7 +1839,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service prometheus-k8s-thanos-sidecar/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-k8s-thanos-sidecar-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1849,7 +1849,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service prometheus-k8s/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-k8s-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1859,7 +1859,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service prometheus-operator-admission-webhook/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-operator-admission-webhook-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1869,7 +1869,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service prometheus-operator/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-operator-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1879,7 +1879,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service thanos-querier/openshift-monitoring and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: thanos-querier-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1889,7 +1889,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service network-metrics-service/openshift-multus and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-daemon-secret'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1899,7 +1899,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service multus-admission-controller/openshift-multus and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: multus-admission-controller-secret'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1908,7 +1908,7 @@
                 "Name": "network-node-identity-ca"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -1918,7 +1918,7 @@
                 "Name": "network-node-identity-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -1929,7 +1929,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-network-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-tls'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1959,7 +1959,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service api/openshift-oauth-apiserver and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1969,7 +1969,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service catalog-operator-metrics/openshift-operator-lifecycle-manager and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalog-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1979,7 +1979,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service olm-operator-metrics/openshift-operator-lifecycle-manager and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: olm-operator-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1989,7 +1989,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service package-server-manager-metrics/openshift-operator-lifecycle-manager and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: package-server-manager-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -2018,7 +2018,7 @@
                 "Name": "ovn-ca"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2028,7 +2028,7 @@
                 "Name": "ovn-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2039,7 +2039,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service ovn-kubernetes-control-plane/openshift-ovn-kubernetes and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: ovn-control-plane-metrics-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -2049,7 +2049,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service ovn-kubernetes-node/openshift-ovn-kubernetes and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: ovn-node-metrics-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -2058,7 +2058,7 @@
                 "Name": "signer-ca"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2068,7 +2068,7 @@
                 "Name": "signer-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2079,7 +2079,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service route-controller-manager/openshift-route-controller-manager and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         },
         {
@@ -2089,7 +2089,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Service CA secret contains a signing key that will be used to issue a signed serving certificate/key pair to services annotated with 'service.beta.openshift.io/serving-cert-secret-name'"
             }
         },
         {
@@ -2099,7 +2099,7 @@
             },
             "certKeyInfo": {
                 "owningJiraComponent": "service-ca",
-                "description": ""
+                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service metrics/openshift-service-ca-operator and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
             }
         }
     ]
