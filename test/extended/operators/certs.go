@@ -85,13 +85,15 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 			certgraphanalysis.RewriteNodeIPs(masters))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		openshiftTestImagePullSpec, err := getOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig())
-		o.Expect(err).NotTo(o.HaveOccurred())
-		// openshiftTestImagePullSpec := "quay.io/vrutkovs/ocp:tests-2b9cb39a13"
+		// openshiftTestImagePullSpec, err := getOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig())
+		// o.Expect(err).NotTo(o.HaveOccurred())
+		openshiftTestImagePullSpec := "quay.io/vrutkovs/ocp:tests-34111656de"
 
-		onDiskPKIContent, err := fetchOnDiskCertificates(ctx, kubeClient, nodeList, openshiftTestImagePullSpec)
+		originalOnDiskPKIContent, err := fetchOnDiskCertificates(ctx, kubeClient, nodeList, openshiftTestImagePullSpec)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		onDiskPKIContent, err := processOnNodePKIList(originalOnDiskPKIContent)
+		o.Expect(err).NotTo(o.HaveOccurred())
 		actualPKIContent = certgraphanalysis.MergePKILists(ctx, inClusterPKIContent, onDiskPKIContent)
 
 		expectedPKIContent, err = certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIOwnership)
@@ -306,6 +308,31 @@ func fetchNodePKIList(ctx context.Context, kubeClient kubernetes.Interface, node
 		return pkiList, fmt.Errorf("failed to unmarshal file %s on node %s: %v", certInspectResultFile, node.Name, err)
 	}
 
+	return pkiList, nil
+}
+
+func processOnNodePKIList(pkiList *certgraphapi.PKIList) (*certgraphapi.PKIList, error) {
+	// Remove keys without matched cert
+	for idx, cert := range pkiList.CertKeyPairs.Items {
+		locations := []certgraphapi.OnDiskCertKeyPairLocation{}
+		for _, loc := range cert.Spec.OnDiskLocations {
+			if loc.Cert.Path == "" && loc.Key.Path != "" {
+				continue
+			}
+			locations = append(locations, loc)
+		}
+		pkiList.CertKeyPairs.Items[idx].Spec.OnDiskLocations = locations
+	}
+
+	// Remove certs which have no secret locations or on disk locations
+	certs := []certgraphapi.CertKeyPair{}
+	for _, cert := range pkiList.CertKeyPairs.Items {
+		if len(cert.Spec.OnDiskLocations) == 0 && len(cert.Spec.SecretLocations) == 0 {
+			continue
+		}
+		certs = append(certs, cert)
+	}
+	pkiList.CertKeyPairs.Items = certs
 	return pkiList, nil
 }
 
