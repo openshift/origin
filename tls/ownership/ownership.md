@@ -1,9 +1,8 @@
 # Certificate Ownership
 
 ## Table of Contents
-  - [Missing Owners (10)](#Missing-Owners-10)
-    - [Certificates (7)](#Certificates-7)
-    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
+  - [Missing Owners (4)](#Missing-Owners-4)
+    - [Certificates (4)](#Certificates-4)
   - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [Etcd (32)](#Etcd-32)
@@ -11,7 +10,8 @@
     - [Certificate Authority Bundles (13)](#Certificate-Authority-Bundles-13)
   - [Machine Config Operator (1)](#Machine-Config-Operator-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-  - [Monitoring (3)](#Monitoring-3)
+  - [Monitoring (5)](#Monitoring-5)
+    - [Certificates (2)](#Certificates-2)
     - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
   - [Networking / cluster-network-operator (29)](#Networking-/-cluster-network-operator-29)
     - [Certificates (6)](#Certificates-6)
@@ -35,8 +35,8 @@
     - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
 
 
-## Missing Owners (10)
-### Certificates (7)
+## Missing Owners (4)
+### Certificates (4)
 1. ns/openshift-ingress secret/router-certs-default
 
       **Description:** 
@@ -47,47 +47,12 @@
       **Description:** 
       
 
-3. ns/openshift-monitoring secret/federate-client-certs
+3. ns/openshift-operator-lifecycle-manager secret/packageserver-service-cert
 
       **Description:** 
       
 
-4. ns/openshift-monitoring secret/metrics-client-certs
-
-      **Description:** 
-      
-
-5. ns/openshift-monitoring secret/prometheus-adapter-7qlf9pr4ndtb
-
-      **Description:** 
-      
-
-6. ns/openshift-operator-lifecycle-manager secret/packageserver-service-cert
-
-      **Description:** 
-      
-
-7. ns/openshift-operator-lifecycle-manager secret/pprof-cert
-
-      **Description:** 
-      
-
-
-
-      
-
-### Certificate Authority Bundles (3)
-1. ns/openshift-monitoring configmap/alertmanager-trusted-ca-bundle-2ua4n9ob5qr8o
-
-      **Description:** 
-      
-
-2. ns/openshift-monitoring configmap/prometheus-trusted-ca-bundle-2ua4n9ob5qr8o
-
-      **Description:** 
-      
-
-3. ns/openshift-monitoring configmap/thanos-querier-trusted-ca-bundle-2ua4n9ob5qr8o
+4. ns/openshift-operator-lifecycle-manager secret/pprof-cert
 
       **Description:** 
       
@@ -289,7 +254,22 @@
 
       
 
-## Monitoring (3)
+## Monitoring (5)
+### Certificates (2)
+1. ns/openshift-monitoring secret/federate-client-certs
+
+      **Description:** 
+      
+
+2. ns/openshift-monitoring secret/metrics-client-certs
+
+      **Description:** 
+      
+
+
+
+      
+
 ### Certificate Authority Bundles (3)
 1. ns/openshift-monitoring configmap/alertmanager-trusted-ca-bundle
 

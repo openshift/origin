@@ -1,36 +1,5 @@
 {
-    "certificateAuthorityBundles": [
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "alertmanager-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "thanos-querier-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        }
-    ],
+    "certificateAuthorityBundles": null,
     "certKeyPairs": [
         {
             "secretLocation": {
@@ -46,36 +15,6 @@
             "secretLocation": {
                 "Namespace": "openshift-machine-config-operator",
                 "Name": "machine-config-server-tls"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "federate-client-certs"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "metrics-client-certs"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-7qlf9pr4ndtb"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
