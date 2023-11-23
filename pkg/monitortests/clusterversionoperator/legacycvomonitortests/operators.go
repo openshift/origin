@@ -71,6 +71,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "MachineConfigControllerFailed" && strings.Contains(condition.Message, "notAfter: Required value") {
 				return "https://issues.redhat.com/browse/OCPBUGS-22364", nil
 			}
+		case "monitoring":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "UpdatingPrometheusK8SFailed" {
+				return "https://issues.redhat.com/browse/OCPBUGS-23745", nil
+			}
 		case "operator-lifecycle-manager-packageserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
