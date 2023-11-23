@@ -1,74 +1,73 @@
 # Certificate Ownership
 
 ## Table of Contents
-  - [Missing Owners (22)](#Missing-Owners-22)
-    - [Certificates (9)](#Certificates-9)
-    - [Certificate Authority Bundles (13)](#Certificate-Authority-Bundles-13)
+  - [Missing Owners (10)](#Missing-Owners-10)
+    - [Certificates (7)](#Certificates-7)
+    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
   - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [Etcd (32)](#Etcd-32)
     - [Certificates (19)](#Certificates-19)
     - [Certificate Authority Bundles (13)](#Certificate-Authority-Bundles-13)
-  - [Networking / cluster-network-operator (31)](#Networking-/-cluster-network-operator-31)
+  - [Machine Config Operator (1)](#Machine-Config-Operator-1)
+    - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
+  - [Monitoring (3)](#Monitoring-3)
+    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
+  - [Networking / cluster-network-operator (29)](#Networking-/-cluster-network-operator-29)
     - [Certificates (6)](#Certificates-6)
-    - [Certificate Authority Bundles (25)](#Certificate-Authority-Bundles-25)
+    - [Certificate Authority Bundles (23)](#Certificate-Authority-Bundles-23)
   - [Networking / router (3)](#Networking-/-router-3)
     - [Certificates (1)](#Certificates-1)
     - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
-  - [kube-apiserver (40)](#kube-apiserver-40)
+  - [apiserver-auth (9)](#apiserver-auth-9)
+    - [Certificates (1)](#Certificates-1)
+    - [Certificate Authority Bundles (8)](#Certificate-Authority-Bundles-8)
+  - [kube-apiserver (41)](#kube-apiserver-41)
     - [Certificates (22)](#Certificates-22)
-    - [Certificate Authority Bundles (18)](#Certificate-Authority-Bundles-18)
-  - [kube-controller-manager (5)](#kube-controller-manager-5)
-    - [Certificates (2)](#Certificates-2)
-    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
+    - [Certificate Authority Bundles (19)](#Certificate-Authority-Bundles-19)
+  - [kube-controller-manager (4)](#kube-controller-manager-4)
+    - [Certificates (3)](#Certificates-3)
+    - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
+  - [kube-scheduler (1)](#kube-scheduler-1)
+    - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [service-ca (76)](#service-ca-76)
     - [Certificates (73)](#Certificates-73)
     - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
 
 
-## Missing Owners (22)
-### Certificates (9)
+## Missing Owners (10)
+### Certificates (7)
 1. ns/openshift-ingress secret/router-certs-default
 
       **Description:** 
       
 
-2. ns/openshift-kube-controller-manager secret/csr-signer
+2. ns/openshift-machine-config-operator secret/machine-config-server-tls
 
       **Description:** 
       
 
-3. ns/openshift-machine-config-operator secret/machine-config-server-tls
+3. ns/openshift-monitoring secret/federate-client-certs
 
       **Description:** 
       
 
-4. ns/openshift-monitoring secret/federate-client-certs
+4. ns/openshift-monitoring secret/metrics-client-certs
 
       **Description:** 
       
 
-5. ns/openshift-monitoring secret/metrics-client-certs
+5. ns/openshift-monitoring secret/prometheus-adapter-7qlf9pr4ndtb
 
       **Description:** 
       
 
-6. ns/openshift-monitoring secret/prometheus-adapter-e3ihmvv2tuqs4
+6. ns/openshift-operator-lifecycle-manager secret/packageserver-service-cert
 
       **Description:** 
       
 
-7. ns/openshift-oauth-apiserver secret/openshift-authenticator-certs
-
-      **Description:** 
-      
-
-8. ns/openshift-operator-lifecycle-manager secret/packageserver-service-cert
-
-      **Description:** 
-      
-
-9. ns/openshift-operator-lifecycle-manager secret/pprof-cert
+7. ns/openshift-operator-lifecycle-manager secret/pprof-cert
 
       **Description:** 
       
@@ -77,68 +76,18 @@
 
       
 
-### Certificate Authority Bundles (13)
-1. ns/openshift-config configmap/initial-kube-apiserver-server-ca
+### Certificate Authority Bundles (3)
+1. ns/openshift-monitoring configmap/alertmanager-trusted-ca-bundle-2ua4n9ob5qr8o
 
       **Description:** 
       
 
-2. ns/openshift-config-managed configmap/csr-controller-ca
+2. ns/openshift-monitoring configmap/prometheus-trusted-ca-bundle-2ua4n9ob5qr8o
 
       **Description:** 
       
 
-3. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
-
-      **Description:** 
-      
-
-4. ns/openshift-config-managed configmap/oauth-serving-cert
-
-      **Description:** 
-      
-
-5. ns/openshift-console configmap/oauth-serving-cert
-
-      **Description:** 
-      
-
-6. ns/openshift-kube-controller-manager configmap/serviceaccount-ca
-
-      **Description:** 
-      
-
-7. ns/openshift-kube-controller-manager-operator configmap/csr-controller-ca
-
-      **Description:** 
-      
-
-8. ns/openshift-kube-controller-manager-operator configmap/csr-signer-ca
-
-      **Description:** 
-      
-
-9. ns/openshift-kube-scheduler configmap/serviceaccount-ca
-
-      **Description:** 
-      
-
-10. ns/openshift-monitoring configmap/alertmanager-trusted-ca-bundle-2ua4n9ob5qr8o
-
-      **Description:** 
-      
-
-11. ns/openshift-monitoring configmap/kubelet-serving-ca-bundle
-
-      **Description:** 
-      
-
-12. ns/openshift-monitoring configmap/prometheus-trusted-ca-bundle-2ua4n9ob5qr8o
-
-      **Description:** 
-      
-
-13. ns/openshift-monitoring configmap/thanos-querier-trusted-ca-bundle-2ua4n9ob5qr8o
+3. ns/openshift-monitoring configmap/thanos-querier-trusted-ca-bundle-2ua4n9ob5qr8o
 
       **Description:** 
       
@@ -329,7 +278,39 @@
 
       
 
-## Networking / cluster-network-operator (31)
+## Machine Config Operator (1)
+### Certificate Authority Bundles (1)
+1. ns/openshift-config configmap/initial-kube-apiserver-server-ca
+
+      **Description:** 
+      
+
+
+
+      
+
+## Monitoring (3)
+### Certificate Authority Bundles (3)
+1. ns/openshift-monitoring configmap/alertmanager-trusted-ca-bundle
+
+      **Description:** 
+      
+
+2. ns/openshift-monitoring configmap/kubelet-serving-ca-bundle
+
+      **Description:** 
+      
+
+3. ns/openshift-monitoring configmap/thanos-querier-trusted-ca-bundle
+
+      **Description:** 
+      
+
+
+
+      
+
+## Networking / cluster-network-operator (29)
 ### Certificates (6)
 1. ns/openshift-network-node-identity secret/network-node-identity-ca
 
@@ -365,7 +346,7 @@
 
       
 
-### Certificate Authority Bundles (25)
+### Certificate Authority Bundles (23)
 1. ns/openshift-apiserver configmap/trusted-ca-bundle
 
       **Description:** 
@@ -461,32 +442,22 @@
       **Description:** 
       
 
-20. ns/openshift-monitoring configmap/alertmanager-trusted-ca-bundle
+20. ns/openshift-monitoring configmap/prometheus-trusted-ca-bundle
 
       **Description:** 
       
 
-21. ns/openshift-monitoring configmap/prometheus-trusted-ca-bundle
+21. ns/openshift-network-node-identity configmap/network-node-identity-ca
 
       **Description:** 
       
 
-22. ns/openshift-monitoring configmap/thanos-querier-trusted-ca-bundle
+22. ns/openshift-ovn-kubernetes configmap/ovn-ca
 
       **Description:** 
       
 
-23. ns/openshift-network-node-identity configmap/network-node-identity-ca
-
-      **Description:** 
-      
-
-24. ns/openshift-ovn-kubernetes configmap/ovn-ca
-
-      **Description:** 
-      
-
-25. ns/openshift-ovn-kubernetes configmap/signer-ca
+23. ns/openshift-ovn-kubernetes configmap/signer-ca
 
       **Description:** 
       
@@ -521,7 +492,63 @@
 
       
 
-## kube-apiserver (40)
+## apiserver-auth (9)
+### Certificates (1)
+1. ns/openshift-oauth-apiserver secret/openshift-authenticator-certs
+
+      **Description:** 
+      
+
+
+
+      
+
+### Certificate Authority Bundles (8)
+1. ns/openshift-config-managed configmap/csr-controller-ca
+
+      **Description:** 
+      
+
+2. ns/openshift-config-managed configmap/kubelet-serving-ca
+
+      **Description:** 
+      
+
+3. ns/openshift-config-managed configmap/oauth-serving-cert
+
+      **Description:** 
+      
+
+4. ns/openshift-console configmap/oauth-serving-cert
+
+      **Description:** 
+      
+
+5. ns/openshift-kube-apiserver configmap/kubelet-serving-ca
+
+      **Description:** 
+      
+
+6. ns/openshift-kube-controller-manager configmap/serviceaccount-ca
+
+      **Description:** 
+      
+
+7. ns/openshift-kube-controller-manager-operator configmap/csr-controller-ca
+
+      **Description:** 
+      
+
+8. ns/openshift-kube-controller-manager-operator configmap/csr-signer-ca
+
+      **Description:** 
+      
+
+
+
+      
+
+## kube-apiserver (41)
 ### Certificates (22)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
@@ -637,7 +664,7 @@
 
       
 
-### Certificate Authority Bundles (18)
+### Certificate Authority Bundles (19)
 1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
       **Description:** 
@@ -658,72 +685,77 @@
       **Description:** CA for kube-apiserver server
       
 
-5. ns/openshift-controller-manager configmap/client-ca
+5. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
+
+      **Description:** 
+      
+
+6. ns/openshift-controller-manager configmap/client-ca
 
       **Description:** CA for kube-apiserver clients
       
 
-6. ns/openshift-kube-apiserver configmap/aggregator-client-ca
+7. ns/openshift-kube-apiserver configmap/aggregator-client-ca
 
       **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
       
 
-7. ns/openshift-kube-apiserver configmap/client-ca
+8. ns/openshift-kube-apiserver configmap/client-ca
 
       **Description:** CA for kube-apiserver clients
       
 
-8. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
+9. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
 
       **Description:** CA for kube-apiserver server
       
 
-9. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
+10. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
 
       **Description:** CA for the kubelet to recognize the kube-apiserver client certificate.
       
 
-10. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
+11. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
 
       **Description:** CA for kube-apiserver to recognize the kube-controller-manager and kube-scheduler client certificates.
       
 
-11. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
+12. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
 
       **Description:** CA for recognizing the kube-apiserver when connecting via the internal or external load balancers.
       
 
-12. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
+13. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
 
       **Description:** CA for recognizing the kube-apiserver when connecting via the localhost recovery SNI ServerName.
       
 
-13. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
+14. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
 
       **Description:** CA for recognizing the kube-apiserver when connecting via localhost.
       
 
-14. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
+15. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
 
       **Description:** CA for kube-apiserver to recognize local system:masters rendered to each master.
       
 
-15. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
+16. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
 
       **Description:** CA for recognizing the kube-apiserver when connecting via the service network (kuberentes.default.svc).
       
 
-16. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
+17. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
 
       **Description:** CA for aggregated apiservers to recognize kube-apiserver as front-proxy.
       
 
-17. ns/openshift-kube-controller-manager configmap/client-ca
+18. ns/openshift-kube-controller-manager configmap/client-ca
 
       **Description:** CA for kube-apiserver clients
       
 
-18. ns/openshift-route-controller-manager configmap/client-ca
+19. ns/openshift-route-controller-manager configmap/client-ca
 
       **Description:** CA for kube-apiserver clients
       
@@ -732,14 +764,19 @@
 
       
 
-## kube-controller-manager (5)
-### Certificates (2)
-1. ns/openshift-kube-controller-manager-operator secret/csr-signer
+## kube-controller-manager (4)
+### Certificates (3)
+1. ns/openshift-kube-controller-manager secret/csr-signer
 
       **Description:** 
       
 
-2. ns/openshift-kube-controller-manager-operator secret/csr-signer-signer
+2. ns/openshift-kube-controller-manager-operator secret/csr-signer
+
+      **Description:** 
+      
+
+3. ns/openshift-kube-controller-manager-operator secret/csr-signer-signer
 
       **Description:** 
       
@@ -748,18 +785,19 @@
 
       
 
-### Certificate Authority Bundles (3)
-1. ns/openshift-config-managed configmap/kubelet-serving-ca
+### Certificate Authority Bundles (1)
+1. ns/openshift-kube-controller-manager-operator configmap/csr-controller-signer-ca
 
       **Description:** 
       
 
-2. ns/openshift-kube-apiserver configmap/kubelet-serving-ca
 
-      **Description:** 
+
       
 
-3. ns/openshift-kube-controller-manager-operator configmap/csr-controller-signer-ca
+## kube-scheduler (1)
+### Certificate Authority Bundles (1)
+1. ns/openshift-kube-scheduler configmap/serviceaccount-ca
 
       **Description:** 
       

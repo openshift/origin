@@ -146,7 +146,7 @@
                 "Name": "initial-kube-apiserver-server-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Machine Config Operator",
                 "description": ""
             }
         },
@@ -156,7 +156,7 @@
                 "Name": "csr-controller-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
@@ -206,7 +206,7 @@
                 "Name": "kubelet-bootstrap-kubeconfig"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-apiserver",
                 "description": ""
             }
         },
@@ -216,7 +216,7 @@
                 "Name": "kubelet-serving-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "kube-controller-manager",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
@@ -226,7 +226,7 @@
                 "Name": "oauth-serving-cert"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
@@ -266,7 +266,7 @@
                 "Name": "oauth-serving-cert"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
@@ -446,7 +446,7 @@
                 "Name": "kubelet-serving-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "kube-controller-manager",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
@@ -566,7 +566,7 @@
                 "Name": "serviceaccount-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
@@ -586,7 +586,7 @@
                 "Name": "csr-controller-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
@@ -606,7 +606,7 @@
                 "Name": "csr-signer-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
@@ -616,7 +616,7 @@
                 "Name": "serviceaccount-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-scheduler",
                 "description": ""
             }
         },
@@ -656,7 +656,7 @@
                 "Name": "alertmanager-trusted-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Networking / cluster-network-operator",
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -676,7 +676,7 @@
                 "Name": "kubelet-serving-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -706,7 +706,7 @@
                 "Name": "thanos-querier-trusted-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "Networking / cluster-network-operator",
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -1508,7 +1508,7 @@
                 "Name": "csr-signer"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-controller-manager",
                 "description": ""
             }
         },
@@ -1815,7 +1815,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-e3ihmvv2tuqs4"
+                "Name": "prometheus-adapter-7qlf9pr4ndtb"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -1948,7 +1948,7 @@
                 "Name": "openshift-authenticator-certs"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "apiserver-auth",
                 "description": ""
             }
         },
