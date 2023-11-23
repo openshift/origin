@@ -321,7 +321,7 @@ func BuildTestDupeKubeEvent(namespace, pod, reason, msg string, count int) monit
 		l.Keys[monitorapi.LocatorNamespaceKey] = namespace
 	}
 	if pod != "" {
-		l.Keys[monitorapi.LocatorPodKey] = namespace
+		l.Keys[monitorapi.LocatorPodKey] = pod
 	}
 
 	i := monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
