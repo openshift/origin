@@ -455,7 +455,7 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
 			matcher:         ProbeErrorConnectionRefused,
-			expectedMessage: "I namespace/openshift-oauth-apiserver pod/openshift-oauth-apiserver count/25 reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred\n",
+			expectedMessage: "I namespace/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h count/25 reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred\n",
 		},
 		{
 			name: "no matches 25 after",
