@@ -21,7 +21,11 @@ import (
 type Availability struct {
 	newConnectionTestName    string
 	reusedConnectionTestName string
-	jobType                  *platformidentification.JobType
+
+	// store the rest config so we can
+	// get the JobType at the end of the run
+	// which will include any upgrade versions
+	adminRESTConfig *rest.Config
 
 	newConnectionDisruptionSampler    *backenddisruption.BackendSampler
 	reusedConnectionDisruptionSampler *backenddisruption.BackendSampler
@@ -43,11 +47,7 @@ func (w *Availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return fmt.Errorf("unable to start collection because instance is nil")
 	}
 
-	var err error
-	w.jobType, err = platformidentification.GetJobType(ctx, adminRESTConfig)
-	if err != nil {
-		return err
-	}
+	w.adminRESTConfig = adminRESTConfig
 
 	if err := w.newConnectionDisruptionSampler.StartEndpointMonitoring(ctx, recorder, nil); err != nil {
 		return err
@@ -140,8 +140,8 @@ func createDisruptionJunit(testName string, allowedDisruption *time.Duration, di
 	}
 }
 
-func (w *Availability) junitForNewConnections(ctx context.Context, finalIntervals monitorapi.Intervals) (*junitapi.JUnitTestCase, error) {
-	newConnectionAllowed, newConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.newConnectionDisruptionSampler, w.jobType)
+func (w *Availability) junitForNewConnections(ctx context.Context, finalIntervals monitorapi.Intervals, jobType *platformidentification.JobType) (*junitapi.JUnitTestCase, error) {
+	newConnectionAllowed, newConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.newConnectionDisruptionSampler, jobType)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get new allowed disruption: %w", err)
 	}
@@ -157,8 +157,8 @@ func (w *Availability) junitForNewConnections(ctx context.Context, finalInterval
 		nil
 }
 
-func (w *Availability) junitForReusedConnections(ctx context.Context, finalIntervals monitorapi.Intervals) (*junitapi.JUnitTestCase, error) {
-	reusedConnectionAllowed, reusedConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.reusedConnectionDisruptionSampler, w.jobType)
+func (w *Availability) junitForReusedConnections(ctx context.Context, finalIntervals monitorapi.Intervals, jobType *platformidentification.JobType) (*junitapi.JUnitTestCase, error) {
+	reusedConnectionAllowed, reusedConnectionDisruptionDetails, err := historicalAllowedDisruption(ctx, w.reusedConnectionDisruptionSampler, jobType)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get reused allowed disruption: %w", err)
 	}
@@ -183,12 +183,18 @@ func (w *Availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 		return nil, fmt.Errorf("unable to evaluate tests because instance is nil")
 	}
 
-	newConnectionJunit, err := w.junitForNewConnections(ctx, finalIntervals)
+	var err error
+	jobType, err := platformidentification.GetJobType(ctx, w.adminRESTConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	reusedConnectionJunit, err := w.junitForReusedConnections(ctx, finalIntervals)
+	newConnectionJunit, err := w.junitForNewConnections(ctx, finalIntervals, jobType)
+	if err != nil {
+		return nil, err
+	}
+
+	reusedConnectionJunit, err := w.junitForReusedConnections(ctx, finalIntervals, jobType)
 	if err != nil {
 		return nil, err
 	}
