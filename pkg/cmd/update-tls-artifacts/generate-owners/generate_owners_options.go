@@ -22,7 +22,7 @@ func (o *GenerateOwnersOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	violations, err := metadata.GenerateViolationList(result, metadata.Required...)
+	violations, err := metadata.GenerateViolationList(result, metadata.All...)
 	if err != nil {
 		return err
 	}

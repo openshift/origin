@@ -15,16 +15,17 @@ type Requirement struct {
 }
 
 var (
-	Required = []Requirement{OwnerRequriement}
-	Optional = []Requirement{DescriptionRequriement}
+	Required = []Requirement{OwnerRequirement}
+	Optional = []Requirement{DescriptionRequirement}
+	All      = []Requirement{OwnerRequirement, DescriptionRequirement}
 
-	OwnerRequriement = Requirement{
+	OwnerRequirement = Requirement{
 		Name:                 "ownership",
 		NewViolation:         newOwnerViolation,
 		SecretCompareFunc:    diffCertKeyPairOwners,
 		ConfigMapCompareFunc: diffCABundleOwners,
 	}
-	DescriptionRequriement = Requirement{
+	DescriptionRequirement = Requirement{
 		Name:                 "description",
 		NewViolation:         newDescriptionViolation,
 		SecretCompareFunc:    diffCertKeyPairDescription,
