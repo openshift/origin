@@ -42,20 +42,6 @@ var s2iImages = map[string][]tc{
 			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
 		{
-			Version:  "27",
-			Cmd:      "ruby --version",
-			Expected: "ruby 2.7",
-			Tag:      "2.7-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
-			Version:  "27",
-			Cmd:      "ruby --version",
-			Expected: "ruby 2.7",
-			Tag:      "2.7-ubi7",
-			Arches:   []string{"amd64", "ppc64le", "s390x"},
-		},
-		{
 			Version:  "25",
 			Cmd:      "ruby --version",
 			Expected: "ruby 2.5",
