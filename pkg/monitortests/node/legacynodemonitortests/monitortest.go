@@ -57,7 +57,6 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testNodeHasNoDiskPressure(finalIntervals)...)
 	junits = append(junits, testNodeHasSufficientMemory(finalIntervals)...)
 	junits = append(junits, testNodeHasSufficientPID(finalIntervals)...)
-	junits = append(junits, testErrorReconcilingNode(finalIntervals)...)
 	junits = append(junits, testBackoffPullingRegistryRedhatImage(finalIntervals)...)
 	junits = append(junits, testBackoffStartingFailedContainer(finalIntervals)...)
 	junits = append(junits, testConfigOperatorReadinessProbe(finalIntervals)...)
@@ -66,6 +65,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testMasterNodesUpdated(finalIntervals)...)
 	junits = append(junits, testMarketplaceStartupProbeFailure(finalIntervals)...)
 	junits = append(junits, testFailedScheduling(finalIntervals)...)
+	junits = append(junits, testBackoffStartingFailedContainerForE2ENamespaces(finalIntervals)...)
 
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
 	if isUpgrade {

@@ -2,139 +2,201 @@ package pathologicaleventlibrary
 
 import (
 	_ "embed"
-	"regexp"
 	"testing"
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestEventCountExtractor(t *testing.T) {
+func TestAllowedRepeatedEvents(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   string
-		message string
-		times   int
+		locator monitorapi.Locator
+		msg     monitorapi.Message
+		// expectedAllowName is the name of the SimplePathologicalEventMatcher we expect to be returned as allowing this duplicated event.
+		expectedAllowName string
+		// expectedMatchName is the optional name of the SimplePathologicalEventMatcher we expect to be returned as matching this duplicated event.
+		expectedMatchName string
+		// topology is an optional topology to fake we're in
+		topology v1.TopologyMode
 	}{
 		{
-			name:    "simple",
-			input:   `pod/network-check-target-5f44k node/ip-10-0-210-155.us-west-2.compute.internal - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started? (24 times)`,
-			message: `pod/network-check-target-5f44k node/ip-10-0-210-155.us-west-2.compute.internal - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net.d/. Has your network provider started?`,
-			times:   24,
+			name: "unhealthy e2e port forwarding pod readiness probe",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-port-forwarding-588",
+					monitorapi.LocatorPodKey:       "pfpod",
+					monitorapi.LocatorNodeKey:      "ci-op-g1d5csj7-b08f5-fgrqd-worker-b-xj89f",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: some error goes here").
+				Reason("Unhealthy").Build(),
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
 		},
 		{
-			name:    "new lines",
-			input:   "ns/e2e-container-probe-7285 pod/liveness-f0fce2c6-6eed-4ace-bf69-2df5e5b8b1ea node/ci-op-sti304mj-2a78c-pq5zv-worker-b-sknbn reason/ProbeWarning Liveness probe warning: <a href=\"http://0.0.0.0/\">Found</a>.\n\n (22 times)",
-			message: "ns/e2e-container-probe-7285 pod/liveness-f0fce2c6-6eed-4ace-bf69-2df5e5b8b1ea node/ci-op-sti304mj-2a78c-pq5zv-worker-b-sknbn reason/ProbeWarning Liveness probe warning: <a href=\"http://0.0.0.0/\">Found</a>.\n\n",
-			times:   22,
+			name: "scc-test-3",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-test-scc-578l5",
+					monitorapi.LocatorPodKey:       "test3",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.").
+				Reason("FailedScheduling").Build(),
+			expectedAllowName: "FailedScheduling",
 		},
 		{
-			name:  "other message",
-			input: "some node message",
-			times: 0,
+			name: "non-root",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-security-context-test-6596",
+					monitorapi.LocatorPodKey:       "explicit-root-uid",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Error: container's runAsUser breaks non-root policy (pod: \"explicit-root-uid_e2e-security-context-test-6596(22bf29d0-e546-4a15-8dd7-8acd9165c924)\", container: explicit-root-uid)").
+				Reason("Failed").Build(),
+			expectedAllowName: "E2ESecurityContextBreaksNonRootPolicy",
 		},
 		{
-			name:    "pod eviction failure",
-			input:   "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb (79 times)",
-			message: "reason/MalscheduledPod pod/router-default-84c89f5bf8-5rdcb pod/router-default-84c89f5bf8-bg9ql should be one per node, but all were placed on node/ip-10-0-172-166.ec2.internal; evicting pod/router-default-84c89f5bf8-5rdcb",
-			times:   79,
+			name: "local-volume-failed-scheduling",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-persistent-local-volumes-test-7012",
+					monitorapi.LocatorPodKey:       "pod-940713ce-7645-4d8c-bba0-5705350a5655",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)").
+				Reason("FailedScheduling").Build(),
+			expectedAllowName: "FailedScheduling",
+		},
+		{
+			name: "missing image",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-deployment-478",
+					monitorapi.LocatorPodKey:       "webserver-deployment-795d758f88-fdr4d ",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"webserver:404\"").
+				Reason("BackOff").Build(),
+			expectedAllowName: "E2EImagePullBackOff",
+		},
+		{
+			name: "no match for missing image in core namespace ",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-controller-manager",
+					monitorapi.LocatorPodKey:       "doesntmatter",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off pulling image \"foobar\"").
+				Reason("BackOff").Build(),
+			expectedAllowName: "",
+		},
+		{
+			name: "port-forward",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-port-forwarding-588",
+					monitorapi.LocatorPodKey:       "pfpod",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed").
+				Reason("Unhealthy").Build(),
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
+		},
+		{
+			name: "container-probe",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-container-probe-3794",
+					monitorapi.LocatorPodKey:       "test-webserver-3faa80d6-05f2-42a7-9846-099e8a4cf28c",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: Get \"http://10.131.0.54:81/\": dial tcp 10.131.0.54:81: connect: connection refused").
+				Reason("Unhealthy").Build(),
+			expectedAllowName: "KubeletUnhealthyReadinessProbeFailed",
+		},
+		{
+			name: "failing-init-container",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-init-container-368",
+					monitorapi.LocatorPodKey:       "pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856",
+					monitorapi.LocatorNodeKey:      "ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Back-off restarting failed container").
+				Reason("BackOff").Build(),
+			expectedAllowName: "AllowBackOffRestartingFailedContainer",
+		},
+
+		{
+			name: "pod sandbox matches but is not allowed to repeat pathologically",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "e2e-init-container-368",
+					monitorapi.LocatorPodKey:       "pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856",
+					monitorapi.LocatorNodeKey:      "ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97",
+				},
+			},
+			msg: monitorapi.NewMessage().HumanMessage("Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_testpod_e2e-test-tuning-w8jbx_b37c6413-3851-48b6-9139-b2fa70f6dba9_0(f83d07e1222b7010b9c16a6c1b5d995119b14fcc7a65d0e5474f633149795b81): error adding pod e2e-test-tuning-w8jbx_testpod to CNI network \"multus-cni-network\": plugin type=\"multus-shim\" name=\"multus-cni-network\" failed (add): CmdAdd (shim): CNI request failed with status 400: SNIP").
+				Reason("FailedCreatePodSandbox").Build(),
+			expectedAllowName: "",
+			expectedMatchName: "PodSandbox",
+		},
+		{
+			name: "etcd readiness probe failure matches but is not allowed to repeat pathologically",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey: "openshift-etcd",
+					monitorapi.LocatorPodKey:       "etcd-guard-ip-10-0-30-87.us-east-2.compute.internal",
+				},
+			},
+
+			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: Get \"https://10.0.30.87:9980/readyz\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)").
+				Reason("ProbeError").Build(),
+			expectedAllowName: "",
+			expectedMatchName: "EtcdReadinessProbeFailuresPerRevisionChange",
 		},
 	}
-
 	for _, test := range tests {
+		registry := NewUniversalPathologicalEventMatchers(nil, nil)
 		t.Run(test.name, func(t *testing.T) {
-			actualMessage, actualCount := GetTimesAnEventHappened(test.input)
-			assert.Equal(t, test.times, actualCount)
-			assert.Equal(t, test.message, actualMessage)
-		})
-	}
-}
+			i := monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					StructuredMessage: test.msg,
+					StructuredLocator: test.locator,
+				},
+			}
+			allowed, matchedAllowedDupe := registry.AllowedByAny(i, test.topology)
 
-func TestEventRegexExcluder(t *testing.T) {
-	allowedRepeatedEventsRegex := combinedRegexp(AllowedRepeatedEventPatterns...)
+			// In some tests we also want to check that the matcher Matches, even if it doesn't
+			// Allow the event to repeat pathologically:
+			if test.expectedMatchName != "" {
+				matches, matcher := registry.MatchesAny(i)
+				assert.True(t, matches, "event should have matched")
+				require.NotNil(t, matcher, "a matcher should have been returned")
+				assert.Equal(t, test.expectedMatchName, matcher.Name(), "event was not matched by the correct matcher")
+			}
 
-	tests := []struct {
-		name    string
-		message string
-	}{
-		{
-			name:    "port-forward",
-			message: `ns/e2e-port-forwarding-588 pod/pfpod node/ci-op-g1d5csj7-b08f5-fgrqd-worker-b-xj89f - reason/Unhealthy Readiness probe failed:`,
-		},
-		{
-			name:    "container-probe",
-			message: ` ns/e2e-container-probe-3794 pod/test-webserver-3faa80d6-05f2-42a7-9846-099e8a4cf28c node/ci-op-gzm3mjwm-875d2-tvchv-worker-c-w47mw - reason/Unhealthy Readiness probe failed: Get "http://10.131.0.54:81/": dial tcp 10.131.0.54:81: connect: connection refused`,
-		},
-		{
-			name:    "failing-init-container",
-			message: `ns/e2e-init-container-368 pod/pod-init-cb40ee55-e9c5-4c4b-b541-47cc018d9856 node/ci-op-ncxkp5gj-875d2-5jcfn-worker-c-pwf97 - reason/BackOff Back-off restarting failed container`,
-		},
-		{
-			name:    "scc-test-3",
-			message: `ns/e2e-test-scc-578l5 pod/test3 - reason/FailedScheduling 0/6 nodes are available: 3 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate.`,
-		},
-		{
-			name:    "missing image",
-			message: `ns/e2e-deployment-478 pod/webserver-deployment-795d758f88-fdr4d node/ci-op-h1wxg6l0-16f7c-mb4sj-worker-b-wcdcf - reason/BackOff Back-off pulling image "webserver:404"`,
-		},
-		{
-			name:    "non-root",
-			message: `ns/e2e-security-context-test-6596 pod/explicit-root-uid node/ci-op-isj7rd3k-2a78c-kk69w-worker-a-v4kdb - reason/Failed Error: container's runAsUser breaks non-root policy (pod: "explicit-root-uid_e2e-security-context-test-6596(22bf29d0-e546-4a15-8dd7-8acd9165c924)", container: explicit-root-uid)`,
-		},
-		{
-			name:    "local-volume-failed-scheduling",
-			message: `ns/e2e-persistent-local-volumes-test-7012 pod/pod-940713ce-7645-4d8c-bba0-5705350a5655 reason/FailedScheduling 0/6 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector, 3 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate. (2 times)`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actual := allowedRepeatedEventsRegex.MatchString(test.message)
-			assert.True(t, actual, "did not match")
-		})
-	}
-
-}
-
-func TestUpgradeEventRegexExcluder(t *testing.T) {
-	allowedRepeatedEventsRegex := combinedRegexp(AllowedUpgradeRepeatedEventPatterns...)
-
-	tests := []struct {
-		name    string
-		message string
-	}{
-		{
-			name:    "etcd-member",
-			message: `ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: ip-10-0-198-128.ec2.internal`,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actual := allowedRepeatedEventsRegex.MatchString(test.message)
-			if !actual {
-				t.Fatal("did not match")
+			if test.expectedAllowName != "" {
+				assert.True(t, allowed, "duplicated event should have been allowed, but we matched: %s", matchedAllowedDupe.Name())
+				require.NotNil(t, matchedAllowedDupe, "an allowed dupe even should have been returned")
+				assert.Equal(t, test.expectedAllowName, matchedAllowedDupe.Name(), "duplicated event was not allowed by the correct SimplePathologicalEventMatcher")
+			} else {
+				require.False(t, allowed, "duplicated event should not have been allowed")
+				assert.Nil(t, matchedAllowedDupe, "duplicated event should not have been allowed by matcher")
 			}
 		})
 	}
 
 }
 
-func buildInterval(message string) monitorapi.Interval {
-	return monitorapi.Interval{
-		Condition: monitorapi.Condition{Message: message},
-		From:      time.Unix(872827200, 0).In(time.UTC),
-		To:        time.Unix(872827200, 0).In(time.UTC),
-	}
-}
-
 func TestPathologicalEventsWithNamespaces(t *testing.T) {
-	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs:      []KnownProblem{},
-	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)
 
@@ -147,32 +209,62 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 		expectedMessage string
 	}{
 		{
-			name:            "matches 22 with namespace openshift",
-			intervals:       []monitorapi.Interval{buildInterval("ns/openshift - reason/SomeEvent1 foo (22 times)")},
+			name: "matches 22 with namespace openshift",
+			intervals: []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift",
+					}}).Message(
+					monitorapi.NewMessage().Reason("SomeEvent1").HumanMessage("foo").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "openshift",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/openshift - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/openshift - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
-			name:            "matches 22 with namespace e2e",
-			intervals:       []monitorapi.Interval{buildInterval(`ns/random - reason/SomeEvent1 foo (22 times)`)},
+			name: "matches 22 with namespace e2e",
+			intervals: []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "random",
+					}}).Message(
+					monitorapi.NewMessage().Reason("SomeEvent1").HumanMessage("foo").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/random - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/random - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
-			name:            "matches 22 with no namespace",
-			intervals:       []monitorapi.Interval{buildInterval(`reason/SomeEvent1 foo (22 times)`)},
+			name: "matches 22 with no namespace",
+			intervals: []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{}}).Message(
+					monitorapi.NewMessage().Reason("SomeEvent1").HumanMessage("foo").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
 			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
-			name:            "matches 12 with namespace openshift",
-			intervals:       []monitorapi.Interval{buildInterval(`ns/openshift - reason/SomeEvent1 foo (12 times)`)},
+			name: "matches 12 with namespace openshift",
+			intervals: []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift",
+					}}).Message(
+					monitorapi.NewMessage().Reason("SomeEvent1").HumanMessage("foo").
+						WithAnnotation(monitorapi.AnnotationCount, "12")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "openshift",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
@@ -203,7 +295,16 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 					From:   from.Add(-1 * time.Minute),
 					To:     to.Add(1 * time.Minute),
 				},
-				buildInterval(`ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift-controller-manager",
+					}}).Message(
+					monitorapi.NewMessage().Reason("FailedScheduling").
+						HumanMessage("0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod..").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "openshift-controller-manager",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
@@ -213,11 +314,19 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			// This is not ignored because there were no masters in NodeUpdate
 			name: "match FailedScheduling in openshift-controller-manager when masters are not updating",
 			intervals: []monitorapi.Interval{
-				buildInterval(`ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "openshift-controller-manager",
+					}}).Message(
+					monitorapi.NewMessage().Reason("FailedScheduling").
+						HumanMessage("0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod..").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "openshift-controller-manager",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/openshift-controller-manager reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/openshift-controller-manager - reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. From: 04:00:00Z To: 04:00:00Z result=reject ",
 		},
 		{
 			// This still matches despite the masters updating because it's not in an openshift namespace
@@ -244,7 +353,15 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 					From:   from.Add(-1 * time.Minute),
 					To:     to.Add(1 * time.Minute),
 				},
-				buildInterval(`ns/mynamespace reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (22 times)`)},
+				monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+					Locator(monitorapi.Locator{Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorNamespaceKey: "mynamespace",
+					}}).Message(
+					monitorapi.NewMessage().Reason("FailedScheduling").
+						HumanMessage("0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod..").
+						WithAnnotation(monitorapi.AnnotationCount, "22")).
+					Build(time.Unix(872827200, 0).In(time.UTC), time.Unix(872827200, 0).In(time.UTC)),
+			},
 			namespace:       "mynamespace",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
@@ -257,8 +374,14 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 
 			events := monitorapi.Intervals(test.intervals)
 
-			evaluator.platform = test.platform
-			evaluator.topology = test.topology
+			// Using upgrade for now, this has everything:
+			registry := NewUpgradePathologicalEventMatchers(nil, test.intervals)
+
+			evaluator := duplicateEventsEvaluator{
+				registry: registry,
+				platform: test.platform,
+				topology: test.topology,
+			}
 
 			testName := "events should not repeat"
 			junits := evaluator.testDuplicatedEvents(testName, false, events, nil, false)
@@ -268,6 +391,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			jUnitName := getJUnitName(testName, test.namespace)
 			for _, junit := range junits {
 				if (junit.Name == jUnitName) && (test.expectedMessage != "") {
+					require.NotNil(t, junit.FailureOutput, "expected junit to have failure output")
 					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
 					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output") {
@@ -280,253 +404,102 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 	}
 }
 
-func TestKnownBugEvents(t *testing.T) {
-	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs: []KnownProblem{
-			{
-				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
-				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent2.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Topology: TopologyPointer(v1.SingleReplicaTopologyMode),
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent3.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: PlatformPointer(v1.AWSPlatformType),
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent4.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Topology: TopologyPointer(v1.HighlyAvailableTopologyMode),
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent5.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: PlatformPointer(v1.GCPPlatformType),
-			},
-			{
-				Regexp:   regexp.MustCompile("ns/.*reason/SomeEvent6.*"),
-				BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-				Platform: PlatformPointer(""),
-			},
-		},
-	}
-
-	tests := []struct {
-		name     string
-		message  string
-		match    bool
-		platform v1.PlatformType
-		topology v1.TopologyMode
-	}{
-		{
-			name:     "matches without platform or topology",
-			message:  `ns/e2e - reason/SomeEvent1 foo (21 times)`,
-			match:    true,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-		},
-		{
-			name:     "matches with topology",
-			message:  `ns/e2e - reason/SomeEvent2 foo (21 times)`,
-			match:    true,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-		},
-		{
-			name:     "matches with topology and platform",
-			message:  `ns/e2e - reason/SomeEvent3 foo (21 times)`,
-			match:    true,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-		},
-		{
-			name:     "does not match against different topology",
-			message:  `ns/e2e - reason/SomeEvent4 foo (21 times)`,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-			match:    false,
-		},
-		{
-			name:     "does not match against different platform",
-			message:  `ns/e2e - reason/SomeEvent5 foo (21 times)`,
-			platform: v1.AWSPlatformType,
-			topology: v1.SingleReplicaTopologyMode,
-			match:    false,
-		},
-		{
-			name:     "empty platform matches empty platform",
-			message:  `ns/e2e - reason/SomeEvent6 foo (21 times)`,
-			platform: "",
-			match:    true,
-		},
-		{
-			name:     "empty platform doesn't match another platform",
-			message:  `ns/e2e - reason/SomeEvent6 foo (21 times)`,
-			platform: v1.AWSPlatformType,
-			match:    false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			events := monitorapi.Intervals{}
-			events = append(events,
-				monitorapi.Interval{
-					Condition: monitorapi.Condition{Message: test.message},
-					From:      time.Unix(1, 0).In(time.UTC),
-					To:        time.Unix(1, 0).In(time.UTC)},
-			)
-			evaluator.platform = test.platform
-			evaluator.topology = test.topology
-
-			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
-			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
-
-			if test.match {
-				assert.Contains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
-			} else {
-				assert.NotContains(t, junits[0].FailureOutput.Output, "1 events with known BZs")
-			}
-
-		})
-	}
-}
-
-func TestKnownBugEventsGroup(t *testing.T) {
-	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs: []KnownProblem{
-			{
-				Regexp: regexp.MustCompile(`ns/.* reason/SomeEvent1.*`),
-				BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-			},
-		},
-	}
-
-	tests := []struct {
-		name            string
-		messages        []string
-		platform        v1.PlatformType
-		topology        v1.TopologyMode
-		expectedMessage string
-	}{
-		{
-			name:            "matches 22 before",
-			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (21 times)`},
-			platform:        v1.AWSPlatformType,
-			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
-		},
-		{
-			name:            "matches 25 after",
-			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (21 times)`, `ns/e2e - reason/SomeEvent1 foo (25 times)`},
-			platform:        v1.AWSPlatformType,
-			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 25 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
-		},
-		{
-			name:            "matches 22 below with below threshold following",
-			messages:        []string{`ns/e2e - reason/SomeEvent1 foo (22 times)`, `ns/e2e - reason/SomeEvent1 foo (5 times)`},
-			platform:        v1.AWSPlatformType,
-			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567 result=allow ",
-		},
-		{
-			name:            "matches 22 with multiple line message",
-			messages:        []string{"ns/e2e - reason/SomeEvent1 foo \nbody:\n (22 times)"},
-			platform:        v1.AWSPlatformType,
-			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events with known BZs\n\nevent happened 22 times, something is wrong:  - ns/e2e - reason/SomeEvent1 foo  result=allow \nbody:\n From: 04:00:00Z To: 04:00:00Z - https://bugzilla.redhat.com/show_bug.cgi?id=1234567",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-
-			events := monitorapi.Intervals{}
-			for _, message := range test.messages {
-
-				events = append(events,
-					monitorapi.Interval{
-						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(872827200, 0).In(time.UTC),
-						To:        time.Unix(872827200, 0).In(time.UTC)},
-				)
-			}
-
-			evaluator.platform = test.platform
-			evaluator.topology = test.topology
-
-			junits := evaluator.testDuplicatedEvents("events should not repeat", false, events, nil, true)
-			assert.GreaterOrEqual(t, len(junits), 1, "didn't get junit for duplicated event")
-
-			assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
-
-		})
-	}
-}
-
 func TestMakeProbeTestEventsGroup(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		messages        []string
+		intervals       monitorapi.Intervals
 		match           bool
-		regEx           string
+		matcher         *SimplePathologicalEventMatcher
 		operator        string
 		expectedMessage string
 	}{
 		{
-			name:            "matches 22 before",
-			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
+			name: "matches 22 before",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "", "ProbeError",
+					"foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred", 22),
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "", "ProbeError",
+					"foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred", 21),
+			},
 			match:           true,
-			operator:        "e2e",
-			regEx:           ProbeErrorLivenessMessageRegExpStr,
-			expectedMessage: "00:00:01 ns/e2e - reason/ProbeError foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
+			operator:        "openshift-oauth-apiserver",
+			matcher:         ProbeErrorLiveness,
+			expectedMessage: "I namespace/openshift-oauth-apiserver count/22 reason/ProbeError foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred\n",
 		},
 		{
-			name:            "no matches 22 before",
-			messages:        []string{`ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `ns/e2e - reason/ProbeError foo Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (21 times)`},
+			name: "no matches 22 before",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("e2e", "", "ProbeError",
+					"foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred",
+					22),
+				BuildTestDupeKubeEvent("e2e", "", "ProbeError",
+					"foo Liveness probe error: Get \"https://10.128.0.21:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred",
+					21),
+			},
 			match:           false,
 			operator:        "e2e",
-			regEx:           ProbeErrorConnectionRefusedRegExpStr,
+			matcher:         ProbeErrorConnectionRefused,
 			expectedMessage: "",
 		},
 		{
-			name:            "matches 25 after",
-			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
+			name: "matches 25 after",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "apiserver-647fc6c7bf-s8b4h", "ProbeError",
+					"Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred",
+					22),
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "apiserver-647fc6c7bf-s8b4h", "ProbeError",
+					"Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred",
+					25),
+			},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			regEx:           ProbeErrorConnectionRefusedRegExpStr,
-			expectedMessage: "00:00:01 ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)\n",
+			matcher:         ProbeErrorConnectionRefused,
+			expectedMessage: "I namespace/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h count/25 reason/ProbeError Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred\n",
 		},
 		{
-			name:            "no matches 25 after",
-			messages:        []string{`ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (22 times)`, `ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused occurred (25 times)`},
+			name: "no matches 25 after",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "apiserver-647fc6c7bf-s8b4h", "ProbeError",
+					"Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred",
+					22),
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "apiserver-647fc6c7bf-s8b4h", "ProbeError",
+					"Readiness probe error: Get \"https://10.128.0.38:8443/readyz\": dial tcp 10.128.0.38:8443: connect: connection refused occurred",
+					25),
+			},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			regEx:           ProbeErrorLivenessMessageRegExpStr,
+			matcher:         ProbeErrorLiveness,
 			expectedMessage: "",
 		},
 		{
-			name:            "matches 22 below with below threshold following",
-			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
+			name: "matches 22 below with below threshold following",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "", "ProbeError",
+					"Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred ",
+					22),
+				BuildTestDupeKubeEvent("openshift-oauth-apiserver", "", "ProbeError",
+					"Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred ",
+					5),
+			},
 			operator:        "openshift-oauth-apiserver",
 			match:           true,
-			regEx:           ProbeErrorReadinessMessageRegExpStr,
-			expectedMessage: "00:00:01 reason/ProbeError Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)\n",
+			matcher:         ProbeErrorTimeoutAwaitingHeaders,
+			expectedMessage: "I namespace/openshift-oauth-apiserver count/22 reason/ProbeError Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred\n",
 		},
 		{
-			name:            "no matches 22 below with below threshold following",
-			messages:        []string{`reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (22 times)`, `reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred (5 times)`},
+			name: "no matches 22 below with below threshold following",
+			intervals: monitorapi.Intervals{
+				BuildTestDupeKubeEvent("", "", "ProbeError",
+					"Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred",
+					22),
+				BuildTestDupeKubeEvent("", "", "ProbeError",
+					"Readiness probe error: Get \"https://10.130.0.15:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) occurred",
+					5),
+			},
 			operator:        "openshift-oauth-apiserver",
 			match:           false,
-			regEx:           ProbeErrorConnectionRefusedRegExpStr,
+			matcher:         ProbeErrorConnectionRefused,
 			expectedMessage: "",
 		},
 	}
@@ -534,23 +507,15 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			events := monitorapi.Intervals{}
-			for _, message := range test.messages {
+			events := test.intervals
 
-				events = append(events,
-					monitorapi.Interval{
-						Condition: monitorapi.Condition{Message: message},
-						From:      time.Unix(1, 0).In(time.UTC),
-						To:        time.Unix(1, 0).In(time.UTC)},
-				)
-			}
-
-			junits := MakeProbeTest("Test Test", events, test.operator, test.regEx, DuplicateEventThreshold)
+			junits := MakeProbeTest("Test Test", events, test.operator, test.matcher, DuplicateEventThreshold)
 
 			assert.GreaterOrEqual(t, len(junits), 1, "Didn't get junit for duplicated event")
 
 			if test.match {
-				assert.Equal(t, test.expectedMessage, junits[0].FailureOutput.Output)
+				require.NotNil(t, junits[0].FailureOutput)
+				assert.Contains(t, junits[0].FailureOutput.Output, test.expectedMessage)
 			} else {
 				assert.Nil(t, junits[0].FailureOutput, "expected case to not match, but it did: %s", test.name)
 			}
@@ -560,18 +525,12 @@ func TestMakeProbeTestEventsGroup(t *testing.T) {
 }
 
 func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
-	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		knownRepeatedEventsBugs:      []KnownProblem{},
-	}
 	from := time.Unix(872827200, 0).In(time.UTC)
 	to := time.Unix(872827200, 0).In(time.UTC)
 
 	tests := []struct {
 		name            string
 		namespace       string
-		platform        v1.PlatformType
-		topology        v1.TopologyMode
 		intervals       []monitorapi.Interval
 		expectedMessage string
 	}{
@@ -618,8 +577,24 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Message: "pathological/true reason/TopologyAwareHintsDisabled Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4 (23 times)",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: "",
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorNamespaceKey:   "openshift-dns",
+								monitorapi.LocatorKey("service"): "dns-default",
+								monitorapi.LocatorHmsgKey:        "ade328ddf3",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       "TopologyAwareHintsDisabled",
+							HumanMessage: "Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason:       "TopologyAwareHintsDisabled",
+								monitorapi.AnnotationPathological: "true",
+								monitorapi.AnnotationCount:        "23",
+							},
+						},
 					},
 					From: from.Add(11 * time.Minute),
 					To:   to.Add(12 * time.Minute),
@@ -694,16 +669,31 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "ns/openshift-dns service/dns-default hmsg/ade328ddf3",
-						Message: "pathological/true reason/TopologyAwareHintsDisabled Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4 (23 times)",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: "",
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorNamespaceKey:   "openshift-dns",
+								monitorapi.LocatorKey("service"): "dns-default",
+								monitorapi.LocatorHmsgKey:        "ade328ddf3",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       "TopologyAwareHintsDisabled",
+							HumanMessage: "Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason:       "TopologyAwareHintsDisabled",
+								monitorapi.AnnotationPathological: "true",
+								monitorapi.AnnotationCount:        "23",
+							},
+						},
 					},
 					From: from.Add(11 * time.Minute),
 					To:   to.Add(12 * time.Minute),
 				},
 			},
 			namespace:       "openshift-dns",
-			expectedMessage: "1 events happened too frequently\n\nevent happened 23 times, something is wrong: ns/openshift-dns service/dns-default hmsg/ade328ddf3 - pathological/true reason/TopologyAwareHintsDisabled Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4 From: 04:11:00Z To: 04:12:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 23 times, something is wrong:  - reason/TopologyAwareHintsDisabled Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4 From: 04:11:00Z To: 04:12:00Z result=reject ",
 		},
 	}
 
@@ -711,15 +701,20 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 
 			events := monitorapi.Intervals(test.intervals)
+			evaluator := duplicateEventsEvaluator{
+				registry: NewUniversalPathologicalEventMatchers(nil, events),
+			}
 
 			testName := "events should not repeat"
 			junits := evaluator.testDuplicatedEvents(testName, false, events, nil, false)
 			jUnitName := getJUnitName(testName, test.namespace)
 			for _, junit := range junits {
+				t.Logf("checking junit: %s", junit.Name)
 				if (junit.Name == jUnitName) && (test.expectedMessage != "") {
+					require.NotNil(t, junit.FailureOutput)
 					assert.Equal(t, test.expectedMessage, junit.FailureOutput.Output)
 				} else {
-					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output") {
+					if !assert.Nil(t, junit.FailureOutput, "expected success but got failure output for junit: %s", junit.Name) {
 						t.Logf(junit.FailureOutput.Output)
 					}
 				}

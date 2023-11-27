@@ -109,6 +109,7 @@ const (
 	LocatorTypeE2ETest           LocatorType = "E2ETest"
 	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
 	LocatorTypeClusterVersion    LocatorType = "ClusterVersion"
+	LocatorTypeKind              LocatorType = "Kind"
 	LocatorTypeCloudMetrics      LocatorType = "CloudMetrics"
 )
 
@@ -120,10 +121,12 @@ const (
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
 	LocatorClusterVersionKey  LocatorKey = "clusterversion"
 	LocatorNamespaceKey       LocatorKey = "namespace"
+	LocatorDeploymentKey      LocatorKey = "deployment"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
 	LocatorKindKey            LocatorKey = "kind"
 	LocatorNameKey            LocatorKey = "name"
+	LocatorHmsgKey            LocatorKey = "hmsg"
 	LocatorPodKey             LocatorKey = "pod"
 	LocatorUIDKey             LocatorKey = "uid"
 	LocatorMirrorUIDKey       LocatorKey = "mirror-uid"
@@ -213,11 +216,16 @@ const (
 	AnnotationContainerExitCode  AnnotationKey = "code"
 	AnnotationCause              AnnotationKey = "cause"
 	AnnotationConfig             AnnotationKey = "config"
+	AnnotationContainer          AnnotationKey = "container"
+	AnnotationImage              AnnotationKey = "image"
+	AnnotationInteresting        AnnotationKey = "interesting"
+	AnnotationCount              AnnotationKey = "count"
 	AnnotationNode               AnnotationKey = "node"
 	AnnotationEtcdLocalMember    AnnotationKey = "local-member-id"
 	AnnotationEtcdTerm           AnnotationKey = "term"
 	AnnotationEtcdLeader         AnnotationKey = "leader"
 	AnnotationPreviousEtcdLeader AnnotationKey = "prev-leader"
+	AnnotationPathological       AnnotationKey = "pathological"
 	AnnotationConstructed        AnnotationKey = "constructed"
 	AnnotationPhase              AnnotationKey = "phase"
 	AnnotationIsStaticPod        AnnotationKey = "mirrored"
@@ -264,6 +272,7 @@ const (
 	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
 	SourceDisruption              IntervalSource = "Disruption"
 	SourceE2ETest                 IntervalSource = "E2ETest"
+	SourceKubeEvent               IntervalSource = "KubeEvent"
 	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
 	SourceSystemJournalScanner    IntervalSource = "KubeletLogScanner"
@@ -522,6 +531,11 @@ func IsInE2ENamespace(eventInterval Interval) bool {
 
 func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
+		// For new, structured locators:
+		if ns, ok := eventInterval.StructuredLocator.Keys[LocatorNamespaceKey]; ok {
+			return namespaces.Has(ns)
+		}
+		// TODO: For legacy locators, can be removed soon
 		ns := NamespaceFromLocator(eventInterval.Locator)
 		return namespaces.Has(ns)
 	}

@@ -14,10 +14,13 @@ import (
 // flake threshold.  See https://bugzilla.redhat.com/show_bug.cgi?id=2031564.
 func testRequiredInstallerResourcesMissing(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[bz-etcd] pathological event should not see excessive RequiredInstallerResourcesMissing secrets"
-	return pathologicaleventlibrary.NewSingleEventCheckRegex(testName, pathologicaleventlibrary.RequiredResourcesMissingRegEx, pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.RequiredResourceMissingFlakeThreshold).Test(events)
+	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName,
+		pathologicaleventlibrary.EtcdRequiredResourcesMissing, pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.RequiredResourceMissingFlakeThreshold).Test(events)
 }
 
 func testOperatorStatusChanged(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] pathological event OperatorStatusChanged condition does not occur too often"
-	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.OperatorStatusChanged, pathologicaleventlibrary.DuplicateEventThreshold)
+	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events,
+		pathologicaleventlibrary.EtcdClusterOperatorStatusChanged,
+		pathologicaleventlibrary.DuplicateEventThreshold)
 }

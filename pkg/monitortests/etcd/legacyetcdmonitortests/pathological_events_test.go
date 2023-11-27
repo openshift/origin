@@ -2,7 +2,6 @@ package legacyetcdmonitortests
 
 import (
 	"testing"
-	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
@@ -11,43 +10,83 @@ import (
 
 func Test_testRequiredInstallerResourcesMissing(t *testing.T) {
 	tests := []struct {
-		name    string
-		message string
-		kind    string
+		name     string
+		interval monitorapi.Interval
+		kind     string
 	}{
 		{
-			name:    "Test doesn't match but results in passing junit",
-			message: "ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerYadaMissing secrets: etcd-all-certs-3 (25 times)",
-			kind:    "pass",
+			name: "Reason doesn't match but results in passing junit",
+			interval: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Info,
+					StructuredMessage: monitorapi.Message{
+						Reason:       monitorapi.NodeUpdateReason, // anything but the one we're looking for
+						HumanMessage: "secrets: etcd-all-certs-3",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationCount: "25",
+						},
+					},
+				},
+				Source: monitorapi.SourceKubeEvent,
+			},
+			kind: "pass",
 		},
 		{
-			name:    "Test failing case",
-			message: "ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-3 (21 times)",
-			kind:    "fail",
+			name: "Test failing case",
+			interval: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Info,
+					StructuredMessage: monitorapi.Message{
+						Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+						HumanMessage: "secrets: etcd-all-certs-3",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationCount: "21",
+						},
+					},
+				},
+				Source: monitorapi.SourceKubeEvent,
+			},
+			kind: "fail",
 		},
 		{
-			name:    "Test flaking case",
-			message: "ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-3 (16 times)",
-			kind:    "flake",
+			name: "Test flaking case",
+			interval: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Info,
+					StructuredMessage: monitorapi.Message{
+						Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+						HumanMessage: "secrets: etcd-all-certs-3",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationCount: "16",
+						},
+					},
+				},
+				Source: monitorapi.SourceKubeEvent,
+			},
+			kind: "flake",
 		},
 		{
-			name:    "Test passing case",
-			message: "ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-3 (7 times)",
-			kind:    "pass",
+			name: "Test passing case",
+			interval: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Info,
+					StructuredMessage: monitorapi.Message{
+						Reason:       monitorapi.IntervalReason("RequiredInstallerResourcesMissing"),
+						HumanMessage: "secrets: etcd-all-certs-3",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationCount: "7",
+						},
+					},
+				},
+				Source: monitorapi.SourceKubeEvent,
+			},
+			kind: "pass",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := monitorapi.Intervals{
-				{
-					Condition: monitorapi.Condition{
-						Message: tt.message,
-					},
-					From: time.Unix(1, 0),
-					To:   time.Unix(1, 0),
-				},
-			}
-			junit_tests := testRequiredInstallerResourcesMissing(e)
+			e := tt.interval
+			junit_tests := testRequiredInstallerResourcesMissing(monitorapi.Intervals{e})
 			switch tt.kind {
 			case "pass":
 				if len(junit_tests) != 1 {
@@ -77,32 +116,62 @@ func Test_testRequiredInstallerResourcesMissing(t *testing.T) {
 
 func Test_testOperatorStatusChanged(t *testing.T) {
 	tests := []struct {
-		name    string
-		message string
-		kind    string
+		name     string
+		interval monitorapi.Interval
+		kind     string
 	}{
 		{
-			name:    "event count under threshold should pass",
-			message: "reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy\" to \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: No unhealthy members found\" (2 times)",
-			kind:    "pass",
+			name: "event count under threshold should pass",
+			interval: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Info,
+					StructuredLocator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypePod,
+						Keys: map[monitorapi.LocatorKey]string{
+							monitorapi.LocatorNamespaceKey: "openshift-etcd",
+							monitorapi.LocatorPodKey:       "openshift-etcd-foobar",
+						},
+					},
+					StructuredMessage: monitorapi.Message{
+						Reason:       monitorapi.IntervalReason("OperatorStatusChanged"),
+						HumanMessage: "Status for clusteroperator/etcd changed: Degraded message changed from \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy\" to \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: No unhealthy members found\"",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationCount: "2",
+						},
+					},
+				},
+				Source: monitorapi.SourceKubeEvent,
+			},
+			kind: "pass",
 		},
 		{
-			name:    "event count over threshold should flake",
-			message: "reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy\" to \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: No unhealthy members found\" (24 times)",
-			kind:    "flake",
+			name: "event count over threshold should flake",
+			interval: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Info,
+					StructuredLocator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypePod,
+						Keys: map[monitorapi.LocatorKey]string{
+							monitorapi.LocatorNamespaceKey: "openshift-etcd",
+							monitorapi.LocatorPodKey:       "openshift-etcd-foobar",
+						},
+					},
+					StructuredMessage: monitorapi.Message{
+						Reason:       monitorapi.IntervalReason("OperatorStatusChanged"),
+						HumanMessage: "Status for clusteroperator/etcd changed: Degraded message changed from \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy\" to \"NodeControllerDegraded: All master nodes are ready/EtcdMembersDegraded: No unhealthy members found\"",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationCount: "24",
+						},
+					},
+				},
+				Source: monitorapi.SourceKubeEvent,
+			},
+			kind: "flake",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := monitorapi.Intervals{
-				{
-					Condition: monitorapi.Condition{
-						Message: tt.message,
-					},
-					From: time.Unix(1, 0),
-					To:   time.Unix(1, 0),
-				},
-			}
+			e := monitorapi.Intervals{tt.interval}
 			junitTests := testOperatorStatusChanged(e)
 			switch tt.kind {
 			case "pass":

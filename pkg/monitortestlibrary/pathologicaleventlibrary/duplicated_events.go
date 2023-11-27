@@ -3,15 +3,11 @@ package pathologicaleventlibrary
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
-	"time"
-
-	"github.com/sirupsen/logrus"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/sirupsen/logrus"
 
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -26,22 +22,19 @@ import (
 )
 
 func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	allowedPatterns := []*regexp.Regexp{}
-	allowedPatterns = append(allowedPatterns, AllowedRepeatedEventPatterns...)
-	allowedPatterns = append(allowedPatterns, AllowedUpgradeRepeatedEventPatterns...)
+	registry := NewUpgradePathologicalEventMatchers(kubeClientConfig, events)
 
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: allowedPatterns,
-		allowedRepeatedEventFns:      AllowedRepeatedEventFns,
-		knownRepeatedEventsBugs:      KnownEventsBugs,
+		registry: registry,
 	}
 
-	if err := evaluator.getClusterInfo(kubeClientConfig); err != nil {
-		e2e.Logf("could not fetch cluster info: %w", err)
-	}
-
-	if evaluator.topology == v1.SingleReplicaTopologyMode {
-		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, AllowedSingleNodeRepeatedEventFns...)
+	platform, topology, err := GetClusterInfraInfo(kubeClientConfig)
+	if err != nil {
+		logrus.WithError(err).Error("could not fetch cluster infra info")
+	} else {
+		// These could be coming out "" in theory
+		evaluator.platform = platform
+		evaluator.topology = topology
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -51,29 +44,19 @@ func TestDuplicatedEventForUpgrade(events monitorapi.Intervals, kubeClientConfig
 }
 
 func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+	registry := NewUniversalPathologicalEventMatchers(clientConfig, events)
 
 	evaluator := duplicateEventsEvaluator{
-		allowedRepeatedEventPatterns: AllowedRepeatedEventPatterns,
-		allowedRepeatedEventFns:      AllowedRepeatedEventFns,
-		knownRepeatedEventsBugs:      KnownEventsBugs,
+		registry: registry,
 	}
 
-	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
+	platform, topology, err := GetClusterInfraInfo(clientConfig)
 	if err != nil {
-		panic(err)
-	}
-	etcdAllowance, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), operatorClient)
-	if err != nil {
-		panic(fmt.Errorf("unable to construct duplicated events allowance for etcd, err = %v", err))
-	}
-	evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, etcdAllowance.allowEtcdGuardReadinessProbeFailure)
-
-	if err := evaluator.getClusterInfo(clientConfig); err != nil {
-		e2e.Logf("could not fetch cluster info: %w", err)
-	}
-
-	if evaluator.topology == v1.SingleReplicaTopologyMode {
-		evaluator.allowedRepeatedEventFns = append(evaluator.allowedRepeatedEventFns, AllowedSingleNodeRepeatedEventFns...)
+		logrus.WithError(err).Error("could not fetch cluster infra info")
+	} else {
+		// These could be coming out "" in theory
+		evaluator.platform = platform
+		evaluator.topology = topology
 	}
 
 	tests := []*junitapi.JUnitTestCase{}
@@ -82,23 +65,8 @@ func TestDuplicatedEventForStableSystem(events monitorapi.Intervals, clientConfi
 	return tests
 }
 
-func combinedRegexp(arr ...*regexp.Regexp) *regexp.Regexp {
-	s := ""
-	for _, r := range arr {
-		if s != "" {
-			s += "|"
-		}
-		s += r.String()
-	}
-	return regexp.MustCompile(s)
-}
-
 type duplicateEventsEvaluator struct {
-	allowedRepeatedEventPatterns []*regexp.Regexp
-	allowedRepeatedEventFns      []IsRepeatedEventOKFunc
-
-	// knownRepeatedEventsBugs are duplicates that are considered bugs and should flake, but not  fail a Test
-	knownRepeatedEventsBugs []KnownProblem
+	registry *AllowedPathologicalEventRegistry
 
 	// platform contains the current platform of the cluster under Test.
 	platform v1.PlatformType
@@ -111,7 +79,7 @@ type duplicateEventsEvaluator struct {
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] Test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
+func (d *duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically"
 
 	return d.testDuplicatedEvents(testName, false, events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)), kubeClientConfig, false)
@@ -121,7 +89,7 @@ func (d duplicateEventsEvaluator) testDuplicatedCoreNamespaceEvents(events monit
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] Test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
+func (d *duplicateEventsEvaluator) testDuplicatedE2ENamespaceEvents(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] events should not repeat pathologically in e2e namespaces"
 
 	return d.testDuplicatedEvents(testName, true, events.Filter(monitorapi.IsInE2ENamespace), kubeClientConfig, true)
@@ -218,158 +186,47 @@ func generateJUnitTestCasesE2ENamespaces(testName string, nsResults map[string]*
 // for every run. this means we see events that are created during updates and in e2e tests themselves.  A [late] Test
 // is easier to author, but less complete in its view.
 // I hate regexes, so I only do this because I really have to.
-func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config, isE2E bool) []*junitapi.JUnitTestCase {
+func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnly bool, events monitorapi.Intervals, kubeClientConfig *rest.Config, isE2E bool) []*junitapi.JUnitTestCase {
 
-	type pathologicalEvents struct {
-		count        int    // max number of times the message occurred
-		eventMessage string // holds original message so you can compare with d.knownRepeatedEventsBugs
-	}
+	// displayToCount maps a static display message to the matching repeating interval we saw with the highest count
+	displayToCount := map[string]monitorapi.Interval{}
 
-	// Filter out a list of NodeUpdate events, we use these to ignore some other potential pathological events that are
-	// expected during NodeUpdate.
-	nodeUpdateIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceNodeState &&
-			eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeNode &&
-			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerNodeLifecycle &&
-			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPhase] == "Update" &&
-			strings.Contains(eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationRoles], "master")
-	})
-	logrus.Infof("found %d NodeUpdate intervals", len(nodeUpdateIntervals))
-
-	type timeRange struct {
-		from time.Time
-		to   time.Time
-	}
-	buildTopologyHintAllowedTimeRanges := true
-	topologyHintAllowedTimeRanges := []*timeRange{}
-
-	displayToCount := map[string]*pathologicalEvents{}
 	for _, event := range events {
-		// TODO: port to use structured message reason once kube event intervals are ported over
-		if strings.Contains(event.Message, "reason/FailedScheduling") {
-			// Filter out FailedScheduling events while masters are updating
-			var foundOverlap bool
-			for _, nui := range nodeUpdateIntervals {
-				if nui.From.Before(event.From) && nui.To.After(event.To) {
-					logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", event, nui)
-					foundOverlap = true
-					break
-				}
-			}
-			if foundOverlap {
-				continue
-			}
-		}
-		if strings.Contains(event.Message, "reason/TopologyAwareHintsDisabled") {
-			// Build the allowed time range only once
-			if buildTopologyHintAllowedTimeRanges {
-				taintManagerTestIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
-					return eventInterval.Source == monitorapi.SourceE2ETest &&
-						strings.Contains(eventInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey], "NoExecuteTaintManager")
-				})
-				// Start the allowed time range from time range of the tests. But events lag behind the tests since the tests do not wait
-				// until all dns pods are properly scheduled and reach ready state. So we will need to expand the allowed time range after.
-				for _, test := range taintManagerTestIntervals {
-					topologyHintAllowedTimeRanges = append(topologyHintAllowedTimeRanges, &timeRange{from: test.From, to: test.To})
-					logrus.WithField("from", test.From).WithField("to", test.To).Infof("found time range for test: %s", testName)
-				}
-				dnsUpdateIntervals := events.Filter(func(eventInterval monitorapi.Interval) bool {
-					return eventInterval.Source == monitorapi.SourcePodState &&
-						(eventInterval.StructuredLocator.Type == monitorapi.LocatorTypePod || eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeContainer) &&
-						eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == "openshift-dns" &&
-						eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerPodLifecycle
-				})
 
-				// Now expand the allowed time range until the replacement dns pod gets ready
-				for _, r := range topologyHintAllowedTimeRanges {
-					var lastReadyTime time.Time
-					count := 0
-					for _, interval := range dnsUpdateIntervals {
-						if interval.From.Before(r.from) {
-							continue
-						}
-						// If there is a GracefulDelete of dns-default pod, we will have to wait until the replacement dns container becomes ready
-						if interval.StructuredMessage.Reason == monitorapi.PodReasonGracefulDeleteStarted &&
-							strings.Contains(interval.StructuredLocator.Keys[monitorapi.LocatorPodKey], "dns-default") {
-							count++
-						}
-						if interval.StructuredMessage.Reason == monitorapi.ContainerReasonReady &&
-							interval.StructuredLocator.Keys[monitorapi.LocatorContainerKey] == "dns" && count > 0 {
-							lastReadyTime = interval.From
-							count--
-						}
-						if interval.From.After(r.to) && count == 0 {
-							if lastReadyTime.After(r.to) {
-								r.to = lastReadyTime
-							}
-							break
-						}
-					}
-				}
-				// Log final adjusted time ranges
-				for _, test := range taintManagerTestIntervals {
-					logrus.WithField("from", test.From).WithField("to", test.To).Infof("adjusted time range for test: %s", testName)
-				}
-				buildTopologyHintAllowedTimeRanges = false
-			}
-			// Filter out TopologyAwareHintsDisabled events within allowed time range
-			var allowed bool
-			for _, r := range topologyHintAllowedTimeRanges {
-				if r.from.Before(event.From) && r.to.After(event.To) {
-					logrus.Infof("%s was found to fall into the allowed time range %+v, ignoring pathological event as we expect these during NoExecuteTaintManager test", event, r)
-					allowed = true
-					break
-				}
-			}
-			if allowed {
-				continue
-			}
-		}
-		eventDisplayMessage, times := GetTimesAnEventHappened(fmt.Sprintf("%s - %s", event.Locator, event.Message))
+		times := GetTimesAnEventHappened(event.StructuredMessage)
 		if times > DuplicateEventThreshold {
-			// If we marked this message earlier in recordAddOrUpdateEvent as interesting/true, we know it matched one of
-			// the existing patterns or one of the AllowedRepeatedEventFns functions returned true.
-			if strings.Contains(eventDisplayMessage, InterestingMark) {
+
+			// Check if we have an allowance for this event. This code used to just check if it had an interesting flag,
+			// implying it matches some pattern, but that happens even for upgrade patterns occurring in non-upgrade jobs,
+			// so we were ignoring patterns that were meant to be allowed only in upgrade jobs in all jobs. The list of
+			// allowed patterns passed to this object wasn't even used.
+			if allowed, _ := d.registry.AllowedByAny(event, d.topology); allowed {
 				continue
 			}
 
-			eventMessageString := eventDisplayMessage + " From: " + event.From.Format("15:04:05Z") + " To: " + event.To.Format("15:04:05Z")
-			if _, ok := displayToCount[eventMessageString]; !ok {
-				tmp := &pathologicalEvents{
-					count:        times,
-					eventMessage: eventDisplayMessage,
-				}
-				displayToCount[eventMessageString] = tmp
+			// key used in a map to identify the common interval that is repeating and we may
+			// encounter multiple times.
+			eventDisplayMessage := fmt.Sprintf("%s - reason/%s %s", event.Locator,
+				event.StructuredMessage.Reason, event.StructuredMessage.HumanMessage)
+
+			if _, ok := displayToCount[eventDisplayMessage]; !ok {
+				displayToCount[eventDisplayMessage] = event
 			}
-			if times > displayToCount[eventMessageString].count {
-				displayToCount[eventMessageString].count = times
+			if times > GetTimesAnEventHappened(displayToCount[eventDisplayMessage].StructuredMessage) {
+				// Update to the latest interval we saw with the higher count, so from/to are more accurate
+				displayToCount[eventDisplayMessage] = event
 			}
 		}
 	}
 
 	nsResults := map[string]*eventResult{}
-	for msgWithTime, pathoItem := range displayToCount {
-		namespace := monitorapi.NamespaceFromLocator(msgWithTime)
-		msg := fmt.Sprintf("event happened %d times, something is wrong: %v", pathoItem.count, msgWithTime)
-		flake := false
-		for _, kp := range d.knownRepeatedEventsBugs {
-			if kp.Regexp != nil && kp.Regexp.MatchString(pathoItem.eventMessage) {
-				// Check if this exception only applies to our specific platform
-				if kp.Platform != nil && *kp.Platform != d.platform {
-					continue
-				}
+	for intervalDisplayMsg, interval := range displayToCount {
+		namespace := interval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+		intervalMsgWithTime := intervalDisplayMsg + " From: " + interval.From.Format("15:04:05Z") + " To: " + interval.To.Format("15:04:05Z")
+		msg := fmt.Sprintf("event happened %d times, something is wrong: %v",
+			GetTimesAnEventHappened(interval.StructuredMessage), intervalMsgWithTime)
 
-				// Check if this exception only applies to a specific topology
-				if kp.Topology != nil && *kp.Topology != d.topology {
-					continue
-				}
-
-				msg += " - " + kp.BZ
-				flake = true
-			}
-		}
-
-		// We only creates junit for known namespaces
+		// We only create junit for known namespaces
 		if !platformidentification.KnownNamespaces.Has(namespace) {
 			namespace = ""
 		}
@@ -378,7 +235,7 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 			tmp := &eventResult{}
 			nsResults[namespace] = tmp
 		}
-		if flake || flakeOnly {
+		if flakeOnly {
 			nsResults[namespace].flakes = append(nsResults[namespace].flakes, appendToFirstLine(msg, " result=allow "))
 		} else {
 			nsResults[namespace].failures = append(nsResults[namespace].failures, appendToFirstLine(msg, " result=reject "))
@@ -394,76 +251,41 @@ func (d duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOnl
 	return tests
 }
 
-func GetTimesAnEventHappened(message string) (string, int) {
-	matches := EventCountExtractor.FindAllStringSubmatch(message, -1)
-	if len(matches) != 1 { // not present or weird
-		return "", 0
+func GetTimesAnEventHappened(msg monitorapi.Message) int {
+	countStr, ok := msg.Annotations[monitorapi.AnnotationCount]
+	if !ok {
+		return 1
 	}
-	if len(matches[0]) < 2 { // no capture
-		return "", 0
-	}
-	times, err := strconv.ParseInt(matches[0][2], 10, 0)
+	times, err := strconv.ParseInt(countStr, 10, 0)
 	if err != nil { // not an int somehow
-		return "", 0
+		logrus.Warnf("interval had a non-integer count? %+v", msg)
+		return 0
 	}
-	return matches[0][1], int(times)
+	return int(times)
 }
 
-func (d *duplicateEventsEvaluator) getClusterInfo(c *rest.Config) (err error) {
+func GetClusterInfraInfo(c *rest.Config) (platform v1.PlatformType, topology v1.TopologyMode, err error) {
 	if c == nil {
 		return
 	}
 
 	oc, err := configclient.NewForConfig(c)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 	infra, err := oc.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		return err
+		return "", "", err
 	}
-
 	if infra.Status.PlatformStatus != nil && infra.Status.PlatformStatus.Type != "" {
-		d.platform = infra.Status.PlatformStatus.Type
+		platform = infra.Status.PlatformStatus.Type
 	}
 
 	if infra.Status.ControlPlaneTopology != "" {
-		d.topology = infra.Status.ControlPlaneTopology
+		topology = infra.Status.ControlPlaneTopology
 	}
 
-	return nil
-}
-
-type etcdRevisionChangeAllowance struct {
-	allowedGuardProbeFailurePattern        *regexp.Regexp
-	maxAllowedGuardProbeFailurePerRevision int
-
-	currentRevision int
-}
-
-func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, operatorClient operatorv1client.OperatorV1Interface) (*etcdRevisionChangeAllowance, error) {
-	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
-	if err != nil {
-		return nil, err
-	}
-	return &etcdRevisionChangeAllowance{
-		allowedGuardProbeFailurePattern:        regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-.* node/[a-z0-9.-]+ - reason/(Unhealthy|ProbeError) Readiness probe.*`),
-		maxAllowedGuardProbeFailurePerRevision: 60 / 5, // 60s for starting a new pod, divided by the probe interval
-		currentRevision:                        currentRevision,
-	}, nil
-}
-
-// allowEtcdGuardReadinessProbeFailure tolerates events that match allowedGuardProbeFailurePattern unless we receive more than a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision
-func (a *etcdRevisionChangeAllowance) allowEtcdGuardReadinessProbeFailure(monitorEvent monitorapi.Interval, _ *rest.Config, times int) (bool, error) {
-	eventMessage := fmt.Sprintf("%s - %s", monitorEvent.Locator, monitorEvent.Message)
-
-	// allow for a.maxAllowedGuardProbeFailurePerRevision * a.currentRevision failed readiness probe from the etcd-guard pods
-	// since the guards are static and the etcd pods come and go during a rollout
-	// which causes allowedGuardProbeFailurePattern to fire
-	if a.allowedGuardProbeFailurePattern.MatchString(eventMessage) && a.maxAllowedGuardProbeFailurePerRevision*a.currentRevision > times {
-		return true, nil
-	}
-	return false, nil
+	return platform, topology, nil
 }
 
 // getBiggestRevisionForEtcdOperator calculates the biggest revision among replicas of the most recently successful deployment
@@ -485,4 +307,31 @@ func getBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient opera
 		}
 	}
 	return biggestRevision, nil
+}
+
+// BuildTestDupeKubeEvent is a test utility to make the process of creating these specific intervals a little
+// more brief.
+func BuildTestDupeKubeEvent(namespace, pod, reason, msg string, count int) monitorapi.Interval {
+
+	l := monitorapi.Locator{
+		Type: monitorapi.LocatorTypePod,
+		Keys: map[monitorapi.LocatorKey]string{},
+	}
+	if namespace != "" {
+		l.Keys[monitorapi.LocatorNamespaceKey] = namespace
+	}
+	if pod != "" {
+		l.Keys[monitorapi.LocatorPodKey] = pod
+	}
+
+	i := monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
+		Locator(l).
+		Message(
+			monitorapi.NewMessage().
+				Reason(monitorapi.IntervalReason(reason)).
+				HumanMessage(msg).
+				WithAnnotation(monitorapi.AnnotationCount, fmt.Sprintf("%d", count))).
+		BuildNow()
+
+	return i
 }

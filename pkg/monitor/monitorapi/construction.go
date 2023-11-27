@@ -1,6 +1,7 @@
 package monitorapi
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"strings"
 	"time"
@@ -294,24 +295,37 @@ func (b *LocatorBuilder) withServer(serverName string) *LocatorBuilder {
 	return b
 }
 
+// TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
 func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
-	b.targetType = LocatorTypeKubeEvent
 
-	// WARNING: we're trying to use an enum for the locator keys, but we cannot know
-	// all kinds in a cluster. Instead we'll split the kind and name into two different Keys
-	// for Events:
-	b.annotations[LocatorKindKey] = event.InvolvedObject.Kind
-	b.annotations[LocatorNameKey] = event.InvolvedObject.Name
+	// When Kube Events are displayed, we need repeats of the same event to appear on one line. To do this
+	// we hash the event message, get the first ten characters, and add it as a hmsg locator key.
+	hash := sha256.Sum256([]byte(event.Message))
+	hashStr := fmt.Sprintf("%x", hash)[:10]
+	b.annotations[LocatorHmsgKey] = hashStr
 
+	if event.InvolvedObject.Kind == "Namespace" {
+		// namespace better match the event itself.
+		return b.
+			withNamespace(event.InvolvedObject.Name).
+			Build()
+	} else if event.InvolvedObject.Kind == "Node" {
+		return b.
+			withTargetType(LocatorTypeNode).
+			withNode(event.InvolvedObject.Name).
+			Build()
+	}
+
+	// Otherwise we have to fall back to a generic "Kind" locator, likely what deads2k refers to above as sketchy.
+	// For now just preserving the old logic.
+	b.targetType = LocatorTypeKind
+	b.annotations[LocatorKey(strings.ToLower(event.InvolvedObject.Kind))] = event.InvolvedObject.Name
+	if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
+		b.annotations[LocatorNodeKey] = event.Source.Host
+	}
 	if len(event.InvolvedObject.Namespace) > 0 {
 		b.annotations[LocatorNamespaceKey] = event.InvolvedObject.Namespace
 	}
-
-	// TODO: node + namespace is illegal, look at original impl, it may have handled this better
-	if len(event.Source.Host) > 0 && event.InvolvedObject.Kind != "Node" {
-		b.annotations[LocatorNodeKey] = event.Source.Host
-	}
-
 	return b.Build()
 }
 

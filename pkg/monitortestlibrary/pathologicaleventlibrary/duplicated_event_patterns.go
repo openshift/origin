@@ -2,419 +2,675 @@ package pathologicaleventlibrary
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 const (
-	ImagePullRedhatRegEx             = `reason/[a-zA-Z]+ .*Back-off pulling image .*registry.redhat.io`
-	RequiredResourcesMissingRegEx    = `reason/RequiredInstallerResourcesMissing secrets: etcd-all-certs-[0-9]+`
-	BackoffRestartingFailedRegEx     = `reason/BackOff Back-off restarting failed container`
-	ErrorUpdatingEndpointSlicesRegex = `reason/FailedToUpdateEndpointSlices Error updating Endpoint Slices`
-	NodeHasNoDiskPressureRegExpStr   = "reason/NodeHasNoDiskPressure.*status is now: NodeHasNoDiskPressure"
-	NodeHasSufficientMemoryRegExpStr = "reason/NodeHasSufficientMemory.*status is now: NodeHasSufficientMemory"
-	NodeHasSufficientPIDRegExpStr    = "reason/NodeHasSufficientPID.*status is now: NodeHasSufficientPID"
-
-	OvnReadinessRegExpStr                   = `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$)`
-	ConsoleReadinessRegExpStr               = `ns/(?P<NS>openshift-console) pod/(?P<POD>console-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>ProbeError) (?P<MSG>Readiness probe error:.* connect: connection refused$)`
-	MarketplaceStartupProbeFailureRegExpStr = `ns/(?P<NS>openshift-marketplace) pod/(?P<POD>(community-operators|redhat-operators)-[a-z0-9-]+).*Startup probe failed`
-
 	ImagePullRedhatFlakeThreshold              = 5
 	RequiredResourceMissingFlakeThreshold      = 10
 	BackoffRestartingFlakeThreshold            = 10
 	ErrorUpdatingEndpointSlicesFailedThreshold = -1 // flake only
 	ErrorUpdatingEndpointSlicesFlakeThreshold  = 10
 
-	ReadinessFailedMessageRegExpStr           = "reason/ReadinessFailed.*Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded"
-	ProbeErrorReadinessMessageRegExpStr       = "reason/ProbeError.*Readiness probe error.*Client.Timeout exceeded while awaiting headers"
-	ProbeErrorLivenessMessageRegExpStr        = "reason/(ProbeError|Unhealthy).*Liveness probe error.*Client.Timeout exceeded while awaiting headers"
-	ProbeErrorConnectionRefusedRegExpStr      = "reason/ProbeError.*Readiness probe error.*connection refused"
-	SingleNodeErrorConnectionRefusedRegExpStr = "reason/.*dial tcp.*connection refused"
-
-	ErrorReconcilingNode  = "reason/ErrorReconcilingNode roles/worker .*annotation not found for node"
-	FailedScheduling      = "reason/FailedScheduling .*nodes are available.*didn't match Pod's node affinity/selector"
-	OperatorStatusChanged = "reason/OperatorStatusChanged Status for clusteroperator/etcd changed.*No unhealthy members found"
-
-	DuplicateEventThreshold           = 20
-	DuplicateSingleNodeEventThreshold = 30
-	PathologicalMark                  = "pathological/true"
-	InterestingMark                   = "interesting/true"
+	DuplicateEventThreshold = 20
+	PathologicalMark        = "pathological/true"
+	InterestingMark         = "interesting/true"
 )
 
-var EventCountExtractor = regexp.MustCompile(`(?s)(.*) \((\d+) times\).*`)
+type EventMatcher interface {
+	// Name returns a unique name (enforced by registry) for this matcher.
+	Name() string
 
-var AllowedRepeatedEventPatterns = []*regexp.Regexp{
-	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
-	// PauseNewPods intentionally causes readiness probe to fail.
-	regexp.MustCompile(`ns/e2e-statefulset-[0-9]+ pod/ss-[0-9] node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
+	// Matches returns true if the given interval looks relevant to this matcher, but does not
+	// indicate the interval should be allowed to repeat pathologically. For that use Allows.
+	Matches(i monitorapi.Interval) bool
 
-	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]
-	// breakPodHTTPProbe intentionally causes readiness probe to fail.
-	regexp.MustCompile(`ns/e2e-statefulset-[0-9]+ pod/ss2-[0-9] node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: HTTP probe failed with statuscode: 404`),
-
-	// [sig-node] Probing container ***
-	// these tests intentionally cause repeated probe failures to ensure good handling
-	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ .* probe failed: `),
-	regexp.MustCompile(`ns/e2e-container-probe-[0-9]+ .* probe warning: `),
-
-	// Kubectl Port forwarding ***
-	// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
-	// This results in hundreds of events while the pod isn't ready.
-	regexp.MustCompile(`ns/e2e-port-forwarding-[0-9]+ pod/pfpod node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed:`),
-
-	// should not start app containers if init containers fail on a RestartAlways pod
-	// the init container intentionally fails to start
-	regexp.MustCompile(`ns/e2e-init-container-[0-9]+ pod/pod-init-[a-z0-9.-]+ node/[a-z0-9.-]+ - reason/BackOff Back-off restarting failed container`),
-
-	// TestAllowedSCCViaRBAC and TestPodUpdateSCCEnforcement
-	// The pod is shaped to intentionally not be scheduled.  Looks like an artifact of the old integration testing.
-	regexp.MustCompile(`ns/e2e-test-scc-[a-z0-9]+ pod/.* - reason/FailedScheduling.*`),
-
-	// Security Context ** should not run with an explicit root user ID
-	// Security Context ** should not run without a specified user ID
-	// This container should never run
-	regexp.MustCompile(`ns/e2e-security-context-test-[0-9]+ pod/.*-root-uid node/[a-z0-9.-]+ - reason/Failed Error: container's runAsUser breaks non-root policy.*"`),
-
-	// PersistentVolumes-local tests should not run the pod when there is a volume node
-	// affinity and node selector conflicts.
-	regexp.MustCompile(`ns/e2e-persistent-local-volumes-test-[0-9]+ pod/pod-[a-z0-9.-]+ reason/FailedScheduling`),
-
-	// various DeploymentConfig tests trigger this by canceling multiple rollouts
-	regexp.MustCompile(`reason/DeploymentAwaitingCancellation Deployment of version [0-9]+ awaiting cancellation of older running deployments`),
-
-	// this image is used specifically to be one that cannot be pulled in our tests
-	regexp.MustCompile(`.*reason/BackOff Back-off pulling image "webserver:404"`),
-
-	// If image pulls in e2e namespaces fail catastrophically we'd expect them to lead to test failures
-	// We are deliberately not ignoring image pull failures for core component namespaces
-	regexp.MustCompile(`ns/e2e-.* reason/BackOff Back-off pulling image`),
-
-	// promtail crashlooping as its being started by sideloading manifests.  per @vrutkovs
-	regexp.MustCompile("ns/openshift-e2e-loki pod/loki-promtail.*Readiness probe"),
-
-	// Related to known bug below, but we do not need to report on loki: https://bugzilla.redhat.com/show_bug.cgi?id=1986370
-	regexp.MustCompile("ns/openshift-e2e-loki pod/loki-promtail.*reason/NetworkNotReady"),
-
-	// kube-apiserver guard probe failing due to kube-apiserver operands getting rolled out
-	// multiple times during the bootstrapping phase of a cluster installation
-	regexp.MustCompile("ns/openshift-kube-apiserver pod/kube-apiserver-guard.*ProbeError Readiness probe error"),
-	// the same thing happens for kube-controller-manager and kube-scheduler
-	regexp.MustCompile("ns/openshift-kube-controller-manager pod/kube-controller-manager-guard.*ProbeError Readiness probe error"),
-	regexp.MustCompile("ns/openshift-kube-scheduler pod/kube-scheduler-guard.*ProbeError Readiness probe error"),
-
-	// this is the less specific even sent by the kubelet when a probe was executed successfully but returned false
-	// we ignore this event because openshift has a patch in patch_prober that sends a more specific event about
-	// readiness failures in openshift-* namespaces.  We will catch the more specific ProbeError events.
-	regexp.MustCompile("Unhealthy Readiness probe failed"),
-	// readiness probe errors during pod termination are expected, so we do not fail on them.
-	regexp.MustCompile("TerminatingPodProbeError"),
-
-	// we have a separate test for this
-	regexp.MustCompile(OvnReadinessRegExpStr),
-
-	// Separated out in testBackoffPullingRegistryRedhatImage
-	regexp.MustCompile(ImagePullRedhatRegEx),
-
-	// Separated out in testRequiredInstallerResourcesMissing
-	regexp.MustCompile(RequiredResourcesMissingRegEx),
-
-	// Separated out in testBackoffStartingFailedContainer
-	regexp.MustCompile(BackoffRestartingFailedRegEx),
-
-	// Separated out in testErrorUpdatingEndpointSlices
-	regexp.MustCompile(ErrorUpdatingEndpointSlicesRegex),
-
-	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
-	// installation to succeed. Hence, we can ignore it.
-	regexp.MustCompile(`reason/FailedCreate .* error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
-
-	// Separated out in testNodeHasNoDiskPressure
-	regexp.MustCompile(NodeHasNoDiskPressureRegExpStr),
-
-	// Separated out in testNodeHasSufficientMemory
-	regexp.MustCompile(NodeHasSufficientMemoryRegExpStr),
-
-	// Separated out in testNodeHasSufficientPID
-	regexp.MustCompile(NodeHasSufficientPIDRegExpStr),
-
-	// Separated out in testMarketplaceStartupProbeFailure
-	regexp.MustCompile(MarketplaceStartupProbeFailureRegExpStr),
-
-	// stale condition challenge reset
-	regexp.MustCompile(`message changed from "\x{FEFF}`),
+	// Allows returns true if the given interval should be allowed to repeat as many times
+	// as it did. It performs the Matches, check, and layers in additional logic from runtime.
+	Allows(i monitorapi.Interval, topology v1.TopologyMode) bool
 }
 
-// AllowedUpgradeRepeatedEventPatterns are patterns of events that we should only allow during upgrades, not during normal execution.
-var AllowedUpgradeRepeatedEventPatterns = []*regexp.Regexp{
-	// Operators that use library-go can report about multiple versions during upgrades.
-	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
-	regexp.MustCompile(`ns/openshift-kube-apiserver-operator deployment/kube-apiserver-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
-	regexp.MustCompile(`ns/openshift-kube-controller-manager-operator deployment/kube-controller-manager-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
-	regexp.MustCompile(`ns/openshift-kube-scheduler-operator deployment/openshift-kube-scheduler-operator - reason/MultipleVersions multiple versions found, probably in transition: .*`),
+// SimplePathologicalEventMatcher allows the definition of kube event intervals that can repeat more than the threshold we allow during a job run.
+// All specified fields must match the interval for it to be allowed.
+type SimplePathologicalEventMatcher struct {
+	// Name is a unique CamelCase friendly name that briefly describes the allowed dupe events. It's used in
+	// logging and unit tests to make sure we match on what we expect.
+	name string
+	// locatorKeyRegexes is a map of LocatorKey to regex that key must match.
+	locatorKeyRegexes map[monitorapi.LocatorKey]*regexp.Regexp
+	// messageReasonRegex checks the Reason on a structured interval Message.
+	messageReasonRegex *regexp.Regexp
+	// messageReasonRegex checks the HumanMessage on a structured interval Message.
+	messageHumanRegex *regexp.Regexp
 
-	// etcd-quorum-guard can fail during upgrades.
-	regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
-	// etcd can have unhealthy members during an upgrade
-	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/UnhealthyEtcdMember unhealthy members: .*`),
-	// etcd-operator began to version etcd-endpoints configmap in 4.10 as part of static-pod-resource. During upgrade existing revisions will not contain the resource.
-	// The condition reconciles with the next revision which the result of the upgrade. TODO(hexfusion) remove in 4.11
-	regexp.MustCompile(`ns/openshift-etcd-operator deployment/etcd-operator - reason/RequiredInstallerResourcesMissing configmaps: etcd-endpoints-[0-9]+`),
-	// There is a separate test to catch this specific case
-	regexp.MustCompile(RequiredResourcesMissingRegEx),
+	// jira is a link to a jira (or legacy Bugzilla). If set it implies we consider this event a problem but there's
+	// been a bug filed.
+	jira string
 
-	// Separated out in testMarketplaceStartupProbeFailure
-	regexp.MustCompile(MarketplaceStartupProbeFailureRegExpStr),
+	// repeatThresholdOverride allows a matcher to allow more than our default number of repeats.
+	// Less will not work as the matcher will not be invoked if we're over our threshold.
+	// This is only considered in the context of Allows, not Matches.
+	repeatThresholdOverride int
+
+	// neverAllow is for matchers we may use to get things flagged as "interesting" and thus charted, but
+	// we don't want to allow to repeat pathologically.
+	neverAllow bool
+
+	// topology limits the exception to a specific topology. (e.g. single replica)
+	// This is only considered in the context of Allows, not Matches.
+	topology *v1.TopologyMode
 }
 
-type KnownProblem struct {
-	Regexp *regexp.Regexp
-	BZ     string
-
-	// Platform limits the exception to a specific OpenShift platform.
-	Platform *v1.PlatformType
-
-	// Topology limits the exception to a specific topology (e.g. single replica)
-	Topology *v1.TopologyMode
-
-	// TestSuite limits the exception to a specific test suite (e.g. openshift/builds)
-	TestSuite *string
+func (ade *SimplePathologicalEventMatcher) Name() string {
+	return ade.name
 }
 
-var KnownEventsBugs = []KnownProblem{
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-multus pod/network-metrics-daemon-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-e2e-loki pod/loki-promtail-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-network-diagnostics pod/network-check-target-[a-z0-9]+ node/[a-z0-9.-]+ - reason/NetworkNotReady network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file in /etc/kubernetes/cni/net\.d/\. Has your network provider started\?`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1986370",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/.* service/.* - reason/FailedToDeleteOVNLoadBalancer .*`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1990631",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/.*horizontalpodautoscaler.*failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API.*`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1993985",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/.*unable to ensure pod container exists: failed to create container.*slice already exists.*`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=1993980",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-quorum-guard-[a-z0-9-]+ node/[a-z0-9.-]+ - reason/Unhealthy Readiness probe failed: `),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2000234",
-	},
-	{
-		Regexp: regexp.MustCompile(`ns/openshift-etcd pod/etcd-guard-.* node/.* - reason/ProbeError Readiness probe error: .* connect: connection refused`),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2075204",
-	},
-	{
-		Regexp: regexp.MustCompile("ns/openshift-etcd-operator namespace/openshift-etcd-operator -.*rpc error: code = Canceled desc = grpc: the client connection is closing.*"),
-		BZ:     "https://bugzilla.redhat.com/show_bug.cgi?id=2006975",
-	},
-	{
-		Regexp:   regexp.MustCompile("ns/.*reason/.*APICheckFailed.*503.*"),
-		BZ:       "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
-		Topology: TopologyPointer(v1.SingleReplicaTopologyMode),
-	},
-	// builds tests trigger many changes in the config which creates new rollouts -> event for each pod
-	// working as intended (not a bug) and needs to be tolerated
-	{
-		Regexp:    regexp.MustCompile(`ns/openshift-route-controller-manager deployment/route-controller-manager - reason/ScalingReplicaSet \(combined from similar events\): Scaled (down|up) replica set route-controller-manager-[a-z0-9-]+ to [0-9]+`),
-		TestSuite: StringPointer("openshift/build"),
-	},
-	// builds tests trigger many changes in the config which creates new rollouts -> event for each pod
-	// working as intended (not a bug) and needs to be tolerated
-	{
-		Regexp:    regexp.MustCompile(`ns/openshift-controller-manager deployment/controller-manager - reason/ScalingReplicaSet \(combined from similar events\): Scaled (down|up) replica set controller-manager-[a-z0-9-]+ to [0-9]+`),
-		TestSuite: StringPointer("openshift/build"),
-	},
-	//{ TODO this should only be skipped for single-node
-	//	name:    "single=node-storage",
-	//  BZ: https://bugzilla.redhat.com/show_bug.cgi?id=1990662
-	//	message: "ns/openshift-cluster-csi-drivers pod/aws-ebs-csi-driver-controller-66469455cd-2thfv node/ip-10-0-161-38.us-east-2.compute.internal - reason/BackOff Back-off restarting failed container",
-	//},
-	{
-		Regexp: regexp.MustCompile(`reason/ErrorReconcilingNode.*annotation not found for node.*macAddress annotation not found for node`),
-		BZ:     "https://issues.redhat.com/browse/OCPBUGS-13400",
-	},
-}
-
-// IsRepeatedEventOKFunc takes a monitorEvent as input and returns true if the repeated event is OK.
-// This commonly happens for known bugs and for cases where events are repeated intentionally by tests.
-// Use this to handle cases where, "if X is true, then the repeated event is ok".
-type IsRepeatedEventOKFunc func(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, times int) (bool, error)
-
-var AllowedRepeatedEventFns = []IsRepeatedEventOKFunc{
-	isConsoleReadinessDuringInstallation,
-	isConfigOperatorReadinessFailed,
-	isConfigOperatorProbeErrorReadinessFailed,
-	isConfigOperatorProbeErrorLivenessFailed,
-	isOauthApiserverProbeErrorReadinessFailed,
-	isOauthApiserverProbeErrorLivenessFailed,
-	isOauthApiserverProbeErrorConnectionRefusedFailed,
-	isErrorReconcilingNode,
-	isFailedScheduling,
-	isOperatorStatusChanged,
-}
-
-var AllowedSingleNodeRepeatedEventFns = []IsRepeatedEventOKFunc{
-	isConnectionRefusedOnSingleNode,
-}
-
-func TopologyPointer(topology v1.TopologyMode) *v1.TopologyMode {
-	return &topology
-}
-
-func PlatformPointer(platform v1.PlatformType) *v1.PlatformType {
-	return &platform
-}
-
-func StringPointer(testSuite string) *string {
-	return &testSuite
-}
-
-// isConsoleReadinessDuringInstallation returns true if the event is for console readiness and it happens during the
-// initial installation of the cluster.
-// we're looking for something like
-// > ns/openshift-console pod/console-7c6f797fd9-5m94j node/ip-10-0-158-106.us-west-2.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.129.0.49:8443/health": dial tcp 10.129.0.49:8443: connect: connection refused
-// with a firstTimestamp before the cluster completed the initial installation
-func isConsoleReadinessDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, _ int) (bool, error) {
-	if !strings.Contains(monitorEvent.Locator, "ns/openshift-console") {
-		return false, nil
-	}
-	if !strings.Contains(monitorEvent.Locator, "pod/console-") {
-		return false, nil
-	}
-	if !strings.Contains(monitorEvent.Locator, "Readiness probe") {
-		return false, nil
-	}
-	if !strings.Contains(monitorEvent.Locator, "connect: connection refused") {
-		return false, nil
-	}
-
-	regExp := regexp.MustCompile(ConsoleReadinessRegExpStr)
-	// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
-	// then this probe failure is unexpected and should fail.
-	return IsEventDuringInstallation(monitorEvent, kubeClientConfig, regExp)
-}
-
-// isConfigOperatorReadinessFailed returns true if the event matches a readinessFailed error that timed out
-// in the openshift-config-operator.
-// like this:
-// ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ReadinessFailedMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
-}
-
-// isConfigOperatorProbeErrorReadinessFailed returns true if the event matches a ProbeError Readiness Probe message
-// in the openshift-config-operator.
-// like this:
-// reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorProbeErrorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorReadinessMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
-}
-
-// isConfigOperatorProbeErrorLivenessFailed returns true if the event matches a ProbeError Liveness Probe message
-// in the openshift-config-operator.
-// like this:
-// ...reason/ProbeError Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
-func isConfigOperatorProbeErrorLivenessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorLivenessMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-config-operator", regExp), nil
-}
-
-// isOauthApiserverProbeErrorReadinessFailed returns true if the event matches a ProbeError Readiness Probe message
-// in the openshift-oauth-operator.
-// like this:
-// ...ns/openshift-oauth-apiserver pod/apiserver-65fd7ffc59-bt5sf node/q72hs3bx-ac890-4pxpm-master-2 - reason/ProbeError Readiness probe error: Get "https://10.129.0.8:8443/readyz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-func isOauthApiserverProbeErrorReadinessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorReadinessMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
-}
-
-// isOauthApiserverProbeErrorLivenessFailed returns true if the event matches a ProbeError Liveness Probe message
-// in the openshift-oauth-operator.
-// like this:
-// ...reason/ProbeError Liveness probe error: Get "https://10.130.0.68:8443/healthz": net/http: request canceled (Client.Timeout exceeded while awaiting headers)
-func isOauthApiserverProbeErrorLivenessFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorLivenessMessageRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
-}
-
-// isOauthApiserverProbeErrorConnectionRefusedFailed returns true if the event matches a ProbeError Readiness Probe connection refused message
-// in the openshift-oauth-operator.
-// like this:
-// ...ns/openshift-oauth-apiserver pod/apiserver-647fc6c7bf-s8b4h node/ip-10-0-150-209.us-west-1.compute.internal - reason/ProbeError Readiness probe error: Get "https://10.128.0.38:8443/readyz": dial tcp 10.128.0.38:8443: connect: connection refused
-func isOauthApiserverProbeErrorConnectionRefusedFailed(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(ProbeErrorConnectionRefusedRegExpStr)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-oauth-apiserver", regExp), nil
-}
-
-// reason/ErrorReconcilingNode roles/worker [k8s.ovn.org/node-chassis-id annotation not found for node ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86, macAddress annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86" , k8s.ovn.org/l3-gateway-config annotation not found for node "ci-op-nzi4gt1b-3efb3-ggmhb-worker-centralus2-jzx86"]
-func isErrorReconcilingNode(monitorEvent monitorapi.Interval, _ *rest.Config, count int) (bool, error) {
-	regExp := regexp.MustCompile(ErrorReconcilingNode)
-	return regExp.MatchString(monitorEvent.String()) && count < DuplicateSingleNodeEventThreshold, nil
-}
-
-// reason/FailedScheduling 0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod anti-affinity rules, 2 node(s) were unschedulable. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling..
-func isFailedScheduling(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(FailedScheduling)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-route-controller-manager", regExp), nil
-}
-
-// reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy" to "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: No unhealthy members found"
-func isOperatorStatusChanged(monitorEvent monitorapi.Interval, _ *rest.Config, _ int) (bool, error) {
-	regExp := regexp.MustCompile(OperatorStatusChanged)
-	return IsOperatorMatchRegexMessage(monitorEvent, "openshift-etcd", regExp), nil
-}
-
-// isConnectionRefusedOnSingleNode returns true if the event matched has a connection refused message for single node events and is with in threshold.
-func isConnectionRefusedOnSingleNode(monitorEvent monitorapi.Interval, _ *rest.Config, count int) (bool, error) {
-	regExp := regexp.MustCompile(SingleNodeErrorConnectionRefusedRegExpStr)
-	return regExp.MatchString(monitorEvent.String()) && count < DuplicateSingleNodeEventThreshold, nil
-}
-
-// IsOperatorMatchRegexMessage returns true if this monitorEvent is for the operator identified by the operatorName
-// and its message matches the given regex.
-func IsOperatorMatchRegexMessage(monitorEvent monitorapi.Interval, operatorName string, regExp *regexp.Regexp) bool {
-	locatorParts := monitorapi.LocatorParts(monitorEvent.Locator)
-	if ns, ok := locatorParts["ns"]; ok {
-		if ns != operatorName {
+func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval) bool {
+	l := i.StructuredLocator
+	msg := i.StructuredMessage
+	for lk, r := range ade.locatorKeyRegexes {
+		if !r.MatchString(l.Keys[lk]) {
+			logrus.WithField("allower", ade.Name).Debugf("key %s did not match", lk)
 			return false
 		}
 	}
-	if pod, ok := locatorParts["pod"]; ok {
-		if !strings.HasPrefix(pod, operatorName) {
+	if ade.messageHumanRegex != nil && !ade.messageHumanRegex.MatchString(msg.HumanMessage) {
+		logrus.WithField("allower", ade.Name).Debugf("human message did not match")
+		return false
+	}
+	if ade.messageReasonRegex != nil && !ade.messageReasonRegex.MatchString(string(msg.Reason)) {
+		logrus.WithField("allower", ade.Name).Debugf("message reason did not match")
+		return false
+	}
+
+	return true
+}
+
+// Allows checks if the given locator/messagebuilder matches this allowed dupe event, and if the
+// interval should be allowed to repeat pathologically.
+func (ade *SimplePathologicalEventMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
+
+	if ade.neverAllow {
+		return false
+	}
+
+	msg := i.StructuredMessage
+	if !ade.Matches(i) {
+		return false
+	}
+
+	if ade.repeatThresholdOverride != 0 {
+		count := GetTimesAnEventHappened(msg)
+		if count > ade.repeatThresholdOverride {
+			logrus.WithField("allower", ade.Name).Debugf("event repeated over threshold override: %d", ade.repeatThresholdOverride)
 			return false
 		}
 	}
-	if !regExp.MatchString(monitorEvent.Message) {
+
+	if ade.topology != nil && *ade.topology != topology {
+		logrus.WithField("allower", ade.Name).Debugf("cluster did not match topology")
 		return false
 	}
 	return true
 }
 
-// isEventDuringInstallation returns true if the monitorEvent represents a real event that happened after installation.
-// regExp defines the pattern of the monitorEvent message. Named match is used in the pattern using `(?P<>)`. The names are placed inside <>. See example below
-// `ns/(?P<NS>openshift-ovn-kubernetes) pod/(?P<POD>ovnkube-node-[a-z0-9-]+) node/(?P<NODE>[a-z0-9.-]+) - reason/(?P<REASON>Unhealthy) (?P<MSG>Readiness probe failed:.*$`
-func IsEventDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config, regExp *regexp.Regexp) (bool, error) {
+type AllowedPathologicalEventRegistry struct {
+	matchers map[string]EventMatcher
+}
+
+func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcher(eventMatcher EventMatcher) error {
+	if _, ok := r.matchers[eventMatcher.Name()]; ok {
+		return fmt.Errorf("%q is already registered", eventMatcher.Name())
+	}
+	if eventMatcher.Name() == "" {
+		return fmt.Errorf("must specify a name for pathological event matchers")
+	}
+	r.matchers[eventMatcher.Name()] = eventMatcher
+	return nil
+}
+
+func (r *AllowedPathologicalEventRegistry) AddPathologicalEventMatcherOrDie(eventMatcher EventMatcher) {
+	err := r.AddPathologicalEventMatcher(eventMatcher)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// MatchesAny checks if the given event locator and message match any registered matcher.
+// Returns true if so, the matcher name, and the matcher itself.
+// It does NOT check if the interval should be allowed.
+func (r *AllowedPathologicalEventRegistry) MatchesAny(i monitorapi.Interval) (bool, EventMatcher) {
+	l := i.StructuredLocator
+	msg := i.StructuredMessage
+	for k, m := range r.matchers {
+		allowed := m.Matches(i)
+		if allowed {
+			logrus.WithField("message", msg).WithField("locator", l).Infof("event interval matches %s", k)
+			return allowed, m
+		}
+	}
+	return false, nil
+}
+
+// AllowedByAny checks if the given event locator and message match any registered matcher, and if
+// the repeating event should be allowed.
+// Returns true if so, the matcher name, and the matcher itself.
+func (r *AllowedPathologicalEventRegistry) AllowedByAny(
+	i monitorapi.Interval,
+	topology v1.TopologyMode) (bool, EventMatcher) {
+	l := i.StructuredLocator
+	msg := i.StructuredMessage
+	for k, m := range r.matchers {
+		allowed := m.Allows(i, topology)
+		if allowed {
+			logrus.WithField("message", msg).WithField("locator", l).Infof("duplicated event allowed by %s", k)
+			return allowed, m
+		}
+	}
+	return false, nil
+}
+
+func (r *AllowedPathologicalEventRegistry) GetMatcherByName(name string) (EventMatcher, error) {
+
+	matcher, ok := r.matchers[name]
+	if !ok {
+		return nil, fmt.Errorf("no pathological event matcher registered with name: %s", name)
+	}
+	return matcher, nil
+}
+
+// AllowedPathologicalEvents is the list of all allowed duplicate events on all jobs. Upgrade has an additional
+// list which is combined with this one.
+func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals monitorapi.Intervals) *AllowedPathologicalEventRegistry {
+	registry := &AllowedPathologicalEventRegistry{matchers: map[string]EventMatcher{}}
+
+	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails [Suite:openshift/conformance/parallel] [Suite:k8s]
+	// PauseNewPods intentionally causes readiness probe to fail.
+	// [sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]
+	// breakPodHTTPProbe intentionally causes readiness probe to fail.
+	/*
+
+					This is duplicated with KubeletUnhealthyReadinessProbeFailed, I am keeping
+					commented out as a historical artifact in case the blanked Unhealthy readiness probe
+					matcher is removed some day and this specific case starts firing again.
+
+		registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+			name: "E2EStatefulSetReadinessProbeFailed",
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-statefulset-[0-9]+`),
+				monitorapi.LocatorPodKey:       regexp.MustCompile(`ss2-[0-9]`),
+				monitorapi.LocatorNodeKey:      regexp.MustCompile(`[a-z0-9.-]+`),
+			},
+			messageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+			messageHumanRegex:  regexp.MustCompile(`Readiness probe failed: `),
+		})
+	*/
+
+	// Kubectl Port forwarding ***
+	// The same pod name is used many times for all these tests with a tight readiness check to make the tests fast.
+	// This results in hundreds of events while the pod isn't ready.
+	/*
+
+		This is duplicated with KubeletUnhealthyReadinessProbeFailed, I am keeping
+		commented out as a historical artifact in case the blanked Unhealthy readiness probe
+		matcher is removed some day and this specific case starts firing again.
+
+		registry.AddPathologicalEventMatcherOrDie("UnhealthyE2EPortForwarding", &SimplePathologicalEventMatcher{
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-port-forwarding-[0-9]+`),
+				monitorapi.LocatorPodKey:       regexp.MustCompile(`^pfpod$`),
+			},
+			messageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+			messageHumanRegex:  regexp.MustCompile(`Readiness probe failed: `),
+		})
+
+	*/
+
+	/*
+
+		Historical artifact, covered by KubeletUnhealthyReadinessProbeFailed
+
+		// [sig-node] Probing container ***
+		// these tests intentionally cause repeated probe failures to ensure good handling
+		registry.AddPathologicalEventMatcherOrDie("E2EContainerProbeFailedOrWarning", &SimplePathologicalEventMatcher{
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-container-probe-[0-9]+`),
+			},
+			messageHumanRegex: regexp.MustCompile(`probe (failed|warning):`),
+		})
+	*/
+
+	/*
+
+		Historical artifact, covered by FailedScheduling
+
+		// TestAllowedSCCViaRBAC and TestPodUpdateSCCEnforcement
+		// The pod is shaped to intentionally not be scheduled.  Looks like an artifact of the old integration testing.
+		registry.AddPathologicalEventMatcherOrDie("E2ESCCFailedScheduling", &SimplePathologicalEventMatcher{
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-test-scc-[a-z0-9]+`),
+			},
+			messageReasonRegex: regexp.MustCompile(`FailedScheduling`),
+		})
+	*/
+
+	// Security Context ** should not run with an explicit root user ID
+	// Security Context ** should not run without a specified user ID
+	// This container should never run
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "E2ESecurityContextBreaksNonRootPolicy",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-security-context-test-[0-9]+`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`.*-root-uid`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^Failed$`),
+		messageHumanRegex:  regexp.MustCompile(`Error: container's runAsUser breaks non-root policy.*`),
+	})
+
+	// PersistentVolumes-local tests should not run the pod when there is a volume node
+	// affinity and node selector conflicts.
+	/*
+
+		Blanked allowed later by FailedScheduling matcher. Keeping for historical artifact.
+
+		registry.AddPathologicalEventMatcherOrDie("E2EPersistentVolumesFailedScheduling", &SimplePathologicalEventMatcher{
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-persistent-local-volumes-test-[0-9]+`),
+				monitorapi.LocatorPodKey:       regexp.MustCompile(`pod-[a-z0-9.-]+`),
+			},
+			messageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
+		})
+	*/
+
+	// various DeploymentConfig tests trigger this by cancelling multiple rollouts
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:               "DeploymentAwaitingCancellation",
+		messageReasonRegex: regexp.MustCompile(`^DeploymentAwaitingCancellation$`),
+		messageHumanRegex:  regexp.MustCompile(`Deployment of version [0-9]+ awaiting cancellation of older running deployments`),
+	})
+
+	// If image pulls in e2e namespaces fail catastrophically we'd expect them to lead to test failures
+	// We are deliberately not ignoring image pull failures for core component namespaces
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "E2EImagePullBackOff",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^e2e-.*`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^BackOff$`),
+		messageHumanRegex:  regexp.MustCompile(`Back-off pulling image`),
+	})
+
+	// Several allowances were related to Loki, I think we can generally ignore any repeating event
+	// from the Loki NS, this should not fail tests.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "E2ELoki",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-e2e-loki$`),
+		},
+	})
+
+	// kube apiserver, controller-manager and scheduler guard pod probes can fail due to operands getting rolled out
+	// multiple times during the bootstrapping phase of a cluster installation
+
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "KubeAPIReadinessProbeError",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-kube-*`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^kube.*guard.*`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+		messageHumanRegex:  regexp.MustCompile(`Readiness probe error`),
+	})
+
+	// this is the less specific even sent by the kubelet when a probe was executed successfully but returned false
+	// we ignore this event because openshift has a patch in patch_prober that sends a more specific event about
+	// readiness failures in openshift-* namespaces.  We will catch the more specific ProbeError events.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:               "KubeletUnhealthyReadinessProbeFailed",
+		messageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+		messageHumanRegex:  regexp.MustCompile(`Readiness probe failed`),
+	})
+
+	/*
+
+			This looks duplicated with AllowBackOffRestartingFailedContainer
+		Kept for historical purposes
+
+		// should not start app containers if init containers fail on a RestartAlways pod
+		// the init container intentionally fails to start
+		registry.AddPathologicalEventMatcherOrDie("E2EInitContainerRestartBackoff", &SimplePathologicalEventMatcher{
+			locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+				monitorapi.LocatorNamespaceKey: regexp.MustCompile(`e2e-init-container-[0-9]+`),
+				monitorapi.LocatorPodKey:       regexp.MustCompile(`pod-init-[a-z0-9.-]+`),
+			},
+			messageReasonRegex: regexp.MustCompile(`^BackOff$`),
+			messageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
+		})
+	*/
+
+	// If you see this error, it means enough was working to get this event which implies enough retries happened to allow initial openshift
+	// installation to succeed. Hence, we can ignore it.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:               "AWSFailedCreateInsufficientInstanceCapacity",
+		messageReasonRegex: regexp.MustCompile(`^FailedCreate$`),
+		messageHumanRegex:  regexp.MustCompile(`error creating EC2 instance: InsufficientInstanceCapacity: We currently do not have sufficient .* capacity in the Availability Zone you requested`),
+	})
+
+	// This was originally filed as a bug in 2021, closed as fixed, but the events continue repeating in 2023.
+	// They only occur in the namespace for a specific horizontal pod autoscaling test. Ignoring permanently,
+	// as they have been for the past two years.
+	// https://bugzilla.redhat.com/show_bug.cgi?id=1993985
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "PodAutoscalerFailedToGetCPUUtilization",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`horizontalpodautoscaler`),
+		},
+		messageHumanRegex: regexp.MustCompile(`failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API`),
+	})
+
+	// Formerly bug: https://bugzilla.redhat.com/show_bug.cgi?id=2075204
+	// Left stale and closed automatically. Assuming we can live with it now.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "EtcdReadinessProbeError",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`etcd-guard.*`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+		messageHumanRegex:  regexp.MustCompile(`Readiness probe error: .* connect: connection refused`),
+	})
+
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "OpenShiftAPICheckFailed",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(``),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(``),
+		},
+		messageReasonRegex: regexp.MustCompile(`^OpenShiftAPICheckFailed$`),
+		messageHumanRegex:  regexp.MustCompile(`user.openshift.io.v1.*503`),
+		// TODO: Jira long closed as stale, and this problem occurs well outside single node now.
+		// A new bug should probably be filed.
+		jira: "https://bugzilla.redhat.com/show_bug.cgi?id=2017435",
+	})
+
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:              "MessageChangedFromFEFF",
+		messageHumanRegex: regexp.MustCompile(`message changed from "\x{FEFF}`),
+	})
+
+	// This was originally intended to be limited to only during the openshift/build test suite, however it was
+	// never hooked up and was just ignored everywhere. We do not have the capability to detect if
+	// events were within specific test suites yet. Leaving them as an always allow for now.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "ScalingReplicaSet",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`(openshift-controller-manager|openshift-route-controller-manager)`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`(controller-manager|route-controller-manager)`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^ScalingReplicaSet$`),
+		messageHumanRegex:  regexp.MustCompile(`\(combined from similar events\): Scaled (down|up) replica set.*controller-manager-[a-z0-9-]+ to [0-9]+`),
+	})
+
+	// Match pod sandbox errors as "interesting" so they get charted, but we do not ever allow them to repeat
+	// pathologically.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:              "PodSandbox",
+		messageHumanRegex: regexp.MustCompile(`pod sandbox`),
+		neverAllow:        true,
+	})
+
+	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
+
+	registry.AddPathologicalEventMatcherOrDie(AllowOVNReadiness)
+
+	registry.AddPathologicalEventMatcherOrDie(AllowImagePullFromRedHatRegistry)
+
+	registry.AddPathologicalEventMatcherOrDie(EtcdRequiredResourcesMissing)
+
+	registry.AddPathologicalEventMatcherOrDie(EtcdClusterOperatorStatusChanged)
+	registry.AddPathologicalEventMatcherOrDie(ProbeErrorTimeoutAwaitingHeaders)
+	registry.AddPathologicalEventMatcherOrDie(ProbeErrorLiveness)
+	registry.AddPathologicalEventMatcherOrDie(ReadinessFailed)
+	registry.AddPathologicalEventMatcherOrDie(ProbeErrorConnectionRefused)
+	registry.AddPathologicalEventMatcherOrDie(NodeHasNoDiskPressure)
+	registry.AddPathologicalEventMatcherOrDie(NodeHasSufficientMemory)
+	registry.AddPathologicalEventMatcherOrDie(NodeHasSufficientPID)
+	registry.AddPathologicalEventMatcherOrDie(FailedScheduling)
+	registry.AddPathologicalEventMatcherOrDie(ErrorUpdatingEndpointSlices)
+	registry.AddPathologicalEventMatcherOrDie(MarketplaceStartupProbeFailure)
+
+	// Inject the dynamic allowance for etcd readiness probe failures based on the number of
+	// etcd revisions the cluster went through.
+	etcdMatcher, err := newDuplicatedEventsAllowedWhenEtcdRevisionChange(context.TODO(), kubeConfig)
+	if err != nil {
+		logrus.WithError(err).Warning("unable to initialize dynamic etcd matcher based on revisions, skipping")
+	} else {
+		registry.AddPathologicalEventMatcherOrDie(etcdMatcher)
+	}
+
+	topologyAwareMatcher := newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(topologyAwareMatcher)
+
+	return registry
+}
+
+// NewUpgradePathologicalEventMatchers creates the registry for allowed events during upgrade.
+// Contains everything in the universal set as well.
+func NewUpgradePathologicalEventMatchers(kubeConfig *rest.Config, finalIntervals monitorapi.Intervals) *AllowedPathologicalEventRegistry {
+
+	// Start with the main list of matchers:
+	registry := NewUniversalPathologicalEventMatchers(kubeConfig, finalIntervals)
+
+	// Now add in the matchers we only want to apply during upgrade:
+
+	// Operators that use library-go can report about multiple versions during upgrades.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "OperatorMultipleVersions",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`(openshift-etcd-operator|openshift-kube-apiserver-operator|openshift-kube-controller-manager-operator|openshift-kube-scheduler-operator)`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`(etcd-operator|kube-apiserver-operator|kube-controller-manager-operator|openshift-kube-scheduler-operator)`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^MultipleVersions$`),
+		messageHumanRegex:  regexp.MustCompile(`multiple versions found, probably in transition`),
+	})
+
+	// etcd-quorum-guard can fail during upgrades.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "EtcdQuorumGuardReadinessProbe",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-quorum-guard.*`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+		messageHumanRegex:  regexp.MustCompile(`Readiness probe failed:`),
+	})
+
+	// etcd can have unhealthy members during an upgrade
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "EtcdUnhealthyMembers",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey:  regexp.MustCompile(`openshift-etcd-operator`),
+			monitorapi.LocatorDeploymentKey: regexp.MustCompile(`etcd-operator`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^UnhealthyEtcdMember$`),
+		messageHumanRegex:  regexp.MustCompile(`unhealthy members`),
+	})
+
+	// Ignore NetworkNotReady repeat events.
+	// This was originally linked to bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1986370
+	// The bug has been closed as NOTABUG.
+	// We used to allow this for three namespaces (openshift-multus, openshift-e2e-loki, and openshift-network-diagnostics),
+	// however a quick search of the intervals in bigquery shows this happening a ton in lots of namespaces,
+	// and killing jobs when it does. Given the bug status, I am ignoring these events, whenever they occur, in
+	// all upgrade jobs for now. - dgoodwin
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name:               "NetworkNotReady",
+		messageReasonRegex: regexp.MustCompile(`^NetworkNotReady$`),
+		messageHumanRegex:  regexp.MustCompile(`network is not ready: container runtime network not ready: NetworkReady=false reason:NetworkPluginNotReady message:Network plugin returns error: No CNI configuration file.*Has your network provider started\?`),
+	})
+
+	// Allow FailedScheduling repeat events during node upgrades:
+	m := newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(m)
+
+	return registry
+}
+
+// Some broken out matchers are re-used in a test for that specific event, keeping them as package vars
+// for compile time protection.
+
+var AllowOVNReadiness = &SimplePathologicalEventMatcher{
+	name: "OVNReadinessProbeFailed",
+	locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-ovn-kubernetes`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`ovnkube-node-`),
+	},
+	messageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
+	messageHumanRegex:  regexp.MustCompile(`Readiness probe failed:`),
+}
+
+// Separated out in testBackoffPullingRegistryRedhatImage
+var AllowImagePullFromRedHatRegistry = &SimplePathologicalEventMatcher{
+	name:              "AllowImagePullBackOffFromRedHatRegistry",
+	messageHumanRegex: regexp.MustCompile(`Back-off pulling image .*registry.redhat.io`),
+}
+
+// Separated out in testBackoffStartingFailedContainer
+var AllowBackOffRestartingFailedContainer = &SimplePathologicalEventMatcher{
+	name:               "AllowBackOffRestartingFailedContainer",
+	messageReasonRegex: regexp.MustCompile(`^BackOff$`),
+	messageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container`),
+}
+
+// Separated out in testRequiredInstallerResourcesMissing
+var EtcdRequiredResourcesMissing = &SimplePathologicalEventMatcher{
+	name:               "EtcdRequiredResourcesMissing",
+	messageReasonRegex: regexp.MustCompile(`^RequiredInstallerResourcesMissing$`),
+	messageHumanRegex:  regexp.MustCompile(`secrets: etcd-all-certs-[0-9]+`),
+}
+
+// reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy" to "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: No unhealthy members found"
+var EtcdClusterOperatorStatusChanged = &SimplePathologicalEventMatcher{
+	name: "EtcdClusterOperatorStatusChanged",
+	locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-etcd`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`^openshift-etcd`),
+	},
+	messageReasonRegex: regexp.MustCompile(`^OperatorStatusChanged$`),
+	messageHumanRegex:  regexp.MustCompile(`Status for clusteroperator/etcd changed.*No unhealthy members found`),
+}
+
+// ProbeErrorTimeoutAwaitingHeaders matches events in specific namespaces such as:
+// reason/ProbeError Readiness probe error: Get "https://10.130.0.15:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+//
+// These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
+var ProbeErrorTimeoutAwaitingHeaders = &SimplePathologicalEventMatcher{
+	name: "ProbeErrorTimeoutAwaitingHeaders",
+	locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
+	},
+	messageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+	messageHumanRegex:  regexp.MustCompile(`Readiness probe error.*Client.Timeout exceeded while awaiting headers`),
+}
+
+// ProbeErrorConnectionRefused matches events in specific namespaces.
+//
+// These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
+var ProbeErrorConnectionRefused = &SimplePathologicalEventMatcher{
+	name: "ProbeErrorConnectionRefused",
+	locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
+	},
+	messageReasonRegex: regexp.MustCompile(`^ProbeError$`),
+	messageHumanRegex:  regexp.MustCompile(`Readiness probe error.*connection refused`),
+}
+
+// ProbeErrorLiveness matches events in specific namespaces such as:
+// Liveness probe error: Get "https://10.128.0.21:8443/healthz": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+//
+// These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
+var ProbeErrorLiveness = &SimplePathologicalEventMatcher{
+	name: "ProbeErrorLiveness",
+	locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
+	},
+	messageReasonRegex: regexp.MustCompile(`^(ProbeError|Unhealthy)$`),
+	messageHumanRegex:  regexp.MustCompile(`Liveness probe error.*Client.Timeout exceeded while awaiting headers`),
+}
+
+// ReadinessFailed matches events in specific namespaces such as:
+// ...ReadinessFailed Get \"https://10.130.0.16:8443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+//
+// These namespaces have their own tests where you'll see this matcher re-used with additional checks on the namespace.
+var ReadinessFailed = &SimplePathologicalEventMatcher{
+	name: "ReadinessFailed",
+	locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
+		//monitorapi.LocatorPodKey:       regexp.MustCompile(`(openshift-config-operator|openshift-oauth-apiserver)`),
+	},
+	messageReasonRegex: regexp.MustCompile(`^ReadinessFailed$`),
+	messageHumanRegex:  regexp.MustCompile(`Get.*healthz.*net/http.*request canceled while waiting for connection.*Client.Timeout exceeded`),
+}
+
+// Separated out in testNodeHasNoDiskPressure
+var NodeHasNoDiskPressure = &SimplePathologicalEventMatcher{
+	name:               "NodeHasNoDiskPressure",
+	messageReasonRegex: regexp.MustCompile(`^NodeHasNoDiskPressure$`),
+	messageHumanRegex:  regexp.MustCompile(`status is now: NodeHasNoDiskPressure`),
+}
+
+// Separated out in testNodeHasSufficientMemory
+var NodeHasSufficientMemory = &SimplePathologicalEventMatcher{
+	name:               "NodeHasSufficientMemory",
+	messageReasonRegex: regexp.MustCompile(`^NodeHasSufficientMemory$`),
+	messageHumanRegex:  regexp.MustCompile(`status is now: NodeHasSufficientMemory`),
+}
+
+// Separated out in testNodeHasSufficientPID
+var NodeHasSufficientPID = &SimplePathologicalEventMatcher{
+	name:               "NodeHasSufficientPID",
+	messageReasonRegex: regexp.MustCompile(`^NodeHasSufficientPID$`),
+	messageHumanRegex:  regexp.MustCompile(`status is now: NodeHasSufficientPID`),
+}
+
+// reason/FailedScheduling 0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod anti-affinity rules, 2 node(s) were unschedulable. preemption: 0/6 nodes are available: 2 node(s) didn't match pod anti-affinity rules, 4 Preemption is not helpful for scheduling..
+var FailedScheduling = &SimplePathologicalEventMatcher{
+	name:               "FailedScheduling",
+	messageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
+	messageHumanRegex:  regexp.MustCompile(`nodes are available.*didn't match Pod's node affinity/selector`),
+}
+
+// Separated out in testErrorUpdatingEndpointSlices
+var ErrorUpdatingEndpointSlices = &SimplePathologicalEventMatcher{
+	name:               "ErrorUpdatingEndpointSlices",
+	messageReasonRegex: regexp.MustCompile(`^FailedToUpdateEndpointSlices$`),
+	messageHumanRegex:  regexp.MustCompile(`Error updating Endpoint Slices`),
+}
+
+// Separated out in testMarketplaceStartupProbeFailure
+var MarketplaceStartupProbeFailure = &SimplePathologicalEventMatcher{
+	name: "MarketplaceStartupProbeFailure",
+	locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+		monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-marketplace`),
+		monitorapi.LocatorPodKey:       regexp.MustCompile(`(community-operators|redhat-operators)-[a-z0-9-]+`),
+	},
+	messageHumanRegex: regexp.MustCompile(`Startup probe failed`),
+}
+
+// IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
+func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config) (bool, error) {
 	if kubeClientConfig == nil {
 		// default to OK
 		return true, nil
@@ -424,15 +680,18 @@ func IsEventDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfi
 		return true, nil
 	}
 
-	message := fmt.Sprintf("%s - %s", monitorEvent.Locator, monitorEvent.Message)
-	namespace, pod, _, reason, msg, err := getMatchedElementsFromMonitorEventMsg(regExp, message)
-	if err != nil {
-		return false, err
-	}
+	namespace := monitorEvent.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+	pod := monitorEvent.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+	reason := monitorEvent.StructuredMessage.Reason
+	msg := monitorEvent.StructuredMessage.HumanMessage
 	kubeClient, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return true, nil
 	}
+
+	// TODO: listing all kube events when we already have intervals for them seems drastic.
+	// It appears to be so we could get FirstTimestamp, but we could perhaps store that in a message
+	// annotation when we receive events.
 	kubeEvents, err := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return true, nil
@@ -440,17 +699,21 @@ func IsEventDuringInstallation(monitorEvent monitorapi.Interval, kubeClientConfi
 	for _, event := range kubeEvents.Items {
 		if event.Related == nil ||
 			event.Related.Name != pod ||
-			event.Reason != reason ||
+			event.Reason != string(reason) ||
 			!strings.Contains(event.Message, msg) {
 			continue
 		}
 
+		// TODO: if an event happened 21 times, and only the first was during install, we're going
+		// to return true here when we shouldn't... to do this properly we'd need to separate out
+		// a count of how many occurred *after* install, and that's going to be quite difficult.
 		if event.FirstTimestamp.After(installCompletionTime.Time) {
 			return false, nil
 		}
 	}
 	return true, nil
 }
+
 func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
 	configClient, err := configclient.NewForConfig(kubeClientConfig)
 	if err != nil {
@@ -466,32 +729,183 @@ func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
 	return clusterVersion.Status.History[len(clusterVersion.Status.History)-1].CompletionTime
 }
 
-func getMatchedElementsFromMonitorEventMsg(regExp *regexp.Regexp, message string) (string, string, string, string, string, error) {
-	var namespace, pod, node, reason, msg string
-	if !regExp.MatchString(message) {
-		return namespace, pod, node, reason, msg, errors.New("regex match error")
+// newDuplicatedEventsAllowedWhenEtcdRevisionChange tolerates etcd readiness probe failures unless we receive more
+// than the allowance per revisions of etcd.
+func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clientConfig *rest.Config) (*SimplePathologicalEventMatcher, error) {
+	matcher := &SimplePathologicalEventMatcher{
+		name: "EtcdReadinessProbeFailuresPerRevisionChange",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-etcd$`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`^etcd-guard-`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^(Unhealthy|ProbeError)$`),
+		messageHumanRegex:  regexp.MustCompile(`Readiness probe`),
 	}
-	subMatches := regExp.FindStringSubmatch(message)
-	subNames := regExp.SubexpNames()
-	for i, name := range subNames {
-		switch name {
-		case "NS":
-			namespace = subMatches[i]
-		case "POD":
-			pod = subMatches[i]
-		case "NODE":
-			node = subMatches[i]
-		case "REASON":
-			reason = subMatches[i]
-		case "MSG":
-			msg = subMatches[i]
+	if clientConfig == nil {
+		// We were not given a kubeconfig likely because the caller is looking for runtime
+		// checks for interesting events, and not actually evaluating which repeated pathologically yet.
+		// In this case, return a matcher capable of flagging Etcd readiness probe errors
+		// as interesting, but not allowing them to repeat pathologically.
+		matcher.neverAllow = true
+		return matcher, nil
+	}
+	operatorClient, err := operatorv1client.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
+	if err != nil {
+	}
+	repeatThresholdOverride := currentRevision * (60 / 5)
+	logrus.WithFields(logrus.Fields{
+		"etcdRevision":   currentRevision,
+		"allowedRepeats": repeatThresholdOverride,
+	}).Info("created toleration for etcd readiness probes per revision")
+	matcher.repeatThresholdOverride = repeatThresholdOverride
+
+	return matcher, nil
+}
+
+func newFailedSchedulingDuringNodeUpdatePathologicalEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	if finalIntervals == nil || len(finalIntervals) == 0 {
+		// We were not given final intervals likely because the caller is looking for runtime
+		// checks for interesting events, and not actually evaluating which repeated pathologically yet.
+		// In this case, return a matcher capable of flagging FailedScheduling
+		// as interesting, but not allowing them to repeat pathologically.
+		return &SimplePathologicalEventMatcher{
+			name:               "FailedSchedulingDuringNodeUpdate",
+			messageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
+			neverAllow:         true,
 		}
 	}
-	if len(namespace) == 0 ||
-		len(pod) == 0 ||
-		len(node) == 0 ||
-		len(msg) == 0 {
-		return namespace, pod, node, reason, msg, fmt.Errorf("regex match expects non-empty elements, got namespace: %s, pod: %s, node: %s, msg: %s", namespace, pod, node, msg)
+
+	// Filter out a list of NodeUpdate events, we use these to ignore some other potential pathological events that are
+	// expected during NodeUpdate.
+	nodeUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceNodeState &&
+			eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeNode &&
+			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerNodeLifecycle &&
+			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPhase] == "Update" &&
+			strings.Contains(eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationRoles], "master")
+	})
+	logrus.Infof("found %d NodeUpdate intervals", len(nodeUpdateIntervals))
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "FailedSchedulingDuringNodeUpdate",
+			messageReasonRegex: regexp.MustCompile(`^FailedScheduling$`),
+		},
+		allowIfWithinIntervals: nodeUpdateIntervals,
 	}
-	return namespace, pod, node, reason, msg, nil
+}
+
+// OverlapOtherIntervalsPathologicalEventMatcher is an implementation containing a regular
+// matcher, plus additional logic that will allow the event only if it is contained
+// within another set of intervals provided. (i.e. used to allow FailedScheduling pathological
+// events if they are contained within NodeUpdate intervals)
+type OverlapOtherIntervalsPathologicalEventMatcher struct {
+	// delegate is a normal event matcher.
+	delegate *SimplePathologicalEventMatcher
+	// allowIfWithinIntervals is the list of intervals that the incoming pathological event will
+	// match if it contained within one of these.
+	allowIfWithinIntervals monitorapi.Intervals
+}
+
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Name() string {
+	return ade.delegate.Name()
+}
+
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Matches(i monitorapi.Interval) bool {
+	return ade.delegate.Matches(i)
+}
+
+func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.Interval, topology v1.TopologyMode) bool {
+
+	// Check the delegate matcher first, if it matches, proceed to additional checks
+	if !ade.delegate.Allows(i, topology) {
+		return false
+	}
+
+	// Match the pathological event if it overlaps with any of the given set of intervals.
+	for _, nui := range ade.allowIfWithinIntervals {
+		if nui.From.Before(i.From) && nui.To.After(i.To) {
+			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", i, nui)
+			return true
+		}
+	}
+	return false
+}
+
+func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+
+	if finalIntervals == nil || len(finalIntervals) == 0 {
+		// We were not given final intervals likely because the caller is looking for runtime
+		// checks for interesting events, and not actually evaluating which repeated pathologically yet.
+		// In this case, return a matcher capable of flagging TopologyAwareHintsDisabled
+		// as interesting, but not allowing them to repeat pathologically.
+		return &SimplePathologicalEventMatcher{
+			name:               "TopologyAwareHintsDisabledDuringTaintManagerTests",
+			messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+			neverAllow:         true,
+		}
+	}
+
+	taintManagerTestIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceE2ETest &&
+			strings.Contains(eventInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey], "NoExecuteTaintManager")
+	})
+
+	adjustedTaintTestIntervals := monitorapi.Intervals{}
+
+	// Start the allowed time range from time range of the tests. But events lag behind the tests since the tests do not wait
+	// until all dns pods are properly scheduled and reach ready state. So we will need to expand the allowed time range after.
+	for _, test := range taintManagerTestIntervals {
+		ti := test.DeepCopy()
+		adjustedTaintTestIntervals = append(adjustedTaintTestIntervals, *ti)
+		logrus.WithField("from", test.From).WithField("to", test.To).Infof("found time range for test: %s", test.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey])
+	}
+	dnsUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourcePodState &&
+			(eventInterval.StructuredLocator.Type == monitorapi.LocatorTypePod || eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeContainer) &&
+			eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == "openshift-dns" &&
+			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerPodLifecycle
+	})
+
+	// Now expand the allowed time range until the replacement dns pod gets ready
+	for i, r := range adjustedTaintTestIntervals {
+		var lastReadyTime time.Time
+		count := 0
+		for _, interval := range dnsUpdateIntervals {
+			if interval.From.Before(r.From) {
+				continue
+			}
+			// If there is a GracefulDelete of dns-default pod, we will have to wait until the replacement dns container becomes ready
+			if interval.StructuredMessage.Reason == monitorapi.PodReasonGracefulDeleteStarted &&
+				strings.Contains(interval.StructuredLocator.Keys[monitorapi.LocatorPodKey], "dns-default") {
+				count++
+			}
+			if interval.StructuredMessage.Reason == monitorapi.ContainerReasonReady &&
+				interval.StructuredLocator.Keys[monitorapi.LocatorContainerKey] == "dns" && count > 0 {
+				lastReadyTime = interval.From
+				count--
+			}
+			if interval.From.After(r.To) && count == 0 {
+				if lastReadyTime.After(r.To) {
+					adjustedTaintTestIntervals[i].To = lastReadyTime
+				}
+				break
+			}
+		}
+	}
+	// Log final adjusted time ranges
+	for _, testInterval := range adjustedTaintTestIntervals {
+		logrus.WithField("from", testInterval.From).WithField("to", testInterval.To).Infof("adjusted time range for test: %s", testInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey])
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:               "TopologyAwareHintsDisabledDuringTaintManagerTests",
+			messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+		},
+		allowIfWithinIntervals: adjustedTaintTestIntervals,
+	}
 }

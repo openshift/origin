@@ -10,6 +10,9 @@ import (
 func testErrorUpdatingEndpointSlices(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-networking] pathological event should not see excessive FailedToUpdateEndpointSlices Error updating Endpoint Slices"
 
-	return pathologicaleventlibrary.NewSingleEventCheckRegex(testName, pathologicaleventlibrary.ErrorUpdatingEndpointSlicesRegex, pathologicaleventlibrary.ErrorUpdatingEndpointSlicesFailedThreshold, pathologicaleventlibrary.ErrorUpdatingEndpointSlicesFlakeThreshold).
+	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName,
+		pathologicaleventlibrary.ErrorUpdatingEndpointSlices,
+		pathologicaleventlibrary.ErrorUpdatingEndpointSlicesFailedThreshold,
+		pathologicaleventlibrary.ErrorUpdatingEndpointSlicesFlakeThreshold).
 		Test(events.Filter(monitorapi.IsInNamespaces(sets.NewString("openshift-ovn-kubernetes"))))
 }

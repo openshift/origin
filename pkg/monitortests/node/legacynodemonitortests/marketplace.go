@@ -9,5 +9,7 @@ import (
 
 func testMarketplaceStartupProbeFailure(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	const testName = "[sig-arch] openshift-marketplace pods should not get excessive startupProbe failures"
-	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events, pathologicaleventlibrary.MarketplaceStartupProbeFailureRegExpStr, pathologicaleventlibrary.DuplicateEventThreshold)
+	return pathologicaleventlibrary.EventExprMatchThresholdTest(testName, events,
+		pathologicaleventlibrary.MarketplaceStartupProbeFailure,
+		pathologicaleventlibrary.DuplicateEventThreshold)
 }

@@ -3,7 +3,6 @@ package legacynetworkmonitortests
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -312,26 +311,30 @@ func getPodDeletionTime(events monitorapi.Intervals, podLocator string) *time.Ti
 }
 
 // bug is tracked here: https://bugzilla.redhat.com/show_bug.cgi?id=2057181
+// It was closed working as designed.
 func testOvnNodeReadinessProbe(events monitorapi.Intervals, kubeClientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	const testName = "[bz-networking] ovnkube-node readiness probe should not fail repeatedly"
-	regExp := regexp.MustCompile(pathologicaleventlibrary.OvnReadinessRegExpStr)
 	var tests []*junitapi.JUnitTestCase
 	var failureOutput string
 	msgMap := map[string]bool{}
+
 	for _, event := range events {
 		msg := fmt.Sprintf("%s - %s", event.Locator, event.Message)
-		if regExp.MatchString(msg) {
+		if pathologicaleventlibrary.AllowOVNReadiness.Allows(event, "") {
+
 			if _, ok := msgMap[msg]; !ok {
 				msgMap[msg] = true
-				eventDisplayMessage, times := pathologicaleventlibrary.GetTimesAnEventHappened(msg)
+				times := pathologicaleventlibrary.GetTimesAnEventHappened(event.StructuredMessage)
 				if times > pathologicaleventlibrary.DuplicateEventThreshold {
 					// if the readiness probe failure for this pod happened AFTER the initial installation was complete,
 					// then this probe failure is unexpected and should fail.
-					isDuringInstall, err := pathologicaleventlibrary.IsEventDuringInstallation(event, kubeClientConfig, regExp)
+					isDuringInstall, err := pathologicaleventlibrary.IsEventAfterInstallation(event, kubeClientConfig)
 					if err != nil {
-						failureOutput += fmt.Sprintf("error [%v] happened when processing event [%s]\n", err, eventDisplayMessage)
+						failureOutput += fmt.Sprintf("error [%v] happened when processing event [%s]\n", err, event.String())
 					} else if !isDuringInstall {
-						failureOutput += fmt.Sprintf("event [%s] happened too frequently for %d times\n", eventDisplayMessage, times)
+						failureOutput += fmt.Sprintf("event [%s] happened too frequently: %d times\n", event.String(), times)
+					} else {
+						logrus.Infof("ignoring event that happened %d times because FirstTimestamp appears to be during install: %s", times, event.String())
 					}
 				}
 			}

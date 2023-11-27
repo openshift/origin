@@ -2,14 +2,15 @@ package watchevents
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +33,11 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 	// map event UIDs to the last resource version we observed, used to skip recording resources
 	// we've already recorded.
 	processedEventUIDs := map[types.UID]string{}
+
+	_, topology, err := pathologicaleventlibrary.GetClusterInfraInfo(adminRESTConfig)
+	if err != nil {
+		logrus.WithError(err).Error("could not fetch cluster infra info")
+	}
 
 	listWatch := cache.NewListWatchFromClient(client.CoreV1().RESTClient(), "events", "", fields.Everything())
 	customStore := &cache.FakeCustomStore{
@@ -56,7 +62,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, adminRESTConfig, client, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -67,7 +73,7 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 				return nil
 			}
 			if processedEventUIDs[event.UID] != event.ResourceVersion {
-				recordAddOrUpdateEvent(ctx, m, adminRESTConfig, client, significantlyBeforeNow, event)
+				recordAddOrUpdateEvent(ctx, m, topology, client, significantlyBeforeNow, event)
 				processedEventUIDs[event.UID] = event.ResourceVersion
 			}
 			return nil
@@ -77,56 +83,10 @@ func startEventMonitoring(ctx context.Context, m monitorapi.RecorderWriter, admi
 	go reflector.Run(ctx.Done())
 }
 
-var allRepeatedEventPatterns = combinedDuplicateEventPatterns()
-
-func combinedDuplicateEventPatterns() *regexp.Regexp {
-	s := ""
-	for _, r := range pathologicaleventlibrary.AllowedRepeatedEventPatterns {
-		if s != "" {
-			s += "|"
-		}
-		s += r.String()
-	}
-	for _, r := range pathologicaleventlibrary.AllowedUpgradeRepeatedEventPatterns {
-		if s != "" {
-			s += "|"
-		}
-		s += r.String()
-	}
-	for _, r := range pathologicaleventlibrary.KnownEventsBugs {
-		if s != "" {
-			s += "|"
-		}
-		s += r.Regexp.String()
-	}
-	return regexp.MustCompile(s)
-}
-
-// checkAllowedRepeatedEventOKFns loops through all of the IsRepeatedEventOKFunc funcs
-// and returns true if this event is an event we already know about.  Some functions
-// require a kubeconfig, but also handle the kubeconfig being nil (in case we cannot
-// successfully get a kubeconfig).
-func checkAllowedRepeatedEventOKFns(adminRESTConfig *rest.Config, event monitorapi.Interval, times int32) bool {
-	for _, isRepeatedEventOKFuncList := range [][]pathologicaleventlibrary.IsRepeatedEventOKFunc{pathologicaleventlibrary.AllowedRepeatedEventFns, pathologicaleventlibrary.AllowedSingleNodeRepeatedEventFns} {
-		for _, allowRepeatedEventFn := range isRepeatedEventOKFuncList {
-			allowed, err := allowRepeatedEventFn(event, adminRESTConfig, int(times))
-			if err != nil {
-				// for errors, we'll default to no match.
-				fmt.Printf("Error processing pathological event: %v\n", err)
-				return false
-			}
-			if allowed {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func recordAddOrUpdateEvent(
 	ctx context.Context,
 	recorder monitorapi.RecorderWriter,
-	adminRESTConfig *rest.Config,
+	topology v1.TopologyMode,
 	client kubernetes.Interface,
 	significantlyBeforeNow time.Time,
 	obj *corev1.Event) {
@@ -145,31 +105,19 @@ func recordAddOrUpdateEvent(
 			obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339))
 
 	}
-	t := obj.LastTimestamp.Time
-	if t.IsZero() {
-		t = obj.EventTime.Time
-	}
-	if t.IsZero() {
-		t = obj.CreationTimestamp.Time
-	}
-	if t.Before(significantlyBeforeNow) {
-		if osEvent {
-			fmt.Printf("OS update event filtered for being too old: %s - %s - %s (now: %s)\n",
-				obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339),
-				time.Now().Format(time.RFC3339))
-		}
-		return
-	}
 
-	message := obj.Message
+	message := monitorapi.NewMessage().HumanMessage(obj.Message)
 	if obj.Count > 1 {
-		message += fmt.Sprintf(" (%d times)", obj.Count)
+		message = message.WithAnnotation(monitorapi.AnnotationCount, fmt.Sprintf("%d", obj.Count))
 	}
 
 	if obj.InvolvedObject.Kind == "Node" {
 		if node, err := client.CoreV1().Nodes().Get(ctx, obj.InvolvedObject.Name, metav1.GetOptions{}); err == nil {
-			message = fmt.Sprintf("roles/%s %s", nodeRoles(node), message)
+			message = message.WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node))
 		}
+	}
+	if obj.Reason != "" {
+		message = message.Reason(monitorapi.IntervalReason(obj.Reason))
 	}
 
 	// special case some very common events
@@ -178,39 +126,34 @@ func recordAddOrUpdateEvent(
 	case "Killing":
 		if obj.InvolvedObject.Kind == "Pod" {
 			if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
-				message = fmt.Sprintf("container/%s reason/%s", containerName, obj.Reason)
+				message = message.WithAnnotation(monitorapi.AnnotationContainer, containerName)
 				break
 			}
 		}
-		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	case "Pulling", "Pulled":
 		if obj.InvolvedObject.Kind == "Pod" {
 			if containerName, ok := eventForContainer(obj.InvolvedObject.FieldPath); ok {
 				if m := reMatchFirstQuote.FindStringSubmatch(obj.Message); m != nil {
 					if len(m) > 3 {
 						if d, err := time.ParseDuration(m[3]); err == nil {
-							message = fmt.Sprintf("container/%s reason/%s duration/%.3fs image/%s", containerName, obj.Reason, d.Seconds(), m[1])
+							message = message.WithAnnotation(monitorapi.AnnotationContainer, containerName)
+							message = message.WithAnnotation(monitorapi.AnnotationDuration, fmt.Sprintf("%.3fs", d.Seconds()))
+							message = message.WithAnnotation(monitorapi.AnnotationImage, m[1])
 							break
 						}
 					}
-					message = fmt.Sprintf("container/%s reason/%s image/%s", containerName, obj.Reason, m[1])
+					message = message.WithAnnotation(monitorapi.AnnotationContainer, containerName)
+					message = message.WithAnnotation(monitorapi.AnnotationImage, m[1])
 					break
 				}
 			}
 		}
-		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	default:
-		message = fmt.Sprintf("reason/%s %s", obj.Reason, message)
 	}
 
-	condition := monitorapi.Condition{
-		Level:   monitorapi.Info,
-		Locator: locateEvent(obj),
-		Message: message,
-	}
-
+	level := monitorapi.Info
 	if obj.Type == corev1.EventTypeWarning {
-		condition.Level = monitorapi.Warning
+		level = monitorapi.Warning
 	}
 
 	pathoFrom := obj.LastTimestamp.Time
@@ -220,67 +163,69 @@ func recordAddOrUpdateEvent(
 	if pathoFrom.IsZero() {
 		pathoFrom = obj.CreationTimestamp.Time
 	}
-	to := pathoFrom.Add(1 * time.Second)
-
-	event := monitorapi.Interval{
-		Condition: condition,
+	if pathoFrom.Before(significantlyBeforeNow) {
+		if osEvent {
+			logrus.Infof("OS update event filtered for being too old: %s - %s - %s",
+				obj.Reason, obj.InvolvedObject.Name, obj.LastTimestamp.Format(time.RFC3339))
+		}
+		return
 	}
+	// We start with to equal to from, the majority of kube event intervals had this, and these get filtered out
+	// when generating spyglass html. For interesting/pathological events, we're adding a second, which causes them
+	// to get included in the html.
+	to := pathoFrom // we may override later for some events we want to have a duration and get charted
+	locator := monitorapi.NewLocator().KubeEvent(obj)
 
-	// The matching here needs to mimic what is being done in the synthetictests/testDuplicatedEvents function.
-	eventDisplayMessage := fmt.Sprintf("%s - %s", event.Locator, event.Message)
-	isInteresting := allRepeatedEventPatterns.MatchString(eventDisplayMessage) ||
-		checkAllowedRepeatedEventOKFns(adminRESTConfig, event, obj.Count)
+	// Flag any event that matches one of our allowances as "interesting", regardless how many
+	// times it occurred. We include upgrade allowances here. (the upgrade set contains both)
+	// We do not pass a Kubeconfig or list of final intervals (as final intervals obviously do not exist), so a small subset of more matchers will not be active,
+	// and will not get flagged as "interesting" as a result.
+	registry := pathologicaleventlibrary.NewUpgradePathologicalEventMatchers(nil, nil)
+
+	intervalBuilder := monitorapi.NewInterval(monitorapi.SourceKubeEvent, level)
+
+	// We don't yet have a full interval, create one for the purpose of matching the simple matchers.
+	tmpInterval := monitorapi.Interval{
+		Condition: monitorapi.Condition{
+			StructuredLocator: locator,
+			StructuredMessage: message.Build(),
+		},
+	}
+	isInteresting, _ := registry.MatchesAny(tmpInterval)
 
 	if obj.Count > 1 {
 
-		updatedMessage := event.Message
 		if isInteresting {
 			// This is a repeated event that we know about
-			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, updatedMessage)
+			message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
+			intervalBuilder = intervalBuilder.Display()
 		}
 
-		isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold && pathologicaleventlibrary.EventCountExtractor.MatchString(eventDisplayMessage)
+		isPathological := obj.Count > pathologicaleventlibrary.DuplicateEventThreshold
 		if isPathological {
 			// This is a repeated event that exceeds threshold
-			updatedMessage = fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, updatedMessage)
+			message = message.WithAnnotation(monitorapi.AnnotationPathological, "true")
+			intervalBuilder = intervalBuilder.Display()
 		}
 
-		condition.Message = updatedMessage
-		if isInteresting || isPathological {
-
-			// Remove the "(n times)" portion of the message, and get the first 10 characters of the hash of the message
-			// so we can add it to the locator. This incorporates the message into the locator without the resulting
-			// string being too much longer and makes it so that the spyglass chart shows locators that incorporate the message.
-			removeNTimes := regexp.MustCompile(`\s+\(\d+ times\)`)
-			newMessage := removeNTimes.ReplaceAllString(condition.Message, "")
-
-			hash := sha256.Sum256([]byte(newMessage))
-			hashStr := fmt.Sprintf("%x", hash)[:10]
-
-			condition.Locator = fmt.Sprintf("%s hmsg/%s", condition.Locator, hashStr)
-		}
-
-		fmt.Printf("processed event: %+v\nresulting new interval: %s from: %s to %s\n", *obj, message, pathoFrom, to)
-
-		// Add the interval.
-		inter := recorder.StartInterval(pathoFrom, condition)
-		recorder.EndInterval(inter, to)
-
-	} else if strings.Contains(condition.Message, "pod sandbox") {
-		// gross hack until we port these to structured intervals. serialize.go EventsIntervalsToJSON will filter out
-		// any intervals where from == to, which kube events normally do other than interesting/pathological above,
-		// which is only applied to things with a count. to get pod sandbox intervals charted we have to get a little creative.
-		// structured intervals should come here soon.
-
-		// fake interesting flag
-		updatedMessage := fmt.Sprintf("%s %s", pathologicaleventlibrary.InterestingMark, condition.Message)
-		condition.Message = updatedMessage
-		// make sure we add 1 second to the to timestamp so it doesn't get filtered
-		inter := recorder.StartInterval(pathoFrom, condition)
-		recorder.EndInterval(inter, to)
-	} else {
-		recorder.RecordAt(t, condition)
+		// serialize.go EventsIntervalsToJSON filters out any with from == to, so we add a second here to
+		// allow these to be charted.
+		to = pathoFrom.Add(1 * time.Second)
+	} else if isInteresting {
+		message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
+		intervalBuilder = intervalBuilder.Display()
+		// make sure we add 1 second to the to timestamp so it doesn't get filtered out when creating the spyglass html
+		to = pathoFrom.Add(1 * time.Second)
 	}
+
+	interval := intervalBuilder.Locator(locator).
+		Message(message).Build(pathoFrom, to)
+
+	logrus.WithField("event", *obj).Info("processed event")
+	logrus.WithField("locator", interval.StructuredLocator).Info("resulting interval locator")
+	logrus.WithField("message", interval.StructuredMessage).Info("resulting interval message")
+
+	recorder.AddIntervals(interval)
 }
 
 func eventForContainer(fieldPath string) (string, bool) {
@@ -295,31 +240,6 @@ func eventForContainer(fieldPath string) (string, bool) {
 		return strings.TrimPrefix(fieldPath, "spec.initContainers{"), true
 	default:
 		return "", false
-	}
-}
-
-// TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
-func locateEvent(event *corev1.Event) string {
-	switch {
-	case event.InvolvedObject.Kind == "Namespace":
-		// namespace better match the event itself.
-		return monitorapi.NewLocator().LocateNamespace(event.InvolvedObject.Name).OldLocator()
-
-	case event.InvolvedObject.Kind == "Node":
-		return monitorapi.NewLocator().NodeFromName(event.InvolvedObject.Name).OldLocator()
-
-	case len(event.InvolvedObject.Namespace) == 0:
-		if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
-			return fmt.Sprintf("%s/%s node/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
-		}
-		return fmt.Sprintf("%s/%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
-
-	default:
-		// involved object is namespaced
-		if len(event.Source.Host) > 0 && event.Source.Component == "kubelet" {
-			return fmt.Sprintf("ns/%s %s/%s node/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.Source.Host)
-		}
-		return fmt.Sprintf("ns/%s %s/%s", event.InvolvedObject.Namespace, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name)
 	}
 }
 
