@@ -1,4 +1,4 @@
-package generate_owners
+package metadata
 
 import (
 	"bytes"
