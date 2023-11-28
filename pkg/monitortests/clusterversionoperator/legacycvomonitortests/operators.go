@@ -167,10 +167,6 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				}
 			}
 
-			if len(fatal) == 0 && len(excepted) == 0 {
-				continue // nothing to complain about
-			}
-
 			output := fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run", len(fatal))
 			if len(fatal) > 0 {
 				output = fmt.Sprintf("%s.  These did not match any known exceptions, so they cause this test-case to fail:\n\n%v\n", output, strings.Join(fatal, "\n"))
@@ -184,17 +180,19 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				output = fmt.Sprintf("%s, as desired.", output)
 			}
 
-			ret = append(ret, &junitapi.JUnitTestCase{
-				Name:      testName,
-				Duration:  duration,
-				SystemOut: output,
-				FailureOutput: &junitapi.FailureOutput{
-					Output: output,
-				},
-			})
+			if len(fatal) > 0 || len(excepted) > 0 {
+				ret = append(ret, &junitapi.JUnitTestCase{
+					Name:      testName,
+					Duration:  duration,
+					SystemOut: output,
+					FailureOutput: &junitapi.FailureOutput{
+						Output: output,
+					},
+				})
+			}
 
 			if len(fatal) == 0 {
-				// add a success so we flake and don't fail
+				// add a success so we flake (or pass) and don't fail
 				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
 			}
 		}
