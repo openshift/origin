@@ -72,7 +72,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 				return "https://issues.redhat.com/browse/OCPBUGS-22364", nil
 			}
 		case "monitoring":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "UpdatingPrometheusK8SFailed" {
+			if condition.Type == configv1.OperatorAvailable && (condition.Status == configv1.ConditionFalse && (condition.Reason == "PlatformTasksFailed" || condition.Reason == "UpdatingAlertmanagerFailed" || condition.Reason == "UpdatingConsolePluginComponentsFailed" || condition.Reason == "UpdatingPrometheusK8SFailed" || condition.Reason == "UpdatingPrometheusOperatorFailed")) || (condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23745", nil
 			}
 		case "openshift-apiserver":
