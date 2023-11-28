@@ -59,6 +59,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
 			}
+		case "console":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "RouteHealth_FailedGet" || condition.Reason == "RouteHealth_RouteNotAdmitted" || condition.Reason == "RouteHealth_StatusError") {
+				return "https://issues.redhat.com/browse/OCPBUGS-24041", nil
+			}
 		case "control-plane-machine-set":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "UnavailableReplicas" {
 				return "https://issues.redhat.com/browse/OCPBUGS-20061", nil
