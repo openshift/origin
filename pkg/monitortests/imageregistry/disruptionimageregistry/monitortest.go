@@ -12,14 +12,15 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/openshift/origin/test/extended/util/imageregistryutil"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util/imageregistryutil"
 )
 
 const (
@@ -51,6 +52,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	var err error
 
 	namespace := "openshift-image-registry"
+	imageRegistryDeploymentName := "image-registry"
 
 	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
@@ -64,6 +66,15 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	}
 	if err != nil {
 		return err
+	}
+
+	deployment, err := w.kubeClient.AppsV1().Deployments(namespace).Get(ctx, imageRegistryDeploymentName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 1 {
+		w.notSupportedReason = "image-registry only has a single replica"
+		return nil
 	}
 
 	w.routeClient, err = routeclient.NewForConfig(adminRESTConfig)
