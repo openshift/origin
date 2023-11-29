@@ -34,7 +34,7 @@ type availability struct {
 	imageRegistryRoute *routev1.Route
 
 	disruptionChecker  *disruptionlibrary.Availability
-	notSupportedReason string
+	notSupportedReason *monitortestframework.NotSupportedError
 	suppressJunit      bool
 }
 
@@ -61,8 +61,8 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 
 	_, err = w.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		w.notSupportedReason = "namespace openshift-image-registry not present"
-		return nil
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "namespace openshift-image-registry not present"}
+		return w.notSupportedReason
 	}
 	if err != nil {
 		return err
@@ -73,8 +73,8 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 	if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 1 {
-		w.notSupportedReason = "image-registry only has a single replica"
-		return nil
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "image-registry only has a single replica"}
+		return w.notSupportedReason
 	}
 
 	w.routeClient, err = routeclient.NewForConfig(adminRESTConfig)
@@ -115,8 +115,8 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 }
 
 func (w *availability) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	if len(w.notSupportedReason) > 0 {
-		return nil, nil, nil
+	if w.notSupportedReason != nil {
+		return nil, nil, w.notSupportedReason
 	}
 	// we failed and indicated it during setup.
 	if w.disruptionChecker == nil {
@@ -131,8 +131,8 @@ func (*availability) ConstructComputedIntervals(ctx context.Context, startingInt
 }
 
 func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	if len(w.notSupportedReason) > 0 {
-		return nil, nil
+	if w.notSupportedReason != nil {
+		return nil, w.notSupportedReason
 	}
 	if w.suppressJunit {
 		return nil, nil
@@ -145,8 +145,8 @@ func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 	return w.disruptionChecker.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
 }
 
-func (*availability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return nil
+func (w *availability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	return w.notSupportedReason
 }
 
 func (w *availability) Cleanup(ctx context.Context) error {
@@ -157,5 +157,5 @@ func (w *availability) Cleanup(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	return w.notSupportedReason
 }

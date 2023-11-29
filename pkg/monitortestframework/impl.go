@@ -2,6 +2,7 @@ package monitortestframework
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -94,6 +95,17 @@ func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConf
 			end := time.Now()
 			duration := end.Sub(start)
 			if err != nil {
+				var nsErr *NotSupportedError
+				if errors.As(err, &nsErr) {
+					junitCh <- &junitapi.JUnitTestCase{
+						Name:     testName,
+						Duration: duration.Seconds(),
+						SkipMessage: &junitapi.SkipMessage{
+							Message: nsErr.Reason,
+						},
+					}
+					return
+				}
 				errCh <- err
 				junitCh <- &junitapi.JUnitTestCase{
 					Name:     testName,
@@ -149,6 +161,19 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 			end := time.Now()
 			duration := end.Sub(start)
 			if err != nil {
+				var nsErr *NotSupportedError
+				if errors.As(err, &nsErr) {
+					junitCh <- []*junitapi.JUnitTestCase{
+						{
+							Name:     testName,
+							Duration: duration.Seconds(),
+							SkipMessage: &junitapi.SkipMessage{
+								Message: nsErr.Reason,
+							},
+						},
+					}
+					return
+				}
 				junitCh <- []*junitapi.JUnitTestCase{
 					{
 						Name:     testName,
@@ -206,6 +231,18 @@ func (r *monitorTestRegistry) ConstructComputedIntervals(ctx context.Context, st
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
+			var nsErr *NotSupportedError
+			if errors.As(err, &nsErr) {
+				junits = append(junits, &junitapi.JUnitTestCase{
+					Name:     testName,
+					Duration: duration.Seconds(),
+					SkipMessage: &junitapi.SkipMessage{
+						Message: nsErr.Reason,
+					},
+				})
+				continue
+			}
+
 			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
@@ -240,6 +277,18 @@ func (r *monitorTestRegistry) EvaluateTestsFromConstructedIntervals(ctx context.
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
+			var nsErr *NotSupportedError
+			if errors.As(err, &nsErr) {
+				junits = append(junits, &junitapi.JUnitTestCase{
+					Name:     testName,
+					Duration: duration.Seconds(),
+					SkipMessage: &junitapi.SkipMessage{
+						Message: nsErr.Reason,
+					},
+				})
+				continue
+			}
+
 			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
@@ -282,6 +331,18 @@ func (r *monitorTestRegistry) WriteContentToStorage(ctx context.Context, storage
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
+			var nsErr *NotSupportedError
+			if errors.As(err, &nsErr) {
+				junits = append(junits, &junitapi.JUnitTestCase{
+					Name:     testName,
+					Duration: duration.Seconds(),
+					SkipMessage: &junitapi.SkipMessage{
+						Message: nsErr.Reason,
+					},
+				})
+				continue
+			}
+
 			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
@@ -315,6 +376,18 @@ func (r *monitorTestRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTes
 		end := time.Now()
 		duration := end.Sub(start)
 		if err != nil {
+			var nsErr *NotSupportedError
+			if errors.As(err, &nsErr) {
+				junits = append(junits, &junitapi.JUnitTestCase{
+					Name:     testName,
+					Duration: duration.Seconds(),
+					SkipMessage: &junitapi.SkipMessage{
+						Message: nsErr.Reason,
+					},
+				})
+				continue
+			}
+
 			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,
