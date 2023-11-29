@@ -16,12 +16,6 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
-	"github.com/openshift/origin/pkg/monitor/backenddisruption"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	exutil "github.com/openshift/origin/test/extended/util"
-	"github.com/openshift/origin/test/extended/util/image"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -30,6 +24,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework/service"
 	k8simage "k8s.io/kubernetes/test/utils/image"
+
+	"github.com/openshift/origin/pkg/monitor/backenddisruption"
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var (
@@ -52,7 +53,7 @@ func init() {
 
 type availability struct {
 	namespaceName      string
-	notSupportedReason string
+	notSupportedReason *monitortestframework.NotSupportedError
 	kubeClient         kubernetes.Interface
 
 	disruptionChecker *disruptionlibrary.Availability
@@ -81,8 +82,8 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
 	}
 	if isMicroShift {
-		w.notSupportedReason = "platform MicroShift not supported"
-		return nil
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "platform MicroShift not supported"}
+		return w.notSupportedReason
 	}
 
 	configClient, err := configclient.NewForConfig(adminRESTConfig)
@@ -104,21 +105,27 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.OpenStackPlatformType ||
 		infra.Status.PlatformStatus.Type == configv1.NonePlatformType {
-		w.notSupportedReason = fmt.Sprintf("platform %q is not supported", infra.Status.PlatformStatus.Type)
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: fmt.Sprintf("platform %q is not supported", infra.Status.PlatformStatus.Type),
+		}
 	}
 	// single node clusters are not supported because the replication controller has 2 replicas with anti-affinity for running on the same node.
 	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
-		w.notSupportedReason = fmt.Sprintf("topology %q is not supported", infra.Status.ControlPlaneTopology)
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: fmt.Sprintf("topology %q is not supported", infra.Status.ControlPlaneTopology),
+		}
 	}
 	nodeList, err := w.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	if len(nodeList.Items) < 2 {
-		w.notSupportedReason = fmt.Sprintf("insufficient nodes for service load balancers")
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: fmt.Sprintf("insufficient nodes for service load balancers"),
+		}
 	}
-	if len(w.notSupportedReason) > 0 {
-		return nil
+	if w.notSupportedReason != nil {
+		return w.notSupportedReason
 	}
 
 	actualNamespace, err := w.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, metav1.CreateOptions{})
@@ -231,8 +238,8 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 }
 
 func (w *availability) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	if len(w.notSupportedReason) > 0 {
-		return nil, nil, nil
+	if w.notSupportedReason != nil {
+		return nil, nil, w.notSupportedReason
 	}
 	// we failed and indicated it during setup.
 	if w.disruptionChecker == nil {
@@ -242,13 +249,13 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 	return w.disruptionChecker.CollectData(ctx)
 }
 
-func (*availability) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+func (w *availability) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	return nil, w.notSupportedReason
 }
 
 func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	if len(w.notSupportedReason) > 0 {
-		return nil, nil
+	if w.notSupportedReason != nil {
+		return nil, w.notSupportedReason
 	}
 	if w.suppressJunit {
 		return nil, nil
@@ -261,8 +268,8 @@ func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 	return w.disruptionChecker.EvaluateTestsFromConstructedIntervals(ctx, finalIntervals)
 }
 
-func (*availability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return nil
+func (w *availability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	return w.notSupportedReason
 }
 
 func (w *availability) Cleanup(ctx context.Context) error {

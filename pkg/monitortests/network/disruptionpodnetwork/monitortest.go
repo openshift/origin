@@ -13,11 +13,6 @@ import (
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/openshift/origin/test/extended/util/image"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -31,6 +26,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var (
@@ -77,7 +78,7 @@ func init() {
 
 type podNetworkAvalibility struct {
 	payloadImagePullSpec string
-	notSupportedReason   string
+	notSupportedReason   *monitortestframework.NotSupportedError
 	namespaceName        string
 	targetService        *corev1.Service
 	kubeClient           kubernetes.Interface
@@ -97,8 +98,8 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		}
 		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
-			pna.notSupportedReason = "clusterversion/version not found and no image pull spec specified."
-			return nil
+			pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "clusterversion/version not found and no image pull spec specified."}
+			return pna.notSupportedReason
 		}
 		if err != nil {
 			return err
@@ -113,8 +114,8 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	if err := cmd.Run(); err != nil {
-		pna.notSupportedReason = fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
-		return nil
+		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())}
+		return pna.notSupportedReason
 	}
 	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
 	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
@@ -235,15 +236,8 @@ func (pna *podNetworkAvalibility) serviceHasEndpoints(ctx context.Context) (bool
 }
 
 func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	if len(pna.notSupportedReason) > 0 {
-		return nil, []*junitapi.JUnitTestCase{
-			{
-				Name: "[sig-network] can collect pod-to-pod network disruption",
-				SkipMessage: &junitapi.SkipMessage{
-					Message: pna.notSupportedReason,
-				},
-			},
-		}, nil
+	if pna.notSupportedReason != nil {
+		return nil, nil, pna.notSupportedReason
 	}
 
 	// create the stop collecting configmap and wait for 30s to thing to have stopped.  the 30s is just a guess
@@ -351,15 +345,15 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 }
 
 func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
-	return nil, nil
+	return nil, pna.notSupportedReason
 }
 
 func (pna *podNetworkAvalibility) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+	return nil, pna.notSupportedReason
 }
 
 func (pna *podNetworkAvalibility) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return nil
+	return pna.notSupportedReason
 }
 
 func (pna *podNetworkAvalibility) Cleanup(ctx context.Context) error {
