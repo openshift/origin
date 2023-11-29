@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/openshift/api/annotations"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphanalysis"
@@ -84,7 +86,12 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient,
 			certgraphanalysis.SkipRevisioned,
 			certgraphanalysis.ElideProxyCADetails,
-			certgraphanalysis.RewriteNodeIPs(masters))
+			certgraphanalysis.RewriteNodeIPs(masters),
+			certgraphanalysis.CollectAnnotations(
+				annotations.OpenShiftComponent,
+				annotations.OpenShiftDescription,
+			),
+		)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		jsonBytes, err := json.MarshalIndent(currentPKIContent, "", "  ")
