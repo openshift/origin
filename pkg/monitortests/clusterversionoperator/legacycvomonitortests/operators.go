@@ -56,7 +56,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 
 		switch operator {
 		case "authentication":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
 			}
 		case "console":
