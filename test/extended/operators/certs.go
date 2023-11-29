@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
 	"github.com/openshift/origin/pkg/certs"
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/metadata"
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadata"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -160,7 +160,7 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 		}
 	})
 
-	for _, r := range metadata.All {
+	for _, r := range tlsmetadata.All {
 		testName := fmt.Sprintf("all registered tls artifacts must have expected %s annotation", r.GetName())
 		g.It(testName, func() {
 			messages := []string{}
@@ -188,7 +188,7 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 			}
 			if len(messages) > 0 {
 				// Fail if required, flake if not required
-				if slices.Contains(metadata.Required, r.GetName()) {
+				if slices.Contains(tlsmetadata.Required, r.GetName()) {
 					g.Fail(strings.Join(messages, "\n"))
 				} else {
 					testresult.Flakef(strings.Join(messages, "\n"))

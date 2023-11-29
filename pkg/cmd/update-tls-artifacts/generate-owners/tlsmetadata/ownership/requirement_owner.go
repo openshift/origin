@@ -1,24 +1,28 @@
-package metadata
+package ownership
 
 import (
 	"fmt"
+
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
+const unknownOwner = "Unknown"
+
 type OwnerRequirement struct {
 	name string
 }
 
-func NewOwnerRequirement() Requirement {
+func NewOwnerRequirement() tlsmetadatainterfaces.Requirement {
 	return OwnerRequirement{
 		name: "owner",
 	}
 }
 
-func (o OwnerRequirement) GetViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error) {
+func (o OwnerRequirement) GetViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (tlsmetadatainterfaces.Violation, error) {
 	o.name = name
 	registry := &certgraphapi.PKIRegistryInfo{}
 
@@ -37,7 +41,7 @@ func (o OwnerRequirement) GetViolation(name string, pkiInfo *certgraphapi.PKIReg
 		}
 	}
 
-	v := Violation{
+	v := tlsmetadatainterfaces.Violation{
 		Name:     name,
 		Registry: registry,
 	}
@@ -80,7 +84,7 @@ func (o OwnerRequirement) GenerateMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo
 		caBundlesByOwner[owner] = append(caBundlesByOwner[owner], curr)
 	}
 
-	md := NewMarkdown("Certificate Ownership")
+	md := tlsmetadatainterfaces.NewMarkdown("Certificate Ownership")
 
 	if len(certsWithoutOwners) > 0 || len(caBundlesWithoutOwners) > 0 {
 		md.Title(2, fmt.Sprintf("Missing Owners (%d)", len(certsWithoutOwners)+len(caBundlesWithoutOwners)))

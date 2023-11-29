@@ -1,12 +1,10 @@
-package metadata
+package tlsmetadatainterfaces
 
 import (
 	"bytes"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
-
-const unknownOwner = "Unknown"
 
 type Requirement interface {
 	GetName() string

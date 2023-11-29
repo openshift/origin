@@ -1,4 +1,4 @@
-package metadata
+package tlsmetadatainterfaces
 
 import (
 	"bytes"

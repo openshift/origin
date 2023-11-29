@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/openshift/origin/pkg/certs"
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/metadata"
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadata"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -22,7 +22,7 @@ func (o *GenerateOwnersOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	violations, err := metadata.GenerateViolationList(result, metadata.All...)
+	violations, err := tlsmetadata.GenerateViolationList(result, tlsmetadata.All...)
 	if err != nil {
 		return err
 	}

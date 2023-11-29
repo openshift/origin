@@ -1,12 +1,14 @@
-package metadata
+package tlsmetadata
 
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
+
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
 
-type ViolationList []Violation
+type ViolationList []tlsmetadatainterfaces.Violation
 
 func (l ViolationList) DiffWithExistingJSON(parentDir string) error {
 	var errCombined error
@@ -46,7 +48,7 @@ func (l ViolationList) WriteMarkdownFiles(dir string) error {
 	return nil
 }
 
-func GenerateViolationList(pkiInfo *certgraphapi.PKIRegistryInfo, reqs ...Requirement) (ViolationList, error) {
+func GenerateViolationList(pkiInfo *certgraphapi.PKIRegistryInfo, reqs ...tlsmetadatainterfaces.Requirement) (ViolationList, error) {
 	result := ViolationList{}
 
 	for _, req := range reqs {

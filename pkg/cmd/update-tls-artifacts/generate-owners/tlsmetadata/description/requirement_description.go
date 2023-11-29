@@ -1,21 +1,29 @@
-package metadata
+package description
 
 import (
 	"fmt"
+
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
 
-type DescriptionRequirement struct{}
+type DescriptionRequirement struct {
+	name string
+}
 
-func NewDescriptionRequirement() Requirement {
-	return OwnerRequirement{
+func NewDescriptionRequirement() tlsmetadatainterfaces.Requirement {
+	return DescriptionRequirement{
 		name: "description",
 	}
 }
 
-func (d DescriptionRequirement) GetViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error) {
+func (d DescriptionRequirement) GetName() string {
+	return d.name
+}
+
+func (d DescriptionRequirement) GetViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (tlsmetadatainterfaces.Violation, error) {
 	registry := &certgraphapi.PKIRegistryInfo{}
 
 	for i := range pkiInfo.CertKeyPairs {
@@ -33,12 +41,12 @@ func (d DescriptionRequirement) GetViolation(name string, pkiInfo *certgraphapi.
 		}
 	}
 
-	v := Violation{
+	v := tlsmetadatainterfaces.Violation{
 		Name:     name,
 		Registry: registry,
 	}
 
-	markdown, err := d.Markdown(registry)
+	markdown, err := d.GenerateMarkdown(registry)
 	if err != nil {
 		return v, err
 	}
@@ -47,7 +55,7 @@ func (d DescriptionRequirement) GetViolation(name string, pkiInfo *certgraphapi.
 	return v, nil
 }
 
-func (d DescriptionRequirement) Markdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
+func (d DescriptionRequirement) GenerateMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
 	certsWithoutDescription := map[string]certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	caBundlesWithoutDescription := map[string]certgraphapi.PKIRegistryInClusterCABundle{}
 
@@ -70,7 +78,7 @@ func (d DescriptionRequirement) Markdown(pkiInfo *certgraphapi.PKIRegistryInfo) 
 		}
 	}
 
-	md := NewMarkdown("Certificate Description")
+	md := tlsmetadatainterfaces.NewMarkdown("Certificate Description")
 	if len(certsWithoutDescription) > 0 || len(caBundlesWithoutDescription) > 0 {
 		md.Title(2, fmt.Sprintf("Missing Description (%d)", len(certsWithoutDescription)+len(caBundlesWithoutDescription)))
 		if len(certsWithoutDescription) > 0 {
@@ -101,14 +109,14 @@ func (d DescriptionRequirement) Markdown(pkiInfo *certgraphapi.PKIRegistryInfo) 
 	return md.Bytes(), nil
 }
 
-func (o DescriptionRequirement) DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) string {
+func (d DescriptionRequirement) DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) string {
 	if diff := cmp.Diff(expected.Description, actual.Description); len(diff) > 0 {
 		return diff
 	}
 	return ""
 }
 
-func (o DescriptionRequirement) DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) string {
+func (d DescriptionRequirement) DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) string {
 	if diff := cmp.Diff(expected.Description, actual.Description); len(diff) > 0 {
 		return diff
 	}
