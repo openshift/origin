@@ -75,6 +75,9 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "MachineConfigControllerFailed" && strings.Contains(condition.Message, "notAfter: Required value") {
 				return "https://issues.redhat.com/browse/OCPBUGS-22364", nil
 			}
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && strings.Contains(condition.Message, "missing HTTP content-type") {
+				return "https://issues.redhat.com/browse/OCPBUGS-24228", nil
+			}
 		case "monitoring":
 			if condition.Type == configv1.OperatorAvailable && (condition.Status == configv1.ConditionFalse && (condition.Reason == "PlatformTasksFailed" || condition.Reason == "UpdatingAlertmanagerFailed" || condition.Reason == "UpdatingConsolePluginComponentsFailed" || condition.Reason == "UpdatingPrometheusK8SFailed" || condition.Reason == "UpdatingPrometheusOperatorFailed")) || (condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23745", nil
