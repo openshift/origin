@@ -3,6 +3,7 @@ package metadata
 import (
 	"fmt"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -145,16 +146,16 @@ func (o OwnerRequirement) GenerateMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo
 	return md.Bytes(), nil
 }
 
-func (o OwnerRequirement) DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) error {
-	if actual.OwningJiraComponent != expected.OwningJiraComponent {
-		return fmt.Errorf("expected JIRA component to be %s, but was %s", expected.OwningJiraComponent, actual.OwningJiraComponent)
+func (o OwnerRequirement) DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) string {
+	if diff := cmp.Diff(expected.OwningJiraComponent, actual.OwningJiraComponent); len(diff) > 0 {
+		return diff
 	}
-	return nil
+	return ""
 }
 
-func (o OwnerRequirement) DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) error {
-	if actual.OwningJiraComponent != expected.OwningJiraComponent {
-		return fmt.Errorf("expected JIRA component to be %s, but was %s", expected.OwningJiraComponent, actual.OwningJiraComponent)
+func (o OwnerRequirement) DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) string {
+	if diff := cmp.Diff(expected.OwningJiraComponent, actual.OwningJiraComponent); len(diff) > 0 {
+		return diff
 	}
-	return nil
+	return ""
 }

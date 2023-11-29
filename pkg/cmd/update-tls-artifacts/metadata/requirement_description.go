@@ -3,6 +3,7 @@ package metadata
 import (
 	"fmt"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
 
@@ -100,16 +101,16 @@ func (d DescriptionRequirement) Markdown(pkiInfo *certgraphapi.PKIRegistryInfo) 
 	return md.Bytes(), nil
 }
 
-func (o DescriptionRequirement) DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) error {
-	if actual.Description != expected.Description {
-		return fmt.Errorf("expected description to be %s, but was %s", expected.Description, actual.Description)
+func (o DescriptionRequirement) DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) string {
+	if diff := cmp.Diff(expected.Description, actual.Description); len(diff) > 0 {
+		return diff
 	}
-	return nil
+	return ""
 }
 
-func (o DescriptionRequirement) DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) error {
-	if actual.OwningJiraComponent != expected.OwningJiraComponent {
-		return fmt.Errorf("expected description to be %s, but was %s", expected.Description, actual.Description)
+func (o DescriptionRequirement) DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) string {
+	if diff := cmp.Diff(expected.Description, actual.Description); len(diff) > 0 {
+		return diff
 	}
-	return nil
+	return ""
 }

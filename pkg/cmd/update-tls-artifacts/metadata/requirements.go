@@ -1,6 +1,6 @@
 package metadata
 
 var (
-	Required = []Requirement{NewOwnerRequirement()}
+	Required = []string{"owner"}
 	All      = []Requirement{NewOwnerRequirement(), NewDescriptionRequirement()}
 )

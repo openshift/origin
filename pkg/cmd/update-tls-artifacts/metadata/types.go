@@ -12,8 +12,8 @@ type Requirement interface {
 	GetName() string
 	GetViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error)
 	GenerateMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error)
-	DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) error
-	DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) error
+	DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) string
+	DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) string
 }
 
 type Violation struct {
