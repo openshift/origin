@@ -7,7 +7,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func newOwnerViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error) {
+type OwnerRequirement struct {
+	name string
+}
+
+func NewOwnerRequirement() Requirement {
+	return OwnerRequirement{
+		name: "owner",
+	}
+}
+
+func (o OwnerRequirement) GetViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error) {
+	o.name = name
 	registry := &certgraphapi.PKIRegistryInfo{}
 
 	for i := range pkiInfo.CertKeyPairs {
@@ -30,7 +41,7 @@ func newOwnerViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Viol
 		Registry: registry,
 	}
 
-	markdown, err := generateMarkdownNoOwner(pkiInfo)
+	markdown, err := o.GenerateMarkdown(pkiInfo)
 	if err != nil {
 		return v, err
 	}
@@ -39,8 +50,11 @@ func newOwnerViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Viol
 	return v, nil
 }
 
-func generateMarkdownNoOwner(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
-	const unknownOwner = "Unknown"
+func (o OwnerRequirement) GetName() string {
+	return o.name
+}
+
+func (o OwnerRequirement) GenerateMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
 	certsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	certsWithoutOwners := []certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	caBundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
@@ -131,14 +145,14 @@ func generateMarkdownNoOwner(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, err
 	return md.Bytes(), nil
 }
 
-func diffCertKeyPairOwners(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) error {
+func (o OwnerRequirement) DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) error {
 	if actual.OwningJiraComponent != expected.OwningJiraComponent {
 		return fmt.Errorf("expected JIRA component to be %s, but was %s", expected.OwningJiraComponent, actual.OwningJiraComponent)
 	}
 	return nil
 }
 
-func diffCABundleOwners(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) error {
+func (o OwnerRequirement) DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) error {
 	if actual.OwningJiraComponent != expected.OwningJiraComponent {
 		return fmt.Errorf("expected JIRA component to be %s, but was %s", expected.OwningJiraComponent, actual.OwningJiraComponent)
 	}

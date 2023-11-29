@@ -6,16 +6,6 @@ import (
 	"strings"
 )
 
-type Markdown struct {
-	title           string
-	tableOfContents *bytes.Buffer
-	body            *bytes.Buffer
-
-	orderedListDepth      int
-	orderedListItemStart  bool
-	orderedListItemNumber []int
-}
-
 func NewMarkdown(topTitle string) *Markdown {
 	return &Markdown{
 		title:                 topTitle,

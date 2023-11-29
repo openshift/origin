@@ -6,7 +6,15 @@ import (
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
 
-func newDescriptionViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error) {
+type DescriptionRequirement struct{}
+
+func NewDescriptionRequirement() Requirement {
+	return OwnerRequirement{
+		name: "description",
+	}
+}
+
+func (d DescriptionRequirement) GetViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error) {
 	registry := &certgraphapi.PKIRegistryInfo{}
 
 	for i := range pkiInfo.CertKeyPairs {
@@ -29,7 +37,7 @@ func newDescriptionViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo)
 		Registry: registry,
 	}
 
-	markdown, err := generateMarkdownNoDescription(registry)
+	markdown, err := d.Markdown(registry)
 	if err != nil {
 		return v, err
 	}
@@ -38,7 +46,7 @@ func newDescriptionViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo)
 	return v, nil
 }
 
-func generateMarkdownNoDescription(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
+func (d DescriptionRequirement) Markdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
 	certsWithoutDescription := map[string]certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	caBundlesWithoutDescription := map[string]certgraphapi.PKIRegistryInClusterCABundle{}
 
@@ -92,14 +100,14 @@ func generateMarkdownNoDescription(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byt
 	return md.Bytes(), nil
 }
 
-func diffCertKeyPairDescription(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) error {
+func (o DescriptionRequirement) DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) error {
 	if actual.Description != expected.Description {
 		return fmt.Errorf("expected description to be %s, but was %s", expected.Description, actual.Description)
 	}
 	return nil
 }
 
-func diffCABundleDescription(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) error {
+func (o DescriptionRequirement) DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) error {
 	if actual.OwningJiraComponent != expected.OwningJiraComponent {
 		return fmt.Errorf("expected description to be %s, but was %s", expected.Description, actual.Description)
 	}

@@ -7,16 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
-
-const unknownOwner = "Unknown"
-
-type Violation struct {
-	Name     string
-	Markdown []byte
-	Registry *certgraphapi.PKIRegistryInfo
-}
 
 func (v Violation) getJSONFilePath(parentDir string) string {
 	return filepath.Join(parentDir, fmt.Sprintf("%s-violations.json", v.Name))
@@ -68,5 +59,3 @@ func (v Violation) WriteJSONFile(parentDir string) error {
 func (v Violation) WriteMarkdownFile(parentDir string) error {
 	return os.WriteFile(v.getMarkdownFilePath(parentDir), v.Markdown, 0644)
 }
-
-type ViolationFunc func(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error)

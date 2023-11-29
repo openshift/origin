@@ -50,7 +50,7 @@ func GenerateViolationList(pkiInfo *certgraphapi.PKIRegistryInfo, reqs ...Requir
 	result := ViolationList{}
 
 	for _, req := range reqs {
-		violation, err := req.NewViolation(req.Name, pkiInfo)
+		violation, err := req.GetViolation(req.GetName(), pkiInfo)
 		if err != nil {
 			return result, fmt.Errorf("%s: %v", violation.Name, err)
 		}
