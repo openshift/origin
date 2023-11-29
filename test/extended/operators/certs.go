@@ -8,9 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	ensure_no_violation_regression "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/ensure-no-violation-regression"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/openshift/api/annotations"
 
-	"github.com/google/go-cmp/cmp"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphanalysis"
@@ -134,7 +136,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		}
 	})
 
-	g.It("all registered tls artifacts must have expected owners", func() {
+	g.It("all registered tls artifacts must have no metadata violation regressions", func() {
 
 		ctx := context.Background()
 		kubeClient := oc.AdminKubeClient()
@@ -153,32 +155,10 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		actualPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		expectedPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIOwnership)
+		violationRegressionOptions := ensure_no_violation_regression.NewEnsureNoViolationRegressionOptions(ownership.AllViolations, genericclioptions.NewTestIOStreamsDiscard())
+		messages, _, err := violationRegressionOptions.HaveViolationsRegressed([]*certgraphapi.PKIList{actualPKIContent})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		messages := []string{}
-
-		for _, currCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
-			currLocation := currCertKeyPair.SecretLocation
-			expectedSecret, err := certgraphutils.LocateCertKeyPair(currLocation, expectedPKIContent.CertKeyPairs)
-			if err != nil {
-				continue
-			}
-			if diff := cmp.Diff(expectedSecret.CertKeyInfo.OwningJiraComponent, currCertKeyPair.CertKeyInfo.OwningJiraComponent); len(diff) > 0 {
-				messages = append(messages, fmt.Sprintf("--namespace=%s, secret/%s:\n%v\n", currLocation.Namespace, currLocation.Name, diff))
-			}
-		}
-
-		for _, currCABundle := range actualPKIContent.InClusterResourceData.CertificateAuthorityBundles {
-			currLocation := currCABundle.ConfigMapLocation
-			expectedCABundle, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, expectedPKIContent.CertificateAuthorityBundles)
-			if err != nil {
-				continue
-			}
-			if diff := cmp.Diff(expectedCABundle.CABundleInfo.OwningJiraComponent, currCABundle.CABundleInfo.OwningJiraComponent); len(diff) > 0 {
-				messages = append(messages, fmt.Sprintf("--namespace=%s, configmap/%s:\n%v\n", currLocation.Namespace, currLocation.Name, diff))
-			}
-		}
 		if len(messages) > 0 {
 			// TODO: uncomment when test no longer fails and enhancement is merged
 			//g.Fail(strings.Join(messages, "\n"))

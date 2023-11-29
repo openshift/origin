@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-type simpleRequirementsResult struct {
+type SimpleRequirementsResult struct {
 	name string
 
 	statusJSON     []byte
@@ -16,7 +16,7 @@ type simpleRequirementsResult struct {
 	violationJSON  []byte
 }
 
-func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON []byte) (RequirementResult, error) {
+func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON []byte) (*SimpleRequirementsResult, error) {
 	if len(name) == 0 {
 		return nil, fmt.Errorf("missing name for result")
 	}
@@ -30,7 +30,7 @@ func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON
 		return nil, fmt.Errorf("result for %v missing statusJSON", name)
 	}
 
-	return &simpleRequirementsResult{
+	return &SimpleRequirementsResult{
 		name:           name,
 		statusJSON:     statusJSON,
 		statusMarkdown: statusMarkdown,
@@ -38,7 +38,7 @@ func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON
 	}, nil
 }
 
-func (s simpleRequirementsResult) WriteResultToTLSDir(tlsDir string) error {
+func (s SimpleRequirementsResult) WriteResultToTLSDir(tlsDir string) error {
 	if err := os.WriteFile(s.jsonFilename(tlsDir), s.statusJSON, 0644); err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (s simpleRequirementsResult) WriteResultToTLSDir(tlsDir string) error {
 	return nil
 }
 
-func (s simpleRequirementsResult) DiffExistingContent(tlsDir string) (string, bool, error) {
+func (s SimpleRequirementsResult) DiffExistingContent(tlsDir string) (string, bool, error) {
 	existingStatusJSONBytes, err := os.ReadFile(s.jsonFilename(tlsDir))
 	switch {
 	case os.IsNotExist(err): // do nothing
@@ -87,18 +87,18 @@ func (s simpleRequirementsResult) DiffExistingContent(tlsDir string) (string, bo
 	return "", true, nil
 }
 
-func (s simpleRequirementsResult) jsonFilename(tlsDir string) string {
+func (s SimpleRequirementsResult) jsonFilename(tlsDir string) string {
 	return filepath.Join(tlsDir, s.GetName(), fmt.Sprintf("%s.json", s.GetName()))
 }
 
-func (s simpleRequirementsResult) markdownFilename(tlsDir string) string {
+func (s SimpleRequirementsResult) markdownFilename(tlsDir string) string {
 	return filepath.Join(tlsDir, s.GetName(), fmt.Sprintf("%s.md", s.GetName()))
 }
 
-func (s simpleRequirementsResult) violationsFilename(tlsDir string) string {
+func (s SimpleRequirementsResult) violationsFilename(tlsDir string) string {
 	return filepath.Join(tlsDir, "violations", s.GetName(), fmt.Sprintf("%s-violations.json", s.GetName()))
 }
 
-func (s simpleRequirementsResult) GetName() string {
+func (s SimpleRequirementsResult) GetName() string {
 	return s.name
 }

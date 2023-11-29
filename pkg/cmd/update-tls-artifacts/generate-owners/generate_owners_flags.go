@@ -3,8 +3,7 @@ package generate_owners
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadata/ownership"
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatadefaults"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -68,11 +67,9 @@ func (f *GenerateOwnersFlags) Validate() error {
 
 func (f *GenerateOwnersFlags) ToOptions() (*GenerateOwnersOptions, error) {
 	return &GenerateOwnersOptions{
-		TLSInfoDir: f.TLSInfoDir,
-		Verify:     f.Verify,
-		Requirements: []tlsmetadatainterfaces.Requirement{
-			ownership.NewOwnerRequirement(),
-		},
+		TLSInfoDir:   f.TLSInfoDir,
+		Verify:       f.Verify,
+		Requirements: tlsmetadatadefaults.GetDefaultTLSRequirements(),
 
 		IOStreams: f.IOStreams,
 	}, nil

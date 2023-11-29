@@ -1,6 +1,8 @@
 package tlsmetadatainterfaces
 
 import (
+	"embed"
+
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
 
@@ -28,4 +30,12 @@ type RequirementResult interface {
 	//   bool that is true when content matches and false when content does not match
 	//   error which non-nil ONLY when the comparison itself could not complete.  A completed diff that is non-zero is not an error
 	DiffExistingContent(tlsDir string) (string, bool, error)
+
+	// HaveViolationsRegressed compares the violations of the result with was passed in and returns
+	// allViolationsFS is the tls/violations/<GetName> directory
+	// returns
+	//   string representation to display to user (ideally a diff of what is worse)
+	//   bool that is true when no regressions have been introduced and false when content has gotten worse
+	//   error which non-nil ONLY when the comparison itself could not complete.  A completed check that is non-zero is not an error
+	HaveViolationsRegressed(allViolationsFS embed.FS) ([]string, bool, error)
 }

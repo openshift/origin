@@ -42,7 +42,7 @@ func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (t
 		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
 	}
 
-	return tlsmetadatainterfaces.NewRequirementResult(
+	return newRequirementResult(
 		o.GetName(),
 		ownershipJSONBytes,
 		markdown,
