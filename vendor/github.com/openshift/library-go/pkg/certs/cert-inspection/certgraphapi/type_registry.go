@@ -20,7 +20,7 @@ type PKIRegistryInClusterCertKeyPair struct {
 type PKIRegistryCertKeyPairInfo struct {
 	// WhitelistedAnnotations is a specified subset of annotations. NOT all annotations.
 	// The caller will specify which annotations he wants.
-	WhitelistedAnnotations []AnnotationValue
+	WhitelistedAnnotations []AnnotationValue  `json:"whitelistedAnnotations,omitempty"`
 
 	// OwningJiraComponent is a component name when a new OCP issue is filed in Jira
 	// Deprecated
