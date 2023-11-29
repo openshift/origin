@@ -28,6 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+// TODO move to openshift/api
+const AutoRegenerateAfterExpiryAnnotation = "certificates.openshift.io/auto-regenerate-after-offline-expiry"
+
 var _ = g.Describe("[sig-arch][Late]", func() {
 	defer g.GinkgoRecover()
 
@@ -59,6 +62,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			certgraphanalysis.CollectAnnotations(
 				annotations.OpenShiftComponent,
 				annotations.OpenShiftDescription,
+				AutoRegenerateAfterExpiryAnnotation,
 			),
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
