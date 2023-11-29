@@ -80,7 +80,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 				return "https://issues.redhat.com/browse/OCPBUGS-23745", nil
 			}
 		case "openshift-apiserver":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "APIServices_Error" {
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_Error") {
 				return "https://issues.redhat.com/browse/OCPBUGS-23746", nil
 			}
 		case "operator-lifecycle-manager-packageserver":
