@@ -169,7 +169,7 @@
           "Name": "kubelet-serving-ca"
         },
         "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "kube-controller-manager",
+          "owningJiraComponent": "",
           "description": ""
         }
       },
@@ -519,7 +519,7 @@
           "Name": "kubelet-serving-ca"
         },
         "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "kube-controller-manager",
+          "owningJiraComponent": "",
           "description": ""
         }
       },
