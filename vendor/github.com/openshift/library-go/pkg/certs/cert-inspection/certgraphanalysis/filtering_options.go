@@ -10,17 +10,54 @@ type certGenerationOptions interface {
 	approved()
 }
 
+type annotationSpecifier interface {
+	annotationsToCollect() []string
+}
+
+type configMapFilter interface {
+	rejectConfigMap(configMap *corev1.ConfigMap) bool
+}
+
+type secretFilter interface {
+	rejectSecret(secret *corev1.Secret) bool
+}
+
+type caBundleMetadataRewriter interface {
+	rewriteCABundle(metadata metav1.ObjectMeta, caBundle *certgraphapi.CertificateAuthorityBundle)
+}
+
+type certKeypairMetadataRewriter interface {
+	rewriteCertKeyPair(metadata metav1.ObjectMeta, certKeyPair *certgraphapi.CertKeyPair)
+}
+
+type configMapRewriter interface {
+	rewriteConfigMap(configMap *corev1.ConfigMap)
+}
+
+type secretRewriter interface {
+	rewriteSecret(secret *corev1.Secret)
+}
+
 type certGenerationOptionList []certGenerationOptions
 
 // TODO randomize order of traversal in these functions
 
-func (l certGenerationOptionList) rejectConfigMap(configMap *corev1.ConfigMap) bool {
+func (l certGenerationOptionList) annotationsToCollect() []string {
+	ret := []string{}
 	for _, curr := range l {
-		option, ok := curr.(*resourceFilteringOptions)
+		option, ok := curr.(annotationSpecifier)
 		if !ok {
 			continue
 		}
-		if option.rejectConfigMap == nil {
+		ret = append(ret, option.annotationsToCollect()...)
+	}
+	return ret
+}
+
+func (l certGenerationOptionList) rejectConfigMap(configMap *corev1.ConfigMap) bool {
+	for _, curr := range l {
+		option, ok := curr.(configMapFilter)
+		if !ok {
 			continue
 		}
 		if option.rejectConfigMap(configMap) {
@@ -32,11 +69,8 @@ func (l certGenerationOptionList) rejectConfigMap(configMap *corev1.ConfigMap) b
 
 func (l certGenerationOptionList) rejectSecret(secret *corev1.Secret) bool {
 	for _, curr := range l {
-		option, ok := curr.(*resourceFilteringOptions)
+		option, ok := curr.(secretFilter)
 		if !ok {
-			continue
-		}
-		if option.rejectSecret == nil {
 			continue
 		}
 		if option.rejectSecret(secret) {
@@ -48,11 +82,8 @@ func (l certGenerationOptionList) rejectSecret(secret *corev1.Secret) bool {
 
 func (l certGenerationOptionList) rewriteCABundle(metadata metav1.ObjectMeta, caBundle *certgraphapi.CertificateAuthorityBundle) {
 	for _, curr := range l {
-		option, ok := curr.(*metadataOptions)
+		option, ok := curr.(caBundleMetadataRewriter)
 		if !ok {
-			continue
-		}
-		if option.rewriteCABundle == nil {
 			continue
 		}
 		option.rewriteCABundle(metadata, caBundle)
@@ -61,11 +92,8 @@ func (l certGenerationOptionList) rewriteCABundle(metadata metav1.ObjectMeta, ca
 
 func (l certGenerationOptionList) rewriteCertKeyPair(metadata metav1.ObjectMeta, certKeyPair *certgraphapi.CertKeyPair) {
 	for _, curr := range l {
-		option, ok := curr.(*metadataOptions)
+		option, ok := curr.(certKeypairMetadataRewriter)
 		if !ok {
-			continue
-		}
-		if option.rewriteCertKeyPair == nil {
 			continue
 		}
 		option.rewriteCertKeyPair(metadata, certKeyPair)
@@ -74,11 +102,8 @@ func (l certGenerationOptionList) rewriteCertKeyPair(metadata metav1.ObjectMeta,
 
 func (l certGenerationOptionList) rewriteConfigMap(configMap *corev1.ConfigMap) {
 	for _, curr := range l {
-		option, ok := curr.(*metadataOptions)
+		option, ok := curr.(configMapRewriter)
 		if !ok {
-			continue
-		}
-		if option.rewriteConfigMap == nil {
 			continue
 		}
 		option.rewriteConfigMap(configMap)
@@ -87,11 +112,8 @@ func (l certGenerationOptionList) rewriteConfigMap(configMap *corev1.ConfigMap) 
 
 func (l certGenerationOptionList) rewriteSecret(secret *corev1.Secret) {
 	for _, curr := range l {
-		option, ok := curr.(*metadataOptions)
+		option, ok := curr.(secretRewriter)
 		if !ok {
-			continue
-		}
-		if option.rewriteSecret == nil {
 			continue
 		}
 		option.rewriteSecret(secret)

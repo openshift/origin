@@ -2,7 +2,6 @@ package resourceapply
 
 import (
 	"context"
-	"fmt"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -15,12 +14,8 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 )
 
-// ApplyClusterRole merges objectmeta, requires rules, aggregation rules are not allowed for now.
+// ApplyClusterRole merges objectmeta, requires rules.
 func ApplyClusterRole(ctx context.Context, client rbacclientv1.ClusterRolesGetter, recorder events.Recorder, required *rbacv1.ClusterRole) (*rbacv1.ClusterRole, bool, error) {
-	if required.AggregationRule != nil && len(required.AggregationRule.ClusterRoleSelectors) != 0 {
-		return nil, false, fmt.Errorf("cannot create an aggregated cluster role")
-	}
-
 	existing, err := client.ClusterRoles().Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		requiredCopy := required.DeepCopy()
@@ -37,13 +32,23 @@ func ApplyClusterRole(ctx context.Context, client rbacclientv1.ClusterRolesGette
 	existingCopy := existing.DeepCopy()
 
 	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
-	contentSame := equality.Semantic.DeepEqual(existingCopy.Rules, required.Rules)
-	if contentSame && !*modified {
+	rulesContentSame := equality.Semantic.DeepEqual(existingCopy.Rules, required.Rules)
+	aggregationRuleContentSame := equality.Semantic.DeepEqual(existingCopy.AggregationRule, required.AggregationRule)
+
+	if aggregationRuleContentSame && rulesContentSame && !*modified {
 		return existingCopy, false, nil
 	}
 
-	existingCopy.Rules = required.Rules
-	existingCopy.AggregationRule = nil
+	if !aggregationRuleContentSame {
+		existingCopy.AggregationRule = required.AggregationRule
+	}
+
+	// The control plane controller that reconciles ClusterRoles
+	// overwrites any values that are manually specified in the rules field of an aggregate ClusterRole.
+	// As such skip reconciling on the Rules field when the AggregationRule is set.
+	if !rulesContentSame && required.AggregationRule == nil {
+		existingCopy.Rules = required.Rules
+	}
 
 	if klog.V(4).Enabled() {
 		klog.Infof("ClusterRole %q changes: %v", required.Name, JSONPatchNoError(existing, existingCopy))

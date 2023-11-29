@@ -291,6 +291,7 @@ require (
 
 replace (
 	github.com/onsi/ginkgo/v2 => github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20230811135323-13a5964cc98e
+	github.com/openshift/library-go => github.com/deads2k/library-go v0.0.0-20231129195508-a0a9f5066622
 	k8s.io/api => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20230926120034-e3ba6d9fbe72
 	k8s.io/apiextensions-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20230926120034-e3ba6d9fbe72
 	k8s.io/apimachinery => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20230926120034-e3ba6d9fbe72
