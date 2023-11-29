@@ -1,31 +1,31 @@
 package tlsmetadatainterfaces
 
 import (
-	"bytes"
-
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
 
 type Requirement interface {
 	GetName() string
-	GetViolation(name string, pkiInfo *certgraphapi.PKIRegistryInfo) (Violation, error)
-	GenerateMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error)
-	DiffCertKeyPair(actual, expected certgraphapi.PKIRegistryCertKeyPairInfo) string
-	DiffCABundle(actual, expected certgraphapi.PKIRegistryCertificateAuthorityInfo) string
+
+	// InspectRequirement generates and returns the result for a particular set of raw data
+	InspectRequirement(rawData []*certgraphapi.PKIList) (RequirementResult, error)
 }
 
-type Violation struct {
-	Name     string
-	Markdown []byte
-	Registry *certgraphapi.PKIRegistryInfo
-}
+type RequirementResult interface {
+	GetName() string
 
-type Markdown struct {
-	title           string
-	tableOfContents *bytes.Buffer
-	body            *bytes.Buffer
+	// WriteResultToTLSDir writes the content this requirement expects in directory.
+	// tlsDir is the parent directory and must be nested as: <tlsDir>/<GetName()>/<content here>.
+	// The content MUST include
+	// 1. <tlsDir>/<GetName()>/<GetName()>.md
+	// 2. <tlsDir>/<GetName()>/<GetName().json
+	// 3. <tlsDir>/violations/<GetName()>/<GetName()>-violations.json
+	WriteResultToTLSDir(tlsDir string) error
 
-	orderedListDepth      int
-	orderedListItemStart  bool
-	orderedListItemNumber []int
+	// DiffExistingContent compares the content of the result with what currently exists in the tlsDir.
+	// returns
+	//   string representation to display to user (ideally a diff)
+	//   bool that is true when content matches and false when content does not match
+	//   error which non-nil ONLY when the comparison itself could not complete.  A completed diff that is non-zero is not an error
+	DiffExistingContent(tlsDir string) (string, bool, error)
 }
