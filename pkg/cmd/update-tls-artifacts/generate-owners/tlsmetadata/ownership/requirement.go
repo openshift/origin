@@ -11,8 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-const unknownOwner = "Unknown"
-
 type OwnerRequirement struct {
 	name string
 }
@@ -56,14 +54,14 @@ func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
 		owner := curr.CertKeyInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == unknownOwner {
+		if len(owner) == 0 || owner == tlsmetadata.UnknownOwner {
 			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
 		}
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
 		owner := curr.CABundleInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == unknownOwner {
+		if len(owner) == 0 || owner == tlsmetadata.UnknownOwner {
 			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
 		}
 	}
@@ -81,7 +79,7 @@ func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
 		owner := curr.CertKeyInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == unknownOwner {
+		if len(owner) == 0 || owner == tlsmetadata.UnknownOwner {
 			certsWithoutOwners = append(certsWithoutOwners, curr)
 			continue
 		}
@@ -90,7 +88,7 @@ func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
 		owner := curr.CABundleInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == unknownOwner {
+		if len(owner) == 0 || owner == tlsmetadata.UnknownOwner {
 			caBundlesWithoutOwners = append(caBundlesWithoutOwners, curr)
 			continue
 		}

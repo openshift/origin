@@ -11,10 +11,22 @@ import (
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 )
 
+const UnknownOwner = "Unknown"
+
 type requirementsResult struct {
 	delegate *tlsmetadatainterfaces.SimpleRequirementsResult
 
 	violations *certgraphapi.PKIRegistryInfo
+}
+
+func AnnotationValue(whitelistedAnnotations []certgraphapi.AnnotationValue, key string) (string, bool) {
+	for _, curr := range whitelistedAnnotations {
+		if curr.Key == key {
+			return curr.Value, true
+		}
+	}
+
+	return "", false
 }
 
 func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON []byte) (tlsmetadatainterfaces.RequirementResult, error) {

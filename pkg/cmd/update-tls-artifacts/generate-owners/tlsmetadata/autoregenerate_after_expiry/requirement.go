@@ -51,29 +51,19 @@ func (o AutoRegenerateAfterOfflineExpiryRequirement) InspectRequirement(rawData 
 		violationJSONBytes)
 }
 
-func annotationValue(whitelistedAnnotations []certgraphapi.AnnotationValue, key string) (string, bool) {
-	for _, curr := range whitelistedAnnotations {
-		if curr.Key == key {
-			return curr.Value, true
-		}
-	}
-
-	return "", false
-}
-
 func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.PKIRegistryInfo {
 	ret := &certgraphapi.PKIRegistryInfo{}
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		regenerates, _ := annotationValue(curr.CertKeyInfo.WhitelistedAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
+		regenerates, _ := tlsmetadata.AnnotationValue(curr.CertKeyInfo.WhitelistedAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
 		if len(regenerates) == 0 {
 			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
 		}
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		regenerates, _ := annotationValue(curr.CABundleInfo.WhitelistedAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
+		regenerates, _ := tlsmetadata.AnnotationValue(curr.CABundleInfo.WhitelistedAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
 		if len(regenerates) == 0 {
 			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
 		}
@@ -91,7 +81,7 @@ func generateAutoRegenerateAfterOfflineExpiryshipMarkdown(pkiInfo *certgraphapi.
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
 		owner := curr.CertKeyInfo.OwningJiraComponent
-		regenerates, _ := annotationValue(curr.CertKeyInfo.WhitelistedAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
+		regenerates, _ := tlsmetadata.AnnotationValue(curr.CertKeyInfo.WhitelistedAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
 		if len(regenerates) == 0 {
 			violatingCertsByOwner[owner] = append(violatingCertsByOwner[owner], curr)
 			continue
@@ -102,7 +92,7 @@ func generateAutoRegenerateAfterOfflineExpiryshipMarkdown(pkiInfo *certgraphapi.
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
 		owner := curr.CABundleInfo.OwningJiraComponent
-		regenerates, _ := annotationValue(curr.CABundleInfo.WhitelistedAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
+		regenerates, _ := tlsmetadata.AnnotationValue(curr.CABundleInfo.WhitelistedAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
 		if len(regenerates) == 0 {
 			violatingCABundlesByOwner[owner] = append(violatingCABundlesByOwner[owner], curr)
 			continue
