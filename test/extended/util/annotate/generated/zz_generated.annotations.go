@@ -219,9 +219,7 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": " [Serial]",
 
-	"[sig-arch][Late] all registered tls artifacts must have expected description annotation": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-arch][Late] all registered tls artifacts must have expected owner annotation": " [Suite:openshift/conformance/parallel]",
+	"[sig-arch][Late] all registered tls artifacts must have no metadata violation regressions": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Late] all tls artifacts must be registered": " [Suite:openshift/conformance/parallel]",
 

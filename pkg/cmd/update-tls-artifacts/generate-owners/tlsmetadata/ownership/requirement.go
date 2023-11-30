@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadata"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
@@ -42,7 +43,7 @@ func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (t
 		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
 	}
 
-	return newRequirementResult(
+	return tlsmetadata.NewRequirementResult(
 		o.GetName(),
 		ownershipJSONBytes,
 		markdown,

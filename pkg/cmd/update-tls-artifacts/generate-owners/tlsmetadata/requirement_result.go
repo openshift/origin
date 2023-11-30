@@ -1,4 +1,4 @@
-package autoregenerate_after_expiry
+package tlsmetadata
 
 import (
 	"embed"
@@ -17,7 +17,7 @@ type requirementsResult struct {
 	violations *certgraphapi.PKIRegistryInfo
 }
 
-func newRequirementResult(name string, statusJSON, statusMarkdown, violationJSON []byte) (tlsmetadatainterfaces.RequirementResult, error) {
+func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON []byte) (tlsmetadatainterfaces.RequirementResult, error) {
 	delegate, err := tlsmetadatainterfaces.NewRequirementResult(name, statusJSON, statusMarkdown, violationJSON)
 	if err != nil {
 		return nil, err
