@@ -49,7 +49,7 @@ func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON
 
 // TODO this might be generic for "does it have this annotation values"
 func (r requirementsResult) HaveViolationsRegressed(allViolationsFS embed.FS) ([]string, bool, error) {
-	existingViolationJSONBytes, err := allViolationsFS.ReadFile(filepath.Join(r.GetName(), fmt.Sprintf("%s-violations.json", r.GetName())))
+	existingViolationJSONBytes, err := allViolationsFS.ReadFile(filepath.Join("violations", r.GetName(), fmt.Sprintf("%s-violations.json", r.GetName())))
 	if err != nil {
 		return nil, false, fmt.Errorf("error reading existing content for %v: %w", r.GetName(), err)
 	}
