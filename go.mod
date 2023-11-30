@@ -24,11 +24,11 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/onsi/gomega v1.27.6
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20231101131954-24085c95a7a2
+	github.com/openshift/api v0.0.0-20231129134630-a782d1c1541c
 	github.com/openshift/apiserver-library-go v0.0.0-20230915134751-5c71e94d6f05
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/client-go v0.0.0-20230926161409-848405da69e1
-	github.com/openshift/library-go v0.0.0-20231115163822-d5b04e8d5cab
+	github.com/openshift/library-go v0.0.0-20231130165607-2b2819d49e28
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0

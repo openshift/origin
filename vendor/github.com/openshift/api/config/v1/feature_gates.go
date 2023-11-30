@@ -262,6 +262,16 @@ var (
 		OwningProduct:       ocpSpecific,
 	}
 
+	FeatureGateNetworkLiveMigration = FeatureGateName("NetworkLiveMigration")
+	sdnLiveMigration                = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateNetworkLiveMigration,
+		},
+		OwningJiraComponent: "Networking/ovn-kubernetes",
+		ResponsiblePerson:   "pliu",
+		OwningProduct:       ocpSpecific,
+	}
+
 	FeatureGateAutomatedEtcdBackup = FeatureGateName("AutomatedEtcdBackup")
 	automatedEtcdBackup            = FeatureGateDescription{
 		FeatureGateAttributes: FeatureGateAttributes{
@@ -319,6 +329,46 @@ var (
 		},
 		OwningJiraComponent: "Installer",
 		ResponsiblePerson:   "vincepri",
+		OwningProduct:       ocpSpecific,
+	}
+
+	FeatureGateMetricsServer = FeatureGateName("MetricsServer")
+	metricsServer            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateMetricsServer,
+		},
+		OwningJiraComponent: "Monitoring",
+		ResponsiblePerson:   "slashpai",
+		OwningProduct:       ocpSpecific,
+	}
+
+	FeatureGateInstallAlternateInfrastructureAWS = FeatureGateName("InstallAlternateInfrastructureAWS")
+	installAlternateInfrastructureAWS            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateInstallAlternateInfrastructureAWS,
+		},
+		OwningJiraComponent: "Installer",
+		ResponsiblePerson:   "padillon",
+		OwningProduct:       ocpSpecific,
+	}
+
+	FeatureGateGCPClusterHostedDNS = FeatureGateName("GCPClusterHostedDNS")
+	gcpClusterHostedDNS            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateGCPClusterHostedDNS,
+		},
+		OwningJiraComponent: "Installer",
+		ResponsiblePerson:   "barbacbd",
+		OwningProduct:       ocpSpecific,
+	}
+
+	FeatureGateMixedCPUsAllocation = FeatureGateName("MixedCPUsAllocation")
+	mixedCPUsAllocation            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateMixedCPUsAllocation,
+		},
+		OwningJiraComponent: "NodeTuningOperator",
+		ResponsiblePerson:   "titzhak",
 		OwningProduct:       ocpSpecific,
 	}
 )

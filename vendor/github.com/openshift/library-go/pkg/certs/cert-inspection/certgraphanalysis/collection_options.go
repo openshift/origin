@@ -12,30 +12,66 @@ type configMapFilterFunc func(configMap *corev1.ConfigMap) bool
 type secretFilterFunc func(configMap *corev1.Secret) bool
 
 type resourceFilteringOptions struct {
-	rejectConfigMap configMapFilterFunc
-	rejectSecret    secretFilterFunc
+	rejectConfigMapFn configMapFilterFunc
+	rejectSecretFn    secretFilterFunc
 }
 
-func (resourceFilteringOptions) approved() {}
+var (
+	_ configMapFilter = &resourceFilteringOptions{}
+	_ secretFilter    = &resourceFilteringOptions{}
+)
+
+func (*resourceFilteringOptions) approved() {}
+
+func (o *resourceFilteringOptions) rejectConfigMap(configMap *corev1.ConfigMap) bool {
+	if o.rejectConfigMapFn == nil {
+		return false
+	}
+	return o.rejectConfigMapFn(configMap)
+}
+
+func (o *resourceFilteringOptions) rejectSecret(secret *corev1.Secret) bool {
+	if o.rejectSecretFn == nil {
+		return false
+	}
+	return o.rejectSecret(secret)
+}
 
 var (
 	SkipRevisioned = &resourceFilteringOptions{
-		rejectConfigMap: func(configMap *corev1.ConfigMap) bool {
+		rejectConfigMapFn: func(configMap *corev1.ConfigMap) bool {
 			return isRevisioned(configMap.OwnerReferences)
 		},
-		rejectSecret: func(secret *corev1.Secret) bool {
+		rejectSecretFn: func(secret *corev1.Secret) bool {
 			return isRevisioned(secret.OwnerReferences)
 		},
 	}
 	SkipHashed = &resourceFilteringOptions{
-		rejectConfigMap: func(configMap *corev1.ConfigMap) bool {
+		rejectConfigMapFn: func(configMap *corev1.ConfigMap) bool {
 			return hasMonitoringHashLabel(configMap.Labels)
 		},
-		rejectSecret: func(secret *corev1.Secret) bool {
+		rejectSecretFn: func(secret *corev1.Secret) bool {
 			return hasMonitoringHashLabel(secret.Labels)
 		},
 	}
 )
+
+type annotationOptions struct {
+	annotationKeys []string
+}
+
+// CollectAnnotations creates an option that specifies the list of annotation to collect.
+func CollectAnnotations(annotationKeys ...string) *annotationOptions {
+	return &annotationOptions{
+		annotationKeys: annotationKeys,
+	}
+}
+
+func (*annotationOptions) approved() {}
+
+func (o *annotationOptions) annotationsToCollect() []string {
+	return o.annotationKeys
+}
 
 func isRevisioned(ownerReferences []metav1.OwnerReference) bool {
 	for _, curr := range ownerReferences {

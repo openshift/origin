@@ -86,6 +86,14 @@ type NutanixMachineProviderConfig struct {
 	// credentials data to access Nutanix PC client
 	// +kubebuilder:validation:Required
 	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret"`
+
+	// failureDomain refers to the name of the FailureDomain with which this Machine is associated.
+	// If this is configured, the Nutanix machine controller will use the prism_central endpoint
+	// and credentials defined in the referenced FailureDomain to communicate to the prism_central.
+	// It will also verify that the 'cluster' and subnets' configuration in the NutanixMachineProviderConfig
+	// is consistent with that in the referenced failureDomain.
+	// +optional
+	FailureDomain *NutanixFailureDomainReference `json:"failureDomain"`
 }
 
 // NutanixCategory identifies a pair of prism category key and value

@@ -244,12 +244,13 @@ func (ControlPlaneMachineSetTemplateObjectMeta) SwaggerDoc() map[string]string {
 
 var map_FailureDomains = map[string]string{
 	"":          "FailureDomain represents the different configurations required to spread Machines across failure domains on different platforms.",
-	"platform":  "Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, GCP, OpenStack, and VSphere.",
+	"platform":  "Platform identifies the platform for which the FailureDomain represents. Currently supported values are AWS, Azure, GCP, OpenStack, VSphere and Nutanix.",
 	"aws":       "AWS configures failure domain information for the AWS platform.",
 	"azure":     "Azure configures failure domain information for the Azure platform.",
 	"gcp":       "GCP configures failure domain information for the GCP platform.",
 	"vsphere":   "vsphere configures failure domain information for the VSphere platform.",
 	"openstack": "OpenStack configures failure domain information for the OpenStack platform.",
+	"nutanix":   "nutanix configures failure domain information for the Nutanix platform.",
 }
 
 func (FailureDomains) SwaggerDoc() map[string]string {
@@ -263,6 +264,15 @@ var map_GCPFailureDomain = map[string]string{
 
 func (GCPFailureDomain) SwaggerDoc() map[string]string {
 	return map_GCPFailureDomain
+}
+
+var map_NutanixFailureDomainReference = map[string]string{
+	"":     "NutanixFailureDomainReference refers to the failure domain of the Nutanix platform.",
+	"name": "name of the failure domain in which the nutanix machine provider will create the VM. Failure domains are defined in a cluster's config.openshift.io/Infrastructure resource.",
+}
+
+func (NutanixFailureDomainReference) SwaggerDoc() map[string]string {
+	return map_NutanixFailureDomainReference
 }
 
 var map_OpenShiftMachineV1Beta1MachineTemplate = map[string]string{
@@ -330,6 +340,7 @@ var map_NutanixMachineProviderConfig = map[string]string{
 	"categories":        "categories optionally adds one or more prism categories (each with key and value) for the Machine's VM to associate with. All the category key and value pairs specified must already exist in the prism central.",
 	"userDataSecret":    "userDataSecret is a local reference to a secret that contains the UserData to apply to the VM",
 	"credentialsSecret": "credentialsSecret is a local reference to a secret that contains the credentials data to access Nutanix PC client",
+	"failureDomain":     "failureDomain refers to the name of the FailureDomain with which this Machine is associated. If this is configured, the Nutanix machine controller will use the prism_central endpoint and credentials defined in the referenced FailureDomain to communicate to the prism_central. It will also verify that the 'cluster' and subnets' configuration in the NutanixMachineProviderConfig is consistent with that in the referenced failureDomain.",
 }
 
 func (NutanixMachineProviderConfig) SwaggerDoc() map[string]string {

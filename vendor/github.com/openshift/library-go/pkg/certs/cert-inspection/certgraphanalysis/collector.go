@@ -63,6 +63,8 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 	// TODO here is the point where need to collect data like node names and IPs that need to be replaced
 	//  this will be something like options.Discovery(kubeClient, configClient).
 
+	annotationsToCollect := options.annotationsToCollect()
+
 	configMapList, err := kubeClient.CoreV1().ConfigMaps("").List(ctx, metav1.ListOptions{})
 	switch {
 	case err != nil:
@@ -95,8 +97,9 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 						Name:      configMap.Name,
 					},
 					CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
-						OwningJiraComponent: configMap.Annotations[annotations.OpenShiftComponent],
-						Description:         configMap.Annotations[annotations.OpenShiftDescription],
+						SelectedCertMetadataAnnotations: recordedAnnotationsFrom(configMap.ObjectMeta, annotationsToCollect),
+						OwningJiraComponent:             configMap.Annotations[annotations.OpenShiftComponent],
+						Description:                     configMap.Annotations[annotations.OpenShiftDescription],
 					},
 				})
 		}
@@ -133,8 +136,9 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 						Name:      secret.Name,
 					},
 					CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
-						OwningJiraComponent: secret.Annotations[annotations.OpenShiftComponent],
-						Description:         secret.Annotations[annotations.OpenShiftDescription],
+						SelectedCertMetadataAnnotations: recordedAnnotationsFrom(secret.ObjectMeta, annotationsToCollect),
+						OwningJiraComponent:             secret.Annotations[annotations.OpenShiftComponent],
+						Description:                     secret.Annotations[annotations.OpenShiftDescription],
 					},
 				})
 		}
@@ -142,6 +146,22 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 
 	pkiList := PKIListFromParts(ctx, inClusterResourceData, certs, caBundles)
 	return pkiList, errors.NewAggregate(errs)
+}
+
+func recordedAnnotationsFrom(metadata metav1.ObjectMeta, annotationsToCollect []string) []certgraphapi.AnnotationValue {
+	ret := []certgraphapi.AnnotationValue{}
+	for _, key := range annotationsToCollect {
+		val, ok := metadata.Annotations[key]
+		if !ok {
+			continue
+		}
+		ret = append(ret, certgraphapi.AnnotationValue{
+			Key:   key,
+			Value: val,
+		})
+	}
+
+	return ret
 }
 
 func PKIListFromParts(ctx context.Context, inClusterResourceData *certgraphapi.PerInClusterResourceData, certs []*certgraphapi.CertKeyPair, caBundles []*certgraphapi.CertificateAuthorityBundle) *certgraphapi.PKIList {

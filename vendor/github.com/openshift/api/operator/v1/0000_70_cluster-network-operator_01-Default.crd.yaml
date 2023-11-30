@@ -5,6 +5,7 @@ metadata:
     api-approved.openshift.io: https://github.com/openshift/api/pull/475
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
+    release.openshift.io/feature-set: Default
   name: networks.operator.openshift.io
 spec:
   group: operator.openshift.io
@@ -254,21 +255,21 @@ spec:
                                       message: IPv6 addresses must contain at most one '::' and may only be shortened once
                                     - rule: 'self.contains(''::'') ? self.split(''/'')[0].split('':'').size() <= 8 : self.split(''/'')[0].split('':'').size() == 8'
                                       message: a valid IPv6 address must contain 8 segments unless elided (::), in which case it must contain at most 6 non-empty segments
-                                    - rule: 'self.split(''/'')[0].split('':'').size() >=1 ? [self.split(''/'')[0].split('':'', 8)[0]].all(x, x == '''' || x.matches(''[0-9A-Fa-f]{1,4}'')) : true'
+                                    - rule: 'self.split(''/'')[0].split('':'').size() >=1 ? [self.split(''/'')[0].split('':'', 8)[0]].all(x, x == '''' || (x.matches(''^[0-9A-Fa-f]{1,4}$'')) && size(x)<5 ) : true'
                                       message: each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 1
-                                    - rule: 'self.split(''/'')[0].split('':'').size() >=2 ? [self.split(''/'')[0].split('':'', 8)[1]].all(x, x == '''' || x.matches(''[0-9A-Fa-f]{1,4}'')) : true'
+                                    - rule: 'self.split(''/'')[0].split('':'').size() >=2 ? [self.split(''/'')[0].split('':'', 8)[1]].all(x, x == '''' || (x.matches(''^[0-9A-Fa-f]{1,4}$'')) && size(x)<5 ) : true'
                                       message: each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 2
-                                    - rule: 'self.split(''/'')[0].split('':'').size() >=3 ? [self.split(''/'')[0].split('':'', 8)[2]].all(x, x == '''' || x.matches(''[0-9A-Fa-f]{1,4}'')) : true'
+                                    - rule: 'self.split(''/'')[0].split('':'').size() >=3 ? [self.split(''/'')[0].split('':'', 8)[2]].all(x, x == '''' || (x.matches(''^[0-9A-Fa-f]{1,4}$'')) && size(x)<5 ) : true'
                                       message: each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 3
-                                    - rule: 'self.split(''/'')[0].split('':'').size() >=4 ? [self.split(''/'')[0].split('':'', 8)[3]].all(x, x == '''' || x.matches(''[0-9A-Fa-f]{1,4}'')) : true'
+                                    - rule: 'self.split(''/'')[0].split('':'').size() >=4 ? [self.split(''/'')[0].split('':'', 8)[3]].all(x, x == '''' || (x.matches(''^[0-9A-Fa-f]{1,4}$'')) && size(x)<5 ) : true'
                                       message: each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 4
-                                    - rule: 'self.split(''/'')[0].split('':'').size() >=5 ? [self.split(''/'')[0].split('':'', 8)[4]].all(x, x == '''' || x.matches(''[0-9A-Fa-f]{1,4}'')) : true'
+                                    - rule: 'self.split(''/'')[0].split('':'').size() >=5 ? [self.split(''/'')[0].split('':'', 8)[4]].all(x, x == '''' || (x.matches(''^[0-9A-Fa-f]{1,4}$'')) && size(x)<5 ) : true'
                                       message: each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 5
-                                    - rule: 'self.split(''/'')[0].split('':'').size() >=6 ? [self.split(''/'')[0].split('':'', 8)[5]].all(x, x == '''' || x.matches(''[0-9A-Fa-f]{1,4}'')) : true'
+                                    - rule: 'self.split(''/'')[0].split('':'').size() >=6 ? [self.split(''/'')[0].split('':'', 8)[5]].all(x, x == '''' || (x.matches(''^[0-9A-Fa-f]{1,4}$'')) && size(x)<5 ) : true'
                                       message: each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 6
-                                    - rule: 'self.split(''/'')[0].split('':'').size() >=7 ? [self.split(''/'')[0].split('':'', 8)[6]].all(x, x == '''' || x.matches(''[0-9A-Fa-f]{1,4}'')) : true'
+                                    - rule: 'self.split(''/'')[0].split('':'').size() >=7 ? [self.split(''/'')[0].split('':'', 8)[6]].all(x, x == '''' || (x.matches(''^[0-9A-Fa-f]{1,4}$'')) && size(x)<5 ) : true'
                                       message: each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 7
-                                    - rule: 'self.split(''/'')[0].split('':'').size() >=8 ? [self.split(''/'')[0].split('':'', 8)[7]].all(x, x == '''' || x.matches(''[0-9A-Fa-f]{1,4}'')) : true'
+                                    - rule: 'self.split(''/'')[0].split('':'').size() >=8 ? [self.split(''/'')[0].split('':'', 8)[7]].all(x, x == '''' || (x.matches(''^[0-9A-Fa-f]{1,4}$'')) && size(x)<5 ) : true'
                                       message: each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 8
                                     - rule: '!self.contains(''.'')'
                                       message: IPv6 dual addresses are not permitted, value should not contain `.` characters

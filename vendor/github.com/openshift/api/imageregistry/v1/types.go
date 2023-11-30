@@ -159,8 +159,7 @@ type ImageRegistryConfigStorageS3CloudFront struct {
 
 // ImageRegistryConfigStorageEmptyDir is an place holder to be used when
 // when registry is leveraging ephemeral storage.
-type ImageRegistryConfigStorageEmptyDir struct {
-}
+type ImageRegistryConfigStorageEmptyDir struct{}
 
 // S3TrustedCASource references a config map with a CA certificate bundle in
 // the "openshift-config" namespace. The key for the bundle in the
@@ -303,7 +302,106 @@ type ImageRegistryConfigStorageAzure struct {
 	// object.
 	// +optional
 	CloudName string `json:"cloudName,omitempty"`
+	// networkAccess defines the network access properties for the storage account.
+	// Defaults to type: External.
+	// +kubebuilder:default={"type": "External"}
+	// +optional
+	NetworkAccess *AzureNetworkAccess `json:"networkAccess,omitempty"`
 }
+
+// AzureNetworkAccess defines the network access properties for the storage account.
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Internal' ?  true : !has(self.internal)",message="internal is forbidden when type is not Internal"
+// +union
+type AzureNetworkAccess struct {
+	// type is the network access level to be used for the storage account.
+	// type: Internal means the storage account will be private, type: External
+	// means the storage account will be publicly accessible.
+	// Internal storage accounts are only exposed within the cluster's vnet.
+	// External storage accounts are publicly exposed on the internet.
+	// When type: Internal is used, a vnetName, subNetName and privateEndpointName
+	// may optionally be specified. If unspecificed, the image registry operator
+	// will discover vnet and subnet names, and generate a privateEndpointName.
+	// Defaults to "External".
+	// +kubebuilder:default:="External"
+	// +unionDiscriminator
+	// +optional
+	Type AzureNetworkAccessType `json:"type,omitempty"`
+	// internal defines the vnet and subnet names to configure a private
+	// endpoint and connect it to the storage account in order to make it
+	// private.
+	// when type: Internal and internal is unset, the image registry operator
+	// will discover vnet and subnet names, and generate a private endpoint
+	// name.
+	// +optional
+	Internal *AzureNetworkAccessInternal `json:"internal,omitempty"`
+}
+
+type AzureNetworkAccessInternal struct {
+	// networkResourceGroupName is the resource group name where the cluster's vnet
+	// and subnet are. When omitted, the registry operator will use the cluster
+	// resource group (from in the infrastructure status).
+	// If you set a networkResourceGroupName on your install-config.yaml, that
+	// value will be used automatically (for clusters configured with publish:Internal).
+	// Note that both vnet and subnet must be in the same resource group.
+	// It must be between 1 and 90 characters in length and must consist only of
+	// alphanumeric characters, hyphens (-), periods (.) and underscores (_), and
+	// not end with a period.
+	// +kubebuilder:validation:MaxLength=90
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z_.-](?:[0-9A-Za-z_.-]*[0-9A-Za-z_-])?$`
+	// +optional
+	NetworkResourceGroupName string `json:"networkResourceGroupName,omitempty"`
+	// vnetName is the name of the vnet the registry operates in. When omitted,
+	// the registry operator will discover and set this by using the `kubernetes.io_cluster.<cluster-id>`
+	// tag in the vnet resource. This tag is set automatically by the installer.
+	// Commonly, this will be the same vnet as the cluster.
+	// Advanced cluster network configurations should ensure the provided vnetName
+	// is the vnet of the nodes where the image registry pods are running from.
+	// It must be between 2 and 64 characters in length and must consist only of
+	// alphanumeric characters, hyphens (-), periods (.) and underscores (_).
+	// It must start with an alphanumeric character and end with an alphanumeric character or an underscore.
+	// +kubebuilder:validation:MaxLength=64
+	// +kubebuilder:validation:MinLength=2
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z][0-9A-Za-z_.-]*[0-9A-Za-z_]$`
+	// +optional
+	VNetName string `json:"vnetName,omitempty"`
+	// subnetName is the name of the subnet the registry operates in. When omitted,
+	// the registry operator will discover and set this by using the `kubernetes.io_cluster.<cluster-id>`
+	// tag in the vnet resource, then using one of listed subnets.
+	// Advanced cluster network configurations that use network security groups
+	// to protect subnets should ensure the provided subnetName has access to
+	// Azure Storage service.
+	// It must be between 1 and 80 characters in length and must consist only of
+	// alphanumeric characters, hyphens (-), periods (.) and underscores (_).
+	// +kubebuilder:validation:MaxLength=80
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z](?:[0-9A-Za-z_.-]*[0-9A-Za-z_])?$`
+	// +optional
+	SubnetName string `json:"subnetName,omitempty"`
+	// privateEndpointName is the name of the private endpoint for the registry.
+	// When provided, the registry will use it as the name of the private endpoint
+	// it will create for the storage account. When omitted, the registry will
+	// generate one.
+	// It must be between 2 and 64 characters in length and must consist only of
+	// alphanumeric characters, hyphens (-), periods (.) and underscores (_).
+	// It must start with an alphanumeric character and end with an alphanumeric character or an underscore.
+	// +kubebuilder:validation:MaxLength=64
+	// +kubebuilder:validation:MinLength=2
+	// +kubebuilder:validation:Pattern=`^[0-9A-Za-z][0-9A-Za-z_.-]*[0-9A-Za-z_]$`
+	// +optional
+	PrivateEndpointName string `json:"privateEndpointName,omitempty"`
+}
+
+// AzureNetworkAccessType is the network access level to be used for the storage account.
+// +kubebuilder:validation:Enum:="Internal";"External"
+type AzureNetworkAccessType string
+
+const (
+	// AzureNetworkAccessTypeInternal means the storage account will be private
+	AzureNetworkAccessTypeInternal AzureNetworkAccessType = "Internal"
+	// AzureNetworkAccessTypeExternal means the storage account will be publicly accessible
+	AzureNetworkAccessTypeExternal AzureNetworkAccessType = "External"
+)
 
 // ImageRegistryConfigStorageIBMCOS holds the information to configure
 // the registry to use IBM Cloud Object Storage for backend storage.
