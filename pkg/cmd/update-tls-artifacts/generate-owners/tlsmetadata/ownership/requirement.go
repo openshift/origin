@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadata"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
@@ -41,7 +40,7 @@ func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (t
 		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
 	}
 
-	return tlsmetadata.NewRequirementResult(
+	return tlsmetadatainterfaces.NewRequirementResult(
 		o.GetName(),
 		ownershipJSONBytes,
 		markdown,
@@ -54,14 +53,14 @@ func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
 		owner := curr.CertKeyInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == tlsmetadata.UnknownOwner {
+		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
 		}
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
 		owner := curr.CABundleInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == tlsmetadata.UnknownOwner {
+		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
 		}
 	}
@@ -70,7 +69,6 @@ func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.
 }
 
 func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
-	const unknownOwner = "Unknown"
 	certsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	certsWithoutOwners := []certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	caBundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
@@ -79,7 +77,7 @@ func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
 		owner := curr.CertKeyInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == tlsmetadata.UnknownOwner {
+		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			certsWithoutOwners = append(certsWithoutOwners, curr)
 			continue
 		}
@@ -88,7 +86,7 @@ func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
 		owner := curr.CABundleInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == tlsmetadata.UnknownOwner {
+		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			caBundlesWithoutOwners = append(caBundlesWithoutOwners, curr)
 			continue
 		}
