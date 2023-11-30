@@ -34,7 +34,7 @@ func (o *resourceFilteringOptions) rejectSecret(secret *corev1.Secret) bool {
 	if o.rejectSecretFn == nil {
 		return false
 	}
-	return o.rejectSecret(secret)
+	return o.rejectSecretFn(secret)
 }
 
 var (
