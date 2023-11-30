@@ -1,23 +1,45 @@
-# Certificate Ownership
+# Auto Regenerate After Offline Expiry
 
 ## Table of Contents
-  - [Missing Owners (91)](#Missing-Owners-91)
-    - [Certificates (45)](#Certificates-45)
-    - [Certificate Authority Bundles (46)](#Certificate-Authority-Bundles-46)
-  - [Etcd (28)](#Etcd-28)
-    - [Certificates (19)](#Certificates-19)
-    - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-  - [Networking / cluster-network-operator (29)](#Networking-/-cluster-network-operator-29)
-    - [Certificate Authority Bundles (29)](#Certificate-Authority-Bundles-29)
-  - [kube-apiserver (6)](#kube-apiserver-6)
-    - [Certificates (6)](#Certificates-6)
-  - [service-ca (87)](#service-ca-87)
-    - [Certificates (84)](#Certificates-84)
-    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
+  - [Items That Cannot Auto Regenerate After Offline Expiry (241)](#Items-That-Cannot-Auto-Regenerate-After-Offline-Expiry-241)
+    - [ (91)](#-91)
+      - [Certificates (45)](#Certificates-45)
+      - [Certificate Authority Bundles (46)](#Certificate-Authority-Bundles-46)
+    - [Etcd (28)](#Etcd-28)
+      - [Certificates (19)](#Certificates-19)
+      - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
+    - [Networking / cluster-network-operator (29)](#Networking-/-cluster-network-operator-29)
+      - [Certificate Authority Bundles (29)](#Certificate-Authority-Bundles-29)
+    - [kube-apiserver (6)](#kube-apiserver-6)
+      - [Certificates (6)](#Certificates-6)
+    - [service-ca (87)](#service-ca-87)
+      - [Certificates (84)](#Certificates-84)
+      - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
+  - [Items That Can Auto Regenerate After Offline Expiry (0)](#Items-That-Can-Auto-Regenerate-After-Offline-Expiry-0)
 
 
-## Missing Owners (91)
-### Certificates (45)
+Acknowledging that a cert/key pair or CA bundle can auto-regenerate after it expires offline means
+      Acknowledging that a cert/key pair or CA bundle can auto-regenerate after it expires offline means
+that if the cluster is shut down until the certificate expires, when the machines are restarted
+      that if the cluster is shut down until the certificate expires, when the machines are restarted
+the cluster will automatically create new cert/key pairs or update CA bundles as required without human
+      the cluster will automatically create new cert/key pairs or update CA bundles as required without human
+intervention.
+      intervention.
+To assert that a particular cert/key pair or CA bundle can do this, add the "certificates.openshift.io/auto-regenerate-after-offline-expiry" annotation to the secret or configmap and 
+      To assert that a particular cert/key pair or CA bundle can do this, add the "certificates.openshift.io/auto-regenerate-after-offline-expiry" annotation to the secret or configmap and 
+setting the value of the annotation a github link to the PR adding the annotation.
+      setting the value of the annotation a github link to the PR adding the annotation.
+This assertion also means that you have
+      This assertion also means that you have
+1. Manually tested that this works or seen someone else manually test that this works.  AND
+2. Written an automated e2e job that your team has an alert for and is a blocking GA criteria, and/or
+      QE has required test every release that ensures the functionality works every release.
+Links should be provided in the PR adding the annotation.
+      Links should be provided in the PR adding the annotation.
+## Items That Cannot Auto Regenerate After Offline Expiry (241)
+###  (91)
+#### Certificates (45)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
       **Description:** 
@@ -247,7 +269,7 @@
 
       
 
-### Certificate Authority Bundles (46)
+#### Certificate Authority Bundles (46)
 1. ns/openshift-cloud-controller-manager configmap/ccm-trusted-ca
 
       **Description:** 
@@ -482,8 +504,8 @@
 
       
 
-## Etcd (28)
-### Certificates (19)
+### Etcd (28)
+#### Certificates (19)
 1. ns/openshift-apiserver secret/etcd-client
 
       **Description:** 
@@ -583,7 +605,7 @@
 
       
 
-### Certificate Authority Bundles (9)
+#### Certificate Authority Bundles (9)
 1. ns/openshift-apiserver configmap/etcd-serving-ca
 
       **Description:** 
@@ -633,8 +655,8 @@
 
       
 
-## Networking / cluster-network-operator (29)
-### Certificate Authority Bundles (29)
+### Networking / cluster-network-operator (29)
+#### Certificate Authority Bundles (29)
 1. ns/openshift-apiserver configmap/trusted-ca-bundle
 
       **Description:** 
@@ -784,8 +806,8 @@
 
       
 
-## kube-apiserver (6)
-### Certificates (6)
+### kube-apiserver (6)
+#### Certificates (6)
 1. ns/openshift-kube-apiserver-operator secret/aggregator-client-signer
 
       **Description:** 
@@ -820,8 +842,8 @@
 
       
 
-## service-ca (87)
-### Certificates (84)
+### service-ca (87)
+#### Certificates (84)
 1. ns/openshift-apiserver secret/serving-cert
 
       **Description:** 
@@ -1246,7 +1268,7 @@
 
       
 
-### Certificate Authority Bundles (3)
+#### Certificate Authority Bundles (3)
 1. ns/openshift-config-managed configmap/service-ca
 
       **Description:** 
@@ -1266,3 +1288,4 @@
 
       
 
+## Items That Can Auto Regenerate After Offline Expiry (0)
