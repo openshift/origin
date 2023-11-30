@@ -78,7 +78,7 @@ func init() {
 
 type podNetworkAvalibility struct {
 	payloadImagePullSpec string
-	notSupportedReason   *monitortestframework.NotSupportedError
+	notSupportedReason   error
 	namespaceName        string
 	targetService        *corev1.Service
 	kubeClient           kubernetes.Interface

@@ -22,7 +22,7 @@ import (
 type availability struct {
 	disruptionCheckers []*disruptionlibrary.Availability
 
-	notSupportedReason *monitortestframework.NotSupportedError
+	notSupportedReason error
 	suppressJunit      bool
 }
 

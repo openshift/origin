@@ -53,7 +53,7 @@ func init() {
 
 type availability struct {
 	namespaceName      string
-	notSupportedReason *monitortestframework.NotSupportedError
+	notSupportedReason error
 	kubeClient         kubernetes.Interface
 
 	disruptionChecker *disruptionlibrary.Availability

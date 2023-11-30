@@ -34,7 +34,7 @@ type availability struct {
 	imageRegistryRoute *routev1.Route
 
 	disruptionChecker  *disruptionlibrary.Availability
-	notSupportedReason *monitortestframework.NotSupportedError
+	notSupportedReason error
 	suppressJunit      bool
 }
 

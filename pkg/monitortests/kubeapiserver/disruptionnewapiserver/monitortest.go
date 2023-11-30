@@ -19,7 +19,7 @@ import (
 
 type newAPIServerDisruptionChecker struct {
 	adminRESTConfig    *rest.Config
-	notSupportedReason *monitortestframework.NotSupportedError
+	notSupportedReason error
 }
 
 func NewDisruptionInvariant() monitortestframework.MonitorTest {
