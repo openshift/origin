@@ -107,10 +107,23 @@ func (m *versionMonitor) ShouldReboot() []string {
 	return nil
 }
 
-func (m *versionMonitor) ShouldUpgradeAbort(abortAt int) bool {
+func (m *versionMonitor) ShouldUpgradeAbort(abortAt int, desired configv1.Update) bool {
 	if abortAt == 0 {
 		return false
 	}
+
+	if abortAt == 100 {
+		if m.lastCV == nil {
+			return false // wait for m.Check() to populate a ClusterVersion
+		}
+
+		if len(m.lastCV.Status.History) == 0 {
+			return false // wait for the cluster-version operator to populate history
+		}
+		history := m.lastCV.Status.History[0]
+		return history.Image == desired.Image && history.State == configv1.CompletedUpdate
+	}
+
 	coList, err := m.client.ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		framework.Logf("Unable to retrieve cluster operators, cannot check completion percentage")
