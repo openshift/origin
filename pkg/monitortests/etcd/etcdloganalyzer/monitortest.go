@@ -197,6 +197,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 				Build(parsedLine.Timestamp, parsedLine.Timestamp.Add(1*time.Second)))
 	}
 
+	var etcdSource monitorapi.IntervalSource = monitorapi.SourceEtcdLeadership
 	messages := []*monitorapi.MessageBuilder{}
 	// TODO: all of these reasons with dashes are non-standard, we use camelcase everywhere else.
 	switch {
@@ -207,6 +208,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 				WithAnnotation(monitorapi.AnnotationEtcdLocalMember, parsedLine.LocalMemberID).
 				HumanMessage(parsedLine.Msg),
 		}
+		etcdSource = monitorapi.SourceEtcdLog
 
 	case strings.Contains(parsedLine.Msg, "elected leader"):
 		messages = []*monitorapi.MessageBuilder{
@@ -264,7 +266,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 
 	for _, message := range messages {
 		g.recorder.AddIntervals(
-			monitorapi.NewInterval(monitorapi.SourceEtcdLog, monitorapi.Warning).
+			monitorapi.NewInterval(etcdSource, monitorapi.Warning).
 				Locator(logLine.Locator).
 				Message(message).
 				Build(logLine.Instant, logLine.Instant.Add(time.Second)),
