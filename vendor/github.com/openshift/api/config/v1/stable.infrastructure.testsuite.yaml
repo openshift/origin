@@ -12,6 +12,176 @@ tests:
       apiVersion: config.openshift.io/v1
       kind: Infrastructure
       spec: {}
+  - name: Should be able to pass 2 IP addresses to apiServerInternalIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            apiServerInternalIPs:
+              - 192.0.2.1
+              - "2001:db8::1"
+    expected: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            apiServerInternalIPs:
+              - 192.0.2.1
+              - "2001:db8::1"
+  - name: Should not be able to pass not-an-IP to apiServerInternalIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            apiServerInternalIPs:
+              - not-an-ip-address
+    expectedError: "Invalid value: \"not-an-ip-address\""
+  - name: Should not be able to pass 2 IPv4 addresses to apiServerInternalIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            apiServerInternalIPs:
+              - 192.0.2.1
+              - 192.0.2.2
+    expectedError: "apiServerInternalIPs must contain at most one IPv4 address and at most one IPv6 address"
+  - name: Should not be able to pass 2 IPv6 addresses to apiServerInternalIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            apiServerInternalIPs:
+              - "2001:db8::1"
+              - "2001:db8::2"
+    expectedError: "apiServerInternalIPs must contain at most one IPv4 address and at most one IPv6 address"
+  - name: Should not be able to pass more than 2 entries to apiServerInternalIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            apiServerInternalIPs:
+              - 192.0.2.1
+              - "2001:db8::1"
+              - 192.0.2.2
+    expectedError: "Too many: 3: must have at most 2 items"
+  - name: Should be able to pass 2 IP addresses to ingressIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            ingressIPs:
+              - 192.0.2.1
+              - "2001:db8::1"
+    expected: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            ingressIPs:
+              - 192.0.2.1
+              - "2001:db8::1"
+  - name: Should not be able to pass not-an-IP to ingressIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            ingressIPs:
+              - not-an-ip-address
+    expectedError: "Invalid value: \"not-an-ip-address\""
+  - name: Should not be able to pass 2 IPv4 addresses to ingressIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            ingressIPs:
+              - 192.0.2.1
+              - 192.0.2.2
+    expectedError: "ingressIPs must contain at most one IPv4 address and at most one IPv6 address"
+  - name: Should not be able to pass 2 IPv6 addresses to ingressIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            ingressIPs:
+              - "2001:db8::1"
+              - "2001:db8::2"
+    expectedError: "ingressIPs must contain at most one IPv4 address and at most one IPv6 address"
+  - name: Should not be able to pass more than 2 entries to ingressIPs in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            ingressIPs:
+              - 192.0.2.1
+              - "2001:db8::1"
+              - 192.0.2.2
+    expectedError: "Too many: 3: must have at most 2 items"
+  - name: Should be able to pass 2 IP subnets addresses to machineNetworks in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            machineNetworks:
+              - "192.0.2.0/24"
+              - "2001:db8::0/32"
+    expected: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            machineNetworks:
+              - "192.0.2.0/24"
+              - "2001:db8::0/32"
+  - name: Should not be able to pass not-a-CIDR to machineNetworks in the platform spec
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec:
+        platformSpec:
+          type: BareMetal
+          baremetal:
+            machineNetworks:
+              - 192.0.2.1
+    expectedError: "Invalid value: \"192.0.2.1\""
   onUpdate:
     - name: Should be able to change External platformName from unknown to something else
       initial: |
@@ -993,9 +1163,9 @@ tests:
             type: IBMCloud
             ibmcloud:
               serviceEndpoints:
-              - name: DummyVPC
+              - name: VPC
                 url: https://dummy.vpc.com
-              - name: DummyCOS
+              - name: COS
                 url: https://dummy.cos.com
       expected: |
         apiVersion: config.openshift.io/v1
@@ -1010,9 +1180,9 @@ tests:
             type: IBMCloud
             ibmcloud:
               serviceEndpoints:
-              - name: DummyVPC
+              - name: VPC
                 url: https://dummy.vpc.com
-              - name: DummyCOS
+              - name: COS
                 url: https://dummy.cos.com
     - name: Should not be able to add empty (URL) ServiceEndpoints to IBMCloud PlatformStatus
       initial: |
@@ -1035,7 +1205,7 @@ tests:
             type: IBMCloud
             ibmcloud:
               serviceEndpoints:
-              - name: EmptyCOS
+              - name: COS
                 url: " "
       expectedStatusError: " status.platformStatus.ibmcloud.serviceEndpoints[0].url: Invalid value: \"string\": url must be a valid absolute URL"
     - name: Should not be able to add invalid (URL) ServiceEndpoints to IBMCloud PlatformStatus
@@ -1059,8 +1229,34 @@ tests:
             type: IBMCloud
             ibmcloud:
               serviceEndpoints:
-              - name: DummyVPC
+              - name: VPC
                 url: https://dummy.vpc.com
-              - name: BadCOS
+              - name: COS
                 url: dummy-cos-com
       expectedStatusError: " status.platformStatus.ibmcloud.serviceEndpoints[1].url: Invalid value: \"string\": url must be a valid absolute URL"
+    - name: Should not be able to add invalid (Name) ServiceEndpoints to IBMCloud PlatformStatus
+      initial: |
+        apiVersion: config.openshift.io/v1
+        kind: Infrastructure
+        spec: {}
+        status:
+          platform: IBMCloud
+          platformStatus:
+            type: IBMCloud
+            ibmcloud:
+              serviceEndpoints: []
+      updated: |
+        apiVersion: config.openshift.io/v1
+        kind: Infrastructure
+        spec: {}
+        status:
+          platform: IBMCloud
+          platformStatus:
+            type: IBMCloud
+            ibmcloud:
+              serviceEndpoints:
+              - name: VPC
+                url: https://dummy.vpc.com
+              - name: BadService
+                url: https://bad-service.com
+      expectedStatusError: " status.platformStatus.ibmcloud.serviceEndpoints[1].name: Unsupported value: \"BadService\": supported values: \"CIS\", \"COS\", \"DNSServices\", \"GlobalSearch\", \"GlobalTagging\", \"HyperProtect\", \"IAM\", \"KeyProtect\", \"ResourceController\", \"ResourceManager\", \"VPC\""

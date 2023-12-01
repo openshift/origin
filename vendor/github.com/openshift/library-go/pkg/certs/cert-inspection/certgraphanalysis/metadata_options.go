@@ -18,17 +18,52 @@ type caBundleRewriteFunc func(metadata metav1.ObjectMeta, caBundle *certgraphapi
 type certKeyPairRewriteFunc func(metadata metav1.ObjectMeta, certKeyPair *certgraphapi.CertKeyPair)
 
 type metadataOptions struct {
-	rewriteCABundle    caBundleRewriteFunc
-	rewriteCertKeyPair certKeyPairRewriteFunc
-	rewriteConfigMap   configMapRewriteFunc
-	rewriteSecret      secretRewriteFunc
+	rewriteCABundleFn    caBundleRewriteFunc
+	rewriteCertKeyPairFn certKeyPairRewriteFunc
+	rewriteConfigMapFn   configMapRewriteFunc
+	rewriteSecretFn      secretRewriteFunc
 }
 
-func (metadataOptions) approved() {}
+var (
+	_ configMapRewriter           = &metadataOptions{}
+	_ secretRewriter              = &metadataOptions{}
+	_ caBundleMetadataRewriter    = &metadataOptions{}
+	_ certKeypairMetadataRewriter = &metadataOptions{}
+)
+
+func (*metadataOptions) approved() {}
+
+func (o *metadataOptions) rewriteCABundle(metadata metav1.ObjectMeta, caBundle *certgraphapi.CertificateAuthorityBundle) {
+	if o.rewriteCABundleFn == nil {
+		return
+	}
+	o.rewriteCABundleFn(metadata, caBundle)
+}
+
+func (o *metadataOptions) rewriteCertKeyPair(metadata metav1.ObjectMeta, certKeyPair *certgraphapi.CertKeyPair) {
+	if o.rewriteCertKeyPairFn == nil {
+		return
+	}
+	o.rewriteCertKeyPairFn(metadata, certKeyPair)
+}
+
+func (o *metadataOptions) rewriteConfigMap(configMap *corev1.ConfigMap) {
+	if o.rewriteConfigMapFn == nil {
+		return
+	}
+	o.rewriteConfigMapFn(configMap)
+}
+
+func (o *metadataOptions) rewriteSecret(secret *corev1.Secret) {
+	if o.rewriteSecretFn == nil {
+		return
+	}
+	o.rewriteSecretFn(secret)
+}
 
 var (
 	ElideProxyCADetails = &metadataOptions{
-		rewriteCABundle: func(metadata metav1.ObjectMeta, caBundle *certgraphapi.CertificateAuthorityBundle) {
+		rewriteCABundleFn: func(metadata metav1.ObjectMeta, caBundle *certgraphapi.CertificateAuthorityBundle) {
 			isProxyCA := false
 			if metadata.Namespace == "openshift-config-managed" && metadata.Name == "trusted-ca-bundle" {
 				isProxyCA = true
@@ -72,7 +107,7 @@ func RewriteNodeIPs(nodeList []*corev1.Node) *metadataOptions {
 		nodes[node.Name] = i
 	}
 	return &metadataOptions{
-		rewriteSecret: func(secret *corev1.Secret) {
+		rewriteSecretFn: func(secret *corev1.Secret) {
 			for nodeName, masterID := range nodes {
 				name := strings.ReplaceAll(secret.Name, nodeName, fmt.Sprintf("<master-%d>", masterID))
 				if secret.Name != name {

@@ -116,7 +116,20 @@ type NetworkSpec struct {
 	Migration *NetworkMigration `json:"migration,omitempty"`
 }
 
+// NetworkMigrationMode is an enumeration of the possible mode of the network migration
+// Valid values are "Live", "Offline" and omitted.
+// +kubebuilder:validation:Enum:=Live;Offline;""
+type NetworkMigrationMode string
+
+const (
+	// A "Live" migration operation will not cause service interruption by migrating the CNI of each node one by one. The cluster network will work as normal during the network migration.
+	LiveNetworkMigrationMode NetworkMigrationMode = "Live"
+	// An "Offline" migration operation will cause service interruption. During an "Offline" migration, two rounds of node reboots are required. The cluster network will be malfunctioning during the network migration.
+	OfflineNetworkMigrationMode NetworkMigrationMode = "Offline"
+)
+
 // NetworkMigration represents the cluster network configuration.
+// +openshift:validation:FeatureSetAwareXValidation:featureSet=CustomNoUpgrade;TechPreviewNoUpgrade,rule="!has(self.mtu) || !has(self.networkType) || self.networkType == '' || has(self.mode) && self.mode == 'Live'",message="networkType migration in mode other than 'Live' may not be configured at the same time as mtu migration"
 type NetworkMigration struct {
 	// networkType is the target type of network migration. Set this to the
 	// target network type to allow changing the default network. If unset, the
@@ -137,6 +150,16 @@ type NetworkMigration struct {
 	// supported features.
 	// +optional
 	Features *FeaturesMigration `json:"features,omitempty"`
+
+	// mode indicates the mode of network migration.
+	// The supported values are "Live", "Offline" and omitted.
+	// A "Live" migration operation will not cause service interruption by migrating the CNI of each node one by one. The cluster network will work as normal during the network migration.
+	// An "Offline" migration operation will cause service interruption. During an "Offline" migration, two rounds of node reboots are required. The cluster network will be malfunctioning during the network migration.
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default which is subject to change over time.
+	// The current default value is "Offline".
+	// +openshift:enable:FeatureSets=CustomNoUpgrade;TechPreviewNoUpgrade
+	// +optional
+	Mode NetworkMigrationMode `json:"mode"`
 }
 
 type FeaturesMigration struct {
@@ -553,14 +576,14 @@ type IPv6GatewayConfig struct {
 	// +kubebuilder:validation:XValidation:rule="self.split('/').size() == 2 && [int(self.split('/')[1])].all(x, x <= 125 && x >= 0)",message="subnet must be in the range /0 to /125 inclusive"
 	// +kubebuilder:validation:XValidation:rule="self.indexOf('::') == self.lastIndexOf('::')",message="IPv6 addresses must contain at most one '::' and may only be shortened once"
 	// +kubebuilder:validation:XValidation:rule="self.contains('::') ? self.split('/')[0].split(':').size() <= 8 : self.split('/')[0].split(':').size() == 8",message="a valid IPv6 address must contain 8 segments unless elided (::), in which case it must contain at most 6 non-empty segments"
-	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=1 ? [self.split('/')[0].split(':', 8)[0]].all(x, x == '' || x.matches('[0-9A-Fa-f]{1,4}')) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 1"
-	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=2 ? [self.split('/')[0].split(':', 8)[1]].all(x, x == '' || x.matches('[0-9A-Fa-f]{1,4}')) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 2"
-	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=3 ? [self.split('/')[0].split(':', 8)[2]].all(x, x == '' || x.matches('[0-9A-Fa-f]{1,4}')) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 3"
-	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=4 ? [self.split('/')[0].split(':', 8)[3]].all(x, x == '' || x.matches('[0-9A-Fa-f]{1,4}')) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 4"
-	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=5 ? [self.split('/')[0].split(':', 8)[4]].all(x, x == '' || x.matches('[0-9A-Fa-f]{1,4}')) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 5"
-	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=6 ? [self.split('/')[0].split(':', 8)[5]].all(x, x == '' || x.matches('[0-9A-Fa-f]{1,4}')) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 6"
-	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=7 ? [self.split('/')[0].split(':', 8)[6]].all(x, x == '' || x.matches('[0-9A-Fa-f]{1,4}')) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 7"
-	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=8 ? [self.split('/')[0].split(':', 8)[7]].all(x, x == '' || x.matches('[0-9A-Fa-f]{1,4}')) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 8"
+	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=1 ? [self.split('/')[0].split(':', 8)[0]].all(x, x == '' || (x.matches('^[0-9A-Fa-f]{1,4}$')) && size(x)<5 ) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 1"
+	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=2 ? [self.split('/')[0].split(':', 8)[1]].all(x, x == '' || (x.matches('^[0-9A-Fa-f]{1,4}$')) && size(x)<5 ) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 2"
+	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=3 ? [self.split('/')[0].split(':', 8)[2]].all(x, x == '' || (x.matches('^[0-9A-Fa-f]{1,4}$')) && size(x)<5 ) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 3"
+	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=4 ? [self.split('/')[0].split(':', 8)[3]].all(x, x == '' || (x.matches('^[0-9A-Fa-f]{1,4}$')) && size(x)<5 ) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 4"
+	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=5 ? [self.split('/')[0].split(':', 8)[4]].all(x, x == '' || (x.matches('^[0-9A-Fa-f]{1,4}$')) && size(x)<5 ) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 5"
+	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=6 ? [self.split('/')[0].split(':', 8)[5]].all(x, x == '' || (x.matches('^[0-9A-Fa-f]{1,4}$')) && size(x)<5 ) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 6"
+	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=7 ? [self.split('/')[0].split(':', 8)[6]].all(x, x == '' || (x.matches('^[0-9A-Fa-f]{1,4}$')) && size(x)<5 ) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 7"
+	// +kubebuilder:validation:XValidation:rule="self.split('/')[0].split(':').size() >=8 ? [self.split('/')[0].split(':', 8)[7]].all(x, x == '' || (x.matches('^[0-9A-Fa-f]{1,4}$')) && size(x)<5 ) : true",message="each segment of an IPv6 address must be a hexadecimal number between 0 and FFFF, failed on segment 8"
 	// +kubebuilder:validation:XValidation:rule="!self.contains('.')",message="IPv6 dual addresses are not permitted, value should not contain `.` characters"
 	// +optional
 	InternalMasqueradeSubnet string `json:"internalMasqueradeSubnet,omitempty"`

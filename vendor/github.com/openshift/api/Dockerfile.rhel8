@@ -21,15 +21,13 @@ COPY operator/v1alpha1/0000_10_config-operator_01_imagecontentsourcepolicy.crd.y
 
 # these are applied by the CVO
 COPY manifests /manifests
-# TODO copy these back when we're ready to make the switch from cluster-config-operator to here
-#COPY config/v1/*_config-operator_*.yaml /manifests
-#COPY quota/v1/*.crd.yaml /manifests
-#COPY security/v1/*.crd.yaml /manifests
-#COPY securityinternal/v1/*.crd.yaml /manifests
-#COPY authorization/v1/*.crd.yaml /manifests
-#COPY operator/v1alpha1/0000_10_config-operator_01_imagecontentsourcepolicy.crd.yaml /manifests
-#COPY operator/v1/0000_10_config-operator_*.yaml /manifests
-#COPY payload-command/empty-resources /manifests
+COPY config/v1/*_config-operator_*.yaml /manifests
+COPY quota/v1/*.crd.yaml /manifests
+COPY security/v1/*.crd.yaml /manifests
+COPY securityinternal/v1/*.crd.yaml /manifests
+COPY authorization/v1/*.crd.yaml /manifests
+COPY operator/v1alpha1/0000_10_config-operator_01_imagecontentsourcepolicy.crd.yaml /manifests
+COPY operator/v1/0000_10_config-operator_*.yaml /manifests
+COPY payload-command/empty-resources /manifests
 
-# TODO uncomment after all the other "add a new image" steps are complete.
-#LABEL io.openshift.release.operator true
+LABEL io.openshift.release.operator true

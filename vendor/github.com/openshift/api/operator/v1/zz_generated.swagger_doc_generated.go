@@ -420,10 +420,11 @@ func (AzureDiskEncryptionSet) SwaggerDoc() map[string]string {
 
 var map_CSIDriverConfigSpec = map[string]string{
 	"":           "CSIDriverConfigSpec defines configuration spec that can be used to optionally configure a specific CSI Driver.",
-	"driverType": "driverType indicates type of CSI driver for which the driverConfig is being applied to. Valid values are: AWS, Azure, GCP, vSphere and omitted. Consumers should treat unknown values as a NO-OP.",
+	"driverType": "driverType indicates type of CSI driver for which the driverConfig is being applied to. Valid values are: AWS, Azure, GCP, IBMCloud, vSphere and omitted. Consumers should treat unknown values as a NO-OP.",
 	"aws":        "aws is used to configure the AWS CSI driver.",
 	"azure":      "azure is used to configure the Azure CSI driver.",
 	"gcp":        "gcp is used to configure the GCP CSI driver.",
+	"ibmcloud":   "ibmcloud is used to configure the IBM Cloud CSI driver.",
 	"vSphere":    "vsphere is used to configure the vsphere CSI driver.",
 }
 
@@ -488,6 +489,15 @@ var map_GCPKMSKeyReference = map[string]string{
 
 func (GCPKMSKeyReference) SwaggerDoc() map[string]string {
 	return map_GCPKMSKeyReference
+}
+
+var map_IBMCloudCSIDriverConfigSpec = map[string]string{
+	"":                 "IBMCloudCSIDriverConfigSpec defines the properties that can be configured for the IBM Cloud CSI driver.",
+	"encryptionKeyCRN": "encryptionKeyCRN is the IBM Cloud CRN of the customer-managed root key to use for disk encryption of volumes for the default storage classes.",
+}
+
+func (IBMCloudCSIDriverConfigSpec) SwaggerDoc() map[string]string {
+	return map_IBMCloudCSIDriverConfigSpec
 }
 
 var map_VSphereCSIDriverConfigSpec = map[string]string{
@@ -1450,6 +1460,7 @@ var map_NetworkMigration = map[string]string{
 	"networkType": "networkType is the target type of network migration. Set this to the target network type to allow changing the default network. If unset, the operation of changing cluster default network plugin will be rejected. The supported values are OpenShiftSDN, OVNKubernetes",
 	"mtu":         "mtu contains the MTU migration configuration. Set this to allow changing the MTU values for the default network. If unset, the operation of changing the MTU for the default network will be rejected.",
 	"features":    "features contains the features migration configuration. Set this to migrate feature configuration when changing the cluster default network provider. if unset, the default operation is to migrate all the configuration of supported features.",
+	"mode":        "mode indicates the mode of network migration. The supported values are \"Live\", \"Offline\" and omitted. A \"Live\" migration operation will not cause service interruption by migrating the CNI of each node one by one. The cluster network will work as normal during the network migration. An \"Offline\" migration operation will cause service interruption. During an \"Offline\" migration, two rounds of node reboots are required. The cluster network will be malfunctioning during the network migration. When omitted, this means no opinion and the platform is left to choose a reasonable default which is subject to change over time. The current default value is \"Offline\".",
 }
 
 func (NetworkMigration) SwaggerDoc() map[string]string {

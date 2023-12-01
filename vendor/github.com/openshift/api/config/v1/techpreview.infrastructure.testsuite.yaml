@@ -517,3 +517,48 @@ tests:
             resourceTags:
               - {parentID: "test-project-123", key: "key", value: "value"}
     expectedStatusError: "status.platformStatus.gcp.resourceTags: Invalid value: \"array\": resourceTags are immutable and may only be configured during installation"
+  - name: Should not be able to modify the cluster hosted dns value for GCP Platform Status
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec: {}
+      status:
+        controlPlaneTopology: "HighlyAvailable"
+        infrastructureTopology: "HighlyAvailable"
+        platform: GCP
+        platformStatus:
+          type: GCP
+          gcp:
+            clusterHostedDNS: "Enabled"
+    updated: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec: {}
+      status:
+        platform: GCP
+        platformStatus:
+          type: GCP
+          gcp:
+            clusterHostedDNS: "Disabled"
+    expectedStatusError: "status.platformStatus.gcp.clusterHostedDNS: Invalid value: \"string\": clusterHostedDNS is immutable and may only be configured during installation"
+  - name: Should not be able to remove GCP cluster hosted DNS from platformStatus.gcp
+    initial: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec: {}
+      status:
+        platform: GCP
+        platformStatus:
+          type: GCP
+          gcp:
+            clusterHostedDNS: "Enabled"
+    updated: |
+      apiVersion: config.openshift.io/v1
+      kind: Infrastructure
+      spec: {}
+      status:
+        platform: GCP
+        platformStatus:
+          type: GCP
+          gcp: {}
+    expectedStatusError: "status.platformStatus.gcp.clusterHostedDNS: Invalid value: \"string\": clusterHostedDNS is immutable and may only be configured during installation"

@@ -16,3 +16,94 @@ tests:
         logLevel: Normal
         operatorLogLevel: Normal
         replicas: 1
+  - name: Should be able to configure internal storage network access for Azure
+    initial: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        replicas: 1
+        storage:
+          azure:
+            networkAccess:
+              type: Internal
+              internal:
+                networkResourceGroupName: .my.resource_group-name
+                vnetName: foo-bar
+                subnetName: bar_foo
+                privateEndpointName: my-private-endpoint
+    expected: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        logLevel: Normal
+        operatorLogLevel: Normal
+        replicas: 1
+        storage:
+          azure:
+            networkAccess:
+              type: Internal
+              internal:
+                networkResourceGroupName: .my.resource_group-name
+                vnetName: foo-bar
+                subnetName: bar_foo
+                privateEndpointName: my-private-endpoint
+  - name: Should be able to configure internal storage network access for Azure without details
+    initial: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        replicas: 1
+        storage:
+          azure:
+            networkAccess:
+              type: Internal
+    expected: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        logLevel: Normal
+        operatorLogLevel: Normal
+        replicas: 1
+        storage:
+          azure:
+            networkAccess:
+              type: Internal
+  - name: Should reject configuration with invalid vnet name in internal storage network access config
+    initial: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        replicas: 1
+        storage:
+          azure:
+            networkAccess:
+              type: Internal
+              internal:
+                vnetName: .invalid
+    expectedError: "spec.storage.azure.networkAccess.internal.vnetName in body should match '^[0-9A-Za-z][0-9A-Za-z_.-]*[0-9A-Za-z_]$'"
+  - name: Should reject configuration with invalid subnet name in internal storage network access config
+    initial: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        replicas: 1
+        storage:
+          azure:
+            networkAccess:
+              type: Internal
+              internal:
+                subnetName: .invalid
+    expectedError: "spec.storage.azure.networkAccess.internal.subnetName in body should match '^[0-9A-Za-z](?:[0-9A-Za-z_.-]*[0-9A-Za-z_])?$'"
+  - name: Should reject configuration with invalid network resource group name in internal storage network access config
+    initial: |
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        replicas: 1
+        storage:
+          azure:
+            networkAccess:
+              type: Internal
+              internal:
+                networkResourceGroupName: invalid.
+    expectedError: "spec.storage.azure.networkAccess.internal.networkResourceGroupName in body should match '^[0-9A-Za-z_.-](?:[0-9A-Za-z_.-]*[0-9A-Za-z_-])?$'"
