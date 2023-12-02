@@ -611,7 +611,11 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
-	exclusions := []string{}
+	exclusions := []string{
+		// compare https://github.com/kubernetes/kubernetes/pull/123405
+		// which changed the healthz handler name
+		`[sig-api-machinery] health handlers should contain necessary checks`,
+	}
 
 	matches := make([]*testCase, 0, len(tests))
 outerLoop:
