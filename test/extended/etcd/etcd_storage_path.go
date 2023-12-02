@@ -282,11 +282,23 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "27") {
+	if strings.HasPrefix(version.Minor, "29") {
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
 			// Added etcd data.
 			// TODO: When rebase has started, add etcd storage data has been added to
 			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.27 release.
+
+			// compare https://github.com/kubernetes/kubernetes/pull/121089
+			gvr("flowcontrol.apiserver.k8s.io", "v1", "flowschemas"): {
+				Stub:             `{"metadata": {"name": "fs-3"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+				ExpectedEtcdPath: "/registry/flowschemas/fs-3",
+				ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta3", "FlowSchema"),
+			},
+			gvr("flowcontrol.apiserver.k8s.io", "v1", "prioritylevelconfigurations"): {
+				Stub:             `{"metadata": {"name": "conf5"}, "spec": {"type": "Limited", "limited": {"nominalConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+				ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf5",
+				ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1beta3", "PriorityLevelConfiguration"),
+			},
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
