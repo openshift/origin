@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -16,20 +15,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-
-	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/sirupsen/logrus"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -196,6 +197,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	fmt.Fprintf(o.Out, "found %d filtered tests\n", len(tests))
 
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	// skip tests due to newer k8s
+	tests, err = o.filterOutRebaseTests(restConfig, tests)
+	if err != nil {
+		return err
+	}
+
 	count := o.Count
 	if count == 0 {
 		count = suite.Count
@@ -244,11 +256,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	}
 	if parallelism == 0 {
 		parallelism = 10
-	}
-
-	restConfig, err := clusterinfo.GetMonitorRESTConfig()
-	if err != nil {
-		return err
 	}
 
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -585,4 +592,40 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	fmt.Fprintf(o.Out, "%d pass, %d skip (%s)\n", pass, skip, duration)
 	return ctx.Err()
+}
+
+func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, tests []*testCase) ([]*testCase, error) {
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	serverVersion, err := discoveryClient.ServerVersion()
+	if err != nil {
+		return nil, err
+	}
+	// TODO: this version along with below exclusions lists needs to be updated
+	// for the rebase in-progress.
+	if !strings.HasPrefix(serverVersion.Minor, "29") {
+		return tests, nil
+	}
+
+	// Below list should only be filled in when we're trying to land k8s rebase.
+	// Don't pile them up!
+	exclusions := []string{
+		// compare https://github.com/kubernetes/kubernetes/pull/119454
+		`[sig-network] Services should complete a service status lifecycle`,
+	}
+
+	matches := make([]*testCase, 0, len(tests))
+outerLoop:
+	for _, test := range tests {
+		for _, excl := range exclusions {
+			if strings.Contains(test.name, excl) {
+				fmt.Fprintf(o.Out, "Skipping %q due to rebase in-progress\n", test.name)
+				continue outerLoop
+			}
+		}
+		matches = append(matches, test)
+	}
+	return matches, nil
 }
