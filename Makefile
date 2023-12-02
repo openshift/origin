@@ -37,6 +37,10 @@ build-docs:
 	hack/generate-docs.sh
 .PHONY: build-docs
 
+openshift-tests: GO_BUILD_PACKAGES :=./cmd/openshift-tests
+openshift-tests: build
+.PHONY: openshift-tests
+
 # run repo-specific checks.
 #
 # Example:
