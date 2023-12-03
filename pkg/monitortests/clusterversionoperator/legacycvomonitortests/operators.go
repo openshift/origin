@@ -16,14 +16,89 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// exceptionCallback consumes a suspicious condition and returns an
+// exception string if does not think the condition should be fatal.
+type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition) (string, error)
+
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
+	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition) (string, error) {
+		if condition.Status == configv1.ConditionTrue {
+			if condition.Type == configv1.OperatorAvailable {
+				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		} else if condition.Status == configv1.ConditionFalse {
+			if condition.Type == configv1.OperatorDegraded {
+				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		}
+
+		return "We are not worried about Available=False or Degraded=True blips for stable-system tests yet.", nil
+	}
+
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
 }
 
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded})
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition) (string, error) {
+		if condition.Status == configv1.ConditionTrue {
+			if condition.Type == configv1.OperatorAvailable {
+				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		} else if condition.Status == configv1.ConditionFalse {
+			if condition.Type == configv1.OperatorDegraded {
+				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		}
+
+		if condition.Type == configv1.OperatorDegraded {
+			return "We are not worried about Degraded=True blips for update tests yet.", nil
+		}
+
+		switch operator {
+		case "authentication":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
+				return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
+			}
+		case "console":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "RouteHealth_FailedGet" || condition.Reason == "RouteHealth_RouteNotAdmitted" || condition.Reason == "RouteHealth_StatusError") {
+				return "https://issues.redhat.com/browse/OCPBUGS-24041", nil
+			}
+		case "control-plane-machine-set":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "UnavailableReplicas" {
+				return "https://issues.redhat.com/browse/OCPBUGS-20061", nil
+			}
+		case "kube-storage-version-migrator":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "KubeStorageVersionMigrator_Deploying" {
+				return "https://issues.redhat.com/browse/OCPBUGS-20062", nil
+			}
+		case "machine-config":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "MachineConfigControllerFailed" && strings.Contains(condition.Message, "notAfter: Required value") {
+				return "https://issues.redhat.com/browse/OCPBUGS-22364", nil
+			}
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && strings.Contains(condition.Message, "missing HTTP content-type") {
+				return "https://issues.redhat.com/browse/OCPBUGS-24228", nil
+			}
+		case "monitoring":
+			if condition.Type == configv1.OperatorAvailable && (condition.Status == configv1.ConditionFalse && (condition.Reason == "PlatformTasksFailed" || condition.Reason == "UpdatingAlertmanagerFailed" || condition.Reason == "UpdatingConsolePluginComponentsFailed" || condition.Reason == "UpdatingPrometheusK8SFailed" || condition.Reason == "UpdatingPrometheusOperatorFailed")) || (condition.Status == configv1.ConditionUnknown && condition.Reason == "UpdatingPrometheusFailed") {
+				return "https://issues.redhat.com/browse/OCPBUGS-23745", nil
+			}
+		case "openshift-apiserver":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_Error") {
+				return "https://issues.redhat.com/browse/OCPBUGS-23746", nil
+			}
+		case "operator-lifecycle-manager-packageserver":
+			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
+				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
+			}
+		}
+
+		return "", nil
+	}
+
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
 }
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType) []*junitapi.JUnitTestCase {
+
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -39,13 +114,13 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 
 	eventsByOperator := getEventsByOperator(events)
 	e2eEventIntervals := operatorstateanalyzer.E2ETestEventIntervals(events)
-	for _, condition := range conditionTypes {
+	for _, conditionType := range conditionTypes {
 		for _, operatorName := range platformidentification.KnownOperators.List() {
 			bzComponent := platformidentification.GetBugzillaComponentForOperator(operatorName)
 			if bzComponent == "Unknown" {
 				bzComponent = operatorName
 			}
-			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, condition)
+			testName := fmt.Sprintf("[bz-%v] clusteroperator/%v should not change condition/%v", bzComponent, operatorName, conditionType)
 			operatorEvents := eventsByOperator[operatorName]
 			if len(operatorEvents) == 0 {
 				ret = append(ret, &junitapi.JUnitTestCase{
@@ -55,19 +130,78 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				continue
 			}
 
-			failures := testOperatorState(condition, operatorEvents, e2eEventIntervals)
-			if len(failures) > 0 {
+			excepted := []string{}
+			fatal := []string{}
+
+			for _, eventInterval := range operatorEvents {
+				condition := monitorapi.GetOperatorConditionStatus(eventInterval)
+				if condition == nil {
+					continue // ignore non-condition intervals
+				}
+				if len(condition.Type) == 0 {
+					fatal = append(fatal, fmt.Sprintf("failed to convert %v into a condition with a type", eventInterval))
+				}
+
+				if condition.Type != conditionType {
+					continue
+				}
+
+				// if there was any switch, it was wrong/unexpected at some point
+				failure := fmt.Sprintf("%v", eventInterval)
+
+				overlappingE2EIntervals := operatorstateanalyzer.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
+				concurrentE2E := []string{}
+				for _, overlap := range overlappingE2EIntervals {
+					if overlap.Level == monitorapi.Info {
+						continue
+					}
+					e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.StructuredLocator)
+					if !ok {
+						continue
+					}
+					concurrentE2E = append(concurrentE2E, fmt.Sprintf("%v", e2eTest))
+				}
+
+				if len(concurrentE2E) > 0 {
+					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n"))
+				}
+
+				exception, err := except(operatorName, condition)
+				if err != nil || exception == "" {
+					fatal = append(fatal, failure)
+				} else {
+					excepted = append(excepted, fmt.Sprintf("%s (exception: %s)", failure, exception))
+				}
+			}
+
+			output := fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run", len(fatal))
+			if len(fatal) > 0 {
+				output = fmt.Sprintf("%s.  These did not match any known exceptions, so they cause this test-case to fail:\n\n%v\n", output, strings.Join(fatal, "\n"))
+			} else {
+				output = fmt.Sprintf("%s, as desired.", output)
+			}
+			output = fmt.Sprintf("%s\n%d unwelcome but acceptable clusteroperator state transitions during e2e test run", output, len(excepted))
+			if len(excepted) > 0 {
+				output = fmt.Sprintf("%s.  These should not happen, but because they are tied to exceptions, the fact that they did happen is not sufficient to cause this test-case to fail:\n\n%v\n", output, strings.Join(excepted, "\n"))
+			} else {
+				output = fmt.Sprintf("%s, as desired.", output)
+			}
+
+			if len(fatal) > 0 || len(excepted) > 0 {
 				ret = append(ret, &junitapi.JUnitTestCase{
 					Name:      testName,
 					Duration:  duration,
-					SystemOut: strings.Join(failures, "\n"),
+					SystemOut: output,
 					FailureOutput: &junitapi.FailureOutput{
-						Output: fmt.Sprintf("%d unexpected clusteroperator state transitions during e2e test run \n\n%v", len(failures), strings.Join(failures, "\n")),
+						Output: output,
 					},
 				})
 			}
-			// always add a success so we flake and not fail
-			ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+
+			if len(fatal) == 0 {
+				// add a success so we flake (or pass) and don't fail
+				ret = append(ret, &junitapi.JUnitTestCase{Name: testName})
+			}
 		}
 	}
 
@@ -266,45 +400,4 @@ func getEventsByOperator(events monitorapi.Intervals) map[string]monitorapi.Inte
 		eventsByClusterOperator[operatorName] = append(eventsByClusterOperator[operatorName], event)
 	}
 	return eventsByClusterOperator
-}
-
-func testOperatorState(interestingCondition configv1.ClusterStatusConditionType, eventIntervals monitorapi.Intervals, e2eEventIntervals monitorapi.Intervals) []string {
-	failures := []string{}
-
-	for _, eventInterval := range eventIntervals {
-		// ignore non-interval eventInterval intervals
-		if eventInterval.From == eventInterval.To {
-			continue
-		}
-
-		condition := monitorapi.GetOperatorConditionStatus(eventInterval)
-		if condition == nil {
-			continue
-		}
-
-		if condition.Type != interestingCondition {
-			continue
-		}
-
-		// if there was any switch, it was wrong/unexpected at some point
-		failures = append(failures, fmt.Sprintf("%v", eventInterval))
-
-		overlappingE2EIntervals := operatorstateanalyzer.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
-		concurrentE2E := []string{}
-		for _, overlap := range overlappingE2EIntervals {
-			if overlap.Level == monitorapi.Info {
-				continue
-			}
-			e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.StructuredLocator)
-			if !ok {
-				continue
-			}
-			concurrentE2E = append(concurrentE2E, fmt.Sprintf("%v", e2eTest))
-		}
-
-		if len(concurrentE2E) > 0 {
-			failures = append(failures, fmt.Sprintf("%d tests failed during this blip (%v to %v): %v", len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n")))
-		}
-	}
-	return failures
 }
