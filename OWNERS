@@ -3,32 +3,17 @@
 filters:
   ".*":
     reviewers:
-    - bparees
     - deads2k
     - sjenning
-    - smarterclayton
     - soltysh
     - stlaz
     - p0lyn0mial
     approvers:
-    - bparees
-    - deads2k
-    - derekwaynecarr
+    - DennisPeriquet
     - dgoodwin
-    - eparis
-    - knobunc  # Network, Multi-cluster, Storage
-    - mfojtik
-    - pweil-
-    - sjenning
-    - soltysh
+    - neisw
     - stbenjam
     - xueqzhan
-    - DennisPeriquet
-    - neisw
-    - sttts
-    - smarterclayton
-    - stlaz
-    - p0lyn0mial
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
