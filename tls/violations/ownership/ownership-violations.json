@@ -2,16 +2,6 @@
     "certificateAuthorityBundles": [
         {
             "configMapLocation": {
-                "Namespace": "openshift-cloud-controller-manager",
-                "Name": "ccm-trusted-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
                 "Namespace": "openshift-config",
                 "Name": "admin-kubeconfig-client-ca"
             },
@@ -32,68 +22,8 @@
         },
         {
             "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "initial-kube-apiserver-server-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "user-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config-managed",
-                "Name": "csr-controller-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
                 "Namespace": "openshift-config-managed",
                 "Name": "default-ingress-cert"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config-managed",
-                "Name": "kube-apiserver-aggregator-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config-managed",
-                "Name": "kube-apiserver-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config-managed",
-                "Name": "kube-apiserver-server-ca"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "",
@@ -112,48 +42,8 @@
         },
         {
             "configMapLocation": {
-                "Namespace": "openshift-config-managed",
-                "Name": "kubelet-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config-managed",
-                "Name": "oauth-serving-cert"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
                 "Namespace": "openshift-console",
                 "Name": "default-ingress-cert"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-console",
-                "Name": "oauth-serving-cert"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-controller-manager",
-                "Name": "client-ca"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "",
@@ -184,186 +74,6 @@
             "configMapLocation": {
                 "Namespace": "openshift-etcd-operator",
                 "Name": "etcd-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "aggregator-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kube-apiserver-server-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "kube-apiserver-to-kubelet-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "kube-control-plane-signer-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "loadbalancer-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "localhost-recovery-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "localhost-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "node-system-admin-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "service-network-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "aggregator-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "serviceaccount-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager-operator",
-                "Name": "csr-controller-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager-operator",
-                "Name": "csr-controller-signer-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-controller-manager-operator",
-                "Name": "csr-signer-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "serviceaccount-ca"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "",
@@ -449,39 +159,9 @@
                 "owningJiraComponent": "",
                 "description": ""
             }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-route-controller-manager",
-                "Name": "client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
         }
     ],
     "certKeyPairs": [
-        {
-            "secretLocation": {
-                "Namespace": "openshift-config-managed",
-                "Name": "kube-controller-manager-client-cert-key"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-config-managed",
-                "Name": "kube-scheduler-client-cert-key"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
         {
             "secretLocation": {
                 "Namespace": "openshift-ingress",
@@ -504,188 +184,8 @@
         },
         {
             "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "aggregator-client"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "check-endpoints-client-cert-key"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "control-plane-node-admin-client-cert-key"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "external-loadbalancer-serving-certkey"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "internal-loadbalancer-serving-certkey"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "kubelet-client"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-recovery-serving-certkey"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "localhost-serving-cert-certkey"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "service-network-serving-certkey"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "localhost-recovery-serving-signer"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "node-system-admin-client"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver-operator",
-                "Name": "node-system-admin-signer"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "csr-signer"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager",
-                "Name": "kube-controller-manager-client-cert-key"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager-operator",
-                "Name": "csr-signer"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-controller-manager-operator",
-                "Name": "csr-signer-signer"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-scheduler",
-                "Name": "kube-scheduler-client-cert-key"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
                 "Namespace": "openshift-machine-api",
                 "Name": "metal3-ironic-tls"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-machine-config-operator",
-                "Name": "machine-config-server-tls"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -715,7 +215,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-1q4502kr4t411"
+                "Name": "prometheus-adapter-1ehgs15tubhcc"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -725,7 +225,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-29plsl0b2ei2t"
+                "Name": "prometheus-adapter-1vcbbd485dtu8"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -735,7 +235,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-43lbje12tka6q"
+                "Name": "prometheus-adapter-2la6907ck7pse"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -745,7 +245,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-4o53ruevt7g9i"
+                "Name": "prometheus-adapter-4ho3dj3us2df4"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -755,7 +255,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-71k3k5u10lsq"
+                "Name": "prometheus-adapter-56glf1mhs3bbm"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -765,7 +265,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-9k825ug31dq18"
+                "Name": "prometheus-adapter-5b3cu0f6s65i"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -775,7 +275,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-bcpovp93k8nqd"
+                "Name": "prometheus-adapter-5blo6a2jkr388"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -785,7 +285,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-chpt90tvt3lu0"
+                "Name": "prometheus-adapter-ba21034efmj7v"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -795,7 +295,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-e1s9cs5rknc0d"
+                "Name": "prometheus-adapter-bo9ukpiqhr327"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -805,17 +305,7 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-e3t89g68h83ul"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-fgiehq9oii8g6"
+                "Name": "prometheus-adapter-d6ej41uj54llt"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
@@ -836,16 +326,6 @@
             "secretLocation": {
                 "Namespace": "openshift-network-node-identity",
                 "Name": "network-node-identity-cert"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-oauth-apiserver",
-                "Name": "openshift-authenticator-certs"
             },
             "certKeyInfo": {
                 "owningJiraComponent": "",
