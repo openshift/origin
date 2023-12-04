@@ -8,20 +8,21 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 type availability struct {
 	disruptionCheckers []*disruptionlibrary.Availability
 
-	notSupportedReason string
+	notSupportedReason error
 	suppressJunit      bool
 }
 
@@ -157,16 +158,20 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 
 	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-apiserver", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		w.notSupportedReason = "namespace openshift-apiserver not present"
-		return nil
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: "namespace openshift-apiserver not present",
+		}
+		return w.notSupportedReason
 	}
 	if err != nil {
 		return err
 	}
 	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-oauth-apiserver", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		w.notSupportedReason = "namespace openshift-oauth-apiserver not present"
-		return nil
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: "namespace openshift-oauth-apiserver not present",
+		}
+		return w.notSupportedReason
 	}
 	if err != nil {
 		return err
@@ -217,6 +222,10 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 }
 
 func (w *availability) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if w.notSupportedReason != nil {
+		return nil, nil, w.notSupportedReason
+	}
+
 	intervals := monitorapi.Intervals{}
 	junits := []*junitapi.JUnitTestCase{}
 	errs := []error{}
@@ -238,11 +247,15 @@ func (w *availability) CollectData(ctx context.Context, storageDir string, begin
 	return intervals, junits, utilerrors.NewAggregate(errs)
 }
 
-func (*availability) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+func (w *availability) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	return nil, w.notSupportedReason
 }
 
 func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if w.notSupportedReason != nil {
+		return nil, w.notSupportedReason
+	}
+
 	if w.suppressJunit {
 		return nil, nil
 	}
@@ -266,10 +279,10 @@ func (w *availability) EvaluateTestsFromConstructedIntervals(ctx context.Context
 	return junits, utilerrors.NewAggregate(errs)
 }
 
-func (*availability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return nil
+func (w *availability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	return w.notSupportedReason
 }
 
 func (w *availability) Cleanup(ctx context.Context) error {
-	return nil
+	return w.notSupportedReason
 }

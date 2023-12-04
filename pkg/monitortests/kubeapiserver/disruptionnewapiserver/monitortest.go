@@ -7,18 +7,19 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 type newAPIServerDisruptionChecker struct {
 	adminRESTConfig    *rest.Config
-	notSupportedReason string
+	notSupportedReason error
 }
 
 func NewDisruptionInvariant() monitortestframework.MonitorTest {
@@ -37,15 +38,18 @@ func (w *newAPIServerDisruptionChecker) StartCollection(ctx context.Context, adm
 		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
 	}
 	if isMicroShift {
-		w.notSupportedReason = "platform MicroShift not supported"
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: "platform MicroShift not supported",
+		}
 	}
-	return nil
+	return w.notSupportedReason
 }
 
 func (w *newAPIServerDisruptionChecker) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	if len(w.notSupportedReason) > 0 {
-		return nil, nil, nil
+	if w.notSupportedReason != nil {
+		return nil, nil, w.notSupportedReason
 	}
+
 	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
 	if err != nil {
 		return nil, nil, err
@@ -55,21 +59,21 @@ func (w *newAPIServerDisruptionChecker) CollectData(ctx context.Context, storage
 	return apiserverAvailabilityIntervals, nil, err
 }
 
-func (*newAPIServerDisruptionChecker) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+func (w *newAPIServerDisruptionChecker) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	return nil, w.notSupportedReason
 }
 
-func (*newAPIServerDisruptionChecker) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+func (w *newAPIServerDisruptionChecker) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	return nil, w.notSupportedReason
 }
 
 func (w *newAPIServerDisruptionChecker) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return nil
+	return w.notSupportedReason
 }
 
 func (w *newAPIServerDisruptionChecker) Cleanup(ctx context.Context) error {
-	if len(w.notSupportedReason) > 0 {
-		return nil
+	if w.notSupportedReason != nil {
+		return w.notSupportedReason
 	}
 
 	if err := sampler.TearDownInClusterMonitors(w.adminRESTConfig); err != nil {
