@@ -180,7 +180,7 @@ func isCOAvailableState(oc *exutil.CLI, coName string) (bool, error) {
 		if clusterOperator.Name == coName {
 			co = clusterOperator
 			e2e.Logf("co name is %v", co.Name)
-			e2e.Logf("desiredCO.status.conditions of %v is %v", co.Name, co.Status.Conditions)
+			e2e.Logf("co.status.conditions of %v is %v", co.Name, co.Status.Conditions)
 			break
 		}
 	}
@@ -200,7 +200,7 @@ func isCOAvailableState(oc *exutil.CLI, coName string) (bool, error) {
 // Check if mcp master/worker mcp is on updated state, the maxinum is 10 times, re-try one time each minutes
 // just in case the mcp state become updating during ocp upgrade or node reboot/scale out or other test case change mcp
 func waitForUpdatedMCP(mcps dynamic.NamespaceableResourceInterface, mcpName string) error {
-	errWait := wait.Poll(1*time.Minute, 10*time.Minute, func() (bool, error) {
+	return wait.Poll(1*time.Minute, 10*time.Minute, func() (bool, error) {
 		updated, updating := isPoolUpdated(mcps, mcpName)
 		if updated && !updating {
 			e2e.Logf("the status of mcp %v is updated state, not updating", mcpName)
@@ -210,5 +210,4 @@ func waitForUpdatedMCP(mcps dynamic.NamespaceableResourceInterface, mcpName stri
 		e2e.Logf("the status of mcp is updated - [%v] updating - [%v]", updated, updating)
 		return false, nil
 	})
-	return errWait
 }

@@ -135,7 +135,7 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 		firstMasterNode, err := getFirstMasterNode(ctx, nodeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		e2e.Logf("ensure if the status of mcp master keep on updated state")
+		e2e.Logf("ensure that the status of mcp is on updated state")
 		config, err := e2e.LoadConfig()
 		e2e.ExpectNoError(err)
 		dynamicClient := dynamic.NewForConfigOrDie(config)
@@ -151,10 +151,10 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		e2e.Logf("ensure if the status of co machine-config is availabe state")
+		e2e.Logf("ensure that the status of co machine-config is availabe state")
 		err = waitForClusterOperatorAvailable(oc, "machine-config")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.Logf("ensure if the status of co node-tuning is availabe state")
+		e2e.Logf("ensure that the status of co node-tuning is availabe state")
 		err = waitForClusterOperatorAvailable(oc, "node-tuning")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
