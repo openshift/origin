@@ -407,7 +407,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 
 	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
 		name:              "MessageChangedFromFEFF",
-		messageHumanRegex: regexp.MustCompile(`message changed from "\x{FEFF}`),
+		messageHumanRegex: regexp.MustCompile(`message changed from "\\ufeff`),
 	})
 
 	// This was originally intended to be limited to only during the openshift/build test suite, however it was
