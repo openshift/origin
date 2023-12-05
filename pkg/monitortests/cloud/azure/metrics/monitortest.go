@@ -135,6 +135,8 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 	return ret, nil
 }
 
+// CollectData collects azure metrics. Since azure metrics are collected to facilitate debugging, some errors (like cloud throttling) are not considered fatal.
+// We will simply log the error and return nil to the caller.
 func (w *azureMetricsCollector) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	// Only collect if we are on azure
 	oc := exutil.NewCLI("cloudmetrics").AsAdmin()
@@ -175,17 +177,19 @@ func (w *azureMetricsCollector) CollectData(ctx context.Context, storageDir stri
 	}
 	clientFactory, err := armmonitor.NewClientFactory(subscriptionID, cred, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create azure metric client: %v", err)
+		logrus.WithError(err).Error("failed to create azure metric client")
+		return nil, nil, nil
 	}
 	client := clientFactory.NewMetricsClient()
 
 	intervals, err := fetchExtrenuousVMMetrics(ctx, oc, client, subscriptionID, resourceGroup, beginning)
 	if err != nil {
-		return nil, nil, err
+		logrus.WithError(err).Error("failed to fetch azure metrics")
+		return nil, nil, nil
 	}
 	ret = append(ret, intervals...)
 
-	return ret, nil, err
+	return ret, nil, nil
 }
 
 func (*azureMetricsCollector) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
