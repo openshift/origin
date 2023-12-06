@@ -235,6 +235,7 @@
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/template-minimal-expose.json
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-app-label.json
+// test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd-ns.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-namespaces.json
 // test/extended/testdata/cmd/test/cmd/testdata/new-app/template-without-app-label.json
@@ -38123,6 +38124,33 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson() (*as
 	return a, nil
 }
 
+var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdNsYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-with-crd
+  namespace: openshift
+objects:
+- kind: CustomResourceDefinition
+  apiVersion: apiextensions.k8s.io/v1
+  metadata:
+    name: template-with-crd-ns
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdNsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdNsYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdNsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdNsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd-ns.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -54129,6 +54157,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/invalid.json":                                      testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-minimal-expose.json":                      testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-app-label.json":                      testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson,
+	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd-ns.yaml":                         testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdNsYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-crd.yaml":                            testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-with-namespaces.json":                     testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/new-app/template-without-app-label.json":                   testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson,
@@ -54780,6 +54809,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 									"invalid.json":                        {testExtendedTestdataCmdTestCmdTestdataNewAppInvalidJson, map[string]*bintree{}},
 									"template-minimal-expose.json":        {testExtendedTestdataCmdTestCmdTestdataNewAppTemplateMinimalExposeJson, map[string]*bintree{}},
 									"template-with-app-label.json":        {testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson, map[string]*bintree{}},
+									"template-with-crd-ns.yaml":           {testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdNsYaml, map[string]*bintree{}},
 									"template-with-crd.yaml":              {testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithCrdYaml, map[string]*bintree{}},
 									"template-with-namespaces.json":       {testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithNamespacesJson, map[string]*bintree{}},
 									"template-without-app-label.json":     {testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson, map[string]*bintree{}},
