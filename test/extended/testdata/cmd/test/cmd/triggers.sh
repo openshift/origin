@@ -16,7 +16,7 @@ project="$(oc project -q)"
 os::test::junit::declare_suite_start "cmd/triggers"
 # This test validates triggers
 
-os::cmd::expect_success 'oc new-app registry.access.redhat.com/ubi8/ruby-27~https://github.com/openshift/ruby-hello-world.git'
+os::cmd::expect_success 'oc new-app quay.io/centos7/ruby-27-centos7~https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 
 os::cmd::expect_success "oc new-build --name=scratch --docker-image=scratch --dockerfile='FROM scratch'"

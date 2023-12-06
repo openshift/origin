@@ -14,7 +14,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.access.redhat.com/ubi8/ruby-27
+        name: quay.io/centos7/ruby-27-centos7
     type: Source
   triggers: []
 status:

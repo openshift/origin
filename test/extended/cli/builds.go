@@ -84,7 +84,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		o.Expect(oc.Run("delete").Args("bc,is", "--all").Execute()).NotTo(o.HaveOccurred())
 
 		g.By("build from git with output to ImageStreamTag")
-		out, err = oc.Run("new-build").Args("registry.access.redhat.com/ubi8/ruby-27", "https://github.com/openshift/ruby-hello-world.git").Output()
+		out, err = oc.Run("new-build").Args("quay.io/centos7/ruby-27-centos7", "https://github.com/openshift/ruby-hello-world.git").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(getExpectedBCOutputMatcher("ruby-hello-world", "ruby-hello-world"))
 		o.Expect(getBCSourceType(oc, "ruby-hello-world")).To(o.Equal("Git"))

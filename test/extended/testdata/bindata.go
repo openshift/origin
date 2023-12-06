@@ -4536,7 +4536,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
+              "name": "quay.io/centos7/ruby-27-centos7:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -5010,7 +5010,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
           {
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
+              "name": "quay.io/centos7/ruby-27-centos7:latest"
             },
             "name": "latest"
           }
@@ -5466,7 +5466,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
         "name": "ruby-27"
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/ubi8/ruby-27"
+        "dockerImageRepository": "quay.io/centos7/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -5514,7 +5514,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
+              "name": "quay.io/centos7/ruby-27-centos7:latest"
             }
           }
         },
@@ -5961,7 +5961,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
         "name": "ruby-27"
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/ubi8/ruby-27"
+        "dockerImageRepository": "quay.io/centos7/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -17947,7 +17947,7 @@ func testExtendedTestdataBuildsBuildSecretsTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM registry.access.redhat.com/ubi8/ruby-27
+var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM quay.io/centos7/ruby-27-centos7
 
 USER root
 `)
@@ -19167,7 +19167,7 @@ func testExtendedTestdataBuildsTestBcWithPrRefYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM registry.access.redhat.com/ubi8/ruby-27
+var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM quay.io/centos7/ruby-27-centos7
 USER default
 EXPOSE 8080
 ENV RACK_ENV production
@@ -19770,7 +19770,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM registry.access.redhat.com/ubi8/ruby-27
+        FROM quay.io/centos7/ruby-27-centos7
         ARG foofoo
         RUN echo $foofoo
     strategy:
@@ -19799,7 +19799,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM registry.access.redhat.com/ubi8/ruby-27
+        FROM quay.io/centos7/ruby-27-centos7
         ARG foofoo
         RUN echo $foofoo
     strategy:
@@ -35087,7 +35087,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateMixJson = []byte(`
         "name": "ruby-27"
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/ubi8/ruby-27"
+        "dockerImageRepository": "quay.io/centos7/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -35245,7 +35245,7 @@ var _testExtendedTestdataCmdTestCmdTestdataApplicationTemplateStibuildJson = []b
         "name": "ruby-27"
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/ubi8/ruby-27"
+        "dockerImageRepository": "quay.io/centos7/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -36737,7 +36737,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
+              "name": "quay.io/centos7/ruby-27-centos7:latest"
             },
             "generation": null,
             "importPolicy": {},
@@ -37178,14 +37178,14 @@ var _testExtendedTestdataCmdTestCmdTestdataModifiedRubyImagestreamJson = []byte(
         },
         "from": {
           "kind": "DockerImage",
-          "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
+          "name": "quay.io/centos7/ruby-27-centos7:latest"
         }
       },
       {
         "name": "newtag",
         "from": {
           "kind": "DockerImage",
-          "name": "registry.access.redhat.com/ubi8/ruby-27:latest"
+          "name": "quay.io/centos7/ruby-27-centos7:latest"
         }
       }
     ]
@@ -37322,7 +37322,7 @@ func testExtendedTestdataCmdTestCmdTestdataNewAppBcFromImagestreamimageJson() (*
 	return a, nil
 }
 
-var _testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile = []byte(`FROM registry.access.redhat.com/ubi8/ruby-27
+var _testExtendedTestdataCmdTestCmdTestdataNewAppBuildArgDockerfileDockerfile = []byte(`FROM quay.io/centos7/ruby-27-centos7
 ARG foo
 RUN echo $foo
 `)
@@ -37707,7 +37707,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithAppLabelJson = []by
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/ubi8/ruby-27"
+        "dockerImageRepository": "quay.io/centos7/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -38370,7 +38370,7 @@ var _testExtendedTestdataCmdTestCmdTestdataNewAppTemplateWithoutAppLabelJson = [
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/ubi8/ruby-27"
+        "dockerImageRepository": "quay.io/centos7/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""
@@ -39693,7 +39693,7 @@ spec:
     spec:
       containers:
       - name: testapp
-        image: registry.access.redhat.com/ubi8/ruby-27:latest
+        image: quay.io/centos7/ruby-27-centos7:latest
         command:
         - /bin/sleep
         args:
@@ -40648,7 +40648,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: registry.access.redhat.com/ubi8/ruby-27
+        name: quay.io/centos7/ruby-27-centos7
     type: Source
   triggers: []
 status:
@@ -41277,7 +41277,7 @@ project="$(oc project -q)"
 os::test::junit::declare_suite_start "cmd/triggers"
 # This test validates triggers
 
-os::cmd::expect_success 'oc new-app registry.access.redhat.com/ubi8/ruby-27~https://github.com/openshift/ruby-hello-world.git'
+os::cmd::expect_success 'oc new-app quay.io/centos7/ruby-27-centos7~https://github.com/openshift/ruby-hello-world.git'
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 
 os::cmd::expect_success "oc new-build --name=scratch --docker-image=scratch --dockerfile='FROM scratch'"
@@ -41599,7 +41599,7 @@ run Proc.new { |env|
 EOF
 
 cat > Dockerfile <<- EOF
-FROM registry.access.redhat.com/ubi8/ruby-27
+FROM quay.io/centos7/ruby-27-centos7
 ENV SECRET_FILE /opt/openshift/src/dockercfg
 COPY dockercfg ./
 COPY config.ru ./
@@ -47715,7 +47715,7 @@ func testExtendedTestdataLdapLdapserverServiceYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataLong_namesDockerfile = []byte(`FROM registry.access.redhat.com/ubi8/ruby-27
+var _testExtendedTestdataLong_namesDockerfile = []byte(`FROM quay.io/centos7/ruby-27-centos7
 
 CMD ["/bin/sh", "-c", "echo", "hello"]
 `)
@@ -50073,7 +50073,7 @@ func testExtendedTestdataS2iDropcapsRootAccessBuildYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM registry.access.redhat.com/ubi8/ruby-27:latest
+var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM quay.io/centos7/ruby-27-centos7:latest
 USER root
 RUN rm -f /usr/bin/ls
 RUN echo "root:redhat" | chpasswd

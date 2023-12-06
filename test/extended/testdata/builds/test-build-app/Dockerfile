@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ruby-27
+FROM quay.io/centos7/ruby-27-centos7
 USER default
 EXPOSE 8080
 ENV RACK_ENV production

@@ -81,7 +81,7 @@
         "creationTimestamp": null
       },
       "spec": {
-        "dockerImageRepository": "registry.access.redhat.com/ubi8/ruby-27"
+        "dockerImageRepository": "quay.io/centos7/ruby-27-centos7"
       },
       "status": {
         "dockerImageRepository": ""

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: testapp
-        image: registry.access.redhat.com/ubi8/ruby-27:latest
+        image: quay.io/centos7/ruby-27-centos7:latest
         command:
         - /bin/sleep
         args:
