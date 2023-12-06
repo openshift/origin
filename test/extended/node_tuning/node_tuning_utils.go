@@ -146,7 +146,7 @@ func findCondition(conditions []configv1.ClusterOperatorStatusCondition, name co
 	return nil
 }
 
-// Check if CO status is available with multiple retry, the maxinum is 5 times, re-try one time each minutes.
+// Check if the co status is available every 60 seconds, for a maximum of 5 tries.
 // just in case the co status become degraded or processing during ocp upgrade scenario or node reboot/scale out.
 func waitForClusterOperatorAvailable(oc *exutil.CLI, coName string) error {
 	return wait.Poll(1*time.Minute, 5*time.Minute, func() (bool, error) {
@@ -197,7 +197,7 @@ func isCOAvailableState(oc *exutil.CLI, coName string) (bool, error) {
 	return isAvailable, nil
 }
 
-// Check if mcp master/worker mcp is on updated state, the maxinum is 10 times, re-try one time each minutes
+// Check the updated state of mcp master/worker every 60 seconds, for a maximum of 10 tries.
 // just in case the mcp state become updating during ocp upgrade or node reboot/scale out or other test case change mcp
 func waitForUpdatedMCP(mcps dynamic.NamespaceableResourceInterface, mcpName string) error {
 	return wait.Poll(1*time.Minute, 10*time.Minute, func() (bool, error) {
