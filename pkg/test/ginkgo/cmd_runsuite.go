@@ -197,17 +197,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	fmt.Fprintf(o.Out, "found %d filtered tests\n", len(tests))
 
-	restConfig, err := clusterinfo.GetMonitorRESTConfig()
-	if err != nil {
-		return err
-	}
-
-	// skip tests due to newer k8s
-	tests, err = o.filterOutRebaseTests(restConfig, tests)
-	if err != nil {
-		return err
-	}
-
 	count := o.Count
 	if count == 0 {
 		count = suite.Count
@@ -237,6 +226,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			fmt.Fprintf(o.Out, "%q\n", test.name)
 		}
 		return nil
+	}
+
+	restConfig, err := clusterinfo.GetMonitorRESTConfig()
+	if err != nil {
+		return err
+	}
+
+	// skip tests due to newer k8s
+	tests, err = o.filterOutRebaseTests(restConfig, tests)
+	if err != nil {
+		return err
 	}
 
 	if len(o.JUnitDir) > 0 {
