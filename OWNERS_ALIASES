@@ -37,7 +37,7 @@ aliases:
   - jwmatthews # App Migration
   - kevinrizza # Operator Lifecycle Manager
   - mandre # Shift on Stack
-  - miabbott # CoreOS
+  - mike-nguyen # CoreOS
   - pedjak # App Services
   - jmguzik # Test Platform
   - romfreiman # Single Node OpenShift
@@ -50,5 +50,6 @@ aliases:
   - staebler # OpenShift Installer
   - stlaz # Authentication
   - sttts # API Server
+  - travier # CoreOS
   - trozet # Networking
   - umohnani8 # Container Engine Tools
