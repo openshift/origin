@@ -57,6 +57,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient,
 			certgraphanalysis.SkipRevisioned,
+			certgraphanalysis.SkipHashed,
 			certgraphanalysis.ElideProxyCADetails,
 			certgraphanalysis.RewriteNodeIPs(masters),
 			certgraphanalysis.CollectAnnotations(
