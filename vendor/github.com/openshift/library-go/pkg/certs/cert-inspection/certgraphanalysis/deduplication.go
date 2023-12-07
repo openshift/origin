@@ -1,31 +1,65 @@
 package certgraphanalysis
 
-import "github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+import (
+	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+)
 
 func deduplicateCertKeyPairs(in []*certgraphapi.CertKeyPair) []*certgraphapi.CertKeyPair {
 	ret := []*certgraphapi.CertKeyPair{}
 	for _, currIn := range in {
-		found := false
+		if currIn == nil {
+			panic("currIn is nil")
+		}
+
+		foundIdx := -1
 		for j, currOut := range ret {
-			if currIn == nil {
-				panic("one")
-			}
 			if currOut == nil {
-				panic("two")
+				panic("currOut is nil")
 			}
-			if currOut.Name == currIn.Name {
-				ret[j] = combineSecretLocations(ret[j], currIn.Spec.SecretLocations)
-				ret[j] = combineCertOnDiskLocations(ret[j], currIn.Spec.OnDiskLocations)
-				found = true
-				break
+			// currOut has no name set - skip and allow it to be found later
+			if len(currOut.Name) == 0 {
+				continue
+			}
+			switch len(currIn.Name) {
+			case 0:
+				// Certificate and key have matching modulus
+				if currOut.Spec.CertMetadata.CertIdentifier.PubkeyModulus == currIn.Spec.CertMetadata.CertIdentifier.PubkeyModulus {
+					foundIdx = j
+				}
+			default:
+				// Two certificates with matching names
+				if currOut.Name == currIn.Name {
+					foundIdx = j
+				}
+			}
+			// Append currIn locations to found certkeypair
+			if foundIdx != -1 {
+				ret[foundIdx] = combineSecretLocations(ret[foundIdx], currIn.Spec.SecretLocations)
+				ret[foundIdx] = combineCertOnDiskLocations(ret[foundIdx], currIn.Spec.OnDiskLocations)
 			}
 		}
 
-		if !found {
+		// No match found - add currIn as is
+		if foundIdx == -1 {
 			ret = append(ret, currIn.DeepCopy())
 		}
 	}
 
+	return ret
+}
+
+func deduplicateCertKeyPairList(in *certgraphapi.CertKeyPairList) *certgraphapi.CertKeyPairList {
+	ret := &certgraphapi.CertKeyPairList{
+		Items: []certgraphapi.CertKeyPair{},
+	}
+	certs := []*certgraphapi.CertKeyPair{}
+	for idx := range in.Items {
+		certs = append(certs, &in.Items[idx])
+	}
+	dedup := deduplicateCertKeyPairs(certs)
+	for idx := range dedup {
+		ret.Items = append(ret.Items, *dedup[idx])
+	}
 	return ret
 }
 
@@ -47,6 +81,7 @@ func combineSecretLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.InC
 }
 
 func combineCertOnDiskLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.OnDiskCertKeyPairLocation) *certgraphapi.CertKeyPair {
+	keyLocation := certgraphapi.OnDiskLocation{}
 	out := in.DeepCopy()
 	for _, curr := range rhs {
 		found := false
@@ -56,7 +91,22 @@ func combineCertOnDiskLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi
 			}
 		}
 		if !found {
+			// Store key to be merged into Cert
+			if len(curr.Cert.Path) == 0 {
+				keyLocation = curr.Key
+				continue
+			}
 			out.Spec.OnDiskLocations = append(out.Spec.OnDiskLocations, curr)
+		}
+	}
+
+	// Fill in Key property if it was found earlier and unset
+	if len(keyLocation.Path) == 0 {
+		return out
+	}
+	for idx, loc := range out.Spec.OnDiskLocations {
+		if len(loc.Key.Path) == 0 {
+			out.Spec.OnDiskLocations[idx].Key = keyLocation
 		}
 	}
 
@@ -87,6 +137,20 @@ func deduplicateCABundles(in []*certgraphapi.CertificateAuthorityBundle) []*cert
 		}
 	}
 
+	return ret
+}
+
+func deduplicateCABundlesList(in *certgraphapi.CertificateAuthorityBundleList) *certgraphapi.CertificateAuthorityBundleList {
+	ret := &certgraphapi.CertificateAuthorityBundleList{
+		Items: []certgraphapi.CertificateAuthorityBundle{},
+	}
+	bundles := []*certgraphapi.CertificateAuthorityBundle{}
+	for idx := range in.Items {
+		bundles = append(bundles, &in.Items[idx])
+	}
+	for idx := range deduplicateCABundles(bundles) {
+		ret.Items = append(ret.Items, *bundles[idx])
+	}
 	return ret
 }
 
