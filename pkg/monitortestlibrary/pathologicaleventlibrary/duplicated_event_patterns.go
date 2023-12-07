@@ -328,7 +328,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		name: "KubeAPIReadinessProbeError",
 		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`openshift-kube-*`),
-			monitorapi.LocatorPodKey:       regexp.MustCompile(`^kube.*guard.*`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`kube.*guard.*`),
 		},
 		messageReasonRegex: regexp.MustCompile(`^ProbeError$`),
 		messageHumanRegex:  regexp.MustCompile(`Readiness probe error`),
