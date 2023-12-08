@@ -1,7 +1,6 @@
 package autoregenerate_after_expiry
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
@@ -10,68 +9,22 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-// TODO move to openshift/api
-const AutoRegenerateAfterOfflineExpiryAnnotation = "certificates.openshift.io/auto-regenerate-after-offline-expiry"
+const annotationName string = "certificates.openshift.io/auto-regenerate-after-offline-expiry"
 
-type AutoRegenerateAfterOfflineExpiryRequirement struct {
-	name string
-}
+type AutoRegenerateAfterOfflineExpiryRequirement struct{}
 
 func NewAutoRegenerateAfterOfflineExpiryRequirement() tlsmetadatainterfaces.Requirement {
-	return AutoRegenerateAfterOfflineExpiryRequirement{
-		name: "autoregenerate-after-expiry",
-	}
+	return tlsmetadatainterfaces.NewAnnotationRequirement(
+		// requirement name
+		"autoregenerate-after-expiry",
+		// cert or configmap annotation
+		annotationName,
+		// function which generates markdown report
+		generateAutoRegenerateAfterOfflineExpiryMarkdownFn,
+	)
 }
 
-func (o AutoRegenerateAfterOfflineExpiryRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (tlsmetadatainterfaces.RequirementResult, error) {
-	pkiInfo, err := tlsmetadatainterfaces.ProcessByLocation(rawData)
-	if err != nil {
-		return nil, fmt.Errorf("transforming raw data %v: %w", o.GetName(), err)
-	}
-
-	ownershipJSONBytes, err := json.MarshalIndent(pkiInfo, "", "    ")
-	if err != nil {
-		return nil, fmt.Errorf("failure marshalling %v.json: %w", o.GetName(), err)
-	}
-	markdown, err := generateAutoRegenerateAfterOfflineExpiryshipMarkdown(pkiInfo)
-	if err != nil {
-		return nil, fmt.Errorf("failure marshalling %v.md: %w", o.GetName(), err)
-	}
-	violations := generateViolationJSON(pkiInfo)
-	violationJSONBytes, err := json.MarshalIndent(violations, "", "    ")
-	if err != nil {
-		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
-	}
-
-	return tlsmetadatainterfaces.NewRequirementResult(
-		o.GetName(),
-		ownershipJSONBytes,
-		markdown,
-		violationJSONBytes)
-}
-
-func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.PKIRegistryInfo {
-	ret := &certgraphapi.PKIRegistryInfo{}
-
-	for i := range pkiInfo.CertKeyPairs {
-		curr := pkiInfo.CertKeyPairs[i]
-		regenerates, _ := tlsmetadatainterfaces.AnnotationValue(curr.CertKeyInfo.SelectedCertMetadataAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
-		if len(regenerates) == 0 {
-			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
-		}
-	}
-	for i := range pkiInfo.CertificateAuthorityBundles {
-		curr := pkiInfo.CertificateAuthorityBundles[i]
-		regenerates, _ := tlsmetadatainterfaces.AnnotationValue(curr.CABundleInfo.SelectedCertMetadataAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
-		if len(regenerates) == 0 {
-			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
-		}
-	}
-
-	return ret
-}
-
-func generateAutoRegenerateAfterOfflineExpiryshipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
+func generateAutoRegenerateAfterOfflineExpiryMarkdownFn(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
 	compliantCertsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	violatingCertsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	compliantCABundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
@@ -80,7 +33,7 @@ func generateAutoRegenerateAfterOfflineExpiryshipMarkdown(pkiInfo *certgraphapi.
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
 		owner := curr.CertKeyInfo.OwningJiraComponent
-		regenerates, _ := tlsmetadatainterfaces.AnnotationValue(curr.CertKeyInfo.SelectedCertMetadataAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
+		regenerates, _ := tlsmetadatainterfaces.AnnotationValue(curr.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
 		if len(regenerates) == 0 {
 			violatingCertsByOwner[owner] = append(violatingCertsByOwner[owner], curr)
 			continue
@@ -91,7 +44,7 @@ func generateAutoRegenerateAfterOfflineExpiryshipMarkdown(pkiInfo *certgraphapi.
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
 		owner := curr.CABundleInfo.OwningJiraComponent
-		regenerates, _ := tlsmetadatainterfaces.AnnotationValue(curr.CABundleInfo.SelectedCertMetadataAnnotations, AutoRegenerateAfterOfflineExpiryAnnotation)
+		regenerates, _ := tlsmetadatainterfaces.AnnotationValue(curr.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
 		if len(regenerates) == 0 {
 			violatingCABundlesByOwner[owner] = append(violatingCABundlesByOwner[owner], curr)
 			continue
@@ -105,7 +58,7 @@ func generateAutoRegenerateAfterOfflineExpiryshipMarkdown(pkiInfo *certgraphapi.
 	md.Text("the cluster will automatically create new cert/key pairs or update CA bundles as required without human")
 	md.Text("intervention.")
 	md.Textf("To assert that a particular cert/key pair or CA bundle can do this, add the %q annotation to the secret or configmap and ",
-		AutoRegenerateAfterOfflineExpiryAnnotation)
+		annotationName)
 	md.Text("setting the value of the annotation a github link to the PR adding the annotation.")
 	md.Text("This assertion also means that you have")
 	md.OrderedListStart()
@@ -202,8 +155,4 @@ func generateAutoRegenerateAfterOfflineExpiryshipMarkdown(pkiInfo *certgraphapi.
 	}
 
 	return md.Bytes(), nil
-}
-
-func (o AutoRegenerateAfterOfflineExpiryRequirement) GetName() string {
-	return o.name
 }

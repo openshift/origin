@@ -13,6 +13,13 @@ type Requirement interface {
 	InspectRequirement(rawData []*certgraphapi.PKIList) (RequirementResult, error)
 }
 
+type AnnotationRequirement interface {
+	Requirement
+
+	// GetAnnotationName returns annotation name to use
+	GetAnnotationName() string
+}
+
 type RequirementResult interface {
 	GetName() string
 
