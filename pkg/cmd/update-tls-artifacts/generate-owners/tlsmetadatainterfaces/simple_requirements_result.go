@@ -1,9 +1,14 @@
 package tlsmetadatainterfaces
 
 import (
+	"embed"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -16,7 +21,7 @@ type SimpleRequirementsResult struct {
 	violationJSON  []byte
 }
 
-func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON []byte) (*SimpleRequirementsResult, error) {
+func NewRequirementResult(name string, statusJSON, statusMarkdown, violationJSON []byte) (RequirementResult, error) {
 	if len(name) == 0 {
 		return nil, fmt.Errorf("missing name for result")
 	}
@@ -85,6 +90,50 @@ func (s SimpleRequirementsResult) DiffExistingContent(tlsDir string) (string, bo
 	}
 
 	return "", true, nil
+}
+
+func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.FS) ([]string, bool, error) {
+	resultingViolations := &certgraphapi.PKIRegistryInfo{}
+	if err := json.Unmarshal(s.violationJSON, resultingViolations); err != nil {
+		return nil, false, fmt.Errorf("error decoding violation content for %v: %w", s.GetName(), err)
+	}
+
+	existingViolationJSONBytes, err := allViolationsFS.ReadFile(s.violationsFilename(""))
+	if err != nil {
+		return nil, false, fmt.Errorf("error reading existing content for %v: %w", s.GetName(), err)
+	}
+	existingViolations := &certgraphapi.PKIRegistryInfo{}
+	if err := json.Unmarshal(existingViolationJSONBytes, existingViolations); err != nil {
+		return nil, false, fmt.Errorf("error decoding existing content for %v: %w", s.GetName(), err)
+	}
+
+	regressions := []string{}
+	for _, currCertKeyPair := range resultingViolations.CertKeyPairs {
+		currLocation := currCertKeyPair.SecretLocation
+		_, err := certgraphutils.LocateCertKeyPair(currLocation, existingViolations.CertKeyPairs)
+		if err != nil {
+			// this means it wasn't found
+			regressions = append(regressions,
+				fmt.Sprintf("requirment/%v: --namespace=%v secret/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+			)
+		}
+	}
+
+	for _, currCABundle := range resultingViolations.CertificateAuthorityBundles {
+		currLocation := currCABundle.ConfigMapLocation
+		_, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, existingViolations.CertificateAuthorityBundles)
+		if err != nil {
+			// this means it wasn't found
+			regressions = append(regressions,
+				fmt.Sprintf("requirment/%v: --namespace=%v configmap/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+			)
+		}
+	}
+
+	if len(regressions) > 0 {
+		return regressions, true, nil
+	}
+	return nil, false, nil
 }
 
 func (s SimpleRequirementsResult) jsonFilename(tlsDir string) string {

@@ -9,6 +9,18 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
+const UnknownOwner = "Unknown"
+
+func AnnotationValue(whitelistedAnnotations []certgraphapi.AnnotationValue, key string) (string, bool) {
+	for _, curr := range whitelistedAnnotations {
+		if curr.Key == key {
+			return curr.Value, true
+		}
+	}
+
+	return "", false
+}
+
 func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certgraphapi.PKIRegistryInfo, error) {
 	errs := []error{}
 	certKeyPairs := certs.SecretInfoByNamespaceName{}
