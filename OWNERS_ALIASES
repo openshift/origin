@@ -36,6 +36,7 @@ aliases:
   - kevinrizza # Operator Lifecycle Manager
   - mandre # Shift on Stack
   - mike-nguyen # CoreOS
+  - pacevedom # MicroShift
   - pedjak # App Services
   - jmguzik # Test Platform
   - romfreiman # Single Node OpenShift
