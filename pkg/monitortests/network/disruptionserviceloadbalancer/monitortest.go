@@ -43,8 +43,8 @@ var (
 )
 
 const (
-	newConnectionTestName    = "[sig-network-edge] Application behind service load balancer with PDB remains available using new connections"
-	reusedConnectionTestName = "[sig-network-edge] Application behind service load balancer with PDB remains available using reused connections"
+	newConnectionTestName    = "[sig-network-edge] disruption/service-load-balancer-with-pdb connection/new should be available throughout the test"
+	reusedConnectionTestName = "[sig-network-edge] disruption/service-load-balancer-with-pdb connection/reused should be available throughout the test"
 )
 
 func init() {
