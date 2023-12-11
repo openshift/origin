@@ -2,6 +2,7 @@ package defaultmonitortests
 
 import (
 	"fmt"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
@@ -103,8 +104,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-new-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
 
 	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
-	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewAvailabilityInvariant())
-	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewAvailabilityInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewAvailabilityInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewAvailabilityInvariant())
 
 	monitorTestRegistry.AddMonitorTestOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewAvailabilityInvariant())
@@ -122,8 +123,8 @@ func newDisruptiveMonitorTests() monitortestframework.MonitorTestRegistry {
 	// this data would be interesting, but I'm betting we cannot scrub the data after the fact to exclude these.
 	// monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewRecordAvailabilityOnly())
 	// monitorTestRegistry.AddMonitorTestOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewRecordAvailabilityOnly())
-	// monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "NetworkEdge", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
-	// monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "NetworkEdge", disruptioningress.NewRecordAvailabilityOnly())
+	// monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewRecordAvailabilityOnly())
+	// monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewRecordAvailabilityOnly())
 	// monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewRecordAvailabilityOnly())
 
 	return monitorTestRegistry
@@ -132,7 +133,7 @@ func newDisruptiveMonitorTests() monitortestframework.MonitorTestRegistry {
 func newUniversalMonitorTests() monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry := monitortestframework.NewMonitorTestRegistry()
 
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "Authentication", legacyauthenticationmonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
@@ -144,13 +145,13 @@ func newUniversalMonitorTests() monitortestframework.MonitorTestRegistry {
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-kube-apiserver-invariants", "kube-apiserver", legacykubeapiservermonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("graceful-shutdown-analyzer", "kube-apiserver", apiservergracefulrestart.NewGracefulShutdownAnalyzer())
 
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking", legacynetworkmonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-networking-invariants", "Networking / cluster-network-operator", legacynetworkmonitortests.NewLegacyTests())
 
-	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node", kubeletlogcollector.NewKubeletLogCollector())
-	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node", legacynodemonitortests.NewLegacyTests())
-	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node", nodestateanalyzer.NewAnalyzer())
-	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node", watchpods.NewPodWatcher())
-	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node", watchnodes.NewNodeWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("kubelet-log-collector", "Node / Kubelet", kubeletlogcollector.NewKubeletLogCollector())
+	monitorTestRegistry.AddMonitorTestOrDie("legacy-node-invariants", "Node / Kubelet", legacynodemonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
 
