@@ -99,7 +99,24 @@ func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, [
 	return nil, nil, utilerrors.NewAggregate([]error{newRecoverErr, reusedRecoverErr})
 }
 
-func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails string, locator monitorapi.Locator, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
+func createDisruptionJunit(
+	testName string,
+	allowedDisruption *time.Duration,
+	disruptionDetails string,
+	locator monitorapi.Locator,
+	disruptedIntervals monitorapi.Intervals,
+	jobType *platformidentification.JobType) *junitapi.JUnitTestCase {
+
+	// Not sure what these are, but this will help find them, and we don't get any value from testing these:
+	if jobType.Platform == "" {
+		return &junitapi.JUnitTestCase{
+			Name: testName,
+			SkipMessage: &junitapi.SkipMessage{
+				Message: "Unknown platform, skipping disruption testing",
+			},
+		}
+	}
+
 	// Indicates there is no entry in the query_results.json data file, nor a valid fallback,
 	// we do not wish to run the test. (this likely implies we do not have the required number of
 	// runs in 3 weeks to do a reliable P99)
@@ -177,6 +194,7 @@ func (w *Availability) junitForNewConnections(ctx context.Context, finalInterval
 					monitorapi.IsErrorEvent,
 				),
 			),
+			jobType,
 		),
 		nil
 }
@@ -194,6 +212,7 @@ func (w *Availability) junitForReusedConnections(ctx context.Context, finalInter
 					monitorapi.IsErrorEvent,
 				),
 			),
+			jobType,
 		),
 		nil
 }
