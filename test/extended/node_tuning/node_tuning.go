@@ -151,10 +151,10 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		e2e.Logf("ensure that the status of co machine-config is availabe state")
+		e2e.Logf("ensure that the status of co machine-config is available state")
 		err = waitForClusterOperatorAvailable(oc, "machine-config")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		e2e.Logf("ensure that the status of co node-tuning is availabe state")
+		e2e.Logf("ensure that the status of co node-tuning is available state")
 		err = waitForClusterOperatorAvailable(oc, "node-tuning")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
