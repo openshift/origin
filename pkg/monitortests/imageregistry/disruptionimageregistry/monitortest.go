@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	newConnectionTestName    = "[sig-imageregistry] Image registry remains available using new connections"
-	reusedConnectionTestName = "[sig-imageregistry] Image registry remains available using reused connections"
+	newConnectionTestName    = "[sig-imageregistry] disruption/image-registry connection/new should be available throughout the test"
+	reusedConnectionTestName = "[sig-imageregistry] disruption/image-registry connection/reused should be available throughout the test"
 )
 
 type availability struct {

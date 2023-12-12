@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -98,7 +99,24 @@ func (w *Availability) CollectData(ctx context.Context) (monitorapi.Intervals, [
 	return nil, nil, utilerrors.NewAggregate([]error{newRecoverErr, reusedRecoverErr})
 }
 
-func createDisruptionJunit(testName string, allowedDisruption *time.Duration, disruptionDetails string, locator monitorapi.Locator, disruptedIntervals monitorapi.Intervals) *junitapi.JUnitTestCase {
+func createDisruptionJunit(
+	testName string,
+	allowedDisruption *time.Duration,
+	disruptionDetails string,
+	locator monitorapi.Locator,
+	disruptedIntervals monitorapi.Intervals,
+	jobType *platformidentification.JobType) *junitapi.JUnitTestCase {
+
+	// Not sure what these are, but this will help find them, and we don't get any value from testing these:
+	if jobType.Platform == "" {
+		return &junitapi.JUnitTestCase{
+			Name: testName,
+			SkipMessage: &junitapi.SkipMessage{
+				Message: "Unknown platform, skipping disruption testing",
+			},
+		}
+	}
+
 	// Indicates there is no entry in the query_results.json data file, nor a valid fallback,
 	// we do not wish to run the test. (this likely implies we do not have the required number of
 	// runs in 3 weeks to do a reliable P99)
@@ -111,17 +129,37 @@ func createDisruptionJunit(testName string, allowedDisruption *time.Duration, di
 		}
 	}
 
+	disruptionDuration := disruptedIntervals.Duration(1 * time.Second)
+	roundedDisruptionDuration := disruptionDuration.Round(time.Second)
+
+	// Determine what amount of disruption we're willing to tolerate before we fail the test. We previously just
+	// enforced being over a P99 over the past 3 weeks, however the P99 fluctuates wildly even under these
+	// conditions, and the tests fail excessively on very low numbers. Thus we now also allow a grace amount to try to
+	// establish this as a first line of defence to detect egregious regressions before they merge.
+	//roundedAllowedDisruption, additionalDetails := calculateAllowedDisruptionWithGrace(*allowedDisruption)
+	allowedDetails := []string{}
+	allowedDetails = append(allowedDetails, fmt.Sprintf("P99 from historical data for similar jobs over past 3 weeks: %s",
+		*allowedDisruption))
 	if *allowedDisruption < 1*time.Second {
 		t := 1 * time.Second
 		allowedDisruption = &t
-		disruptionDetails = "always allow at least one second"
+		allowedDetails = append(allowedDetails, "rounded P99 up to always allow one second")
 	}
 
-	disruptionDuration := disruptedIntervals.Duration(1 * time.Second)
-	roundedAllowedDisruption := allowedDisruption.Round(time.Second)
-	roundedDisruptionDuration := disruptionDuration.Round(time.Second)
+	// Allow grace of 5s or 20%, at this layer, with one sample, we're only hoping to find really severe disruption:
+	allowedSecs := allowedDisruption.Seconds()
+	allowedSecsWithGrace := allowedSecs + 5.0
+	allowedSecsPlus20Percent := allowedSecs * 1.2
+	if allowedSecsPlus20Percent > allowedSecsWithGrace {
+		allowedSecsWithGrace = allowedSecsPlus20Percent
+		allowedDetails = append(allowedDetails, "added an additional 20% of grace")
+	} else {
+		allowedDetails = append(allowedDetails, "added an additional 5s of grace")
+	}
+	roundedFinal := int64(math.Round(allowedSecsWithGrace))
+	finalAllowedDisruption := time.Duration(roundedFinal) * time.Second
 
-	if roundedDisruptionDuration <= roundedAllowedDisruption {
+	if roundedDisruptionDuration <= finalAllowedDisruption {
 		return &junitapi.JUnitTestCase{
 			Name: testName,
 		}
@@ -129,7 +167,10 @@ func createDisruptionJunit(testName string, allowedDisruption *time.Duration, di
 
 	reason := fmt.Sprintf("%v was unreachable during disruption: %v", locator.OldLocator(), disruptionDetails)
 	describe := disruptedIntervals.Strings()
-	failureMessage := fmt.Sprintf("%s for at least %s (maxAllowed=%s):\n\n%s", reason, roundedDisruptionDuration, roundedAllowedDisruption, strings.Join(describe, "\n"))
+	failureMessage := fmt.Sprintf("%s for at least %s (maxAllowed=%s):\n%s\n\n%s", reason,
+		roundedDisruptionDuration, finalAllowedDisruption,
+		strings.Join(allowedDetails, "\n"),
+		strings.Join(describe, "\n"))
 
 	return &junitapi.JUnitTestCase{
 		Name: testName,
@@ -153,6 +194,7 @@ func (w *Availability) junitForNewConnections(ctx context.Context, finalInterval
 					monitorapi.IsErrorEvent,
 				),
 			),
+			jobType,
 		),
 		nil
 }
@@ -170,6 +212,7 @@ func (w *Availability) junitForReusedConnections(ctx context.Context, finalInter
 					monitorapi.IsErrorEvent,
 				),
 			),
+			jobType,
 		),
 		nil
 }

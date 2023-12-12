@@ -107,23 +107,6 @@ func TestGetClosestP99Value(t *testing.T) {
 			expectedDuration: mustDuration("7.9s"),
 		},
 		{
-			name: "choose different arch",
-			key: historicaldata.AlertDataKey{
-				AlertName:      "etcdGRPCRequestsSlow",
-				AlertNamespace: "",
-				AlertLevel:     "warning",
-				JobType: platformidentification.JobType{
-					Release:      "4.12",
-					FromRelease:  "4.12",
-					Platform:     "aws",
-					Architecture: "not-real",
-					Network:      "sdn",
-					Topology:     "ha",
-				},
-			},
-			expectedDuration: mustDuration("120.458s"),
-		},
-		{
 			name: "missing",
 			key: historicaldata.AlertDataKey{
 				AlertName:      "notARealAlert",

@@ -36,8 +36,8 @@ func NewRecordAvailabilityOnly() monitortestframework.MonitorTest {
 	}
 }
 func testNames(owner, disruptionBackendName string) (string, string) {
-	return fmt.Sprintf("[%s] disruption/%s should be available throughout the test", owner, disruptionBackendName),
-		fmt.Sprintf("[%s] disruption/%s should be available throughout the test", owner, disruptionBackendName)
+	return fmt.Sprintf("[%s] disruption/%s connection/new should be available throughout the test", owner, disruptionBackendName),
+		fmt.Sprintf("[%s] disruption/%s connection/reused should be available throughout the test", owner, disruptionBackendName)
 }
 
 func newDisruptionCheckerForKubeAPI(adminRESTConfig *rest.Config) (*disruptionlibrary.Availability, error) {

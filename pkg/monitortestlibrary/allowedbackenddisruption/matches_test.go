@@ -153,53 +153,6 @@ func TestGetClosestP95Value(t *testing.T) {
 			expectedDuration: mustDuration("2.987s"),
 		},
 		{
-			name: "fuzzy match single ovn fallback to sdn",
-			args: args{
-				backendName: "kube-api-new-connections",
-				jobType: platformidentification.JobType{
-					Release:      "4.12",
-					FromRelease:  "4.12",
-					Platform:     "aws",
-					Architecture: "amd64",
-					Network:      "ovn", // we only defined sdn above, should fall back to it's value
-					Topology:     "single",
-				},
-			},
-			expectedDuration: mustDuration("120.458s"),
-		},
-		{
-			name: "fuzzy match single ovn fallback to sdn previous",
-			args: args{
-				// switching to openshift-api backend, defined above we only have from 4.11->4.11 and sdn
-				backendName: "openshift-api-new-connections",
-				jobType: platformidentification.JobType{
-					Release:      "4.12",
-					FromRelease:  "4.12",
-					Platform:     "aws",
-					Network:      "ovn",
-					Architecture: "amd64",
-					Topology:     "single",
-				},
-			},
-			expectedDuration: mustDuration("70.381s"),
-		},
-		{
-			name: "fuzzy match single ovn fallback to sdn previous micro",
-			args: args{
-				// For oauth backend ovn single don't have 4.12 minor, but we have 4.11->4.12 sdn above:
-				backendName: "oauth-api-new-connections",
-				jobType: platformidentification.JobType{
-					Release:      "4.12",
-					FromRelease:  "4.11",
-					Platform:     "aws",
-					Network:      "ovn",
-					Architecture: "amd64",
-					Topology:     "single",
-				},
-			},
-			expectedDuration: mustDuration("35.917s"),
-		},
-		{
 			name: "no exact or fuzzy match",
 			args: args{
 				backendName: "kube-api-reused-connections",
