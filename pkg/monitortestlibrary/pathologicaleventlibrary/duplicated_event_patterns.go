@@ -463,6 +463,9 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	topologyAwareMatcher := newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(topologyAwareMatcher)
 
+	singleNodeConnectionRefusedMatcher := newSingleNodeConnectionRefusedEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(singleNodeConnectionRefusedMatcher)
+
 	return registry
 }
 
@@ -907,5 +910,29 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 			messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
 		},
 		allowIfWithinIntervals: adjustedTaintTestIntervals,
+	}
+}
+
+// Ignore connection refused events during OCP APIServer or OAuth APIServer being down
+func newSingleNodeConnectionRefusedEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	const (
+		ocpAPINamespace      = "openshift-apiserver"
+		ocpOAuthAPINamespace = "openshift-oauth-apiserver"
+	)
+	snoTopology := v1.SingleReplicaTopologyMode
+	ocpAPISeverTargetDownIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceAlert &&
+			eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey] == "TargetDown" &&
+			(eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == ocpAPINamespace ||
+				eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == ocpOAuthAPINamespace)
+	})
+	logrus.Infof("found %d OCP APIServer TargetDown intervals", len(ocpAPISeverTargetDownIntervals))
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:              "ConnectionErrorDuringSingleNodeAPIServerTargetDown",
+			messageHumanRegex: regexp.MustCompile(`dial tcp .* connect: connection refused`),
+			topology:          &snoTopology,
+		},
+		allowIfWithinIntervals: ocpAPISeverTargetDownIntervals,
 	}
 }
