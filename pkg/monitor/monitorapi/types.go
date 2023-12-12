@@ -621,6 +621,37 @@ func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
 	}
 }
 
+// CombineOverlappingIntervals takes of list of semantically identical intervals (for instance, intervals expressioning
+// an allow timeframe) and combines them into non-overlapping intervals.
+func CombineOverlappingIntervals(in Intervals) Intervals {
+	ret := Intervals{}
+
+	sort.Sort(in)
+	for i := range in {
+		curr := in[i]
+		if i == 0 {
+			ret = append(ret, curr)
+			continue
+		}
+		lastRetIndex := len(ret) - 1
+		latestInRet := ret[lastRetIndex]
+
+		// if the current interval starts after the previous start (from sort) and starts before the previous finished, then we overlap
+		if curr.From.Before(latestInRet.To) {
+			// if the current ends after the previous, then widen the window
+			if curr.To.After(latestInRet.To) {
+				ret[lastRetIndex].To = curr.To
+				continue
+			}
+		}
+
+		// if we got here, we didn't overlap, so add the current
+		ret = append(ret, curr)
+	}
+
+	return ret
+}
+
 func NodeUpdate(eventInterval Interval) bool {
 	reason := ReasonFrom(eventInterval.Message)
 	return NodeUpdateReason == reason

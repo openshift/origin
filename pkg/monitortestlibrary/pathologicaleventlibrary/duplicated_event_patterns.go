@@ -808,6 +808,11 @@ type OverlapOtherIntervalsPathologicalEventMatcher struct {
 	// allowIfWithinIntervals is the list of intervals that the incoming pathological event will
 	// match if it contained within one of these.
 	allowIfWithinIntervals monitorapi.Intervals
+
+	// countThatMayHaveHappenedDuringAllowed uses allowIfWithinIntervals to determine a modifier for the event.
+	// correcting the entire chain to make it easier to use will require inverting the overall calculations to be by-matcher
+	// not by-event
+	countThatMayHaveHappenedDuringAllowed int
 }
 
 func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Name() string {
@@ -901,11 +906,61 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 		logrus.WithField("from", testInterval.From).WithField("to", testInterval.To).Infof("adjusted time range for test: %s", testInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey])
 	}
 
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "TopologyAwareHintsDisabledDuringTaintManagerTests",
-			messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
-		},
-		allowIfWithinIntervals: adjustedTaintTestIntervals,
+	adjustedTaintTestIntervals = monitorapi.CombineOverlappingIntervals(adjustedTaintTestIntervals)
+
+	// now we have the windows, we need to calculate the modifier
+	countThatMayHaveHappenedDuringAllowed := 0
+	interestingEventMatcher := &SimplePathologicalEventMatcher{
+		name:               "TopologyAwareHintsDisabledDuringTaintManagerTests",
+		messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
 	}
+	interestingEvents := finalIntervals.Filter(interestingEventMatcher.Matches)
+	for _, currAllow := range adjustedTaintTestIntervals {
+		closestBefore := lastAPIEventAtOrBefore(interestingEvents, currAllow.From)
+		closestAfter := firstAPIEventAtOrAfter(interestingEvents, currAllow.To)
+		switch {
+		case closestBefore == nil && closestAfter == nil:
+		case closestBefore == nil && closestAfter != nil:
+			countThatMayHaveHappenedDuringAllowed += closestAfter.Count
+
+		case closestBefore != nil && closestAfter != nil:
+			countThatMayHaveHappenedDuringAllowed += closestBefore.Count - closestAfter.Count
+
+		case closestBefore != nil && closestAfter == nil:
+			// we have no way to calculate the best option here.
+			// if anyone comes up with something, please add
+
+		}
+	}
+
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate:                              interestingEventMatcher,
+		allowIfWithinIntervals:                adjustedTaintTestIntervals,
+		countThatMayHaveHappenedDuringAllowed: countThatMayHaveHappenedDuringAllowed,
+	}
+}
+
+func lastAPIEventAtOrBefore(intervals monitorapi.Intervals, beforeTime time.Time) *monitorapi.Interval {
+	var prev *monitorapi.Interval
+	for i := range intervals {
+		curr := &intervals[i]
+		if curr.From.Before(beforeTime) || curr.From == beforeTime {
+			prev = curr
+			continue
+		}
+		return prev
+	}
+
+	return prev
+}
+
+func firstAPIEventAtOrAfter(intervals monitorapi.Intervals, afterTime time.Time) *monitorapi.Interval {
+	for i := range intervals {
+		curr := &intervals[i]
+		if curr.From.After(afterTime) || curr.From == afterTime {
+			return curr
+		}
+	}
+
+	return nil
 }
