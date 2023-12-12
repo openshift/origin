@@ -758,6 +758,7 @@ func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clien
 	}
 	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
 	if err != nil {
+		return nil, err
 	}
 	repeatThresholdOverride := currentRevision * (60 / 5)
 	logrus.WithFields(logrus.Fields{
@@ -831,7 +832,7 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 	// Match the pathological event if it overlaps with any of the given set of intervals.
 	for _, nui := range ade.allowIfWithinIntervals {
 		if nui.From.Before(i.From) && nui.To.After(i.To) {
-			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", i, nui)
+			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as they fall within range of specified intervals", i, nui)
 			return true
 		}
 	}
@@ -926,7 +927,9 @@ func newSingleNodeConnectionRefusedEventMatcher(finalIntervals monitorapi.Interv
 			(eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == ocpAPINamespace ||
 				eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == ocpOAuthAPINamespace)
 	})
-	logrus.Infof("found %d OCP APIServer TargetDown intervals", len(ocpAPISeverTargetDownIntervals))
+	if len(ocpAPISeverTargetDownIntervals) > 0 {
+		logrus.Infof("found %d OCP APIServer TargetDown intervals", len(ocpAPISeverTargetDownIntervals))
+	}
 	return &OverlapOtherIntervalsPathologicalEventMatcher{
 		delegate: &SimplePathologicalEventMatcher{
 			name:              "ConnectionErrorDuringSingleNodeAPIServerTargetDown",
