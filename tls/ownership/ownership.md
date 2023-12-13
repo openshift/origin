@@ -151,8 +151,6 @@
 
 
 
-      
-
 ### Certificate Authority Bundles (16)
 1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
@@ -236,8 +234,6 @@
 
 
 
-      
-
 ## Cloud Compute / Cloud Controller Manager (1)
 ### Certificate Authority Bundles (1)
 1. ns/openshift-cloud-controller-manager configmap/ccm-trusted-ca
@@ -247,8 +243,6 @@
 
 
 
-      
-
 ## End User (1)
 ### Certificate Authority Bundles (1)
 1. ns/openshift-config configmap/user-ca-bundle
@@ -257,8 +251,6 @@
       
 
 
-
-      
 
 ## Etcd (28)
 ### Certificates (19)
@@ -359,8 +351,6 @@
 
 
 
-      
-
 ### Certificate Authority Bundles (9)
 1. ns/openshift-apiserver configmap/etcd-serving-ca
 
@@ -409,8 +399,6 @@
 
 
 
-      
-
 ## Machine Config Operator (2)
 ### Certificates (1)
 1. ns/openshift-machine-config-operator secret/machine-config-server-tls
@@ -420,8 +408,6 @@
 
 
 
-      
-
 ### Certificate Authority Bundles (1)
 1. ns/openshift-config configmap/initial-kube-apiserver-server-ca
 
@@ -429,8 +415,6 @@
       
 
 
-
-      
 
 ## Networking / cluster-network-operator (30)
 ### Certificate Authority Bundles (30)
@@ -586,8 +570,6 @@
 
 
 
-      
-
 ## apiserver-auth (3)
 ### Certificates (1)
 1. ns/openshift-oauth-apiserver secret/openshift-authenticator-certs
@@ -596,8 +578,6 @@
       
 
 
-
-      
 
 ### Certificate Authority Bundles (2)
 1. ns/openshift-config-managed configmap/oauth-serving-cert
@@ -611,8 +591,6 @@
       
 
 
-
-      
 
 ## kube-apiserver (39)
 ### Certificates (22)
@@ -728,8 +706,6 @@
 
 
 
-      
-
 ### Certificate Authority Bundles (17)
 1. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
 
@@ -818,8 +794,6 @@
 
 
 
-      
-
 ## kube-controller-manager (10)
 ### Certificates (3)
 1. ns/openshift-kube-controller-manager secret/csr-signer
@@ -838,8 +812,6 @@
       
 
 
-
-      
 
 ### Certificate Authority Bundles (7)
 1. ns/openshift-config-managed configmap/csr-controller-ca
@@ -879,8 +851,6 @@
 
 
 
-      
-
 ## kube-scheduler (1)
 ### Certificate Authority Bundles (1)
 1. ns/openshift-kube-scheduler configmap/serviceaccount-ca
@@ -889,8 +859,6 @@
       
 
 
-
-      
 
 ## service-ca (98)
 ### Certificates (95)
@@ -1371,8 +1339,6 @@
 
 
 
-      
-
 ### Certificate Authority Bundles (3)
 1. ns/openshift-config-managed configmap/service-ca
 
@@ -1390,6 +1356,4 @@
       
 
 
-
-      
 

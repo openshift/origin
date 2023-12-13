@@ -1,7 +1,7 @@
 # Auto Regenerate After Offline Expiry
 
 ## Table of Contents
-  - [Items That Cannot Auto Regenerate After Offline Expiry (252)](#Items-That-Cannot-Auto-Regenerate-After-Offline-Expiry-252)
+  - [Items Do NOT Meet the Requirement (252)](#Items-Do-NOT-Meet-the-Requirement-252)
     - [ (39)](#-39)
       - [Certificates (23)](#Certificates-23)
       - [Certificate Authority Bundles (16)](#Certificate-Authority-Bundles-16)
@@ -31,29 +31,22 @@
     - [service-ca (98)](#service-ca-98)
       - [Certificates (95)](#Certificates-95)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
-  - [Items That Can Auto Regenerate After Offline Expiry (0)](#Items-That-Can-Auto-Regenerate-After-Offline-Expiry-0)
+  - [Items That DO Meet the Requirement (0)](#Items-That-DO-Meet-the-Requirement-0)
 
 
 Acknowledging that a cert/key pair or CA bundle can auto-regenerate after it expires offline means
-      Acknowledging that a cert/key pair or CA bundle can auto-regenerate after it expires offline means
 that if the cluster is shut down until the certificate expires, when the machines are restarted
-      that if the cluster is shut down until the certificate expires, when the machines are restarted
 the cluster will automatically create new cert/key pairs or update CA bundles as required without human
-      the cluster will automatically create new cert/key pairs or update CA bundles as required without human
 intervention.
-      intervention.
 To assert that a particular cert/key pair or CA bundle can do this, add the "certificates.openshift.io/auto-regenerate-after-offline-expiry" annotation to the secret or configmap and 
-      To assert that a particular cert/key pair or CA bundle can do this, add the "certificates.openshift.io/auto-regenerate-after-offline-expiry" annotation to the secret or configmap and 
 setting the value of the annotation a github link to the PR adding the annotation.
-      setting the value of the annotation a github link to the PR adding the annotation.
 This assertion also means that you have
-      This assertion also means that you have
 1. Manually tested that this works or seen someone else manually test that this works.  AND
 2. Written an automated e2e job that your team has an alert for and is a blocking GA criteria, and/or
       QE has required test every release that ensures the functionality works every release.
 Links should be provided in the PR adding the annotation.
-      Links should be provided in the PR adding the annotation.
-## Items That Cannot Auto Regenerate After Offline Expiry (252)
+
+## Items Do NOT Meet the Requirement (252)
 ###  (39)
 #### Certificates (23)
 1. ns/openshift-ingress secret/router-certs-default
@@ -173,8 +166,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 #### Certificate Authority Bundles (16)
 1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
@@ -258,8 +249,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 ### Cloud Compute / Cloud Controller Manager (1)
 #### Certificate Authority Bundles (1)
 1. ns/openshift-cloud-controller-manager configmap/ccm-trusted-ca
@@ -269,8 +258,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 ### End User (1)
 #### Certificate Authority Bundles (1)
 1. ns/openshift-config configmap/user-ca-bundle
@@ -279,8 +266,6 @@ Links should be provided in the PR adding the annotation.
       
 
 
-
-      
 
 ### Etcd (28)
 #### Certificates (19)
@@ -381,8 +366,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 #### Certificate Authority Bundles (9)
 1. ns/openshift-apiserver configmap/etcd-serving-ca
 
@@ -431,8 +414,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 ### Machine Config Operator (2)
 #### Certificates (1)
 1. ns/openshift-machine-config-operator secret/machine-config-server-tls
@@ -442,8 +423,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 #### Certificate Authority Bundles (1)
 1. ns/openshift-config configmap/initial-kube-apiserver-server-ca
 
@@ -451,8 +430,6 @@ Links should be provided in the PR adding the annotation.
       
 
 
-
-      
 
 ### Networking / cluster-network-operator (30)
 #### Certificate Authority Bundles (30)
@@ -608,8 +585,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 ### apiserver-auth (3)
 #### Certificates (1)
 1. ns/openshift-oauth-apiserver secret/openshift-authenticator-certs
@@ -618,8 +593,6 @@ Links should be provided in the PR adding the annotation.
       
 
 
-
-      
 
 #### Certificate Authority Bundles (2)
 1. ns/openshift-config-managed configmap/oauth-serving-cert
@@ -633,8 +606,6 @@ Links should be provided in the PR adding the annotation.
       
 
 
-
-      
 
 ### kube-apiserver (39)
 #### Certificates (22)
@@ -750,8 +721,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 #### Certificate Authority Bundles (17)
 1. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
 
@@ -840,8 +809,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 ### kube-controller-manager (10)
 #### Certificates (3)
 1. ns/openshift-kube-controller-manager secret/csr-signer
@@ -860,8 +827,6 @@ Links should be provided in the PR adding the annotation.
       
 
 
-
-      
 
 #### Certificate Authority Bundles (7)
 1. ns/openshift-config-managed configmap/csr-controller-ca
@@ -901,8 +866,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 ### kube-scheduler (1)
 #### Certificate Authority Bundles (1)
 1. ns/openshift-kube-scheduler configmap/serviceaccount-ca
@@ -911,8 +874,6 @@ Links should be provided in the PR adding the annotation.
       
 
 
-
-      
 
 ### service-ca (98)
 #### Certificates (95)
@@ -1393,8 +1354,6 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
 #### Certificate Authority Bundles (3)
 1. ns/openshift-config-managed configmap/service-ca
 
@@ -1413,6 +1372,4 @@ Links should be provided in the PR adding the annotation.
 
 
 
-      
-
-## Items That Can Auto Regenerate After Offline Expiry (0)
+## Items That DO Meet the Requirement (0)
