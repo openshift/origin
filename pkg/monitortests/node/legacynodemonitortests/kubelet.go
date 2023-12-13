@@ -143,7 +143,7 @@ func testAnonymousCertConnectionFailure(events monitorapi.Intervals) []*junitapi
 
 	var failures []string
 	for _, event := range events {
-		if strings.Contains(event.Message, "reason/FailedToAuthenticateWithOpenShiftUser") {
+		if event.Source == monitorapi.SourceKubeletLog && event.StructuredMessage.Reason == "FailedToAuthenticateWithOpenShiftUser" {
 			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
 		}
 	}

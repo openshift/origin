@@ -203,7 +203,9 @@ const (
 	E2ETestStarted  IntervalReason = "E2ETestStarted"
 	E2ETestFinished IntervalReason = "E2ETestFinished"
 
-	CloudMetricsExtrenuous IntervalReason = "CloudMetricsExtrenuous"
+	CloudMetricsExtrenuous                IntervalReason = "CloudMetricsExtrenuous"
+	FailedToDeleteCGroupsPath             IntervalReason = "FailedToDeleteCGroupsPath"
+	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
 )
 
 type AnnotationKey string
@@ -275,7 +277,7 @@ const (
 	SourceKubeEvent               IntervalSource = "KubeEvent"
 	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
-	SourceSystemJournalScanner    IntervalSource = "KubeletLogScanner"
+	SourceKubeletLog              IntervalSource = "KubeletLog"
 	SourcePodLog                  IntervalSource = "PodLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
 	APIServerGracefulShutdown     IntervalSource = "APIServerGracefulShutdown"

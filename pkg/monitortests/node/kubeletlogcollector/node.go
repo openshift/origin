@@ -224,14 +224,10 @@ func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
 	containerRef := probeProblemToContainerReference(logLine)
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
-				Locator(containerRef).
-				Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonReadinessFailed).Node(nodeName).HumanMessage(message)).
-				BuildCondition(),
-			From: failureTime,
-			To:   failureTime,
-		},
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
+			Locator(containerRef).
+			Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonReadinessFailed).Node(nodeName).HumanMessage(message)).
+			Build(failureTime, failureTime),
 	}
 }
 
@@ -254,18 +250,15 @@ func readinessError(nodeName, logLine string) monitorapi.Intervals {
 	containerRef := probeProblemToContainerReference(logLine)
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
-				Locator(containerRef).
-				Message(
-					monitorapi.NewMessage().
-						Reason(monitorapi.ContainerReasonReadinessErrored).
-						Node(nodeName).
-						HumanMessage(message),
-				).BuildCondition(),
-			From: failureTime,
-			To:   failureTime,
-		},
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
+			Locator(containerRef).
+			Message(
+				monitorapi.NewMessage().
+					Reason(monitorapi.ContainerReasonReadinessErrored).
+					Node(nodeName).
+					HumanMessage(message),
+			).
+			Build(failureTime, failureTime),
 	}
 }
 
@@ -283,19 +276,15 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 	containerRef := errImagePullToContainerReference(logLine)
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
-				Locator(containerRef).
-				Message(
-					monitorapi.NewMessage().
-						Reason(monitorapi.ContainerErrImagePull).
-						Cause(monitorapi.ContainerUnrecognizedSignatureFormat).
-						Node(nodeName),
-				).
-				BuildCondition(),
-			From: failureTime,
-			To:   failureTime,
-		},
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
+			Locator(containerRef).
+			Message(
+				monitorapi.NewMessage().
+					Reason(monitorapi.ContainerErrImagePull).
+					Cause(monitorapi.ContainerUnrecognizedSignatureFormat).
+					Node(nodeName),
+			).
+			Build(failureTime, failureTime),
 	}
 }
 
@@ -332,18 +321,15 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 	containerRef := probeProblemToContainerReference(logLine)
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
-				Locator(containerRef).
-				Message(
-					monitorapi.NewMessage().
-						Reason(monitorapi.ContainerReasonStartupProbeFailed).
-						Node(nodeName).
-						HumanMessage(message),
-				).BuildCondition(),
-			From: failureTime,
-			To:   failureTime,
-		},
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
+			Locator(containerRef).
+			Message(
+				monitorapi.NewMessage().
+					Reason(monitorapi.ContainerReasonStartupProbeFailed).
+					Node(nodeName).
+					HumanMessage(message),
+			).
+			Build(failureTime, failureTime),
 	}
 }
 
@@ -440,14 +426,10 @@ func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) m
 	failureTime := systemdJournalLogTime(logLine)
 
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Error).
-				Locator(nodeLocator).
-				Message(monitorapi.NewMessage().Reason("FailedToDeleteCGroupsPath").HumanMessage(logLine)).
-				BuildCondition(),
-			From: failureTime,
-			To:   failureTime.Add(1 * time.Second),
-		},
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Error).
+			Locator(nodeLocator).
+			Message(monitorapi.NewMessage().Reason(monitorapi.FailedToDeleteCGroupsPath).HumanMessage(logLine)).
+			Build(failureTime, failureTime.Add(1*time.Second)),
 	}
 }
 
@@ -459,14 +441,11 @@ func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string
 	failureTime := systemdJournalLogTime(logLine)
 
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Error).
-				Locator(nodeLocator).
-				Message(monitorapi.NewMessage().Reason("FailedToAuthenticateWithOpenShiftUser").HumanMessage(logLine)).
-				BuildCondition(),
-			From: failureTime,
-			To:   failureTime.Add(1 * time.Second),
-		},
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Error).
+			Locator(nodeLocator).
+			Message(monitorapi.NewMessage().Reason(monitorapi.FailedToAuthenticateWithOpenShiftUser).
+				HumanMessage(logLine)).
+			Build(failureTime, failureTime.Add(1*time.Second)),
 	}
 }
 
@@ -513,15 +492,12 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 	}
 
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
-				Locator(nodeLocator).
-				Message(
-					monitorapi.NewMessage().Reason(monitorapi.NodeFailedLease).HumanMessage(fmt.Sprintf("%s - %s", url, msg)),
-				).BuildCondition(),
-			From: failureTime,
-			To:   failureTime.Add(1 * time.Second),
-		},
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
+			Locator(nodeLocator).
+			Message(
+				monitorapi.NewMessage().Reason(monitorapi.NodeFailedLease).HumanMessage(fmt.Sprintf("%s - %s", url, msg)),
+			).
+			Build(failureTime, failureTime.Add(1*time.Second)),
 	}
 }
 
@@ -558,15 +534,12 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 
 	failureTime := systemdJournalLogTime(logLine)
 	return monitorapi.Intervals{
-		{
-			Condition: monitorapi.NewInterval(monitorapi.SourceSystemJournalScanner, monitorapi.Info).
-				Locator(locator()).
-				Message(
-					monitorapi.NewMessage().Reason(reason).Node(nodeName).HumanMessage(message),
-				).BuildCondition(),
-			From: failureTime,
-			To:   failureTime,
-		},
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
+			Locator(locator()).
+			Message(
+				monitorapi.NewMessage().Reason(reason).Node(nodeName).HumanMessage(message),
+			).
+			Build(failureTime, failureTime),
 	}
 }
 
