@@ -1,28 +1,74 @@
 package ownership
 
 import (
+	"encoding/json"
 	"fmt"
 
-	"github.com/openshift/api/annotations"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-const annotationName string = annotations.OpenShiftComponent
-
-type OwnerRequirement struct{}
-
-func NewOwnerRequirement() tlsmetadatainterfaces.AnnotationRequirement {
-	return tlsmetadatainterfaces.NewAnnotationRequirement(
-		"ownership",
-		annotationName,
-		generateOwnerMarkdownFn,
-	)
+type OwnerRequirement struct {
+	name string
 }
 
-func generateOwnerMarkdownFn(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
+func NewOwnerRequirement() tlsmetadatainterfaces.Requirement {
+	return OwnerRequirement{
+		name: "ownership",
+	}
+}
+
+func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (tlsmetadatainterfaces.RequirementResult, error) {
+	pkiInfo, err := tlsmetadatainterfaces.ProcessByLocation(rawData)
+	if err != nil {
+		return nil, fmt.Errorf("transforming raw data %v: %w", o.GetName(), err)
+	}
+
+	ownershipJSONBytes, err := json.MarshalIndent(pkiInfo, "", "    ")
+	if err != nil {
+		return nil, fmt.Errorf("failure marshalling %v.json: %w", o.GetName(), err)
+	}
+	markdown, err := generateOwnershipMarkdown(pkiInfo)
+	if err != nil {
+		return nil, fmt.Errorf("failure marshalling %v.md: %w", o.GetName(), err)
+	}
+	violations := generateViolationJSON(pkiInfo)
+	violationJSONBytes, err := json.MarshalIndent(violations, "", "    ")
+	if err != nil {
+		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
+	}
+
+	return tlsmetadatainterfaces.NewRequirementResult(
+		o.GetName(),
+		ownershipJSONBytes,
+		markdown,
+		violationJSONBytes)
+}
+
+func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.PKIRegistryInfo {
+	ret := &certgraphapi.PKIRegistryInfo{}
+
+	for i := range pkiInfo.CertKeyPairs {
+		curr := pkiInfo.CertKeyPairs[i]
+		owner := curr.CertKeyInfo.OwningJiraComponent
+		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
+			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
+		}
+	}
+	for i := range pkiInfo.CertificateAuthorityBundles {
+		curr := pkiInfo.CertificateAuthorityBundles[i]
+		owner := curr.CABundleInfo.OwningJiraComponent
+		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
+			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
+		}
+	}
+
+	return ret
+}
+
+func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
 	certsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	certsWithoutOwners := []certgraphapi.PKIRegistryInClusterCertKeyPair{}
 	caBundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
@@ -111,4 +157,8 @@ func generateOwnerMarkdownFn(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, err
 	}
 
 	return md.Bytes(), nil
+}
+
+func (o OwnerRequirement) GetName() string {
+	return o.name
 }
