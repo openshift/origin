@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatadefaults"
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
+
 	ensure_no_violation_regression "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/ensure-no-violation-regression"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -55,16 +58,20 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			masters = append(masters, &nodeList.Items[i])
 		}
 
+		annotationsToCollect := []string{annotations.OpenShiftComponent}
+		for _, currRequirement := range tlsmetadatadefaults.GetDefaultTLSRequirements() {
+			annotationRequirement, ok := currRequirement.(tlsmetadatainterfaces.AnnotationRequirement)
+			if ok {
+				annotationsToCollect = append(annotationsToCollect, annotationRequirement.GetAnnotationName())
+			}
+		}
+
 		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient,
 			certgraphanalysis.SkipRevisioned,
 			certgraphanalysis.SkipHashed,
 			certgraphanalysis.ElideProxyCADetails,
 			certgraphanalysis.RewriteNodeIPs(masters),
-			certgraphanalysis.CollectAnnotations(
-				annotations.OpenShiftComponent,
-				annotations.OpenShiftDescription,
-				AutoRegenerateAfterExpiryAnnotation,
-			),
+			certgraphanalysis.CollectAnnotations(annotationsToCollect...),
 		)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -172,28 +179,3 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 	})
 
 })
-
-// pruneSystemTrust removes certificate metadata for proxy-ca for easier visualization
-func pruneSystemTrust(pkiList *certgraphapi.PKIList) {
-	for i := range pkiList.CertificateAuthorityBundles.Items {
-		curr := pkiList.CertificateAuthorityBundles.Items[i]
-		if curr.LogicalName != "proxy-ca" {
-			continue
-		}
-
-		if len(curr.Spec.CertificateMetadata) > 10 {
-			pkiList.CertificateAuthorityBundles.Items[i].Name = "proxy-ca"
-			pkiList.CertificateAuthorityBundles.Items[i].Spec.CertificateMetadata = []certgraphapi.CertKeyMetadata{
-				{
-					CertIdentifier: certgraphapi.CertIdentifier{
-						CommonName:   "synthetic-proxy-ca",
-						SerialNumber: "0",
-						Issuer:       nil,
-					},
-				},
-			}
-			return
-		}
-	}
-
-}
