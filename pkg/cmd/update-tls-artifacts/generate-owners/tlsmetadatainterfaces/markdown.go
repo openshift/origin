@@ -36,6 +36,13 @@ func (m *Markdown) Bytes() []byte {
 	return ret.Bytes()
 }
 
+// ExactBytes returns markdown with table of contents or title.  Useful for embedding.
+func (m *Markdown) ExactBytes() []byte {
+	ret := &bytes.Buffer{}
+	fmt.Fprintf(ret, m.body.String())
+	return ret.Bytes()
+}
+
 func (m *Markdown) UnlistedTitle(level int, text string) {
 	titlePrefix := strings.Repeat("#", level)
 	fmt.Fprintf(m.body, "%s %s\n", titlePrefix, text)
@@ -54,6 +61,7 @@ func (m *Markdown) Title(level int, text string) {
 func (m *Markdown) ExactText(text string) {
 	if m.orderedListDepth == 0 {
 		fmt.Fprintf(m.body, "%s\n", text)
+		return
 	}
 
 	prefix := ""
