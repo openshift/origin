@@ -614,6 +614,7 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 	exclusions := []string{
 		// compare https://github.com/kubernetes/kubernetes/pull/119454
 		`[sig-network] Services should complete a service status lifecycle`,
+		`[sig-storage] In-tree Volumes [Driver: vsphere]`,
 	}
 
 	matches := make([]*testCase, 0, len(tests))
