@@ -3,7 +3,6 @@ package etcdloganalyzer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -114,7 +113,7 @@ func (*etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, starting
 			leaderPod := etcdMemberIDToPod[newLeader]
 			leaderNode := podsToNode[leaderPod]
 
-			newInterval = monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Warning).
+			newInterval = monitorapi.NewInterval(monitorapi.SourceEtcdLog, monitorapi.Warning).
 				Locator(
 					monitorapi.NewLocator().EtcdMemberFromNames(leaderNode, newLeader),
 				).
@@ -183,28 +182,23 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 		return
 	}
 
-	locator := logLine.Locator.OldLocator()
-	// Add a src/podLog to the locator for filtering:
-	// TODO this seems like a bad kind of marker since all sorts of different things originate here and we care about what it means, not where its from
-	locator = fmt.Sprintf("%s src/podLog", locator)
-
 	for _, substring := range g.subStrings {
 		if !strings.Contains(parsedLine.Msg, substring.subString) {
 			continue
 		}
 
-		g.recorder.AddIntervals(monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Level:   monitorapi.Warning,
-				Locator: locator,
-				Message: parsedLine.Msg,
-			},
-			From: parsedLine.Timestamp,
-			To:   parsedLine.Timestamp.Add(1 * time.Second),
-		})
+		g.recorder.AddIntervals(
+			monitorapi.NewInterval(monitorapi.SourceEtcdLog, monitorapi.Warning).
+				Locator(logLine.Locator).
+				Message(
+					monitorapi.NewMessage().
+						HumanMessage(parsedLine.Msg),
+				).
+				Build(parsedLine.Timestamp, parsedLine.Timestamp.Add(1*time.Second)))
 	}
 
 	messages := []*monitorapi.MessageBuilder{}
+	// TODO: all of these reasons with dashes are non-standard, we use camelcase everywhere else.
 	switch {
 	case strings.Contains(parsedLine.Msg, "restarting local member"):
 		messages = []*monitorapi.MessageBuilder{
@@ -270,7 +264,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 
 	for _, message := range messages {
 		g.recorder.AddIntervals(
-			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Warning).
+			monitorapi.NewInterval(monitorapi.SourceEtcdLog, monitorapi.Warning).
 				Locator(logLine.Locator).
 				Message(message).
 				Build(logLine.Instant, logLine.Instant.Add(time.Second)),

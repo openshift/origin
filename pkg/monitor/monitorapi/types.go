@@ -279,6 +279,7 @@ const (
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
 	SourceKubeletLog              IntervalSource = "KubeletLog"
 	SourcePodLog                  IntervalSource = "PodLog"
+	SourceEtcdLog                 IntervalSource = "EtcdLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
 	APIServerGracefulShutdown     IntervalSource = "APIServerGracefulShutdown"
 	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
