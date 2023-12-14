@@ -282,7 +282,8 @@ const (
 	SourceEtcdLog                 IntervalSource = "EtcdLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
 	APIServerGracefulShutdown     IntervalSource = "APIServerGracefulShutdown"
-	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
+	SourceTestData                IntervalSource = "TestData" // some tests have no real source to assign
+	SourceOVSVswitchdLog          IntervalSource = "OVSVswitchdLog"
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 	SourceClusterOperatorMonitor  IntervalSource = "ClusterOperatorMonitor"
 	SourceOperatorState           IntervalSource = "OperatorState"
