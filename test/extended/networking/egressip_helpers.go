@@ -197,7 +197,7 @@ func findPacketSnifferInterface(oc *exutil.CLI, networkPlugin string, egressIPNo
 
 // findPacketSnifferInterfaceOnNode finds the interface that shall be used for packet capturing on this node.
 func findPacketSnifferInterfaceOnNode(oc *exutil.CLI, networkPlugin, nodeName string) (string, error) {
-	if networkPlugin == openshiftSDNPluginName {
+	if networkPlugin == OpenshiftSDNPluginName {
 		return findDefaultInterfaceForOpenShiftSDN(oc, nodeName)
 	}
 	if networkPlugin == OVNKubernetesPluginName {

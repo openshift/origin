@@ -62,7 +62,7 @@ const (
 	DIFFERENT_NODE NodeType = iota
 
 	// TODO get these defined as constandts in networkutils
-	openshiftSDNPluginName  = "OpenShiftSDN"
+	OpenshiftSDNPluginName  = "OpenShiftSDN"
 	OVNKubernetesPluginName = "OVNKubernetes"
 
 	// IP Address Families
@@ -278,7 +278,7 @@ func pluginImplementsNetworkPolicy() bool {
 	switch {
 	case os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "true":
 		return true
-	case networkPluginName() == openshiftSDNPluginName && openshiftSDNMode() == networkutils.NetworkPolicyPluginName:
+	case networkPluginName() == OpenshiftSDNPluginName && openshiftSDNMode() == networkutils.NetworkPolicyPluginName:
 		return true
 	case networkPluginName() == OVNKubernetesPluginName:
 		return true
@@ -506,7 +506,7 @@ func InOpenShiftSDNContext(body func()) {
 	Context("when using openshift-sdn",
 		func() {
 			BeforeEach(func() {
-				if networkPluginName() != openshiftSDNPluginName {
+				if networkPluginName() != OpenshiftSDNPluginName {
 					e2eskipper.Skipf("Not using openshift-sdn")
 				}
 			})
