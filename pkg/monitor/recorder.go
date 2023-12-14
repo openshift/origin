@@ -138,13 +138,10 @@ func (m *recorder) AddIntervals(eventIntervals ...monitorapi.Interval) {
 
 // StartInterval inserts a record at time t with the provided condition and returns an opaque
 // locator to the interval. The caller may close the sample at any point by invoking EndInterval().
-func (m *recorder) StartInterval(t time.Time, condition monitorapi.Condition) int {
+func (m *recorder) StartInterval(interval monitorapi.Interval) int {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.events = append(m.events, monitorapi.Interval{
-		Condition: condition,
-		From:      t,
-	})
+	m.events = append(m.events, interval)
 	return len(m.events) - 1
 }
 

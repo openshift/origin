@@ -35,7 +35,7 @@ type RecorderWriter interface {
 	RecordAt(t time.Time, conditions ...Condition)
 
 	AddIntervals(eventIntervals ...Interval)
-	StartInterval(t time.Time, condition Condition) int
+	StartInterval(interval Interval) int
 	EndInterval(startedInterval int, t time.Time) *Interval
 }
 
