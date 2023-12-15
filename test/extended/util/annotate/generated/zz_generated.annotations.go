@@ -205,6 +205,8 @@ var Annotations = map[string]string{
 
 	"[sig-arch] ocp payload should be based on existing source OLM version should contain the source commit id": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel]",
 
+	"[sig-arch][Early] APIs for openshift.io must have stable versions": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-arch][Early] CRDs for openshift.io should have a status in the CRD schema": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-arch][Early] CRDs for openshift.io should have subresource.status": " [Suite:openshift/conformance/parallel]",
