@@ -101,7 +101,8 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(isi.Status.Images).To(o.HaveLen(2))
 		for _, image := range isi.Status.Images {
-			o.Expect(image.Image).ToNot(o.BeNil(), fmt.Sprintf("image %s %#v", image.Tag, image.Status))
+			o.Expect(image.Image).ToNot(o.BeNil(), fmt.Sprintf("image %s is nil; status:%+v, reason:%+v",
+				image.Tag, image.Status.Status, image.Status.Reason))
 		}
 
 		// TODO: we may race here with the cache, if this is a problem, loop
@@ -134,7 +135,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLayers] Image layer subreso
 				}
 			}
 			time.Sleep(time.Second)
-			o.Expect(i).To(o.BeNumerically("<", 10), "Timed out waiting for layers to have expected data, got\n%#v\n%#v", layers, isi.Status.Images)
+			o.Expect(i).To(o.BeNumerically("<", 10), "Timed out waiting for layers to have expected data, got\n%#v", layers)
 		}
 
 		_, err = client.ImageStreams(oc.Namespace()).Create(ctx, &imagev1.ImageStream{
