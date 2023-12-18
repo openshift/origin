@@ -12432,7 +12432,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:2.7-ubi8",
+							"name": "ruby:3.0-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -18470,7 +18470,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5-ubi8"
             },
             "incremental": true
           }
@@ -20106,7 +20106,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
           "git": {
             "uri":"https://github.com/sclorg/s2i-ruby-container"
           },
-          "contextDir": "2.7/test/puma-test-app"
+          "contextDir": "3.0/test/puma-test-app"
         },
         "strategy": {
           "type": "Source",
@@ -20119,7 +20119,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
             }
           }
         },
@@ -20894,7 +20894,7 @@ items:
             value: "2"
         from:
           kind: ImageStreamTag
-          name: ruby:2.7-ubi8
+          name: ruby:3.0-ubi8
           namespace: openshift
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
@@ -29338,7 +29338,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:2.7-ubi8",
+							"name": "ruby:3.0-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -37433,12 +37433,12 @@ spec:
   tags:
   - from:
       kind: ImageStreamTag
-      name: "2.7"
+      name: "3.0"
     name: "latest"
   - from:
       kind: ImageStreamTag
-      name: ruby:2.7-ubi8
-    name: "2.7"
+      name: ruby:3.0-ubi8
+    name: "3.0"
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYamlBytes() ([]byte, error) {
@@ -49984,7 +49984,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-            name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
