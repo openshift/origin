@@ -42,7 +42,7 @@ aliases:
   - romfreiman # Single Node OpenShift
   - rphillips # Node
   - sadasu # Metal Platform
-  - selansen # Windows Containers
+  - sebsoto # Windows Containers
   - simonpasquier # Monitoring - In Cluster
   - sinnykumari # MCO
   - sosiouxme # Automated Release Tooling
