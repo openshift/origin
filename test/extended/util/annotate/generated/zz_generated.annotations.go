@@ -1161,6 +1161,12 @@ var Annotations = map[string]string{
 
 	"[sig-imageregistry][Serial] Image signature workflow can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
+	"[sig-installer][Feature:baremetal] Baremetal platform created by agent-installer should have baremetalhost resources": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-installer][Feature:baremetal] Baremetal platform created by agent-installer should have hostfirmwaresetting resources when provisioning network set to managed": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-installer][Feature:baremetal] Baremetal platform created by agent-installer should have provisioned hosts when provisioning network set to managed": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-installer][Feature:baremetal] Baremetal platform should have hostfirmwaresetting resources": " [Suite:openshift/conformance/parallel]",
