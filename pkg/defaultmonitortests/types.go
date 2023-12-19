@@ -2,6 +2,7 @@ package defaultmonitortests
 
 import (
 	"fmt"
+
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 	"github.com/sirupsen/logrus"
 
@@ -103,7 +104,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-new-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
 
-	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
+	monitorTestRegistry.AddMonitorTestOrDie("pod-network-availability", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvailabilityInvariant(info))
 	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewAvailabilityInvariant())
 
