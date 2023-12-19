@@ -10,3 +10,12 @@ type NotSupportedError struct {
 func (e *NotSupportedError) Error() string {
 	return fmt.Sprintf("not supported: %s", e.Reason)
 }
+
+// FlakeError represents an error when a flake junit should be created for a monitor test.
+type FlakeError struct {
+	Err error
+}
+
+func (e *FlakeError) Error() string {
+	return fmt.Sprintf("test flake with error: %v", e.Err)
+}
