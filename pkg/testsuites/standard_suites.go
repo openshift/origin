@@ -236,13 +236,6 @@ var staticSuites = []ginkgo.TestSuite{
 			if isDisabled(name) {
 				return false
 			}
-
-			if strings.Contains(name, `provisioning should provision storage with any volume data source`) {
-				// TODO: these CSI tests are disabled since Pods created by these tests
-				//  pull image directly: https://bugzilla.redhat.com/show_bug.cgi?id=2093339
-				return false
-			}
-
 			return strings.Contains(name, "External Storage [Driver:") && !strings.Contains(name, "[Disruptive]")
 		},
 	},
