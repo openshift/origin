@@ -12432,7 +12432,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:2.7-ubi8",
+							"name": "ruby:3.0-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -17851,7 +17851,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
         },
         "env": [
           {
@@ -18470,7 +18470,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.5-ubi8"
             },
             "incremental": true
           }
@@ -18696,7 +18696,7 @@ spec:
         value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
@@ -18796,7 +18796,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
@@ -18830,7 +18830,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
@@ -18864,7 +18864,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes() ([]byte, error) {
@@ -18896,7 +18896,7 @@ spec:
 
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
@@ -18939,7 +18939,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
       forcePull: true
 `)
 
@@ -19450,7 +19450,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -19639,7 +19639,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -19668,7 +19668,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -19696,7 +19696,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -19725,7 +19725,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -19753,7 +19753,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -20106,7 +20106,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
           "git": {
             "uri":"https://github.com/sclorg/s2i-ruby-container"
           },
-          "contextDir": "2.7/test/puma-test-app"
+          "contextDir": "3.0/test/puma-test-app"
         },
         "strategy": {
           "type": "Source",
@@ -20119,7 +20119,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
             }
           }
         },
@@ -20521,38 +20521,38 @@ func testExtendedTestdataBuildsTestDockerNoOutputnameJson() (*asset, error) {
 }
 
 var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
-  "kind":"BuildConfig",
-  "apiVersion":"build.openshift.io/v1",
-  "metadata":{
-    "name":"test",
-    "labels":{
-      "name":"test"
+  "kind": "BuildConfig",
+  "apiVersion": "build.openshift.io/v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
     }
   },
-  "spec":{
-    "triggers":[],
-    "source":{
-      "type":"Binary"
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Binary"
     },
-    "strategy":{
-      "type":"Source",
-      "sourceStrategy":{
-        "env":[
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "env": [
           {
-             "name":"BUILD_LOGLEVEL",
-             "value":"2"
+            "name": "BUILD_LOGLEVEL",
+            "value": "2"
           }
-       ],
-        "from":{
-          "kind":"DockerImage",
-          "name":"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
         }
       }
     },
-    "output":{
-      "to":{
-        "kind":"ImageStreamTag",
-        "name":"test:latest"
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
       }
     }
   }
@@ -20894,7 +20894,7 @@ items:
             value: "2"
         from:
           kind: ImageStreamTag
-          name: ruby:2.7-ubi8
+          name: ruby:3.0-ubi8
           namespace: openshift
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
@@ -29338,7 +29338,7 @@ var _testExtendedTestdataClusterQuickstartsRailsPostgresqlJson = []byte(`{
 						],
 						"from": {
 							"kind": "ImageStreamTag",
-							"name": "ruby:2.7-ubi8",
+							"name": "ruby:3.0-ubi8",
 							"namespace": "${NAMESPACE}"
 						}
 					},
@@ -36706,6 +36706,93 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
       "spec": {
         "tags": [
           {
+            "name": "latest",
+            "annotations": {
+              "description": "Build and run Ruby applications on UBI. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/tree/master/3.0/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major version updates.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby (Latest)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby",
+              "tags": "builder,ruby"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "3.0-ubi8"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "3.0-ubi9",
+            "annotations": {
+              "description": "Build and run Ruby 3.0 applications on UBI 9. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.0/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 3.0 (UBI 9)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:3.0,ruby",
+              "tags": "builder,ruby",
+              "version": "3.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi9/ruby-30:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "3.0-ubi8",
+            "annotations": {
+              "description": "Build and run Ruby 3.0 applications on UBI 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.0/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 3.0 (UBI 8)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:3.0,ruby",
+              "tags": "builder,ruby",
+              "version": "3.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/ruby-30:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "name": "3.0-ubi7",
+            "annotations": {
+              "description": "Build and run Ruby 3.0 applications on UBI 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/3.0/README.md.",
+              "iconClass": "icon-ruby",
+              "openshift.io/display-name": "Ruby 3.0 (UBI 7)",
+              "openshift.io/provider-display-name": "Red Hat, Inc.",
+              "sampleRepo": "https://github.com/sclorg/ruby-ex.git",
+              "supports": "ruby:3.0,ruby",
+              "tags": "builder,ruby",
+              "version": "3.0"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi7/ruby-30:latest"
+            },
+            "generation": null,
+            "importPolicy": {},
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
             "annotations": {
               "description": "Build and run Ruby applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Ruby available on OpenShift, including major versions updates.",
               "iconClass": "icon-ruby",
@@ -37433,12 +37520,12 @@ spec:
   tags:
   - from:
       kind: ImageStreamTag
-      name: "2.7"
+      name: "3.0"
     name: "latest"
   - from:
       kind: ImageStreamTag
-      name: ruby:2.7-ubi8
-    name: "2.7"
+      name: ruby:3.0-ubi8
+    name: "3.0"
 `)
 
 func testExtendedTestdataCmdTestCmdTestdataNewAppImagestreamRefYamlBytes() ([]byte, error) {
@@ -44233,7 +44320,7 @@ var _testExtendedTestdataImageTestImageJson = []byte(`{
     "name": "test",
     "creationTimestamp": null
   },
-  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8",
+  "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8",
   "dockerImageMetadata": {
     "kind": "DockerImage",
     "apiVersion": "1.0",
@@ -47791,7 +47878,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
                         }
                     }
                 }
@@ -47820,7 +47907,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+                            "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
                         }
                     }
                 }
@@ -49917,7 +50004,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
         resources: {}
       status:
         lastVersion: 0
@@ -49963,7 +50050,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
     -
       kind: "BuildConfig"
       apiVersion: "build.openshift.io/v1"
@@ -49984,7 +50071,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
@@ -50027,7 +50114,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
         resources: {}
       status:
         lastVersion: 0
