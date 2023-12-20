@@ -463,6 +463,9 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	topologyAwareMatcher := newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(topologyAwareMatcher)
 
+	singleNodeConnectionRefusedMatcher := newSingleNodeConnectionRefusedEventMatcher(finalIntervals)
+	registry.AddPathologicalEventMatcherOrDie(singleNodeConnectionRefusedMatcher)
+
 	return registry
 }
 
@@ -755,6 +758,7 @@ func newDuplicatedEventsAllowedWhenEtcdRevisionChange(ctx context.Context, clien
 	}
 	currentRevision, err := getBiggestRevisionForEtcdOperator(ctx, operatorClient)
 	if err != nil {
+		return nil, err
 	}
 	repeatThresholdOverride := currentRevision * (60 / 5)
 	logrus.WithFields(logrus.Fields{
@@ -828,7 +832,7 @@ func (ade *OverlapOtherIntervalsPathologicalEventMatcher) Allows(i monitorapi.In
 	// Match the pathological event if it overlaps with any of the given set of intervals.
 	for _, nui := range ade.allowIfWithinIntervals {
 		if nui.From.Before(i.From) && nui.To.After(i.To) {
-			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as we expect these during master updates", i, nui)
+			logrus.Infof("%s was found to overlap with %s, ignoring pathological event as they fall within range of specified intervals", i, nui)
 			return true
 		}
 	}
@@ -907,5 +911,31 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 			messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
 		},
 		allowIfWithinIntervals: adjustedTaintTestIntervals,
+	}
+}
+
+// Ignore connection refused events during OCP APIServer or OAuth APIServer being down
+func newSingleNodeConnectionRefusedEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	const (
+		ocpAPINamespace      = "openshift-apiserver"
+		ocpOAuthAPINamespace = "openshift-oauth-apiserver"
+	)
+	snoTopology := v1.SingleReplicaTopologyMode
+	ocpAPISeverTargetDownIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Source == monitorapi.SourceAlert &&
+			eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey] == "TargetDown" &&
+			(eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == ocpAPINamespace ||
+				eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == ocpOAuthAPINamespace)
+	})
+	if len(ocpAPISeverTargetDownIntervals) > 0 {
+		logrus.Infof("found %d OCP APIServer TargetDown intervals", len(ocpAPISeverTargetDownIntervals))
+	}
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:              "ConnectionErrorDuringSingleNodeAPIServerTargetDown",
+			messageHumanRegex: regexp.MustCompile(`dial tcp .* connect: connection refused`),
+			topology:          &snoTopology,
+		},
+		allowIfWithinIntervals: ocpAPISeverTargetDownIntervals,
 	}
 }

@@ -48,6 +48,10 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		restClient, err := rest.RESTClientFor(config)
 		framework.ExpectNoError(err)
 
+		req, err := http.NewRequest(http.MethodGet, config.Host+"/readyz", nil)
+		framework.ExpectNoError(err)
+		req.Header.Set("X-OpenShift-Internal-If-Not-Ready", "reject")
+
 		httpClient := restClient.Client
 
 		ginkgo.By("Making sure no previous rollout is in progress")
@@ -69,7 +73,7 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		// We are taking the API down, this can often take more than a minute so we have provided a reasonably generous timeout.
 		ginkgo.By("Expecting API to become unavailable")
 		err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
-			ready := isApiReady(config, httpClient)
+			ready := isApiReady(config, httpClient, req)
 			return !ready, nil
 		})
 
@@ -79,7 +83,7 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 
 		ginkgo.By("Expecting API to become ready")
 		err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-			ready := isApiReady(config, httpClient)
+			ready := isApiReady(config, httpClient, req)
 			return ready, nil
 		})
 
@@ -134,8 +138,8 @@ func forceApiRollout(oc *exutil.CLI) {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func isApiReady(clusterConfig *rest.Config, httpClient *http.Client) (ready bool) {
-	resp, err := httpClient.Get(clusterConfig.Host + "/readyz")
+func isApiReady(clusterConfig *rest.Config, httpClient *http.Client, req *http.Request) (ready bool) {
+	resp, err := httpClient.Do(req)
 	if resp != nil && resp.Body != nil {
 		defer resp.Body.Close()
 	}

@@ -4,9 +4,12 @@ import (
 	"context"
 	"net/url"
 	"strings"
+	"time"
 
+	userv1 "github.com/openshift/api/user/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -48,7 +51,16 @@ func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	userInfo, err := userClient.Users().Get(context.Background(), "~", metav1.GetOptions{})
+
+	var userInfo *userv1.User
+	err = wait.PollUntilContextTimeout(context.Background(), time.Second, time.Minute, true, func(ctx context.Context) (done bool, err error) {
+		userInfo, err = userClient.Users().Get(ctx, "~", metav1.GetOptions{})
+		if err != nil && strings.Contains(err.Error(), "connect: connection refused") {
+			return false, nil
+		}
+		return true, err
+	})
+
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		// if we're talking to kube (or likely talking to kube), take a best guess consistent with login
 		switch {
