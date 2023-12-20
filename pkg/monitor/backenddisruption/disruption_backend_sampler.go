@@ -619,16 +619,14 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 
 			// start a new interval with the new error
 			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
-			framework.Logf(message)
+			framework.Logf(message.BuildString())
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
-				v1.EventTypeWarning, string(eventReason), "detected", message)
-			currCondition := monitorapi.Condition{
-				Level:   level,
-				Locator: b.backendSampler.GetLocator().OldLocator(),
-				Message: message,
-			}
-			previousIntervalID = monitorRecorder.StartInterval(currSample.startTime, currCondition)
+				v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())
+			currInterval := monitorapi.NewInterval(monitorapi.SourceDisruption, level).
+				Locator(b.backendSampler.GetLocator()).
+				Message(message).Build(currSample.startTime, time.Time{})
+			previousIntervalID = monitorRecorder.StartInterval(currInterval)
 
 		case currentlyAvailable && !previouslyAvailable:
 			// end the previous interval if we have one because our state changed
@@ -639,13 +637,11 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			message := DisruptionEndedMessage(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType())
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
-				v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
-			currCondition := monitorapi.Condition{
-				Level:   monitorapi.Info,
-				Locator: b.backendSampler.GetLocator().OldLocator(),
-				Message: message,
-			}
-			previousIntervalID = monitorRecorder.StartInterval(currSample.startTime, currCondition)
+				v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message.BuildString())
+			currInterval := monitorapi.NewInterval(monitorapi.SourceDisruption, monitorapi.Info).
+				Locator(b.backendSampler.GetLocator()).
+				Message(message).Build(currSample.startTime, time.Time{})
+			previousIntervalID = monitorRecorder.StartInterval(currInterval)
 
 		case !currentlyAvailable && previouslyAvailable:
 			// end the previous interval if we have one because our state changed
@@ -654,16 +650,14 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 			}
 
 			message, eventReason, level := DisruptionBegan(b.backendSampler.GetLocator().OldLocator(), b.backendSampler.GetConnectionType(), currentError, currSample.getRequestAuditID())
-			framework.Logf(message)
+			framework.Logf(message.BuildString())
 			eventRecorder.Eventf(
 				&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: b.backendSampler.GetDisruptionBackendName()}, nil,
-				v1.EventTypeWarning, string(eventReason), "detected", message)
-			currCondition := monitorapi.Condition{
-				Level:   level,
-				Locator: b.backendSampler.GetLocator().OldLocator(),
-				Message: message,
-			}
-			previousIntervalID = monitorRecorder.StartInterval(currSample.startTime, currCondition)
+				v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())
+			currInterval := monitorapi.NewInterval(monitorapi.SourceDisruption, level).
+				Locator(b.backendSampler.GetLocator()).
+				Message(message).Build(currSample.startTime, time.Time{})
+			previousIntervalID = monitorRecorder.StartInterval(currInterval)
 
 		default:
 			panic("math broke resulting in this weird error you need to find")

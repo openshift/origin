@@ -2,6 +2,7 @@ package disruption
 
 import (
 	"fmt"
+	"time"
 
 	"k8s.io/klog/v2"
 
@@ -73,11 +74,11 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 	klog.V(4).Info(message)
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()},
-		nil, v1.EventTypeWarning, string(eventReason), "detected", message)
+		nil, v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())
 
-	condition := monitorapi.NewInterval(monitorapi.SourceDisruption, level).Locator(h.descriptor.DisruptionLocator()).
-		Message(monitorapi.NewMessage().HumanMessage(message).Reason(eventReason)).BuildCondition()
-	openIntervalID := h.monitorRecorder.StartInterval(fs.StartedAt, condition)
+	interval := monitorapi.NewInterval(monitorapi.SourceDisruption, level).Locator(h.descriptor.DisruptionLocator()).
+		Message(message).Build(fs.StartedAt, time.Time{})
+	openIntervalID := h.monitorRecorder.StartInterval(interval)
 	// TODO: unlikely in the real world, if from == to for some reason,
 	//  then we are recording a zero second unavailable window.
 	h.monitorRecorder.EndInterval(openIntervalID, ts.StartedAt)
@@ -97,9 +98,9 @@ func (h *ciHandler) Available(from, to *backend.SampleResult) {
 
 	h.eventRecorder.Eventf(
 		&v1.ObjectReference{Kind: "OpenShiftTest", Namespace: "kube-system", Name: h.descriptor.Name()}, nil,
-		v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message)
-	condition := monitorapi.NewInterval(monitorapi.SourceDisruption, monitorapi.Info).Locator(h.descriptor.DisruptionLocator()).
-		Message(monitorapi.NewMessage().HumanMessage(message).Reason(monitorapi.DisruptionEndedEventReason)).BuildCondition()
-	openIntervalID := h.monitorRecorder.StartInterval(fs.StartedAt, condition)
+		v1.EventTypeNormal, string(monitorapi.DisruptionEndedEventReason), "detected", message.BuildString())
+	interval := monitorapi.NewInterval(monitorapi.SourceDisruption, monitorapi.Info).Locator(h.descriptor.DisruptionLocator()).
+		Message(message).Build(fs.StartedAt, time.Time{})
+	openIntervalID := h.monitorRecorder.StartInterval(interval)
 	h.monitorRecorder.EndInterval(openIntervalID, ts.StartedAt)
 }

@@ -53,8 +53,8 @@ func (m *jsonlRecorder) AddIntervals(intervals ...monitorapi.Interval) {
 
 // StartInterval inserts a record at time t with the provided condition and returns an opaque
 // locator to the interval. The caller may close the sample at any point by invoking EndInterval().
-func (m *jsonlRecorder) StartInterval(t time.Time, condition monitorapi.Condition) int {
-	return m.delegate.StartInterval(t, condition)
+func (m *jsonlRecorder) StartInterval(interval monitorapi.Interval) int {
+	return m.delegate.StartInterval(interval)
 }
 
 // EndInterval updates the To of the interval started by StartInterval if it is greater than

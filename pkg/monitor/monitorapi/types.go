@@ -35,7 +35,7 @@ type RecorderWriter interface {
 	RecordAt(t time.Time, conditions ...Condition)
 
 	AddIntervals(eventIntervals ...Interval)
-	StartInterval(t time.Time, condition Condition) int
+	StartInterval(interval Interval) int
 	EndInterval(startedInterval int, t time.Time) *Interval
 }
 
@@ -203,7 +203,9 @@ const (
 	E2ETestStarted  IntervalReason = "E2ETestStarted"
 	E2ETestFinished IntervalReason = "E2ETestFinished"
 
-	CloudMetricsExtrenuous IntervalReason = "CloudMetricsExtrenuous"
+	CloudMetricsExtrenuous                IntervalReason = "CloudMetricsExtrenuous"
+	FailedToDeleteCGroupsPath             IntervalReason = "FailedToDeleteCGroupsPath"
+	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
 )
 
 type AnnotationKey string
@@ -275,11 +277,13 @@ const (
 	SourceKubeEvent               IntervalSource = "KubeEvent"
 	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor             IntervalSource = "NodeMonitor"
-	SourceSystemJournalScanner    IntervalSource = "KubeletLogScanner"
+	SourceKubeletLog              IntervalSource = "KubeletLog"
 	SourcePodLog                  IntervalSource = "PodLog"
+	SourceEtcdLog                 IntervalSource = "EtcdLog"
 	SourcePodMonitor              IntervalSource = "PodMonitor"
 	APIServerGracefulShutdown     IntervalSource = "APIServerGracefulShutdown"
-	SourceTestData                IntervalSource = "TestData"                // some tests have no real source to assign
+	SourceTestData                IntervalSource = "TestData" // some tests have no real source to assign
+	SourceOVSVswitchdLog          IntervalSource = "OVSVswitchdLog"
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
 	SourceClusterOperatorMonitor  IntervalSource = "ClusterOperatorMonitor"
 	SourceOperatorState           IntervalSource = "OperatorState"
