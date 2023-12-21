@@ -1063,7 +1063,7 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 
 // WaitForServiceAccountWithSecret waits until the named service account gets fully
 // provisioned, including dockercfg secrets
-func WaitForServiceAccountWithSecret(c corev1client.ServiceAccountInterface, name string) error {
+func WaitForServiceAccountWithSecret(c corev1client.ServiceAccountInterface, name string, checkSecret bool) error {
 	waitFn := func() (bool, error) {
 		sa, err := c.Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
@@ -1083,7 +1083,7 @@ func WaitForServiceAccountWithSecret(c corev1client.ServiceAccountInterface, nam
 			}
 			secretNames = append(secretNames, s.Name)
 		}
-		if hasDockercfg {
+		if hasDockercfg || !checkSecret {
 			return true, nil
 		}
 		e2e.Logf("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))

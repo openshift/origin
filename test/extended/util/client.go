@@ -55,6 +55,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/api/annotations"
+	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -323,14 +324,44 @@ func (c *CLI) setupProject() string {
 	// Wait for SAs and default dockercfg Secret to be injected
 	// TODO: it would be nice to have a shared list but it is defined in at least 3 place,
 	// TODO: some of them not even using the constants
+	// deployer and builder is not must for some clusters, such as no-capabilities
 	DefaultServiceAccounts := []string{
 		"default",
-		"deployer",
-		"builder",
 	}
+	shouldCheckSecret := false
+	clusterVersion, err := c.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	checkCapability := func(capabilities []configv1.ClusterVersionCapability, checked configv1.ClusterVersionCapability) bool {
+		m := ConvertStrSlice2Map(capabilities)
+		_, ok := m[checked]
+		if ok {
+			return true
+		} else {
+			return false
+		}
+	}
+	if clusterVersion.Status.Capabilities.KnownCapabilities == nil ||
+		!checkCapability(clusterVersion.Status.Capabilities.KnownCapabilities, configv1.ClusterVersionCapabilityBuild) ||
+		(clusterVersion.Status.Capabilities.EnabledCapabilities != nil &&
+			checkCapability(clusterVersion.Status.Capabilities.EnabledCapabilities, configv1.ClusterVersionCapabilityBuild)) {
+		DefaultServiceAccounts = append(DefaultServiceAccounts, "builder")
+	}
+	if clusterVersion.Status.Capabilities.KnownCapabilities == nil ||
+		!checkCapability(clusterVersion.Status.Capabilities.KnownCapabilities, configv1.ClusterVersionCapabilityDeploymentConfig) ||
+		(clusterVersion.Status.Capabilities.EnabledCapabilities != nil &&
+			checkCapability(clusterVersion.Status.Capabilities.EnabledCapabilities, configv1.ClusterVersionCapabilityDeploymentConfig)) {
+		DefaultServiceAccounts = append(DefaultServiceAccounts, "deployer")
+	}
+	if clusterVersion.Status.Capabilities.KnownCapabilities == nil ||
+		!checkCapability(clusterVersion.Status.Capabilities.KnownCapabilities, configv1.ClusterVersionCapabilityImageRegistry) ||
+		(clusterVersion.Status.Capabilities.EnabledCapabilities != nil &&
+			checkCapability(clusterVersion.Status.Capabilities.EnabledCapabilities, configv1.ClusterVersionCapabilityImageRegistry)) {
+		shouldCheckSecret = true
+	}
+
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
-		err = WaitForServiceAccountWithSecret(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
+		err = WaitForServiceAccountWithSecret(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa, shouldCheckSecret)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
@@ -1132,4 +1163,12 @@ func installConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*installCon
 		return nil, err
 	}
 	return config, nil
+}
+
+func ConvertStrSlice2Map(sl []configv1.ClusterVersionCapability) map[configv1.ClusterVersionCapability]struct{} {
+	set := make(map[configv1.ClusterVersionCapability]struct{}, len(sl))
+	for _, v := range sl {
+		set[v] = struct{}{}
+	}
+	return set
 }

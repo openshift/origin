@@ -170,7 +170,7 @@ func createNamespace(oc *exutil.CLI, name string, annotations map[string]string)
 	if err != nil {
 		return err
 	}
-	return exutil.WaitForServiceAccountWithSecret(oc.AdminKubeClient().CoreV1().ServiceAccounts(name), "builder")
+	return exutil.WaitForServiceAccountWithSecret(oc.AdminKubeClient().CoreV1().ServiceAccounts(name), "builder", false)
 }
 
 func createDeployment(oc *exutil.CLI, name, namespace string, depLabels map[string]string, podAnnotations map[string]string) error {
