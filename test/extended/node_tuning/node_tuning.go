@@ -1,6 +1,7 @@
 package node_tuning
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -10,7 +11,11 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -19,7 +24,7 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 
 	var (
 		ntoNamespace        = "openshift-cluster-node-tuning-operator"
-		oc                  = exutil.NewCLIWithoutNamespace("nto")
+		oc                  = exutil.NewCLIWithoutNamespace("nto").AsAdmin()
 		buildPruningBaseDir = exutil.FixturePath("testdata", "node_tuning")
 		ntoStalldFile       = filepath.Join(buildPruningBaseDir, "nto-stalld.yaml")
 		stalldCurrentPID    string
@@ -111,6 +116,57 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 
 		err = fmt.Errorf("case: %v\nexpected error got because of %v", g.CurrentSpecReport().FullText(), fmt.Sprintf("stalld service restarted : %v", errWait))
 		o.Expect(err).NotTo(o.HaveOccurred())
+	})
 
+	// OCPBUGS-18052
+	g.It("SNO installation does not finish due to wait for non-existing machine-config [Early]", func() {
+		isSNO, err := isSNOCluster(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if !isSNO {
+			g.Skip("only test on SNO cluster, skipping it ...")
+		}
+
+		var (
+			mcpConfigDaemonset *corev1.Pod
+		)
+
+		ctx := context.TODO()
+		nodeClient := oc.KubeClient().CoreV1().Nodes()
+		firstMasterNode, err := getFirstMasterNode(ctx, nodeClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		e2e.Logf("ensure that the status of mcp is on updated state")
+		config, err := e2e.LoadConfig()
+		e2e.ExpectNoError(err)
+		dynamicClient := dynamic.NewForConfigOrDie(config)
+		mcps := dynamicClient.Resource(schema.GroupVersionResource{
+			Group:    "machineconfiguration.openshift.io",
+			Version:  "v1",
+			Resource: "machineconfigpools",
+		})
+		pools, err := mcps.List(context.Background(), metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for _, p := range pools.Items {
+			err = waitForUpdatedMCP(mcps, p.GetName())
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+
+		e2e.Logf("ensure that the status of co machine-config is available state")
+		err = waitForClusterOperatorAvailable(oc, "machine-config")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("ensure that the status of co node-tuning is available state")
+		err = waitForClusterOperatorAvailable(oc, "node-tuning")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		kf := oc.KubeFramework()
+		mcpConfigDaemonset, _ = exutil.GetMachineConfigDaemonByNode(kf.ClientSet, firstMasterNode)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("get pod logs for %v", mcpConfigDaemonset.Name)
+		podLogsStdout, err := getPodLogsLastLines(context.Background(), oc.KubeClient(), "openshift-machine-config-operator", mcpConfigDaemonset.Name, "machine-config-daemon", 20)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("check if the log of %v contains keyword [marking degraded due to|not found]", mcpConfigDaemonset.Name)
+		logAssertResult, err := podLogsMatch(mcpConfigDaemonset.Name, podLogsStdout, "Marking Degraded due to|not found")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(logAssertResult).To(o.BeFalse())
 	})
 })
