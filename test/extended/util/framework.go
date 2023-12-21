@@ -1063,7 +1063,14 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 
 // WaitForServiceAccountWithSecret waits until the named service account gets fully
 // provisioned, including dockercfg secrets
-func WaitForServiceAccountWithSecret(c corev1client.ServiceAccountInterface, name string, checkSecret bool) error {
+func WaitForServiceAccountWithSecret(oc *CLI, c corev1client.ServiceAccountInterface, name string) error {
+	shouldCheckSecret := false
+	clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if capabilityEnabled(clusterVersion, configv1.ClusterVersionCapabilityImageRegistry) {
+		shouldCheckSecret = true
+	}
+
 	waitFn := func() (bool, error) {
 		sa, err := c.Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
@@ -1083,7 +1090,7 @@ func WaitForServiceAccountWithSecret(c corev1client.ServiceAccountInterface, nam
 			}
 			secretNames = append(secretNames, s.Name)
 		}
-		if hasDockercfg || !checkSecret {
+		if hasDockercfg || !shouldCheckSecret {
 			return true, nil
 		}
 		e2e.Logf("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))

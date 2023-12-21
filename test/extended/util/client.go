@@ -328,40 +328,10 @@ func (c *CLI) setupProject() string {
 	DefaultServiceAccounts := []string{
 		"default",
 	}
-	shouldCheckSecret := false
-	clusterVersion, err := c.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	checkCapability := func(capabilities []configv1.ClusterVersionCapability, checked configv1.ClusterVersionCapability) bool {
-		m := ConvertStrSlice2Map(capabilities)
-		_, ok := m[checked]
-		if ok {
-			return true
-		} else {
-			return false
-		}
-	}
-	if clusterVersion.Status.Capabilities.KnownCapabilities == nil ||
-		!checkCapability(clusterVersion.Status.Capabilities.KnownCapabilities, configv1.ClusterVersionCapabilityBuild) ||
-		(clusterVersion.Status.Capabilities.EnabledCapabilities != nil &&
-			checkCapability(clusterVersion.Status.Capabilities.EnabledCapabilities, configv1.ClusterVersionCapabilityBuild)) {
-		DefaultServiceAccounts = append(DefaultServiceAccounts, "builder")
-	}
-	if clusterVersion.Status.Capabilities.KnownCapabilities == nil ||
-		!checkCapability(clusterVersion.Status.Capabilities.KnownCapabilities, configv1.ClusterVersionCapabilityDeploymentConfig) ||
-		(clusterVersion.Status.Capabilities.EnabledCapabilities != nil &&
-			checkCapability(clusterVersion.Status.Capabilities.EnabledCapabilities, configv1.ClusterVersionCapabilityDeploymentConfig)) {
-		DefaultServiceAccounts = append(DefaultServiceAccounts, "deployer")
-	}
-	if clusterVersion.Status.Capabilities.KnownCapabilities == nil ||
-		!checkCapability(clusterVersion.Status.Capabilities.KnownCapabilities, configv1.ClusterVersionCapabilityImageRegistry) ||
-		(clusterVersion.Status.Capabilities.EnabledCapabilities != nil &&
-			checkCapability(clusterVersion.Status.Capabilities.EnabledCapabilities, configv1.ClusterVersionCapabilityImageRegistry)) {
-		shouldCheckSecret = true
-	}
-
+	DefaultServiceAccounts = c.CheckCapability(DefaultServiceAccounts)
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
-		err = WaitForServiceAccountWithSecret(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa, shouldCheckSecret)
+		err = WaitForServiceAccountWithSecret(c, c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
@@ -1171,4 +1141,38 @@ func ConvertStrSlice2Map(sl []configv1.ClusterVersionCapability) map[configv1.Cl
 		set[v] = struct{}{}
 	}
 	return set
+}
+
+func capabilityEnabled(clusterVersion *configv1.ClusterVersion, cap configv1.ClusterVersionCapability) bool {
+	checkCapability := func(capabilities []configv1.ClusterVersionCapability, checked configv1.ClusterVersionCapability) bool {
+		m := ConvertStrSlice2Map(capabilities)
+		_, ok := m[checked]
+		if ok {
+			return true
+		} else {
+			return false
+		}
+	}
+
+	if clusterVersion.Status.Capabilities.KnownCapabilities == nil ||
+		!checkCapability(clusterVersion.Status.Capabilities.KnownCapabilities, cap) ||
+		(clusterVersion.Status.Capabilities.EnabledCapabilities != nil &&
+			checkCapability(clusterVersion.Status.Capabilities.EnabledCapabilities, cap)) {
+		return true
+	}
+	return false
+}
+
+func (c *CLI) CheckCapability(DefaultServiceAccounts []string) []string {
+	clusterVersion, err := c.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if capabilityEnabled(clusterVersion, configv1.ClusterVersionCapabilityBuild) {
+		DefaultServiceAccounts = append(DefaultServiceAccounts, "builder")
+	}
+	if capabilityEnabled(clusterVersion, configv1.ClusterVersionCapabilityDeploymentConfig) {
+		DefaultServiceAccounts = append(DefaultServiceAccounts, "deployer")
+	}
+
+	return DefaultServiceAccounts
 }
