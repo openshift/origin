@@ -163,6 +163,50 @@ spec:
                         description: Name of the OIDC provider
                         type: string
                         minLength: 1
+                      oidcClients:
+                        description: OIDCClients contains configuration for the platform's clients that need to request tokens from the issuer
+                        type: array
+                        maxItems: 20
+                        items:
+                          type: object
+                          required:
+                            - clientID
+                            - componentName
+                            - componentNamespace
+                          properties:
+                            clientID:
+                              description: ClientID is the identifier of the OIDC client from the OIDC provider
+                              type: string
+                              minLength: 1
+                            clientSecret:
+                              description: ClientSecret refers to a secret in the `openshift-config` namespace that contains the client secret in the `clientSecret` key of the `.data` field
+                              type: object
+                              required:
+                                - name
+                              properties:
+                                name:
+                                  description: name is the metadata.name of the referenced secret
+                                  type: string
+                            componentName:
+                              description: ComponentName is the name of the component that is supposed to consume this client configuration
+                              type: string
+                              maxLength: 256
+                              minLength: 1
+                            componentNamespace:
+                              description: ComponentNamespace is the namespace of the component that is supposed to consume this client configuration
+                              type: string
+                              maxLength: 63
+                              minLength: 1
+                            extraScopes:
+                              description: ExtraScopes is an optional set of scopes to request tokens with.
+                              type: array
+                              items:
+                                type: string
+                              x-kubernetes-list-type: set
+                        x-kubernetes-list-map-keys:
+                          - componentNamespace
+                          - componentName
+                        x-kubernetes-list-type: map
                   x-kubernetes-list-map-keys:
                     - name
                   x-kubernetes-list-type: map
@@ -217,3 +261,114 @@ spec:
                     name:
                       description: name is the metadata.name of the referenced config map
                       type: string
+                oidcClients:
+                  description: OIDCClients is where participating operators place the current OIDC client status for OIDC clients that can be customized by the cluster-admin.
+                  type: array
+                  maxItems: 20
+                  items:
+                    type: object
+                    required:
+                      - componentName
+                      - componentNamespace
+                    properties:
+                      componentName:
+                        description: ComponentName is the name of the component that will consume a client configuration.
+                        type: string
+                        maxLength: 256
+                        minLength: 1
+                      componentNamespace:
+                        description: ComponentNamespace is the namespace of the component that will consume a client configuration.
+                        type: string
+                        maxLength: 63
+                        minLength: 1
+                      conditions:
+                        description: "Conditions are used to communicate the state of the `oidcClients` entry. \n Supported conditions include Available, Degraded and Progressing. \n If Available is true, the component is successfully using the configured client. If Degraded is true, that means something has gone wrong trying to handle the client configuration. If Progressing is true, that means the component is taking some action related to the `oidcClients` entry."
+                        type: array
+                        items:
+                          description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, \n type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                          type: object
+                          required:
+                            - lastTransitionTime
+                            - message
+                            - reason
+                            - status
+                            - type
+                          properties:
+                            lastTransitionTime:
+                              description: lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                              type: string
+                              format: date-time
+                            message:
+                              description: message is a human readable message indicating details about the transition. This may be an empty string.
+                              type: string
+                              maxLength: 32768
+                            observedGeneration:
+                              description: observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.
+                              type: integer
+                              format: int64
+                              minimum: 0
+                            reason:
+                              description: reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty.
+                              type: string
+                              maxLength: 1024
+                              minLength: 1
+                              pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                            status:
+                              description: status of the condition, one of True, False, Unknown.
+                              type: string
+                              enum:
+                                - "True"
+                                - "False"
+                                - Unknown
+                            type:
+                              description: type of condition in CamelCase or in foo.example.com/CamelCase. --- Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be useful (see .node.status.conditions), the ability to deconflict is important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                              type: string
+                              maxLength: 316
+                              pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        x-kubernetes-list-map-keys:
+                          - type
+                        x-kubernetes-list-type: map
+                      consumingUsers:
+                        description: ConsumingUsers is a slice of ServiceAccounts that need to have read permission on the `clientSecret` secret.
+                        type: array
+                        maxItems: 5
+                        items:
+                          description: ConsumingUser is an alias for string which we add validation to. Currently only service accounts are supported.
+                          type: string
+                          maxLength: 512
+                          minLength: 1
+                          pattern: ^system:serviceaccount:[a-z0-9]([-a-z0-9]*[a-z0-9])?:[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        x-kubernetes-list-type: set
+                      currentOIDCClients:
+                        description: CurrentOIDCClients is a list of clients that the component is currently using.
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - clientID
+                            - issuerURL
+                            - oidcProviderName
+                          properties:
+                            clientID:
+                              description: ClientID is the identifier of the OIDC client from the OIDC provider
+                              type: string
+                              minLength: 1
+                            issuerURL:
+                              description: URL is the serving URL of the token issuer. Must use the https:// scheme.
+                              type: string
+                              pattern: ^https:\/\/[^\s]
+                            oidcProviderName:
+                              description: OIDCName refers to the `name` of the provider from `oidcProviders`
+                              type: string
+                              minLength: 1
+                        x-kubernetes-list-map-keys:
+                          - issuerURL
+                          - clientID
+                        x-kubernetes-list-type: map
+                  x-kubernetes-list-map-keys:
+                    - componentNamespace
+                    - componentName
+                  x-kubernetes-list-type: map
+          x-kubernetes-validations:
+            - rule: '!has(self.spec.oidcProviders) || self.spec.oidcProviders.all(p, !has(p.oidcClients) || p.oidcClients.all(specC, self.status.oidcClients.exists(statusC, statusC.componentNamespace == specC.componentNamespace && statusC.componentName == specC.componentName) || (has(oldSelf.spec.oidcProviders) && oldSelf.spec.oidcProviders.exists(oldP, oldP.name == p.name && has(oldP.oidcClients) && oldP.oidcClients.exists(oldC, oldC.componentNamespace == specC.componentNamespace && oldC.componentName == specC.componentName)))))'
+              message: all oidcClients in the oidcProviders must match their componentName and componentNamespace to either a previously configured oidcClient or they must exist in the status.oidcClients
