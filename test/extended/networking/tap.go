@@ -17,7 +17,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const nodeLabelSelectorWorker = "node-role.kubernetes.io/worker"
+const nodeLabelSelectorWorker = "node-role.kubernetes.io/worker,!node-role.kubernetes.io/edge"
 
 var _ = g.Describe("[sig-network][Feature:tap]", func() {
 	oc := exutil.NewCLI("tap")
