@@ -343,6 +343,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: gcp
       type:
         namedType: com.github.openshift.api.operator.v1.GCPCSIDriverConfigSpec
+    - name: ibmcloud
+      type:
+        namedType: com.github.openshift.api.operator.v1.IBMCloudCSIDriverConfigSpec
     - name: vSphere
       type:
         namedType: com.github.openshift.api.operator.v1.VSphereCSIDriverConfigSpec
@@ -355,6 +358,8 @@ var schemaYAML = typed.YAMLObject(`types:
         discriminatorValue: Azure
       - fieldName: gcp
         discriminatorValue: GCP
+      - fieldName: ibmcloud
+        discriminatorValue: IBMCloud
       - fieldName: vSphere
         discriminatorValue: VSphere
 - name: com.github.openshift.api.operator.v1.CSISnapshotController
@@ -931,9 +936,6 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.operator.v1.DefaultNetworkDefinition
   map:
     fields:
-    - name: kuryrConfig
-      type:
-        namedType: com.github.openshift.api.operator.v1.KuryrConfig
     - name: openshiftSDNConfig
       type:
         namedType: com.github.openshift.api.operator.v1.OpenShiftSDNConfig
@@ -1137,11 +1139,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: latestAvailableRevision
       type:
         scalar: numeric
-      default: 0
     - name: latestAvailableRevisionReason
       type:
         scalar: string
-      default: ""
     - name: nodeStatuses
       type:
         list:
@@ -1364,6 +1364,13 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: hybridOverlayVXLANPort
       type:
         scalar: numeric
+- name: com.github.openshift.api.operator.v1.IBMCloudCSIDriverConfigSpec
+  map:
+    fields:
+    - name: encryptionKeyCRN
+      type:
+        scalar: string
+      default: ""
 - name: com.github.openshift.api.operator.v1.IBMLoadBalancerParameters
   map:
     fields:
@@ -1864,11 +1871,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: latestAvailableRevision
       type:
         scalar: numeric
-      default: 0
     - name: latestAvailableRevisionReason
       type:
         scalar: string
-      default: ""
     - name: nodeStatuses
       type:
         list:
@@ -1965,11 +1970,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: latestAvailableRevision
       type:
         scalar: numeric
-      default: 0
     - name: latestAvailableRevisionReason
       type:
         scalar: string
-      default: ""
     - name: nodeStatuses
       type:
         list:
@@ -2056,11 +2059,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: latestAvailableRevision
       type:
         scalar: numeric
-      default: 0
     - name: latestAvailableRevisionReason
       type:
         scalar: string
-      default: ""
     - name: nodeStatuses
       type:
         list:
@@ -2144,33 +2145,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: version
       type:
         scalar: string
-- name: com.github.openshift.api.operator.v1.KuryrConfig
-  map:
-    fields:
-    - name: controllerProbesPort
-      type:
-        scalar: numeric
-    - name: daemonProbesPort
-      type:
-        scalar: numeric
-    - name: enablePortPoolsPrepopulation
-      type:
-        scalar: boolean
-    - name: mtu
-      type:
-        scalar: numeric
-    - name: openStackServiceNetwork
-      type:
-        scalar: string
-    - name: poolBatchPorts
-      type:
-        scalar: numeric
-    - name: poolMaxPorts
-      type:
-        scalar: numeric
-    - name: poolMinPorts
-      type:
-        scalar: numeric
 - name: com.github.openshift.api.operator.v1.LoadBalancerStrategy
   map:
     fields:
@@ -2229,6 +2203,95 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: to
       type:
         scalar: numeric
+- name: com.github.openshift.api.operator.v1.MachineConfiguration
+  map:
+    fields:
+    - name: apiVersion
+      type:
+        scalar: string
+    - name: kind
+      type:
+        scalar: string
+    - name: metadata
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta
+      default: {}
+    - name: spec
+      type:
+        namedType: com.github.openshift.api.operator.v1.MachineConfigurationSpec
+      default: {}
+    - name: status
+      type:
+        namedType: com.github.openshift.api.operator.v1.MachineConfigurationStatus
+      default: {}
+- name: com.github.openshift.api.operator.v1.MachineConfigurationSpec
+  map:
+    fields:
+    - name: failedRevisionLimit
+      type:
+        scalar: numeric
+    - name: forceRedeploymentReason
+      type:
+        scalar: string
+      default: ""
+    - name: logLevel
+      type:
+        scalar: string
+    - name: managementState
+      type:
+        scalar: string
+      default: ""
+    - name: observedConfig
+      type:
+        namedType: __untyped_atomic_
+      default: {}
+    - name: operatorLogLevel
+      type:
+        scalar: string
+    - name: succeededRevisionLimit
+      type:
+        scalar: numeric
+    - name: unsupportedConfigOverrides
+      type:
+        namedType: __untyped_atomic_
+      default: {}
+- name: com.github.openshift.api.operator.v1.MachineConfigurationStatus
+  map:
+    fields:
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.operator.v1.OperatorCondition
+          elementRelationship: atomic
+    - name: generations
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.operator.v1.GenerationStatus
+          elementRelationship: atomic
+    - name: latestAvailableRevision
+      type:
+        scalar: numeric
+    - name: latestAvailableRevisionReason
+      type:
+        scalar: string
+    - name: nodeStatuses
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.operator.v1.NodeStatus
+          elementRelationship: atomic
+    - name: observedGeneration
+      type:
+        scalar: numeric
+    - name: readyReplicas
+      type:
+        scalar: numeric
+      default: 0
+    - name: version
+      type:
+        scalar: string
 - name: com.github.openshift.api.operator.v1.NetFlowConfig
   map:
     fields:
@@ -2265,6 +2328,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: features
       type:
         namedType: com.github.openshift.api.operator.v1.FeaturesMigration
+    - name: mode
+      type:
+        scalar: string
+      default: ""
     - name: mtu
       type:
         namedType: com.github.openshift.api.operator.v1.MTUMigration

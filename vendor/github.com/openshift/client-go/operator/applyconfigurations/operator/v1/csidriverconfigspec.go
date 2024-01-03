@@ -9,11 +9,12 @@ import (
 // CSIDriverConfigSpecApplyConfiguration represents an declarative configuration of the CSIDriverConfigSpec type for use
 // with apply.
 type CSIDriverConfigSpecApplyConfiguration struct {
-	DriverType *v1.CSIDriverType                             `json:"driverType,omitempty"`
-	AWS        *AWSCSIDriverConfigSpecApplyConfiguration     `json:"aws,omitempty"`
-	Azure      *AzureCSIDriverConfigSpecApplyConfiguration   `json:"azure,omitempty"`
-	GCP        *GCPCSIDriverConfigSpecApplyConfiguration     `json:"gcp,omitempty"`
-	VSphere    *VSphereCSIDriverConfigSpecApplyConfiguration `json:"vSphere,omitempty"`
+	DriverType *v1.CSIDriverType                              `json:"driverType,omitempty"`
+	AWS        *AWSCSIDriverConfigSpecApplyConfiguration      `json:"aws,omitempty"`
+	Azure      *AzureCSIDriverConfigSpecApplyConfiguration    `json:"azure,omitempty"`
+	GCP        *GCPCSIDriverConfigSpecApplyConfiguration      `json:"gcp,omitempty"`
+	IBMCloud   *IBMCloudCSIDriverConfigSpecApplyConfiguration `json:"ibmcloud,omitempty"`
+	VSphere    *VSphereCSIDriverConfigSpecApplyConfiguration  `json:"vSphere,omitempty"`
 }
 
 // CSIDriverConfigSpecApplyConfiguration constructs an declarative configuration of the CSIDriverConfigSpec type for use with
@@ -51,6 +52,14 @@ func (b *CSIDriverConfigSpecApplyConfiguration) WithAzure(value *AzureCSIDriverC
 // If called multiple times, the GCP field is set to the value of the last call.
 func (b *CSIDriverConfigSpecApplyConfiguration) WithGCP(value *GCPCSIDriverConfigSpecApplyConfiguration) *CSIDriverConfigSpecApplyConfiguration {
 	b.GCP = value
+	return b
+}
+
+// WithIBMCloud sets the IBMCloud field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IBMCloud field is set to the value of the last call.
+func (b *CSIDriverConfigSpecApplyConfiguration) WithIBMCloud(value *IBMCloudCSIDriverConfigSpecApplyConfiguration) *CSIDriverConfigSpecApplyConfiguration {
+	b.IBMCloud = value
 	return b
 }
 

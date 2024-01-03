@@ -179,7 +179,7 @@ spec:
                             enum:
                               - Service
       served: true
-      storage: false
+      storage: true
     - name: v1alpha1
       schema:
         openAPIV3Schema:
@@ -291,4 +291,4 @@ spec:
                       maximum: 65535
                       minimum: 1
       served: true
-      storage: true
+      storage: false

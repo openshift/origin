@@ -5,9 +5,10 @@ package v1
 // ImageRegistryConfigStorageAzureApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorageAzure type for use
 // with apply.
 type ImageRegistryConfigStorageAzureApplyConfiguration struct {
-	AccountName *string `json:"accountName,omitempty"`
-	Container   *string `json:"container,omitempty"`
-	CloudName   *string `json:"cloudName,omitempty"`
+	AccountName   *string                               `json:"accountName,omitempty"`
+	Container     *string                               `json:"container,omitempty"`
+	CloudName     *string                               `json:"cloudName,omitempty"`
+	NetworkAccess *AzureNetworkAccessApplyConfiguration `json:"networkAccess,omitempty"`
 }
 
 // ImageRegistryConfigStorageAzureApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorageAzure type for use with
@@ -37,5 +38,13 @@ func (b *ImageRegistryConfigStorageAzureApplyConfiguration) WithContainer(value 
 // If called multiple times, the CloudName field is set to the value of the last call.
 func (b *ImageRegistryConfigStorageAzureApplyConfiguration) WithCloudName(value string) *ImageRegistryConfigStorageAzureApplyConfiguration {
 	b.CloudName = &value
+	return b
+}
+
+// WithNetworkAccess sets the NetworkAccess field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the NetworkAccess field is set to the value of the last call.
+func (b *ImageRegistryConfigStorageAzureApplyConfiguration) WithNetworkAccess(value *AzureNetworkAccessApplyConfiguration) *ImageRegistryConfigStorageAzureApplyConfiguration {
+	b.NetworkAccess = value
 	return b
 }
