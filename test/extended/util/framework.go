@@ -55,6 +55,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	securityv1 "github.com/openshift/api/security/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
@@ -2139,6 +2140,33 @@ func IsNamespaceExist(kubeClient *kubernetes.Clientset, namespace string) (bool,
 	}
 
 	return true, nil
+}
+
+func IsSelfManagedHA(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, nil
+	}
+
+	return infrastructure.Status.ControlPlaneTopology == configv1.HighlyAvailableTopologyMode, nil
+}
+
+func IsSingleNode(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, nil
+	}
+
+	return infrastructure.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode, nil
+}
+
+func IsHypershift(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, nil
+	}
+
+	return infrastructure.Status.ControlPlaneTopology == configv1.ExternalTopologyMode, nil
 }
 
 // IsMicroShiftCluster returns "true" if a cluster is MicroShift,
