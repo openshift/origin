@@ -317,8 +317,8 @@ func searchForKey(msg, key string) string {
 			continue
 		}
 
-		subMatches := electedLeaderRegex.FindStringSubmatch(msg)
-		subNames := electedLeaderRegex.SubexpNames()
+		subMatches := leaderMessageRegexp.FindStringSubmatch(msg)
+		subNames := leaderMessageRegexp.SubexpNames()
 		for i, name := range subNames {
 			switch name {
 			case key:
