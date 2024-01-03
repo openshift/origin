@@ -444,7 +444,7 @@
                         (prev, curr) => prev + (curr.timeRange[1].getTime() - curr.timeRange[0].getTime())/1000,
                         0);
 
-                    timelineData.push({label: label + sub + " " + getDurationString(totalDurationSeconds), data: data})
+                    timelineData.push({label: label + sub + " " + getDurationString(Math.round(totalDurationSeconds)), data: data})
                 }
             }
         }
