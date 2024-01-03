@@ -42,6 +42,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/events"
 	"k8s.io/kubernetes/pkg/kubelet/managed"
 	"k8s.io/kubernetes/pkg/kubelet/nodestatus"
+	"k8s.io/kubernetes/pkg/kubelet/sharedcpus"
 	"k8s.io/kubernetes/pkg/kubelet/util"
 	taintutil "k8s.io/kubernetes/pkg/util/taints"
 	volutil "k8s.io/kubernetes/pkg/volume/util"
@@ -54,6 +55,9 @@ func (kl *Kubelet) registerWithAPIServer() {
 	if kl.registrationCompleted {
 		return
 	}
+
+	kl.nodeStartupLatencyTracker.RecordAttemptRegisterNode()
+
 	step := 100 * time.Millisecond
 
 	for {
@@ -87,6 +91,7 @@ func (kl *Kubelet) registerWithAPIServer() {
 func (kl *Kubelet) tryRegisterWithAPIServer(node *v1.Node) bool {
 	_, err := kl.kubeClient.CoreV1().Nodes().Create(context.TODO(), node, metav1.CreateOptions{})
 	if err == nil {
+		kl.nodeStartupLatencyTracker.RecordRegisteredNewNode()
 		return true
 	}
 
@@ -119,6 +124,7 @@ func (kl *Kubelet) tryRegisterWithAPIServer(node *v1.Node) bool {
 	if managed.IsEnabled() {
 		requiresUpdate = kl.addManagementNodeCapacity(node, existingNode) || requiresUpdate
 	}
+	requiresUpdate = kl.reconcileSharedCPUsNodeCapacity(node, existingNode) || requiresUpdate
 	if requiresUpdate {
 		if _, _, err := nodeutil.PatchNodeStatus(kl.kubeClient.CoreV1(), types.NodeName(kl.nodeName), originalNode, existingNode); err != nil {
 			klog.ErrorS(err, "Unable to reconcile node with API server,error updating node", "node", klog.KObj(node))
@@ -145,6 +151,25 @@ func (kl *Kubelet) addManagementNodeCapacity(initialNode, existingNode *v1.Node)
 		return false
 	}
 	existingNode.Status.Capacity[managedResourceName] = *newCPURequest
+	return true
+}
+
+func (kl *Kubelet) reconcileSharedCPUsNodeCapacity(initialNode, existingNode *v1.Node) bool {
+	updateDefaultResources(initialNode, existingNode)
+	sharedCPUsResourceName := sharedcpus.GetResourceName()
+	// delete resources in case they exist and feature has been disabled
+	if !sharedcpus.IsEnabled() {
+		if _, ok := existingNode.Status.Capacity[sharedCPUsResourceName]; ok {
+			delete(existingNode.Status.Capacity, sharedCPUsResourceName)
+			return true
+		}
+		return false
+	}
+	q := resource.NewQuantity(sharedcpus.GetConfig().ContainersLimit, resource.DecimalSI)
+	if existingCapacity, ok := existingNode.Status.Capacity[sharedCPUsResourceName]; ok && existingCapacity.Equal(*q) {
+		return false
+	}
+	existingNode.Status.Capacity[sharedCPUsResourceName] = *q
 	return true
 }
 
@@ -450,6 +475,7 @@ func (kl *Kubelet) initialNode(ctx context.Context) (*v1.Node, error) {
 	if managed.IsEnabled() {
 		kl.addManagementNodeCapacity(node, node)
 	}
+	kl.reconcileSharedCPUsNodeCapacity(node, node)
 
 	kl.setNodeStatus(ctx, node)
 
@@ -660,6 +686,12 @@ func (kl *Kubelet) patchNodeStatus(originalNode, node *v1.Node) (*v1.Node, error
 	}
 	kl.lastStatusReportTime = kl.clock.Now()
 	kl.setLastObservedNodeAddresses(updatedNode.Status.Addresses)
+
+	readyIdx, readyCondition := nodeutil.GetNodeCondition(&updatedNode.Status, v1.NodeReady)
+	if readyIdx >= 0 && readyCondition.Status == v1.ConditionTrue {
+		kl.nodeStartupLatencyTracker.RecordNodeReady()
+	}
+
 	return updatedNode, nil
 }
 
