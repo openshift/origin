@@ -314,7 +314,7 @@ func searchForKey(msg, key string) string {
 	for _, leaderMessageRegexp := range leaderMessages {
 		matches := leaderMessageRegexp.MatchString(msg)
 		if !matches {
-			return ""
+			continue
 		}
 
 		subMatches := electedLeaderRegex.FindStringSubmatch(msg)
