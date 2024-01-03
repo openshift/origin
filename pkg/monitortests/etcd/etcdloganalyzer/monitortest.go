@@ -316,11 +316,11 @@ func searchForKey(msg, key string) string {
 	for _, leaderMessageRegexp := range leaderMessages {
 		matches := leaderMessageRegexp.MatchString(msg)
 		if !matches {
-			return ""
+			continue
 		}
 
-		subMatches := electedLeaderRegex.FindStringSubmatch(msg)
-		subNames := electedLeaderRegex.SubexpNames()
+		subMatches := leaderMessageRegexp.FindStringSubmatch(msg)
+		subNames := leaderMessageRegexp.SubexpNames()
 		for i, name := range subNames {
 			switch name {
 			case key:
