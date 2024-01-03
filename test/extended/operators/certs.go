@@ -15,6 +15,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/openshift/api/annotations"
+	configv1 "github.com/openshift/api/config/v1"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -92,6 +93,12 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		if ok, _ := exutil.IsMicroShiftCluster(kubeClient); ok {
 			g.Skip("microshift does not auto-collect TLS.")
 		}
+		configClient := oc.AdminConfigClient()
+		infra, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infra.Status.ControlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("hypershift creates TLS differently and we're not yet ready.")
+		}
 
 		nodes := map[string]int{}
 		controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
@@ -154,6 +161,12 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		kubeClient := oc.AdminKubeClient()
 		if ok, _ := exutil.IsMicroShiftCluster(kubeClient); ok {
 			g.Skip("microshift does not auto-collect TLS.")
+		}
+		configClient := oc.AdminConfigClient()
+		infra, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if infra.Status.ControlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("hypershift creates TLS differently and we're not yet ready.")
 		}
 
 		nodes := map[string]int{}
