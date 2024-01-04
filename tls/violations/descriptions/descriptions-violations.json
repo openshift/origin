@@ -195,22 +195,6 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "shared-resource-csi-driver-operator-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
                 "Name": "vmware-vsphere-csi-driver-trusted-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
@@ -1189,20 +1173,10 @@
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
+                        "value": "Monitoring"
                     }
                 ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "alertmanager-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -1212,7 +1186,13 @@
                 "Name": "kubelet-serving-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Monitoring"
+                    }
+                ],
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -1225,20 +1205,10 @@
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
+                        "value": "Monitoring"
                     }
                 ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -1251,20 +1221,10 @@
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
+                        "value": "Monitoring"
                     }
                 ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "telemeter-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -1277,20 +1237,10 @@
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
+                        "value": "Monitoring"
                     }
                 ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "thanos-querier-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -2174,7 +2124,17 @@
                 "Name": "federate-client-certs"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Monitoring"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -2184,107 +2144,17 @@
                 "Name": "metrics-client-certs"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-1ehgs15tubhcc"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-1vcbbd485dtu8"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-2la6907ck7pse"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-4ho3dj3us2df4"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-56glf1mhs3bbm"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-5b3cu0f6s65i"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-5blo6a2jkr388"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-ba21034efmj7v"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-bo9ukpiqhr327"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-monitoring",
-                "Name": "prometheus-adapter-d6ej41uj54llt"
-            },
-            "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Monitoring"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Monitoring",
                 "description": ""
             }
         },
@@ -2350,7 +2220,13 @@
                 "Name": "packageserver-service-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Operator Framework / operator-lifecycle-manager"
+                    }
+                ],
+                "owningJiraComponent": "Operator Framework / operator-lifecycle-manager",
                 "description": ""
             }
         },
@@ -2360,7 +2236,13 @@
                 "Name": "pprof-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Operator Framework / operator-lifecycle-manager"
+                    }
+                ],
+                "owningJiraComponent": "Operator Framework / operator-lifecycle-manager",
                 "description": ""
             }
         },
