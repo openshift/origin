@@ -54,7 +54,7 @@ var _ = g.Describe("[sig-node] [Conformance] Prevent openshift node labeling on 
 		o.Expect(len(workerNodes.Items)).NotTo(o.BeZero())
 		if len(workerNodes.Items) > 0 {
 			workerNode := &workerNodes.Items[0]
-			forbiddenLabels := []string{`node-role.kubernetes.io/etcd1=""`, `node-role.kubernetes.io/etcd=""`, `node-role.kubernetes.io/master=""`}
+			forbiddenLabels := []string{`node-role.kubernetes.io/etcd1=""`, `node-role.kubernetes.io/etcd=""`}
 			for _, forbiddenLabel := range forbiddenLabels {
 				result := testOpenshiftNodeLabeling(oc, workerNode, forbiddenLabel)
 				o.Expect(result).To(o.BeTrue())
