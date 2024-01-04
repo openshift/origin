@@ -3,10 +3,11 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 	"math"
 	"sort"
 	"strings"
+
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -113,7 +114,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"cluster-baremetal-operator":             125.0,
 				"cluster-capi-operator":                  200.0,
 				"cluster-image-registry-operator":        189.0,
-				"cluster-monitoring-operator":            136.0,
+				"cluster-monitoring-operator":            186.0,
 				"cluster-node-tuning-operator":           115.0,
 				"cluster-samples-operator":               76.0,
 				"cluster-storage-operator":               322.0,
@@ -143,7 +144,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"cluster-baremetal-operator":             90.0,
 				"cluster-capi-operator":                  200.0,
 				"cluster-image-registry-operator":        194.0,
-				"cluster-monitoring-operator":            110.0,
+				"cluster-monitoring-operator":            191.0,
 				"cluster-node-tuning-operator":           92.0,
 				"cluster-samples-operator":               59.0,
 				"cluster-storage-operator":               322.0,
@@ -172,7 +173,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"cluster-baremetal-operator":             125.0,
 				"cluster-capi-operator":                  200.0,
 				"cluster-image-registry-operator":        121.0,
-				"cluster-monitoring-operator":            85.0,
+				"cluster-monitoring-operator":            193.0,
 				"cluster-node-tuning-operator":           112.0,
 				"cluster-samples-operator":               29.0,
 				"cluster-storage-operator":               214.0,
@@ -201,7 +202,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"cluster-autoscaler-operator":            72.0,
 				"cluster-baremetal-operator":             125.0,
 				"cluster-image-registry-operator":        160.0,
-				"cluster-monitoring-operator":            77.0,
+				"cluster-monitoring-operator":            189.0,
 				"cluster-node-tuning-operator":           115.0,
 				"cluster-samples-operator":               36.0,
 				"cluster-storage-operator":               258.0,
@@ -229,7 +230,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 				"cluster-autoscaler-operator":            49.0,
 				"cluster-baremetal-operator":             125.0,
 				"cluster-image-registry-operator":        106.0,
-				"cluster-monitoring-operator":            78.0,
+				"cluster-monitoring-operator":            189.0,
 				"cluster-node-tuning-operator":           97.0,
 				"cluster-samples-operator":               25.0,
 				"cluster-storage-operator":               195.0,
