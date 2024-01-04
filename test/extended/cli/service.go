@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -30,11 +32,18 @@ var _ = g.Describe("[sig-cli] oc service", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("validate the 'create service nodeport' command and its --node-port and --tcp options")
-		out, err := oc.Run("create").Args("service", "nodeport", "mynodeport", "--tcp=8080:7777", "--node-port=30000").Output()
+		nodePort := 30000
+		out, err := oc.Run("create").Args("service", "nodeport", "mynodeport", "--tcp=8080:7777", fmt.Sprintf("--node-port=%d", nodePort)).Output()
+		if err != nil && strings.Contains(err.Error(), "provided port is already allocated") {
+			// another service may use port number 30000 and instead of failing, we can try our chance
+			// with another port to have a stable test.
+			nodePort = 30001
+			out, err = oc.Run("create").Args("service", "nodeport", "mynodeport", "--tcp=8080:7777", fmt.Sprintf("--node-port=%d", nodePort)).Output()
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("service/mynodeport created"))
 
-		out, err = oc.Run("create").Args("service", "nodeport", "mynodeport", "--tcp=8080:7777", "--node-port=30000").Output()
+		out, err = oc.Run("create").Args("service", "nodeport", "mynodeport", "--tcp=8080:7777", fmt.Sprintf("--node-port=%d", nodePort)).Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("provided port is already allocated"))
 
@@ -44,7 +53,7 @@ var _ = g.Describe("[sig-cli] oc service", func() {
 
 		out, err = oc.Run("describe").Args("service", "mynodeport").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		npReg1 := "NodePort:.*30000"
+		npReg1 := fmt.Sprintf("NodePort:.*%d", nodePort)
 		m1, err := regexp.MatchString(npReg1, out)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(m1).To(o.BeTrue())
