@@ -7,16 +7,13 @@ import (
 	"embed"
 	_ "embed"
 	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -91,36 +88,11 @@ func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInit
 }
 
 func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	if len(pna.payloadImagePullSpec) == 0 {
-		configClient, err := configclient.NewForConfig(adminRESTConfig)
-		if err != nil {
-			return err
-		}
-		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "clusterversion/version not found and no image pull spec specified."}
-			return pna.notSupportedReason
-		}
-		if err != nil {
-			return err
-		}
-		pna.payloadImagePullSpec = clusterVersion.Status.History[0].Image
-	}
-
-	// runImageExtract extracts src from specified image to dst
-	cmd := exec.Command("oc", "adm", "release", "info", pna.payloadImagePullSpec, "--image-for=tests")
-	out := &bytes.Buffer{}
-	errOut := &bytes.Buffer{}
-	cmd.Stdout = out
-	cmd.Stderr = errOut
-	if err := cmd.Run(); err != nil {
-		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("unable to determine openshift-tests image: %v: %v", err, errOut.String())}
+	openshiftTestsImagePullSpec, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, pna.payloadImagePullSpec)
+	if err != nil {
+		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("unable to determine openshift-tests image: %v", err)}
 		return pna.notSupportedReason
 	}
-	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
-	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
-
-	var err error
 
 	pna.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {

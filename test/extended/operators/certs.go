@@ -1,24 +1,22 @@
 package operators
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatadefaults"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
+	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
 
 	ensure_no_violation_regression "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/ensure-no-violation-regression"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/api/annotations"
@@ -27,7 +25,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphanalysis"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
@@ -46,7 +43,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
-
 	watchtools "k8s.io/client-go/tools/watch"
 )
 
@@ -63,15 +59,7 @@ var (
 	podYaml []byte
 )
 
-func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface) (*certgraphapi.PKIList, error) {
-	controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
-	nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	masters := []*corev1.Node{}
-	for i := range nodeList.Items {
-		masters = append(masters, &nodeList.Items[i])
-	}
-
+func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, masters []*corev1.Node) (*certgraphapi.PKIList, error) {
 	annotationsToCollect := []string{annotations.OpenShiftComponent}
 	for _, currRequirement := range tlsmetadatadefaults.GetDefaultTLSRequirements() {
 		annotationRequirement, ok := currRequirement.(tlsmetadatainterfaces.AnnotationRequirement)
@@ -114,13 +102,21 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 			g.Skip("hypershift creates TLS differently and we're not yet ready.")
 		}
 
-		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient)
+		controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
+		nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		masters := []*corev1.Node{}
+		for i := range nodeList.Items {
+			masters = append(masters, &nodeList.Items[i])
+		}
+
+		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient, masters)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		openshiftTestImagePullSpec, err := getOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig())
+		openshiftTestImagePullSpec, err := disruptionpodnetwork.GetOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig(), "")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		onDiskPKIContent, err := fetchOnDiskCertificates(ctx, kubeClient, nodeList, openshiftTestImagePullSpec)
+		onDiskPKIContent, err := fetchOnDiskCertificates(ctx, kubeClient, masters, openshiftTestImagePullSpec)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		actualPKIContent = certgraphanalysis.MergePKILists(ctx, inClusterPKIContent, onDiskPKIContent)
@@ -209,7 +205,7 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 
 })
 
-func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interface, nodeList *corev1.NodeList, testPullSpec string) (*certgraphapi.PKIList, error) {
+func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interface, nodeList []*corev1.Node, testPullSpec string) (*certgraphapi.PKIList, error) {
 	namespace, err := createNamespace(ctx, kubeClient)
 	if err != nil {
 		return nil, err
@@ -232,8 +228,8 @@ func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interfac
 
 	ret := &certgraphapi.PKIList{}
 	errs := []error{}
-	for _, node := range nodeList.Items {
-		nodePKIList, err := fetchNodePKIList(ctx, kubeClient, &node)
+	for _, node := range nodeList {
+		nodePKIList, err := fetchNodePKIList(ctx, kubeClient, node)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -280,11 +276,11 @@ func createRBACBindings(ctx context.Context, kubeClient kubernetes.Interface, na
 	return nil
 }
 
-func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace string, nodeList *corev1.NodeList, testImagePullSpec string) error {
+func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace string, nodeList []*corev1.Node, testImagePullSpec string) error {
 	client := kubeClient.CoreV1().Pods(namespace)
 
 	podTemplate := resourceread.ReadPodV1OrDie(podYaml)
-	for _, node := range nodeList.Items {
+	for _, node := range nodeList {
 		podObj := podTemplate.DeepCopy()
 		podObj.Namespace = namespace
 		podObj.Spec.NodeName = node.Name
@@ -327,34 +323,4 @@ func fetchNodePKIList(ctx context.Context, kubeClient kubernetes.Interface, node
 	}
 
 	return pkiList, nil
-}
-
-// GetOpenshiftTestsImagePullSpec returns the pull spec or an error.
-func getOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.Config) (string, error) {
-	configClient, err := configclient.NewForConfig(adminRESTConfig)
-	if err != nil {
-		return "", err
-	}
-	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		return "", fmt.Errorf("clusterversion/version not found and no image pull spec specified")
-	}
-	if err != nil {
-		return "", err
-	}
-	payloadImagePullSpec := clusterVersion.Status.History[0].Image
-
-	// runImageExtract extracts src from specified image to dst
-	cmd := exec.Command("oc", "adm", "release", "info", payloadImagePullSpec, "--image-for=tests")
-	out := &bytes.Buffer{}
-	errOut := &bytes.Buffer{}
-	cmd.Stdout = out
-	cmd.Stderr = errOut
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
-	}
-	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
-	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
-
-	return openshiftTestsImagePullSpec, nil
 }
