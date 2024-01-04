@@ -13,6 +13,7 @@ import (
 
 	ensure_no_violation_regression "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/ensure-no-violation-regression"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/api/annotations"
 	configv1 "github.com/openshift/api/config/v1"
@@ -32,8 +33,31 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-// TODO move to openshift/api
-const AutoRegenerateAfterExpiryAnnotation = "certificates.openshift.io/auto-regenerate-after-offline-expiry"
+func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface) (*certgraphapi.PKIList, error) {
+	controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
+	nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	masters := []*corev1.Node{}
+	for i := range nodeList.Items {
+		masters = append(masters, &nodeList.Items[i])
+	}
+
+	annotationsToCollect := []string{annotations.OpenShiftComponent}
+	for _, currRequirement := range tlsmetadatadefaults.GetDefaultTLSRequirements() {
+		annotationRequirement, ok := currRequirement.(tlsmetadatainterfaces.AnnotationRequirement)
+		if ok {
+			annotationsToCollect = append(annotationsToCollect, annotationRequirement.GetAnnotationName())
+		}
+	}
+
+	return certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient,
+		certgraphanalysis.SkipRevisioned,
+		certgraphanalysis.SkipHashed,
+		certgraphanalysis.ElideProxyCADetails,
+		certgraphanalysis.RewriteNodeIPs(masters),
+		certgraphanalysis.CollectAnnotations(annotationsToCollect...),
+	)
+}
 
 var _ = g.Describe("[sig-arch][Late]", func() {
 	defer g.GinkgoRecover()
@@ -51,29 +75,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		tlsArtifactFilename := fmt.Sprintf("raw-tls-artifacts-%s-%s-%s-%s.json", jobType.Topology, jobType.Architecture, jobType.Platform, jobType.Network)
 
-		controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
-		nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		masters := []*corev1.Node{}
-		for i := range nodeList.Items {
-			masters = append(masters, &nodeList.Items[i])
-		}
-
-		annotationsToCollect := []string{annotations.OpenShiftComponent}
-		for _, currRequirement := range tlsmetadatadefaults.GetDefaultTLSRequirements() {
-			annotationRequirement, ok := currRequirement.(tlsmetadatainterfaces.AnnotationRequirement)
-			if ok {
-				annotationsToCollect = append(annotationsToCollect, annotationRequirement.GetAnnotationName())
-			}
-		}
-
-		currentPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient,
-			certgraphanalysis.SkipRevisioned,
-			certgraphanalysis.SkipHashed,
-			certgraphanalysis.ElideProxyCADetails,
-			certgraphanalysis.RewriteNodeIPs(masters),
-			certgraphanalysis.CollectAnnotations(annotationsToCollect...),
-		)
+		currentPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		jsonBytes, err := json.MarshalIndent(currentPKIContent, "", "  ")
@@ -100,15 +102,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			g.Skip("hypershift creates TLS differently and we're not yet ready.")
 		}
 
-		nodes := map[string]int{}
-		controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
-		nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for i, node := range nodeList.Items {
-			nodes[node.Name] = i
-		}
-
-		actualPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient)
+		actualPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		expectedPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIOwnership)
@@ -169,15 +163,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 			g.Skip("hypershift creates TLS differently and we're not yet ready.")
 		}
 
-		nodes := map[string]int{}
-		controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
-		nodeList, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for i, node := range nodeList.Items {
-			nodes[node.Name] = i
-		}
-
-		actualPKIContent, err := certgraphanalysis.GatherCertsFromPlatformNamespaces(ctx, kubeClient)
+		actualPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		violationRegressionOptions := ensure_no_violation_regression.NewEnsureNoViolationRegressionOptions(ownership.AllViolations, genericclioptions.NewTestIOStreamsDiscard())
