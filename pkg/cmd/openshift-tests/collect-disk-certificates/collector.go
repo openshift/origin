@@ -17,7 +17,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/util/templates"
 )
 
@@ -128,22 +127,20 @@ func (f *RunCollectDiskCertificatesFlags) ToOptions() (*RunCollectDiskCertificat
 	}
 
 	return &RunCollectDiskCertificatesOptions{
-		KubeClient:       kubeClient,
-		KubeClientConfig: restConfig,
-		OutputFile:       f.OutputFlags.OutFile,
-		CloseFn:          closeFn,
-		OriginalOutFile:  originalOutStream,
-		IOStreams:        f.IOStreams,
-		CollectDirs:      f.CollectDirs,
-		Prefix:           f.Prefix,
+		KubeClient:      kubeClient,
+		OutputFile:      f.OutputFlags.OutFile,
+		CloseFn:         closeFn,
+		OriginalOutFile: originalOutStream,
+		IOStreams:       f.IOStreams,
+		CollectDirs:     f.CollectDirs,
+		Prefix:          f.Prefix,
 	}, nil
 }
 
 // RunCollectDiskCertificatesOptions sets options for api server disruption monitor
 type RunCollectDiskCertificatesOptions struct {
-	KubeClient       kubernetes.Interface
-	KubeClientConfig *rest.Config
-	OutputFile       string
+	KubeClient kubernetes.Interface
+	OutputFile string
 
 	CollectDirs []string
 	Prefix      string
