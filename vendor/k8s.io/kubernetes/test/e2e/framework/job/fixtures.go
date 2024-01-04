@@ -22,7 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/kubernetes/test/e2e/framework"
-	imageutils "k8s.io/kubernetes/test/utils/image"
 	"k8s.io/utils/ptr"
 )
 
@@ -93,7 +92,7 @@ func NewTestJobOnNode(behavior, name string, rPol v1.RestartPolicy, parallelism,
 	}
 	switch behavior {
 	case "notTerminate":
-		job.Spec.Template.Spec.Containers[0].Image = imageutils.GetPauseImageName()
+		job.Spec.Template.Spec.Containers[0].Command = []string{"sleep", "1000000"}
 	case "fail":
 		job.Spec.Template.Spec.Containers[0].Command = []string{"/bin/sh", "-c", "exit 1"}
 	case "failOddSucceedEven":
