@@ -13,6 +13,7 @@ type PKIList struct {
 	Description string
 
 	InClusterResourceData PerInClusterResourceData
+	OnDiskResourceData    PerOnDiskResourceData
 
 	CertificateAuthorityBundles CertificateAuthorityBundleList
 	CertKeyPairs                CertKeyPairList
@@ -26,6 +27,15 @@ type PerInClusterResourceData struct {
 	CertificateAuthorityBundles []PKIRegistryInClusterCABundle `json:"certificateAuthorityBundles"`
 	// +mapType:=atomic
 	CertKeyPairs []PKIRegistryInClusterCertKeyPair `json:"certKeyPairs"`
+}
+
+// PerOnDiskResourceData tracks metadata that corresponds to specific files on disk.
+// It will be stitched together by a generator after the fact.
+type PerOnDiskResourceData struct {
+	// +mapType:=atomic
+	CertificateAuthorityBundles []OnDiskLocation `json:"certificateAuthorityBundles"`
+	// +mapType:=atomic
+	CertKeyPairs []OnDiskCertKeyPairLocation `json:"certKeyPairs"`
 }
 
 type CertificateAuthorityBundleList struct {
@@ -180,8 +190,8 @@ func (t *CertificateAuthorityBundle) DeepCopy() *CertificateAuthorityBundle {
 
 type ConfigMapRefByNamespaceName []InClusterConfigMapLocation
 type SecretRefByNamespaceName []InClusterSecretLocation
-type SecretInfoByNamespaceName map[InClusterSecretLocation]PKIRegistryCertKeyPairInfo
-type ConfigMapInfoByNamespaceName map[InClusterConfigMapLocation]PKIRegistryCertificateAuthorityInfo
+type SecretInfoByNamespaceName map[InClusterSecretLocation]PKIRegistryInClusterCertKeyPairInfo
+type ConfigMapInfoByNamespaceName map[InClusterConfigMapLocation]PKIRegistryInClusterCertificateAuthorityInfo
 
 func (n SecretRefByNamespaceName) Len() int {
 	return len(n)

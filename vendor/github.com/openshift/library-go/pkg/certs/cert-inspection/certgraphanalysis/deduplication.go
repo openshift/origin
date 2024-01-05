@@ -6,6 +6,7 @@ import (
 
 func deduplicateCertKeyPairs(in []*certgraphapi.CertKeyPair) []*certgraphapi.CertKeyPair {
 	ret := []*certgraphapi.CertKeyPair{}
+
 	for _, currIn := range in {
 		if currIn == nil {
 			panic("currIn is nil")
@@ -16,17 +17,13 @@ func deduplicateCertKeyPairs(in []*certgraphapi.CertKeyPair) []*certgraphapi.Cer
 			if currOut == nil {
 				panic("currOut is nil")
 			}
-			// currOut has no name set - skip and allow it to be found later
-			if len(currOut.Name) == 0 {
-				continue
-			}
-			// Merge if cert identifiers match
 			if currOut.Spec.CertMetadata.CertIdentifier.PubkeyModulus == currIn.Spec.CertMetadata.CertIdentifier.PubkeyModulus {
-				found = true
+				// Append currIn locations to found certkeypair
 				ret[j] = combineSecretLocations(ret[j], currIn.Spec.SecretLocations)
 				ret[j] = combineCertOnDiskLocations(ret[j], currIn.Spec.OnDiskLocations)
-				break
+				found = true
 			}
+
 		}
 
 		// No match found - add currIn as is

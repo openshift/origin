@@ -6,6 +6,10 @@ type PKIRegistryInfo struct {
 	CertificateAuthorityBundles []PKIRegistryInClusterCABundle `json:"certificateAuthorityBundles"`
 	// +mapType:=atomic
 	CertKeyPairs []PKIRegistryInClusterCertKeyPair `json:"certKeyPairs"`
+	// +mapType:=atomic
+	OnDiskCertificateAuthorityBundles []PKIRegistryOnDiskCertKeyPair `json:"onDiskCertificateAuthorityBundles"`
+	// +mapType:=atomic
+	OnDiskCertKeyPairs []PKIRegistryOnDiskCABundle `json:"onDiskCertKeyPairs"`
 }
 
 // PKIRegistryInClusterCertKeyPair identifies certificate key pair and stores its metadata
@@ -13,11 +17,11 @@ type PKIRegistryInClusterCertKeyPair struct {
 	// SecretLocation points to the secret location
 	SecretLocation InClusterSecretLocation `json:"secretLocation"`
 	// CertKeyInfo stores metadata for certificate key pair
-	CertKeyInfo PKIRegistryCertKeyPairInfo `json:"certKeyInfo"`
+	CertKeyInfo PKIRegistryInClusterCertKeyPairInfo `json:"certKeyInfo"`
 }
 
 // PKIRegistryCertKeyPairInfo holds information about certificate key pair
-type PKIRegistryCertKeyPairInfo struct {
+type PKIRegistryInClusterCertKeyPairInfo struct {
 	// SelectedCertMetadataAnnotations is a specified subset of annotations. NOT all annotations.
 	// The caller will specify which annotations he wants.
 	SelectedCertMetadataAnnotations []AnnotationValue `json:"selectedCertMetadataAnnotations,omitempty"`
@@ -37,11 +41,11 @@ type PKIRegistryInClusterCABundle struct {
 	// ConfigMapLocation points to the configmap location
 	ConfigMapLocation InClusterConfigMapLocation `json:"configMapLocation"`
 	// CABundleInfo stores metadata for the certificate authority bundle
-	CABundleInfo PKIRegistryCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo"`
+	CABundleInfo PKIRegistryInClusterCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo"`
 }
 
-// PKIRegistryCertificateAuthorityInfo holds information about certificate authority bundle
-type PKIRegistryCertificateAuthorityInfo struct {
+// PKIRegistryInClusterCertificateAuthorityInfo holds information about certificate authority bundle
+type PKIRegistryInClusterCertificateAuthorityInfo struct {
 	// SelectedCertMetadataAnnotations is a specified subset of annotations. NOT all annotations.
 	// The caller will specify which annotations he wants.
 	SelectedCertMetadataAnnotations []AnnotationValue `json:"selectedCertMetadataAnnotations,omitempty"`
@@ -59,4 +63,16 @@ type AnnotationValue struct {
 	Key string `json:"key"`
 	// Value is the annotation value from the resource
 	Value string `json:"value"`
+}
+
+// PKIRegistryOnDiskCertKeyPair identifies certificate key pair and stores its metadata
+type PKIRegistryOnDiskCertKeyPair struct {
+	// CertKeyPairLocations points to the location of cert/key pair files.
+	CertKeyPairLocations OnDiskCertKeyPairLocation `json:"certKeyPairLocations"`
+}
+
+// PKIRegistryOnDiskCABundle holds information about certificate authority bundle
+type PKIRegistryOnDiskCABundle struct {
+	// CABundleLocation points to the CA bundle location
+	CABundleLocation OnDiskLocation `json:"certificateAuthorityBundleLocation"`
 }

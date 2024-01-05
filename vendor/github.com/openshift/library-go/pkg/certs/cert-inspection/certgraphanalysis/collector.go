@@ -111,7 +111,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 						Namespace: configMap.Namespace,
 						Name:      configMap.Name,
 					},
-					CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
+					CABundleInfo: certgraphapi.PKIRegistryInClusterCertificateAuthorityInfo{
 						SelectedCertMetadataAnnotations: recordedAnnotationsFrom(configMap.ObjectMeta, annotationsToCollect),
 						OwningJiraComponent:             configMap.Annotations[annotations.OpenShiftComponent],
 						Description:                     configMap.Annotations[annotations.OpenShiftDescription],
@@ -150,7 +150,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 						Namespace: secret.Namespace,
 						Name:      secret.Name,
 					},
-					CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
+					CertKeyInfo: certgraphapi.PKIRegistryInClusterCertKeyPairInfo{
 						SelectedCertMetadataAnnotations: recordedAnnotationsFrom(secret.ObjectMeta, annotationsToCollect),
 						OwningJiraComponent:             secret.Annotations[annotations.OpenShiftComponent],
 						Description:                     secret.Annotations[annotations.OpenShiftDescription],
@@ -180,21 +180,25 @@ func recordedAnnotationsFrom(metadata metav1.ObjectMeta, annotationsToCollect []
 }
 
 func PKIListFromParts(ctx context.Context, inClusterResourceData *certgraphapi.PerInClusterResourceData, certs []*certgraphapi.CertKeyPair, caBundles []*certgraphapi.CertificateAuthorityBundle) *certgraphapi.PKIList {
+	onDiskResourceData := &certgraphapi.PerOnDiskResourceData{}
 	certs = deduplicateCertKeyPairs(certs)
 	certList := &certgraphapi.CertKeyPairList{}
 	for i := range certs {
 		certList.Items = append(certList.Items, *certs[i])
+		onDiskResourceData.CertKeyPairs = append(onDiskResourceData.CertKeyPairs, certs[i].Spec.OnDiskLocations...)
 	}
 
 	caBundles = deduplicateCABundles(caBundles)
 	caBundleList := &certgraphapi.CertificateAuthorityBundleList{}
 	for i := range caBundles {
 		caBundleList.Items = append(caBundleList.Items, *caBundles[i])
+		onDiskResourceData.CertificateAuthorityBundles = append(onDiskResourceData.CertificateAuthorityBundles, caBundles[i].Spec.OnDiskLocations...)
 	}
 
 	ret := &certgraphapi.PKIList{
 		CertificateAuthorityBundles: *caBundleList,
 		CertKeyPairs:                *certList,
+		OnDiskResourceData:          *onDiskResourceData,
 	}
 	if inClusterResourceData != nil {
 		ret.InClusterResourceData = *inClusterResourceData
