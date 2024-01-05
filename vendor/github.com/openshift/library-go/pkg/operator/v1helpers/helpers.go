@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
-	"k8s.io/klog/v2"
 
 	"github.com/ghodss/yaml"
 
@@ -207,7 +206,7 @@ func UpdateStaticPodStatus(ctx context.Context, client StaticPodOperatorClient, 
 		if err != nil {
 			return err
 		}
-		klog.V(2).Infof("status.LatestAvailableRevision: %v, resourceVersion: %v", oldStatus.LatestAvailableRevision, resourceVersion)
+
 		newStatus := oldStatus.DeepCopy()
 		for _, update := range updateFuncs {
 			if err := update(newStatus); err != nil {

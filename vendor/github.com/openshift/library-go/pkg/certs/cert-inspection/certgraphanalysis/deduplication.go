@@ -1,31 +1,52 @@
 package certgraphanalysis
 
-import "github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+import (
+	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+)
 
 func deduplicateCertKeyPairs(in []*certgraphapi.CertKeyPair) []*certgraphapi.CertKeyPair {
 	ret := []*certgraphapi.CertKeyPair{}
+
 	for _, currIn := range in {
+		if currIn == nil {
+			panic("currIn is nil")
+		}
+
 		found := false
 		for j, currOut := range ret {
-			if currIn == nil {
-				panic("one")
-			}
 			if currOut == nil {
-				panic("two")
+				panic("currOut is nil")
 			}
-			if currOut.Name == currIn.Name {
+			if currOut.Spec.CertMetadata.CertIdentifier.PubkeyModulus == currIn.Spec.CertMetadata.CertIdentifier.PubkeyModulus {
+				// Append currIn locations to found certkeypair
 				ret[j] = combineSecretLocations(ret[j], currIn.Spec.SecretLocations)
 				ret[j] = combineCertOnDiskLocations(ret[j], currIn.Spec.OnDiskLocations)
 				found = true
-				break
 			}
+
 		}
 
+		// No match found - add currIn as is
 		if !found {
 			ret = append(ret, currIn.DeepCopy())
 		}
 	}
 
+	return ret
+}
+
+func deduplicateCertKeyPairList(in *certgraphapi.CertKeyPairList) *certgraphapi.CertKeyPairList {
+	ret := &certgraphapi.CertKeyPairList{
+		Items: []certgraphapi.CertKeyPair{},
+	}
+	certs := []*certgraphapi.CertKeyPair{}
+	for idx := range in.Items {
+		certs = append(certs, &in.Items[idx])
+	}
+	dedup := deduplicateCertKeyPairs(certs)
+	for idx := range dedup {
+		ret.Items = append(ret.Items, *dedup[idx])
+	}
 	return ret
 }
 
@@ -87,6 +108,20 @@ func deduplicateCABundles(in []*certgraphapi.CertificateAuthorityBundle) []*cert
 		}
 	}
 
+	return ret
+}
+
+func deduplicateCABundlesList(in *certgraphapi.CertificateAuthorityBundleList) *certgraphapi.CertificateAuthorityBundleList {
+	ret := &certgraphapi.CertificateAuthorityBundleList{
+		Items: []certgraphapi.CertificateAuthorityBundle{},
+	}
+	bundles := []*certgraphapi.CertificateAuthorityBundle{}
+	for idx := range in.Items {
+		bundles = append(bundles, &in.Items[idx])
+	}
+	for idx := range deduplicateCABundles(bundles) {
+		ret.Items = append(ret.Items, *bundles[idx])
+	}
 	return ret
 }
 
