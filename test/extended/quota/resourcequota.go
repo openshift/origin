@@ -216,6 +216,78 @@ var _ = g.Describe("[sig-api-machinery][Feature:ResourceQuota]", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+
+		g.It("when exceed openshift.io/image-tags will ban to create new image references in the project [Skipped:Disconnected]", func() {
+			testProject := oc.Namespace()
+			testResourceQuotaName := "my-image-tag-quota"
+			clusterAdminKubeClient := oc.AdminKubeClient()
+
+			lr := &corev1.LimitRange{
+				ObjectMeta: metav1.ObjectMeta{Name: testResourceQuotaName, Namespace: testProject},
+				Spec: corev1.LimitRangeSpec{
+					Limits: []corev1.LimitRangeItem{
+						{
+							Type: "openshift.io/ImageStream",
+							Max: corev1.ResourceList{
+								"openshift.io/image-tags": resource.MustParse("2"),
+							},
+						},
+					},
+				},
+			}
+
+			g.By("create the image-tags and checking the usage")
+			_, err := clusterAdminKubeClient.CoreV1().LimitRanges(testProject).Create(context.Background(), lr, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = waitForLimitRangeStatus(clusterAdminKubeClient, testResourceQuotaName, testProject, func(actualLimitRange *corev1.LimitRange) error {
+				expectedLimitRange := []corev1.LimitRangeItem{
+					{
+						Type: "openshift.io/ImageStream",
+						Max: corev1.ResourceList{
+							"openshift.io/image-tags": resource.MustParse("2"),
+						},
+					},
+				}
+				// Compare actual and expected LimitRangeItems
+				if !equality.Semantic.DeepEqual(actualLimitRange.Spec.Limits, expectedLimitRange) {
+					return fmt.Errorf("unexpected current total usage: actual: %#v, expected: %#v", actualLimitRange.Spec.Limits, expectedLimitRange)
+				}
+				return nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			images := []struct {
+				Image string
+				Tag   string
+			}{
+				{
+					Image: "quay.io/openshifttest/hello-openshift@sha256:4200f438cf2e9446f6bcff9d67ceea1f69ed07a2f83363b7fb52529f7ddd8a83",
+					Tag:   "v1",
+				},
+				{
+					Image: "quay.io/openshifttest/base-alpine@sha256:3126e4eed4a3ebd8bf972b2453fa838200988ee07c01b2251e3ea47e4b1f245c",
+					Tag:   "v2",
+				},
+				{
+					Image: "openshift/hello-openshift",
+					Tag:   "v3",
+				},
+			}
+
+			for _, u := range images {
+				g.By("trying to tag a container image with " + u.Tag)
+				err = oc.Run("tag").Args(u.Image, "--source=docker", "mystream:"+u.Tag, "-n", testProject).Execute()
+				if u.Tag != "v3" {
+					o.Expect(err).NotTo(o.HaveOccurred())
+					err = exutil.WaitForAnImageStreamTag(oc, testProject, "mystream", u.Tag)
+					o.Expect(err).NotTo(o.HaveOccurred())
+				} else {
+					o.Expect(err).To(o.HaveOccurred())
+					o.Expect(err.Error()).To(o.MatchRegexp(`.*forbidden.*[Ee]xceed`))
+				}
+			}
+		})
 	})
 })
 
@@ -228,6 +300,27 @@ func waitForResourceQuotaStatus(clusterAdminKubeClient kubernetes.Interface, nam
 			return false, nil
 		}
 		err = conditionFn(quota)
+		if err == nil {
+			return true, nil
+		}
+		pollErr = err
+		return false, nil
+	})
+	if err != nil {
+		err = fmt.Errorf("%s: %s", err, pollErr)
+	}
+	return err
+}
+
+func waitForLimitRangeStatus(clusterAdminKubeClient kubernetes.Interface, name string, namespace string, conditionFn func(*corev1.LimitRange) error) error {
+	var pollErr error
+	err := utilwait.PollImmediate(100*time.Millisecond, QuotaWaitTimeout, func() (done bool, err error) {
+		limitRange, err := clusterAdminKubeClient.CoreV1().LimitRanges(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			pollErr = err
+			return false, nil
+		}
+		err = conditionFn(limitRange)
 		if err == nil {
 			return true, nil
 		}
