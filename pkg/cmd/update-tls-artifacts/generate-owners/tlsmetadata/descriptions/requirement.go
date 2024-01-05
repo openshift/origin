@@ -21,8 +21,11 @@ func NewDescriptionRequirement() tlsmetadatainterfaces.Requirement {
 	md.Text("Which names and IPs a serving certificate terminates.")
 	md.NewOrderedListItem()
 	md.Text("Which subject (user and group) a client certificate is created for.")
+	md.NewOrderedListItem()
+	md.Text("Which binary and flags is this certificate wired to.")
 	md.OrderedListEnd()
-	md.Textf("To create a description, set the %q annotation to the markdown formatted string describing your TLS artifact. ",
+	md.Text("")
+	md.Textf("To create a description, set the `%v` annotation to the markdown formatted string describing your TLS artifact. ",
 		annotations.OpenShiftDescription)
 
 	return tlsmetadatainterfaces.NewAnnotationRequirement(

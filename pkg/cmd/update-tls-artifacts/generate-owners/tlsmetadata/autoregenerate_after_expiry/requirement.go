@@ -13,18 +13,22 @@ func NewAutoRegenerateAfterOfflineExpiryRequirement() tlsmetadatainterfaces.Requ
 	md.Text("that if the cluster is shut down until the certificate expires, when the machines are restarted")
 	md.Text("the cluster will automatically create new cert/key pairs or update CA bundles as required without human")
 	md.Text("intervention.")
-	md.Textf("To assert that a particular cert/key pair or CA bundle can do this, add the %q annotation to the secret or configmap and ",
-		annotationName)
-	md.Text("setting the value of the annotation a github link to the PR adding the annotation.")
-	md.Text("This assertion also means that you have")
+	md.Text("")
+	md.Text("To assert that a particular cert/key pair or CA bundle can do this, add the annotation to the secret or configmap.")
+	md.Text("```yaml")
+	md.Text("  annotations:")
+	md.Textf("    %v: https//github.com/link/to/pr/adding/annotation, \"quote escaped formatted name of e2e test that ensures the PKI artifact functions properly\"", annotationName)
+	md.Text("```")
+	md.Text("")
+	md.Text("This assertion means that you have")
 	md.OrderedListStart()
 	md.NewOrderedListItem()
 	md.Text("Manually tested that this works or seen someone else manually test that this works.  AND")
 	md.NewOrderedListItem()
-	md.Text("Written an automated e2e job that your team has an alert for and is a blocking GA criteria, and/or")
+	md.Text("Written an automated e2e test to ensure this PKI artifact is function that is a blocking GA criteria, and/or")
 	md.Text("QE has required test every release that ensures the functionality works every release.")
 	md.OrderedListEnd()
-	md.Text("Links should be provided in the PR adding the annotation.")
+	md.Text("If you have not done this, you should not merge the annotation.")
 
 	return tlsmetadatainterfaces.NewAnnotationRequirement(
 		// requirement name

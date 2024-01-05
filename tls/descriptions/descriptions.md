@@ -1,6 +1,7 @@
 # Description of TLS Artifacts
 
 ## Table of Contents
+  - [How to meet the requirement](#How-to-meet-the-requirement)
   - [Items Do NOT Meet the Requirement (139)](#Items-Do-NOT-Meet-the-Requirement-139)
     - [ (20)](#-20)
       - [Certificates (9)](#Certificates-9)
@@ -39,13 +40,16 @@
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
 
 
+## How to meet the requirement
 TLS artifacts must have user-facing descriptions on their in-cluster resources.
 These descriptions must be in the style of API documentation and must include
 1. Which connections a CA bundle can be used to verify.
 2. What kind of certificates a signer will sign for.
 3. Which names and IPs a serving certificate terminates.
 4. Which subject (user and group) a client certificate is created for.
-To create a description, set the "openshift.io/description" annotation to the markdown formatted string describing your TLS artifact. 
+5. Which binary and flags is this certificate wired to.
+
+To create a description, set the `openshift.io/description` annotation to the markdown formatted string describing your TLS artifact. 
 
 ## Items Do NOT Meet the Requirement (139)
 ###  (20)
