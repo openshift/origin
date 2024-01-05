@@ -1,6 +1,7 @@
 # Auto Regenerate After Offline Expiry
 
 ## Table of Contents
+  - [How to meet the requirement](#How-to-meet-the-requirement)
   - [Items Do NOT Meet the Requirement (227)](#Items-Do-NOT-Meet-the-Requirement-227)
     - [ (20)](#-20)
       - [Certificates (9)](#Certificates-9)
@@ -39,17 +40,23 @@
   - [Items That DO Meet the Requirement (0)](#Items-That-DO-Meet-the-Requirement-0)
 
 
+## How to meet the requirement
 Acknowledging that a cert/key pair or CA bundle can auto-regenerate after it expires offline means
 that if the cluster is shut down until the certificate expires, when the machines are restarted
 the cluster will automatically create new cert/key pairs or update CA bundles as required without human
 intervention.
-To assert that a particular cert/key pair or CA bundle can do this, add the "certificates.openshift.io/auto-regenerate-after-offline-expiry" annotation to the secret or configmap and 
-setting the value of the annotation a github link to the PR adding the annotation.
-This assertion also means that you have
+
+To assert that a particular cert/key pair or CA bundle can do this, add the annotation to the secret or configmap.
+```yaml
+  annotations:
+    certificates.openshift.io/auto-regenerate-after-offline-expiry: https//github.com/link/to/pr/adding/annotation, "quote escaped formatted name of e2e test that ensures the PKI artifact functions properly"
+```
+
+This assertion means that you have
 1. Manually tested that this works or seen someone else manually test that this works.  AND
-2. Written an automated e2e job that your team has an alert for and is a blocking GA criteria, and/or
+2. Written an automated e2e test to ensure this PKI artifact is function that is a blocking GA criteria, and/or
       QE has required test every release that ensures the functionality works every release.
-Links should be provided in the PR adding the annotation.
+If you have not done this, you should not merge the annotation.
 
 ## Items Do NOT Meet the Requirement (227)
 ###  (20)
