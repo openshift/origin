@@ -30,7 +30,7 @@ func GetPKIInfoFromEmbeddedOwnership(ownershipFile []byte) (*certgraphapi.PKIReg
 func CertsToRegistryInfo(certs SecretInfoByNamespaceName, caBundles ConfigMapInfoByNamespaceName) *certgraphapi.PKIRegistryInfo {
 	result := &certgraphapi.PKIRegistryInfo{}
 
-	certKeys := sets.KeySet[certgraphapi.InClusterSecretLocation, certgraphapi.PKIRegistryCertKeyPairInfo](certs).UnsortedList()
+	certKeys := sets.KeySet[certgraphapi.InClusterSecretLocation, certgraphapi.PKIRegistryInClusterCertKeyPairInfo](certs).UnsortedList()
 	sort.Sort(SecretRefByNamespaceName(certKeys))
 	for _, key := range certKeys {
 		result.CertKeyPairs = append(result.CertKeyPairs, certgraphapi.PKIRegistryInClusterCertKeyPair{
@@ -39,7 +39,7 @@ func CertsToRegistryInfo(certs SecretInfoByNamespaceName, caBundles ConfigMapInf
 		})
 	}
 
-	caKeys := sets.KeySet[certgraphapi.InClusterConfigMapLocation, certgraphapi.PKIRegistryCertificateAuthorityInfo](caBundles).UnsortedList()
+	caKeys := sets.KeySet[certgraphapi.InClusterConfigMapLocation, certgraphapi.PKIRegistryInClusterCertificateAuthorityInfo](caBundles).UnsortedList()
 	sort.Sort(ConfigMapRefByNamespaceName(caKeys))
 	for _, key := range caKeys {
 		result.CertificateAuthorityBundles = append(result.CertificateAuthorityBundles, certgraphapi.PKIRegistryInClusterCABundle{

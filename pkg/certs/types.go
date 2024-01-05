@@ -8,8 +8,8 @@ import (
 
 type ConfigMapRefByNamespaceName []certgraphapi.InClusterConfigMapLocation
 type SecretRefByNamespaceName []certgraphapi.InClusterSecretLocation
-type SecretInfoByNamespaceName map[certgraphapi.InClusterSecretLocation]certgraphapi.PKIRegistryCertKeyPairInfo
-type ConfigMapInfoByNamespaceName map[certgraphapi.InClusterConfigMapLocation]certgraphapi.PKIRegistryCertificateAuthorityInfo
+type SecretInfoByNamespaceName map[certgraphapi.InClusterSecretLocation]certgraphapi.PKIRegistryInClusterCertKeyPairInfo
+type ConfigMapInfoByNamespaceName map[certgraphapi.InClusterConfigMapLocation]certgraphapi.PKIRegistryInClusterCertificateAuthorityInfo
 
 func (n SecretRefByNamespaceName) Len() int {
 	return len(n)
