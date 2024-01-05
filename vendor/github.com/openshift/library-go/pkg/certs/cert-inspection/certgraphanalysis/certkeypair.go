@@ -114,6 +114,7 @@ func toCertKeyMetadata(certificate *x509.Certificate) certgraphapi.CertKeyMetada
 	switch publicKey := certificate.PublicKey.(type) {
 	case *ecdsa.PublicKey:
 		ret.PublicKeyBitSize = fmt.Sprintf("%d bit, %v curve", publicKey.Params().BitSize, publicKey.Params().Name)
+		ret.CertIdentifier.PubkeyModulus = fmt.Sprintf("%s %s", publicKey.X.String(), publicKey.Y.String())
 	case *rsa.PublicKey:
 		ret.PublicKeyBitSize = fmt.Sprintf("%d bit", publicKey.Size()*8)
 		ret.CertIdentifier.PubkeyModulus = publicKey.N.String()
