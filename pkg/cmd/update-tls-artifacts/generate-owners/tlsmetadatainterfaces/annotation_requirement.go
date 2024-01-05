@@ -92,6 +92,7 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 	}
 
 	md := NewMarkdown(o.title)
+	md.Title(2, "How to meet the requirement")
 	md.ExactText(o.explanationMD)
 
 	if len(violatingCertsByOwner) > 0 || len(violatingCABundlesByOwner) > 0 {
