@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operat
 		WaitForCSOHealthy(oc)
 	})
 
-	g.It("should restart webhook Pods if csi-snapshot-webhook-secret expiry annotation changed", func() {
+	g.It("should restart webhook Pods if csi-snapshot-webhook-secret expiry annotation is changed", func() {
 
 		g.By("# Get the csiSnapshotWebhook annotations")
 		csiSnapshotWebhookAnnotationsOri := exutil.GetDeploymentTemplateAnnotations(oc, snapshotWebhookDeployName, clusterCSISnapshotOperatorNs)
@@ -47,16 +47,16 @@ var _ = g.Describe("[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operat
 		o.Expect(oc.AsAdmin().Run("annotate").Args("-n", clusterCSISnapshotOperatorNs, "secret", snapshotWebhookSecretName,
 			"service.alpha.openshift.io/expiry-", "service.beta.openshift.io/expiry-").Execute()).NotTo(o.HaveOccurred())
 
-		g.By("# Check the webhook Pods should were restarted")
+		g.By("# Check the webhook Pods were restarted")
 		o.Eventually(func() bool {
 			csiSnapshotWebhookAnnotationsCurrent := exutil.GetDeploymentTemplateAnnotations(oc, snapshotWebhookDeployName, clusterCSISnapshotOperatorNs)
 			return reflect.DeepEqual(csiSnapshotWebhookAnnotationsOri, csiSnapshotWebhookAnnotationsCurrent)
 		}).WithTimeout(defaultMaxWaitingTime).WithPolling(defaultPollingTime).Should(o.BeFalse(), "The csiSnapshotWebhook was not updated")
 	})
 
-	g.It("should restart webhook Pods if csi-snapshot-webhook-secret deleted", func() {
+	g.It("should restart webhook Pods if csi-snapshot-webhook-secret is deleted", func() {
 
-		g.By("# Get the csiSnapshotWebhook resourceVersion")
+		g.By("# Get the csiSnapshotWebhook annotations")
 		csiSnapshotWebhookAnnotationsOri := exutil.GetDeploymentTemplateAnnotations(oc, snapshotWebhookDeployName, clusterCSISnapshotOperatorNs)
 
 		g.By("# Delete the csi-snapshot-webhook-secret")

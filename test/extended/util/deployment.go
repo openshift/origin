@@ -40,18 +40,18 @@ func WaitForDeploymentReady(oc *CLI, deployName, namespace string) error {
 	pollErr := wait.PollUntilContextTimeout(context.Background(), defaultPollingTime, defaultMaxWaitingTime, true, func(context.Context) (isReady bool, err error) {
 		deployment, getErr = oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(context.Background(), deployName, metav1.GetOptions{})
 		if getErr != nil {
-			e2e.Logf("Unable to retrieve deployment/%s\n %v", deployName, getErr)
+			e2e.Logf("Unable to retrieve deployment %q:\n%v", deployName, getErr)
 		}
 		if deployment.Status.AvailableReplicas == *deployment.Spec.Replicas {
-			e2e.Logf("Deployment/%s is ready", deployName)
+			e2e.Logf("Deployment %q is ready", deployName)
 			return true, nil
 		}
-		e2e.Logf("Deployment/%s is still unready, available replicas %s/%s", deployment.Status.AvailableReplicas, *deployment.Spec.Replicas)
+		e2e.Logf("Deployment %q is still unready, available replicas %d/%d", deployName, deployment.Status.AvailableReplicas, *deployment.Spec.Replicas)
 		return false, nil
 	})
 
 	if pollErr != nil {
-		e2e.Logf("Waiting for deployment %s ready timeout\n", deployName)
+		e2e.Logf("Waiting for deployment %s ready timeout", deployName)
 		for key, value := range deployment.Spec.Selector.MatchLabels {
 			labelSelector = fmt.Sprintf("%s=%s", key, value)
 			break
@@ -63,11 +63,11 @@ func WaitForDeploymentReady(oc *CLI, deployName, namespace string) error {
 
 // DumpDeploymentPodsLogs will dump the deployment pods logs for a deployment for debug purposes
 func DumpDeploymentPodsLogs(oc *CLI, deployName, namespace, labelSelector string) {
-	e2e.Logf("Dumping deployment/%s pods logs \n", deployName)
+	e2e.Logf("Dumping deployment/%s pods logs", deployName)
 
 	pods, err := GetDeploymentPods(oc, deployName, namespace, labelSelector)
 	if err != nil {
-		e2e.Logf("Unable to retrieve pods for deployment %q: %v\n", deployName, err)
+		e2e.Logf("Unable to retrieve pods for deployment %q:\n%v", deployName, err)
 		return
 	}
 
