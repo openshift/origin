@@ -71,9 +71,24 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 		if ok, _ := exutil.IsMicroShiftCluster(kubeClient); ok {
 			g.Skip("microshift does not auto-collect TLS.")
 		}
+		configClient := oc.AdminConfigClient()
+		featureGates, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		jobType, err := platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
-		tlsArtifactFilename := fmt.Sprintf("raw-tls-artifacts-%s-%s-%s-%s.json", jobType.Topology, jobType.Architecture, jobType.Platform, jobType.Network)
+		featureSetString := string(featureGates.Spec.FeatureSet)
+		if len(featureSetString) == 0 {
+			featureSetString = "Default"
+		}
+		tlsArtifactFilename := fmt.Sprintf(
+			"raw-tls-artifacts-%s-%s-%s-%s-%s.json",
+			jobType.Topology,
+			jobType.Architecture,
+			jobType.Platform,
+			jobType.Network,
+			strings.ToLower(featureSetString),
+		)
 
 		currentPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
