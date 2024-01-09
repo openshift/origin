@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -66,7 +68,7 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 			}
 
 			if len(failures) > 0 {
-				g.Fail(strings.Join(failures, "\n"))
+				result.Flakef(strings.Join(failures, "\n"))
 			}
 		})
 	})
