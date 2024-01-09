@@ -83,6 +83,25 @@ func RunResourceWatch() error {
 		configResource("projects"),
 		configResource("proxies"),
 		configResource("schedulers"),
+		operatorResource("authentications"),
+		operatorResource("cloudcredentials"),
+		operatorResource("clustercsidrivers"),
+		operatorResource("configs"),
+		operatorResource("consoles"),
+		operatorResource("csisnapshotcontrollers"),
+		operatorResource("dnses"),
+		operatorResource("etcds"),
+		operatorResource("imagecontentsourcepolicies"),
+		operatorResource("insightsoperators"),
+		operatorResource("kubeapiservers"),
+		operatorResource("kubecontrollermanagers"),
+		operatorResource("kubeschedulers"),
+		operatorResource("kubestorageversionmigrators"),
+		operatorResource("networks"),
+		operatorResource("openshiftapiservers"),
+		operatorResource("openshiftcontrollermanagers"),
+		operatorResource("servicecas"),
+		operatorResource("storages"),
 		appResource("deployments"),
 		appResource("daemonsets"),
 		appResource("statefulsets"),
@@ -113,6 +132,14 @@ func RunResourceWatch() error {
 func configResource(resource string) schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "config.openshift.io",
+		Version:  "v1",
+		Resource: resource,
+	}
+}
+
+func operatorResource(resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    "operator.openshift.io",
 		Version:  "v1",
 		Resource: resource,
 	}
