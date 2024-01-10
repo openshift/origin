@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/historicaldata"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -31,6 +32,7 @@ type AllowedAlertsFunc func(featureSet configv1.FeatureSet) (allowedFiringWithBu
 func testAlerts(events monitorapi.Intervals,
 	allowancesFunc AllowedAlertsFunc,
 	jobType *platformidentification.JobType,
+	clusterStability *monitortestframework.ClusterStabilityDuringTest,
 	restConfig *rest.Config,
 	duration time.Duration,
 	recordedResource monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
@@ -71,13 +73,14 @@ func testAlerts(events monitorapi.Intervals,
 		}
 	}
 
-	ret := RunAlertTests(jobType, allowancesFunc, featureSet, etcdAllowance, events, recordedResource)
+	ret := RunAlertTests(jobType, clusterStability, allowancesFunc, featureSet, etcdAllowance, events, recordedResource)
 	return ret
 }
 
 // RunAlertTests is a key entry point for running all per-Alert tests we've defined in all.go AllAlertTests,
 // as well as backstop tests on things we observe outside those specific tests.
 func RunAlertTests(jobType *platformidentification.JobType,
+	clusterStability *monitortestframework.ClusterStabilityDuringTest,
 	allowancesFunc AllowedAlertsFunc,
 	featureSet configv1.FeatureSet,
 	etcdAllowance allowedalerts.AlertTestAllowanceCalculator,
@@ -85,7 +88,7 @@ func RunAlertTests(jobType *platformidentification.JobType,
 	recordedResource monitorapi.ResourcesMap) []*junitapi.JUnitTestCase {
 
 	ret := []*junitapi.JUnitTestCase{}
-	alertTests := allowedalerts.AllAlertTests(jobType, etcdAllowance)
+	alertTests := allowedalerts.AllAlertTests(jobType, clusterStability, etcdAllowance)
 
 	// Run the per-alert tests we've hardcoded:
 	for i := range alertTests {
@@ -204,7 +207,7 @@ func runBackstopTest(
 		} else {
 			// treat pending errors as a flake right now because we are still trying to determine the scope
 			// TODO: move this to unexpectedViolations later
-			//unexpectedViolationsAsFlakes.Insert(fmt.Sprintf("%s result=allow", violation))
+			// unexpectedViolationsAsFlakes.Insert(fmt.Sprintf("%s result=allow", violation))
 		}
 	}
 

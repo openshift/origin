@@ -78,6 +78,7 @@ a running cluster.
 			logrus.Info("running tests")
 			testCases := legacytestframeworkmonitortests.RunAlertTests(
 				jobType,
+				nil,
 				alerts.AllowedAlertsDuringUpgrade, // NOTE: may someway want a cli flag for conformance variant
 				configv1.Default,
 				allowedalerts.DefaultAllowances,
