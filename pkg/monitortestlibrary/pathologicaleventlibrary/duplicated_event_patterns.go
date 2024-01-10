@@ -864,8 +864,8 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 	// For now we are going to allow this event in any job where NoExecuteTaintManager runs.
 	// This will give critical green signal for 4.15 component readiness for now.
 	matcher := &SimplePathologicalEventMatcher{
-		name:                    "TopologyAwareHintsDisabledDuringTaintManagerTests",
-		messageReasonRegex:      regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+		name:               "TopologyAwareHintsDisabledDuringTaintManagerTests",
+		messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
 	}
 	if len(taintManagerTestIntervals) > 0 {
 		matcher.repeatThresholdOverride = 10000
