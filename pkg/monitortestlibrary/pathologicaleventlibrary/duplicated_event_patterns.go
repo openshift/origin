@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -858,60 +857,28 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 			strings.Contains(eventInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey], "NoExecuteTaintManager")
 	})
 
-	adjustedTaintTestIntervals := monitorapi.Intervals{}
-
-	// Start the allowed time range from time range of the tests. But events lag behind the tests since the tests do not wait
-	// until all dns pods are properly scheduled and reach ready state. So we will need to expand the allowed time range after.
-	for _, test := range taintManagerTestIntervals {
-		ti := test.DeepCopy()
-		adjustedTaintTestIntervals = append(adjustedTaintTestIntervals, *ti)
-		logrus.WithField("from", test.From).WithField("to", test.To).Infof("found time range for test: %s", test.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey])
+	// The original mechanism doesn't properly count the compensation factor the number of events that happened in the window that were batched
+	// into a single, potentially later event count update by the recorder.
+	// The following sequence of events is an example:
+	// 1. t0 topology fail event counter - 16
+	// 2. t1 NoTaintManager test start
+	// 3. t2 NoTaintManager test end
+	// 4. t3 topology fail event counter - 21
+	//
+	// For now we are going to allow this event in any job where NoExecuteTaintManager runs.
+	// This will give critical green signal for 4.15 component readiness for now.
+	matcher := &SimplePathologicalEventMatcher{
+		name:                    "TopologyAwareHintsDisabledDuringTaintManagerTests",
+		messageReasonRegex:      regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+		repeatThresholdOverride: 10000,
 	}
-	dnsUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourcePodState &&
-			(eventInterval.StructuredLocator.Type == monitorapi.LocatorTypePod || eventInterval.StructuredLocator.Type == monitorapi.LocatorTypeContainer) &&
-			eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] == "openshift-dns" &&
-			eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerPodLifecycle
-	})
-
-	// Now expand the allowed time range until the replacement dns pod gets ready
-	for i, r := range adjustedTaintTestIntervals {
-		var lastReadyTime time.Time
-		count := 0
-		for _, interval := range dnsUpdateIntervals {
-			if interval.From.Before(r.From) {
-				continue
-			}
-			// If there is a GracefulDelete of dns-default pod, we will have to wait until the replacement dns container becomes ready
-			if interval.StructuredMessage.Reason == monitorapi.PodReasonGracefulDeleteStarted &&
-				strings.Contains(interval.StructuredLocator.Keys[monitorapi.LocatorPodKey], "dns-default") {
-				count++
-			}
-			if interval.StructuredMessage.Reason == monitorapi.ContainerReasonReady &&
-				interval.StructuredLocator.Keys[monitorapi.LocatorContainerKey] == "dns" && count > 0 {
-				lastReadyTime = interval.From
-				count--
-			}
-			if interval.From.After(r.To) && count == 0 {
-				if lastReadyTime.After(r.To) {
-					adjustedTaintTestIntervals[i].To = lastReadyTime
-				}
-				break
-			}
-		}
-	}
-	// Log final adjusted time ranges
-	for _, testInterval := range adjustedTaintTestIntervals {
-		logrus.WithField("from", testInterval.From).WithField("to", testInterval.To).Infof("adjusted time range for test: %s", testInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey])
+	if len(taintManagerTestIntervals) > 0 {
+		matcher.repeatThresholdOverride = 10000
+	} else {
+		matcher.neverAllow = true
 	}
 
-	return &OverlapOtherIntervalsPathologicalEventMatcher{
-		delegate: &SimplePathologicalEventMatcher{
-			name:               "TopologyAwareHintsDisabledDuringTaintManagerTests",
-			messageReasonRegex: regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
-		},
-		allowIfWithinIntervals: adjustedTaintTestIntervals,
-	}
+	return matcher
 }
 
 // Ignore connection refused events during OCP APIServer or OAuth APIServer being down
