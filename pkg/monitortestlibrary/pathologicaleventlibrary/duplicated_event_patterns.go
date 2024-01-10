@@ -870,7 +870,6 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 	matcher := &SimplePathologicalEventMatcher{
 		name:                    "TopologyAwareHintsDisabledDuringTaintManagerTests",
 		messageReasonRegex:      regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
-		repeatThresholdOverride: 10000,
 	}
 	if len(taintManagerTestIntervals) > 0 {
 		matcher.repeatThresholdOverride = 10000
