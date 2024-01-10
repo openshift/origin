@@ -22,6 +22,12 @@ func E2ETestFromLocator(l Locator) (string, bool) {
 	return test, ok
 }
 
+func E2ETestFromOldLocator(locator string) (string, bool) {
+	parts := LocatorParts(locator)
+	test, ok := parts[string(LocatorE2ETestKey)]
+	return test, ok
+}
+
 func NodeLocator(testName string) string {
 	return fmt.Sprintf("node/%v", testName)
 }

@@ -853,6 +853,24 @@ func newTopologyAwareHintsDisabledDuringTaintTestsPathologicalEventMatcher(final
 		}
 	}
 
+	ranEvictionTest := len(finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		if e2eTest, _ := monitorapi.E2ETestFromOldLocator(eventInterval.Locator); strings.Contains(e2eTest, "evicts pods from tainted nodes") {
+			return true
+		}
+		return false
+	})) > 0
+	if ranEvictionTest {
+		// if we ran an eviction test, we're going to get the topology aware hints failure, so we want to allow this event to happen many times.
+		return &SimplePathologicalEventMatcher{
+			name:                    "TopologyAwareHintsDisabledDuringTaintManagerTests",
+			messageReasonRegex:      regexp.MustCompile(`^TopologyAwareHintsDisabled$`),
+			repeatThresholdOverride: 10000,
+		}
+	}
+
+	// what follows doesn't properly count the compensation factor the number of events that happened in the window that were batched
+	// into a single, potentially later event count update by the recorder.
+
 	taintManagerTestIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		return eventInterval.Source == monitorapi.SourceE2ETest &&
 			strings.Contains(eventInterval.StructuredLocator.Keys[monitorapi.LocatorE2ETestKey], "NoExecuteTaintManager")
