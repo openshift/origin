@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -20,11 +21,12 @@ import (
 )
 
 type watchdogAlertTest struct {
-	jobType *platformidentification.JobType
+	jobType          *platformidentification.JobType
+	clusterStability *monitortestframework.ClusterStabilityDuringTest
 }
 
-func newWatchdogAlert(jobType *platformidentification.JobType) *watchdogAlertTest {
-	return &watchdogAlertTest{jobType: jobType}
+func newWatchdogAlert(jobType *platformidentification.JobType, clusterStability *monitortestframework.ClusterStabilityDuringTest) *watchdogAlertTest {
+	return &watchdogAlertTest{jobType: jobType, clusterStability: clusterStability}
 }
 
 func (a *watchdogAlertTest) toTest() AlertTest {
@@ -79,7 +81,8 @@ func IsWatchdogAlert(eventInterval monitorapi.Interval) bool {
 func (a *watchdogAlertTest) InvariantCheck(alertIntervals monitorapi.Intervals, _ monitorapi.ResourcesMap) ([]*junitapi.JUnitTestCase, error) {
 
 	// If this is a single node upgrade job, we can skip the test
-	if a.jobType.Topology == "single" && a.jobType.FromRelease == "" {
+	// Or cluster stability is disruptive in which we don't query prometheus alert data
+	if (a.jobType.Topology == "single" && a.jobType.FromRelease == "") || (a.clusterStability != nil && *a.clusterStability == monitortestframework.Disruptive) {
 		return []*junitapi.JUnitTestCase{}, nil
 	}
 

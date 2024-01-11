@@ -1,6 +1,7 @@
 package allowedalerts
 
 import (
+	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 )
 
@@ -8,10 +9,10 @@ import (
 // etcdAllowance can be the DefaultAllowances, but the quality of testing will be better if it is set.
 // Some callers do not intend to run these tests (rather only to list alerts which have a test),
 // in which case JobType can be an empty struct.
-func AllAlertTests(jobType *platformidentification.JobType, etcdAllowance AlertTestAllowanceCalculator) []AlertTest {
+func AllAlertTests(jobType *platformidentification.JobType, clusterStability *monitortestframework.ClusterStabilityDuringTest, etcdAllowance AlertTestAllowanceCalculator) []AlertTest {
 
 	ret := []AlertTest{}
-	ret = append(ret, newWatchdogAlert(jobType))
+	ret = append(ret, newWatchdogAlert(jobType, clusterStability))
 	ret = append(ret, newAlertTestPerNamespace("KubePodNotReady", jobType).pending().neverFail().toTests()...)
 	ret = append(ret, newAlertTestPerNamespace("KubePodNotReady", jobType).firing().toTests()...)
 

@@ -17,13 +17,14 @@ import (
 )
 
 type legacyMonitorTests struct {
-	adminRESTConfig   *rest.Config
-	duration          time.Duration
-	recordedResources monitorapi.ResourcesMap
+	adminRESTConfig            *rest.Config
+	duration                   time.Duration
+	recordedResources          monitorapi.ResourcesMap
+	clusterStabilityDuringTest *monitortestframework.ClusterStabilityDuringTest
 }
 
-func NewLegacyTests() monitortestframework.MonitorTest {
-	return &legacyMonitorTests{}
+func NewLegacyTests(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
+	return &legacyMonitorTests{clusterStabilityDuringTest: &info.ClusterStabilityDuringTest}
 }
 
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -53,11 +54,11 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(finalIntervals, time.Time{}, time.Time{})
 	if isUpgrade {
 		junits = append(junits, pathologicaleventlibrary.TestDuplicatedEventForUpgrade(finalIntervals, w.adminRESTConfig)...)
-		junits = append(junits, testAlerts(finalIntervals, alerts.AllowedAlertsDuringUpgrade, jobType,
+		junits = append(junits, testAlerts(finalIntervals, alerts.AllowedAlertsDuringUpgrade, jobType, w.clusterStabilityDuringTest,
 			w.adminRESTConfig, w.duration, w.recordedResources)...)
 	} else {
 		junits = append(junits, pathologicaleventlibrary.TestDuplicatedEventForStableSystem(finalIntervals, w.adminRESTConfig)...)
-		junits = append(junits, testAlerts(finalIntervals, alerts.AllowedAlertsDuringConformance, jobType,
+		junits = append(junits, testAlerts(finalIntervals, alerts.AllowedAlertsDuringConformance, jobType, w.clusterStabilityDuringTest,
 			w.adminRESTConfig, w.duration, w.recordedResources)...)
 	}
 

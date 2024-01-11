@@ -27,7 +27,7 @@ func writeAlertDataForJobRun(artifactDir string, _ monitorapi.ResourcesMap, even
 
 func addMissingAlertsForLevel(alertList *AlertList, level AlertLevel) {
 	wellKnownAlerts := sets.NewString()
-	for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{}, allowedalerts2.DefaultAllowances) {
+	for _, alertTest := range allowedalerts2.AllAlertTests(&platformidentification.JobType{}, nil, allowedalerts2.DefaultAllowances) {
 		wellKnownAlerts.Insert(alertTest.AlertName())
 	}
 	alertsFound := sets.NewString()
@@ -159,7 +159,7 @@ func computeAlertData(events monitorapi.Intervals) *AlertList {
 				AlertKey: alertKey,
 			}
 		}
-		//the same alert can fire multiple times, so we add all the durations together
+		// the same alert can fire multiple times, so we add all the durations together
 		alert.Duration = metav1.Duration{Duration: alert.Duration.Duration + alertInterval.To.Sub(alertInterval.From)}
 		alertMap[alertKey] = alert
 	}
