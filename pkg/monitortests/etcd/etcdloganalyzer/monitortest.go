@@ -85,7 +85,7 @@ func (*etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, starting
 	var newInterval *monitorapi.IntervalBuilder
 	startTime := time.Time{}
 
-	interestingReasons := sets.NewString("leader-found", "leader-elected", "leader-lost", "leader-missing")
+	interestingReasons := sets.NewString("LeaderFound", "LeaderElected", "LeaderLost", "LeaderMissing")
 
 	podsToNode := podaccess.NonUniquePodToNode(startingIntervals)
 	etcdMemberIDToPod := podaccess.NonUniqueEtcdMemberToPod(startingIntervals)
@@ -113,7 +113,7 @@ func (*etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, starting
 			leaderPod := etcdMemberIDToPod[newLeader]
 			leaderNode := podsToNode[leaderPod]
 
-			newInterval = monitorapi.NewInterval(monitorapi.SourceEtcdLog, monitorapi.Warning).
+			newInterval = monitorapi.NewInterval(monitorapi.SourceEtcdLeadership, monitorapi.Warning).
 				Locator(
 					monitorapi.NewLocator().EtcdMemberFromNames(leaderNode, newLeader),
 				).
@@ -199,12 +199,11 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 
 	var etcdSource monitorapi.IntervalSource = monitorapi.SourceEtcdLeadership
 	messages := []*monitorapi.MessageBuilder{}
-	// TODO: all of these reasons with dashes are non-standard, we use camelcase everywhere else.
 	switch {
 	case strings.Contains(parsedLine.Msg, "restarting local member"):
 		messages = []*monitorapi.MessageBuilder{
 			monitorapi.NewMessage().
-				Reason("local-member-restart"). // this message provides a mapping from pod ID to member ID
+				Reason("LocalMemberRestart"). // this message provides a mapping from pod ID to member ID
 				WithAnnotation(monitorapi.AnnotationEtcdLocalMember, parsedLine.LocalMemberID).
 				HumanMessage(parsedLine.Msg),
 		}
@@ -213,7 +212,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 	case strings.Contains(parsedLine.Msg, "elected leader"):
 		messages = []*monitorapi.MessageBuilder{
 			monitorapi.NewMessage().
-				Reason("leader-found"). // this message can be produced when etcd starts up
+				Reason("LeaderFound"). // this message can be produced when etcd starts up
 				WithAnnotation(monitorapi.AnnotationEtcdLeader, currentLeaderFromMessage(parsedLine.Msg)).
 				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
 				HumanMessage(parsedLine.Msg),
@@ -222,7 +221,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 	case strings.Contains(parsedLine.Msg, "became leader"):
 		messages = []*monitorapi.MessageBuilder{
 			monitorapi.NewMessage().
-				Reason("leader-elected"). // this message is produce when a leader is chosen
+				Reason("LeaderElected"). // this message is produce when a leader is chosen
 				WithAnnotation(monitorapi.AnnotationEtcdLeader, currentLeaderFromMessage(parsedLine.Msg)).
 				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
 				HumanMessage(parsedLine.Msg),
@@ -231,7 +230,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 	case strings.Contains(parsedLine.Msg, "lost leader"):
 		messages = []*monitorapi.MessageBuilder{
 			monitorapi.NewMessage().
-				Reason("leader-lost").
+				Reason("LeaderLost").
 				WithAnnotation(monitorapi.AnnotationPreviousEtcdLeader, prevLeaderFromMessage(parsedLine.Msg)).
 				WithAnnotation(monitorapi.AnnotationEtcdLeader, "").
 				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
@@ -241,7 +240,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 	case strings.Contains(parsedLine.Msg, "no leader"):
 		messages = []*monitorapi.MessageBuilder{
 			monitorapi.NewMessage().
-				Reason("leader-missing").
+				Reason("LeaderMissing").
 				WithAnnotation(monitorapi.AnnotationEtcdLeader, "").
 				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
 				HumanMessage(parsedLine.Msg),
@@ -250,13 +249,13 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 	case strings.Contains(parsedLine.Msg, "changed leader"):
 		messages = []*monitorapi.MessageBuilder{
 			monitorapi.NewMessage().
-				Reason("leader-lost").
+				Reason("LeaderLost").
 				WithAnnotation(monitorapi.AnnotationPreviousEtcdLeader, prevLeaderFromMessage(parsedLine.Msg)).
 				WithAnnotation(monitorapi.AnnotationEtcdLeader, "").
 				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
 				HumanMessage(parsedLine.Msg),
 			monitorapi.NewMessage().
-				Reason("leader-found").
+				Reason("LeaderFound").
 				WithAnnotation(monitorapi.AnnotationEtcdLeader, currentLeaderFromMessage(parsedLine.Msg)).
 				WithAnnotation(monitorapi.AnnotationEtcdTerm, electionTermFromMessage(parsedLine.Msg)).
 				HumanMessage(parsedLine.Msg),

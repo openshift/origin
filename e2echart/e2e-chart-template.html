@@ -97,18 +97,17 @@
         return false
     }
 
-    // When an interval in the openshift-etcd namespace had a reason of leader-found, leader-lost,
-    // leader-elected, or leader-missing, tempSource was set to 'EtcdLeadership' otherwise it was
-    // set to 'EtcdLog'.  This function returns true if the interval is one of those.
-    function isEtcdLeadershipOrLog(eventInterval) {
-        if (eventInterval.tempSource == 'EtcdLeadership' || eventInterval.tempSource == 'EtcdLog') {
+    // When an interval in the openshift-etcd namespace had a reason of LeaderFound, LeaderLost,
+    // LeaderElected, or LeaderMissing, tempSource was set to 'EtcdLeadership'.
+    function isEtcdLeadership(eventInterval) {
+        if (eventInterval.tempSource == 'EtcdLeadership') {
             return true
         }
         return false
     }
 
     function isPodLog(eventInterval) {
-        if (isEtcdLeadershipOrLog(eventInterval)) {
+        if (isEtcdLeadership(eventInterval)) {
             return false
         }
         if (eventInterval.locator.includes("src/podLog")) {
@@ -125,7 +124,7 @@
     }
 
     function isPod(eventInterval) {
-        if (isEtcdLeadershipOrLog(eventInterval)) {
+        if (isEtcdLeadership(eventInterval)) {
             return false
         }
         // this check was added to keep the repeating events out fo the "pods" section
@@ -327,65 +326,26 @@
     }
 
     function etcdLeadershipLogsValue(item) {
-        if (item.tempSource == "EtcdLeadership") {
 
-            // For leader-found, a 'term' is expected to be present; this line attempts to
-            // get the value of 'term' and if not there, we'll default to ''.
-            let term = item.tempStructuredMessage?.annotations?.['term'] ?? '';
-            if (term.length == 0) {
-                // For leader-lost, leader-elected, and leader-missing, term is in the humanMessage.
-                // Ensure it exists and if not, just default to 'noTerm'
-                term = item.tempStructuredMessage?.humanMessage ?? 'noTerm';
-            }
-            foundOrLost = item.tempStructuredMessage.reason
+        // If source is isEtcdLeadership, the term is always there.
+        const term = item.tempStructuredMessage.annotations['term']
 
-            // If source is EtcdLeadership, then node is present.
-            nodeVal = item.tempStructuredLocator.keys['node']
+        // We are only charting the intervals with a node.
+        const nodeVal = item.tempStructuredLocator.keys['node']
 
-            let leaderColor ="EtcdOther"
-            switch (foundOrLost) {
-                case "leader-found":
-                    leaderColor = "EtcdLeaderFound";
-                    break;
-                case "leader-lost":
-                    leaderColor = "EtcdLeaderLost";
-                    break;
-                case "leader-elected":
-                    leaderColor = "EtcdLeaderElected";
-                    break;
-                case "leader-missing":
-                    leaderColor = "EtcdLeaderMissing";
-                    break;
-            }
-            return [`${nodeVal} term/${term}`, ` (${foundOrLost}=${nodeVal})`, leaderColor]
-        } else {
-
-            let nodeVal = 'noNode'
-            if (item.tempStructuredLocator.keys.hasOwnProperty('etcd-member') &&
-                item.tempStructuredLocator.keys.hasOwnProperty('node')) {
-                if (item.tempStructuredLocator.keys['node'].length > 0) {
-                    nodeVal = item.tempStructuredLocator.keys['node']
-                }
-            }
-
-            const etcdMemberVal = item.tempStructuredLocator.keys['etcd-member'] || ''
-            if (nodeVal.length == 0 && etcdMemberVal.length == 0) {
-                return [`empty`, `(empty)`, 'EtcdOther']
-            }
-
-            if (nodeVal.length > 0 && etcdMemberVal.length > 0) {
-                const term = item.tempStructuredMessage.annotations['term']
-                return [`Leader ${nodeVal} term/${term}`, ` etcd-member/${etcdMemberVal}`, 'EtcdLeading']
-            }
-
-            if (nodeVal == "noNode" && etcdMemberVal.length == 0) {
-                // If node is in the locator, use it.
-                nodeVal = item.tempStructuredLocator.keys['node'] || 'noNode'
-                return [`${nodeVal}`, ` (etcd-member=none)`, 'EtcdOther']
-            }
-
-            return [`${nodeVal}`, ` (etcd-member=${etcdMember})`, 'EtcdOther']
+        // Get etcd-member value (this will be present for a leader change).
+        let etcdMemberVal = item.tempStructuredLocator.keys['etcd-member'] || ''
+        if (etcdMemberVal.length > 0) {
+            etcdMemberVal = `etcd-member/${etcdMemberVal} `
         }
+
+        let reason = item.tempStructuredMessage.reason
+        let color = 'EtcdOther'
+        if (reason.length > 0) {
+            color = reason
+            reason = `reason/${reason}`
+        }
+        return [`node/${nodeVal} ${etcdMemberVal} term/${term}`, ` ${reason}`, color ]
     }
 
     function cloudMetricsValue(item) {
@@ -525,6 +485,18 @@
         }
     }
 
+    function isEtcdLeadershipAndNotEmpty(item) {
+        if (isEtcdLeadership(item)) {
+
+            // Don't chart the ones where the node is empty.
+            const node = item.tempStructuredLocator.keys['node'] || ''
+            if (node.length > 0) {
+                return true
+            }
+        }
+        return false
+    }
+
     function renderChart(regex) {
         var loc = window.location.href;
 
@@ -568,7 +540,7 @@
         })
 
         timelineGroups.push({ group: "etcd-leaders", data: [] })
-        createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipOrLog, regex)
+        createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
 
         timelineGroups.push({group: "cloud-metrics", data: []})
         createTimelineData(cloudMetricsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCloudMetrics, regex)
@@ -626,7 +598,7 @@
                 'CIClusterDisruption', 'Disruption', // disruption
                 'Degraded', 'Upgradeable', 'False', 'Unknown',
                 'PodLogInfo', 'PodLogWarning', 'PodLogError',
-                'EtcdOther', 'EtcdLeading', 'EtcdLeaderFound', 'EtcdLeaderLost', 'EtcdLeaderElected', 'EtcdLeaderMissing'])
+                'EtcdOther', 'EtcdLeaderFound', 'EtcdLeaderLost', 'EtcdLeaderElected', 'EtcdLeaderMissing'])
             .range([
                 '#6E6E6E', '#0000ff', '#d0312d', '#ffa500', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
@@ -637,7 +609,7 @@
                 '#96cbff', '#d0312d', // disruption
                 '#b65049', '#32b8b6', '#ffffff', '#bbbbbb',
                 '#96cbff', '#fada5e', '#d0312d',
-                '#d3d3de', '#4da385', '#03fc62', '#fc0303', '#fada5e', '#8c5efa']);
+                '#d3d3de', '#03fc62', '#fc0303', '#fada5e', '#8c5efa']); // EtcdLeadership
         myChart.
         data(timelineGroups).
         useUtc(true).
