@@ -3,6 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"sort"
 	"strconv"
@@ -470,7 +471,7 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 				return
 			}
 
-			testSuites, err := runConformanceTests(oc, host, "h2spec", 5*time.Minute)
+			testSuites, err := runConformanceTests(oc, host, "h2spec", 10*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(testSuites).ShouldNot(o.BeEmpty())
 
@@ -536,7 +537,14 @@ func failingTests(testSuites []*h2spec.JUnitTestSuite) []h2specFailingTest {
 func runConformanceTests(oc *exutil.CLI, host, podName string, timeout time.Duration) ([]*h2spec.JUnitTestSuite, error) {
 	var testSuites []*h2spec.JUnitTestSuite
 
-	if err := wait.Poll(time.Second, timeout, func() (bool, error) {
+	if err := wait.Poll(2*time.Second, timeout, func() (bool, error) {
+		// Error message will read as:
+		//   <date>: INFO: lookup <host>: no such host, retrying...
+		if _, err := net.LookupHost(host); err != nil {
+			e2e.Logf("%v, retrying...", err)
+			return false, nil
+		}
+
 		g.By("Running the h2spec CLI test")
 
 		// this is the output file in the pod
@@ -603,7 +611,7 @@ func runConformanceTestsAndLogAggregateFailures(oc *exutil.CLI, host, podName st
 	failuresByTestCaseID := map[string]int{}
 
 	for i := 1; i <= iterations; i++ {
-		testResults, err := runConformanceTests(oc, host, podName, 5*time.Minute)
+		testResults, err := runConformanceTests(oc, host, podName, 10*time.Minute)
 		if err != nil {
 			e2e.Logf(err.Error())
 			continue
