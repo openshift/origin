@@ -6,6 +6,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +genclient:nonNamespaced
 // +kubebuilder:subresource:status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +openshift:validation:FeatureSetAwareXValidation:featureSet=CustomNoUpgrade;TechPreviewNoUpgrade,rule="!has(self.spec.oidcProviders) || self.spec.oidcProviders.all(p, !has(p.oidcClients) || p.oidcClients.all(specC, self.status.oidcClients.exists(statusC, statusC.componentNamespace == specC.componentNamespace && statusC.componentName == specC.componentName) || (has(oldSelf.spec.oidcProviders) && oldSelf.spec.oidcProviders.exists(oldP, oldP.name == p.name && has(oldP.oidcClients) && oldP.oidcClients.exists(oldC, oldC.componentNamespace == specC.componentNamespace && oldC.componentName == specC.componentName)))))",message="all oidcClients in the oidcProviders must match their componentName and componentNamespace to either a previously configured oidcClient or they must exist in the status.oidcClients"
 
 // Authentication specifies cluster-wide settings for authentication (like OAuth and
 // webhook token authenticators). The canonical name of an instance is `cluster`.
@@ -104,8 +105,15 @@ type AuthenticationStatus struct {
 	// The namespace for this config map is openshift-config-managed.
 	IntegratedOAuthMetadata ConfigMapNameReference `json:"integratedOAuthMetadata"`
 
-	// TODO if we add support for an in-cluster operator managed Keycloak instance
-	// KeycloakOAuthMetadata ConfigMapNameReference `json:"keycloakOAuthMetadata"`
+	// OIDCClients is where participating operators place the current OIDC client status
+	// for OIDC clients that can be customized by the cluster-admin.
+	//
+	// +listType=map
+	// +listMapKey=componentNamespace
+	// +listMapKey=componentName
+	// +kubebuilder:validation:MaxItems=20
+	// +openshift:enable:FeatureSets=CustomNoUpgrade;TechPreviewNoUpgrade
+	OIDCClients []OIDCClientStatus `json:"oidcClients"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -192,6 +200,15 @@ type OIDCProvider struct {
 	// +required
 	Issuer TokenIssuer `json:"issuer"`
 
+	// OIDCClients contains configuration for the platform's clients that
+	// need to request tokens from the issuer
+	//
+	// +listType=map
+	// +listMapKey=componentNamespace
+	// +listMapKey=componentName
+	// +kubebuilder:validation:MaxItems=20
+	OIDCClients []OIDCClientConfig `json:"oidcClients"`
+
 	// ClaimMappings describes rules on how to transform information from an
 	// ID token into a cluster identity
 	ClaimMappings TokenClaimMappings `json:"claimMappings"`
@@ -251,6 +268,110 @@ type TokenClaimMapping struct {
 	// +kubebuilder:validation:Required
 	// +required
 	Claim string `json:"claim"`
+}
+
+type OIDCClientConfig struct {
+	// ComponentName is the name of the component that is supposed to consume this
+	// client configuration
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:Required
+	// +required
+	ComponentName string `json:"componentName"`
+
+	// ComponentNamespace is the namespace of the component that is supposed to consume this
+	// client configuration
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Required
+	// +required
+	ComponentNamespace string `json:"componentNamespace"`
+
+	// ClientID is the identifier of the OIDC client from the OIDC provider
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Required
+	// +required
+	ClientID string `json:"clientID"`
+
+	// ClientSecret refers to a secret in the `openshift-config` namespace that
+	// contains the client secret in the `clientSecret` key of the `.data` field
+	ClientSecret SecretNameReference `json:"clientSecret"`
+
+	// ExtraScopes is an optional set of scopes to request tokens with.
+	//
+	// +listType=set
+	ExtraScopes []string `json:"extraScopes"`
+}
+
+type OIDCClientStatus struct {
+	// ComponentName is the name of the component that will consume a client configuration.
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
+	// +kubebuilder:validation:Required
+	// +required
+	ComponentName string `json:"componentName"`
+
+	// ComponentNamespace is the namespace of the component that will consume a client configuration.
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Required
+	// +required
+	ComponentNamespace string `json:"componentNamespace"`
+
+	// CurrentOIDCClients is a list of clients that the component is currently using.
+	//
+	// +listType=map
+	// +listMapKey=issuerURL
+	// +listMapKey=clientID
+	CurrentOIDCClients []OIDCClientReference `json:"currentOIDCClients"`
+
+	// ConsumingUsers is a slice of ServiceAccounts that need to have read
+	// permission on the `clientSecret` secret.
+	//
+	// +kubebuilder:validation:MaxItems=5
+	// +listType=set
+	ConsumingUsers []ConsumingUser `json:"consumingUsers"`
+
+	// Conditions are used to communicate the state of the `oidcClients` entry.
+	//
+	// Supported conditions include Available, Degraded and Progressing.
+	//
+	// If Available is true, the component is successfully using the configured client.
+	// If Degraded is true, that means something has gone wrong trying to handle the client configuration.
+	// If Progressing is true, that means the component is taking some action related to the `oidcClients` entry.
+	//
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+type OIDCClientReference struct {
+	// OIDCName refers to the `name` of the provider from `oidcProviders`
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Required
+	// +required
+	OIDCProviderName string `json:"oidcProviderName"`
+
+	// URL is the serving URL of the token issuer.
+	// Must use the https:// scheme.
+	//
+	// +kubebuilder:validation:Pattern=`^https:\/\/[^\s]`
+	// +kubebuilder:validation:Required
+	// +required
+	IssuerURL string `json:"issuerURL"`
+
+	// ClientID is the identifier of the OIDC client from the OIDC provider
+	//
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Required
+	// +required
+	ClientID string `json:"clientID"`
 }
 
 // +kubebuilder:validation:XValidation:rule="has(self.prefixPolicy) && self.prefixPolicy == 'Prefix' ? (has(self.prefix) && size(self.prefix.prefixString) > 0) : !has(self.prefix)",message="prefix must be set if prefixPolicy is 'Prefix', but must remain unset otherwise"

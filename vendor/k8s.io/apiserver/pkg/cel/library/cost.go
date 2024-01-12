@@ -79,6 +79,74 @@ func (l *CostEstimator) CallCost(function, overloadId string, args []ref.Val, re
 			cost := strCost * regexCost
 			return &cost
 		}
+	case "cidr", "isIP", "isCIDR":
+		// IP and CIDR parsing is a string traversal.
+		if len(args) >= 1 {
+			cost := uint64(math.Ceil(float64(actualSize(args[0])) * common.StringTraversalCostFactor))
+			return &cost
+		}
+	case "ip":
+		// IP and CIDR parsing is a string traversal.
+		if len(args) >= 1 {
+			if overloadId == "cidr_ip" {
+				// The IP member of the CIDR object is just accessing a field.
+				// Nominal cost.
+				cost := uint64(1)
+				return &cost
+			}
+
+			cost := uint64(math.Ceil(float64(actualSize(args[0])) * common.StringTraversalCostFactor))
+			return &cost
+		}
+	case "ip.isCanonical":
+		if len(args) >= 1 {
+			// We have to parse the string and then compare the parsed string to the original string.
+			// So we double the cost of parsing the string.
+			cost := uint64(math.Ceil(float64(actualSize(args[0])) * 2 * common.StringTraversalCostFactor))
+			return &cost
+		}
+	case "masked", "prefixLength", "family", "isUnspecified", "isLoopback", "isLinkLocalMulticast", "isLinkLocalUnicast":
+		// IP and CIDR accessors are nominal cost.
+		cost := uint64(1)
+		return &cost
+	case "containsIP":
+		if len(args) >= 2 {
+			cidrSize := actualSize(args[0])
+			otherSize := actualSize(args[1])
+
+			// This is the base cost of comparing two byte lists.
+			// We will compare only up to the length of the CIDR prefix in bytes, so use the cidrSize twice.
+			cost := uint64(math.Ceil(float64(cidrSize+cidrSize) * common.StringTraversalCostFactor))
+
+			if overloadId == "cidr_contains_ip_string" {
+				// If we are comparing a string, we must parse the string to into the right type, so add the cost of traversing the string again.
+				cost += uint64(math.Ceil(float64(otherSize) * common.StringTraversalCostFactor))
+
+			}
+
+			return &cost
+		}
+	case "containsCIDR":
+		if len(args) >= 2 {
+			cidrSize := actualSize(args[0])
+			otherSize := actualSize(args[1])
+
+			// This is the base cost of comparing two byte lists.
+			// We will compare only up to the length of the CIDR prefix in bytes, so use the cidrSize twice.
+			cost := uint64(math.Ceil(float64(cidrSize+cidrSize) * common.StringTraversalCostFactor))
+
+			// As we are comparing if a CIDR is within another CIDR, we first mask the base CIDR and
+			// also compare the CIDR bits.
+			// This has an additional cost of the length of the IP being traversed again, plus 1.
+			cost += uint64(math.Ceil(float64(cidrSize)*common.StringTraversalCostFactor)) + 1
+
+			if overloadId == "cidr_contains_cidr_string" {
+				// If we are comparing a string, we must parse the string to into the right type, so add the cost of traversing the string again.
+				cost += uint64(math.Ceil(float64(otherSize) * common.StringTraversalCostFactor))
+			}
+
+			return &cost
+		}
 	}
 	return nil
 }
@@ -101,8 +169,8 @@ func (l *CostEstimator) EstimateCallCost(function, overloadId string, target *ch
 			// If the list contains strings or bytes, add the cost of traversing all the strings/bytes as a way
 			// of estimating the additional comparison cost.
 			if elNode := l.listElementNode(*target); elNode != nil {
-				t := elNode.Type().GetPrimitive()
-				if t == exprpb.Type_STRING || t == exprpb.Type_BYTES {
+				k := elNode.Type().Kind()
+				if k == types.StringKind || k == types.BytesKind {
 					sz := l.sizeEstimate(elNode)
 					elCost = elCost.Add(sz.MultiplyByCostFactor(common.StringTraversalCostFactor))
 				}
@@ -225,6 +293,73 @@ func (l *CostEstimator) EstimateCallCost(function, overloadId string, target *ch
 			// worst case size of result is that every char is returned as separate find result.
 			return &checker.CallEstimate{CostEstimate: strCost.Multiply(regexCost), ResultSize: &checker.SizeEstimate{Min: 0, Max: sz.Max}}
 		}
+	case "cidr", "isIP", "isCIDR":
+		if target != nil {
+			sz := l.sizeEstimate(args[0])
+			return &checker.CallEstimate{CostEstimate: sz.MultiplyByCostFactor(common.StringTraversalCostFactor)}
+		}
+	case "ip":
+		if target != nil && len(args) >= 1 {
+			if overloadId == "cidr_ip" {
+				// The IP member of the CIDR object is just accessing a field.
+				// Nominal cost.
+				return &checker.CallEstimate{CostEstimate: checker.CostEstimate{Min: 1, Max: 1}}
+			}
+
+			sz := l.sizeEstimate(args[0])
+			return &checker.CallEstimate{CostEstimate: sz.MultiplyByCostFactor(common.StringTraversalCostFactor)}
+		} else if target != nil {
+			// The IP member of a CIDR is a just accessing a field, nominal cost.
+			return &checker.CallEstimate{CostEstimate: checker.CostEstimate{Min: 1, Max: 1}}
+		}
+	case "ip.isCanonical":
+		if target != nil && len(args) >= 1 {
+			sz := l.sizeEstimate(args[0])
+			// We have to parse the string and then compare the parsed string to the original string.
+			// So we double the cost of parsing the string.
+			return &checker.CallEstimate{CostEstimate: sz.MultiplyByCostFactor(2 * common.StringTraversalCostFactor)}
+		}
+	case "masked", "prefixLength", "family", "isUnspecified", "isLoopback", "isLinkLocalMulticast", "isLinkLocalUnicast":
+		// IP and CIDR accessors are nominal cost.
+		return &checker.CallEstimate{CostEstimate: checker.CostEstimate{Min: 1, Max: 1}}
+	case "containsIP":
+		if target != nil && len(args) >= 1 {
+			// The base cost of the function is the cost of comparing two byte lists.
+			// The byte lists will be either ipv4 or ipv6 so will have a length of 4, or 16 bytes.
+			sz := checker.SizeEstimate{Min: 4, Max: 16}
+
+			// We have to compare the two strings to determine if the CIDR/IP is in the other CIDR.
+			ipCompCost := sz.Add(sz).MultiplyByCostFactor(common.StringTraversalCostFactor)
+
+			if overloadId == "cidr_contains_ip_string" {
+				// If we are comparing a string, we must parse the string to into the right type, so add the cost of traversing the string again.
+				ipCompCost = ipCompCost.Add(checker.CostEstimate(l.sizeEstimate(args[0])).MultiplyByCostFactor(common.StringTraversalCostFactor))
+			}
+
+			return &checker.CallEstimate{CostEstimate: ipCompCost}
+		}
+	case "containsCIDR":
+		if target != nil && len(args) >= 1 {
+			// The base cost of the function is the cost of comparing two byte lists.
+			// The byte lists will be either ipv4 or ipv6 so will have a length of 4, or 16 bytes.
+			sz := checker.SizeEstimate{Min: 4, Max: 16}
+
+			// We have to compare the two strings to determine if the CIDR/IP is in the other CIDR.
+			ipCompCost := sz.Add(sz).MultiplyByCostFactor(common.StringTraversalCostFactor)
+
+			// As we are comparing if a CIDR is within another CIDR, we first mask the base CIDR and
+			// also compare the CIDR bits.
+			// This has an additional cost of the length of the IP being traversed again, plus 1.
+			ipCompCost = ipCompCost.Add(sz.MultiplyByCostFactor(common.StringTraversalCostFactor))
+			ipCompCost = ipCompCost.Add(checker.CostEstimate{Min: 1, Max: 1})
+
+			if overloadId == "cidr_contains_cidr_string" {
+				// If we are comparing a string, we must parse the string to into the right type, so add the cost of traversing the string again.
+				ipCompCost = ipCompCost.Add(checker.CostEstimate(l.sizeEstimate(args[0])).MultiplyByCostFactor(common.StringTraversalCostFactor))
+			}
+
+			return &checker.CallEstimate{CostEstimate: ipCompCost}
+		}
 	}
 	return nil
 }
@@ -247,7 +382,8 @@ func (l *CostEstimator) sizeEstimate(t checker.AstNode) checker.SizeEstimate {
 }
 
 func (l *CostEstimator) listElementNode(list checker.AstNode) checker.AstNode {
-	if lt := list.Type().GetListType(); lt != nil {
+	if params := list.Type().Parameters(); len(params) > 0 {
+		lt := params[0]
 		nodePath := list.Path()
 		if nodePath != nil {
 			// Provide path if we have it so that a OpenAPIv3 maxLength validation can be looked up, if it exists
@@ -255,10 +391,10 @@ func (l *CostEstimator) listElementNode(list checker.AstNode) checker.AstNode {
 			path := make([]string, len(nodePath)+1)
 			copy(path, nodePath)
 			path[len(nodePath)] = "@items"
-			return &itemsNode{path: path, t: lt.GetElemType(), expr: nil}
+			return &itemsNode{path: path, t: lt, expr: nil}
 		} else {
 			// Provide just the type if no path is available so that worst case size can be looked up based on type.
-			return &itemsNode{t: lt.GetElemType(), expr: nil}
+			return &itemsNode{t: lt, expr: nil}
 		}
 	}
 	return nil
@@ -273,7 +409,7 @@ func (l *CostEstimator) EstimateSize(element checker.AstNode) *checker.SizeEstim
 
 type itemsNode struct {
 	path []string
-	t    *exprpb.Type
+	t    *types.Type
 	expr *exprpb.Expr
 }
 
@@ -281,7 +417,7 @@ func (i *itemsNode) Path() []string {
 	return i.path
 }
 
-func (i *itemsNode) Type() *exprpb.Type {
+func (i *itemsNode) Type() *types.Type {
 	return i.t
 }
 
