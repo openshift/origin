@@ -63,7 +63,7 @@ func ApplyMutatingWebhookConfigurationImproved(ctx context.Context, client admis
 	toWrite := existingCopy // shallow copy so the code reads easier
 	toWrite.Webhooks = required.Webhooks
 
-	klog.V(4).Infof("MutatingWebhookConfiguration %q changes: %v", required.GetNamespace()+"/"+required.GetName(), JSONPatchNoError(existing, toWrite))
+	klog.V(2).Infof("MutatingWebhookConfiguration %q changes: %v", required.GetNamespace()+"/"+required.GetName(), JSONPatchNoError(existing, toWrite))
 
 	actual, err := client.MutatingWebhookConfigurations().Update(ctx, toWrite, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)
@@ -138,7 +138,7 @@ func ApplyValidatingWebhookConfigurationImproved(ctx context.Context, client adm
 	toWrite := existingCopy // shallow copy so the code reads easier
 	toWrite.Webhooks = required.Webhooks
 
-	klog.V(4).Infof("ValidatingWebhookConfiguration %q changes: %v", required.GetNamespace()+"/"+required.GetName(), JSONPatchNoError(existing, toWrite))
+	klog.V(2).Infof("ValidatingWebhookConfiguration %q changes: %v", required.GetNamespace()+"/"+required.GetName(), JSONPatchNoError(existing, toWrite))
 
 	actual, err := client.ValidatingWebhookConfigurations().Update(ctx, toWrite, metav1.UpdateOptions{})
 	reportUpdateEvent(recorder, required, err)

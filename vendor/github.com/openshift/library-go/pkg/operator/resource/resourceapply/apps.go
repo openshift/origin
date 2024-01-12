@@ -150,7 +150,7 @@ func ApplyDeploymentWithForce(ctx context.Context, client appsclientv1.Deploymen
 		toWrite.Spec.Template.Annotations["operator.openshift.io/force"] = forceString
 	}
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("Deployment %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
 	}
 
@@ -237,7 +237,7 @@ func ApplyDaemonSetWithForce(ctx context.Context, client appsclientv1.DaemonSets
 		toWrite.Spec.Template.Annotations["operator.openshift.io/force"] = forceString
 	}
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("DaemonSet %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
 	}
 	actual, err := client.DaemonSets(required.Namespace).Update(ctx, toWrite, metav1.UpdateOptions{})
