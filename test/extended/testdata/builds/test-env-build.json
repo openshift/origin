@@ -1,36 +1,36 @@
 {
-  "kind":"BuildConfig",
-  "apiVersion":"build.openshift.io/v1",
-  "metadata":{
-    "name":"test",
-    "labels":{
-      "name":"test"
+  "kind": "BuildConfig",
+  "apiVersion": "build.openshift.io/v1",
+  "metadata": {
+    "name": "test",
+    "labels": {
+      "name": "test"
     }
   },
-  "spec":{
-    "triggers":[],
-    "source":{
-      "type":"Binary"
+  "spec": {
+    "triggers": [],
+    "source": {
+      "type": "Binary"
     },
-    "strategy":{
-      "type":"Source",
-      "sourceStrategy":{
-        "env":[
+    "strategy": {
+      "type": "Source",
+      "sourceStrategy": {
+        "env": [
           {
-             "name":"BUILD_LOGLEVEL",
-             "value":"2"
+            "name": "BUILD_LOGLEVEL",
+            "value": "2"
           }
-       ],
-        "from":{
-          "kind":"DockerImage",
-          "name":"image-registry.openshift-image-registry.svc:5000/openshift/ruby:2.7-ubi8"
+        ],
+        "from": {
+          "kind": "DockerImage",
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
         }
       }
     },
-    "output":{
-      "to":{
-        "kind":"ImageStreamTag",
-        "name":"test:latest"
+    "output": {
+      "to": {
+        "kind": "ImageStreamTag",
+        "name": "test:latest"
       }
     }
   }
