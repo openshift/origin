@@ -270,6 +270,21 @@ var staticSuites = []ginkgo.TestSuite{
 		TestTimeout: 20 * time.Minute,
 	},
 	{
+		Name: "openshift/network/live-migration",
+		Description: templates.LongDesc(`
+		This test suite performs CNI live migration either from SDN to OVN-Kubernetes or OVN-Kubernetes to SDN.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/network/live-migration")
+		},
+		Count:                      1,
+		TestTimeout:                4 * time.Hour,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
 		Name: "openshift/network/third-party",
 		Description: templates.LongDesc(`
 		The conformance testing suite for certified third-party CNI plugins.
