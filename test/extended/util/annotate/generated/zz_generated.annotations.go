@@ -1535,6 +1535,10 @@ var Annotations = map[string]string{
 
 	"[sig-storage][Feature:CSIInlineVolumeAdmission][Serial] restricted namespace should deny pods with inline volumes when the driver uses the privileged label": " [Suite:openshift/conformance/serial]",
 
+	"[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operator][Serial][apigroup:operator.openshift.io] should restart webhook Pods if csi-snapshot-webhook-secret expiry annotation is changed": " [Suite:openshift/conformance/serial]",
+
+	"[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operator][Serial][apigroup:operator.openshift.io] should restart webhook Pods if csi-snapshot-webhook-secret is deleted": " [Suite:openshift/conformance/serial]",
+
 	"[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io] should not reconcile the StorageClass when StorageClassState is Unmanaged": " [Suite:openshift/conformance/serial]",
 
 	"[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io] should reconcile the StorageClass when StorageClassState is Managed": " [Suite:openshift/conformance/serial]",
