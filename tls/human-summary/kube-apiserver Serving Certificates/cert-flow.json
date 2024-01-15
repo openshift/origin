@@ -1,0 +1,1094 @@
+{
+  "LogicalName": "kube-apiserver Serving Certificates",
+  "Description": "kube-apiserver Serving Certificates",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-localhost-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "localhost-serving-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-localhost-signer",
+                "SerialNumber": "6263268324069729512",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-localhost-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "kube-apiserver-server-ca"
+            },
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "kube-apiserver-server-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-lb-signer",
+                "SerialNumber": "4624852848640529251",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-lb-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-localhost-signer",
+                "SerialNumber": "6263268324069729512",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-localhost-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-service-network-signer",
+                "SerialNumber": "4393677514218278744",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-service-network-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+                "SerialNumber": "7848375026133314319",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "localhost-recovery-serving-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+                "SerialNumber": "7848375026133314319",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-service-network-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "service-network-serving-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-service-network-signer",
+                "SerialNumber": "4393677514218278744",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-service-network-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-lb-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "loadbalancer-serving-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-lb-signer",
+                "SerialNumber": "4624852848640529251",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-lb-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804|*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org|ingress-operator@1704273869",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-controller-manager",
+              "Name": "serviceaccount-ca"
+            },
+            {
+              "Namespace": "openshift-kube-scheduler",
+              "Name": "serviceaccount-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-lb-signer",
+                "SerialNumber": "4624852848640529251",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-lb-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-localhost-signer",
+                "SerialNumber": "6263268324069729512",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-localhost-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-service-network-signer",
+                "SerialNumber": "4393677514218278744",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-service-network-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+                "SerialNumber": "7848375026133314319",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org",
+                "SerialNumber": "2822621581346623594",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "ingress-operator@1704273869",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "2y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment"
+              ],
+              "ExtendedUsages": [
+                "ExtKeyUsageServerAuth"
+              ]
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "ingress-operator@1704273869",
+                "SerialNumber": "1",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "ingress-operator@1704273869",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "2y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org|ingress-operator@1704273869",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "default-ingress-cert"
+            },
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "oauth-serving-cert"
+            },
+            {
+              "Namespace": "openshift-console",
+              "Name": "default-ingress-cert"
+            },
+            {
+              "Namespace": "openshift-console",
+              "Name": "oauth-serving-cert"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org",
+                "SerialNumber": "2822621581346623594",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "ingress-operator@1704273869",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "2y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment"
+              ],
+              "ExtendedUsages": [
+                "ExtKeyUsageServerAuth"
+              ]
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "ingress-operator@1704273869",
+                "SerialNumber": "1",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "ingress-operator@1704273869",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "2y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-localhost-signer::6263268324069729512",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "localhost-serving-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "kube-apiserver-localhost-signer",
+              "SerialNumber": "6263268324069729512",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-localhost-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804::7848375026133314319",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "localhost-recovery-serving-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+              "SerialNumber": "7848375026133314319",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "localhost-recovery::3947081783999751122",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "localhost-recovery-serving-certkey"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "localhost-recovery",
+              "SerialNumber": "3947081783999751122",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "9y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ServingCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "localhost-recovery"
+              ],
+              "IPAddresses": null
+            },
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-service-network-signer::4393677514218278744",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "service-network-serving-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "kube-apiserver-service-network-signer",
+              "SerialNumber": "4393677514218278744",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-service-network-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "172.30.0.1::3074158037071720576",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "service-network-serving-certkey"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "172.30.0.1",
+              "SerialNumber": "3074158037071720576",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-service-network-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ServingCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "kubernetes",
+                "kubernetes.default",
+                "kubernetes.default.svc",
+                "kubernetes.default.svc.cluster.local",
+                "openshift",
+                "openshift.default",
+                "openshift.default.svc",
+                "openshift.default.svc.cluster.local",
+                "172.30.0.1"
+              ],
+              "IPAddresses": [
+                "172.30.0.1"
+              ]
+            },
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-lb-signer::4624852848640529251",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "loadbalancer-serving-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "kube-apiserver-lb-signer",
+              "SerialNumber": "4624852848640529251",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-lb-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "api-int.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org::2878555592070185251",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "internal-loadbalancer-serving-certkey"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "api-int.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org",
+              "SerialNumber": "2878555592070185251",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-lb-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ServingCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "api-int.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org"
+              ],
+              "IPAddresses": null
+            },
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "api.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org::7483887125459485093",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "external-loadbalancer-serving-certkey"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "api.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org",
+              "SerialNumber": "7483887125459485093",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-lb-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ServingCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "api.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org"
+              ],
+              "IPAddresses": null
+            },
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "127.0.0.1::7980066732065963980",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "localhost-serving-cert-certkey"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "127.0.0.1",
+              "SerialNumber": "7980066732065963980",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-localhost-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ServingCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "localhost",
+                "127.0.0.1"
+              ],
+              "IPAddresses": [
+                "127.0.0.1"
+              ]
+            },
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org::2822621581346623594",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-ingress",
+              "Name": "router-certs-default"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org",
+              "SerialNumber": "2822621581346623594",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "ingress-operator@1704273869",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "2y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ServingCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org"
+              ],
+              "IPAddresses": null
+            },
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "ingress-operator@1704273869::1",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-ingress-operator",
+              "Name": "router-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "ingress-operator@1704273869",
+              "SerialNumber": "1",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "ingress-operator@1704273869",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "2y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  }
+}

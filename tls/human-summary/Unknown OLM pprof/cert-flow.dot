@@ -1,0 +1,8 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/::1658\n\nsecret/pprof-cert -nopenshift-operator-lifecycle-manager\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+}

@@ -1,0 +1,22 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  9 [
+    label="certkeypair/*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org::2822621581346623594\n\nsecret/router-certs-default -nopenshift-ingress\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  10 [
+    label="certkeypair/ingress-operator@1704273869::1\n\nsecret/router-ca -nopenshift-ingress-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  17 [
+    label="cabundle/*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org|ingress-operator@1704273869\n\nconfigmaps/default-ingress-cert -nopenshift-config-managed\n    configmaps/oauth-serving-cert -nopenshift-config-managed\n    configmaps/default-ingress-cert -nopenshift-console\n    configmaps/oauth-serving-cert -nopenshift-console\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  9 -> 17;
+  10 -> 17;
+}

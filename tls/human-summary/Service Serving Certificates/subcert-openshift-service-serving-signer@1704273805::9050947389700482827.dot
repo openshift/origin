@@ -1,0 +1,454 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  0 [
+    label="certkeypair/metrics.openshift-authentication-operator.svc::7753310756270622652\n\nsecret/serving-cert -nopenshift-authentication-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  1 [
+    label="certkeypair/openshift-service-serving-signer@1704273805::9050947389700482827\n\nsecret/signing-key -nopenshift-service-ca\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  2 [
+    label="certkeypair/*.metrics.openshift-network-operator.svc::5745739009125910994\n\nsecret/metrics-tls -nopenshift-network-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  3 [
+    label="certkeypair/alertmanager-main.openshift-monitoring.svc::5253206762839204615\n\nsecret/alertmanager-main-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  4 [
+    label="certkeypair/marketplace-operator-metrics.openshift-marketplace.svc::1538566551974623791\n\nsecret/marketplace-operator-metrics -nopenshift-marketplace\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  5 [
+    label="certkeypair/csi-snapshot-webhook.openshift-cluster-storage-operator.svc::2354600869533366042\n\nsecret/csi-snapshot-webhook-secret -nopenshift-cluster-storage-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  6 [
+    label="certkeypair/*.machine-approver.openshift-cluster-machine-approver.svc::1241139588028308756\n\nsecret/machine-approver-tls -nopenshift-cluster-machine-approver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  7 [
+    label="certkeypair/*.ovn-kubernetes-node.openshift-ovn-kubernetes.svc::1419319830696128508\n\nsecret/ovn-node-metrics-cert -nopenshift-ovn-kubernetes\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  8 [
+    label="certkeypair/api.openshift-oauth-apiserver.svc::262925277032489445\n\nsecret/serving-cert -nopenshift-oauth-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  9 [
+    label="certkeypair/cluster-autoscaler-operator.openshift-machine-api.svc::4460795438631596045\n\nsecret/cluster-autoscaler-operator-cert -nopenshift-machine-api\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  10 [
+    label="certkeypair/metrics.openshift-kube-scheduler-operator.svc::2472448095707609960\n\nsecret/kube-scheduler-operator-serving-cert -nopenshift-kube-scheduler-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  11 [
+    label="certkeypair/*.metrics.openshift-cluster-samples-operator.svc::431710722391152754\n\nsecret/samples-operator-tls -nopenshift-cluster-samples-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  12 [
+    label="certkeypair/olm-operator-metrics.openshift-operator-lifecycle-manager.svc::1755524916224536671\n\nsecret/olm-operator-serving-cert -nopenshift-operator-lifecycle-manager\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  13 [
+    label="certkeypair/*.network-metrics-service.openshift-multus.svc::4518685313147698799\n\nsecret/metrics-daemon-secret -nopenshift-multus\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  14 [
+    label="certkeypair/*.ovn-kubernetes-control-plane.openshift-ovn-kubernetes.svc::7396398736636746460\n\nsecret/ovn-control-plane-metrics-cert -nopenshift-ovn-kubernetes\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  15 [
+    label="certkeypair/*.prometheus-k8s-thanos-sidecar.openshift-monitoring.svc::9179670919711226818\n\nsecret/prometheus-k8s-thanos-sidecar-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  16 [
+    label="certkeypair/prometheus-adapter.openshift-monitoring.svc::4891356121144781423\n\nsecret/prometheus-adapter-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  17 [
+    label="certkeypair/*.node-exporter.openshift-monitoring.svc::1560245312226151976\n\nsecret/node-exporter-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  18 [
+    label="certkeypair/metrics.openshift-config-operator.svc::6532425222192880358\n\nsecret/config-operator-serving-cert -nopenshift-config-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  19 [
+    label="certkeypair/machine-api-operator-webhook.openshift-machine-api.svc::9221250111127348980\n\nsecret/machine-api-operator-webhook-cert -nopenshift-machine-api\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  20 [
+    label="certkeypair/metrics.openshift-kube-controller-manager-operator.svc::5446320271875874333\n\nsecret/kube-controller-manager-operator-serving-cert -nopenshift-kube-controller-manager-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  21 [
+    label="certkeypair/csi-snapshot-controller-operator-metrics.openshift-cluster-storage-operator.svc::456010451225821501\n\nsecret/serving-cert -nopenshift-cluster-storage-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  22 [
+    label="certkeypair/cco-metrics.openshift-cloud-credential-operator.svc::7560838827642126155\n\nsecret/cloud-credential-operator-serving-cert -nopenshift-cloud-credential-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  23 [
+    label="certkeypair/machine-api-controllers.openshift-machine-api.svc::3715821023928485582\n\nsecret/machine-api-controllers-tls -nopenshift-machine-api\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  24 [
+    label="certkeypair/cluster-baremetal-webhook-service.openshift-machine-api.svc::9110247117389986422\n\nsecret/cluster-baremetal-webhook-server-cert -nopenshift-machine-api\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  25 [
+    label="certkeypair/controller-manager.openshift-controller-manager.svc::906316684529062218\n\nsecret/serving-cert -nopenshift-controller-manager\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  26 [
+    label="certkeypair/performance-addon-operator-service.openshift-cluster-node-tuning-operator.svc::6205179357018704193\n\nsecret/performance-addon-operator-webhook-cert -nopenshift-cluster-node-tuning-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  27 [
+    label="certkeypair/*.node-tuning-operator.openshift-cluster-node-tuning-operator.svc::2694507086079380494\n\nsecret/node-tuning-operator-tls -nopenshift-cluster-node-tuning-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  28 [
+    label="certkeypair/thanos-querier.openshift-monitoring.svc::5492995055543996534\n\nsecret/thanos-querier-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  29 [
+    label="certkeypair/prometheus-operator-admission-webhook.openshift-monitoring.svc::9052166644980099027\n\nsecret/prometheus-operator-admission-webhook-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  30 [
+    label="certkeypair/multus-admission-controller.openshift-multus.svc::412358202977519815\n\nsecret/multus-admission-controller-secret -nopenshift-multus\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  31 [
+    label="certkeypair/machine-config-daemon.openshift-machine-config-operator.svc::8477084497009951049\n\nsecret/proxy-tls -nopenshift-machine-config-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  32 [
+    label="certkeypair/cluster-baremetal-operator-service.openshift-machine-api.svc::8823981660532023480\n\nsecret/cluster-baremetal-operator-tls -nopenshift-machine-api\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  33 [
+    label="certkeypair/etcd.openshift-etcd.svc::3212111975081072837\n\nsecret/serving-cert -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  34 [
+    label="certkeypair/dns-default.openshift-dns.svc::6631730757423562715\n\nsecret/dns-default-metrics-tls -nopenshift-dns\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  35 [
+    label="certkeypair/*.openshift-state-metrics.openshift-monitoring.svc::5450596493085406053\n\nsecret/openshift-state-metrics-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  36 [
+    label="certkeypair/metrics.openshift-apiserver-operator.svc::6655863408275549928\n\nsecret/openshift-apiserver-operator-serving-cert -nopenshift-apiserver-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  37 [
+    label="certkeypair/machine-config-controller.openshift-machine-config-operator.svc::5918434062915599355\n\nsecret/mcc-proxy-tls -nopenshift-machine-config-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  38 [
+    label="certkeypair/metrics.openshift-ingress-operator.svc::1224160114003267351\n\nsecret/metrics-tls -nopenshift-ingress-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  39 [
+    label="certkeypair/aws-ebs-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc::7672092287646476476\n\nsecret/aws-ebs-csi-driver-controller-metrics-serving-cert -nopenshift-cluster-csi-drivers\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  40 [
+    label="certkeypair/prometheus-k8s.openshift-monitoring.svc::3058303616631953022\n\nsecret/prometheus-k8s-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  41 [
+    label="certkeypair/image-registry.openshift-image-registry.svc::8696356846294834913\n\nsecret/image-registry-tls -nopenshift-image-registry\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  42 [
+    label="certkeypair/cluster-version-operator.openshift-cluster-version.svc::4132664545537605328\n\nsecret/cluster-version-operator-serving-cert -nopenshift-cluster-version\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  43 [
+    label="certkeypair/*.cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc::7381490835242758443\n\nsecret/cloud-controller-manager-operator-tls -nopenshift-cloud-controller-manager-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  44 [
+    label="certkeypair/api.openshift-apiserver.svc::1867534381311966647\n\nsecret/serving-cert -nopenshift-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  45 [
+    label="certkeypair/machine-config-operator.openshift-machine-config-operator.svc::1139455059244426284\n\nsecret/mco-proxy-tls -nopenshift-machine-config-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  46 [
+    label="certkeypair/control-plane-machine-set-operator.openshift-machine-api.svc::1928807289683696235\n\nsecret/control-plane-machine-set-operator-tls -nopenshift-machine-api\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  47 [
+    label="certkeypair/router-internal-default.openshift-ingress.svc::491245056439176639\n\nsecret/router-metrics-certs-default -nopenshift-ingress\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  48 [
+    label="certkeypair/oauth-openshift.openshift-authentication.svc::762472248997192234\n\nsecret/v4-0-config-system-serving-cert -nopenshift-authentication\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  49 [
+    label="certkeypair/scheduler.openshift-kube-scheduler.svc::7795076803778946564\n\nsecret/serving-cert -nopenshift-kube-scheduler\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  50 [
+    label="certkeypair/metrics.openshift-kube-apiserver-operator.svc::7267669302983135755\n\nsecret/kube-apiserver-operator-serving-cert -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  51 [
+    label="certkeypair/metrics.openshift-etcd-operator.svc::9064228150857641480\n\nsecret/etcd-operator-serving-cert -nopenshift-etcd-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  52 [
+    label="certkeypair/metrics.openshift-console-operator.svc::1044098921796611435\n\nsecret/serving-cert -nopenshift-console-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  53 [
+    label="certkeypair/cluster-storage-operator-metrics.openshift-cluster-storage-operator.svc::6729015029313841903\n\nsecret/cluster-storage-operator-serving-cert -nopenshift-cluster-storage-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  54 [
+    label="certkeypair/metrics.openshift-kube-storage-version-migrator-operator.svc::4173075163957757650\n\nsecret/serving-cert -nopenshift-kube-storage-version-migrator-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  55 [
+    label="certkeypair/kube-controller-manager.openshift-kube-controller-manager.svc::87293987131097236\n\nsecret/serving-cert -nopenshift-kube-controller-manager\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  56 [
+    label="certkeypair/promtail.openshift-e2e-loki.svc::1565321567491178116\n\nsecret/proxy-tls -nopenshift-e2e-loki\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  57 [
+    label="certkeypair/metrics.openshift-dns-operator.svc::6022998809428639025\n\nsecret/metrics-tls -nopenshift-dns-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  58 [
+    label="certkeypair/console.openshift-console.svc::7077076335891049737\n\nsecret/console-serving-cert -nopenshift-console\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  59 [
+    label="certkeypair/metrics.openshift-service-ca-operator.svc::6069049853956335487\n\nsecret/serving-cert -nopenshift-service-ca-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  60 [
+    label="certkeypair/route-controller-manager.openshift-route-controller-manager.svc::269974335918590084\n\nsecret/serving-cert -nopenshift-route-controller-manager\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  61 [
+    label="certkeypair/*.kube-state-metrics.openshift-monitoring.svc::7507440432387640723\n\nsecret/kube-state-metrics-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  62 [
+    label="certkeypair/*.prometheus-operator.openshift-monitoring.svc::2456697348024885723\n\nsecret/prometheus-operator-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  63 [
+    label="certkeypair/machine-api-operator-machine-webhook.openshift-machine-api.svc::7483610315083790264\n\nsecret/machine-api-operator-machine-webhook-cert -nopenshift-machine-api\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  64 [
+    label="certkeypair/monitoring-plugin.openshift-monitoring.svc::8367209613169009769\n\nsecret/monitoring-plugin-cert -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  65 [
+    label="certkeypair/*.cluster-monitoring-operator.openshift-monitoring.svc::4929642226897179797\n\nsecret/cluster-monitoring-operator-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  66 [
+    label="certkeypair/metrics.openshift-insights.svc::6056403188252266135\n\nsecret/openshift-insights-serving-cert -nopenshift-insights\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  67 [
+    label="certkeypair/pod-identity-webhook.openshift-cloud-credential-operator.svc::3534679608485475602\n\nsecret/pod-identity-webhook -nopenshift-cloud-credential-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  68 [
+    label="certkeypair/catalog-operator-metrics.openshift-operator-lifecycle-manager.svc::2439631480022194422\n\nsecret/catalog-operator-serving-cert -nopenshift-operator-lifecycle-manager\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  69 [
+    label="certkeypair/machine-api-operator.openshift-machine-api.svc::1090202599993168437\n\nsecret/machine-api-operator-tls -nopenshift-machine-api\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  70 [
+    label="certkeypair/*.image-registry-operator.openshift-image-registry.svc::8934527953139114947\n\nsecret/image-registry-operator-tls -nopenshift-image-registry\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  71 [
+    label="certkeypair/metrics.openshift-controller-manager-operator.svc::4963003632312465929\n\nsecret/openshift-controller-manager-operator-serving-cert -nopenshift-controller-manager-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  72 [
+    label="certkeypair/webhook.openshift-console-operator.svc::6243925374200311726\n\nsecret/webhook-serving-cert -nopenshift-console-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  73 [
+    label="certkeypair/package-server-manager-metrics.openshift-operator-lifecycle-manager.svc::7962330480930274220\n\nsecret/package-server-manager-serving-cert -nopenshift-operator-lifecycle-manager\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  74 [
+    label="cabundle/openshift-service-serving-signer@1704273805\n\nconfigmaps/service-ca -nopenshift-config-managed\n    configmaps/service-ca -nopenshift-kube-controller-manager\n    configmaps/signing-cabundle -nopenshift-service-ca\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  1 -> 0;
+  1 -> 2;
+  1 -> 3;
+  1 -> 4;
+  1 -> 5;
+  1 -> 6;
+  1 -> 7;
+  1 -> 8;
+  1 -> 9;
+  1 -> 10;
+  1 -> 11;
+  1 -> 12;
+  1 -> 13;
+  1 -> 14;
+  1 -> 15;
+  1 -> 16;
+  1 -> 17;
+  1 -> 18;
+  1 -> 19;
+  1 -> 20;
+  1 -> 21;
+  1 -> 22;
+  1 -> 23;
+  1 -> 24;
+  1 -> 25;
+  1 -> 26;
+  1 -> 27;
+  1 -> 28;
+  1 -> 29;
+  1 -> 30;
+  1 -> 31;
+  1 -> 32;
+  1 -> 33;
+  1 -> 34;
+  1 -> 35;
+  1 -> 36;
+  1 -> 37;
+  1 -> 38;
+  1 -> 39;
+  1 -> 40;
+  1 -> 41;
+  1 -> 42;
+  1 -> 43;
+  1 -> 44;
+  1 -> 45;
+  1 -> 46;
+  1 -> 47;
+  1 -> 48;
+  1 -> 49;
+  1 -> 50;
+  1 -> 51;
+  1 -> 52;
+  1 -> 53;
+  1 -> 54;
+  1 -> 55;
+  1 -> 56;
+  1 -> 57;
+  1 -> 58;
+  1 -> 59;
+  1 -> 60;
+  1 -> 61;
+  1 -> 62;
+  1 -> 63;
+  1 -> 64;
+  1 -> 65;
+  1 -> 66;
+  1 -> 67;
+  1 -> 68;
+  1 -> 69;
+  1 -> 70;
+  1 -> 71;
+  1 -> 72;
+  1 -> 73;
+  1 -> 74;
+}

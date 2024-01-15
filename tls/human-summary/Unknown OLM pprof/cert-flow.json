@@ -1,0 +1,65 @@
+{
+  "LogicalName": "Unknown OLM pprof",
+  "Description": "Unknown OLM pprof",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": null
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "::1658",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-operator-lifecycle-manager",
+              "Name": "pprof-cert"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "",
+              "SerialNumber": "1658",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "4096 bit",
+            "ValidityDuration": "24h",
+            "Usages": [
+              "KeyUsageDigitalSignature"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": [
+                "Red Hat, Inc."
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  }
+}

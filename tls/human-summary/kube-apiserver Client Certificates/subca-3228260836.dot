@@ -1,0 +1,40 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  0 [
+    label="certkeypair/kube-apiserver-to-kubelet-signer::5911051446634154830\n\nsecret/kube-apiserver-to-kubelet-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  1 [
+    label="certkeypair/kube-control-plane-signer::227887426676886745\n\nsecret/kube-control-plane-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  6 [
+    label="certkeypair/kubelet-signer::2112051707629287438\n\nsecret/csr-signer-signer -nopenshift-kube-controller-manager-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  11 [
+    label="certkeypair/admin-kubeconfig-signer\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+  12 [
+    label="certkeypair/kubelet-bootstrap-kubeconfig-signer\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+  17 [
+    label="cabundle/admin-kubeconfig-signer|kubelet-signer|kube-control-plane-signer|kube-apiserver-to-kubelet-signer|kubelet-bootstrap-kubeconfig-signer\n\nconfigmaps/initial-kube-apiserver-server-ca -nopenshift-config\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  0 -> 17;
+  1 -> 17;
+  6 -> 17;
+  11 -> 17;
+  12 -> 17;
+}

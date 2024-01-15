@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  1 [
+    label="certkeypair/etcd-signer::7398120930410332159\n\nsecret/etcd-signer -nopenshift-config\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  3 [
+    label="certkeypair/system:etcd-peer:etcd-client::1409427642758997409\n\nsecret/etcd-peer-<master-2> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+
+  // Edge definitions.
+  1 -> 3;
+}

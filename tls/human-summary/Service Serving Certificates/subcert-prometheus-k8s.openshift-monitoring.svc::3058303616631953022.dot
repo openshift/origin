@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  1 [
+    label="certkeypair/openshift-service-serving-signer@1704273805::9050947389700482827\n\nsecret/signing-key -nopenshift-service-ca\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  40 [
+    label="certkeypair/prometheus-k8s.openshift-monitoring.svc::3058303616631953022\n\nsecret/prometheus-k8s-tls -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+
+  // Edge definitions.
+  1 -> 40;
+}

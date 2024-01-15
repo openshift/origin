@@ -1,0 +1,34 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  3 [
+    label="certkeypair/kube-apiserver-service-network-signer::4393677514218278744\n\nsecret/service-network-serving-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  4 [
+    label="certkeypair/172.30.0.1::3074158037071720576\n\nsecret/service-network-serving-certkey -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  12 [
+    label="cabundle/kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804\n\nconfigmaps/kube-apiserver-server-ca -nopenshift-config-managed\n    configmaps/kube-apiserver-server-ca -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  14 [
+    label="cabundle/kube-apiserver-service-network-signer\n\nconfigmaps/service-network-serving-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  16 [
+    label="cabundle/kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804|*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org|ingress-operator@1704273869\n\nconfigmaps/serviceaccount-ca -nopenshift-kube-controller-manager\n    configmaps/serviceaccount-ca -nopenshift-kube-scheduler\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  3 -> 4;
+  3 -> 12;
+  3 -> 14;
+  3 -> 16;
+}

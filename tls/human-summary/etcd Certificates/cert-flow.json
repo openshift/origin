@@ -1,0 +1,609 @@
+{
+  "LogicalName": "etcd Certificates",
+  "Description": "etcd Certificates",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "etcd-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-apiserver",
+              "Name": "etcd-serving-ca"
+            },
+            {
+              "Namespace": "openshift-config",
+              "Name": "etcd-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-config",
+              "Name": "etcd-serving-ca"
+            },
+            {
+              "Namespace": "openshift-etcd-operator",
+              "Name": "etcd-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-peer-client-ca"
+            },
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-serving-ca"
+            },
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "etcd-serving-ca"
+            },
+            {
+              "Namespace": "openshift-oauth-apiserver",
+              "Name": "etcd-serving-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "7398120930410332159",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "etcd-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:etcd-peer:etcd-client::2725202915269078509",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-peer-\u003cmaster-0\u003e"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:etcd-peer:etcd-client",
+              "SerialNumber": "2725202915269078509",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "3y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth",
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "localhost",
+                "10.0.30.49"
+              ],
+              "IPAddresses": [
+                "10.0.30.49"
+              ]
+            },
+            "ClientCertDetails": {
+              "Organizations": [
+                "system:etcd-peers"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "etcd-signer::7398120930410332159",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-config",
+              "Name": "etcd-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "etcd-signer",
+              "SerialNumber": "7398120930410332159",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:etcd-server:etcd-client::330111323943769430",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-serving-\u003cmaster-0\u003e"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:etcd-server:etcd-client",
+              "SerialNumber": "330111323943769430",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "3y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth",
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "etcd.kube-system.svc",
+                "etcd.kube-system.svc.cluster.local",
+                "etcd.openshift-etcd.svc",
+                "etcd.openshift-etcd.svc.cluster.local",
+                "localhost",
+                "::1",
+                "10.0.30.49",
+                "127.0.0.1",
+                "::1"
+              ],
+              "IPAddresses": [
+                "::1",
+                "10.0.30.49",
+                "127.0.0.1",
+                "::1"
+              ]
+            },
+            "ClientCertDetails": {
+              "Organizations": [
+                "system:etcd-servers"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:etcd-peer:etcd-client::1409427642758997409",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-peer-\u003cmaster-2\u003e"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:etcd-peer:etcd-client",
+              "SerialNumber": "1409427642758997409",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "3y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth",
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "localhost",
+                "10.0.85.216"
+              ],
+              "IPAddresses": [
+                "10.0.85.216"
+              ]
+            },
+            "ClientCertDetails": {
+              "Organizations": [
+                "system:etcd-peers"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:etcd-peer:etcd-client::1716658538684005070",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-peer-\u003cmaster-1\u003e"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:etcd-peer:etcd-client",
+              "SerialNumber": "1716658538684005070",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "3y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth",
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "localhost",
+                "10.0.44.207"
+              ],
+              "IPAddresses": [
+                "10.0.44.207"
+              ]
+            },
+            "ClientCertDetails": {
+              "Organizations": [
+                "system:etcd-peers"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "etcd::4690944913116105880",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-apiserver",
+              "Name": "etcd-client"
+            },
+            {
+              "Namespace": "openshift-config",
+              "Name": "etcd-client"
+            },
+            {
+              "Namespace": "openshift-etcd-operator",
+              "Name": "etcd-client"
+            },
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-client"
+            },
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "etcd-client"
+            },
+            {
+              "Namespace": "openshift-oauth-apiserver",
+              "Name": "etcd-client"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "etcd",
+              "SerialNumber": "4690944913116105880",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": [
+                "etcd"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:etcd-server:etcd-client::1741649852910445878",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-serving-\u003cmaster-2\u003e"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:etcd-server:etcd-client",
+              "SerialNumber": "1741649852910445878",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "3y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth",
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "etcd.kube-system.svc",
+                "etcd.kube-system.svc.cluster.local",
+                "etcd.openshift-etcd.svc",
+                "etcd.openshift-etcd.svc.cluster.local",
+                "localhost",
+                "::1",
+                "10.0.85.216",
+                "127.0.0.1",
+                "::1"
+              ],
+              "IPAddresses": [
+                "::1",
+                "10.0.85.216",
+                "127.0.0.1",
+                "::1"
+              ]
+            },
+            "ClientCertDetails": {
+              "Organizations": [
+                "system:etcd-servers"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:etcd-server:etcd-client::2705306945968581530",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-etcd",
+              "Name": "etcd-serving-\u003cmaster-1\u003e"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:etcd-server:etcd-client",
+              "SerialNumber": "2705306945968581530",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "etcd-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "3y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth",
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "etcd.kube-system.svc",
+                "etcd.kube-system.svc.cluster.local",
+                "etcd.openshift-etcd.svc",
+                "etcd.openshift-etcd.svc.cluster.local",
+                "localhost",
+                "::1",
+                "10.0.44.207",
+                "127.0.0.1",
+                "::1"
+              ],
+              "IPAddresses": [
+                "::1",
+                "10.0.44.207",
+                "127.0.0.1",
+                "::1"
+              ]
+            },
+            "ClientCertDetails": {
+              "Organizations": [
+                "system:etcd-servers"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      }
+    ]
+  }
+}

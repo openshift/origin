@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  1 [
+    label="certkeypair/openshift-service-serving-signer@1704273805::9050947389700482827\n\nsecret/signing-key -nopenshift-service-ca\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  27 [
+    label="certkeypair/*.node-tuning-operator.openshift-cluster-node-tuning-operator.svc::2694507086079380494\n\nsecret/node-tuning-operator-tls -nopenshift-cluster-node-tuning-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+
+  // Edge definitions.
+  1 -> 27;
+}

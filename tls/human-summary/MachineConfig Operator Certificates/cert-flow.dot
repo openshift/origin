@@ -1,0 +1,16 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/system:machine-config-server::2492982323620387075\n\nsecret/machine-config-server-tls -nopenshift-machine-config-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  1 [
+    label="certkeypair/root-ca\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+
+  // Edge definitions.
+  1 -> 0;
+}

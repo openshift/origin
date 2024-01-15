@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  1 [
+    label="certkeypair/etcd-signer::7398120930410332159\n\nsecret/etcd-signer -nopenshift-config\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  8 [
+    label="cabundle/etcd-signer\n\nconfigmaps/etcd-serving-ca -nopenshift-apiserver\n    configmaps/etcd-ca-bundle -nopenshift-config\n    configmaps/etcd-serving-ca -nopenshift-config\n    configmaps/etcd-ca-bundle -nopenshift-etcd-operator\n    configmaps/etcd-ca-bundle -nopenshift-etcd\n    configmaps/etcd-peer-client-ca -nopenshift-etcd\n    configmaps/etcd-serving-ca -nopenshift-etcd\n    configmaps/etcd-serving-ca -nopenshift-kube-apiserver\n    configmaps/etcd-serving-ca -nopenshift-oauth-apiserver\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  1 -> 8;
+}

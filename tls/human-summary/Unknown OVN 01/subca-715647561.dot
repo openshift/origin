@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  0 [
+    label="certkeypair/openshift-ovn-kubernetes_ovn-ca@1704273747::4223223887240789198\n\nsecret/ovn-ca -nopenshift-ovn-kubernetes\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  2 [
+    label="cabundle/openshift-ovn-kubernetes_ovn-ca@1704273747\n\nconfigmaps/ovn-ca -nopenshift-ovn-kubernetes\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  0 -> 2;
+}

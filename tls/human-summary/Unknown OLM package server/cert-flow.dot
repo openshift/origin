@@ -1,0 +1,16 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/packageserver-service.openshift-operator-lifecycle-manager::1508534872405878252\n\nsecret/packageserver-service-cert -nopenshift-operator-lifecycle-manager\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  1 [
+    label="certkeypair/olm-selfsigned-4d6cb6574d57c661\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+
+  // Edge definitions.
+  1 -> 0;
+}

@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  1 [
+    label="certkeypair/openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804::7848375026133314319\n\nsecret/localhost-recovery-serving-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  13 [
+    label="cabundle/openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804\n\nconfigmaps/localhost-recovery-serving-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  1 -> 13;
+}

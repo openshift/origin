@@ -1,0 +1,161 @@
+{
+  "LogicalName": "Unknown OVN 01",
+  "Description": "Unknown OVN 01",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-ovn-kubernetes_ovn-ca@1704273747",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-ovn-kubernetes",
+              "Name": "ovn-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "openshift-ovn-kubernetes_ovn-ca@1704273747",
+                "SerialNumber": "4223223887240789198",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "openshift-ovn-kubernetes_ovn-ca@1704273747",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-ovn-kubernetes_ovn-ca@1704273747::4223223887240789198",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-ovn-kubernetes",
+              "Name": "ovn-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "openshift-ovn-kubernetes_ovn-ca@1704273747",
+              "SerialNumber": "4223223887240789198",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-ovn-kubernetes_ovn-ca@1704273747",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "ovn::6017550323937142920",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-ovn-kubernetes",
+              "Name": "ovn-cert"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "ovn",
+              "SerialNumber": "6017550323937142920",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-ovn-kubernetes_ovn-ca@1704273747",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "182d",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth",
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "ovn"
+              ],
+              "IPAddresses": null
+            },
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      }
+    ]
+  }
+}

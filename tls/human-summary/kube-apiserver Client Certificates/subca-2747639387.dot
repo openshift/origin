@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  12 [
+    label="certkeypair/kubelet-bootstrap-kubeconfig-signer\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+  22 [
+    label="cabundle/kubelet-bootstrap-kubeconfig-signer\n\nconfigmaps/kubelet-bootstrap-kubeconfig -nopenshift-config-managed\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  12 -> 22;
+}

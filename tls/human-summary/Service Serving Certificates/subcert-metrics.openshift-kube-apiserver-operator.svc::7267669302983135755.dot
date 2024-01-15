@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  1 [
+    label="certkeypair/openshift-service-serving-signer@1704273805::9050947389700482827\n\nsecret/signing-key -nopenshift-service-ca\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  50 [
+    label="certkeypair/metrics.openshift-kube-apiserver-operator.svc::7267669302983135755\n\nsecret/kube-apiserver-operator-serving-cert -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+
+  // Edge definitions.
+  1 -> 50;
+}

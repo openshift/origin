@@ -1,0 +1,16 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/synthetic-proxy-ca\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+  1 [
+    label="cabundle/proxy-ca\n\nconfigmaps/trusted-ca-bundle -nopenshift-apiserver-operator\n    configmaps/trusted-ca-bundle -nopenshift-apiserver\n    configmaps/trusted-ca-bundle -nopenshift-authentication-operator\n    configmaps/v4-0-config-system-trusted-ca-bundle -nopenshift-authentication\n    configmaps/ccm-trusted-ca -nopenshift-cloud-controller-manager\n    configmaps/cco-trusted-ca -nopenshift-cloud-credential-operator\n    configmaps/trusted-ca -nopenshift-cloud-network-config-controller\n    configmaps/aws-ebs-csi-driver-trusted-ca-bundle -nopenshift-cluster-csi-drivers\n    configmaps/trusted-ca -nopenshift-cluster-node-tuning-operator\n    configmaps/trusted-ca-bundle -nopenshift-config-managed\n    configmaps/trusted-ca-bundle -nopenshift-console\n    configmaps/openshift-global-ca -nopenshift-controller-manager\n    configmaps/trusted-ca -nopenshift-image-registry\n    configmaps/trusted-ca -nopenshift-ingress-operator\n    configmaps/trusted-ca-bundle -nopenshift-insights\n    configmaps/trusted-ca-bundle -nopenshift-kube-apiserver\n    configmaps/trusted-ca-bundle -nopenshift-kube-controller-manager\n    configmaps/cbo-trusted-ca -nopenshift-machine-api\n    configmaps/mao-trusted-ca -nopenshift-machine-api\n    configmaps/marketplace-trusted-ca -nopenshift-marketplace\n    configmaps/alertmanager-trusted-ca-bundle -nopenshift-monitoring\n    configmaps/prometheus-trusted-ca-bundle -nopenshift-monitoring\n    configmaps/thanos-querier-trusted-ca-bundle -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  0 -> 1;
+}
