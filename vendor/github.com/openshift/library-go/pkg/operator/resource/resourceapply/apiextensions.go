@@ -33,7 +33,7 @@ func ApplyCustomResourceDefinitionV1(ctx context.Context, client apiextclientv1.
 		return existing, false, nil
 	}
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("CustomResourceDefinition %q changes: %s", existing.Name, JSONPatchNoError(existing, existingCopy))
 	}
 

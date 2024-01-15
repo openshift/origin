@@ -38,7 +38,7 @@ func ApplyPodDisruptionBudget(ctx context.Context, client policyclientv1.PodDisr
 
 	existingCopy.Spec = required.Spec
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("PodDisruptionBudget %q changes: %v", required.Name, JSONPatchNoError(existing, existingCopy))
 	}
 

@@ -386,6 +386,49 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/wrappers
+# github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac
+## explicit
+github.com/gonum/blas
+github.com/gonum/blas/blas64
+github.com/gonum/blas/native
+github.com/gonum/blas/native/internal/math32
+# github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82
+## explicit
+github.com/gonum/floats
+# github.com/gonum/graph v0.0.0-20170401004347-50b27dea7ebb
+## explicit
+github.com/gonum/graph
+github.com/gonum/graph/encoding/dot
+github.com/gonum/graph/formats/dot
+github.com/gonum/graph/formats/dot/ast
+github.com/gonum/graph/formats/dot/internal/astx
+github.com/gonum/graph/formats/dot/internal/errors
+github.com/gonum/graph/formats/dot/internal/lexer
+github.com/gonum/graph/formats/dot/internal/parser
+github.com/gonum/graph/formats/dot/internal/token
+github.com/gonum/graph/internal/linear
+github.com/gonum/graph/internal/ordered
+github.com/gonum/graph/internal/set
+github.com/gonum/graph/simple
+github.com/gonum/graph/topo
+github.com/gonum/graph/traverse
+# github.com/gonum/internal v0.0.0-20181124074243-f884aa714029
+## explicit
+github.com/gonum/internal/asm/f32
+github.com/gonum/internal/asm/f64
+# github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9
+## explicit
+github.com/gonum/lapack
+github.com/gonum/lapack/lapack64
+github.com/gonum/lapack/native
+# github.com/gonum/mathext v0.0.0-20181121095525-8a4bf007ea55
+## explicit
+# github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9
+## explicit
+github.com/gonum/matrix
+github.com/gonum/matrix/mat64
+# github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b
+## explicit
 # github.com/google/btree v1.1.2
 ## explicit; go 1.18
 github.com/google/btree
@@ -999,8 +1042,8 @@ github.com/openshift/client-go/user/listers/user/v1
 # github.com/openshift/cluster-network-operator v0.0.0-20240111190956-90754aa19843
 ## explicit; go 1.20
 github.com/openshift/cluster-network-operator/pkg/names
-# github.com/openshift/library-go v0.0.0-20231218143352-99cedb2a141c
-## explicit; go 1.20
+# github.com/openshift/library-go v0.0.0-20240115112243-470c096a1ca9
+## explicit; go 1.21
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
 github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout
 github.com/openshift/library-go/pkg/apiserver/apiserverconfig

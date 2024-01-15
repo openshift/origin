@@ -15,6 +15,7 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-ldap/ldap/v3 v3.4.3
 	github.com/golang/protobuf v1.5.3
+	github.com/gonum/graph v0.0.0-20170401004347-50b27dea7ebb
 	github.com/google/gnostic-models v0.6.8
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.0
@@ -29,7 +30,7 @@ require (
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/client-go v0.0.0-20231218155125-ff7d9f9bf415
 	github.com/openshift/cluster-network-operator v0.0.0-20240111190956-90754aa19843
-	github.com/openshift/library-go v0.0.0-20231218143352-99cedb2a141c
+	github.com/openshift/library-go v0.0.0-20240115112243-470c096a1ca9
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
@@ -142,6 +143,13 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
+	github.com/gonum/blas v0.0.0-20181208220705-f22b278b28ac // indirect
+	github.com/gonum/floats v0.0.0-20181209220543-c233463c7e82 // indirect
+	github.com/gonum/internal v0.0.0-20181124074243-f884aa714029 // indirect
+	github.com/gonum/lapack v0.0.0-20181123203213-e4cdc5a0bff9 // indirect
+	github.com/gonum/mathext v0.0.0-20181121095525-8a4bf007ea55 // indirect
+	github.com/gonum/matrix v0.0.0-20181209220409-c518dec07be9 // indirect
+	github.com/gonum/stat v0.0.0-20181125101827-41a0da705a5b // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/cadvisor v0.48.1 // indirect
 	github.com/google/cel-go v0.17.7 // indirect

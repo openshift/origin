@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/errors"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 )
@@ -19,6 +19,21 @@ func GatherCertsFromAllNamespaces(ctx context.Context, kubeClient kubernetes.Int
 
 func GatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, options ...certGenerationOptions) (*certgraphapi.PKIList, error) {
 	return gatherFilteredCerts(ctx, kubeClient, platformConfigMaps, platformSecrets, options)
+}
+
+func GatherCertsFromDisk(ctx context.Context, kubeClient kubernetes.Interface, prefix, dir string, options ...certGenerationOptions) (*certgraphapi.PKIList, error) {
+	errs := []error{}
+
+	certs, err := gatherSecretsFromDisk(ctx, prefix, dir, options)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	caBundles, err := gatherCABundlesFromDisk(ctx, prefix, dir, options)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	pkiList := PKIListFromParts(ctx, nil, certs, caBundles)
+	return pkiList, utilerrors.NewAggregate(errs)
 }
 
 var wellKnownPlatformNamespaces = sets.NewString(
@@ -145,7 +160,7 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 	}
 
 	pkiList := PKIListFromParts(ctx, inClusterResourceData, certs, caBundles)
-	return pkiList, errors.NewAggregate(errs)
+	return pkiList, utilerrors.NewAggregate(errs)
 }
 
 func recordedAnnotationsFrom(metadata metav1.ObjectMeta, annotationsToCollect []string) []certgraphapi.AnnotationValue {
@@ -186,4 +201,38 @@ func PKIListFromParts(ctx context.Context, inClusterResourceData *certgraphapi.P
 	}
 
 	return ret
+}
+
+func MergePKILists(ctx context.Context, first, second *certgraphapi.PKIList) *certgraphapi.PKIList {
+
+	if first == nil {
+		first = &certgraphapi.PKIList{}
+	}
+
+	if second == nil {
+		second = &certgraphapi.PKIList{}
+	}
+
+	certList := &certgraphapi.CertKeyPairList{
+		Items: append(first.CertKeyPairs.Items, second.CertKeyPairs.Items...),
+	}
+	certList = deduplicateCertKeyPairList(certList)
+
+	caBundlesList := &certgraphapi.CertificateAuthorityBundleList{
+		Items: append(first.CertificateAuthorityBundles.Items, second.CertificateAuthorityBundles.Items...),
+	}
+	caBundlesList = deduplicateCABundlesList(caBundlesList)
+
+	inClusterData := certgraphapi.PerInClusterResourceData{}
+	inClusterData.CertKeyPairs = append(inClusterData.CertKeyPairs, first.InClusterResourceData.CertKeyPairs...)
+	inClusterData.CertKeyPairs = append(inClusterData.CertKeyPairs, second.InClusterResourceData.CertKeyPairs...)
+	inClusterData.CertificateAuthorityBundles = append(inClusterData.CertificateAuthorityBundles, first.InClusterResourceData.CertificateAuthorityBundles...)
+	inClusterData.CertificateAuthorityBundles = append(inClusterData.CertificateAuthorityBundles, second.InClusterResourceData.CertificateAuthorityBundles...)
+	//TODO[vrutkovs] deduplicate inClusterData?
+
+	return &certgraphapi.PKIList{
+		CertificateAuthorityBundles: *caBundlesList,
+		CertKeyPairs:                *certList,
+		InClusterResourceData:       inClusterData,
+	}
 }

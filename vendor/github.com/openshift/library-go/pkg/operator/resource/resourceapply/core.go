@@ -115,7 +115,7 @@ func ApplyNamespaceImproved(ctx context.Context, client coreclientv1.NamespacesG
 		return existingCopy, false, nil
 	}
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("Namespace %q changes: %v", required.Name, JSONPatchNoError(existing, existingCopy))
 	}
 
@@ -214,7 +214,7 @@ func ApplyPodImproved(ctx context.Context, client coreclientv1.PodsGetter, recor
 		return existingCopy, false, nil
 	}
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("Pod %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, required))
 	}
 
@@ -251,7 +251,7 @@ func ApplyServiceAccountImproved(ctx context.Context, client coreclientv1.Servic
 		cache.UpdateCachedResourceMetadata(required, existingCopy)
 		return existingCopy, false, nil
 	}
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("ServiceAccount %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, required))
 	}
 	actual, err := client.ServiceAccounts(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
@@ -337,7 +337,7 @@ func ApplyConfigMapImproved(ctx context.Context, client coreclientv1.ConfigMapsG
 		sort.Sort(sort.StringSlice(modifiedKeys))
 		details = fmt.Sprintf("cause by changes in %v", strings.Join(modifiedKeys, ","))
 	}
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("ConfigMap %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, required))
 	}
 	reportUpdateEvent(recorder, required, err, details)
