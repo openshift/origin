@@ -2,6 +2,7 @@ package defaultmonitortests
 
 import (
 	"fmt"
+
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 	"github.com/sirupsen/logrus"
 
@@ -43,7 +44,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/trackedresourcesserializer"
-	"github.com/openshift/origin/pkg/monitortests/testframework/uploadtolokiserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchclusteroperators"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchevents"
 )
@@ -162,7 +162,6 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("cluster-info-serializer", "Test Framework", clusterinfoserializer.NewClusterInfoSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("additional-events-collector", "Test Framework", additionaleventscollector.NewIntervalSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("known-image-checker", "Test Framework", knownimagechecker.NewEnsureValidImages())
-	monitorTestRegistry.AddMonitorTestOrDie("upload-to-loki-serializer", "Test Framework", uploadtolokiserializer.NewUploadSerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
