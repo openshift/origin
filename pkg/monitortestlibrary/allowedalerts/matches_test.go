@@ -219,7 +219,7 @@ func TestAlertDataFileParsing(t *testing.T) {
 	}
 	hd, _, err := alertMatcher.BestMatchDuration(expectedKey)
 	assert.NoError(t, err)
-	assert.NotNil(t, hd)
+	assert.NotEqual(t, historicaldata.StatisticalDuration{}, hd, "AlertmanagerReceiversNotConfigured data not present for aws amd64 ovn ha")
 	// NOTE: when this test has failed, it's often been because the job key above doesn't have the
 	// required 100 runs to be returned, in the past week. Make sure we use a key above that has at
 	// least 100 runs.
