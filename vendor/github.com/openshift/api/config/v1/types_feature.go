@@ -188,6 +188,7 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 		without(clusterAPIInstall).
 		with(sdnLiveMigration).
 		with(mixedCPUsAllocation).
+		with(managedBootImages).
 		toFeatures(defaultFeatures),
 	LatencySensitive: newDefaultFeatures().
 		toFeatures(defaultFeatures),

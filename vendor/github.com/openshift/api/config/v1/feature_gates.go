@@ -371,4 +371,14 @@ var (
 		ResponsiblePerson:   "titzhak",
 		OwningProduct:       ocpSpecific,
 	}
+
+	FeatureGateManagedBootImages = FeatureGateName("ManagedBootImages")
+	managedBootImages            = FeatureGateDescription{
+		FeatureGateAttributes: FeatureGateAttributes{
+			Name: FeatureGateManagedBootImages,
+		},
+		OwningJiraComponent: "MachineConfigOperator",
+		ResponsiblePerson:   "djoshy",
+		OwningProduct:       ocpSpecific,
+	}
 )

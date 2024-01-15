@@ -235,10 +235,6 @@ type DefaultNetworkDefinition struct {
 	// ovnKubernetesConfig configures the ovn-kubernetes plugin.
 	// +optional
 	OVNKubernetesConfig *OVNKubernetesConfig `json:"ovnKubernetesConfig,omitempty"`
-
-	// KuryrConfig configures the kuryr plugin
-	// +optional
-	KuryrConfig *KuryrConfig `json:"kuryrConfig,omitempty"`
 }
 
 // SimpleMacvlanConfig contains configurations for macvlan interface.
@@ -371,74 +367,6 @@ type OpenShiftSDNConfig struct {
 	// enableUnidling controls whether or not the service proxy will support idling
 	// and unidling of services. By default, unidling is enabled.
 	EnableUnidling *bool `json:"enableUnidling,omitempty"`
-}
-
-// KuryrConfig configures the Kuryr-Kubernetes SDN
-type KuryrConfig struct {
-	// The port kuryr-daemon will listen for readiness and liveness requests.
-	// +kubebuilder:validation:Minimum=0
-	// +optional
-	DaemonProbesPort *uint32 `json:"daemonProbesPort,omitempty"`
-
-	// The port kuryr-controller will listen for readiness and liveness requests.
-	// +kubebuilder:validation:Minimum=0
-	// +optional
-	ControllerProbesPort *uint32 `json:"controllerProbesPort,omitempty"`
-
-	// openStackServiceNetwork contains the CIDR of network from which to allocate IPs for
-	// OpenStack Octavia's Amphora VMs. Please note that with Amphora driver Octavia uses
-	// two IPs from that network for each loadbalancer - one given by OpenShift and second
-	// for VRRP connections. As the first one is managed by OpenShift's and second by Neutron's
-	// IPAMs, those need to come from different pools. Therefore `openStackServiceNetwork`
-	// needs to be at least twice the size of `serviceNetwork`, and whole `serviceNetwork`
-	// must be overlapping with `openStackServiceNetwork`. cluster-network-operator will then
-	// make sure VRRP IPs are taken from the ranges inside `openStackServiceNetwork` that
-	// are not overlapping with `serviceNetwork`, effectivly preventing conflicts. If not set
-	// cluster-network-operator will use `serviceNetwork` expanded by decrementing the prefix
-	// size by 1.
-	// +optional
-	OpenStackServiceNetwork string `json:"openStackServiceNetwork,omitempty"`
-
-	// enablePortPoolsPrepopulation when true will make Kuryr prepopulate each newly created port
-	// pool with a minimum number of ports. Kuryr uses Neutron port pooling to fight the fact
-	// that it takes a significant amount of time to create one. It creates a number of ports when
-	// the first pod that is configured to use the dedicated network for pods is created in a namespace,
-	// and keeps them ready to be attached to pods. Port prepopulation is disabled by default.
-	// +optional
-	EnablePortPoolsPrepopulation bool `json:"enablePortPoolsPrepopulation,omitempty"`
-
-	// poolMaxPorts sets a maximum number of free ports that are being kept in a port pool.
-	// If the number of ports exceeds this setting, free ports will get deleted. Setting 0
-	// will disable this upper bound, effectively preventing pools from shrinking and this
-	// is the default value. For more information about port pools see
-	// enablePortPoolsPrepopulation setting.
-	// +kubebuilder:validation:Minimum=0
-	// +optional
-	PoolMaxPorts uint `json:"poolMaxPorts,omitempty"`
-
-	// poolMinPorts sets a minimum number of free ports that should be kept in a port pool.
-	// If the number of ports is lower than this setting, new ports will get created and
-	// added to pool. The default is 1. For more information about port pools see
-	// enablePortPoolsPrepopulation setting.
-	// +kubebuilder:validation:Minimum=1
-	// +optional
-	PoolMinPorts uint `json:"poolMinPorts,omitempty"`
-
-	// poolBatchPorts sets a number of ports that should be created in a single batch request
-	// to extend the port pool. The default is 3. For more information about port pools see
-	// enablePortPoolsPrepopulation setting.
-	// +kubebuilder:validation:Minimum=0
-	// +optional
-	PoolBatchPorts *uint `json:"poolBatchPorts,omitempty"`
-
-	// mtu is the MTU that Kuryr should use when creating pod networks in Neutron.
-	// The value has to be lower or equal to the MTU of the nodes network and Neutron has
-	// to allow creation of tenant networks with such MTU. If unset Pod networks will be
-	// created with the same MTU as the nodes network has. This also affects the services
-	// network created by cluster-network-operator.
-	// +kubebuilder:validation:Minimum=0
-	// +optional
-	MTU *uint32 `json:"mtu,omitempty"`
 }
 
 // ovnKubernetesConfig contains the configuration parameters for networks
@@ -714,9 +642,6 @@ const (
 	// NetworkTypeOVNKubernetes means the ovn-kubernetes project will be configured.
 	// This is currently not implemented.
 	NetworkTypeOVNKubernetes NetworkType = "OVNKubernetes"
-
-	// NetworkTypeKuryr means the kuryr-kubernetes project will be configured.
-	NetworkTypeKuryr NetworkType = "Kuryr"
 
 	// NetworkTypeRaw
 	NetworkTypeRaw NetworkType = "Raw"
