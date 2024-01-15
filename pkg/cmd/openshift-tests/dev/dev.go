@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/openshift/origin/pkg/monitortests/testframework/uploadtolokiserializer"
-
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/alerts"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -29,7 +27,6 @@ func NewDevCommand() *cobra.Command {
 	cmd.AddCommand(
 		newRunAlertInvariantsCommand(),
 		newRunDisruptionInvariantsCommand(),
-		newUploadIntervalsCommand(),
 	)
 	return cmd
 }
@@ -197,37 +194,5 @@ a running cluster.
 		&opts.topology,
 		"topology", "ha",
 		"Topology for simulated cluster under test when intervals were gathered (ha, single)")
-	return cmd
-}
-
-type uploadIntervalsOpts struct {
-	intervalsFile string
-}
-
-func newUploadIntervalsCommand() *cobra.Command {
-	opts := uploadIntervalsOpts{}
-
-	cmd := &cobra.Command{
-		Use:   "upload-intervals",
-		Short: "Upload an intervals file from a CI run to loki",
-
-		RunE: func(cmd *cobra.Command, args []string) error {
-			logrus.WithField("intervalsFile", opts.intervalsFile).Info("loading e2e intervals")
-			intervals, err := readIntervalsFromFile(opts.intervalsFile)
-			if err != nil {
-				logrus.WithError(err).Fatal("error loading intervals file")
-			}
-			logrus.Infof("loaded %d intervals", len(intervals))
-
-			err = uploadtolokiserializer.UploadIntervalsToLoki(intervals)
-			if err != nil {
-				logrus.WithError(err).Fatal("error uploading intervals to loki")
-			}
-			return nil
-		},
-	}
-	cmd.Flags().StringVar(&opts.intervalsFile,
-		"intervals-file", "e2e-events.json",
-		"Path to an intervals file (i.e. e2e-events_20230214-203340.json). Can be obtained from a CI run in openshift-tests junit artifacts.")
 	return cmd
 }
