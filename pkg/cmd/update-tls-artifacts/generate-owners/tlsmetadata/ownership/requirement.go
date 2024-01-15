@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/certs"
+
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
@@ -21,7 +23,7 @@ func NewOwnerRequirement() tlsmetadatainterfaces.Requirement {
 }
 
 func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (tlsmetadatainterfaces.RequirementResult, error) {
-	pkiInfo, err := tlsmetadatainterfaces.ProcessByLocation(rawData)
+	pkiInfo, err := certs.ProcessByLocation(rawData)
 	if err != nil {
 		return nil, fmt.Errorf("transforming raw data %v: %w", o.GetName(), err)
 	}

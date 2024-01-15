@@ -1,14 +1,13 @@
 package generate_owners
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"github.com/openshift/origin/pkg/certs"
 
-	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
@@ -24,7 +23,7 @@ type GenerateOwnersOptions struct {
 }
 
 func (o *GenerateOwnersOptions) Run() error {
-	rawData, err := o.getRawDataFromDir()
+	rawData, err := certs.GetRawDataFromDir(filepath.Join(o.TLSInfoDir, "raw-data"))
 	if err != nil {
 		return fmt.Errorf("failure reading raw data: %w", err)
 	}
@@ -68,42 +67,4 @@ func (o *GenerateOwnersOptions) Run() error {
 	}
 
 	return utilerrors.NewAggregate(errs)
-}
-
-func (o *GenerateOwnersOptions) getRawDataFromDir() ([]*certgraphapi.PKIList, error) {
-	ret := []*certgraphapi.PKIList{}
-
-	rawDataDir := filepath.Join(o.TLSInfoDir, "raw-data")
-	err := filepath.WalkDir(rawDataDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-
-		filename := filepath.Join(rawDataDir, d.Name())
-		currBytes, err := os.ReadFile(filename)
-		if err != nil {
-			return err
-		}
-		currPKI := &certgraphapi.PKIList{}
-		err = json.Unmarshal(currBytes, currPKI)
-		if err != nil {
-			return err
-		}
-		ret = append(ret, currPKI)
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// verification that our raw data is consistent
-	if _, err := tlsmetadatainterfaces.ProcessByLocation(ret); err != nil {
-		return nil, err
-	}
-
-	return ret, nil
 }
