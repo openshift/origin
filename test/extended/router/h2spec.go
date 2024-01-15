@@ -108,7 +108,7 @@ global
 	log stdout local0
 	nbthread 4
 	tune.ssl.default-dh-param 2048
-	tune.ssl.capture-cipherlist-size 1
+	tune.ssl.capture-buffer-size 1
 defaults
 	mode http
 	timeout connect 5s
