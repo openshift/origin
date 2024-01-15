@@ -53,6 +53,15 @@ func deduplicateCertKeyPairList(in *certgraphapi.CertKeyPairList) *certgraphapi.
 	return ret
 }
 
+func CombineSecretLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.InClusterSecretLocation) *certgraphapi.CertKeyPair {
+	return combineSecretLocations(in, rhs)
+}
+
+func CombineCertOnDiskLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.OnDiskCertKeyPairLocation) *certgraphapi.CertKeyPair {
+	return combineCertOnDiskLocations(in, rhs)
+}
+
+
 func combineSecretLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.InClusterSecretLocation) *certgraphapi.CertKeyPair {
 	out := in.DeepCopy()
 	for _, curr := range rhs {
@@ -146,6 +155,11 @@ func deduplicateCABundlesList(in *certgraphapi.CertificateAuthorityBundleList) *
 	return ret
 }
 
+func CombineConfigMapLocations(in *certgraphapi.CertificateAuthorityBundle, rhs []certgraphapi.InClusterConfigMapLocation) *certgraphapi.CertificateAuthorityBundle {
+	return combineConfigMapLocations(in, rhs)
+}
+
+
 func combineConfigMapLocations(in *certgraphapi.CertificateAuthorityBundle, rhs []certgraphapi.InClusterConfigMapLocation) *certgraphapi.CertificateAuthorityBundle {
 	out := in.DeepCopy()
 	for _, curr := range rhs {
@@ -162,6 +176,11 @@ func combineConfigMapLocations(in *certgraphapi.CertificateAuthorityBundle, rhs 
 
 	return out
 }
+
+func CombineCABundleOnDiskLocations(in *certgraphapi.CertificateAuthorityBundle, rhs []certgraphapi.OnDiskLocation) *certgraphapi.CertificateAuthorityBundle {
+	return combineCABundleOnDiskLocations(in, rhs)
+}
+
 
 func combineCABundleOnDiskLocations(in *certgraphapi.CertificateAuthorityBundle, rhs []certgraphapi.OnDiskLocation) *certgraphapi.CertificateAuthorityBundle {
 	out := in.DeepCopy()
