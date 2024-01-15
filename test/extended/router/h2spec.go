@@ -500,8 +500,18 @@ BFNBRELPe53ZdLKWpf2Sr96vRPRNw
 			//
 			// 147 tests, 145 passed, 0 skipped, 2 failed
 			knownFailures := map[string]bool{
-				"http2/5.4.1.2": true,
-				"http2/6.9.1.2": true,
+				// In HAProxy 2.2 these two tests
+				// fail/flake:
+				//
+				//    "http2/5.4.1.2": true,
+				//    "http2/6.9.1.2": true,
+				//
+				// Using HAProxy 2.6 and 2.8 I have
+				// temporarily run this test setting
+				// ROUTER_H2SPEC_SAMPLE=100 (which
+				// would ordinarily be 1) and I have
+				// not observed either of these
+				// failures.
 			}
 			for _, f := range failures {
 				if _, exists := knownFailures[f.ID()]; exists {
