@@ -4,12 +4,12 @@ metadata:
   generateName: e2e-collect-certificate-
   namespace: e2e-collect-certificate
 spec:
-  containers:
+  initContainers:
   - name: collector
     command:
     - openshift-tests
     - collect-disk-certificates
-    - --output-file=/rootfs/var/log/pkiList.json
+    - --output-file=/tmp/shared/pkiList.json
     - --prefix=/rootfs
     - --collect-dir=/etc/kubernetes
     - --collect-dir=/etc/cni
@@ -23,6 +23,22 @@ spec:
     volumeMounts:
     - mountPath: /rootfs
       name: rootfs
+    - mountPath: /tmp/shared
+      name: shared-dir
+  containers:
+  - image: "registry.redhat.io/ubi8/ubi:latest"
+    name: pause
+    command:
+    - sleep
+    - infinity
+    volumeMounts:
+    - mountPath: /tmp/shared
+      name: shared-dir
+  securityContext:
+    runAsUser: 0
+  volumeMounts:
+  - mountPath: /tmp/shared
+    name: shared-dir
   hostNetwork: true
   restartPolicy: Never
   serviceAccountName: collect-certificate-sa
@@ -31,6 +47,8 @@ spec:
       path: /
       type: DirectoryOrCreate
     name: rootfs
+  - emptyDir: {}
+    name: shared-dir
   tolerations:
   - key: node-role.kubernetes.io/master
     effect: NoSchedule

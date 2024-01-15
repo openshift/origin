@@ -17,6 +17,7 @@ import (
 	ensure_no_violation_regression "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/ensure-no-violation-regression"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/api/annotations"
@@ -30,9 +31,9 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 
 	"github.com/openshift/origin/pkg/certs"
-	"github.com/openshift/origin/pkg/monitortestlibrary/nodeaccess"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
+	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	ownership "github.com/openshift/origin/tls"
 	corev1 "k8s.io/api/core/v1"
@@ -45,7 +46,7 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 )
 
-const certInspectResultFile = "pkiList.json"
+const certInspectResultFile = "/tmp/shared/pkiList.json"
 
 var (
 	//go:embed manifests/namespace.yaml
@@ -59,7 +60,6 @@ var (
 	//go:embed manifests/pod.yaml
 	podYaml []byte
 
-	kubeClient         kubernetes.Interface
 	actualPKIContent   *certgraphapi.PKIList
 	expectedPKIContent *certgraphapi.PKIRegistryInfo
 	nodeList           *corev1.NodeList
@@ -110,7 +110,7 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 
 		openshiftTestImagePullSpec, err := disruptionpodnetwork.GetOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig(), "")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		onDiskPKIContent, err := fetchOnDiskCertificates(ctx, kubeClient, masters, openshiftTestImagePullSpec)
+		onDiskPKIContent, err := fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), masters, openshiftTestImagePullSpec)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		actualPKIContent = certgraphanalysis.MergePKILists(ctx, inClusterPKIContent, onDiskPKIContent)
@@ -206,7 +206,7 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 
 })
 
-func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interface, nodeList []*corev1.Node, testPullSpec string) (*certgraphapi.PKIList, error) {
+func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interface, podRESTConfig *rest.Config, nodeList []*corev1.Node, testPullSpec string) (*certgraphapi.PKIList, error) {
 	namespace, err := createNamespace(ctx, kubeClient)
 	if err != nil {
 		return nil, err
@@ -223,7 +223,7 @@ func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interfac
 	}
 	defer kubeClient.RbacV1().ClusterRoleBindings().Delete(ctx, nodeReaderCRB, metav1.DeleteOptions{})
 
-	err = createPods(ctx, kubeClient, namespace, nodeList, testPullSpec)
+	podNameOnNode, err := createPods(ctx, kubeClient, namespace, nodeList, testPullSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +231,7 @@ func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interfac
 	ret := &certgraphapi.PKIList{}
 	errs := []error{}
 	for _, node := range nodeList {
-		nodePKIList, err := fetchNodePKIList(ctx, kubeClient, node)
+		nodePKIList, err := fetchNodePKIList(ctx, kubeClient, podRESTConfig, podNameOnNode, node)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -286,19 +286,22 @@ func createRBACBindings(ctx context.Context, kubeClient kubernetes.Interface, na
 	return nodeReaderObj.Name, nil
 }
 
-func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace string, nodeList []*corev1.Node, testImagePullSpec string) error {
-	client := kubeClient.CoreV1().Pods(namespace)
+type podToNodeMap map[string]*corev1.Pod
 
+func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace string, nodeList []*corev1.Node, testImagePullSpec string) (podToNodeMap, error) {
+	podOnNode := podToNodeMap{}
+
+	client := kubeClient.CoreV1().Pods(namespace)
 	podTemplate := resourceread.ReadPodV1OrDie(podYaml)
 	for _, node := range nodeList {
 		podObj := podTemplate.DeepCopy()
 		podObj.Namespace = namespace
 		podObj.Spec.NodeName = node.Name
-		podObj.Spec.Containers[0].Image = testImagePullSpec
+		podObj.Spec.InitContainers[0].Image = testImagePullSpec
 
 		actualPod, err := client.Create(ctx, podObj, metav1.CreateOptions{})
 		if err != nil && !apierrors.IsAlreadyExists(err) {
-			return fmt.Errorf("error creating pod on node %s: %v", node.Name, err)
+			return podOnNode, fmt.Errorf("error creating pod on node %s: %v", node.Name, err)
 		}
 
 		timeLimitedCtx, cancel := context.WithTimeout(ctx, time.Minute)
@@ -311,23 +314,33 @@ func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace 
 			nil,
 			func(event watch.Event) (bool, error) {
 				pod := event.Object.(*corev1.Pod)
-				return pod.Status.Phase == corev1.PodSucceeded, nil
+				if pod.Status.Phase == corev1.PodRunning {
+					podOnNode[node.Name] = pod
+					return true, nil
+				}
+				return false, nil
 			},
 		); watchErr != nil {
-			return fmt.Errorf("pod %s in namespace %s didn't complete: %v", actualPod.Name, namespace, watchErr)
+			return podOnNode, fmt.Errorf("pod %s in namespace %s didn't start: %v", actualPod.Name, namespace, watchErr)
 		}
 	}
-	return nil
+	return podOnNode, nil
 }
 
-func fetchNodePKIList(ctx context.Context, kubeClient kubernetes.Interface, node *corev1.Node) (*certgraphapi.PKIList, error) {
+func fetchNodePKIList(ctx context.Context, kubeClient kubernetes.Interface, podRESTConfig *rest.Config, podOnNode podToNodeMap, node *corev1.Node) (*certgraphapi.PKIList, error) {
 	pkiList := &certgraphapi.PKIList{}
 
-	allBytes, err := nodeaccess.GetNodeLogFile(ctx, kubeClient, node.Name, certInspectResultFile)
-	if err != nil {
-		return pkiList, fmt.Errorf("failed to fetch file %s on node %s: %v", certInspectResultFile, node.Name, err)
+	pod, ok := podOnNode[node.Name]
+	if !ok {
+		return pkiList, fmt.Errorf("failed to find node %s in pod map %v", node.Name, podOnNode)
 	}
-	err = json.Unmarshal(allBytes, pkiList)
+
+	output, err := util.ExecInPodWithResult(kubeClient.CoreV1(), podRESTConfig, pod.Namespace, pod.Name, "pause", []string{"/bin/cat", certInspectResultFile})
+	if err != nil {
+		return pkiList, fmt.Errorf("failed to fetch file %s from pod %s/%s node %s: %v", certInspectResultFile, pod.Namespace, pod.Name, node.Name, err)
+	}
+
+	err = json.Unmarshal([]byte(output), pkiList)
 	if err != nil {
 		return pkiList, fmt.Errorf("failed to unmarshal file %s on node %s: %v", certInspectResultFile, node.Name, err)
 	}
