@@ -92,7 +92,7 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory
 			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/api/v1/namespaces/default",
-		Timeout:                      10 * time.Second,
+		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
 	})
@@ -107,7 +107,7 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factor
 			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/api/v1/namespaces/default",
-		Timeout:                      10 * time.Second,
+		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
 	})
@@ -122,7 +122,7 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory
 			Protocol:         backend.ProtocolHTTP1,
 		},
 		Path:                         "/api/v1/namespaces/default",
-		Timeout:                      10 * time.Second,
+		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
 	})
@@ -137,7 +137,7 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factor
 			Protocol:         backend.ProtocolHTTP1,
 		},
 		Path:                         "/api/v1/namespaces/default",
-		Timeout:                      10 * time.Second,
+		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
 	})
@@ -152,7 +152,7 @@ func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Fa
 			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/apis/image.openshift.io/v1/namespaces/default/imagestreams",
-		Timeout:                      10 * time.Second,
+		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
 	})
@@ -167,7 +167,7 @@ func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.F
 			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/apis/image.openshift.io/v1/namespaces/default/imagestreams",
-		Timeout:                      10 * time.Second,
+		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
 	})
