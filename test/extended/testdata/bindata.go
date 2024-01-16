@@ -52434,11 +52434,20 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
-    function isPodLog(eventInterval) {
-        if (eventInterval.locator.includes("src/podLog")) {
+    // When an interval in the openshift-etcd namespace had a reason of LeaderFound, LeaderLost,
+    // LeaderElected, or LeaderMissing, tempSource was set to 'EtcdLeadership'.
+    function isEtcdLeadership(eventInterval) {
+        if (eventInterval.tempSource == 'EtcdLeadership') {
             return true
         }
-        if (eventInterval.locator.includes("etcd-member/")) {
+        return false
+    }
+
+    function isPodLog(eventInterval) {
+        if (isEtcdLeadership(eventInterval)) {
+            return false
+        }
+        if (eventInterval.locator.includes("src/podLog")) {
             return true
         }
         return false
@@ -52452,6 +52461,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isPod(eventInterval) {
+        if (isEtcdLeadership(eventInterval)) {
+            return false
+        }
         // this check was added to keep the repeating events out fo the "pods" section
         const nTimes = new RegExp("\\(\\d+ times\\)")
         if (eventInterval.message.match(nTimes)) {
@@ -52650,6 +52662,29 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, ` + "`" + ` (${roles})` + "`" + `, m];
     }
 
+    function etcdLeadershipLogsValue(item) {
+
+        // If source is isEtcdLeadership, the term is always there.
+        const term = item.tempStructuredMessage.annotations['term']
+
+        // We are only charting the intervals with a node.
+        const nodeVal = item.tempStructuredLocator.keys['node']
+
+        // Get etcd-member value (this will be present for a leader change).
+        let etcdMemberVal = item.tempStructuredLocator.keys['etcd-member'] || ''
+        if (etcdMemberVal.length > 0) {
+            etcdMemberVal = ` + "`" + `etcd-member/${etcdMemberVal} ` + "`" + `
+        }
+
+        let reason = item.tempStructuredMessage.reason
+        let color = 'EtcdOther'
+        if (reason.length > 0) {
+            color = reason
+            reason = ` + "`" + `reason/${reason}` + "`" + `
+        }
+        return [` + "`" + `node/${nodeVal} ${etcdMemberVal} term/${term}` + "`" + `, ` + "`" + ` ${reason}` + "`" + `, color ]
+    }
+
     function cloudMetricsValue(item) {
         return [item.locator, "", "CloudMetric"];
     }
@@ -52787,6 +52822,18 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         }
     }
 
+    function isEtcdLeadershipAndNotEmpty(item) {
+        if (isEtcdLeadership(item)) {
+
+            // Don't chart the ones where the node is empty.
+            const node = item.tempStructuredLocator.keys['node'] || ''
+            if (node.length > 0) {
+                return true
+            }
+        }
+        return false
+    }
+
     function renderChart(regex) {
         var loc = window.location.href;
 
@@ -52828,6 +52875,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
             return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
+
+        timelineGroups.push({ group: "etcd-leaders", data: [] })
+        createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
 
         timelineGroups.push({group: "cloud-metrics", data: []})
         createTimelineData(cloudMetricsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCloudMetrics, regex)
@@ -52884,7 +52934,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 'PodCreated', 'PodScheduled', 'PodTerminating','ContainerWait', 'ContainerStart', 'ContainerNotReady', 'ContainerReady', 'ContainerReadinessFailed', 'ContainerReadinessErrored',  'StartupProbeFailed', // pods
                 'CIClusterDisruption', 'Disruption', // disruption
                 'Degraded', 'Upgradeable', 'False', 'Unknown',
-                'PodLogInfo', 'PodLogWarning', 'PodLogError'])
+                'PodLogInfo', 'PodLogWarning', 'PodLogError',
+                'EtcdOther', 'EtcdLeaderFound', 'EtcdLeaderLost', 'EtcdLeaderElected', 'EtcdLeaderMissing'])
             .range([
                 '#6E6E6E', '#0000ff', '#d0312d', '#ffa500', // pathological and interesting events
                 '#fada5e','#fada5e','#ffa500', '#d0312d',  // alerts
@@ -52894,7 +52945,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
                 '#96cbff', '#1e7bd9', '#ffa500', '#ca8dfd', '#9300ff', '#fada5e','#3cb043', '#d0312d', '#d0312d', '#c90076', // pods
                 '#96cbff', '#d0312d', // disruption
                 '#b65049', '#32b8b6', '#ffffff', '#bbbbbb',
-                '#96cbff', '#fada5e', '#d0312d']);
+                '#96cbff', '#fada5e', '#d0312d',
+                '#d3d3de', '#03fc62', '#fc0303', '#fada5e', '#8c5efa']); // EtcdLeadership
         myChart.
         data(timelineGroups).
         useUtc(true).
