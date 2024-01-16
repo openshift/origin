@@ -76,7 +76,7 @@ func init() {
 	hostNetworkTargetService = resourceread.ReadServiceV1OrDie(yamlOrDie("host-network-target-service.yaml"))
 }
 
-type podNetworkAvalibility struct {
+type podNetworkAvailability struct {
 	payloadImagePullSpec string
 	notSupportedReason   error
 	namespaceName        string
@@ -84,13 +84,13 @@ type podNetworkAvalibility struct {
 	kubeClient           kubernetes.Interface
 }
 
-func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
-	return &podNetworkAvalibility{
+func NewPodNetworkAvailabilityInvariant(info monitortestframework.MonitorTestInitializationInfo) monitortestframework.MonitorTest {
+	return &podNetworkAvailability{
 		payloadImagePullSpec: info.UpgradeTargetPayloadImagePullSpec,
 	}
 }
 
-func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+func (pna *podNetworkAvailability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	if len(pna.payloadImagePullSpec) == 0 {
 		configClient, err := configclient.NewForConfig(adminRESTConfig)
 		if err != nil {
@@ -209,7 +209,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	return nil
 }
 
-func (pna *podNetworkAvalibility) serviceHasEndpoints(ctx context.Context) (bool, error) {
+func (pna *podNetworkAvailability) serviceHasEndpoints(ctx context.Context) (bool, error) {
 	targetServiceLabel, err := labels.NewRequirement("kubernetes.io/service-name", selection.Equals, []string{pna.targetService.Name})
 	if err != nil {
 		return false, err
@@ -235,7 +235,7 @@ func (pna *podNetworkAvalibility) serviceHasEndpoints(ctx context.Context) (bool
 	return false, nil
 }
 
-func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+func (pna *podNetworkAvailability) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	if pna.notSupportedReason != nil {
 		return nil, nil, pna.notSupportedReason
 	}
@@ -267,7 +267,7 @@ func (pna *podNetworkAvalibility) CollectData(ctx context.Context, storageDir st
 	return retIntervals, junits, utilerrors.NewAggregate(errs)
 }
 
-func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, typeOfConnection string) (monitorapi.Intervals, []*junitapi.JUnitTestCase, []error) {
+func (pna *podNetworkAvailability) collectDetailsForPoller(ctx context.Context, typeOfConnection string) (monitorapi.Intervals, []*junitapi.JUnitTestCase, []error) {
 	pollerLabel, err := labels.NewRequirement("network.openshift.io/disruption-actor", selection.Equals, []string{"poller"})
 	if err != nil {
 		return nil, nil, []error{err}
@@ -344,19 +344,19 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 	return retIntervals, junits, errs
 }
 
-func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
+func (pna *podNetworkAvailability) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
 	return nil, pna.notSupportedReason
 }
 
-func (pna *podNetworkAvalibility) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+func (pna *podNetworkAvailability) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	return nil, pna.notSupportedReason
 }
 
-func (pna *podNetworkAvalibility) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+func (pna *podNetworkAvailability) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
 	return pna.notSupportedReason
 }
 
-func (pna *podNetworkAvalibility) Cleanup(ctx context.Context) error {
+func (pna *podNetworkAvailability) Cleanup(ctx context.Context) error {
 	if len(pna.namespaceName) > 0 && pna.kubeClient != nil {
 		if err := pna.kubeClient.CoreV1().Namespaces().Delete(ctx, pna.namespaceName, metav1.DeleteOptions{}); err != nil {
 			return err
