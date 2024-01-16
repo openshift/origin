@@ -63,6 +63,7 @@ var (
 	actualPKIContent   *certgraphapi.PKIList
 	expectedPKIContent *certgraphapi.PKIRegistryInfo
 	nodeList           *corev1.NodeList
+	jobType            *platformidentification.JobType
 )
 
 func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, masters []*corev1.Node) (*certgraphapi.PKIList, error) {
@@ -96,6 +97,10 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 			g.Skip("microshift does not auto-collect TLS.")
 		}
 		var err error
+		onDiskPKIContent := &certgraphapi.PKIList{}
+
+		jobType, err = platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		controlPlaneLabel := labels.SelectorFromSet(map[string]string{"node-role.kubernetes.io/control-plane": ""})
 		nodeList, err = kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: controlPlaneLabel.String()})
@@ -109,9 +114,12 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		openshiftTestImagePullSpec, err := disruptionpodnetwork.GetOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig(), "")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		onDiskPKIContent, err := fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), masters, openshiftTestImagePullSpec)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		// Skip metal jobs if test image pullspec cannot be determined
+		if jobType.Platform != "metal" || err == nil {
+			o.Expect(err).NotTo(o.HaveOccurred())
+			onDiskPKIContent, err = fetchOnDiskCertificates(ctx, kubeClient, oc.AdminConfig(), masters, openshiftTestImagePullSpec)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
 
 		actualPKIContent = certgraphanalysis.MergePKILists(ctx, inClusterPKIContent, onDiskPKIContent)
 
@@ -124,8 +132,6 @@ var _ = g.Describe("[sig-arch][Late]", g.Ordered, func() {
 		featureGates, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		jobType, err := platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
-		o.Expect(err).NotTo(o.HaveOccurred())
 		featureSetString := string(featureGates.Spec.FeatureSet)
 		if len(featureSetString) == 0 {
 			featureSetString = "Default"
