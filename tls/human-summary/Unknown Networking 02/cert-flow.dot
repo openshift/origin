@@ -1,0 +1,22 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/127.0.0.1::103972737128662425\n\nsecret/network-node-identity-cert -nopenshift-network-node-identity\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  1 [
+    label="certkeypair/openshift-network-node-identity_network-node-identity-ca@1704273764::1372784190514149555\n\nsecret/network-node-identity-ca -nopenshift-network-node-identity\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  2 [
+    label="cabundle/openshift-network-node-identity_network-node-identity-ca@1704273764\n\nconfigmaps/network-node-identity-ca -nopenshift-network-node-identity\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  1 -> 0;
+  1 -> 2;
+}

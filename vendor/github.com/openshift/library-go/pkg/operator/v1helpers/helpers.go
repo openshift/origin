@@ -159,8 +159,21 @@ type UpdateStatusFunc func(status *operatorv1.OperatorStatus) error
 func UpdateStatus(ctx context.Context, client OperatorClient, updateFuncs ...UpdateStatusFunc) (*operatorv1.OperatorStatus, bool, error) {
 	updated := false
 	var updatedOperatorStatus *operatorv1.OperatorStatus
+	numberOfAttempts := 0
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		_, oldStatus, resourceVersion, err := client.GetOperatorState()
+		defer func() {
+			numberOfAttempts++
+		}()
+		var oldStatus *operatorv1.OperatorStatus
+		var resourceVersion string
+		var err error
+
+		if numberOfAttempts < 1 { // prefer lister if we haven't already failed.
+			_, oldStatus, resourceVersion, err = client.GetOperatorState()
+
+		} else { // if we have failed enough times (chose 1 as a starting point, do a live GET
+			_, oldStatus, resourceVersion, err = client.GetOperatorStateWithQuorum(ctx)
+		}
 		if err != nil {
 			return err
 		}
@@ -201,8 +214,21 @@ type UpdateStaticPodStatusFunc func(status *operatorv1.StaticPodOperatorStatus) 
 func UpdateStaticPodStatus(ctx context.Context, client StaticPodOperatorClient, updateFuncs ...UpdateStaticPodStatusFunc) (*operatorv1.StaticPodOperatorStatus, bool, error) {
 	updated := false
 	var updatedOperatorStatus *operatorv1.StaticPodOperatorStatus
+	numberOfAttempts := 0
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		_, oldStatus, resourceVersion, err := client.GetStaticPodOperatorState()
+		defer func() {
+			numberOfAttempts++
+		}()
+		var oldStatus *operatorv1.StaticPodOperatorStatus
+		var resourceVersion string
+		var err error
+
+		if numberOfAttempts < 1 { // prefer lister if we haven't already failed.
+			_, oldStatus, resourceVersion, err = client.GetStaticPodOperatorState()
+
+		} else { // if we have failed enough times (chose 1 as a starting point, do a live GET
+			_, oldStatus, resourceVersion, err = client.GetStaticPodOperatorStateWithQuorum(ctx)
+		}
 		if err != nil {
 			return err
 		}

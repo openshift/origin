@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  11 [
+    label="certkeypair/admin-kubeconfig-signer\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+  21 [
+    label="cabundle/admin-kubeconfig-signer\n\nconfigmaps/admin-kubeconfig-client-ca -nopenshift-config\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  11 -> 21;
+}

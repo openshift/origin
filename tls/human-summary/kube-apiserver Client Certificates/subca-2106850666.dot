@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  6 [
+    label="certkeypair/kubelet-signer::2112051707629287438\n\nsecret/csr-signer-signer -nopenshift-kube-controller-manager-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  20 [
+    label="cabundle/kubelet-signer\n\nconfigmaps/csr-controller-signer-ca -nopenshift-kube-controller-manager-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  6 -> 20;
+}

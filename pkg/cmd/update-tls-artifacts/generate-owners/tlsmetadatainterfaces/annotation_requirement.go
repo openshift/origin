@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/certs"
+
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -37,7 +39,7 @@ func (o annotationRequirement) GetAnnotationName() string {
 }
 
 func (o annotationRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (RequirementResult, error) {
-	pkiInfo, err := ProcessByLocation(rawData)
+	pkiInfo, err := certs.ProcessByLocation(rawData)
 	if err != nil {
 		return nil, fmt.Errorf("transforming raw data %v: %w", o.GetName(), err)
 	}

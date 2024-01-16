@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  1 [
+    label="certkeypair/etcd-metric-signer::5943027354895113293\n\nsecret/etcd-metric-signer -nopenshift-config\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  5 [
+    label="cabundle/etcd-metric-signer\n\nconfigmaps/etcd-metric-serving-ca -nopenshift-config\n    configmaps/etcd-metric-serving-ca -nopenshift-etcd-operator\n    configmaps/etcd-metrics-proxy-client-ca -nopenshift-etcd\n    configmaps/etcd-metrics-proxy-serving-ca -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  1 -> 5;
+}

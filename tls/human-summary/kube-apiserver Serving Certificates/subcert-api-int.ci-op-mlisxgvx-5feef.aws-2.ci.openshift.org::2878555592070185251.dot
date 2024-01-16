@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  5 [
+    label="certkeypair/kube-apiserver-lb-signer::4624852848640529251\n\nsecret/loadbalancer-serving-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  6 [
+    label="certkeypair/api-int.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org::2878555592070185251\n\nsecret/internal-loadbalancer-serving-certkey -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+
+  // Edge definitions.
+  5 -> 6;
+}

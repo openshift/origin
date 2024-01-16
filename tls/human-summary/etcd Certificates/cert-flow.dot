@@ -1,0 +1,58 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/system:etcd-peer:etcd-client::2725202915269078509\n\nsecret/etcd-peer-<master-0> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  1 [
+    label="certkeypair/etcd-signer::7398120930410332159\n\nsecret/etcd-signer -nopenshift-config\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  2 [
+    label="certkeypair/system:etcd-server:etcd-client::330111323943769430\n\nsecret/etcd-serving-<master-0> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  3 [
+    label="certkeypair/system:etcd-peer:etcd-client::1409427642758997409\n\nsecret/etcd-peer-<master-2> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  4 [
+    label="certkeypair/system:etcd-peer:etcd-client::1716658538684005070\n\nsecret/etcd-peer-<master-1> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  5 [
+    label="certkeypair/etcd::4690944913116105880\n\nsecret/etcd-client -nopenshift-apiserver\n    secret/etcd-client -nopenshift-config\n    secret/etcd-client -nopenshift-etcd-operator\n    secret/etcd-client -nopenshift-etcd\n    secret/etcd-client -nopenshift-kube-apiserver\n    secret/etcd-client -nopenshift-oauth-apiserver\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  6 [
+    label="certkeypair/system:etcd-server:etcd-client::1741649852910445878\n\nsecret/etcd-serving-<master-2> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  7 [
+    label="certkeypair/system:etcd-server:etcd-client::2705306945968581530\n\nsecret/etcd-serving-<master-1> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  8 [
+    label="cabundle/etcd-signer\n\nconfigmaps/etcd-serving-ca -nopenshift-apiserver\n    configmaps/etcd-ca-bundle -nopenshift-config\n    configmaps/etcd-serving-ca -nopenshift-config\n    configmaps/etcd-ca-bundle -nopenshift-etcd-operator\n    configmaps/etcd-ca-bundle -nopenshift-etcd\n    configmaps/etcd-peer-client-ca -nopenshift-etcd\n    configmaps/etcd-serving-ca -nopenshift-etcd\n    configmaps/etcd-serving-ca -nopenshift-kube-apiserver\n    configmaps/etcd-serving-ca -nopenshift-oauth-apiserver\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  1 -> 0;
+  1 -> 2;
+  1 -> 3;
+  1 -> 4;
+  1 -> 5;
+  1 -> 6;
+  1 -> 7;
+  1 -> 8;
+}

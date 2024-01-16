@@ -1,0 +1,161 @@
+{
+  "LogicalName": "Unknown OVN 02",
+  "Description": "Unknown OVN 02",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-ovn-kubernetes_signer-ca@1704273748",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-ovn-kubernetes",
+              "Name": "signer-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "openshift-ovn-kubernetes_signer-ca@1704273748",
+                "SerialNumber": "3983576275979405413",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "openshift-ovn-kubernetes_signer-ca@1704273748",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "ovn-kubernetes-signer::6109523786742506565",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-ovn-kubernetes",
+              "Name": "signer-cert"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "ovn-kubernetes-signer",
+              "SerialNumber": "6109523786742506565",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-ovn-kubernetes_signer-ca@1704273748",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "182d",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth",
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "ovn-kubernetes-signer"
+              ],
+              "IPAddresses": null
+            },
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-ovn-kubernetes_signer-ca@1704273748::3983576275979405413",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-ovn-kubernetes",
+              "Name": "signer-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "openshift-ovn-kubernetes_signer-ca@1704273748",
+              "SerialNumber": "3983576275979405413",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-ovn-kubernetes_signer-ca@1704273748",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  }
+}

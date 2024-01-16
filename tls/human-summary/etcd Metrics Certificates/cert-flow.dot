@@ -1,0 +1,40 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/system:etcd-metric:etcd-client::3719957492711729721\n\nsecret/etcd-serving-metrics-<master-2> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  1 [
+    label="certkeypair/etcd-metric-signer::5943027354895113293\n\nsecret/etcd-metric-signer -nopenshift-config\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  2 [
+    label="certkeypair/system:etcd-metric:etcd-client::77625113340125371\n\nsecret/etcd-serving-metrics-<master-1> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  3 [
+    label="certkeypair/system:etcd-metric:etcd-client::5017176833193065517\n\nsecret/etcd-serving-metrics-<master-0> -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fffdb8"
+  ];
+  4 [
+    label="certkeypair/etcd-metric::4040660940659145820\n\nsecret/etcd-metric-client -nopenshift-config\n    secret/etcd-metric-client -nopenshift-etcd-operator\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  5 [
+    label="cabundle/etcd-metric-signer\n\nconfigmaps/etcd-metric-serving-ca -nopenshift-config\n    configmaps/etcd-metric-serving-ca -nopenshift-etcd-operator\n    configmaps/etcd-metrics-proxy-client-ca -nopenshift-etcd\n    configmaps/etcd-metrics-proxy-serving-ca -nopenshift-etcd\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  1 -> 0;
+  1 -> 2;
+  1 -> 3;
+  1 -> 4;
+  1 -> 5;
+}

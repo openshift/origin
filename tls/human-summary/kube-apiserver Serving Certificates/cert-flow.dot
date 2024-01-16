@@ -1,0 +1,117 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/kube-apiserver-localhost-signer::6263268324069729512\n\nsecret/localhost-serving-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  1 [
+    label="certkeypair/openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804::7848375026133314319\n\nsecret/localhost-recovery-serving-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  2 [
+    label="certkeypair/localhost-recovery::3947081783999751122\n\nsecret/localhost-recovery-serving-certkey -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  3 [
+    label="certkeypair/kube-apiserver-service-network-signer::4393677514218278744\n\nsecret/service-network-serving-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  4 [
+    label="certkeypair/172.30.0.1::3074158037071720576\n\nsecret/service-network-serving-certkey -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  5 [
+    label="certkeypair/kube-apiserver-lb-signer::4624852848640529251\n\nsecret/loadbalancer-serving-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  6 [
+    label="certkeypair/api-int.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org::2878555592070185251\n\nsecret/internal-loadbalancer-serving-certkey -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  7 [
+    label="certkeypair/api.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org::7483887125459485093\n\nsecret/external-loadbalancer-serving-certkey -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  8 [
+    label="certkeypair/127.0.0.1::7980066732065963980\n\nsecret/localhost-serving-cert-certkey -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  9 [
+    label="certkeypair/*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org::2822621581346623594\n\nsecret/router-certs-default -nopenshift-ingress\n"
+    style=filled
+    fillcolor="#bdebfd"
+  ];
+  10 [
+    label="certkeypair/ingress-operator@1704273869::1\n\nsecret/router-ca -nopenshift-ingress-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  11 [
+    label="cabundle/kube-apiserver-localhost-signer\n\nconfigmaps/localhost-serving-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  12 [
+    label="cabundle/kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804\n\nconfigmaps/kube-apiserver-server-ca -nopenshift-config-managed\n    configmaps/kube-apiserver-server-ca -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  13 [
+    label="cabundle/openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804\n\nconfigmaps/localhost-recovery-serving-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  14 [
+    label="cabundle/kube-apiserver-service-network-signer\n\nconfigmaps/service-network-serving-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  15 [
+    label="cabundle/kube-apiserver-lb-signer\n\nconfigmaps/loadbalancer-serving-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  16 [
+    label="cabundle/kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1704273804|*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org|ingress-operator@1704273869\n\nconfigmaps/serviceaccount-ca -nopenshift-kube-controller-manager\n    configmaps/serviceaccount-ca -nopenshift-kube-scheduler\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  17 [
+    label="cabundle/*.apps.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org|ingress-operator@1704273869\n\nconfigmaps/default-ingress-cert -nopenshift-config-managed\n    configmaps/oauth-serving-cert -nopenshift-config-managed\n    configmaps/default-ingress-cert -nopenshift-console\n    configmaps/oauth-serving-cert -nopenshift-console\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  0 -> 8;
+  0 -> 11;
+  0 -> 12;
+  0 -> 16;
+  1 -> 2;
+  1 -> 12;
+  1 -> 13;
+  1 -> 16;
+  3 -> 4;
+  3 -> 12;
+  3 -> 14;
+  3 -> 16;
+  5 -> 6;
+  5 -> 7;
+  5 -> 12;
+  5 -> 15;
+  5 -> 16;
+  9 -> 16;
+  9 -> 17;
+  10 -> 9;
+  10 -> 16;
+  10 -> 17;
+}

@@ -119,5 +119,21 @@ func RewriteNodeIPs(nodeList []*corev1.Node) *metadataOptions {
 				}
 			}
 		},
+		rewriteCertKeyPairFn: func(metadata metav1.ObjectMeta, certKeyPair *certgraphapi.CertKeyPair) {
+			for idx, location := range certKeyPair.Spec.OnDiskLocations {
+				for nodeName, masterID := range nodes {
+					path := strings.ReplaceAll(location.Cert.Path, nodeName, fmt.Sprintf("<master-%d>", masterID))
+					if path != location.Cert.Path {
+						certKeyPair.Spec.OnDiskLocations[idx].Cert.Path = path
+					}
+					if location.Key.Path != "" {
+						path := strings.ReplaceAll(location.Key.Path, nodeName, fmt.Sprintf("<master-%d>", masterID))
+						if path != location.Key.Path {
+							certKeyPair.Spec.OnDiskLocations[idx].Key.Path = path
+						}
+					}
+				}
+			}
+		},
 	}
 }

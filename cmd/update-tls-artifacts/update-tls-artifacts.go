@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners"
+	generate_documentation "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-documentation"
+
+	generate_owners "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners"
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -35,6 +37,7 @@ func main() {
 
 	root.AddCommand(
 		generate_owners.NewGenerateOwnershipCommand(streams),
+		generate_documentation.NewGenerateDocumentationCommand(streams),
 	)
 
 	f := flag.CommandLine.Lookup("v")

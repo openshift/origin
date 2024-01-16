@@ -1,0 +1,96 @@
+{
+  "LogicalName": "MachineConfig Operator Certificates",
+  "Description": "MachineConfig Operator Certificates",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": null
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:machine-config-server::2492982323620387075",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-machine-config-operator",
+              "Name": "machine-config-server-tls"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:machine-config-server",
+              "SerialNumber": "2492982323620387075",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "root-ca",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ServingCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "api-int.ci-op-mlisxgvx-5feef.aws-2.ci.openshift.org"
+              ],
+              "IPAddresses": null
+            },
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "root-ca",
+        "Spec": {
+          "SecretLocations": null,
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "root-ca",
+              "SerialNumber": "",
+              "PubkeyModulus": "",
+              "Issuer": null
+            },
+            "SignatureAlgorithm": "",
+            "PublicKeyAlgorithm": "",
+            "PublicKeyBitSize": "",
+            "ValidityDuration": "",
+            "Usages": null,
+            "ExtendedUsages": null
+          },
+          "Details": {
+            "CertType": "",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  }
+}

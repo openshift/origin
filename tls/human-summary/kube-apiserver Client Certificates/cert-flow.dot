@@ -1,0 +1,160 @@
+digraph "OpenShift Certificates" {
+  // Node definitions.
+  0 [
+    label="certkeypair/kube-apiserver-to-kubelet-signer::5911051446634154830\n\nsecret/kube-apiserver-to-kubelet-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  1 [
+    label="certkeypair/kube-control-plane-signer::227887426676886745\n\nsecret/kube-control-plane-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  2 [
+    label="certkeypair/system:control-plane-node-admin::1059210817525278201\n\nsecret/control-plane-node-admin-client-cert-key -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  3 [
+    label="certkeypair/system:serviceaccount:openshift-kube-apiserver:check-endpoints::2576004262911247332\n\nsecret/check-endpoints-client-cert-key -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  4 [
+    label="certkeypair/system:kube-scheduler::6257318142771253203\n\nsecret/kube-scheduler-client-cert-key -nopenshift-config-managed\n    secret/kube-scheduler-client-cert-key -nopenshift-kube-scheduler\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  5 [
+    label="certkeypair/system:kube-controller-manager::3036637072996509399\n\nsecret/kube-controller-manager-client-cert-key -nopenshift-config-managed\n    secret/kube-controller-manager-client-cert-key -nopenshift-kube-controller-manager\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  6 [
+    label="certkeypair/kubelet-signer::2112051707629287438\n\nsecret/csr-signer-signer -nopenshift-kube-controller-manager-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  7 [
+    label="certkeypair/system:serviceaccount:openshift-oauth-apiserver:openshift-authenticator::39470527241106009848019183161878199127\n\nsecret/openshift-authenticator-certs -nopenshift-oauth-apiserver\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  8 [
+    label="certkeypair/system:serviceaccount:openshift-monitoring:prometheus-k8s::74288101070105103377383352571615521356\n\nsecret/metrics-client-certs -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  9 [
+    label="certkeypair/system:serviceaccount:openshift-monitoring:prometheus-k8s::144420821587744385522574508721281371890\n\nsecret/federate-client-certs -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  10 [
+    label="certkeypair/kube-csr-signer_@1704273808::9167585266960646865\n\nsecret/csr-signer -nopenshift-kube-controller-manager-operator\n    secret/csr-signer -nopenshift-kube-controller-manager\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  11 [
+    label="certkeypair/admin-kubeconfig-signer\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+  12 [
+    label="certkeypair/kubelet-bootstrap-kubeconfig-signer\n\n\n"
+    style=filled
+    fillcolor=white
+  ];
+  13 [
+    label="certkeypair/openshift-kube-apiserver-operator_node-system-admin-signer@1704273804::3782504597567108544\n\nsecret/node-system-admin-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  14 [
+    label="certkeypair/system:admin::8613085297608310858\n\nsecret/node-system-admin-client -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  15 [
+    label="certkeypair/system:kube-apiserver::4721398849933843688\n\nsecret/kubelet-client -nopenshift-kube-apiserver\n"
+    style=filled
+    fillcolor="#c8fbcd"
+  ];
+  16 [
+    label="cabundle/kube-apiserver-to-kubelet-signer\n\nconfigmaps/kube-apiserver-to-kubelet-client-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  17 [
+    label="cabundle/admin-kubeconfig-signer|kubelet-signer|kube-control-plane-signer|kube-apiserver-to-kubelet-signer|kubelet-bootstrap-kubeconfig-signer\n\nconfigmaps/initial-kube-apiserver-server-ca -nopenshift-config\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  18 [
+    label="cabundle/kube-control-plane-signer\n\nconfigmaps/kube-control-plane-signer-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  19 [
+    label="cabundle/kube-csr-signer_@1704273808|kubelet-signer\n\nconfigmaps/csr-controller-ca -nopenshift-config-managed\n    configmaps/kubelet-serving-ca -nopenshift-config-managed\n    configmaps/kubelet-serving-ca -nopenshift-kube-apiserver\n    configmaps/csr-controller-ca -nopenshift-kube-controller-manager-operator\n    configmaps/csr-signer-ca -nopenshift-kube-controller-manager-operator\n    configmaps/kubelet-serving-ca-bundle -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  20 [
+    label="cabundle/kubelet-signer\n\nconfigmaps/csr-controller-signer-ca -nopenshift-kube-controller-manager-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  21 [
+    label="cabundle/admin-kubeconfig-signer\n\nconfigmaps/admin-kubeconfig-client-ca -nopenshift-config\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  22 [
+    label="cabundle/kubelet-bootstrap-kubeconfig-signer\n\nconfigmaps/kubelet-bootstrap-kubeconfig -nopenshift-config-managed\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  23 [
+    label="cabundle/admin-kubeconfig-signer|kube-csr-signer_@1704273808|kubelet-signer|kube-apiserver-to-kubelet-signer|kube-control-plane-signer|kubelet-bootstrap-kubeconfig-signer|openshift-kube-apiserver-operator_node-system-admin-signer@1704273804\n\nconfigmaps/kube-apiserver-client-ca -nopenshift-config-managed\n    configmaps/client-ca -nopenshift-controller-manager\n    configmaps/client-ca -nopenshift-kube-apiserver\n    configmaps/client-ca -nopenshift-kube-controller-manager\n    configmaps/client-ca -nopenshift-route-controller-manager\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  24 [
+    label="cabundle/openshift-kube-apiserver-operator_node-system-admin-signer@1704273804\n\nconfigmaps/node-system-admin-ca -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  0 -> 15;
+  0 -> 16;
+  0 -> 17;
+  0 -> 23;
+  1 -> 2;
+  1 -> 3;
+  1 -> 4;
+  1 -> 5;
+  1 -> 17;
+  1 -> 18;
+  1 -> 23;
+  6 -> 7;
+  6 -> 8;
+  6 -> 9;
+  6 -> 10;
+  6 -> 17;
+  6 -> 19;
+  6 -> 20;
+  6 -> 23;
+  10 -> 19;
+  10 -> 23;
+  11 -> 17;
+  11 -> 21;
+  11 -> 23;
+  12 -> 17;
+  12 -> 22;
+  12 -> 23;
+  13 -> 14;
+  13 -> 23;
+  13 -> 24;
+}

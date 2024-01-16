@@ -1,0 +1,163 @@
+{
+  "LogicalName": "Unknown Networking 02",
+  "Description": "Unknown Networking 02",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-network-node-identity_network-node-identity-ca@1704273764",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-network-node-identity",
+              "Name": "network-node-identity-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1704273764",
+                "SerialNumber": "1372784190514149555",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "openshift-network-node-identity_network-node-identity-ca@1704273764",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "127.0.0.1::103972737128662425",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-network-node-identity",
+              "Name": "network-node-identity-cert"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "127.0.0.1",
+              "SerialNumber": "103972737128662425",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1704273764",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "182d",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth",
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "Multiple",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "127.0.0.1"
+              ],
+              "IPAddresses": [
+                "127.0.0.1"
+              ]
+            },
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": [
+            "you have a cert for more than one?  We don't do that. :("
+          ]
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-network-node-identity_network-node-identity-ca@1704273764::1372784190514149555",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-network-node-identity",
+              "Name": "network-node-identity-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "openshift-network-node-identity_network-node-identity-ca@1704273764",
+              "SerialNumber": "1372784190514149555",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1704273764",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "10y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,1436 @@
+{
+  "LogicalName": "kube-apiserver Client Certificates",
+  "Description": "kube-apiserver Client Certificates",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-to-kubelet-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "kube-apiserver-to-kubelet-client-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-to-kubelet-signer",
+                "SerialNumber": "5911051446634154830",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-to-kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "365d",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "admin-kubeconfig-signer|kubelet-signer|kube-control-plane-signer|kube-apiserver-to-kubelet-signer|kubelet-bootstrap-kubeconfig-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-config",
+              "Name": "initial-kube-apiserver-server-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "admin-kubeconfig-signer",
+                "SerialNumber": "8090191125497386460",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "admin-kubeconfig-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "2112051707629287438",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "24h",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-control-plane-signer",
+                "SerialNumber": "227887426676886745",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-control-plane-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "365d",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-to-kubelet-signer",
+                "SerialNumber": "5911051446634154830",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-to-kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "365d",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kubelet-bootstrap-kubeconfig-signer",
+                "SerialNumber": "5095364610952303762",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-bootstrap-kubeconfig-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-control-plane-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "kube-control-plane-signer-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-control-plane-signer",
+                "SerialNumber": "227887426676886745",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-control-plane-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "365d",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-csr-signer_@1704273808|kubelet-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "csr-controller-ca"
+            },
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "kubelet-serving-ca"
+            },
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "kubelet-serving-ca"
+            },
+            {
+              "Namespace": "openshift-kube-controller-manager-operator",
+              "Name": "csr-controller-ca"
+            },
+            {
+              "Namespace": "openshift-kube-controller-manager-operator",
+              "Name": "csr-signer-ca"
+            },
+            {
+              "Namespace": "openshift-monitoring",
+              "Name": "kubelet-serving-ca-bundle"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-csr-signer_@1704273808",
+                "SerialNumber": "9167585266960646865",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "23h",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "2112051707629287438",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "24h",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kubelet-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-controller-manager-operator",
+              "Name": "csr-controller-signer-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "2112051707629287438",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "24h",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "admin-kubeconfig-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-config",
+              "Name": "admin-kubeconfig-client-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "admin-kubeconfig-signer",
+                "SerialNumber": "8090191125497386460",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "admin-kubeconfig-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kubelet-bootstrap-kubeconfig-signer",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "kubelet-bootstrap-kubeconfig"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "kubelet-bootstrap-kubeconfig-signer",
+                "SerialNumber": "5095364610952303762",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-bootstrap-kubeconfig-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "admin-kubeconfig-signer|kube-csr-signer_@1704273808|kubelet-signer|kube-apiserver-to-kubelet-signer|kube-control-plane-signer|kubelet-bootstrap-kubeconfig-signer|openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "kube-apiserver-client-ca"
+            },
+            {
+              "Namespace": "openshift-controller-manager",
+              "Name": "client-ca"
+            },
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "client-ca"
+            },
+            {
+              "Namespace": "openshift-kube-controller-manager",
+              "Name": "client-ca"
+            },
+            {
+              "Namespace": "openshift-route-controller-manager",
+              "Name": "client-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "admin-kubeconfig-signer",
+                "SerialNumber": "8090191125497386460",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "admin-kubeconfig-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-csr-signer_@1704273808",
+                "SerialNumber": "9167585266960646865",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "23h",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "2112051707629287438",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "24h",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-apiserver-to-kubelet-signer",
+                "SerialNumber": "5911051446634154830",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-apiserver-to-kubelet-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "365d",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kube-control-plane-signer",
+                "SerialNumber": "227887426676886745",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kube-control-plane-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "365d",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "kubelet-bootstrap-kubeconfig-signer",
+                "SerialNumber": "5095364610952303762",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "kubelet-bootstrap-kubeconfig-signer",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "10y",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            },
+            {
+              "CertIdentifier": {
+                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+                "SerialNumber": "3782504597567108544",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "365d",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "node-system-admin-ca"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+                "SerialNumber": "3782504597567108544",
+                "PubkeyModulus": "",
+                "Issuer": {
+                  "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+                  "SerialNumber": "",
+                  "PubkeyModulus": "",
+                  "Issuer": null
+                }
+              },
+              "SignatureAlgorithm": "SHA256-RSA",
+              "PublicKeyAlgorithm": "RSA",
+              "PublicKeyBitSize": "2048 bit",
+              "ValidityDuration": "365d",
+              "Usages": [
+                "KeyUsageDigitalSignature",
+                "KeyUsageKeyEncipherment",
+                "KeyUsageCertSign"
+              ],
+              "ExtendedUsages": []
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-apiserver-to-kubelet-signer::5911051446634154830",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "kube-apiserver-to-kubelet-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "kube-apiserver-to-kubelet-signer",
+              "SerialNumber": "5911051446634154830",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-to-kubelet-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "365d",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-control-plane-signer::227887426676886745",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "kube-control-plane-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "kube-control-plane-signer",
+              "SerialNumber": "227887426676886745",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-control-plane-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "365d",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:control-plane-node-admin::1059210817525278201",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "control-plane-node-admin-client-cert-key"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:control-plane-node-admin",
+              "SerialNumber": "1059210817525278201",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-control-plane-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": [
+                "system:masters"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:serviceaccount:openshift-kube-apiserver:check-endpoints::2576004262911247332",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "check-endpoints-client-cert-key"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:serviceaccount:openshift-kube-apiserver:check-endpoints",
+              "SerialNumber": "2576004262911247332",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-control-plane-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:kube-scheduler::6257318142771253203",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "kube-scheduler-client-cert-key"
+            },
+            {
+              "Namespace": "openshift-kube-scheduler",
+              "Name": "kube-scheduler-client-cert-key"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:kube-scheduler",
+              "SerialNumber": "6257318142771253203",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-control-plane-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:kube-controller-manager::3036637072996509399",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "kube-controller-manager-client-cert-key"
+            },
+            {
+              "Namespace": "openshift-kube-controller-manager",
+              "Name": "kube-controller-manager-client-cert-key"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:kube-controller-manager",
+              "SerialNumber": "3036637072996509399",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-control-plane-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kubelet-signer::2112051707629287438",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-controller-manager-operator",
+              "Name": "csr-signer-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "kubelet-signer",
+              "SerialNumber": "2112051707629287438",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "24h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:serviceaccount:openshift-oauth-apiserver:openshift-authenticator::39470527241106009848019183161878199127",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-oauth-apiserver",
+              "Name": "openshift-authenticator-certs"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:serviceaccount:openshift-oauth-apiserver:openshift-authenticator",
+              "SerialNumber": "39470527241106009848019183161878199127",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "ECDSA",
+            "PublicKeyBitSize": "256 bit, P-256 curve",
+            "ValidityDuration": "23h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:serviceaccount:openshift-monitoring:prometheus-k8s::74288101070105103377383352571615521356",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-monitoring",
+              "Name": "metrics-client-certs"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:serviceaccount:openshift-monitoring:prometheus-k8s",
+              "SerialNumber": "74288101070105103377383352571615521356",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "ECDSA",
+            "PublicKeyBitSize": "256 bit, P-256 curve",
+            "ValidityDuration": "23h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:serviceaccount:openshift-monitoring:prometheus-k8s::144420821587744385522574508721281371890",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-monitoring",
+              "Name": "federate-client-certs"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:serviceaccount:openshift-monitoring:prometheus-k8s",
+              "SerialNumber": "144420821587744385522574508721281371890",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "ECDSA",
+            "PublicKeyBitSize": "256 bit, P-256 curve",
+            "ValidityDuration": "23h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": null
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kube-csr-signer_@1704273808::9167585266960646865",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-controller-manager-operator",
+              "Name": "csr-signer"
+            },
+            {
+              "Namespace": "openshift-kube-controller-manager",
+              "Name": "csr-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "kube-csr-signer_@1704273808",
+              "SerialNumber": "9167585266960646865",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kubelet-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "23h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "admin-kubeconfig-signer",
+        "Spec": {
+          "SecretLocations": null,
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "admin-kubeconfig-signer",
+              "SerialNumber": "",
+              "PubkeyModulus": "",
+              "Issuer": null
+            },
+            "SignatureAlgorithm": "",
+            "PublicKeyAlgorithm": "",
+            "PublicKeyBitSize": "",
+            "ValidityDuration": "",
+            "Usages": null,
+            "ExtendedUsages": null
+          },
+          "Details": {
+            "CertType": "",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "kubelet-bootstrap-kubeconfig-signer",
+        "Spec": {
+          "SecretLocations": null,
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "kubelet-bootstrap-kubeconfig-signer",
+              "SerialNumber": "",
+              "PubkeyModulus": "",
+              "Issuer": null
+            },
+            "SignatureAlgorithm": "",
+            "PublicKeyAlgorithm": "",
+            "PublicKeyBitSize": "",
+            "ValidityDuration": "",
+            "Usages": null,
+            "ExtendedUsages": null
+          },
+          "Details": {
+            "CertType": "",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804::3782504597567108544",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "node-system-admin-signer"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+              "SerialNumber": "3782504597567108544",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "365d",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment",
+              "KeyUsageCertSign"
+            ],
+            "ExtendedUsages": []
+          },
+          "Details": {
+            "CertType": "SignerCertDetails",
+            "SignerDetails": {},
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:admin::8613085297608310858",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver-operator",
+              "Name": "node-system-admin-client"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:admin",
+              "SerialNumber": "8613085297608310858",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1704273804",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "120d",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": [
+                "system:masters"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "system:kube-apiserver::4721398849933843688",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "kubelet-client"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "system:kube-apiserver",
+              "SerialNumber": "4721398849933843688",
+              "PubkeyModulus": "",
+              "Issuer": {
+                "CommonName": "kube-apiserver-to-kubelet-signer",
+                "SerialNumber": "",
+                "PubkeyModulus": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "12h",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageClientAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ClientCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": {
+              "Organizations": [
+                "kube-master"
+              ]
+            }
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  }
+}

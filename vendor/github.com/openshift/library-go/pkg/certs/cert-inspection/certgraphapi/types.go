@@ -131,8 +131,9 @@ type ClientCertDetails struct {
 }
 
 type CertIdentifier struct {
-	CommonName   string
-	SerialNumber string
+	CommonName    string
+	SerialNumber  string
+	PubkeyModulus string
 
 	Issuer *CertIdentifier
 }

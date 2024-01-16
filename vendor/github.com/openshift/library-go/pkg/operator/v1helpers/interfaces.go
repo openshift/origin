@@ -14,6 +14,8 @@ type OperatorClient interface {
 	GetObjectMeta() (meta *metav1.ObjectMeta, err error)
 	// GetOperatorState returns the operator spec, status and the resource version, potentially from a lister.
 	GetOperatorState() (spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, resourceVersion string, err error)
+	// GetOperatorStateWithQuorum return the operator spec, status and resource version directly from a server read.
+	GetOperatorStateWithQuorum(ctx context.Context) (spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, resourceVersion string, err error)
 	// UpdateOperatorSpec updates the spec of the operator, assuming the given resource version.
 	UpdateOperatorSpec(ctx context.Context, oldResourceVersion string, in *operatorv1.OperatorSpec) (out *operatorv1.OperatorSpec, newResourceVersion string, err error)
 	// UpdateOperatorStatus updates the status of the operator, assuming the given resource version.

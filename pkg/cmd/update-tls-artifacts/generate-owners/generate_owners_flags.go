@@ -54,13 +54,13 @@ func NewGenerateOwnersFlags(streams genericclioptions.IOStreams) *GenerateOwners
 }
 
 func (f *GenerateOwnersFlags) BindFlags(flags *pflag.FlagSet) {
-	flags.StringVar(&f.TLSInfoDir, "ownership-dir", f.TLSInfoDir, "The directory where the  TLS ownership info is should be written.")
+	flags.StringVar(&f.TLSInfoDir, "tls-dir", f.TLSInfoDir, "The directory where the  TLS ownership info is should be written.")
 	flags.BoolVar(&f.Verify, "verify", f.Verify, "Verify content, don't mutate.")
 }
 
 func (f *GenerateOwnersFlags) Validate() error {
 	if len(f.TLSInfoDir) == 0 {
-		return fmt.Errorf("--ownership-dir must be specified")
+		return fmt.Errorf("--tls-dir must be specified")
 	}
 	return nil
 }

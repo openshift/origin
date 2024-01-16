@@ -1,0 +1,169 @@
+{
+  "LogicalName": "Proxy Certificates",
+  "Description": "Proxy Certificates",
+  "InClusterResourceData": {
+    "certificateAuthorityBundles": null,
+    "certKeyPairs": null
+  },
+  "CertificateAuthorityBundles": {
+    "Items": [
+      {
+        "LogicalName": "proxy-ca",
+        "Description": "",
+        "Name": "proxy-ca",
+        "Spec": {
+          "ConfigMapLocations": [
+            {
+              "Namespace": "openshift-apiserver-operator",
+              "Name": "trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-apiserver",
+              "Name": "trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-authentication-operator",
+              "Name": "trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-authentication",
+              "Name": "v4-0-config-system-trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-cloud-controller-manager",
+              "Name": "ccm-trusted-ca"
+            },
+            {
+              "Namespace": "openshift-cloud-credential-operator",
+              "Name": "cco-trusted-ca"
+            },
+            {
+              "Namespace": "openshift-cloud-network-config-controller",
+              "Name": "trusted-ca"
+            },
+            {
+              "Namespace": "openshift-cluster-csi-drivers",
+              "Name": "aws-ebs-csi-driver-trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-cluster-node-tuning-operator",
+              "Name": "trusted-ca"
+            },
+            {
+              "Namespace": "openshift-config-managed",
+              "Name": "trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-console",
+              "Name": "trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-controller-manager",
+              "Name": "openshift-global-ca"
+            },
+            {
+              "Namespace": "openshift-image-registry",
+              "Name": "trusted-ca"
+            },
+            {
+              "Namespace": "openshift-ingress-operator",
+              "Name": "trusted-ca"
+            },
+            {
+              "Namespace": "openshift-insights",
+              "Name": "trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-kube-apiserver",
+              "Name": "trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-kube-controller-manager",
+              "Name": "trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-machine-api",
+              "Name": "cbo-trusted-ca"
+            },
+            {
+              "Namespace": "openshift-machine-api",
+              "Name": "mao-trusted-ca"
+            },
+            {
+              "Namespace": "openshift-marketplace",
+              "Name": "marketplace-trusted-ca"
+            },
+            {
+              "Namespace": "openshift-monitoring",
+              "Name": "alertmanager-trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-monitoring",
+              "Name": "prometheus-trusted-ca-bundle"
+            },
+            {
+              "Namespace": "openshift-monitoring",
+              "Name": "thanos-querier-trusted-ca-bundle"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertificateMetadata": [
+            {
+              "CertIdentifier": {
+                "CommonName": "synthetic-proxy-ca",
+                "SerialNumber": "0",
+                "PubkeyModulus": "",
+                "Issuer": null
+              },
+              "SignatureAlgorithm": "",
+              "PublicKeyAlgorithm": "",
+              "PublicKeyBitSize": "",
+              "ValidityDuration": "",
+              "Usages": null,
+              "ExtendedUsages": null
+            }
+          ]
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  },
+  "CertKeyPairs": {
+    "Items": [
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "synthetic-proxy-ca",
+        "Spec": {
+          "SecretLocations": null,
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "synthetic-proxy-ca",
+              "SerialNumber": "",
+              "PubkeyModulus": "",
+              "Issuer": null
+            },
+            "SignatureAlgorithm": "",
+            "PublicKeyAlgorithm": "",
+            "PublicKeyBitSize": "",
+            "ValidityDuration": "",
+            "Usages": null,
+            "ExtendedUsages": null
+          },
+          "Details": {
+            "CertType": "",
+            "SignerDetails": null,
+            "ServingCertDetails": null,
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  6 [
+    label="certkeypair/kubelet-signer::2112051707629287438\n\nsecret/csr-signer-signer -nopenshift-kube-controller-manager-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  10 [
+    label="certkeypair/kube-csr-signer_@1704273808::9167585266960646865\n\nsecret/csr-signer -nopenshift-kube-controller-manager-operator\n    secret/csr-signer -nopenshift-kube-controller-manager\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  19 [
+    label="cabundle/kube-csr-signer_@1704273808|kubelet-signer\n\nconfigmaps/csr-controller-ca -nopenshift-config-managed\n    configmaps/kubelet-serving-ca -nopenshift-config-managed\n    configmaps/kubelet-serving-ca -nopenshift-kube-apiserver\n    configmaps/csr-controller-ca -nopenshift-kube-controller-manager-operator\n    configmaps/csr-signer-ca -nopenshift-kube-controller-manager-operator\n    configmaps/kubelet-serving-ca-bundle -nopenshift-monitoring\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+  23 [
+    label="cabundle/admin-kubeconfig-signer|kube-csr-signer_@1704273808|kubelet-signer|kube-apiserver-to-kubelet-signer|kube-control-plane-signer|kubelet-bootstrap-kubeconfig-signer|openshift-kube-apiserver-operator_node-system-admin-signer@1704273804\n\nconfigmaps/kube-apiserver-client-ca -nopenshift-config-managed\n    configmaps/client-ca -nopenshift-controller-manager\n    configmaps/client-ca -nopenshift-kube-apiserver\n    configmaps/client-ca -nopenshift-kube-controller-manager\n    configmaps/client-ca -nopenshift-route-controller-manager\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  6 -> 10;
+  10 -> 19;
+  10 -> 23;
+}

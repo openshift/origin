@@ -1,0 +1,16 @@
+digraph "Local Certificate" {
+  // Node definitions.
+  0 [
+    label="certkeypair/aggregator-signer::5053783812448525690\n\nsecret/aggregator-client-signer -nopenshift-kube-apiserver-operator\n"
+    style=filled
+    fillcolor="#c7bfff"
+  ];
+  2 [
+    label="cabundle/aggregator-signer\n\nconfigmaps/kube-apiserver-aggregator-client-ca -nopenshift-config-managed\n    configmaps/aggregator-client-ca -nopenshift-kube-apiserver\n    configmaps/aggregator-client-ca -nopenshift-kube-controller-manager\n"
+    style=filled
+    fillcolor="#fda172"
+  ];
+
+  // Edge definitions.
+  0 -> 2;
+}
