@@ -249,7 +249,7 @@ const (
 )
 
 // ClusterVersionCapability enumerates optional, core cluster components.
-// +kubebuilder:validation:Enum=openshift-samples;baremetal;marketplace;Console;Insights;Storage;CSISnapshot;NodeTuning;MachineAPI;Build;DeploymentConfig;ImageRegistry;OperatorLifecycleManager
+// +kubebuilder:validation:Enum=openshift-samples;baremetal;marketplace;Console;Insights;Storage;CSISnapshot;NodeTuning;MachineAPI;Build;DeploymentConfig;ImageRegistry;OperatorLifecycleManager;CloudCredential
 type ClusterVersionCapability string
 
 const (
@@ -343,6 +343,10 @@ const (
 	// ClusterVersionCapabilityOperatorLifecycleManager manages the Operator Lifecycle Manager
 	// which itself manages the lifecycle of operators
 	ClusterVersionCapabilityOperatorLifecycleManager ClusterVersionCapability = "OperatorLifecycleManager"
+
+	// ClusterVersionCapabilityCloudCredential manages credentials for cloud providers
+	// in openshift cluster
+	ClusterVersionCapabilityCloudCredential ClusterVersionCapability = "CloudCredential"
 )
 
 // KnownClusterVersionCapabilities includes all known optional, core cluster components.
@@ -360,6 +364,7 @@ var KnownClusterVersionCapabilities = []ClusterVersionCapability{
 	ClusterVersionCapabilityDeploymentConfig,
 	ClusterVersionCapabilityImageRegistry,
 	ClusterVersionCapabilityOperatorLifecycleManager,
+	ClusterVersionCapabilityCloudCredential,
 }
 
 // ClusterVersionCapabilitySet defines sets of cluster version capabilities.
@@ -465,6 +470,7 @@ var ClusterVersionCapabilitySets = map[ClusterVersionCapabilitySet][]ClusterVers
 		ClusterVersionCapabilityDeploymentConfig,
 		ClusterVersionCapabilityImageRegistry,
 		ClusterVersionCapabilityOperatorLifecycleManager,
+		ClusterVersionCapabilityCloudCredential,
 	},
 	ClusterVersionCapabilitySetCurrent: {
 		ClusterVersionCapabilityBaremetal,
@@ -480,6 +486,7 @@ var ClusterVersionCapabilitySets = map[ClusterVersionCapabilitySet][]ClusterVers
 		ClusterVersionCapabilityDeploymentConfig,
 		ClusterVersionCapabilityImageRegistry,
 		ClusterVersionCapabilityOperatorLifecycleManager,
+		ClusterVersionCapabilityCloudCredential,
 	},
 }
 

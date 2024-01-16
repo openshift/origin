@@ -79,7 +79,7 @@ var _ = g.Describe("[sig-network][Feature:EgressIP][apigroup:operator.openshift.
 		g.By("Verifying that this cluster uses a network plugin that is supported for this test")
 		networkPlugin = networkPluginName()
 		if networkPlugin != OVNKubernetesPluginName &&
-			networkPlugin != openshiftSDNPluginName {
+			networkPlugin != OpenshiftSDNPluginName {
 			skipper.Skipf("This cluster neither uses OVNKubernetes nor OpenShiftSDN")
 		}
 
