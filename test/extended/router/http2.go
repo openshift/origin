@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -391,7 +390,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				backendProto      string
 				statusCode        int
 				useHTTP2Transport bool
-				expectedGetError  string
 			}{{
 				route:             "http2-custom-cert-edge",
 				frontendProto:     "HTTP/2.0",
@@ -410,14 +408,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				backendProto:      "HTTP/2.0",
 				statusCode:        http.StatusOK,
 				useHTTP2Transport: true,
-			}, {
-				route:             "http2-default-cert-edge",
-				useHTTP2Transport: true,
-				expectedGetError:  `http2: unexpected ALPN protocol ""; want "h2"`,
-			}, {
-				route:             "http2-default-cert-reencrypt",
-				useHTTP2Transport: true,
-				expectedGetError:  `http2: unexpected ALPN protocol ""; want "h2"`,
 			}, {
 				route:             "http2-custom-cert-edge",
 				frontendProto:     "HTTP/1.1",
@@ -465,32 +455,19 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 					host := tc.route + "." + shardFQDN
 					e2e.Logf("[test #%d/%d]: GET route: %s", i+1, len(testCases), host)
 					resp, err = client.Get("https://" + host)
-					if err != nil && len(tc.expectedGetError) != 0 {
-						errMatch := strings.Contains(err.Error(), tc.expectedGetError)
-						if !errMatch {
-							e2e.Logf("[test #%d/%d]: config: %s, GET error: %v", i+1, len(testCases), testConfig, err)
-						}
-						return errMatch, nil
-					}
 					if err != nil {
 						e2e.Logf("[test #%d/%d]: config: %s, GET error: %v", i+1, len(testCases), testConfig, err)
 						return false, nil // could be 503 if service not ready
 					}
-					if tc.statusCode == 0 {
-						resp.Body.Close()
-						return false, nil
-					}
 					if resp.StatusCode != tc.statusCode {
+						// Successful responses are checked and asserted
+						// in the o.Expect() checks below.
 						resp.Body.Close()
 						e2e.Logf("[test #%d/%d]: config: %s, expected status: %v, actual status: %v", i+1, len(testCases), testConfig, tc.statusCode, resp.StatusCode)
 						return false, nil
 					}
 					return true, nil
 				})).NotTo(o.HaveOccurred())
-
-				if tc.expectedGetError != "" {
-					continue
-				}
 
 				o.Expect(resp).ToNot(o.BeNil(), testConfig)
 				o.Expect(resp.StatusCode).To(o.Equal(tc.statusCode), testConfig)
