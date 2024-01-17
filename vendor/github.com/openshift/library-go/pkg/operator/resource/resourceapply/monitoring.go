@@ -82,7 +82,7 @@ func ApplyServiceMonitor(ctx context.Context, client dynamic.Interface, recorder
 		return nil, false, nil
 	}
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, toUpdate))
 	}
 
@@ -127,7 +127,7 @@ func ApplyPrometheusRule(ctx context.Context, client dynamic.Interface, recorder
 		return nil, false, nil
 	}
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("PrometheusRule %q changes: %v", namespace+"/"+required.GetName(), JSONPatchNoError(existing, toUpdate))
 	}
 

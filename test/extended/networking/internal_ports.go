@@ -1,7 +1,6 @@
 package networking
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strconv"
@@ -18,15 +17,13 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes/scheme"
-	coreclientset "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
+
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -156,7 +153,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
-							res, err := commandResult(clientSet.CoreV1(), clientConfig, from.Namespace, from.Name, "webserver", []string{"/bin/sh", "-cex", strings.Join(command, " ")})
+							res, err := util.ExecInPodWithResult(clientSet.CoreV1(), clientConfig, from.Namespace, from.Name, "webserver", []string{"/bin/sh", "-cex", strings.Join(command, " ")})
 							if err != nil {
 								return fmt.Errorf("test of %s failed: %v", testingMsg, err)
 							}
@@ -255,30 +252,4 @@ func testConnectivityCommand(protocol v1.Protocol, host string, port, timeout in
 	}
 	command = append(command, host, strconv.Itoa(port))
 	return command, nil
-}
-
-// commandContents fetches the result of invoking a command in the provided container from stdout.
-func commandResult(podClient coreclientset.CoreV1Interface, podRESTConfig *rest.Config, ns, name, containerName string, command []string) (string, error) {
-	u := podClient.RESTClient().Post().Resource("pods").Namespace(ns).Name(name).SubResource("exec").VersionedParams(&v1.PodExecOptions{
-		Container: containerName,
-		Stdout:    true,
-		Stderr:    true,
-		Command:   command,
-	}, scheme.ParameterCodec).URL()
-
-	e, err := remotecommand.NewSPDYExecutor(podRESTConfig, "POST", u)
-	if err != nil {
-		return "", fmt.Errorf("could not initialize a new SPDY executor: %v", err)
-	}
-	buf := &bytes.Buffer{}
-	errBuf := &bytes.Buffer{}
-	if err := e.Stream(remotecommand.StreamOptions{
-		Stdout: buf,
-		Stdin:  nil,
-		Stderr: errBuf,
-	}); err != nil {
-		framework.Logf("exec error: %s", errBuf.String())
-		return "", err
-	}
-	return buf.String(), nil
 }

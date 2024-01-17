@@ -101,7 +101,7 @@ func ApplyVolumeSnapshotClass(ctx context.Context, client dynamic.Interface, rec
 		return existing, false, nil
 	}
 
-	if klog.V(4).Enabled() {
+	if klog.V(2).Enabled() {
 		klog.Infof("VolumeSnapshotClass %q changes: %v", required.GetName(), JSONPatchNoError(existing, toUpdate))
 	}
 
