@@ -430,6 +430,18 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		neverAllow:        true,
 	})
 
+	// There is an "event leak" for RecreatingTerminatedPod/RecreatingFailedPod/SuccessfulDelete
+	// events on Statefulsets. Two of those started to be heavily emitted in Kube v1.29
+	// Ignore them until https://issues.redhat.com/browse/OCPBUGS-27262 is fixed
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "LeakyStatefulsetEvents",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-(monitoring|user-workload-monitoring)$`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^RecreatingTerminatedPod|RecreatingFailedPod|SuccessfulDelete$`),
+		messageHumanRegex:  regexp.MustCompile(`.*Statefulset.*`),
+	})
+
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
 
 	registry.AddPathologicalEventMatcherOrDie(AllowOVNReadiness)
