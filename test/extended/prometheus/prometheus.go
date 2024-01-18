@@ -87,7 +87,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 	oc := exutil.NewCLIWithoutNamespace("prometheus")
 
 	g.BeforeEach(func() {
-
 		err := exutil.WaitForAnImageStream(
 			oc.AdminImageClient().ImageV1().ImageStreams("openshift"), "tools",
 			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
@@ -127,7 +126,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 			return nil
 		})
-
 		if err != nil {
 			e2e.Failf(err.Error())
 		}
@@ -154,7 +152,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 			return violations
 		})
-
 		if err != nil {
 			e2e.Failf(err.Error())
 		}
@@ -178,7 +175,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 			return violations
 		})
-
 		if err != nil {
 			e2e.Failf(err.Error())
 		}
@@ -200,7 +196,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 			return violations
 		})
-
 		if err != nil {
 			e2e.Failf(err.Error())
 		}
@@ -223,7 +218,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 			return violations
 		})
-
 		if err != nil {
 			// We can't fail the test because the runbook URLs might be temporarily unavailable.
 			// At least we can manually check the CI logs to identify buggy URLs.
@@ -235,9 +229,7 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 var _ = g.Describe("[sig-instrumentation][Late] Alerts", func() {
 	defer g.GinkgoRecover()
 	ctx := context.TODO()
-	var (
-		oc = exutil.NewCLIWithoutNamespace("prometheus")
-	)
+	oc := exutil.NewCLIWithoutNamespace("prometheus")
 
 	g.BeforeEach(func() {
 		kubeClient, err := kubernetes.NewForConfig(oc.AdminConfig())
@@ -436,7 +428,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 					targets.Expect(labels{"job": "node-exporter"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "prometheus-operator"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "alertmanager-main"}, "up", "^https://.*/metrics$"),
-					targets.Expect(labels{"job": "crio"}, "up", "^http://.*/metrics$"),
+					targets.Expect(labels{"job": "crio"}, "up", "^http(s)?://.*/metrics$"),
 				)...)
 				if len(lastErrs) > 0 {
 					e2e.Logf("missing some targets: %v", lastErrs)
