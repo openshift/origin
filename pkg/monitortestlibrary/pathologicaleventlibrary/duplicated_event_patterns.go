@@ -439,7 +439,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-(monitoring|user-workload-monitoring)$`),
 		},
 		messageReasonRegex: regexp.MustCompile(`^RecreatingTerminatedPod|RecreatingFailedPod|SuccessfulDelete$`),
-		messageHumanRegex:  regexp.MustCompile(`.*Statefulset.*`),
+		messageHumanRegex:  regexp.MustCompile(`.*StatefulSet.*`),
 	})
 
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
