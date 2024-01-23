@@ -35,6 +35,7 @@ import (
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
 	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	ownership "github.com/openshift/origin/tls"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -229,7 +230,8 @@ func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interfac
 	}
 	defer kubeClient.RbacV1().ClusterRoleBindings().Delete(ctx, nodeReaderCRB, metav1.DeleteOptions{})
 
-	podNameOnNode, err := createPods(ctx, kubeClient, namespace, nodeList, testPullSpec)
+	pauseImage := image.LocationFor("registry.k8s.io/e2e-test-images/agnhost:2.45")
+	podNameOnNode, err := createPods(ctx, kubeClient, namespace, nodeList, testPullSpec, pauseImage)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +296,7 @@ func createRBACBindings(ctx context.Context, kubeClient kubernetes.Interface, na
 
 type podToNodeMap map[string]*corev1.Pod
 
-func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace string, nodeList []*corev1.Node, testImagePullSpec string) (podToNodeMap, error) {
+func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace string, nodeList []*corev1.Node, testImagePullSpec, pauseImagePullSpec string) (podToNodeMap, error) {
 	podOnNode := podToNodeMap{}
 
 	client := kubeClient.CoreV1().Pods(namespace)
@@ -304,6 +306,7 @@ func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace 
 		podObj.Namespace = namespace
 		podObj.Spec.NodeName = node.Name
 		podObj.Spec.InitContainers[0].Image = testImagePullSpec
+		podObj.Spec.Containers[0].Image = pauseImagePullSpec
 
 		actualPod, err := client.Create(ctx, podObj, metav1.CreateOptions{})
 		if err != nil && !apierrors.IsAlreadyExists(err) {
