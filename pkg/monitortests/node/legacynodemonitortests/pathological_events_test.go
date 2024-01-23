@@ -1,10 +1,12 @@
 package legacynodemonitortests
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -74,6 +76,9 @@ func Test_testBackoffPullingRegistryRedhatImage(t *testing.T) {
 }
 
 func Test_testBackoffStartingFailedContainer(t *testing.T) {
+	namespace := "openshift-etcd-operator"
+	samplePod := "etcd-operator-6f9b4d9d4f-4q9q8"
+
 	tests := []struct {
 		name     string
 		interval monitorapi.Interval
@@ -81,7 +86,7 @@ func Test_testBackoffStartingFailedContainer(t *testing.T) {
 	}{
 		{
 			name: "Test pass case",
-			interval: pathologicaleventlibrary.BuildTestDupeKubeEvent("", "",
+			interval: pathologicaleventlibrary.BuildTestDupeKubeEvent(namespace, samplePod,
 				"BackOff",
 				"Back-off restarting failed container",
 				5),
@@ -89,7 +94,7 @@ func Test_testBackoffStartingFailedContainer(t *testing.T) {
 		},
 		{
 			name: "Test failure case",
-			interval: pathologicaleventlibrary.BuildTestDupeKubeEvent("", "",
+			interval: pathologicaleventlibrary.BuildTestDupeKubeEvent(namespace, samplePod,
 				"BackOff",
 				"Back-off restarting failed container",
 				56),
@@ -97,7 +102,7 @@ func Test_testBackoffStartingFailedContainer(t *testing.T) {
 		},
 		{
 			name: "Test flake case",
-			interval: pathologicaleventlibrary.BuildTestDupeKubeEvent("", "",
+			interval: pathologicaleventlibrary.BuildTestDupeKubeEvent(namespace, samplePod,
 				"BackOff",
 				"Back-off restarting failed container",
 				11),
@@ -108,23 +113,34 @@ func Test_testBackoffStartingFailedContainer(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			e := monitorapi.Intervals{tt.interval}
 			junits := testBackoffStartingFailedContainer(e)
+
+			// Find the junit with the namespace of openshift-etcd-operator int the testname
+			var testJunits []*junitapi.JUnitTestCase
+			for _, j := range junits {
+				if strings.Contains(j.Name, namespace) {
+					testJunits = append(testJunits, j)
+				}
+			}
+			if len(testJunits) == 0 {
+				t.Errorf("We should have at least one junit test for namespace openshift-etcd-operator")
+			}
 			switch tt.kind {
 			case "pass":
-				if len(junits) != 1 {
+				if len(testJunits) != 1 {
 					t.Errorf("This should've been a single passing Test, but got %d tests", len(junits))
 				}
-				if len(junits[0].SystemOut) != 0 {
+				if testJunits[0].FailureOutput != nil && len(testJunits[0].FailureOutput.Output) != 0 {
 					t.Errorf("This should've been a pass, but got %s", junits[0].SystemErr)
 				}
 			case "fail":
-				if len(junits) != 1 {
+				if len(testJunits) != 1 {
 					t.Errorf("This should've been a single failing Test, but got %d tests", len(junits))
 				}
-				if len(junits[0].SystemOut) == 0 {
+				if testJunits[0].FailureOutput != nil && len(testJunits[0].FailureOutput.Output) == 0 {
 					t.Error("This should've been a failure but got no output")
 				}
 			case "flake":
-				if len(junits) != 2 {
+				if len(testJunits) != 2 {
 					t.Errorf("This should've been a two tests as flake, but got %d tests", len(junits))
 				}
 			default:

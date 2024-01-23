@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -58,6 +59,38 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	}
 
 	return []*junitapi.JUnitTestCase{success}
+}
+
+// NamespacedTest is just like Test() except it creates junits per namespace.
+func (s *singleEventThresholdCheck) NamespacedTest(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	nsResults := map[string]*eventResult{}
+
+	for _, e := range events {
+		namespace := e.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+
+		// We only create junit for known namespaces
+		if !platformidentification.KnownNamespaces.Has(namespace) {
+			namespace = ""
+		}
+
+		if _, ok := nsResults[namespace]; !ok {
+			tmp := &eventResult{}
+			nsResults[namespace] = tmp
+		}
+
+		if s.matcher.Allows(e, "") {
+			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
+			times := GetTimesAnEventHappened(e.StructuredMessage)
+			switch {
+			case s.failThreshold > 0 && times > s.failThreshold:
+				nsResults[namespace].failures = append(nsResults[namespace].failures, fmt.Sprintf("event [%s] happened %d times", msg, times))
+			case times > s.flakeThreshold:
+				nsResults[namespace].flakes = append(nsResults[namespace].flakes, fmt.Sprintf("event [%s] happened %d times", msg, times))
+			}
+		}
+	}
+
+	return generateJUnitTestCasesCoreNamespaces(s.testName, nsResults)
 }
 
 func NewSingleEventThresholdCheck(testName string, matcher *SimplePathologicalEventMatcher, failThreshold, flakeThreshold int) *singleEventThresholdCheck {
