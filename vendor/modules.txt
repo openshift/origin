@@ -999,7 +999,7 @@ github.com/openshift/client-go/user/listers/user/v1
 # github.com/openshift/cluster-network-operator v0.0.0-20240111190956-90754aa19843
 ## explicit; go 1.20
 github.com/openshift/cluster-network-operator/pkg/names
-# github.com/openshift/library-go v0.0.0-20240111220656-8c7cc0e63628
+# github.com/openshift/library-go v0.0.0-20240111220656-8c7cc0e63628 => github.com/vrutkovs/library-go v0.0.0-20240123115250-4236ab07b3a2
 ## explicit; go 1.21
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
 github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout
@@ -3708,3 +3708,4 @@ sigs.k8s.io/yaml
 # k8s.io/sample-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20240111201904-913d16a5d9fb
 # k8s.io/sample-cli-plugin => github.com/openshift/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20240111201904-913d16a5d9fb
 # k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20240111201904-913d16a5d9fb
+# github.com/openshift/library-go => github.com/vrutkovs/library-go v0.0.0-20240123115250-4236ab07b3a2
