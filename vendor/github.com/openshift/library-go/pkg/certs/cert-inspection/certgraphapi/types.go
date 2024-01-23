@@ -13,6 +13,7 @@ type PKIList struct {
 	Description string
 
 	InClusterResourceData PerInClusterResourceData
+	OnDiskResourceData    PerOnDiskResourceData
 
 	CertificateAuthorityBundles CertificateAuthorityBundleList
 	CertKeyPairs                CertKeyPairList
@@ -26,6 +27,14 @@ type PerInClusterResourceData struct {
 	CertificateAuthorityBundles []PKIRegistryInClusterCABundle `json:"certificateAuthorityBundles"`
 	// +mapType:=atomic
 	CertKeyPairs []PKIRegistryInClusterCertKeyPair `json:"certKeyPairs"`
+}
+
+// PerOnDiskResourceData tracks metadata that corresponds to specific files on disk.
+// This data should not duplicate the analysis of the certkeypair lists, but is pulled from files on disk.
+// It will be stitched together by a generator after the fact.
+type PerOnDiskResourceData struct {
+	// +mapType:=atomic
+	TLSArtifact []OnDiskLocationWithMetadata `json:"tlsArtifact"`
 }
 
 type CertificateAuthorityBundleList struct {
@@ -103,7 +112,12 @@ type OnDiskCertKeyPairLocation struct {
 }
 
 type OnDiskLocation struct {
-	Path           string
+	Path string
+}
+
+type OnDiskLocationWithMetadata struct {
+	OnDiskLocation
+
 	User           string
 	Group          string
 	Permissions    string

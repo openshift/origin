@@ -23,8 +23,8 @@ func deduplicateCertKeyPairs(in []*certgraphapi.CertKeyPair) []*certgraphapi.Cer
 			// Merge if cert identifiers match
 			if currOut.Spec.CertMetadata.CertIdentifier.PubkeyModulus == currIn.Spec.CertMetadata.CertIdentifier.PubkeyModulus {
 				found = true
-				ret[j] = combineSecretLocations(ret[j], currIn.Spec.SecretLocations)
-				ret[j] = combineCertOnDiskLocations(ret[j], currIn.Spec.OnDiskLocations)
+				ret[j] = CombineSecretLocations(ret[j], currIn.Spec.SecretLocations)
+				ret[j] = CombineCertOnDiskLocations(ret[j], currIn.Spec.OnDiskLocations)
 				break
 			}
 		}
@@ -53,7 +53,8 @@ func deduplicateCertKeyPairList(in *certgraphapi.CertKeyPairList) *certgraphapi.
 	return ret
 }
 
-func combineSecretLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.InClusterSecretLocation) *certgraphapi.CertKeyPair {
+// CombineSecretLocations returns a CertKeyPair with all in-cluster locations from in and rhs de-duplicated into a single list
+func CombineSecretLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.InClusterSecretLocation) *certgraphapi.CertKeyPair {
 	out := in.DeepCopy()
 	for _, curr := range rhs {
 		found := false
@@ -70,7 +71,8 @@ func combineSecretLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.InC
 	return out
 }
 
-func combineCertOnDiskLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.OnDiskCertKeyPairLocation) *certgraphapi.CertKeyPair {
+// CombineCertOnDiskLocations returns a CertKeyPair with all on-disk locations from in and rhs de-duplicated into a single list
+func CombineCertOnDiskLocations(in *certgraphapi.CertKeyPair, rhs []certgraphapi.OnDiskCertKeyPairLocation) *certgraphapi.CertKeyPair {
 	keyLocation := certgraphapi.OnDiskLocation{}
 	out := in.DeepCopy()
 	for _, curr := range rhs {
@@ -117,8 +119,8 @@ func deduplicateCABundles(in []*certgraphapi.CertificateAuthorityBundle) []*cert
 			}
 			if currOut.Name == currIn.Name {
 				found = true
-				ret[j] = combineConfigMapLocations(ret[j], currIn.Spec.ConfigMapLocations)
-				ret[j] = combineCABundleOnDiskLocations(ret[j], currIn.Spec.OnDiskLocations)
+				ret[j] = CombineConfigMapLocations(ret[j], currIn.Spec.ConfigMapLocations)
+				ret[j] = CombineCABundleOnDiskLocations(ret[j], currIn.Spec.OnDiskLocations)
 				break
 			}
 		}
@@ -146,7 +148,8 @@ func deduplicateCABundlesList(in *certgraphapi.CertificateAuthorityBundleList) *
 	return ret
 }
 
-func combineConfigMapLocations(in *certgraphapi.CertificateAuthorityBundle, rhs []certgraphapi.InClusterConfigMapLocation) *certgraphapi.CertificateAuthorityBundle {
+// CombineConfigMapLocations returns a CertificateAuthorityBundle with all in-cluster locations from in and rhs de-duplicated into a single list
+func CombineConfigMapLocations(in *certgraphapi.CertificateAuthorityBundle, rhs []certgraphapi.InClusterConfigMapLocation) *certgraphapi.CertificateAuthorityBundle {
 	out := in.DeepCopy()
 	for _, curr := range rhs {
 		found := false
@@ -163,7 +166,8 @@ func combineConfigMapLocations(in *certgraphapi.CertificateAuthorityBundle, rhs 
 	return out
 }
 
-func combineCABundleOnDiskLocations(in *certgraphapi.CertificateAuthorityBundle, rhs []certgraphapi.OnDiskLocation) *certgraphapi.CertificateAuthorityBundle {
+// CombineCABundleOnDiskLocations returns a CertificateAuthorityBundle with all on-disk locations from in and rhs de-duplicated into a single list
+func CombineCABundleOnDiskLocations(in *certgraphapi.CertificateAuthorityBundle, rhs []certgraphapi.OnDiskLocation) *certgraphapi.CertificateAuthorityBundle {
 	out := in.DeepCopy()
 	for _, curr := range rhs {
 		found := false
@@ -177,5 +181,21 @@ func combineCABundleOnDiskLocations(in *certgraphapi.CertificateAuthorityBundle,
 		}
 	}
 
+	return out
+}
+
+func deduplicateOnDiskMetadata(in certgraphapi.PerOnDiskResourceData) certgraphapi.PerOnDiskResourceData {
+	out := certgraphapi.PerOnDiskResourceData{}
+	for _, curr := range in.TLSArtifact {
+		found := false
+		for _, existing := range out.TLSArtifact {
+			if existing.Path == curr.Path {
+				found = true
+			}
+		}
+		if !found {
+			out.TLSArtifact = append(out.TLSArtifact, curr)
+		}
+	}
 	return out
 }

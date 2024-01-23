@@ -38,6 +38,10 @@ type secretRewriter interface {
 	rewriteSecret(secret *corev1.Secret)
 }
 
+type pathRewriter interface {
+	rewritePath(path string) string
+}
+
 type certGenerationOptionList []certGenerationOptions
 
 // TODO randomize order of traversal in these functions
@@ -118,4 +122,16 @@ func (l certGenerationOptionList) rewriteSecret(secret *corev1.Secret) {
 		}
 		option.rewriteSecret(secret)
 	}
+}
+
+func (l certGenerationOptionList) rewritePath(path string) string {
+	res := path
+	for _, curr := range l {
+		option, ok := curr.(pathRewriter)
+		if !ok {
+			continue
+		}
+		res = option.rewritePath(res)
+	}
+	return res
 }

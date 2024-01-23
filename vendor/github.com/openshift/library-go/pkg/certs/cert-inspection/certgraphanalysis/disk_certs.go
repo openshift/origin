@@ -6,27 +6,34 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+	"syscall"
+
+	"github.com/opencontainers/runc/libcontainer/user"
+	"github.com/opencontainers/selinux/go-selinux"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/cert"
 )
 
-func gatherSecretsFromDisk(ctx context.Context, prefix, dir string, options certGenerationOptionList) ([]*certgraphapi.CertKeyPair, error) {
+var errIsCA = fmt.Errorf("not certificate but a CA")
+
+func gatherSecretsFromDisk(ctx context.Context, dir string, options certGenerationOptionList) ([]*certgraphapi.CertKeyPair, []*certgraphapi.OnDiskLocationWithMetadata, error) {
 	ret := []*certgraphapi.CertKeyPair{}
-	parentDir := filepath.Join(prefix, dir)
-	_, err := os.Stat(parentDir)
+	metadataList := []*certgraphapi.OnDiskLocationWithMetadata{}
+
+	_, err := os.Stat(dir)
 	if os.IsNotExist(err) {
-		return ret, nil
+		return ret, metadataList, nil
 	}
 
-	fmt.Fprintf(os.Stdout, "Gathering secrets from %s.\n", parentDir)
-	err = filepath.WalkDir(parentDir, func(path string, d fs.DirEntry, err error) error {
+	fmt.Fprintf(os.Stdout, "Gathering secrets from %s.\n", dir)
+	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -35,20 +42,43 @@ func gatherSecretsFromDisk(ctx context.Context, prefix, dir string, options cert
 		}
 
 		fmt.Fprintf(os.Stdout, "Checking if %s is a certificate or secret key.\n", path)
-		if details, err := parseFileAsTLSArtifact(path, prefix, dir); err == nil && details != nil {
+		if details, err := parseFileAsTLSArtifact(path, dir); err == nil && details != nil {
 			for i, detail := range details {
 				fmt.Fprintf(os.Stdout, "Found certkeypair #%d in %s.\n", i+1, path)
 				options.rewriteCertKeyPair(metav1.ObjectMeta{}, detail)
+
+				needsMetadataCollected := false
+				for i, loc := range detail.Spec.OnDiskLocations {
+					if loc.Cert.Path == path {
+						needsMetadataCollected = true
+					}
+					detail.Spec.OnDiskLocations[i].Cert.Path = options.rewritePath(loc.Cert.Path)
+					fmt.Fprintf(os.Stdout, "Rewrite cert result: %s\n", detail.Spec.OnDiskLocations[i].Cert.Path)
+
+					if loc.Key.Path == path {
+						needsMetadataCollected = true
+					}
+
+					detail.Spec.OnDiskLocations[i].Key.Path = options.rewritePath(loc.Key.Path)
+					fmt.Fprintf(os.Stdout, "Rewrite key result: %s\n", detail.Spec.OnDiskLocations[i].Key.Path)
+				}
 				ret = append(ret, detail)
+
+				if needsMetadataCollected {
+					metadata := getOnDiskLocationMetadata(path)
+					metadata.Path = options.rewritePath(metadata.Path)
+					metadataList = append(metadataList, metadata)
+
+				}
 			}
 			return nil
 		}
 		return nil
 	})
-	return ret, err
+	return ret, metadataList, err
 }
 
-func parseBlockAsTLSArtifact(path, prefix string, bytes []byte) (*certgraphapi.CertKeyPair, []byte, error) {
+func parseBlockAsTLSArtifact(path string, bytes []byte) (*certgraphapi.CertKeyPair, []byte, error) {
 	block, rest := pem.Decode(bytes)
 	if block == nil {
 		return nil, rest, fmt.Errorf("empty block")
@@ -59,8 +89,11 @@ func parseBlockAsTLSArtifact(path, prefix string, bytes []byte) (*certgraphapi.C
 		if err != nil {
 			return nil, rest, err
 		}
-		detail, err := parseBlockAsCertificate(certificates, path, prefix)
-		if err != nil {
+		detail, err := parseBlockAsCertificate(certificates, path)
+		if errors.Is(err, errIsCA) {
+			// Stop processing the certificate - block found to be a CA and it can't be mixed
+			return nil, []byte{}, err
+		} else if err != nil {
 			return nil, rest, err
 		}
 		fmt.Fprintf(os.Stdout, "Found valid certificate in %s \n", path)
@@ -71,19 +104,19 @@ func parseBlockAsTLSArtifact(path, prefix string, bytes []byte) (*certgraphapi.C
 			return nil, rest, err
 		}
 		fmt.Fprintf(os.Stdout, "Found RSA private key in %s \n", path)
-		return parseBlockAsRSAPrivateKey(key, path, prefix), rest, nil
+		return parseBlockAsRSAPrivateKey(key, path), rest, nil
 	case "EC PRIVATE KEY":
 		key, err := x509.ParseECPrivateKey(block.Bytes)
 		if err != nil {
 			return nil, rest, err
 		}
 		fmt.Fprintf(os.Stdout, "Found ECDSA private key in %s \n", path)
-		return parseBlockAsECDSAPrivateKey(key, path, prefix), rest, nil
+		return parseBlockAsECDSAPrivateKey(key, path), rest, nil
 	}
 	return nil, rest, fmt.Errorf("unexpected block type: %s", block.Type)
 }
 
-func parseBlockAsCertificate(certificates []*x509.Certificate, path, prefix string) (*certgraphapi.CertKeyPair, error) {
+func parseBlockAsCertificate(certificates []*x509.Certificate, path string) (*certgraphapi.CertKeyPair, error) {
 	// Only parse first cert (last in the chain), as the rest are CA(s)
 	if len(certificates) == 0 {
 		return nil, fmt.Errorf("no certificates found")
@@ -91,7 +124,7 @@ func parseBlockAsCertificate(certificates []*x509.Certificate, path, prefix stri
 	certificate := certificates[0]
 	if certificate.IsCA {
 		// This is a CA
-		return nil, fmt.Errorf("not certificate but a CA")
+		return nil, errIsCA
 	}
 
 	detail, err := toCertKeyPair(certificate)
@@ -100,18 +133,22 @@ func parseBlockAsCertificate(certificates []*x509.Certificate, path, prefix stri
 	}
 	detail.Spec.OnDiskLocations = []certgraphapi.OnDiskCertKeyPairLocation{
 		{
-			Cert: buildOnDiskLocationFromPath(path, prefix),
+			Cert: certgraphapi.OnDiskLocation{
+				Path: path,
+			},
 		}}
 	return detail, nil
 }
 
-func parseBlockAsRSAPrivateKey(key *rsa.PrivateKey, path, prefix string) *certgraphapi.CertKeyPair {
+func parseBlockAsRSAPrivateKey(key *rsa.PrivateKey, path string) *certgraphapi.CertKeyPair {
 	return &certgraphapi.CertKeyPair{
 		Spec: certgraphapi.CertKeyPairSpec{
 			SecretLocations: nil,
 			OnDiskLocations: []certgraphapi.OnDiskCertKeyPairLocation{
 				{
-					Key: buildOnDiskLocationFromPath(path, prefix),
+					Key: certgraphapi.OnDiskLocation{
+						Path: path,
+					},
 				}},
 			CertMetadata: certgraphapi.CertKeyMetadata{
 				CertIdentifier: certgraphapi.CertIdentifier{
@@ -122,13 +159,15 @@ func parseBlockAsRSAPrivateKey(key *rsa.PrivateKey, path, prefix string) *certgr
 	}
 }
 
-func parseBlockAsECDSAPrivateKey(key *ecdsa.PrivateKey, path, prefix string) *certgraphapi.CertKeyPair {
+func parseBlockAsECDSAPrivateKey(key *ecdsa.PrivateKey, path string) *certgraphapi.CertKeyPair {
 	return &certgraphapi.CertKeyPair{
 		Spec: certgraphapi.CertKeyPairSpec{
 			SecretLocations: nil,
 			OnDiskLocations: []certgraphapi.OnDiskCertKeyPairLocation{
 				{
-					Key: buildOnDiskLocationFromPath(path, prefix),
+					Key: certgraphapi.OnDiskLocation{
+						Path: path,
+					},
 				}},
 			CertMetadata: certgraphapi.CertKeyMetadata{
 				CertIdentifier: certgraphapi.CertIdentifier{
@@ -139,7 +178,7 @@ func parseBlockAsECDSAPrivateKey(key *ecdsa.PrivateKey, path, prefix string) *ce
 	}
 }
 
-func parseFileAsTLSArtifact(path, prefix, dir string) ([]*certgraphapi.CertKeyPair, error) {
+func parseFileAsTLSArtifact(path, dir string) ([]*certgraphapi.CertKeyPair, error) {
 	var details []*certgraphapi.CertKeyPair
 
 	bytes, err := os.ReadFile(path)
@@ -149,7 +188,7 @@ func parseFileAsTLSArtifact(path, prefix, dir string) ([]*certgraphapi.CertKeyPa
 	// Parse all blocks
 	for len(bytes) > 0 {
 		fmt.Fprintf(os.Stdout, "Parsing block with length %d \n", len(bytes))
-		detail, remainder, err := parseBlockAsTLSArtifact(path, prefix, bytes)
+		detail, remainder, err := parseBlockAsTLSArtifact(path, bytes)
 		if err != nil {
 			fmt.Fprintf(os.Stdout, "Failed to parse current block: %v \n", err)
 		} else {
@@ -165,7 +204,7 @@ func parseFileAsTLSArtifact(path, prefix, dir string) ([]*certgraphapi.CertKeyPa
 	return details, nil
 }
 
-func parseFileAsCA(path, prefix, dir string) (*certgraphapi.CertificateAuthorityBundle, error) {
+func parseFileAsCA(path, dir string) (*certgraphapi.CertificateAuthorityBundle, error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -187,20 +226,23 @@ func parseFileAsCA(path, prefix, dir string) (*certgraphapi.CertificateAuthority
 		return detail, err
 	}
 
-	detail.Spec.OnDiskLocations = []certgraphapi.OnDiskLocation{buildOnDiskLocationFromPath(path, prefix)}
+	detail.Spec.OnDiskLocations = []certgraphapi.OnDiskLocation{{
+		Path: path,
+	}}
 	return detail, nil
 }
 
-func gatherCABundlesFromDisk(ctx context.Context, prefix, dir string, options certGenerationOptionList) ([]*certgraphapi.CertificateAuthorityBundle, error) {
+func gatherCABundlesFromDisk(ctx context.Context, dir string, options certGenerationOptionList) ([]*certgraphapi.CertificateAuthorityBundle, []*certgraphapi.OnDiskLocationWithMetadata, error) {
 	ret := []*certgraphapi.CertificateAuthorityBundle{}
-	parentDir := filepath.Join(prefix, dir)
-	_, err := os.Stat(parentDir)
+	metadataList := []*certgraphapi.OnDiskLocationWithMetadata{}
+
+	_, err := os.Stat(dir)
 	if os.IsNotExist(err) {
-		return ret, nil
+		return ret, metadataList, nil
 	}
 
-	fmt.Fprintf(os.Stdout, "Gathering CA bundles from %s.\n", parentDir)
-	err = filepath.WalkDir(parentDir, func(path string, d fs.DirEntry, err error) error {
+	fmt.Fprintf(os.Stdout, "Gathering CA bundles from %s.\n", dir)
+	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -208,21 +250,57 @@ func gatherCABundlesFromDisk(ctx context.Context, prefix, dir string, options ce
 			return nil
 		}
 		fmt.Fprintf(os.Stdout, "Checking if %s is a CA bundle.\n", path)
-		if detail, err := parseFileAsCA(path, prefix, dir); err == nil && detail != nil {
-			options.rewriteCABundle(metav1.ObjectMeta{}, detail)
+		if detail, err := parseFileAsCA(path, dir); err == nil && detail != nil {
 			fmt.Fprintf(os.Stdout, "Found CA bundle in %s.\n", path)
+			options.rewriteCABundle(metav1.ObjectMeta{}, detail)
+
+			needsMetadataCollected := false
+			for i, loc := range detail.Spec.OnDiskLocations {
+				if loc.Path == path {
+					needsMetadataCollected = true
+				}
+
+				detail.Spec.OnDiskLocations[i].Path = options.rewritePath(loc.Path)
+				fmt.Fprintf(os.Stdout, "Rewrite CA result: %s\n", detail.Spec.OnDiskLocations[i].Path)
+			}
 			ret = append(ret, detail)
+
+			if needsMetadataCollected {
+				metadata := getOnDiskLocationMetadata(path)
+				metadata.Path = options.rewritePath(metadata.Path)
+				metadataList = append(metadataList, metadata)
+			}
 			return nil
 		}
 		return nil
 	})
-	return ret, err
+	return ret, metadataList, err
 }
 
-func buildOnDiskLocationFromPath(path, prefix string) certgraphapi.OnDiskLocation {
-	pathWithoutPrefix := strings.Replace(path, prefix, "", 1)
-	return certgraphapi.OnDiskLocation{
-		Path: pathWithoutPrefix,
-		// TODO[vrutkovs]: fill in other settings
+func getOnDiskLocationMetadata(path string) *certgraphapi.OnDiskLocationWithMetadata {
+	ret := &certgraphapi.OnDiskLocationWithMetadata{
+		OnDiskLocation: certgraphapi.OnDiskLocation{
+			Path: path,
+		},
 	}
+
+	// Get permissions and uid/gid (omit if error occured)
+	if info, err := os.Stat(path); err == nil {
+		ret.Permissions = info.Mode().Perm().String()
+		if statt, ok := info.Sys().(*syscall.Stat_t); ok {
+			if u, err := user.LookupUid(int(statt.Uid)); err == nil {
+				ret.User = u.Name
+			}
+			if g, err := user.LookupGid(int(statt.Gid)); err == nil {
+				ret.Group = g.Name
+			}
+		}
+	}
+
+	// Get selinux label (omit if error occured)
+	if label, err := selinux.FileLabel(path); err == nil {
+		ret.SELinuxOptions = label
+	}
+
+	return ret
 }
