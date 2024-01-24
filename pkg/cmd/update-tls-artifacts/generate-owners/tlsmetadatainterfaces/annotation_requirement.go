@@ -64,32 +64,11 @@ func (o annotationRequirement) InspectRequirement(rawData []*certgraphapi.PKILis
 }
 
 func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
-	compliantCertsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
-	violatingCertsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
-	compliantCABundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
-	violatingCABundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
-
-	for i := range pkiInfo.CertKeyPairs {
-		curr := pkiInfo.CertKeyPairs[i]
-		owner := curr.CertKeyInfo.OwningJiraComponent
-		regenerates, _ := AnnotationValue(curr.CertKeyInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
-		if len(regenerates) == 0 {
-			violatingCertsByOwner[owner] = append(violatingCertsByOwner[owner], curr)
-			continue
-		}
-
-		compliantCertsByOwner[owner] = append(compliantCertsByOwner[owner], curr)
-	}
-	for i := range pkiInfo.CertificateAuthorityBundles {
-		curr := pkiInfo.CertificateAuthorityBundles[i]
-		owner := curr.CABundleInfo.OwningJiraComponent
-		regenerates, _ := AnnotationValue(curr.CABundleInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
-		if len(regenerates) == 0 {
-			violatingCABundlesByOwner[owner] = append(violatingCABundlesByOwner[owner], curr)
-			continue
-		}
-		compliantCABundlesByOwner[owner] = append(compliantCABundlesByOwner[owner], curr)
-	}
+	complianceIntermediate := BuildAnnotationComplianceIntermediate(pkiInfo, InspectAnnotationHasValue(o.GetAnnotationName()))
+	compliantCertsByOwner := complianceIntermediate.CompliantCertsByOwner
+	violatingCertsByOwner := complianceIntermediate.ViolatingCertsByOwner
+	compliantCABundlesByOwner := complianceIntermediate.CompliantCABundlesByOwner
+	violatingCABundlesByOwner := complianceIntermediate.ViolatingCABundlesByOwner
 
 	md := NewMarkdown(o.title)
 	md.Title(2, "How to meet the requirement")
@@ -114,9 +93,7 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 				md.OrderedListStart()
 				for _, curr := range certs {
 					md.NewOrderedListItem()
-					md.Textf("ns/%v secret/%v\n", curr.SecretLocation.Namespace, curr.SecretLocation.Name)
-					md.Textf("**Description:** %v", curr.CertKeyInfo.Description)
-					md.Text("\n")
+					MarkdownFor(md, curr)
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -128,9 +105,7 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 				md.OrderedListStart()
 				for _, curr := range caBundles {
 					md.NewOrderedListItem()
-					md.Textf("ns/%v configmap/%v\n", curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
-					md.Textf("**Description:** %v", curr.CABundleInfo.Description)
-					md.Text("\n")
+					MarkdownFor(md, curr)
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -156,9 +131,7 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 			md.OrderedListStart()
 			for _, curr := range certs {
 				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.SecretLocation.Namespace, curr.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.CertKeyInfo.Description)
-				md.Text("\n")
+				MarkdownFor(md, curr)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -170,9 +143,7 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 			md.OrderedListStart()
 			for _, curr := range caBundles {
 				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.CABundleInfo.Description)
-				md.Text("\n")
+				MarkdownFor(md, curr)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
