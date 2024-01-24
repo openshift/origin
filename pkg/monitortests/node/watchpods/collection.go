@@ -82,6 +82,11 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 				}
 			}
 
+			// check if container has exited
+			if containerStatus.LastTerminationState.Terminated != nil {
+				continue
+			}
+
 			// always produce conditions during create
 			if (isCreate && !newContainerReady) || (oldContainerReady && !newContainerReady) {
 				intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
@@ -368,7 +373,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 			}
 			var intervals []monitorapi.Interval
 			switch {
-			case new == corev1.PodPending && old != corev1.PodUnknown:
+			case new == corev1.PodPending && old != corev1.PodUnknown && old != corev1.PodPending:
 				switch {
 				case pod.DeletionTimestamp != nil:
 					intervals = append(intervals, monitorapi.NewInterval(monitorapi.SourcePodMonitor, monitorapi.Warning).
@@ -541,12 +546,13 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 	podIPController := NewSimultaneousPodIPController(recorderWriter, sharedInformers.Core().V1().Pods())
 	go podIPController.Run(ctx)
 	go sharedInformers.Start(ctx.Done())
-
 }
 
-type objCreateFunc func(obj interface{}) []monitorapi.Interval
-type objUpdateFunc func(obj, oldObj interface{}) []monitorapi.Interval
-type objDeleteFunc func(obj interface{}) []monitorapi.Interval
+type (
+	objCreateFunc func(obj interface{}) []monitorapi.Interval
+	objUpdateFunc func(obj, oldObj interface{}) []monitorapi.Interval
+	objDeleteFunc func(obj interface{}) []monitorapi.Interval
+)
 
 func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Interval) []objCreateFunc {
 	ret := []objCreateFunc{}
