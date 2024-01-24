@@ -1,9 +1,9 @@
 # Certificate Ownership
 
 ## Table of Contents
-  - [Missing Owners (15)](#Missing-Owners-15)
-    - [Certificates (9)](#Certificates-9)
-    - [Certificate Authority Bundles (6)](#Certificate-Authority-Bundles-6)
+  - [Missing Owners (76)](#Missing-Owners-76)
+    - [Certificates (52)](#Certificates-52)
+    - [Certificate Authority Bundles (24)](#Certificate-Authority-Bundles-24)
   - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [End User (1)](#End-User-1)
@@ -37,8 +37,8 @@
     - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
 
 
-## Missing Owners (15)
-### Certificates (9)
+## Missing Owners (76)
+### Certificates (52)
 1. ns/openshift-ingress secret/router-certs-default
 
       **Description:** 
@@ -84,9 +84,525 @@
       **Description:** 
       
 
+10. /etc/cni/multus/certs/multus-client-\<timestamp>.pem
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:etc_t:s0
+
+      
+
+11. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-0>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+12. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-1>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+13. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-2>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+14. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-0>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+15. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-1>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+16. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-2>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+17. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-0>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+18. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-1>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+19. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-2>.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+20. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+21. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+22. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/control-plane-node-admin-client-cert-key/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+23. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+24. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+25. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+26. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+27. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+28. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+29. /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+30. /var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\<timestamp>.pem
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_var_lib_t:s0
+
+      
+
+31. /etc/cni/multus/certs/multus-client-\<timestamp>.pem
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:etc_t:s0
+
+      
+
+32. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-0>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+33. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-1>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+34. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-2>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+35. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-0>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+36. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-1>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+37. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-2>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+38. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-0>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+39. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-1>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+40. /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-2>.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+41. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+42. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+43. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+44. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/control-plane-node-admin-client-cert-key/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+45. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+46. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+47. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+48. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+49. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+50. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+51. /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+52. /var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\<timestamp>.pem
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_var_lib_t:s0
+
+      
 
 
-### Certificate Authority Bundles (6)
+
+### Certificate Authority Bundles (24)
 1. ns/openshift-config-managed configmap/default-ingress-cert
 
       **Description:** 
@@ -115,6 +631,222 @@
 6. ns/openshift-ovn-kubernetes configmap/signer-ca
 
       **Description:** 
+      
+
+7. /etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt
+
+      **Permission:** -rw-r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:etc_t:s0
+
+      
+
+8. /etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt
+
+      **Permission:** -rw-r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:etc_t:s0
+
+      
+
+9. /etc/docker/certs.d/virthost.ostest.test.metalkube.org:5000/ca.crt
+
+      **Permission:** -rw-r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:etc_t:s0
+
+      
+
+10. /etc/kubernetes/ca.crt
+
+      **Permission:** -rw-r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+11. /etc/kubernetes/kubelet-ca.crt
+
+      **Permission:** -rw-r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+12. /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-metrics-proxy-client-ca/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+13. /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-metrics-proxy-serving-ca/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+14. /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-peer-client-ca/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+15. /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-serving-ca/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+16. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+17. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+18. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+19. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+20. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+21. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+22. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+23. /etc/pki/tls/cert.pem
+
+      **Permission:** -r--r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_file_t:s0:c104,c412
+
+      
+
+24. /etc/pki/tls/certs/ca-bundle.crt
+
+      **Permission:** -r--r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_file_t:s0:c104,c412
+
       
 
 

@@ -109,6 +109,69 @@ func BuildAnnotationComplianceIntermediate(pkiInfo *certgraphapi.PKIRegistryInfo
 		ret.CompliantCABundlesByOwner[owner] = append(ret.CompliantCABundlesByOwner[owner], locationDetails)
 	}
 
+	for i := range pkiInfo.CertificatesOnDisk {
+		curr := pkiInfo.CertificatesOnDisk[i]
+		locationDetails := InClusterLocationOrOnDiskPath{
+			LocationType: OnDisk,
+			OnDiskLocation: &OnDiskLocation{
+				FileMetadata: curr,
+			},
+		}
+
+		// TODO figure these out
+		owner := UnknownOwner
+		meetsRequirement := false
+		//owner := OwnerFor(locationDetails.InClusterLocation.ResourceMetata)
+		//meetsRequirement := inspector.MeetsRequirement(curr.CABundleInfo.SelectedCertMetadataAnnotations)
+		if !meetsRequirement {
+			ret.ViolatingCertsByOwner[owner] = append(ret.ViolatingCertsByOwner[owner], locationDetails)
+			continue
+		}
+		ret.CompliantCertsByOwner[owner] = append(ret.CompliantCertsByOwner[owner], locationDetails)
+	}
+
+	for i := range pkiInfo.KeysOnDisk {
+		curr := pkiInfo.KeysOnDisk[i]
+		locationDetails := InClusterLocationOrOnDiskPath{
+			LocationType: OnDisk,
+			OnDiskLocation: &OnDiskLocation{
+				FileMetadata: curr,
+			},
+		}
+
+		// TODO figure these out
+		owner := UnknownOwner
+		meetsRequirement := false
+		//owner := OwnerFor(locationDetails.InClusterLocation.ResourceMetata)
+		//meetsRequirement := inspector.MeetsRequirement(curr.CABundleInfo.SelectedCertMetadataAnnotations)
+		if !meetsRequirement {
+			ret.ViolatingCertsByOwner[owner] = append(ret.ViolatingCertsByOwner[owner], locationDetails)
+			continue
+		}
+		ret.CompliantCertsByOwner[owner] = append(ret.CompliantCertsByOwner[owner], locationDetails)
+	}
+
+	for i := range pkiInfo.CertificateAuthorityBundlesOnDisk {
+		curr := pkiInfo.CertificateAuthorityBundlesOnDisk[i]
+		locationDetails := InClusterLocationOrOnDiskPath{
+			LocationType: OnDisk,
+			OnDiskLocation: &OnDiskLocation{
+				FileMetadata: curr,
+			},
+		}
+
+		// TODO figure these out
+		owner := UnknownOwner
+		meetsRequirement := false
+		//owner := OwnerFor(locationDetails.InClusterLocation.ResourceMetata)
+		//meetsRequirement := inspector.MeetsRequirement(curr.CABundleInfo.SelectedCertMetadataAnnotations)
+		if !meetsRequirement {
+			ret.ViolatingCABundlesByOwner[owner] = append(ret.ViolatingCABundlesByOwner[owner], locationDetails)
+			continue
+		}
+		ret.CompliantCABundlesByOwner[owner] = append(ret.CompliantCABundlesByOwner[owner], locationDetails)
+	}
+
 	return ret
 }
 
@@ -121,16 +184,10 @@ func MarkdownFor(md *Markdown, location InClusterLocationOrOnDiskPath) {
 	case OnDisk:
 		md.Textf("%v\n", location.OnDiskLocation.FileMetadata.Path)
 		// TODO where to store descriptions
-
-		md.Text("| File | Permissions | User | Group | SE Linux |\n")
-		md.Text("| ----------- | ----------- | ----------- | ----------- | ----------- |\n")
-		md.Textf("| %v | %v | %v | %v | %v |\n",
-			location.OnDiskLocation.FileMetadata.Path,
-			location.OnDiskLocation.FileMetadata.Permissions,
-			location.OnDiskLocation.FileMetadata.User,
-			location.OnDiskLocation.FileMetadata.Group,
-			location.OnDiskLocation.FileMetadata.SELinuxOptions)
-
+		md.Textf("**Permission:** %v\n", location.OnDiskLocation.FileMetadata.Permissions)
+		md.Textf("**User:** %v\n", location.OnDiskLocation.FileMetadata.User)
+		md.Textf("**Group %v\n", location.OnDiskLocation.FileMetadata.Group)
+		md.Textf("**SELinuxOptions:** %v\n", location.OnDiskLocation.FileMetadata.SELinuxOptions)
 		md.Text("\n")
 	}
 }
