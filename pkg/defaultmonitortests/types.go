@@ -3,6 +3,8 @@ package defaultmonitortests
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/terminationmessagepolicy"
+
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 	"github.com/sirupsen/logrus"
 
@@ -136,6 +138,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-authentication-invariants", "apiserver-auth", legacyauthenticationmonitortests.NewLegacyTests())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
+	monitorTestRegistry.AddMonitorTestOrDie("termination-message-policy", "Cluster Version Operator", terminationmessagepolicy.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
