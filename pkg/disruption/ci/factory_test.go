@@ -59,7 +59,7 @@ func TestBackendSampler(t *testing.T) {
 			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/healthz",
-		Timeout:                      10 * time.Second,
+		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
 	})
@@ -75,7 +75,7 @@ func TestBackendSampler(t *testing.T) {
 			Protocol:         backend.ProtocolHTTP2,
 		},
 		Path:                         "/healthz",
-		Timeout:                      10 * time.Second,
+		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
 	})
