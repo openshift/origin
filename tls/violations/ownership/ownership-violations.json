@@ -152,5 +152,8 @@
                 "description": ""
             }
         }
-    ]
+    ],
+    "certificateAuthorityBundlesOnDisk": null,
+    "certificatesOnDisk": null,
+    "keysOnDisk": null
 }

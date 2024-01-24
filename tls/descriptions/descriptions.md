@@ -3,9 +3,6 @@
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
   - [Items Do NOT Meet the Requirement (134)](#Items-Do-NOT-Meet-the-Requirement-134)
-    - [ (15)](#-15)
-      - [Certificates (9)](#Certificates-9)
-      - [Certificate Authority Bundles (6)](#Certificate-Authority-Bundles-6)
     - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [End User (1)](#End-User-1)
@@ -23,6 +20,9 @@
       - [Certificate Authority Bundles (20)](#Certificate-Authority-Bundles-20)
     - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
       - [Certificates (2)](#Certificates-2)
+    - [Unknown (15)](#Unknown-15)
+      - [Certificates (9)](#Certificates-9)
+      - [Certificate Authority Bundles (6)](#Certificate-Authority-Bundles-6)
     - [apiserver-auth (3)](#apiserver-auth-3)
       - [Certificates (1)](#Certificates-1)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -52,88 +52,6 @@ These descriptions must be in the style of API documentation and must include
 To create a description, set the `openshift.io/description` annotation to the markdown formatted string describing your TLS artifact. 
 
 ## Items Do NOT Meet the Requirement (134)
-###  (15)
-#### Certificates (9)
-1. ns/openshift-ingress secret/router-certs-default
-
-      **Description:** 
-      
-
-2. ns/openshift-ingress-operator secret/router-ca
-
-      **Description:** 
-      
-
-3. ns/openshift-machine-api secret/metal3-ironic-tls
-
-      **Description:** 
-      
-
-4. ns/openshift-network-node-identity secret/network-node-identity-ca
-
-      **Description:** 
-      
-
-5. ns/openshift-network-node-identity secret/network-node-identity-cert
-
-      **Description:** 
-      
-
-6. ns/openshift-ovn-kubernetes secret/ovn-ca
-
-      **Description:** 
-      
-
-7. ns/openshift-ovn-kubernetes secret/ovn-cert
-
-      **Description:** 
-      
-
-8. ns/openshift-ovn-kubernetes secret/signer-ca
-
-      **Description:** 
-      
-
-9. ns/openshift-ovn-kubernetes secret/signer-cert
-
-      **Description:** 
-      
-
-
-
-#### Certificate Authority Bundles (6)
-1. ns/openshift-config-managed configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-2. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
-
-      **Description:** 
-      
-
-3. ns/openshift-console configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-4. ns/openshift-network-node-identity configmap/network-node-identity-ca
-
-      **Description:** 
-      
-
-5. ns/openshift-ovn-kubernetes configmap/ovn-ca
-
-      **Description:** 
-      
-
-6. ns/openshift-ovn-kubernetes configmap/signer-ca
-
-      **Description:** 
-      
-
-
-
 ### Cloud Compute / Cloud Controller Manager (1)
 #### Certificate Authority Bundles (1)
 1. ns/openshift-cloud-controller-manager configmap/ccm-trusted-ca
@@ -490,6 +408,88 @@ To create a description, set the `openshift.io/description` annotation to the ma
       
 
 2. ns/openshift-operator-lifecycle-manager secret/pprof-cert
+
+      **Description:** 
+      
+
+
+
+### Unknown (15)
+#### Certificates (9)
+1. ns/openshift-ingress secret/router-certs-default
+
+      **Description:** 
+      
+
+2. ns/openshift-ingress-operator secret/router-ca
+
+      **Description:** 
+      
+
+3. ns/openshift-machine-api secret/metal3-ironic-tls
+
+      **Description:** 
+      
+
+4. ns/openshift-network-node-identity secret/network-node-identity-ca
+
+      **Description:** 
+      
+
+5. ns/openshift-network-node-identity secret/network-node-identity-cert
+
+      **Description:** 
+      
+
+6. ns/openshift-ovn-kubernetes secret/ovn-ca
+
+      **Description:** 
+      
+
+7. ns/openshift-ovn-kubernetes secret/ovn-cert
+
+      **Description:** 
+      
+
+8. ns/openshift-ovn-kubernetes secret/signer-ca
+
+      **Description:** 
+      
+
+9. ns/openshift-ovn-kubernetes secret/signer-cert
+
+      **Description:** 
+      
+
+
+
+#### Certificate Authority Bundles (6)
+1. ns/openshift-config-managed configmap/default-ingress-cert
+
+      **Description:** 
+      
+
+2. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
+
+      **Description:** 
+      
+
+3. ns/openshift-console configmap/default-ingress-cert
+
+      **Description:** 
+      
+
+4. ns/openshift-network-node-identity configmap/network-node-identity-ca
+
+      **Description:** 
+      
+
+5. ns/openshift-ovn-kubernetes configmap/ovn-ca
+
+      **Description:** 
+      
+
+6. ns/openshift-ovn-kubernetes configmap/signer-ca
 
       **Description:** 
       
