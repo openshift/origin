@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -28,9 +29,9 @@ type RunCollectDiskCertificatesFlags struct {
 	ConfigFlags *genericclioptions.ConfigFlags
 	OutputFlags *iooptions.OutputFlags
 
-	ArtifactDir string
-	Prefix      string
-	CollectDirs []string
+	ArtifactDir      string
+	RootFSMountpoint string
+	CollectDirs      []string
 
 	genericclioptions.IOStreams
 }
@@ -94,7 +95,7 @@ func NewRunCollectDiskCertificatesCommand(ioStreams genericclioptions.IOStreams)
 
 func (f *RunCollectDiskCertificatesFlags) AddFlags(flags *pflag.FlagSet) {
 	flags.StringArrayVar(&f.CollectDirs, "collect-dir", f.CollectDirs, "directories to collect certs in")
-	flags.StringVar(&f.Prefix, "prefix", f.Prefix, "directories prefix")
+	flags.StringVar(&f.RootFSMountpoint, "root-fs-mountpoint", f.RootFSMountpoint, "rootfs mountpoint (will be stripped from paths)")
 	f.ConfigFlags.AddFlags(flags)
 	f.OutputFlags.BindFlags(flags)
 }
@@ -131,13 +132,13 @@ func (f *RunCollectDiskCertificatesFlags) ToOptions() (*RunCollectDiskCertificat
 	}
 
 	return &RunCollectDiskCertificatesOptions{
-		KubeClient:      kubeClient,
-		OutputFile:      f.OutputFlags.OutFile,
-		CloseFn:         closeFn,
-		OriginalOutFile: originalOutStream,
-		IOStreams:       f.IOStreams,
-		CollectDirs:     f.CollectDirs,
-		Prefix:          f.Prefix,
+		KubeClient:       kubeClient,
+		OutputFile:       f.OutputFlags.OutFile,
+		CloseFn:          closeFn,
+		OriginalOutFile:  originalOutStream,
+		IOStreams:        f.IOStreams,
+		CollectDirs:      f.CollectDirs,
+		RootFSMountpoint: f.RootFSMountpoint,
 	}, nil
 }
 
@@ -146,8 +147,8 @@ type RunCollectDiskCertificatesOptions struct {
 	KubeClient kubernetes.Interface
 	OutputFile string
 
-	CollectDirs []string
-	Prefix      string
+	CollectDirs      []string
+	RootFSMountpoint string
 
 	OriginalOutFile io.Writer
 	CloseFn         iooptions.CloseFunc
@@ -173,10 +174,13 @@ func (o *RunCollectDiskCertificatesOptions) Run(ctx context.Context) error {
 	}
 
 	for _, srcDir := range o.CollectDirs {
-		dirPKIList, err := certgraphanalysis.GatherCertsFromDisk(ctx, o.KubeClient, o.Prefix, srcDir,
+		dirPKIList, err := certgraphanalysis.GatherCertsFromDisk(ctx, o.KubeClient, srcDir,
 			certgraphanalysis.ElideProxyCADetails,
 			certgraphanalysis.SkipRevisioned,
 			certgraphanalysis.SkipHashed,
+			certgraphanalysis.SkipRevisionedLocations,
+			certgraphanalysis.StripTimestamps,
+			certgraphanalysis.StripRootFSMountPoint(o.RootFSMountpoint),
 			certgraphanalysis.RewriteNodeIPs(masters))
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %s", srcDir, err))

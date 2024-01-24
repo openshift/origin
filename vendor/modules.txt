@@ -999,7 +999,7 @@ github.com/openshift/client-go/user/listers/user/v1
 # github.com/openshift/cluster-network-operator v0.0.0-20240111190956-90754aa19843
 ## explicit; go 1.20
 github.com/openshift/cluster-network-operator/pkg/names
-# github.com/openshift/library-go v0.0.0-20240111220656-8c7cc0e63628
+# github.com/openshift/library-go v0.0.0-20240123164245-c92e150237e3
 ## explicit; go 1.21
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
 github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout
