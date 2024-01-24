@@ -147,71 +147,7 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "azure-disk-csi-driver-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "azure-file-csi-driver-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
                 "Name": "gcp-pd-csi-driver-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "vmware-vsphere-csi-driver-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "vsphere-csi-driver-operator-trusted-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
                 "selectedCertMetadataAnnotations": [
@@ -242,27 +178,17 @@
         },
         {
             "configMapLocation": {
-                "Namespace": "openshift-cluster-storage-operator",
-                "Name": "trusted-ca-bundle"
+                "Namespace": "openshift-config",
+                "Name": "admin-kubeconfig-client-ca"
             },
             "certificateAuthorityBundleInfo": {
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
+                        "value": "kube-apiserver"
                     }
                 ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "admin-kubeconfig-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-apiserver",
                 "description": ""
             }
         },
@@ -272,7 +198,13 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Etcd"
+                    }
+                ],
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -596,7 +528,13 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Etcd"
+                    }
+                ],
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -638,7 +576,13 @@
                 "Name": "etcd-peer-client-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Etcd"
+                    }
+                ],
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -664,7 +608,13 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Etcd"
+                    }
+                ],
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -1551,46 +1501,6 @@
         {
             "secretLocation": {
                 "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "azure-disk-csi-driver-controller-metrics-serving-cert"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "service-ca"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/azure-disk-csi-driver-controller-metrics with hostname azure-disk-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: azure-disk-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-                    }
-                ],
-                "owningJiraComponent": "service-ca",
-                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/azure-disk-csi-driver-controller-metrics with hostname azure-disk-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: azure-disk-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "azure-file-csi-driver-controller-metrics-serving-cert"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "service-ca"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/azure-file-csi-driver-controller-metrics with hostname azure-file-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: azure-file-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-                    }
-                ],
-                "owningJiraComponent": "service-ca",
-                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/azure-file-csi-driver-controller-metrics with hostname azure-file-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: azure-file-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
                 "Name": "gcp-pd-csi-driver-controller-metrics-serving-cert"
             },
             "certKeyInfo": {
@@ -1606,66 +1516,6 @@
                 ],
                 "owningJiraComponent": "service-ca",
                 "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/gcp-pd-csi-driver-controller-metrics with hostname gcp-pd-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: gcp-pd-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "vmware-vsphere-csi-driver-controller-metrics-serving-cert"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "service-ca"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-controller-metrics with hostname vmware-vsphere-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-                    }
-                ],
-                "owningJiraComponent": "service-ca",
-                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-controller-metrics with hostname vmware-vsphere-csi-driver-controller-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-controller-metrics-serving-cert'. The certificate is valid for 2 years."
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "vmware-vsphere-csi-driver-operator-metrics-serving-cert"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "service-ca"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-operator-metrics with hostname vmware-vsphere-csi-driver-operator-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-operator-metrics-serving-cert'. The certificate is valid for 2 years."
-                    }
-                ],
-                "owningJiraComponent": "service-ca",
-                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-operator-metrics with hostname vmware-vsphere-csi-driver-operator-metrics.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-operator-metrics-serving-cert'. The certificate is valid for 2 years."
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "vmware-vsphere-csi-driver-webhook-secret"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "service-ca"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-webhook-svc with hostname vmware-vsphere-csi-driver-webhook-svc.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-webhook-secret'. The certificate is valid for 2 years."
-                    }
-                ],
-                "owningJiraComponent": "service-ca",
-                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vmware-vsphere-csi-driver-webhook-svc with hostname vmware-vsphere-csi-driver-webhook-svc.openshift-cluster-csi-drivers.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vmware-vsphere-csi-driver-webhook-secret'. The certificate is valid for 2 years."
             }
         },
         {
@@ -1806,26 +1656,6 @@
                 ],
                 "owningJiraComponent": "service-ca",
                 "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/csi-snapshot-controller-operator-metrics with hostname csi-snapshot-controller-operator-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: serving-cert'. The certificate is valid for 2 years."
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-cluster-storage-operator",
-                "Name": "vsphere-problem-detector-serving-cert"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "service-ca"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vsphere-problem-detector-metrics with hostname vsphere-problem-detector-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vsphere-problem-detector-serving-cert'. The certificate is valid for 2 years."
-                    }
-                ],
-                "owningJiraComponent": "service-ca",
-                "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/vsphere-problem-detector-metrics with hostname vsphere-problem-detector-metrics.openshift-cluster-storage-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: vsphere-problem-detector-serving-cert'. The certificate is valid for 2 years."
             }
         },
         {

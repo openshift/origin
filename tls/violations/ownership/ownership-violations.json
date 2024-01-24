@@ -2,26 +2,6 @@
     "certificateAuthorityBundles": [
         {
             "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "admin-kubeconfig-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "etcd-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
                 "Namespace": "openshift-config-managed",
                 "Name": "default-ingress-cert"
             },
@@ -44,36 +24,6 @@
             "configMapLocation": {
                 "Namespace": "openshift-console",
                 "Name": "default-ingress-cert"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd-operator",
-                "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
                 "owningJiraComponent": "",

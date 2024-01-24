@@ -147,71 +147,7 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "azure-disk-csi-driver-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "azure-file-csi-driver-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
                 "Name": "gcp-pd-csi-driver-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "vmware-vsphere-csi-driver-trusted-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
-                    }
-                ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-cluster-csi-drivers",
-                "Name": "vsphere-csi-driver-operator-trusted-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
                 "selectedCertMetadataAnnotations": [
@@ -242,27 +178,17 @@
         },
         {
             "configMapLocation": {
-                "Namespace": "openshift-cluster-storage-operator",
-                "Name": "trusted-ca-bundle"
+                "Namespace": "openshift-config",
+                "Name": "admin-kubeconfig-client-ca"
             },
             "certificateAuthorityBundleInfo": {
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Networking / cluster-network-operator"
+                        "value": "kube-apiserver"
                     }
                 ],
-                "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "admin-kubeconfig-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "owningJiraComponent": "kube-apiserver",
                 "description": ""
             }
         },
@@ -272,7 +198,13 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Etcd"
+                    }
+                ],
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -576,7 +508,13 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Etcd"
+                    }
+                ],
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -618,7 +556,13 @@
                 "Name": "etcd-peer-client-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Etcd"
+                    }
+                ],
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -644,7 +588,13 @@
                 "Name": "etcd-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Etcd"
+                    }
+                ],
+                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
