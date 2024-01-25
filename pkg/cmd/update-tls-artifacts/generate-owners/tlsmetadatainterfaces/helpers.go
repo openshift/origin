@@ -21,7 +21,7 @@ func AnnotationValue(whitelistedAnnotations []certgraphapi.AnnotationValue, key 
 	return "", false
 }
 
-func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certgraphapi.PKIRegistryInfo, error) {
+func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certs.PKIRegistryInfo, error) {
 	errs := []error{}
 	inClusterCertKeyPairs := certs.SecretInfoByNamespaceName{}
 	onDiskCertsWithoutSecrets := certs.CertKeyPairInfoByOnDiskLocation{}

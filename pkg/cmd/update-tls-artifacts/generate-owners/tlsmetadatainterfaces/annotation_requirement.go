@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	"github.com/openshift/origin/pkg/certs"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -63,7 +64,7 @@ func (o annotationRequirement) InspectRequirement(rawData []*certgraphapi.PKILis
 		violationJSONBytes)
 }
 
-func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
+func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 	compliantCertsByOwner := map[string][]certgraphapi.PKIRegistryCertKeyPair{}
 	violatingCertsByOwner := map[string][]certgraphapi.PKIRegistryCertKeyPair{}
 	compliantCABundlesByOwner := map[string][]certgraphapi.PKIRegistryCABundle{}
@@ -208,8 +209,8 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 	return md.Bytes(), nil
 }
 
-func generateViolationJSONForAnnotationRequirement(annotationName string, pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.PKIRegistryInfo {
-	ret := &certgraphapi.PKIRegistryInfo{}
+func generateViolationJSONForAnnotationRequirement(annotationName string, pkiInfo *certs.PKIRegistryInfo) *certs.PKIRegistryInfo {
+	ret := &certs.PKIRegistryInfo{}
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]

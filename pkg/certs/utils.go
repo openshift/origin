@@ -8,13 +8,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-func GetPKIInfoFromEmbeddedOwnership(ownershipFile []byte) (*certgraphapi.PKIRegistryInfo, error) {
+func GetPKIInfoFromEmbeddedOwnership(ownershipFile []byte) (*PKIRegistryInfo, error) {
 	inClusterCerts := SecretInfoByNamespaceName{}
 	onDiskCerts := CertKeyPairInfoByOnDiskLocation{}
 	inClusterCABundles := ConfigMapInfoByNamespaceName{}
 	onDiskCABundles := CABundleInfoByOnDiskLocation{}
 
-	currPKI := &certgraphapi.PKIRegistryInfo{}
+	currPKI := &PKIRegistryInfo{}
 	err := json.Unmarshal(ownershipFile, currPKI)
 	if err != nil {
 		return nil, err
@@ -44,8 +44,8 @@ func CertsToRegistryInfo(
 	onDiskCerts CertKeyPairInfoByOnDiskLocation,
 	caBundles ConfigMapInfoByNamespaceName,
 	onDiskCABundles CABundleInfoByOnDiskLocation,
-) *certgraphapi.PKIRegistryInfo {
-	result := &certgraphapi.PKIRegistryInfo{}
+) *PKIRegistryInfo {
+	result := &PKIRegistryInfo{}
 
 	inClusterCertKeys := sets.KeySet[certgraphapi.InClusterSecretLocation, certgraphapi.PKIRegistryCertKeyPairInfo](certs).UnsortedList()
 	sort.Sort(SecretRefByNamespaceName(inClusterCertKeys))

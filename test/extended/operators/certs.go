@@ -62,7 +62,7 @@ var (
 	podYaml []byte
 
 	actualPKIContent   *certgraphapi.PKIList
-	expectedPKIContent *certgraphapi.PKIRegistryInfo
+	expectedPKIContent *certs.PKIRegistryInfo
 	nodeList           *corev1.NodeList
 	jobType            *platformidentification.JobType
 )
@@ -161,7 +161,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		violationsPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIViolations)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		newTLSRegistry := &certgraphapi.PKIRegistryInfo{}
+		newTLSRegistry := &certs.PKIRegistryInfo{}
 
 		for _, currCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
 			currLocation := currCertKeyPair.SecretLocation
