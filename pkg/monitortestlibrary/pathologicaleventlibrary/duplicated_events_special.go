@@ -90,6 +90,13 @@ func (s *singleEventThresholdCheck) NamespacedTest(events monitorapi.Intervals) 
 		}
 	}
 
+	for ns, result := range nsResults {
+		if len(result.failures) == 0 && len(result.flakes) == 0 {
+			// delete the entry for ns
+			delete(nsResults, ns)
+		}
+	}
+
 	return generateJUnitTestCasesCoreNamespaces(s.testName, nsResults)
 }
 

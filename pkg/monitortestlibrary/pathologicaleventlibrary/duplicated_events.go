@@ -141,20 +141,16 @@ func generateJUnitTestCasesCoreNamespaces(testName string, nsResults map[string]
 	for namespace := range namespaces {
 		jUnitName := getJUnitName(testName, namespace)
 		if result, ok := nsResults[namespace]; ok {
-			if len(result.failures) == 0 && len(result.flakes) == 0 {
+			output := generateFailureOutput(result.failures, result.flakes)
+			tests = append(tests, &junitapi.JUnitTestCase{
+				Name: jUnitName,
+				FailureOutput: &junitapi.FailureOutput{
+					Output: output,
+				},
+			})
+			// Add a success for flakes
+			if len(result.failures) == 0 && len(result.flakes) > 0 {
 				tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
-			} else {
-				output := generateFailureOutput(result.failures, result.flakes)
-				tests = append(tests, &junitapi.JUnitTestCase{
-					Name: jUnitName,
-					FailureOutput: &junitapi.FailureOutput{
-						Output: output,
-					},
-				})
-				// Add a success for flakes
-				if len(result.failures) == 0 && len(result.flakes) > 0 {
-					tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
-				}
 			}
 		} else {
 			tests = append(tests, &junitapi.JUnitTestCase{Name: jUnitName})
