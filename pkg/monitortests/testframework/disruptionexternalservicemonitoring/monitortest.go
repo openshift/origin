@@ -8,17 +8,11 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 
-	routev1 "github.com/openshift/api/route/v1"
-	routeclient "github.com/openshift/client-go/route/clientset/versioned"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/openshift/origin/test/extended/util/imageregistryutil"
 )
 
 const (
@@ -29,10 +23,6 @@ const (
 )
 
 type availability struct {
-	kubeClient         kubernetes.Interface
-	routeClient        routeclient.Interface
-	imageRegistryRoute *routev1.Route
-
 	disruptionChecker  *disruptionlibrary.Availability
 	notSupportedReason error
 	suppressJunit      bool
@@ -49,32 +39,6 @@ func NewRecordAvailabilityOnly() monitortestframework.MonitorTest {
 }
 
 func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-	var err error
-
-	w.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
-	if err != nil {
-		return err
-	}
-	w.routeClient, err = routeclient.NewForConfig(adminRESTConfig)
-	if err != nil {
-		return err
-	}
-
-	_, err = w.kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-image-registry", metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		w.notSupportedReason = &monitortestframework.NotSupportedError{
-			Reason: "namespace openshift-image-registry not present",
-		}
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	w.imageRegistryRoute, err = imageregistryutil.ExposeImageRegistryGenerateName(ctx, w.routeClient, "test-disruption-")
-	if err != nil {
-		return err
-	}
-
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"ci-cluster-network-liveness-new-connections",
