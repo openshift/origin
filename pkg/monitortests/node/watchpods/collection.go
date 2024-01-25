@@ -82,8 +82,10 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 				}
 			}
 
-			// check if container has exited
-			if containerStatus.LastTerminationState.Terminated != nil {
+			// if this container is terminated, then we don't need to compute an event for it.
+			lastTerminated := containerStatus.LastTerminationState.Terminated != nil
+			currentTerminated := containerStatus.State.Terminated != nil
+			if lastTerminated || currentTerminated {
 				continue
 			}
 
