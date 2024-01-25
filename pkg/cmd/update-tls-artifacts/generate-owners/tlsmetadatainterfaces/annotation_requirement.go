@@ -71,12 +71,12 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		if curr.InClusterLocation == nil {
+		certKeyInfo, err := CertInfoForCertKeyPair(curr)
+		if err != nil {
 			continue
 		}
-		// TODO[vrutkovs]: fetch ondisk metadata here
-		owner := curr.InClusterLocation.CertKeyInfo.OwningJiraComponent
-		regenerates, _ := AnnotationValue(curr.InClusterLocation.CertKeyInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
+		owner := certKeyInfo.OwningJiraComponent
+		regenerates, _ := AnnotationValue(certKeyInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
 		if len(regenerates) == 0 {
 			violatingCertsByOwner[owner] = append(violatingCertsByOwner[owner], curr)
 			continue
@@ -86,11 +86,12 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		if curr.InClusterLocation == nil {
+		caBundleInfo, err := CertificateAuthorityInfoForCABundle(curr)
+		if err != nil {
 			continue
 		}
-		owner := curr.InClusterLocation.CABundleInfo.OwningJiraComponent
-		regenerates, _ := AnnotationValue(curr.InClusterLocation.CABundleInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
+		owner := caBundleInfo.OwningJiraComponent
+		regenerates, _ := AnnotationValue(caBundleInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
 		if len(regenerates) == 0 {
 			violatingCABundlesByOwner[owner] = append(violatingCABundlesByOwner[owner], curr)
 			continue
@@ -120,15 +121,14 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 				md.Title(4, fmt.Sprintf("Certificates (%d)", len(certs)))
 				md.OrderedListStart()
 				for _, curr := range certs {
-					if curr.InClusterLocation == nil {
+					certKeyInfo, err := CertInfoForCertKeyPair(curr)
+					if err != nil {
 						continue
 					}
 					md.NewOrderedListItem()
-					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
+					md.PrintCertKeyName(curr)
+					md.Textf("**Description:** %v", certKeyInfo.Description)
 					md.Text("\n")
-
-					//TODO[vrutkovs]: on disk case
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -139,15 +139,14 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 				md.Title(4, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 				md.OrderedListStart()
 				for _, curr := range caBundles {
-					if curr.InClusterLocation == nil {
+					caBundleInfo, err := CertificateAuthorityInfoForCABundle(curr)
+					if err != nil {
 						continue
 					}
 					md.NewOrderedListItem()
-					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
+					md.PrintCABundleName(curr)
+					md.Textf("**Description:** %v", caBundleInfo.Description)
 					md.Text("\n")
-
-					//TODO[vrutkovs]: on disk case
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -172,12 +171,15 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 			md.Title(4, fmt.Sprintf("Certificates (%d)", len(certs)))
 			md.OrderedListStart()
 			for _, curr := range certs {
+				certKeyInfo, err := CertInfoForCertKeyPair(curr)
+				if err != nil {
+					continue
+				}
 				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
+				md.PrintCertKeyName(curr)
+				md.Textf("**Description:** %v", certKeyInfo.Description)
 				md.Text("\n")
 			}
-			//TODO[vrutkovs]: on disk case
 
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -188,16 +190,15 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 			md.Title(4, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 			md.OrderedListStart()
 			for _, curr := range caBundles {
-				if curr.InClusterLocation == nil {
+				caBundleInfo, err := CertificateAuthorityInfoForCABundle(curr)
+				if err != nil {
 					continue
 				}
-
 				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
+				md.PrintCABundleName(curr)
+				md.Textf("**Description:** %v", caBundleInfo.Description)
 				md.Text("\n")
 			}
-			//TODO[vrutkovs]: on disk case
 
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -212,19 +213,25 @@ func generateViolationJSONForAnnotationRequirement(annotationName string, pkiInf
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		regenerates, _ := AnnotationValue(curr.InClusterLocation.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
+		certKeyInfo, err := CertInfoForCertKeyPair(curr)
+		if err != nil {
+			continue
+		}
+		regenerates, _ := AnnotationValue(certKeyInfo.SelectedCertMetadataAnnotations, annotationName)
 		if len(regenerates) == 0 {
 			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
 		}
-		//TODO[vrutkovs]: on disk case
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		regenerates, _ := AnnotationValue(curr.InClusterLocation.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
+		caBundleInfo, err := CertificateAuthorityInfoForCABundle(curr)
+		if err != nil {
+			continue
+		}
+		regenerates, _ := AnnotationValue(caBundleInfo.SelectedCertMetadataAnnotations, annotationName)
 		if len(regenerates) == 0 {
 			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
 		}
-		//TODO[vrutkovs]: on disk case
 	}
 
 	return ret

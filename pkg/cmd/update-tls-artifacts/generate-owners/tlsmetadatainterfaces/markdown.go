@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+
+	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
 
 type Markdown struct {
@@ -103,6 +105,24 @@ func (m *Markdown) OrderedListEnd() {
 	m.orderedListDepth--
 	if m.orderedListDepth < 0 {
 		m.orderedListDepth = 0
+	}
+}
+
+func (m *Markdown) PrintCABundleName(curr certgraphapi.PKIRegistryCABundle) {
+	switch {
+	case curr.InClusterLocation != nil:
+		m.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
+	case curr.OnDiskLocation != nil:
+		m.Textf("%v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+	}
+}
+
+func (m *Markdown) PrintCertKeyName(curr certgraphapi.PKIRegistryCertKeyPair) {
+	switch {
+	case curr.InClusterLocation != nil:
+		m.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+	case curr.OnDiskLocation != nil:
+		m.Textf("%v\n", curr.OnDiskLocation.OnDiskLocation.Path)
 	}
 }
 
