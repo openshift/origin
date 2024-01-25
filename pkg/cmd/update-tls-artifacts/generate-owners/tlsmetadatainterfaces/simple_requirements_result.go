@@ -109,25 +109,31 @@ func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.
 
 	regressions := []string{}
 	for _, currCertKeyPair := range resultingViolations.CertKeyPairs {
-		currLocation := currCertKeyPair.SecretLocation
-		_, err := certgraphutils.LocateCertKeyPair(currLocation, existingViolations.CertKeyPairs)
-		if err != nil {
-			// this means it wasn't found
-			regressions = append(regressions,
-				fmt.Sprintf("requirment/%v: --namespace=%v secret/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
-			)
+		if currCertKeyPair.InClusterLocation != nil {
+			currLocation := currCertKeyPair.InClusterLocation.SecretLocation
+			_, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, existingViolations.CertKeyPairs)
+			if err != nil {
+				// this means it wasn't found
+				regressions = append(regressions,
+					fmt.Sprintf("requirment/%v: --namespace=%v secret/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+				)
+			}
 		}
+		// TODO[vrutkovs]: add currCertKeyPair.OnDiskLocation
 	}
 
 	for _, currCABundle := range resultingViolations.CertificateAuthorityBundles {
-		currLocation := currCABundle.ConfigMapLocation
-		_, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, existingViolations.CertificateAuthorityBundles)
-		if err != nil {
-			// this means it wasn't found
-			regressions = append(regressions,
-				fmt.Sprintf("requirment/%v: --namespace=%v configmap/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
-			)
+		if currCABundle.InClusterLocation != nil {
+			currLocation := currCABundle.InClusterLocation.ConfigMapLocation
+			_, err := certgraphutils.LocateCABundleByConfigMapLocation(currLocation, existingViolations.CertificateAuthorityBundles)
+			if err != nil {
+				// this means it wasn't found
+				regressions = append(regressions,
+					fmt.Sprintf("requirment/%v: --namespace=%v configmap/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+				)
+			}
 		}
+		// TODO[vrutkovs]: add currCABundle.OnDiskLocation
 	}
 
 	if len(regressions) > 0 {
