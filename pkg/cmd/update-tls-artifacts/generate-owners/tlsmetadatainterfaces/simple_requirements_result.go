@@ -119,7 +119,16 @@ func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.
 				)
 			}
 		}
-		// TODO[vrutkovs]: add currCertKeyPair.OnDiskLocation
+		if currCertKeyPair.OnDiskLocation != nil {
+			currLocation := currCertKeyPair.OnDiskLocation.OnDiskLocation
+			_, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Path, existingViolations.CertKeyPairs)
+			if err != nil {
+				// this means it wasn't found
+				regressions = append(regressions,
+					fmt.Sprintf("requirment/%v: %v regressed and does not have an owner", s.GetName(), currLocation.Path),
+				)
+			}
+		}
 	}
 
 	for _, currCABundle := range resultingViolations.CertificateAuthorityBundles {
@@ -133,7 +142,16 @@ func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.
 				)
 			}
 		}
-		// TODO[vrutkovs]: add currCABundle.OnDiskLocation
+		if currCABundle.OnDiskLocation != nil {
+			currLocation := currCABundle.OnDiskLocation.OnDiskLocation
+			_, err := certgraphutils.LocateCABundleByOnDiskLocation(currLocation.Path, existingViolations.CertificateAuthorityBundles)
+			if err != nil {
+				// this means it wasn't found
+				regressions = append(regressions,
+					fmt.Sprintf("requirment/%v: %v regressed and does not have an owner", s.GetName(), currLocation.Path),
+				)
+			}
+		}
 	}
 
 	if len(regressions) > 0 {

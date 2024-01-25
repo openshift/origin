@@ -63,6 +63,19 @@ func LocateCertKeyPairBySecretLocation(targetLocation certgraphapi.InClusterSecr
 	return nil, fmt.Errorf("not found: %#v", targetLocation)
 }
 
+func LocateCertKeyPairByOnDiskLocation(targetPath string, expectedCertKeyPairs []certgraphapi.PKIRegistryCertKeyPair) (*certgraphapi.PKIRegistryOnDiskCertKeyPair, error) {
+	for i, expected := range expectedCertKeyPairs {
+		if expected.OnDiskLocation == nil {
+			continue
+		}
+		if targetPath == expected.OnDiskLocation.OnDiskLocation.Path {
+			return expectedCertKeyPairs[i].OnDiskLocation, nil
+		}
+	}
+
+	return nil, fmt.Errorf("not found: %#v", targetPath)
+}
+
 func LocateCABundleByConfigMapLocation(targetLocation certgraphapi.InClusterConfigMapLocation, expectedCABundles []certgraphapi.PKIRegistryCABundle) (*certgraphapi.PKIRegistryInClusterCABundle, error) {
 	for i, expected := range expectedCABundles {
 		if expected.InClusterLocation == nil {
@@ -74,4 +87,17 @@ func LocateCABundleByConfigMapLocation(targetLocation certgraphapi.InClusterConf
 	}
 
 	return nil, fmt.Errorf("not found: %#v", targetLocation)
+}
+
+func LocateCABundleByOnDiskLocation(targetPath string, expectedCABundles []certgraphapi.PKIRegistryCABundle) (*certgraphapi.PKIRegistryOnDiskCABundle, error) {
+	for i, expected := range expectedCABundles {
+		if expected.OnDiskLocation == nil {
+			continue
+		}
+		if targetPath == expected.OnDiskLocation.OnDiskLocation.Path {
+			return expectedCABundles[i].OnDiskLocation, nil
+		}
+	}
+
+	return nil, fmt.Errorf("not found: %#v", targetPath)
 }
