@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/openshift/origin/pkg/certs"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
@@ -47,8 +48,8 @@ func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (t
 		violationJSONBytes)
 }
 
-func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.PKIRegistryInfo {
-	ret := &certgraphapi.PKIRegistryInfo{}
+func generateViolationJSON(pkiInfo *certs.PKIRegistryInfo) *certs.PKIRegistryInfo {
+	ret := &certs.PKIRegistryInfo{}
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
@@ -76,7 +77,7 @@ func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.
 	return ret
 }
 
-func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
+func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 	certsByOwner := map[string][]certgraphapi.PKIRegistryCertKeyPair{}
 	certsWithoutOwners := []certgraphapi.PKIRegistryCertKeyPair{}
 	caBundlesByOwner := map[string][]certgraphapi.PKIRegistryCABundle{}

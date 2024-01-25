@@ -6,6 +6,14 @@ import (
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 )
 
+// PKIRegistryInfo holds information about TLS artifacts stored in etcd. This includes object location and metadata based on object annotations
+type PKIRegistryInfo struct {
+	// +mapType:=atomic
+	CertificateAuthorityBundles []certgraphapi.PKIRegistryCABundle `json:"certificateAuthorityBundles"`
+	// +mapType:=atomic
+	CertKeyPairs []certgraphapi.PKIRegistryCertKeyPair `json:"certKeyPairs"`
+}
+
 type ConfigMapRefByNamespaceName []certgraphapi.InClusterConfigMapLocation
 type SecretRefByNamespaceName []certgraphapi.InClusterSecretLocation
 type SecretInfoByNamespaceName map[certgraphapi.InClusterSecretLocation]certgraphapi.PKIRegistryCertKeyPairInfo
