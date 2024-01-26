@@ -14,8 +14,9 @@ import (
 // flake threshold.  See https://bugzilla.redhat.com/show_bug.cgi?id=2031564.
 func testRequiredInstallerResourcesMissing(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[bz-etcd] pathological event should not see excessive RequiredInstallerResourcesMissing secrets"
+	// TODO(thomas): increasing the limits until full cert rotation is in place
 	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName,
-		pathologicaleventlibrary.EtcdRequiredResourcesMissing, pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.RequiredResourceMissingFlakeThreshold).Test(events)
+		pathologicaleventlibrary.EtcdRequiredResourcesMissing, 40, 30).Test(events)
 }
 
 func testOperatorStatusChanged(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
