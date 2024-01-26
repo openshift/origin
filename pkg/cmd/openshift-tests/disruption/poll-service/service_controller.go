@@ -147,6 +147,11 @@ func (c *PollServiceController) removeAllWatchers() {
 	c.watcherLock.Lock()
 	defer c.watcherLock.Unlock()
 
+	if c.watcher == nil {
+		fmt.Fprintf(c.outFile, "No watchers running, skipping removal\n")
+		return
+	}
+
 	fmt.Fprintf(c.outFile, "Stopping and removing: %v for node/%v\n", c.watcher.address, c.nodeName)
 	c.watcher.newConnectionSampler.Stop()
 	c.watcher.reusedConnectionSampler.Stop()
