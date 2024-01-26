@@ -3,7 +3,6 @@ package networking
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -12,6 +11,8 @@ import (
 	networkopernames "github.com/openshift/cluster-network-operator/pkg/names"
 	"github.com/openshift/origin/test/extended/util/operator"
 
+	g "github.com/onsi/ginkgo/v2"
+	"github.com/pborman/uuid"
 	corev1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -22,49 +23,28 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
-	g "github.com/onsi/ginkgo/v2"
-	"github.com/pborman/uuid"
 )
 
 const (
-	optionsEnvKey        = "TEST_SDN_LIVE_MIGRATION_OPTIONS"
-	featureGateCRName    = "cluster"
 	networkCRName        = "cluster"
 	maxMigrationDuration = 2 * time.Hour
 	// length of time to wait in-order to confirm migration is in-progress after initiating migration
 	networkOpAckTimeout = 10 * time.Minute
 )
 
-type testConfig struct {
-	targetCNI       string
-	rollbackEnabled bool
-}
-
-func getTestConfig() testConfig {
-	o := testConfig{}
-	allOptionsStr := os.Getenv(optionsEnvKey)
-	if allOptionsStr == "" {
-		return o
+func getTargetCNI(ctx context.Context, c configv1client.Interface) (string, error) {
+	clusterConfig, err := c.ConfigV1().Networks().Get(ctx, networkCRName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
 	}
-	for _, opt := range strings.Split(allOptionsStr, ",") {
-		parts := strings.SplitN(opt, "=", 2)
-		if len(parts) != 2 {
-			framework.Failf("expected option of the form KEY=VALUE instead of %q", opt)
-		}
-		switch parts[0] {
-		case "target-cni":
-			o.targetCNI = parts[1]
-		case "rollback":
-			if strings.ToLower(parts[1]) == "true" {
-				o.rollbackEnabled = true
-			}
-		default:
-			framework.Failf("unrecognized option: %s=%s", parts[0], parts[1])
-		}
+	switch clusterConfig.Status.NetworkType {
+	case OVNKubernetesPluginName:
+		return OpenshiftSDNPluginName, nil
+	case OpenshiftSDNPluginName:
+		return OVNKubernetesPluginName, nil
+	default:
+		return "", fmt.Errorf("unsupported CNI %q", clusterConfig.Status.NetworkType)
 	}
-	return o
 }
 
 func startLiveMigration(ctx context.Context, c configv1client.Interface, targetCNI string) error {
@@ -224,36 +204,7 @@ func recordEvent(client kubernetes.Interface, uid, action, reason, note string, 
 	}
 }
 
-func isSupportedCNI(cni string) bool {
-	return cni == OVNKubernetesPluginName || cni == OpenshiftSDNPluginName
-}
-
-func getRollBackCNI(cni string) string {
-	if cni == OVNKubernetesPluginName {
-		return OpenshiftSDNPluginName
-	}
-	if cni == OpenshiftSDNPluginName {
-		return OVNKubernetesPluginName
-	}
-	panic(fmt.Sprintf("unsupported CNI %q specified. Unable to determine rollback CNI", cni))
-}
-
 var _ = g.Describe("[sig-network][Feature:CNIMigration]", g.Ordered, func() {
-	var tc testConfig
-
-	g.BeforeAll(func() {
-		tc = getTestConfig()
-	})
-
-	g.BeforeEach(func() {
-		if tc.targetCNI == "" {
-			e2eskipper.Skipf("CNI migration tests are disabled because %s environment key does not have a value which contains 'target-key=$CNI'", optionsEnvKey)
-		}
-		if !isSupportedCNI(tc.targetCNI) {
-			framework.Failf("target CNI %q is unsupported", tc.targetCNI)
-		}
-	})
-
 	g.It("Cluster should not be live migrating before beginning migration [Early][Suite:openshift/network/live-migration]", func(ctx context.Context) {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
@@ -269,10 +220,11 @@ var _ = g.Describe("[sig-network][Feature:CNIMigration]", g.Ordered, func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
 		client := configv1client.NewForConfigOrDie(config)
-		isCNIDeployed, err := isCNIDeployed(ctx, client, tc.targetCNI)
+		targetCNI, err := getTargetCNI(ctx, client)
+		isCNIDeployed, err := isCNIDeployed(ctx, client, targetCNI)
 		framework.ExpectNoError(err)
 		if isCNIDeployed {
-			framework.Failf("CNI %q is already deployed", tc.targetCNI)
+			framework.Failf("CNI %q is already deployed", targetCNI)
 		}
 	})
 
@@ -302,18 +254,12 @@ var _ = g.Describe("[sig-network][Feature:CNIMigration]", g.Ordered, func() {
 		config, err := framework.LoadConfig()
 		framework.ExpectNoError(err)
 		client := configv1client.NewForConfigOrDie(config)
+		targetCNI, err := getTargetCNI(ctx, client)
 		framework.ExpectNoError(err)
 		framework.ExpectNoError(
-			migrateCNI(ctx, client, config, tc.targetCNI),
-			fmt.Sprintf("during to migrate to CNI %s", tc.targetCNI),
+			migrateCNI(ctx, client, config, targetCNI),
+			fmt.Sprintf("during to migrate to CNI %s", targetCNI),
 		)
-		if tc.rollbackEnabled {
-			rollbackCNI := getRollBackCNI(tc.targetCNI)
-			framework.ExpectNoError(
-				migrateCNI(ctx, client, config, rollbackCNI),
-				fmt.Sprintf("during rollback to CNI %s from %s", rollbackCNI, tc.targetCNI),
-			)
-		}
 	})
 
 	g.It("Cluster operators should be stable [Late][Suite:openshift/network/live-migration]", func(ctx context.Context) {
