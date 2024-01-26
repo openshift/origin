@@ -603,6 +603,12 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][pullsecret] docker build using a pull secret Building from a template should create a docker build that pulls using a secret run it [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-builds][Feature:Builds][subscription-content] builds installing subscription content [apigroup:build.openshift.io] should succeed for RHEL 7 base images": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][subscription-content] builds installing subscription content [apigroup:build.openshift.io] should succeed for RHEL 8 base images": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][subscription-content] builds installing subscription content [apigroup:build.openshift.io] should succeed for RHEL 9 base images": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for docker [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][timing] capture build stages and durations should record build stages and durations for s2i [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
