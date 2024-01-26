@@ -33,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/certs"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
-	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	ownership "github.com/openshift/origin/tls"
@@ -412,7 +411,7 @@ func fetchNodePKIList(ctx context.Context, kubeClient kubernetes.Interface, podR
 		return pkiList, fmt.Errorf("failed to find node %s in pod map %v", node.Name, podOnNode)
 	}
 
-	output, err := util.ExecInPodWithResult(kubeClient.CoreV1(), podRESTConfig, pod.Namespace, pod.Name, "pause", []string{"/bin/cat", certInspectResultFile})
+	output, err := exutil.ExecInPodWithResult(kubeClient.CoreV1(), podRESTConfig, pod.Namespace, pod.Name, "pause", []string{"/bin/cat", certInspectResultFile})
 	if err != nil {
 		return pkiList, fmt.Errorf("failed to fetch file %s from pod %s/%s node %s: %v", certInspectResultFile, pod.Namespace, pod.Name, node.Name, err)
 	}
