@@ -10,10 +10,12 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	networkopernames "github.com/openshift/cluster-network-operator/pkg/names"
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/operator"
 
 	corev1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubetypes "k8s.io/apimachinery/pkg/types"
@@ -141,6 +143,35 @@ func getCurrentCNI(ctx context.Context, configClient configv1client.Interface) (
 	return clusterConfig.Status.NetworkType, nil
 }
 
+// ensureManagedNamespace ensures a namespace which is required to be created for live migration to occur, is present.
+// If the namespace is not present and needs to be created, a cleanup func is returned which will delete the created namespace.
+func ensureManagedNamespace(ctx context.Context, kubeClient kubernetes.Interface) (error, func()) {
+	managedNamespaceExists, err := util.IsRunningInManagedCluster(ctx, kubeClient)
+	if err != nil {
+		return fmt.Errorf("failed to detect if cluster is managed: %v", err), func() {}
+	}
+	if managedNamespaceExists {
+		return nil, func() {}
+	}
+	framework.Logf("Creating namespace %s", util.ManagedClusterNamespace)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      util.ManagedClusterNamespace,
+			Namespace: "",
+		},
+		Status: corev1.NamespaceStatus{},
+	}
+	if _, err = kubeClient.CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{}); err != nil && !errors.IsAlreadyExists(err) {
+		return fmt.Errorf("failed to create namespace %s: %v", namespace.Name, err), func() {}
+	}
+	return nil, func() {
+		framework.Logf("Deleting namespace %s", util.ManagedClusterNamespace)
+		if err = kubeClient.CoreV1().Namespaces().Delete(ctx, namespace.Name, metav1.DeleteOptions{}); err != nil && !errors.IsNotFound(err) {
+			framework.Logf("Failed to cleanup namespace %s: %v", util.ManagedClusterNamespace, err)
+		}
+	}
+}
+
 func migrateCNI(ctx context.Context, c configv1client.Interface, config *restclient.Config, targetCNI string) error {
 	if inProgress, err := isMigrationInProgressTrue(ctx, c); err != nil {
 		return err
@@ -159,6 +190,13 @@ func migrateCNI(ctx context.Context, c configv1client.Interface, config *restcli
 	framework.Logf("Starting migration from CNI %s to %s", initCNI, targetCNI)
 	framework.Logf("Max duration of migration is %0.2f", maxMigrationDuration.Minutes())
 	kubeClient := kubernetes.NewForConfigOrDie(config)
+	// live migration is only allowed to execute if the cluster is "managed". It is detected by the presence
+	// of a namespace. If the namespace doesn't exist, create it to allow live migration to occur. Cleanup if we create it.
+	err, cleanupNamespace := ensureManagedNamespace(ctx, kubeClient)
+	if err != nil {
+		return fmt.Errorf("failed to ensure managed namespace %s exists: %v", util.ManagedClusterNamespace, err)
+	}
+	defer cleanupNamespace()
 	uid := uuid.NewRandom().String()
 	recordEvent(kubeClient, uid, "Migration", "MigrationStarted", fmt.Sprintf("migration from CNI %s to %s", initCNI, targetCNI), false)
 	// trigger the migration and record migration in-progress
