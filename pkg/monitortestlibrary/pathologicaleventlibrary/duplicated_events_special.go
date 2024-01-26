@@ -61,8 +61,9 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	return []*junitapi.JUnitTestCase{success}
 }
 
-// NamespacedTest is just like Test() except it creates junits per namespace.
-func (s *singleEventThresholdCheck) NamespacedTest(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+// getNamespacedFailuresAndFlakes returns a map that maps namespaces to failures and flakes
+// found in the intervals.  Namespaces without failures or flakes are not in the map.
+func (s *singleEventThresholdCheck) getNamespacedFailuresAndFlakes(events monitorapi.Intervals) map[string]*eventResult {
 	nsResults := map[string]*eventResult{}
 
 	for _, e := range events {
@@ -73,30 +74,40 @@ func (s *singleEventThresholdCheck) NamespacedTest(events monitorapi.Intervals) 
 			namespace = ""
 		}
 
-		if _, ok := nsResults[namespace]; !ok {
-			tmp := &eventResult{}
-			nsResults[namespace] = tmp
-		}
-
+		var failPresent, flakePresent bool
 		if s.matcher.Allows(e, "") {
 			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
 			times := GetTimesAnEventHappened(e.StructuredMessage)
+
+			failPresent = false
+			flakePresent = false
 			switch {
 			case s.failThreshold > 0 && times > s.failThreshold:
-				nsResults[namespace].failures = append(nsResults[namespace].failures, fmt.Sprintf("event [%s] happened %d times", msg, times))
+				failPresent = true
 			case times > s.flakeThreshold:
-				nsResults[namespace].flakes = append(nsResults[namespace].flakes, fmt.Sprintf("event [%s] happened %d times", msg, times))
+				flakePresent = true
+			}
+			if failPresent || flakePresent {
+				if _, ok := nsResults[namespace]; !ok {
+					tmp := &eventResult{}
+					nsResults[namespace] = tmp
+				}
+				if failPresent {
+					nsResults[namespace].failures = append(nsResults[namespace].failures, fmt.Sprintf("event [%s] happened %d times", msg, times))
+				}
+				if flakePresent {
+					nsResults[namespace].flakes = append(nsResults[namespace].flakes, fmt.Sprintf("event [%s] happened %d times", msg, times))
+				}
 			}
 		}
 	}
+	return nsResults
+}
 
-	for ns, result := range nsResults {
-		if len(result.failures) == 0 && len(result.flakes) == 0 {
-			// delete the entry for ns
-			delete(nsResults, ns)
-		}
-	}
+// NamespacedTest is is similar to Test() except it creates junits per namespace.
+func (s *singleEventThresholdCheck) NamespacedTest(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 
+	nsResults := s.getNamespacedFailuresAndFlakes(events)
 	return generateJUnitTestCasesCoreNamespaces(s.testName, nsResults)
 }
 
