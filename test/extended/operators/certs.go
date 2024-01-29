@@ -60,6 +60,7 @@ var (
 	//go:embed manifests/pod.yaml
 	podYaml []byte
 
+	onDiskPKIContent   *certgraphapi.PKIList
 	actualPKIContent   *certgraphapi.PKIList
 	expectedPKIContent *certs.PKIRegistryInfo
 	nodeList           *corev1.NodeList
@@ -97,7 +98,6 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 			g.Skip("microshift does not auto-collect TLS.")
 		}
 		var err error
-		onDiskPKIContent := &certgraphapi.PKIList{}
 
 		jobType, err = platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -270,6 +270,43 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		violationRegressionOptions := ensure_no_violation_regression.NewEnsureNoViolationRegressionOptions(ownership.AllViolations, genericclioptions.NewTestIOStreamsDiscard())
 		messages, _, err := violationRegressionOptions.HaveViolationsRegressed([]*certgraphapi.PKIList{actualPKIContent})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if len(messages) > 0 {
+			// TODO: uncomment when test no longer fails and enhancement is merged
+			//g.Fail(strings.Join(messages, "\n"))
+			testresult.Flakef(strings.Join(messages, "\n"))
+		}
+	})
+
+	g.It("ondisk tls artifacts must have expected attributes", func() {
+		messages := []string{}
+		if onDiskPKIContent == nil {
+			g.Skip("No disk certificates fetched")
+		}
+
+		for _, curr := range onDiskPKIContent.CertKeyPairs.Items {
+			for _, certKeyPairLoc := range curr.Spec.OnDiskLocations {
+				for _, loc := range []certgraphapi.OnDiskLocation{certKeyPairLoc.Cert, certKeyPairLoc.Key} {
+					actual, actualErr := tlsmetadatainterfaces.GetFileMetadataActualForTLSArtifact(actualPKIContent.OnDiskResourceData, loc)
+					expected, expectedErr := tlsmetadatainterfaces.GetExpectedFileMetadataForCertKeyPairOnDisk(loc)
+					if actualErr != nil || expectedErr != nil {
+						continue
+					}
+					messages = append(messages, tlsmetadatainterfaces.CompareFilePermissions(actual, expected)...)
+				}
+			}
+		}
+
+		for _, curr := range onDiskPKIContent.CertificateAuthorityBundles.Items {
+			for _, loc := range curr.Spec.OnDiskLocations {
+				actual, actualErr := tlsmetadatainterfaces.GetFileMetadataActualForTLSArtifact(actualPKIContent.OnDiskResourceData, loc)
+				expected, expectedErr := tlsmetadatainterfaces.GetExpectedFileMetadataForCABundleOnDisk(loc)
+				if actualErr != nil || expectedErr != nil {
+					continue
+				}
+				messages = append(messages, tlsmetadatainterfaces.CompareFilePermissions(actual, expected)...)
+			}
+		}
 
 		if len(messages) > 0 {
 			// TODO: uncomment when test no longer fails and enhancement is merged

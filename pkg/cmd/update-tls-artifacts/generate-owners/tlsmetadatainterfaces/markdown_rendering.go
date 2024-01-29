@@ -127,11 +127,13 @@ func BuildAnnotationComplianceIntermediate(pkiInfo *certs.PKIRegistryInfo, inspe
 			},
 		}
 
-		// TODO figure these out
-		owner := UnknownOwner
 		meetsRequirement := false
-		//owner := OwnerFor(locationDetails.InClusterLocation.ResourceMetata)
-		//meetsRequirement := inspector.MeetsRequirement(curr.CABundleInfo.SelectedCertMetadataAnnotations)
+		owner := UnknownOwner
+		certKeyPairOnDiskInfo, err := GetCertKeyPairInfoForOnDiskPath(certgraphapi.OnDiskLocation{Path: curr.OnDiskLocation.OnDiskLocation.Path})
+		if err == nil {
+			owner = certKeyPairOnDiskInfo.OwningJiraComponent
+			meetsRequirement = inspector.MeetsRequirement(certKeyPairOnDiskInfo.SelectedCertMetadataAnnotations)
+		}
 		if !meetsRequirement {
 			ret.ViolatingCertsByOwner[owner] = append(ret.ViolatingCertsByOwner[owner], locationDetails)
 			continue
@@ -151,11 +153,13 @@ func BuildAnnotationComplianceIntermediate(pkiInfo *certs.PKIRegistryInfo, inspe
 			},
 		}
 
-		// TODO figure these out
-		owner := UnknownOwner
 		meetsRequirement := false
-		//owner := OwnerFor(locationDetails.InClusterLocation.ResourceMetata)
-		//meetsRequirement := inspector.MeetsRequirement(curr.CABundleInfo.SelectedCertMetadataAnnotations)
+		owner := UnknownOwner
+		caBundleOnDiskInfo, err := GetCertificateAuthorityInfoForOnDiskPath(certgraphapi.OnDiskLocation{Path: curr.OnDiskLocation.OnDiskLocation.Path})
+		if err == nil {
+			owner = caBundleOnDiskInfo.OwningJiraComponent
+			meetsRequirement = inspector.MeetsRequirement(caBundleOnDiskInfo.SelectedCertMetadataAnnotations)
+		}
 		if !meetsRequirement {
 			ret.ViolatingCABundlesByOwner[owner] = append(ret.ViolatingCABundlesByOwner[owner], locationDetails)
 			continue

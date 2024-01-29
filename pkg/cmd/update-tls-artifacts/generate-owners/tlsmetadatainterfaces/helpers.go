@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/api/annotations"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/origin/pkg/certs"
@@ -118,7 +119,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/etc/kubernetes/ca.crt",
 				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-rw-r--r--",
+				SELinuxOptions: "system_u:object_r:kubernetes_file_t:s0",
 			},
 			CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
 				OwningJiraComponent: "Unknown",
@@ -129,7 +133,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt",
 				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-rw-------",
+				SELinuxOptions: "system_u:object_r:kubernetes_file_t:s0",
 			},
 			CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
 				OwningJiraComponent: "Unknown",
@@ -140,7 +147,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt",
 				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-rw-------",
+				SELinuxOptions: "system_u:object_r:kubernetes_file_t:s0",
 			},
 			CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
 				OwningJiraComponent: "Unknown",
@@ -151,7 +161,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/etc/pki/tls/cert.pem",
 				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-r--r--r--",
+				SELinuxOptions: "system_u:object_r:container_file_t:s0",
 			},
 			CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
 				OwningJiraComponent: "Unknown",
@@ -162,7 +175,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/etc/pki/tls/certs/ca-bundle.crt",
 				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-r--r--r--",
+				SELinuxOptions: "system_u:object_r:container_file_t:s0",
 			},
 			CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
 				OwningJiraComponent: "Unknown",
@@ -173,7 +189,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt",
 				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-rw-------",
+				SELinuxOptions: "system_u:object_r:kubernetes_file_t:s0",
 			},
 			CABundleInfo: certgraphapi.PKIRegistryCertificateAuthorityInfo{
 				OwningJiraComponent: "Unknown",
@@ -186,7 +205,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\u003ctimestamp\u003e.pem",
 				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-rw-------",
+				SELinuxOptions: "system_u:object_r:container_var_lib_t:s0",
 			},
 			CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
 				OwningJiraComponent: "Unknown",
@@ -197,7 +219,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/etc/cni/multus/certs/multus-client-\u003ctimestamp\u003e.pem",
 				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-rw-------",
+				SELinuxOptions: "system_u:object_r:etc_t:s0",
 			},
 			CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
 				OwningJiraComponent: "Unknown",
@@ -208,18 +233,10 @@ var (
 				OnDiskLocation: certgraphapi.OnDiskLocation{
 					Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key",
 				},
-				User: "root",
-			},
-			CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
-				OwningJiraComponent: "Unknown",
-			},
-		},
-		{
-			OnDiskLocation: certgraphapi.OnDiskLocationWithMetadata{
-				OnDiskLocation: certgraphapi.OnDiskLocation{
-					Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key",
-				},
-				User: "root",
+				User:           "root",
+				Group:          "root",
+				Permissions:    "-rw-------",
+				SELinuxOptions: "system_u:object_r:kubernetes_file_t:s0",
 			},
 			CertKeyInfo: certgraphapi.PKIRegistryCertKeyPairInfo{
 				OwningJiraComponent: "Unknown",
@@ -237,6 +254,15 @@ func GetCertificateAuthorityInfoForOnDiskPath(loc certgraphapi.OnDiskLocation) (
 	return certgraphapi.PKIRegistryCertificateAuthorityInfo{}, fmt.Errorf("path %s not found in on disk CA list", loc.Path)
 }
 
+func GetExpectedFileMetadataForCABundleOnDisk(loc certgraphapi.OnDiskLocation) (certgraphapi.OnDiskLocationWithMetadata, error) {
+	for _, caBundle := range onDiskCertificateAuthorities {
+		if caBundle.OnDiskLocation.Path == loc.Path {
+			return caBundle.OnDiskLocation, nil
+		}
+	}
+	return certgraphapi.OnDiskLocationWithMetadata{}, fmt.Errorf("path %s not found in on disk CA list", loc.Path)
+}
+
 func GetCertKeyPairInfoForOnDiskPath(loc certgraphapi.OnDiskLocation) (certgraphapi.PKIRegistryCertKeyPairInfo, error) {
 	for _, certKeyPair := range onDiskCertKeyPairs {
 		if certKeyPair.OnDiskLocation.Path == loc.Path {
@@ -244,6 +270,15 @@ func GetCertKeyPairInfoForOnDiskPath(loc certgraphapi.OnDiskLocation) (certgraph
 		}
 	}
 	return certgraphapi.PKIRegistryCertKeyPairInfo{}, fmt.Errorf("path %s not found in on disk secret list", loc.Path)
+}
+
+func GetExpectedFileMetadataForCertKeyPairOnDisk(loc certgraphapi.OnDiskLocation) (certgraphapi.OnDiskLocationWithMetadata, error) {
+	for _, certKeyPair := range onDiskCertKeyPairs {
+		if certKeyPair.OnDiskLocation.Path == loc.Path {
+			return certKeyPair.OnDiskLocation, nil
+		}
+	}
+	return certgraphapi.OnDiskLocationWithMetadata{}, fmt.Errorf("path %s not found in on disk secret list", loc.Path)
 }
 
 func DescriptionFor(in []certgraphapi.AnnotationValue) string {
@@ -257,4 +292,30 @@ func OwnerFor(in []certgraphapi.AnnotationValue) string {
 		return "Unknown"
 	}
 	return ret
+}
+
+func GetFileMetadataActualForTLSArtifact(onDisk certgraphapi.PerOnDiskResourceData, loc certgraphapi.OnDiskLocation) (certgraphapi.OnDiskLocationWithMetadata, error) {
+	for _, artifact := range onDisk.TLSArtifact {
+		if artifact.OnDiskLocation.Path == loc.Path {
+			return artifact, nil
+		}
+	}
+	return certgraphapi.OnDiskLocationWithMetadata{}, fmt.Errorf("path %s not found in on disk tls artifact list", loc.Path)
+}
+
+func CompareFilePermissions(actual, expected certgraphapi.OnDiskLocationWithMetadata) []string {
+	messages := []string{}
+	if diff := cmp.Diff(actual.Group, expected.Group); len(diff) > 0 {
+		messages = append(messages, fmt.Sprintf("mismatching group for %s: %s", actual.Path, diff))
+	}
+	if diff := cmp.Diff(actual.Permissions, expected.Permissions); len(diff) > 0 {
+		messages = append(messages, fmt.Sprintf("mismatching permissions for %s: %s", actual.Path, diff))
+	}
+	if diff := cmp.Diff(actual.SELinuxOptions, expected.SELinuxOptions); len(diff) > 0 {
+		messages = append(messages, fmt.Sprintf("mismatching SELinux options for %s: %s", actual.Path, diff))
+	}
+	if diff := cmp.Diff(actual.User, expected.User); len(diff) > 0 {
+		messages = append(messages, fmt.Sprintf("mismatching user for %s: %s", actual.Path, diff))
+	}
+	return messages
 }
