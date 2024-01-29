@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/openshift/api/annotations"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/origin/pkg/certs"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -107,26 +108,6 @@ func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certs.PKIRegistryInfo,
 	}
 
 	return certs.CertsToRegistryInfo(inClusterCertKeyPairs, onDiskCertsWithoutSecrets, inClusterCABundles, onDiskCABundlesWithoutConfigMaps), nil
-}
-
-func CertInfoForCertKeyPair(curr certgraphapi.PKIRegistryCertKeyPair) (certgraphapi.PKIRegistryCertKeyPairInfo, error) {
-	switch {
-	case curr.InClusterLocation != nil:
-		return curr.InClusterLocation.CertKeyInfo, nil
-	case curr.OnDiskLocation != nil:
-		return curr.OnDiskLocation.CertKeyInfo, nil
-	}
-	return certgraphapi.PKIRegistryCertKeyPairInfo{}, fmt.Errorf("no certkeypair info found")
-}
-
-func CertificateAuthorityInfoForCABundle(curr certgraphapi.PKIRegistryCABundle) (certgraphapi.PKIRegistryCertificateAuthorityInfo, error) {
-	switch {
-	case curr.InClusterLocation != nil:
-		return curr.InClusterLocation.CABundleInfo, nil
-	case curr.OnDiskLocation != nil:
-		return curr.OnDiskLocation.CABundleInfo, nil
-	}
-	return certgraphapi.PKIRegistryCertificateAuthorityInfo{}, fmt.Errorf("no ca bundle info found")
 }
 
 // TODO[vrutkovs]: move this to /api?
@@ -263,4 +244,17 @@ func GetCertKeyPairInfoForOnDiskPath(loc certgraphapi.OnDiskLocation) (certgraph
 		}
 	}
 	return certgraphapi.PKIRegistryCertKeyPairInfo{}, fmt.Errorf("path %s not found in on disk secret list", loc.Path)
+}
+
+func DescriptionFor(in []certgraphapi.AnnotationValue) string {
+	ret, _ := AnnotationValue(in, annotations.OpenShiftDescription)
+	return ret
+}
+
+func OwnerFor(in []certgraphapi.AnnotationValue) string {
+	ret, ok := AnnotationValue(in, annotations.OpenShiftComponent)
+	if !ok {
+		return "Unknown"
+	}
+	return ret
 }
