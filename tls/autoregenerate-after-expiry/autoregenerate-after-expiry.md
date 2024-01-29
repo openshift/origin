@@ -2,10 +2,10 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
+  - [Missing Owners (23)](#Missing-Owners-23)
+    - [Certificates (11)](#Certificates-11)
+    - [Certificate Authority Bundles (12)](#Certificate-Authority-Bundles-12)
   - [Items Do NOT Meet the Requirement (217)](#Items-Do-NOT-Meet-the-Requirement-217)
-    - [ (14)](#-14)
-      - [Certificates (8)](#Certificates-8)
-      - [Certificate Authority Bundles (6)](#Certificate-Authority-Bundles-6)
     - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [Etcd (32)](#Etcd-32)
@@ -21,9 +21,6 @@
       - [Certificate Authority Bundles (19)](#Certificate-Authority-Bundles-19)
     - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
       - [Certificates (2)](#Certificates-2)
-    - [Unknown (9)](#Unknown-9)
-      - [Certificates (3)](#Certificates-3)
-      - [Certificate Authority Bundles (6)](#Certificate-Authority-Bundles-6)
     - [apiserver-auth (3)](#apiserver-auth-3)
       - [Certificates (1)](#Certificates-1)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -59,9 +56,8 @@ This assertion means that you have
       QE has required test every release that ensures the functionality works every release.
 If you have not done this, you should not merge the annotation.
 
-## Items Do NOT Meet the Requirement (217)
-###  (14)
-#### Certificates (8)
+## Missing Owners (23)
+### Certificates (11)
 1. ns/openshift-ingress secret/router-certs-default
 
       **Description:** 
@@ -102,9 +98,45 @@ If you have not done this, you should not merge the annotation.
       **Description:** 
       
 
+9. /etc/cni/multus/certs/multus-client-\<timestamp>.pem
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:etc_t:s0
+
+      
+
+10. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+11. /var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\<timestamp>.pem
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_var_lib_t:s0
+
+      
 
 
-#### Certificate Authority Bundles (6)
+
+### Certificate Authority Bundles (12)
 1. ns/openshift-config-managed configmap/default-ingress-cert
 
       **Description:** 
@@ -135,8 +167,81 @@ If you have not done this, you should not merge the annotation.
       **Description:** 
       
 
+7. /etc/kubernetes/ca.crt
+
+      **Permission:** -rw-r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+8. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+9. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+10. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
+
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
+      
+
+11. /etc/pki/tls/cert.pem
+
+      **Permission:** -r--r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_file_t:s0:c311,c728
+
+      
+
+12. /etc/pki/tls/certs/ca-bundle.crt
+
+      **Permission:** -r--r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_file_t:s0:c311,c728
+
+      
 
 
+
+## Items Do NOT Meet the Requirement (217)
 ### Cloud Compute / Cloud Controller Manager (1)
 #### Certificate Authority Bundles (1)
 1. ns/openshift-cloud-controller-manager configmap/ccm-trusted-ca
@@ -479,58 +584,6 @@ If you have not done this, you should not merge the annotation.
       
 
 2. ns/openshift-operator-lifecycle-manager secret/pprof-cert
-
-      **Description:** 
-      
-
-
-
-### Unknown (9)
-#### Certificates (3)
-1. /etc/cni/multus/certs/multus-client-\<timestamp>.pem
-
-      **Description:** 
-      
-
-2. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
-
-      **Description:** 
-      
-
-3. /var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\<timestamp>.pem
-
-      **Description:** 
-      
-
-
-
-#### Certificate Authority Bundles (6)
-1. /etc/kubernetes/ca.crt
-
-      **Description:** 
-      
-
-2. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
-
-      **Description:** 
-      
-
-3. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
-
-      **Description:** 
-      
-
-4. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
-
-      **Description:** 
-      
-
-5. /etc/pki/tls/cert.pem
-
-      **Description:** 
-      
-
-6. /etc/pki/tls/certs/ca-bundle.crt
 
       **Description:** 
       

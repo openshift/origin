@@ -1588,7 +1588,7 @@
                     "User": "root",
                     "Group": "root",
                     "Permissions": "-r--r--r--",
-                    "SELinuxOptions": "system_u:object_r:container_file_t:s0:c219,c382"
+                    "SELinuxOptions": "system_u:object_r:container_file_t:s0:c311,c728"
                 },
                 "certificateAuthorityBundleInfo": {
                     "owningJiraComponent": "Unknown",
@@ -1604,7 +1604,7 @@
                     "User": "root",
                     "Group": "root",
                     "Permissions": "-r--r--r--",
-                    "SELinuxOptions": "system_u:object_r:container_file_t:s0:c219,c382"
+                    "SELinuxOptions": "system_u:object_r:container_file_t:s0:c311,c728"
                 },
                 "certificateAuthorityBundleInfo": {
                     "owningJiraComponent": "Unknown",
