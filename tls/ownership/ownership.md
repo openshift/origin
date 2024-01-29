@@ -79,17 +79,38 @@
 
 9. /etc/cni/multus/certs/multus-client-\<timestamp>.pem
 
-      **Description:** 
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:etc_t:s0
+
       
 
 10. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
 
-      **Description:** 
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
       
 
 11. /var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\<timestamp>.pem
 
-      **Description:** 
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_var_lib_t:s0
+
       
 
 
@@ -127,32 +148,74 @@
 
 7. /etc/kubernetes/ca.crt
 
-      **Description:** 
+      **Permission:** -rw-r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
       
 
 8. /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
-      **Description:** 
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
       
 
 9. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
-      **Description:** 
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
       
 
 10. /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
 
-      **Description:** 
+      **Permission:** -rw-------
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:kubernetes_file_t:s0
+
       
 
 11. /etc/pki/tls/cert.pem
 
-      **Description:** 
+      **Permission:** -r--r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_file_t:s0:c311,c728
+
       
 
 12. /etc/pki/tls/certs/ca-bundle.crt
 
-      **Description:** 
+      **Permission:** -r--r--r--
+
+      **User:** root
+
+      **Group root
+
+      **SELinuxOptions:** system_u:object_r:container_file_t:s0:c311,c728
+
       
 
 
