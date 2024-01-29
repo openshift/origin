@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/util/sets"
-
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // legacyCRDSsWithUnstableVersions is a list of CRD names that were accessible-by-default when this test was created.
@@ -42,8 +41,18 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 
 	g.Describe("APIs for openshift.io", func() {
 		g.It("must have stable versions", func() {
+			ctx := context.Background()
+
+			configClient := oc.AdminConfigClient()
+			featureGates, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if featureGates.Spec.FeatureSet != configv1.Default {
+				g.Skip(fmt.Sprintf("only check for stable CRDs for default FeatureSet: %q", featureGates.Spec.FeatureSet))
+			}
+
 			crdClient := apiextensionsclientset.NewForConfigOrDie(oc.AdminConfig())
-			crdList, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(context.Background(), metav1.ListOptions{})
+			crdList, err := crdClient.ApiextensionsV1().CustomResourceDefinitions().List(ctx, metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			failures := []string{}
