@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -299,7 +300,9 @@ func getOnDiskLocationMetadata(path string) *certgraphapi.OnDiskLocationWithMeta
 
 	// Get selinux label (omit if error occured)
 	if label, err := selinux.FileLabel(path); err == nil {
-		ret.SELinuxOptions = label
+		// Strip variable part after second semicolon
+		labelSplitBySemicolon := strings.Split(label, ":")
+		ret.SELinuxOptions = strings.Join(labelSplitBySemicolon[:4], ":")
 	}
 
 	return ret

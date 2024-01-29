@@ -239,6 +239,8 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Late][Jira:\"kube-apiserver\"] collect certificate data": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-arch][Late][Jira:\"kube-apiserver\"] ondisk tls artifacts must have expected attributes": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test when enabled": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:Authentication]  TestFrontProxy should succeed": " [Suite:openshift/conformance/parallel]",
