@@ -93,60 +93,6 @@ var Annotations = map[string]string{
 
 	"[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the IfHealthyBudget policy": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs adoption will orphan all RCs and adopt them back when recreated [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs generation should deploy based on a status version bump [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs ignores deployer and lets the config with a NewReplicationControllerCreated reason should let the deployment config with a NewReplicationControllerCreated reason [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs initially should not deploy if pods never transition to ready [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with cancellation after deployer pod succeeded [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with cancellation of running deployment [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs keep the deployer pod invariant valid should deal with config change in case the deployment is still running [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs paused should disable actions on deployments [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs reaper [Slow] should delete all failed deployer pods and hook pods [apigroup:apps.openshift.io]": "",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs rolled back should rollback to an older deployment [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs should adhere to Three Laws of Controllers [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs should respect image stream tag reference policy resolve the image pull spec [apigroup:apps.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs viewing rollout history should print the rollout history [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs when changing image change trigger should successfully trigger from an updated image [apigroup:apps.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs when run iteratively should immediately start a new deployment [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs when run iteratively should only deploy the last deployment [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs when tagging images should successfully tag the deployed image [apigroup:apps.openshift.io][apigroup:authorization.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with custom deployments should run the custom deployment steps [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with enhanced status should include various info in status [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with env in params referencing the configmap should expand the config map key to a value [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with failing hook should get all logs from retried hooks [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with minimum ready seconds set should not transition the deployment to Complete before satisfied [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with a trigger used by different containers [apigroup:apps.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers should run a successful deployment with multiple triggers [apigroup:apps.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with revision history limits should never persist more old deployments than acceptable after being observed by the controller [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs with test deployments should run a deployment to completion and then scale to zero [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
-	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs won't deploy RC with unresolved images when patched with empty image [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[sig-apps][Feature:Jobs] Users should be able to create and run a job in a user project": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-apps][Feature:OpenShiftControllerManager] TestDeployScale [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
