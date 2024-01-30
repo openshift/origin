@@ -23,7 +23,6 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
-	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -353,7 +352,7 @@ func createPacketSnifferDaemonSet(oc *exutil.CLI, namespace string, scheduleOnHo
 	f := oc.KubeFramework()
 	clientset := f.ClientSet
 
-	tcpdumpImage, err := util.DetermineImageFromRelease(oc, "network-tools")
+	tcpdumpImage, err := exutil.GetDockerImageReference(oc.ImageClient().ImageV1().ImageStreams("openshift"), "network-tools", "latest")
 	if err != nil {
 		return nil, err
 	}
