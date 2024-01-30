@@ -1,8 +1,6 @@
 package risk_analysis
 
 import (
-	"os"
-
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -11,10 +9,7 @@ import (
 const sippyDefaultURL = "https://sippy.dptools.openshift.org/api/jobs/runs/risk_analysis"
 
 func NewTestFailureRiskAnalysisCommand() *cobra.Command {
-	riskAnalysisOpts := &riskanalysis.Options{
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
-	}
+	riskAnalysisOpts := &riskanalysis.Options{}
 
 	cmd := &cobra.Command{
 		Use:   "risk-analysis",

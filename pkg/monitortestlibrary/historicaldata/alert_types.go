@@ -88,7 +88,7 @@ func (b *AlertBestMatcher) bestMatch(key AlertDataKey) (AlertStatisticalData, st
 		Debugf("searching for best match for %+v", key.JobType)
 
 	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok {
-		if percentiles.JobRuns >= minJobRuns {
+		if percentiles.JobRuns >= defaultMinJobRuns {
 			logrus.Infof("found exact match: %+v", percentiles)
 			return percentiles, "", nil
 		}
@@ -135,7 +135,7 @@ func (b *AlertBestMatcher) evaluateBestGuesser(nextBestGuesser NextBestKey, exac
 
 		JobType: nextBestJobType,
 	}
-	if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns >= minJobRuns {
+	if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns >= defaultMinJobRuns {
 		return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
 	}
 	return AlertStatisticalData{}, "", nil

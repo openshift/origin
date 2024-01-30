@@ -196,7 +196,7 @@ func TestGetClosestP95Value(t *testing.T) {
 // from bigquery and commit into origin. Test ensures we can parse it and the data looks sane.
 func TestDisruptionDataFileParsing(t *testing.T) {
 
-	disruptionMatcher := getCurrentResults()
+	disruptionMatcher := GetCurrentResults()
 
 	var dataOver100Runs int
 	var foundAWSOVN bool
@@ -247,7 +247,7 @@ func TestDisruptionDataFileParsing(t *testing.T) {
 		Topology:     "ha",
 	}
 
-	percentiles, _, err := disruptionMatcher.BestMatchDuration("kube-api-new-connections", jobType)
+	percentiles, _, err := disruptionMatcher.BestMatchDuration("kube-api-new-connections", jobType, 100)
 	// We can't really check a value here as it could very likely be 0,
 	// so instead we'll make sure we didn't get a msg complaining about no match with no fallback.
 	assert.NotEqual(t, percentiles, historicaldata.StatisticalDuration{}, "BestMatchDuration found no match and could not fall back for kube-api-new-connections aws amd64 ovn ha")

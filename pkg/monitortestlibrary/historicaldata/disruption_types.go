@@ -12,11 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// minJobRuns is the required threshold for historical data to be sufficient to run the test.
+// defaultMinJobRuns is the required threshold for historical data to be sufficient to run the test.
 // If we find matchig historical data but not enough job runs, we either fallback to the next
 // best matcher, or failing that, skip the test entirely. We require 100 runs because we're
 // attempting to match on a P99, and any less than this is logically not a P99.
-const minJobRuns = 100
+const defaultMinJobRuns = 100
 
 type StatisticalDuration struct {
 	platformidentification.JobType `json:",inline"`
@@ -26,6 +26,7 @@ type StatisticalDuration struct {
 	P99                            time.Duration
 	FirstObserved                  time.Time
 	LastObserved                   time.Time
+	JobRuns                        int64
 }
 
 type DisruptionStatisticalData struct {
@@ -96,7 +97,7 @@ func NewDisruptionMatcherWithHistoricalData(data map[DataKey]DisruptionStatistic
 	}
 }
 
-func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentification.JobType) (DisruptionStatisticalData, string, error) {
+func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentification.JobType, minJobRuns int) (DisruptionStatisticalData, string, error) {
 	exactMatchKey := DataKey{
 		BackendName: name,
 		JobType:     jobType,
@@ -104,7 +105,7 @@ func (b *DisruptionBestMatcher) bestMatch(name string, jobType platformidentific
 	logrus.WithField("backend", name).Infof("searching for bestMatch for %+v", jobType)
 	logrus.Infof("historicalData has %d entries", len(b.HistoricalData))
 	if percentiles, ok := b.HistoricalData[exactMatchKey]; ok {
-		if percentiles.JobRuns > minJobRuns {
+		if percentiles.JobRuns >= int64(minJobRuns) {
 			logrus.Infof("found exact match: %+v", percentiles)
 			return percentiles, "", nil
 		}
@@ -150,7 +151,7 @@ func (b *DisruptionBestMatcher) evaluateBestGuesser(name string, nextBestGuesser
 		BackendName: name,
 		JobType:     nextBestJobType,
 	}
-	if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns > minJobRuns {
+	if percentiles, ok := b.HistoricalData[nextBestMatchKey]; ok && percentiles.JobRuns > defaultMinJobRuns {
 		logrus.Infof("no exact match fell back to %#v", nextBestMatchKey)
 		logrus.Infof("found inexact match: %+v", percentiles)
 		return percentiles, fmt.Sprintf("(no exact match for %#v, fell back to %#v)", exactMatchKey, nextBestMatchKey), nil
@@ -161,8 +162,8 @@ func (b *DisruptionBestMatcher) evaluateBestGuesser(name string, nextBestGuesser
 // BestMatchDuration returns the best possible match for this historical data.  It attempts an exact match first, then
 // it attempts to match on the most important keys in order, before giving up and returning an empty default,
 // which means to skip testing against this data.
-func (b *DisruptionBestMatcher) BestMatchDuration(name string, jobType platformidentification.JobType) (StatisticalDuration, string, error) {
-	rawData, details, err := b.bestMatch(name, jobType)
+func (b *DisruptionBestMatcher) BestMatchDuration(name string, jobType platformidentification.JobType, minJobRuns int) (StatisticalDuration, string, error) {
+	rawData, details, err := b.bestMatch(name, jobType, minJobRuns)
 	// Empty data implies we have none, and thus do not want to run the test.
 	if rawData == (DisruptionStatisticalData{}) {
 		return StatisticalDuration{}, details, err
@@ -171,7 +172,7 @@ func (b *DisruptionBestMatcher) BestMatchDuration(name string, jobType platformi
 }
 
 func (b *DisruptionBestMatcher) BestMatchP99(name string, jobType platformidentification.JobType) (*time.Duration, string, error) {
-	rawData, details, err := b.BestMatchDuration(name, jobType)
+	rawData, details, err := b.BestMatchDuration(name, jobType, defaultMinJobRuns)
 	if rawData == (StatisticalDuration{}) {
 		return nil, details, err
 	}
@@ -187,6 +188,7 @@ func toStatisticalDuration(in DisruptionStatisticalData) StatisticalDuration {
 		P99:           DurationOrDie(in.P99),
 		FirstObserved: in.FirstObserved,
 		LastObserved:  in.LastObserved,
+		JobRuns:       in.JobRuns,
 	}
 }
 

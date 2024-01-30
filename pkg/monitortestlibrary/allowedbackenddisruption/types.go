@@ -57,7 +57,7 @@ var (
 	historicalData *historicaldata.DisruptionBestMatcher
 )
 
-func getCurrentResults() *historicaldata.DisruptionBestMatcher {
+func GetCurrentResults() *historicaldata.DisruptionBestMatcher {
 	readResults.Do(
 		func() {
 			var err error
