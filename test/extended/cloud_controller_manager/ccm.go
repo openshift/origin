@@ -30,6 +30,10 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		if infra.Status.ControlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("Control plane is external")
+		}
+
 		if !isPlatformExternal(infra.Status.PlatformStatus.Type) {
 			g.Skip("Platform does not use external cloud provider")
 		}
