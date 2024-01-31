@@ -53972,6 +53972,10 @@ alarming.<p/>
 
     // Build Test Case Table
     function buildTestCaseTable(selector) {
+        if (!testResult.hasOwnProperty('OverallRisk')) {
+            return;
+        }
+
         // Add table headers
         addColumnHeaders(selector);
 
