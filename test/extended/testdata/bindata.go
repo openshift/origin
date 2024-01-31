@@ -53960,7 +53960,7 @@ alarming.<p/>
     function buildRiskLevel(level) {
         td$ = $('<td/>')
         if (level.Level >= 10) {
-            td$.css("background-color", "lightred");
+            td$.css("background-color", "pink");
         } else if (level.Level >= 5) {
             td$.css("background-color", "lightyellow");
         } else {
@@ -53972,6 +53972,10 @@ alarming.<p/>
 
     // Build Test Case Table
     function buildTestCaseTable(selector) {
+        if (!testResult.hasOwnProperty('OverallRisk')) {
+            return;
+        }
+
         // Add table headers
         addColumnHeaders(selector);
 

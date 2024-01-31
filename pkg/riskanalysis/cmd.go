@@ -234,7 +234,7 @@ func runDisruptionAnalysis(opt *Options, jobType platformidentification.JobType)
 			analysis.Backends[i].RiskColor = "lightyellow"
 		}
 		if float64(analysis.Backends[i].ObservedDisruption) > analysis.Backends[i].P99 {
-			analysis.Backends[i].RiskColor = "lightred"
+			analysis.Backends[i].RiskColor = "pink"
 		}
 
 		logrus.WithField("backend", analysis.Backends[i]).Info("calculated total disruption")
