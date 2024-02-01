@@ -17,7 +17,7 @@ import (
 // staticPodFailureRegex trying to pull out information from messages like
 // `static pod lifecycle failure - static pod: "etcd" in namespace: "openshift-etcd" for revision: 6 on node: "ovirt10-gh8t5-master-2" didn't show up, waited: 2m30s`
 var staticPodFailureRegex = regexp.MustCompile(
-	`static pod lifecycle failure - static pod: ".*" in namespace: ".*" for revision: (\d) on node: "(.*)" didn't show up, waited: .*`)
+	`static pod lifecycle failure - static pod: ".*" in namespace: ".*" for revision: (\d+) on node: "(.*)" didn't show up, waited: .*`)
 
 type staticPodFailure struct {
 	operatorNamespace string
@@ -29,7 +29,7 @@ type staticPodFailure struct {
 func staticPodFailureFromMessage(message string) (*staticPodFailure, error) {
 	matches := staticPodFailureRegex.FindStringSubmatch(message)
 	if len(matches) != 3 {
-		return nil, fmt.Errorf("wrong number of matches: %v", matches)
+		return nil, fmt.Errorf("wrong number of matches: %v from: %q", matches, message)
 	}
 	revision, err := strconv.ParseInt(matches[1], 0, 64)
 	if err != nil {
