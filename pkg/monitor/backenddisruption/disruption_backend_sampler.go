@@ -369,6 +369,9 @@ func (b *BackendSampler) CheckConnection(ctx context.Context) (string, error) {
 	uid := uuid.New().String()
 	req.Header.Set(audit.HeaderAuditID, uid)
 
+	// Once we figure out where to get the build farm cluster, we'll add it here.
+	req.Header.Set("Build-ID", "build0x")
+
 	resp, getErr := httpClient.Do(req)
 	if requestContext.Err() == context.Canceled {
 		// this isn't an error, we were simply cancelled
