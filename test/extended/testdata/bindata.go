@@ -108,6 +108,11 @@
 // test/extended/testdata/builds/statusfail-oomkilled.yaml
 // test/extended/testdata/builds/statusfail-postcommithook.yaml
 // test/extended/testdata/builds/statusfail-pushtoregistry.yaml
+// test/extended/testdata/builds/subscription-content/build-imagestream.yaml
+// test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel7.yaml
+// test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel8.yaml
+// test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel9.yaml
+// test/extended/testdata/builds/subscription-content/secret-template.txt
 // test/extended/testdata/builds/test-auth-build.yaml
 // test/extended/testdata/builds/test-bc-with-pr-ref.yaml
 // test/extended/testdata/builds/test-build-app/Dockerfile
@@ -19030,6 +19035,221 @@ func testExtendedTestdataBuildsStatusfailPushtoregistryYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/statusfail-pushtoregistry.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsSubscriptionContentBuildImagestreamYaml = []byte(`apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: subscription-content
+`)
+
+func testExtendedTestdataBuildsSubscriptionContentBuildImagestreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsSubscriptionContentBuildImagestreamYaml, nil
+}
+
+func testExtendedTestdataBuildsSubscriptionContentBuildImagestreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsSubscriptionContentBuildImagestreamYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/subscription-content/build-imagestream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel7Yaml = []byte(`` + "\xEF\xBB\xBF" + `kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: subscription-content-rhel7
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'subscription-content:rhel7'
+  resources: {}
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: 'registry.access.redhat.com/ubi7/ubi:latest'
+      volumes:
+        - name: etc-pki-entitlement
+          source:
+            type: Secret
+            secret:
+              secretName: etc-pki-entitlement
+              defaultMode: 420
+          mounts:
+            - destinationPath: /etc/pki/entitlement
+  postCommit: {}
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi7/ubi:latest
+      RUN rm -rf /etc/rhsm-host
+      RUN yum --enablerepo=rhel-server-rhscl-7-rpms install \
+          nss_wrapper -y && \
+          yum clean all -y
+      RUN ln -s /run/secrets/rhsm /etc/rhsm-host
+  runPolicy: Serial
+`)
+
+func testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel7YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel7Yaml, nil
+}
+
+func testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel7Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel7YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel7.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel8Yaml = []byte(`` + "\xEF\xBB\xBF" + `kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: subscription-content-rhel8
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'subscription-content:rhel8'
+  resources: {}
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: 'registry.access.redhat.com/ubi8/ubi:latest'
+      volumes:
+        - name: etc-pki-entitlement
+          source:
+            type: Secret
+            secret:
+              secretName: etc-pki-entitlement
+              defaultMode: 420
+          mounts:
+            - destinationPath: /etc/pki/entitlement
+  postCommit: {}
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi8/ubi:latest
+      RUN rm -rf /etc/rhsm-host
+      RUN yum --enablerepo=codeready-builder-for-rhel-8-x86_64-rpms install \
+          nss_wrapper \
+          uid_wrapper -y && \
+          yum clean all -y
+      RUN ln -s /run/secrets/rhsm /etc/rhsm-host
+  runPolicy: Serial
+`)
+
+func testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel8YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel8Yaml, nil
+}
+
+func testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel8Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel8YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel8.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel9Yaml = []byte(`` + "\xEF\xBB\xBF" + `kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: subscription-content-rhel9
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'subscription-content:rhel9'
+  resources: {}
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: 'registry.access.redhat.com/ubi9/ubi:latest'
+      volumes:
+        - name: etc-pki-entitlement
+          source:
+            type: Secret
+            secret:
+              secretName: etc-pki-entitlement
+              defaultMode: 420
+          mounts:
+            - destinationPath: /etc/pki/entitlement
+  postCommit: {}
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi9/ubi:latest
+      RUN rm -rf /etc/rhsm-host
+      RUN yum --enablerepo=codeready-builder-for-rhel-9-x86_64-rpms install \
+          nss_wrapper \
+          uid_wrapper -y && \
+          yum clean all -y
+      RUN ln -s /run/secrets/rhsm /etc/rhsm-host
+  runPolicy: Serial
+`)
+
+func testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel9YamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel9Yaml, nil
+}
+
+func testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel9Yaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel9YamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel9.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsSubscriptionContentSecretTemplateTxt = []byte(`kind: Secret
+apiVersion: v1
+metadata:
+  name: etc-pki-entitlement
+type: Opaque
+data: {{ range $key, $value := .data }}
+  {{ $key }}: {{ $value }} {{ end }}
+`)
+
+func testExtendedTestdataBuildsSubscriptionContentSecretTemplateTxtBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsSubscriptionContentSecretTemplateTxt, nil
+}
+
+func testExtendedTestdataBuildsSubscriptionContentSecretTemplateTxt() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsSubscriptionContentSecretTemplateTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/subscription-content/secret-template.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -54228,6 +54448,11 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/statusfail-oomkilled.yaml":                                                testExtendedTestdataBuildsStatusfailOomkilledYaml,
 	"test/extended/testdata/builds/statusfail-postcommithook.yaml":                                           testExtendedTestdataBuildsStatusfailPostcommithookYaml,
 	"test/extended/testdata/builds/statusfail-pushtoregistry.yaml":                                           testExtendedTestdataBuildsStatusfailPushtoregistryYaml,
+	"test/extended/testdata/builds/subscription-content/build-imagestream.yaml":                              testExtendedTestdataBuildsSubscriptionContentBuildImagestreamYaml,
+	"test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel7.yaml":         testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel7Yaml,
+	"test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel8.yaml":         testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel8Yaml,
+	"test/extended/testdata/builds/subscription-content/buildconfig-subscription-content-rhel9.yaml":         testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel9Yaml,
+	"test/extended/testdata/builds/subscription-content/secret-template.txt":                                 testExtendedTestdataBuildsSubscriptionContentSecretTemplateTxt,
 	"test/extended/testdata/builds/test-auth-build.yaml":                                                     testExtendedTestdataBuildsTestAuthBuildYaml,
 	"test/extended/testdata/builds/test-bc-with-pr-ref.yaml":                                                 testExtendedTestdataBuildsTestBcWithPrRefYaml,
 	"test/extended/testdata/builds/test-build-app/Dockerfile":                                                testExtendedTestdataBuildsTestBuildAppDockerfile,
@@ -54824,8 +55049,15 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"statusfail-oomkilled.yaml":               {testExtendedTestdataBuildsStatusfailOomkilledYaml, map[string]*bintree{}},
 					"statusfail-postcommithook.yaml":          {testExtendedTestdataBuildsStatusfailPostcommithookYaml, map[string]*bintree{}},
 					"statusfail-pushtoregistry.yaml":          {testExtendedTestdataBuildsStatusfailPushtoregistryYaml, map[string]*bintree{}},
-					"test-auth-build.yaml":                    {testExtendedTestdataBuildsTestAuthBuildYaml, map[string]*bintree{}},
-					"test-bc-with-pr-ref.yaml":                {testExtendedTestdataBuildsTestBcWithPrRefYaml, map[string]*bintree{}},
+					"subscription-content": {nil, map[string]*bintree{
+						"build-imagestream.yaml":                      {testExtendedTestdataBuildsSubscriptionContentBuildImagestreamYaml, map[string]*bintree{}},
+						"buildconfig-subscription-content-rhel7.yaml": {testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel7Yaml, map[string]*bintree{}},
+						"buildconfig-subscription-content-rhel8.yaml": {testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel8Yaml, map[string]*bintree{}},
+						"buildconfig-subscription-content-rhel9.yaml": {testExtendedTestdataBuildsSubscriptionContentBuildconfigSubscriptionContentRhel9Yaml, map[string]*bintree{}},
+						"secret-template.txt":                         {testExtendedTestdataBuildsSubscriptionContentSecretTemplateTxt, map[string]*bintree{}},
+					}},
+					"test-auth-build.yaml":     {testExtendedTestdataBuildsTestAuthBuildYaml, map[string]*bintree{}},
+					"test-bc-with-pr-ref.yaml": {testExtendedTestdataBuildsTestBcWithPrRefYaml, map[string]*bintree{}},
 					"test-build-app": {nil, map[string]*bintree{
 						"Dockerfile": {testExtendedTestdataBuildsTestBuildAppDockerfile, map[string]*bintree{}},
 						"Gemfile":    {testExtendedTestdataBuildsTestBuildAppGemfile, map[string]*bintree{}},
