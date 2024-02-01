@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -58,6 +59,56 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	}
 
 	return []*junitapi.JUnitTestCase{success}
+}
+
+// getNamespacedFailuresAndFlakes returns a map that maps namespaces to failures and flakes
+// found in the intervals.  Namespaces without failures or flakes are not in the map.
+func (s *singleEventThresholdCheck) getNamespacedFailuresAndFlakes(events monitorapi.Intervals) map[string]*eventResult {
+	nsResults := map[string]*eventResult{}
+
+	for _, e := range events {
+		namespace := e.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+
+		// We only create junit for known namespaces
+		if !platformidentification.KnownNamespaces.Has(namespace) {
+			namespace = ""
+		}
+
+		var failPresent, flakePresent bool
+		if s.matcher.Allows(e, "") {
+			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
+			times := GetTimesAnEventHappened(e.StructuredMessage)
+
+			failPresent = false
+			flakePresent = false
+			switch {
+			case s.failThreshold > 0 && times > s.failThreshold:
+				failPresent = true
+			case times > s.flakeThreshold:
+				flakePresent = true
+			}
+			if failPresent || flakePresent {
+				if _, ok := nsResults[namespace]; !ok {
+					tmp := &eventResult{}
+					nsResults[namespace] = tmp
+				}
+				if failPresent {
+					nsResults[namespace].failures = append(nsResults[namespace].failures, fmt.Sprintf("event [%s] happened %d times", msg, times))
+				}
+				if flakePresent {
+					nsResults[namespace].flakes = append(nsResults[namespace].flakes, fmt.Sprintf("event [%s] happened %d times", msg, times))
+				}
+			}
+		}
+	}
+	return nsResults
+}
+
+// NamespacedTest is is similar to Test() except it creates junits per namespace.
+func (s *singleEventThresholdCheck) NamespacedTest(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+
+	nsResults := s.getNamespacedFailuresAndFlakes(events)
+	return generateJUnitTestCasesCoreNamespaces(s.testName, nsResults)
 }
 
 func NewSingleEventThresholdCheck(testName string, matcher *SimplePathologicalEventMatcher, failThreshold, flakeThreshold int) *singleEventThresholdCheck {
