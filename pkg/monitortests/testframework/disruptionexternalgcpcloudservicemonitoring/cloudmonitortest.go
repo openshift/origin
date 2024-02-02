@@ -1,4 +1,4 @@
-package disruptionexternalcloudservicemonitoring
+package disruptionexternalgcpcloudservicemonitoring
 
 import (
 	"context"
@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	newCloudConnectionTestName    = "[sig-trt] disruption/ci-cloud-network-liveness connection/new should be available throughout the test"
-	reusedCloudConnectionTestName = "[sig-trt] disruption/ci-cloud-network-liveness connection/reused should be available throughout the test"
+	newCloudConnectionTestName    = "[sig-trt] disruption/gcp-network-liveness connection/new should be available throughout the test"
+	reusedCloudConnectionTestName = "[sig-trt] disruption/gcp-network-liveness connection/reused should be available throughout the test"
 
-	externalServiceURL = "https://us-east4-serious-conduit-413012.cloudfunctions.net/test2"
+	externalServiceURL = "https://us-east4-openshift-gce-devel.cloudfunctions.net/openshift-tests-endpoint"
 )
 
 type cloudAvailability struct {
@@ -41,13 +41,13 @@ func NewRecordCloudAvailabilityOnly() monitortestframework.MonitorTest {
 func (w *cloudAvailability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
-		"ci-cloud-network-liveness-new-connections",
+		"gcp-network-liveness-new-connections",
 		"",
 		monitorapi.NewConnectionType)
 
 	reusedConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
-		"ci-cloud-network-liveness-reused-connections",
+		"gcp-network-liveness-reused-connections",
 		"",
 		monitorapi.ReusedConnectionType)
 
