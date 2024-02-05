@@ -18,6 +18,7 @@ import (
 	azuremetrics "github.com/openshift/origin/pkg/monitortests/cloud/azure/metrics"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
+	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/psalabelsmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/etcd/etcdloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/etcd/legacyetcdmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/imageregistry/disruptionimageregistry"
@@ -140,6 +141,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("namespace-psa-labels-analyzer", "Custer Version Operator", psalabelsmonitortests.NewAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())
