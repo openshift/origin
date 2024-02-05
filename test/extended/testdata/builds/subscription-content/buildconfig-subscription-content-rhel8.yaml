@@ -1,0 +1,40 @@
+﻿kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: subscription-content-rhel8
+spec:
+  nodeSelector: null
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'subscription-content:rhel8'
+  resources: {}
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: 'registry.access.redhat.com/ubi8/ubi:latest'
+      volumes:
+        - name: etc-pki-entitlement
+          source:
+            type: Secret
+            secret:
+              secretName: etc-pki-entitlement
+              defaultMode: 420
+          mounts:
+            - destinationPath: /etc/pki/entitlement
+  postCommit: {}
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM registry.access.redhat.com/ubi8/ubi:latest
+      RUN rm -rf /etc/rhsm-host
+      RUN yum --enablerepo=codeready-builder-for-rhel-8-x86_64-rpms install \
+          nss_wrapper \
+          uid_wrapper -y && \
+          yum clean all -y
+      RUN ln -s /run/secrets/rhsm /etc/rhsm-host
+  runPolicy: Serial

@@ -24,6 +24,18 @@ func Test_staticPodFailureFromMessage(t *testing.T) {
 				failureMessage: `static pod lifecycle failure - static pod: "etcd" in namespace: "openshift-etcd" for revision: 6 on node: "ovirt10-gh8t5-master-2" didn't show up, waited: 2m30s`,
 			},
 		},
+		{
+			name: "I hate regex: metal string",
+			args: args{
+				message: `static pod lifecycle failure - static pod: "kube-controller-manager" in namespace: "openshift-kube-controller-manager" for revision: 30 on node: "master-1.ostest.test.metalkube.org" didn't show up, waited: 3m0s`,
+			},
+			want: &staticPodFailure{
+				node:           "master-1.ostest.test.metalkube.org",
+				revision:       30,
+				failureMessage: `static pod lifecycle failure - static pod: "kube-controller-manager" in namespace: "openshift-kube-controller-manager" for revision: 30 on node: "master-1.ostest.test.metalkube.org" didn't show up, waited: 3m0s`,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

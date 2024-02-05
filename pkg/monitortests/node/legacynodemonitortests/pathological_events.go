@@ -60,7 +60,7 @@ func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi
 
 	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.AllowBackOffRestartingFailedContainer,
 		pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.BackoffRestartingFlakeThreshold).
-		Test(events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)))
+		NamespacedTest(events.Filter(monitorapi.Not(monitorapi.IsInE2ENamespace)))
 }
 
 func testConfigOperatorReadinessProbe(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
