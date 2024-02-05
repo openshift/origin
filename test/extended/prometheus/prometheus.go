@@ -73,10 +73,6 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		"MCDRebootError",
 		"ExtremelyHighIndividualControlPlaneMemory",
 
-		// Repository: https://github.com/openshift/cluster-ingress-operator
-		// Issue: https://issues.redhat.com/browse/OCPBUGS-14057
-		"HAProxyDown",
-
 		// Repository: https://github.com/openshift/cluster-version-operator
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14246
 		"ClusterOperatorDown",
