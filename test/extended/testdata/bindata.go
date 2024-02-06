@@ -53067,15 +53067,34 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups.push({group: "operator-progressing", data: []})
         createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isOperatorProgressing, regex)
 
+        timelineGroups.push({group: "node-state", data: []})
+        createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState, regex)
+        // Sort the node-state intervals so rows are grouped by node
+        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+            return e1.label < e2.label ? -1 : e1.label > e2.label;
+        })
+
+        timelineGroups.push({group: "endpoint-availability", data: []})
+        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
+
+        timelineGroups.push({group: "apiserver-shutdown", data: []})
+        createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
+
+        timelineGroups.push({ group: "etcd-leaders", data: [] })
+        createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
+
+        timelineGroups.push({group: "cloud-metrics", data: []})
+        createTimelineData(cloudMetricsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCloudMetrics, regex)
+
+        timelineGroups.push({group: "pod-logs", data: []})
+        createTimelineData(podLogs, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPodLog, regex)
+
         timelineGroups.push({group: "pods", data: []})
         createTimelineData(podStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPod, regex)
         timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
             // I think I really want ordering by time in each of a few categories
             return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
-
-        timelineGroups.push({group: "pod-logs", data: []})
-        createTimelineData(podLogs, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPodLog, regex)
 
         timelineGroups.push({group: "alerts", data: []})
         createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert, regex)
@@ -53088,25 +53107,6 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         //     }
         //     return 0
         // })
-
-        timelineGroups.push({group: "node-state", data: []})
-        createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isNodeState, regex)
-        // Sort the node-state intervals so rows are grouped by node
-        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-            return e1.label < e2.label ? -1 : e1.label > e2.label;
-        })
-
-        timelineGroups.push({ group: "etcd-leaders", data: [] })
-        createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
-
-        timelineGroups.push({group: "cloud-metrics", data: []})
-        createTimelineData(cloudMetricsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isCloudMetrics, regex)
-
-        timelineGroups.push({group: "endpoint-availability", data: []})
-        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
-
-        timelineGroups.push({group: "apiserver-shutdown", data: []})
-        createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
 
         timelineGroups.push({group: "e2e-test-failed", data: []})
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EFailed, regex)
@@ -53979,6 +53979,16 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups.push({group: "operator-progressing", data: []});
         createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, filteredEvents, "operator_progressing");
 
+        timelineGroups.push({group: "node-state", data: []});
+        createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "node_state");
+        // Sort the node-state intervals so rows are grouped by node
+        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+            return e1.label < e2.label ? -1 : e1.label > e2.label;
+        })
+
+        timelineGroups.push({group: "endpoint-availability", data: []});
+        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "endpoint_availability");
+
         timelineGroups.push({group: "pods", data: []});
         createTimelineData(podStateValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "pods");
         timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
@@ -54000,16 +54010,6 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         //     }
         //     return 0
         // })
-
-        timelineGroups.push({group: "node-state", data: []});
-        createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "node_state");
-        // Sort the node-state intervals so rows are grouped by node
-        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-            return e1.label < e2.label ? -1 : e1.label > e2.label;
-        })
-
-        timelineGroups.push({group: "endpoint-availability", data: []});
-        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "endpoint_availability");
 
         timelineGroups.push({group: "e2e-test-failed", data: []});
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, filteredEvents, "e2e_test_failed");
