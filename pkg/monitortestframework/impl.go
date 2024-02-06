@@ -115,10 +115,7 @@ func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConf
 					},
 					SystemOut: fmt.Sprintf("failed during setup\n%v", err),
 				}
-				var flakeErr *FlakeError
-				if !errors.As(err, &flakeErr) {
-					return
-				}
+				return
 			}
 
 			junitCh <- &junitapi.JUnitTestCase{
@@ -187,10 +184,7 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 						SystemOut: fmt.Sprintf("failed during collection\n%v", err),
 					},
 				}
-				var flakeErr *FlakeError
-				if !errors.As(err, &flakeErr) {
-					return
-				}
+				return
 			}
 
 			junitCh <- []*junitapi.JUnitTestCase{
@@ -258,10 +252,7 @@ func (r *monitorTestRegistry) ConstructComputedIntervals(ctx context.Context, st
 				},
 				SystemOut: fmt.Sprintf("failed during interval construction\n%v", err),
 			})
-			var flakeErr *FlakeError
-			if !errors.As(err, &flakeErr) {
-				continue
-			}
+			continue
 		}
 
 		junits = append(junits, &junitapi.JUnitTestCase{
@@ -307,10 +298,7 @@ func (r *monitorTestRegistry) EvaluateTestsFromConstructedIntervals(ctx context.
 				},
 				SystemOut: fmt.Sprintf("failed during test evaluation\n%v", err),
 			})
-			var flakeErr *FlakeError
-			if !errors.As(err, &flakeErr) {
-				continue
-			}
+			continue
 		}
 
 		junits = append(junits, &junitapi.JUnitTestCase{
@@ -364,10 +352,7 @@ func (r *monitorTestRegistry) WriteContentToStorage(ctx context.Context, storage
 				},
 				SystemOut: fmt.Sprintf("failed during test evaluation\n%v", err),
 			})
-			var flakeErr *FlakeError
-			if !errors.As(err, &flakeErr) {
-				continue
-			}
+			continue
 		}
 
 		junits = append(junits, &junitapi.JUnitTestCase{
@@ -412,10 +397,7 @@ func (r *monitorTestRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTes
 				},
 				SystemOut: fmt.Sprintf("failed during cleanup\n%v", err),
 			})
-			var flakeErr *FlakeError
-			if !errors.As(err, &flakeErr) {
-				continue
-			}
+			continue
 		}
 
 		junits = append(junits, &junitapi.JUnitTestCase{

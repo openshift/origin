@@ -32,7 +32,6 @@ const (
 
 type azureMetricsCollector struct {
 	adminRESTConfig *rest.Config
-	flakeErr        error
 }
 
 // metricTest is used to group test data such as azure metrics query params and threshold
@@ -174,22 +173,19 @@ func (w *azureMetricsCollector) CollectData(ctx context.Context, storageDir stri
 	if err != nil {
 		logrus.WithError(err).Error("default azure credential does not exist")
 		// we do not want to fail this because of missing azure credentials
-		w.flakeErr = &monitortestframework.FlakeError{Err: err}
-		return nil, nil, w.flakeErr
+		return nil, nil, nil
 	}
 	clientFactory, err := armmonitor.NewClientFactory(subscriptionID, cred, nil)
 	if err != nil {
 		logrus.WithError(err).Error("failed to create azure metric client")
-		w.flakeErr = &monitortestframework.FlakeError{Err: err}
-		return nil, nil, w.flakeErr
+		return nil, nil, nil
 	}
 	client := clientFactory.NewMetricsClient()
 
 	intervals, err := fetchExtrenuousVMMetrics(ctx, oc, client, subscriptionID, resourceGroup, beginning)
 	if err != nil {
 		logrus.WithError(err).Error("failed to fetch azure metrics")
-		w.flakeErr = &monitortestframework.FlakeError{Err: err}
-		return nil, nil, w.flakeErr
+		return nil, nil, nil
 	}
 	ret = append(ret, intervals...)
 
