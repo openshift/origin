@@ -8,7 +8,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,7 +76,7 @@ var _ = g.Describe("[sig-arch][Early]", func() {
 			}
 
 			if len(failures) > 0 {
-				result.Flakef(strings.Join(failures, "\n"))
+				g.Fail(strings.Join(failures, "\n"))
 			}
 		})
 	})
