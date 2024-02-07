@@ -193,14 +193,19 @@ func isInterestingNamespace(eventInterval monitorapi.Interval, interestingNamesp
 }
 
 func isLessInterestingAlert(eventInterval monitorapi.Interval) bool {
-	locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-	alertName := monitorapi.AlertFrom(locatorParts)
+	if eventInterval.Source != monitorapi.SourceAlert {
+		return false
+	}
+	if eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationAlertState] == "pending" {
+		// Skip pending alerts:
+		return true
+	}
+
+	alertName := eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
 	if len(alertName) == 0 {
-		return false
+		return true
 	}
-	if !strings.Contains(eventInterval.Message, "pending") {
-		return false
-	}
+
 	if eventInterval.Level == monitorapi.Warning || eventInterval.Level == monitorapi.Error {
 		return false
 	}
