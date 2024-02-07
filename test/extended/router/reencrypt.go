@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io][a
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should support reencrypt to services backed by a serving certificate automatically", func() {
-			routerURL := fmt.Sprintf("https://%s", ip)
+			routerURL := fmt.Sprintf("https://%s", exutil.IPUrl(ip))
 
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
