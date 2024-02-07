@@ -777,7 +777,7 @@
             return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
 
-        timelineGroups.push({group: "endpoint-availability", data: []});
+        timelineGroups.push({group: "disruption", data: []});
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "endpoint_availability");
 
         timelineGroups.push({group: "pods", data: []});

@@ -52664,72 +52664,17 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isPodLog(eventInterval) {
-        if (isEtcdLeadership(eventInterval)) {
-            return false
+        if (eventInterval.tempSource == 'PodLog') {
+            return true
         }
-        if (eventInterval.locator.includes("src/podLog")) {
+        if (eventInterval.tempSource == 'EtcdLog') {
             return true
         }
         return false
     }
 
     function isInterestingOrPathological(eventInterval) {
-        if (eventInterval.message.includes("pathological/true") || (eventInterval.message.includes("interesting/true"))) {
-            return true
-        }
-        return false
-    }
-
-    function isPod(eventInterval) {
-        if (isEtcdLeadership(eventInterval)) {
-            return false
-        }
-        // this check was added to keep the repeating events out fo the "pods" section
-        const nTimes = new RegExp("\\(\\d+ times\\)")
-        if (eventInterval.message.match(nTimes)) {
-            return false
-        }
-        // this check was added to avoid the events from the "interesting-events" section from being
-        // duplicated in the "pods" section.
-        if (isInterestingOrPathological(eventInterval)) {
-            return false
-        }
-        if (eventInterval.locator.includes("pod/") && !eventInterval.locator.includes("alert/")) {
-            return true
-        }
-        return false
-    }
-
-    function isPodLifecycle(eventInterval) {
-        if (eventInterval.locator.includes("pod/") && (eventInterval.message.includes("reason/Created") || eventInterval.message.includes("reason/Scheduled") || eventInterval.message.includes("reason/GracefulDelete"))) {
-            return true
-        }
-        return false
-    }
-
-    function isContainerLifecycle(eventInterval) {
-        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ContainerExit") || eventInterval.message.includes("reason/ContainerStart") || eventInterval.message.includes("reason/ContainerWait"))) {
-            return true
-        }
-        return false
-    }
-
-    function isContainerReadiness(eventInterval) {
-        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/Ready") || eventInterval.message.includes("reason/NotReady"))) {
-            return true
-        }
-        return false
-    }
-
-    function isKubeletReadinessCheck(eventInterval) {
-        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ReadinessFailed") || eventInterval.message.includes("reason/ReadinessErrored"))) {
-            return true
-        }
-        return false
-    }
-
-    function isKubeletStartupProbeFailure(eventInterval) {
-        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/StartupProbeFailed"))) {
+        if (eventInterval.tempSource == 'KubeEvent' && eventInterval.message.includes("pathological/true")) {
             return true
         }
         return false
@@ -52794,7 +52739,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return false
     }
 
-    function interestingEvents(item) {
+    function pathologicalEvents(item) {
         if (item.message.includes("pathological/true")) {
             if (item.message.includes("interesting/true")) {
                 return [item.locator, ` + "`" + ` (pathological known)` + "`" + `, "PathologicalKnown"];
@@ -52805,9 +52750,6 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         // TODO: hack that can likely be removed when we get to structured intervals for these
         if (item.message.includes("interesting/true") && item.message.includes("pod sandbox")) {
             return [item.locator, ` + "`" + ` (pod sandbox)` + "`" + `, "PodSandbox"];
-        }
-        if (item.message.includes("interesting/true")) {
-		    return [item.locator, ` + "`" + ` (interesting event)` + "`" + `, "InterestingEvent"];
         }
 	}
 
@@ -52821,52 +52763,6 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return [item.locator, ` + "`" + ` (pod log)` + "`" + `, "PodLogInfo"];
     }
 
-
-    const reReason = new RegExp("(^| )reason/([^ ]+)")
-    function podStateValue(item) {
-        let m = item.message.match(reReason);
-
-        if (m && isPodLifecycle(item)){
-            if (m[2] == "Created") {
-                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodCreated"];
-            }
-            if (m[2] == "Scheduled") {
-                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodScheduled"];
-            }
-            if (m[2] == "GracefulDelete") {
-                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodTerminating"];
-            }
-        }
-        if (m && isContainerLifecycle(item)){
-            if (m[2] == "ContainerWait") {
-                return [item.locator, ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerWait"];
-            }
-            if (m[2] == "ContainerStart") {
-                return [item.locator, ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerStart"];
-            }
-        }
-        if (m && isContainerReadiness(item)){
-            if (m[2] == "NotReady") {
-                return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerNotReady"];
-            }
-            if (m[2] == "Ready") {
-                return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerReady"];
-            }
-        }
-        if (m && isKubeletReadinessCheck(item)){
-            if (m[2] == "ReadinessFailed") {
-                return [item.locator, ` + "`" + ` (kubelet container readiness)` + "`" + `, "ContainerReadinessFailed"];
-            }
-            if (m[2] == "ReadinessErrored") {
-                return [item.locator, ` + "`" + ` (kubelet container readiness)` + "`" + `, "ContainerReadinessErrored"];
-            }
-        }
-        if (m && isKubeletStartupProbeFailure(item)){
-            return [item.locator, ` + "`" + ` (kubelet container startupProbe)` + "`" + `, "StartupProbeFailed"];
-        }
-
-        return [item.locator, "", "Unknown"];
-    }
 
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
@@ -53074,7 +52970,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
             return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
 
-        timelineGroups.push({group: "endpoint-availability", data: []})
+        timelineGroups.push({group: "disruption", data: []})
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEndpointConnectivity, regex)
 
         timelineGroups.push({group: "apiserver-shutdown", data: []})
@@ -53088,13 +52984,6 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "pod-logs", data: []})
         createTimelineData(podLogs, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPodLog, regex)
-
-        timelineGroups.push({group: "pods", data: []})
-        createTimelineData(podStateValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isPod, regex)
-        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-            // I think I really want ordering by time in each of a few categories
-            return e1.label < e2.label ? -1 : e1.label > e2.label;
-        })
 
         timelineGroups.push({group: "alerts", data: []})
         createTimelineData(alertSeverity, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAlert, regex)
@@ -53117,8 +53006,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         timelineGroups.push({group: "e2e-test-passed", data: []})
         createTimelineData("Passed", timelineGroups[timelineGroups.length - 1].data, eventIntervals, isE2EPassed, regex)
 
-        timelineGroups.push({group: "interesting-events", data: []})
-        createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isInterestingOrPathological, regex)
+        timelineGroups.push({group: "pathological-events", data: []})
+        createTimelineData(pathologicalEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isInterestingOrPathological, regex)
 
         var segmentFunc = function (segment) {
             // for (var i in data) {
@@ -53986,7 +53875,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
             return e1.label < e2.label ? -1 : e1.label > e2.label;
         })
 
-        timelineGroups.push({group: "endpoint-availability", data: []});
+        timelineGroups.push({group: "disruption", data: []});
         createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "endpoint_availability");
 
         timelineGroups.push({group: "pods", data: []});
