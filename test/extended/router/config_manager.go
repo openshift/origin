@@ -516,15 +516,15 @@ http {
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
-			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, timeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, exutil.IPUrl(routerIP), timeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid routes to respond")
-			err = waitForRouteToRespond(ns, execPod.Name, "http", "insecure.hapcm.test", "/", routerIP, 0)
+			err = waitForRouteToRespond(ns, execPod.Name, "http", "insecure.hapcm.test", "/", exutil.IPUrl(routerIP), 0)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			for _, host := range []string{"edge.allow.hapcm.test", "reencrypt.hapcm.test", "passthrough.hapcm.test"} {
-				err = waitForRouteToRespond(ns, execPod.Name, "https", host, "/", routerIP, 0)
+				err = waitForRouteToRespond(ns, execPod.Name, "https", host, "/", exutil.IPUrl(routerIP), 0)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
@@ -535,7 +535,7 @@ http {
 				err := oc.AsAdmin().Run("expose").Args("service", "insecure-service", "--name", name, "--hostname", hostName, "--labels", "select=haproxy-cfgmgr").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = waitForRouteToRespond(ns, execPod.Name, "http", hostName, "/", routerIP, 0)
+				err = waitForRouteToRespond(ns, execPod.Name, "http", hostName, "/", exutil.IPUrl(routerIP), 0)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = oc.AsAdmin().Run("delete").Args("route", name).Execute()
@@ -555,7 +555,7 @@ http {
 					err = oc.AsAdmin().Run("label").Args("route", name, "select=haproxy-cfgmgr").Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					err = waitForRouteToRespond(ns, execPod.Name, "https", hostName, "/", routerIP, 0)
+					err = waitForRouteToRespond(ns, execPod.Name, "https", hostName, "/", exutil.IPUrl(routerIP), 0)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					err = oc.AsAdmin().Run("delete").Args("route", name).Execute()
