@@ -22,6 +22,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 	defer g.GinkgoRecover()
 	var (
 		host, ns string
+		ipUrl    string
 		oc       *exutil.CLI
 
 		configPath = exutil.FixturePath("testdata", "router", "ingress.yaml")
@@ -52,6 +53,8 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 	g.BeforeEach(func() {
 		var err error
 		host, err = exutil.WaitForRouterServiceIP(oc)
+		// bracket IPv6
+		ipUrl = exutil.IPUrl(host)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		ns = oc.KubeFramework().Namespace.Name
@@ -63,8 +66,8 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 			defer t.Close()
 			t.Within(
 				time.Minute,
-				url.Expect("GET", "https://www.google.com").Through(host).SkipTLSVerification().HasStatusCode(503),
-				url.Expect("GET", "http://www.google.com").Through(host).HasStatusCode(503),
+				url.Expect("GET", "https://www.google.com").Through(ipUrl).SkipTLSVerification().HasStatusCode(503),
+				url.Expect("GET", "http://www.google.com").Through(ipUrl).HasStatusCode(503),
 			)
 		})
 
@@ -89,12 +92,12 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:operator.openshift.io
 			defer t.Close()
 			t.Within(
 				3*time.Minute,
-				url.Expect("GET", "http://1.ingress-test.com/test").Through(host).HasStatusCode(200),
-				url.Expect("GET", "http://1.ingress-test.com/other/deep").Through(host).HasStatusCode(200),
-				url.Expect("GET", "http://1.ingress-test.com/").Through(host).HasStatusCode(503),
-				url.Expect("GET", "http://2.ingress-test.com/").Through(host).HasStatusCode(200),
-				url.Expect("GET", "https://3.ingress-test.com/").Through(host).SkipTLSVerification().HasStatusCode(200),
-				url.Expect("GET", "http://3.ingress-test.com/").Through(host).RedirectsTo("https://3.ingress-test.com/", http.StatusFound),
+				url.Expect("GET", "http://1.ingress-test.com/test").Through(ipUrl).HasStatusCode(200),
+				url.Expect("GET", "http://1.ingress-test.com/other/deep").Through(ipUrl).HasStatusCode(200),
+				url.Expect("GET", "http://1.ingress-test.com/").Through(ipUrl).HasStatusCode(503),
+				url.Expect("GET", "http://2.ingress-test.com/").Through(ipUrl).HasStatusCode(200),
+				url.Expect("GET", "https://3.ingress-test.com/").Through(ipUrl).SkipTLSVerification().HasStatusCode(200),
+				url.Expect("GET", "http://3.ingress-test.com/").Through(ipUrl).RedirectsTo("https://3.ingress-test.com/", http.StatusFound),
 			)
 		})
 	})
