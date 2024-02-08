@@ -770,6 +770,16 @@
         timelineGroups.push({group: "operator-progressing", data: []});
         createTimelineData("OperatorProgressing", timelineGroups[timelineGroups.length - 1].data, filteredEvents, "operator_progressing");
 
+        timelineGroups.push({group: "node-state", data: []});
+        createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "node_state");
+        // Sort the node-state intervals so rows are grouped by node
+        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
+            return e1.label < e2.label ? -1 : e1.label > e2.label;
+        })
+
+        timelineGroups.push({group: "disruption", data: []});
+        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "endpoint_availability");
+
         timelineGroups.push({group: "pods", data: []});
         createTimelineData(podStateValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "pods");
         timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
@@ -791,16 +801,6 @@
         //     }
         //     return 0
         // })
-
-        timelineGroups.push({group: "node-state", data: []});
-        createTimelineData(nodeStateValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "node_state");
-        // Sort the node-state intervals so rows are grouped by node
-        timelineGroups[timelineGroups.length - 1].data.sort(function (e1 ,e2){
-            return e1.label < e2.label ? -1 : e1.label > e2.label;
-        })
-
-        timelineGroups.push({group: "endpoint-availability", data: []});
-        createTimelineData(disruptionValue, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "endpoint_availability");
 
         timelineGroups.push({group: "e2e-test-failed", data: []});
         createTimelineData("Failed", timelineGroups[timelineGroups.length - 1].data, filteredEvents, "e2e_test_failed");
