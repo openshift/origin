@@ -18,8 +18,8 @@ func IndexByteString(s string, c byte) int {
 // Use  net.JoinHostPort if you have host and port.
 func IPUrl(host string) string {
 	// We assume that host is a literal IPv6 address if host has
-	// colons.
-	if IndexByteString(host, ':') >= 0 {
+	// colons, and isn't already bracketed.
+	if len(host) > 0 && !(host[0] == '[' && host[len(host)-1] == ']') && IndexByteString(host, ':') >= 0 {
 		return "[" + host + "]"
 	}
 	return host
