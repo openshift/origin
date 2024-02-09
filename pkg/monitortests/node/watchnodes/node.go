@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	corev1 "k8s.io/api/core/v1"
@@ -180,11 +182,16 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 }
 
 func nodeRoles(node *corev1.Node) string {
-	const roleLabel = "node-role.kubernetes.io"
+	const roleLabel = "node-role.kubernetes.io/"
 	var roles []string
 	for label := range node.Labels {
 		if strings.Contains(label, roleLabel) {
-			roles = append(roles, label[len(roleLabel)+1:])
+			role := label[len(roleLabel):]
+			if role == "" {
+				logrus.Warningf("ignoring blank role label %s", roleLabel)
+				continue
+			}
+			roles = append(roles, role)
 		}
 	}
 
