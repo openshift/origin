@@ -18,7 +18,7 @@ import (
 )
 
 func archHasModPerl(oc *exutil.CLI) bool {
-	workerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+	workerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: nodeLabelSelectorWorker})
 	if err != nil {
 		e2e.Logf("problem getting nodes for arch check: %s", err)
 	}

@@ -26,12 +26,13 @@ import (
 )
 
 const (
-	successPodName     = "success-grace-period-pod"
-	errorPodName       = "error-grace-period-pod"
-	namespace          = "graceful-shutdown-testbed"
-	serviceAccountName = "graceful-shutdown"
-	hostPath           = "/var/graceful-shutdown"
-	nodeReadyTimeout   = 15 * time.Minute
+	successPodName          = "success-grace-period-pod"
+	errorPodName            = "error-grace-period-pod"
+	namespace               = "graceful-shutdown-testbed"
+	serviceAccountName      = "graceful-shutdown"
+	hostPath                = "/var/graceful-shutdown"
+	nodeReadyTimeout        = 15 * time.Minute
+	nodeLabelSelectorWorker = "node-role.kubernetes.io/worker,!node-role.kubernetes.io/edge"
 )
 
 var (
@@ -90,7 +91,7 @@ var _ = Describe("[sig-node][Disruptive][Feature:KubeletGracefulShutdown]", func
 		createTestBed(ctx, oc)
 
 		By("getting first worker node", func() {
-			nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker="})
+			nodes, err := oc.KubeClient().CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: nodeLabelSelectorWorker})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(nodes.Items).NotTo(HaveLen(0))
 			node = &nodes.Items[0]
