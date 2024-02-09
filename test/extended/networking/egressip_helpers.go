@@ -18,12 +18,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	configv1 "github.com/openshift/api/config/v1"
-	networkv1 "github.com/openshift/api/network/v1"
-	routev1 "github.com/openshift/api/route/v1"
-	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
-	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -38,6 +32,13 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
+
+	configv1 "github.com/openshift/api/config/v1"
+	networkv1 "github.com/openshift/api/network/v1"
+	routev1 "github.com/openshift/api/route/v1"
+	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
+	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
 
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
@@ -156,7 +157,7 @@ func getWorkerNodesOrdered(clientset kubernetes.Interface) ([]corev1.Node, error
 	nodes, err := clientset.CoreV1().Nodes().List(
 		context.TODO(),
 		metav1.ListOptions{
-			LabelSelector: "node-role.kubernetes.io/worker=",
+			LabelSelector: nodeLabelSelectorWorker,
 		})
 	if err != nil {
 		return nil, err
