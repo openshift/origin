@@ -879,6 +879,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/quota.sh [apigroup:image.openshift.io]": "",
 
+	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/release.sh [apigroup:image.openshift.io]": "",
+
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/secrets.sh [apigroup:image.openshift.io]": "",
 
 	"[sig-cli][Feature:LegacyCommandTests][Disruptive][Serial] test-cmd: test/cmd/set-data.sh [apigroup:image.openshift.io]": "",

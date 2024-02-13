@@ -213,6 +213,7 @@
 // test/extended/testdata/cmd/test/cmd/images.sh
 // test/extended/testdata/cmd/test/cmd/printer.sh
 // test/extended/testdata/cmd/test/cmd/quota.sh
+// test/extended/testdata/cmd/test/cmd/release.sh
 // test/extended/testdata/cmd/test/cmd/secrets.sh
 // test/extended/testdata/cmd/test/cmd/set-data.sh
 // test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh
@@ -33833,6 +33834,32 @@ func testExtendedTestdataCmdTestCmdQuotaSh() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataCmdTestCmdReleaseSh = []byte(`#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
+trap os::test::junit::reconcile_output EXIT
+
+# Test that resource printer includes resource kind on multiple resources
+os::test::junit::declare_suite_start "cmd/release"
+os::cmd::expect_success "oc adm release new --from-release ${RELEASE_IMAGE_LATEST}"
+echo "adm release: ok"
+os::test::junit::declare_suite_end
+`)
+
+func testExtendedTestdataCmdTestCmdReleaseShBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdReleaseSh, nil
+}
+
+func testExtendedTestdataCmdTestCmdReleaseSh() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdReleaseShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/release.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataCmdTestCmdSecretsSh = []byte(`#!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
@@ -54442,6 +54469,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/images.sh":                                                          testExtendedTestdataCmdTestCmdImagesSh,
 	"test/extended/testdata/cmd/test/cmd/printer.sh":                                                         testExtendedTestdataCmdTestCmdPrinterSh,
 	"test/extended/testdata/cmd/test/cmd/quota.sh":                                                           testExtendedTestdataCmdTestCmdQuotaSh,
+	"test/extended/testdata/cmd/test/cmd/release.sh":                                                         testExtendedTestdataCmdTestCmdReleaseSh,
 	"test/extended/testdata/cmd/test/cmd/secrets.sh":                                                         testExtendedTestdataCmdTestCmdSecretsSh,
 	"test/extended/testdata/cmd/test/cmd/set-data.sh":                                                        testExtendedTestdataCmdTestCmdSetDataSh,
 	"test/extended/testdata/cmd/test/cmd/set-liveness-probe.sh":                                              testExtendedTestdataCmdTestCmdSetLivenessProbeSh,
@@ -55091,6 +55119,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 							"images.sh":             {testExtendedTestdataCmdTestCmdImagesSh, map[string]*bintree{}},
 							"printer.sh":            {testExtendedTestdataCmdTestCmdPrinterSh, map[string]*bintree{}},
 							"quota.sh":              {testExtendedTestdataCmdTestCmdQuotaSh, map[string]*bintree{}},
+							"release.sh":            {testExtendedTestdataCmdTestCmdReleaseSh, map[string]*bintree{}},
 							"secrets.sh":            {testExtendedTestdataCmdTestCmdSecretsSh, map[string]*bintree{}},
 							"set-data.sh":           {testExtendedTestdataCmdTestCmdSetDataSh, map[string]*bintree{}},
 							"set-liveness-probe.sh": {testExtendedTestdataCmdTestCmdSetLivenessProbeSh, map[string]*bintree{}},
