@@ -79,7 +79,7 @@ func (r *monitorTestRegistry) ListMonitorTests() sets.String {
 
 func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) ([]*junitapi.JUnitTestCase, error) {
 	wg := sync.WaitGroup{}
-	junitCh := make(chan *junitapi.JUnitTestCase, len(r.monitorTests))
+	junitCh := make(chan *junitapi.JUnitTestCase, 2*len(r.monitorTests))
 	errCh := make(chan error, len(r.monitorTests))
 
 	for i := range r.monitorTests {
@@ -148,7 +148,7 @@ func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConf
 func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
 	wg := sync.WaitGroup{}
 	intervalsCh := make(chan monitorapi.Intervals, len(r.monitorTests))
-	junitCh := make(chan []*junitapi.JUnitTestCase, 2*len(r.monitorTests))
+	junitCh := make(chan []*junitapi.JUnitTestCase, 3*len(r.monitorTests))
 	errCh := make(chan error, len(r.monitorTests))
 
 	for i := range r.monitorTests {

@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/test/extended/testdata"
@@ -83,13 +81,6 @@ func BelongsInEverything(eventInterval monitorapi.Interval) bool {
 	return true
 }
 
-func isInterestingOrPathological(eventInterval monitorapi.Interval) bool {
-	if strings.Contains(eventInterval.Locator, pathologicaleventlibrary.InterestingMark) || strings.Contains(eventInterval.Locator, pathologicaleventlibrary.PathologicalMark) {
-		return true
-	}
-	return false
-}
-
 func BelongsInSpyglass(eventInterval monitorapi.Interval) bool {
 	if isLessInterestingAlert(eventInterval) {
 		return false
@@ -97,7 +88,14 @@ func BelongsInSpyglass(eventInterval monitorapi.Interval) bool {
 	if IsPodLifecycle(eventInterval) {
 		return false
 	}
-	if isInterestingOrPathological(eventInterval) {
+	if eventInterval.Source == monitorapi.SourcePodState {
+		return false
+	}
+	// Pathologically repeating kube events:
+	if eventInterval.Source == monitorapi.SourceKubeEvent {
+		if eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPathological] != "true" {
+			return false
+		}
 		ns := monitorapi.NamespaceFromLocator(eventInterval.Locator)
 		if strings.Contains(ns, "e2e") {
 			return false
@@ -195,14 +193,19 @@ func isInterestingNamespace(eventInterval monitorapi.Interval, interestingNamesp
 }
 
 func isLessInterestingAlert(eventInterval monitorapi.Interval) bool {
-	locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-	alertName := monitorapi.AlertFrom(locatorParts)
+	if eventInterval.Source != monitorapi.SourceAlert {
+		return false
+	}
+	if eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationAlertState] == "pending" {
+		// Skip pending alerts:
+		return true
+	}
+
+	alertName := eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
 	if len(alertName) == 0 {
-		return false
+		return true
 	}
-	if !strings.Contains(eventInterval.Message, "pending") {
-		return false
-	}
+
 	if eventInterval.Level == monitorapi.Warning || eventInterval.Level == monitorapi.Error {
 		return false
 	}
