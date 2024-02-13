@@ -1,7 +1,6 @@
 package dev
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -11,6 +10,7 @@ import (
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedalerts"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortests/network/legacynetworkmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -150,10 +150,7 @@ a running cluster.
 `),
 
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if true {
-				return fmt.Errorf("this command got nerfed")
-			}
-			logrus.Info("running disruption invariant tests")
+			logrus.Info("running some disruption invariant tests (where possible)")
 
 			logrus.WithField("intervalsFile", opts.intervalsFile).Info("loading e2e intervals")
 			intervals, err := readIntervalsFromFile(opts.intervalsFile)
@@ -163,6 +160,17 @@ a running cluster.
 			logrus.Infof("loaded %d intervals", len(intervals))
 
 			logrus.Info("running tests")
+			junits := legacynetworkmonitortests.TestMultipleSingleSecondDisruptions(intervals)
+			for _, junit := range junits {
+				if junit.FailureOutput != nil {
+					logrus.Errorf("FAIL: %s", junit.Name)
+					logrus.Error(junit.FailureOutput.Output)
+				} else {
+					logrus.Infof("PASS: %s", junit.Name)
+				}
+			}
+
+			logrus.Warn("this command was nerfed, running only tests devs decide to include, not all disruption tests at this time")
 
 			return nil
 		},

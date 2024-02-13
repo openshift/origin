@@ -1,7 +1,6 @@
 package monitorapi
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -22,10 +21,6 @@ func E2ETestFromLocator(l Locator) (string, bool) {
 	return test, ok
 }
 
-func NodeLocator(testName string) string {
-	return fmt.Sprintf("node/%v", testName)
-}
-
 func IsNode(locator string) bool {
 	_, ret := NodeFromLocator(locator)
 	return ret
@@ -34,10 +29,6 @@ func IsNode(locator string) bool {
 func NodeFromLocator(locator string) (string, bool) {
 	ret := NodeFrom(LocatorParts(locator))
 	return ret, len(ret) > 0
-}
-
-func OperatorLocator(operatorName string) string {
-	return fmt.Sprintf("clusteroperator/%v", operatorName)
 }
 
 func OperatorFromLocator(locator string) (string, bool) {
@@ -99,7 +90,7 @@ func AlertFrom(locatorParts map[string]string) string {
 }
 
 func ThisDisruptionInstanceFrom(locatorParts map[string]string) string {
-	return locatorParts[string(LocatorDisruptionKey)]
+	return locatorParts[string(LocatorBackendDisruptionNameKey)]
 }
 
 func BackendDisruptionNameFromLocator(locator Locator) string {
@@ -113,18 +104,6 @@ func BackendDisruptionNameFrom(locatorParts map[string]string) string {
 
 func DisruptionConnectionTypeFrom(locatorParts map[string]string) BackendConnectionType {
 	return BackendConnectionType(locatorParts[string(LocatorConnectionKey)])
-}
-
-func DisruptionLoadBalancerTypeFrom(locatorParts map[string]string) string {
-	return locatorParts["load-balancer"]
-}
-
-func DisruptionProtocolFrom(locatorParts map[string]string) string {
-	return locatorParts["protocol"]
-}
-
-func DisruptionTargetAPIFrom(locatorParts map[string]string) string {
-	return locatorParts["target"]
 }
 
 func IsEventForLocator(locator string) EventIntervalMatchesFunc {
