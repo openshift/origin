@@ -23,7 +23,7 @@ const (
 	//externalServiceURL = "https://us-east4-openshift-gce-devel.cloudfunctions.net/openshift-tests-endpoint"
 
 	// Load balancer URL
-	externalServiceURL = "http://35.212.104.31/health"
+	externalServiceURL = "http://35.212.77.212/health"
 )
 
 type cloudAvailability struct {
