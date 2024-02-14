@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/objx"
 
 	v1 "github.com/openshift/api/config/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -144,27 +143,16 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 	g.It("[sig-scheduling][Early] control plane machine set operator should not have any events", func() {
 		ctx := context.Background()
 
-		nodeClient := oc.KubeClient().CoreV1().Nodes()
-		nodeList, err := nodeClient.List(ctx, metav1.ListOptions{})
+		infrastructure, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
+		o.Expect(infrastructure).ToNot(o.BeNil())
 
 		// We want to skip this test on single-node clusters
 		// as the control plane machine set does not get generated.
 		// No other topology should match this condition.
-		if len(nodeList.Items) == 1 {
-			_, isWorker := nodeList.Items[0].Labels["node-role.kubernetes.io/worker"]
-			_, isControlPlane := nodeList.Items[0].Labels["node-role.kubernetes.io/control-plane"]
-
-			if isWorker && isControlPlane {
-				g.Skip("Skipping test due to a cluster being a single node cluster")
-			}
+		if infrastructure.Status.ControlPlaneTopology == v1.SingleReplicaTopologyMode {
+			g.Skip("Skipping test due to a cluster being a single node cluster")
 		}
-
-		configClient, err := configclient.NewForConfig(oc.KubeFramework().ClientConfig())
-		o.Expect(err).ToNot(o.HaveOccurred())
-
-		infrastructure, err := configClient.Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-		o.Expect(err).ToNot(o.HaveOccurred())
 
 		platform := infrastructure.Status.PlatformStatus.Type
 
