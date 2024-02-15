@@ -24,7 +24,7 @@ var (
 	releasePullSpecInitializationLock sync.RWMutex
 	releasePullSpecInitialized        bool
 	availablePullSpecs                = map[string]string{
-		"cli":   "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest",
+		"cli":   "quay-proxy.io/openshift/ci:origin_4.16_cli",
 		"tools": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
 	}
 	imageRegistryPullSpecRegex = regexp.MustCompile(`image-registry\.openshift-image-registry\.svc:5000\/openshift\/([A-Za-z0-9._-]+)[@:A-Za-z0-9._-]*`)
