@@ -270,7 +270,7 @@ func kubePodNotReadyDueToImagePullBackoff(trackedEventResources monitorapi.Insta
 func kubePodNotReadyDueToRegExMatch(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals, regexp *regexp.Regexp) bool {
 	// Run the check for all firing intervals.
 	for _, firingInterval := range firingIntervals {
-		relatedPodRef := monitorapi.PodFrom(firingInterval.Locator)
+		relatedPodRef := monitorapi.PodFrom(firingInterval.StructuredLocator)
 
 		// Find an event
 		foundRegexMatchEvent := false
@@ -427,8 +427,7 @@ func AlertFiringInNamespace(alertName, namespace string) monitorapi.EventInterva
 	return func(eventInterval monitorapi.Interval) bool {
 		return monitorapi.And(
 			func(eventInterval monitorapi.Interval) bool {
-				locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-				eventAlertName := monitorapi.AlertFrom(locatorParts)
+				eventAlertName := eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
 				if eventAlertName != alertName {
 					return false
 				}
@@ -446,8 +445,7 @@ func AlertPendingInNamespace(alertName, namespace string) monitorapi.EventInterv
 	return func(eventInterval monitorapi.Interval) bool {
 		return monitorapi.And(
 			func(eventInterval monitorapi.Interval) bool {
-				locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-				eventAlertName := monitorapi.AlertFrom(locatorParts)
+				eventAlertName := eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
 				if eventAlertName != alertName {
 					return false
 				}
@@ -469,10 +467,10 @@ func InNamespace(namespace string) func(event monitorapi.Interval) bool {
 			return true
 
 		case namespace == platformidentification.NamespaceOther:
-			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
+			eventNamespace := monitorapi.NamespaceFromLocator(event.StructuredLocator)
 			return !platformidentification.KnownNamespaces.Has(eventNamespace)
 		default:
-			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
+			eventNamespace := monitorapi.NamespaceFromLocator(event.StructuredLocator)
 			return eventNamespace == namespace
 		}
 	}

@@ -172,7 +172,7 @@ func runBackstopTest(
 
 	// New version for alert testing against intervals instead of directly from prometheus:
 	for _, firing := range firingIntervals {
-		fan := monitorapi.AlertFromLocator(firing.Locator)
+		fan := firing.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
 		if isSkippedAlert(fan) {
 			continue
 		}
@@ -191,7 +191,7 @@ func runBackstopTest(
 	}
 	// New version for alert testing against intervals instead of directly from prometheus:
 	for _, pending := range pendingIntervals {
-		fan := monitorapi.AlertFromLocator(pending.Locator)
+		fan := pending.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
 		if isSkippedAlert(fan) {
 			continue
 		}

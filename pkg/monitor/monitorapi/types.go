@@ -523,15 +523,7 @@ func IsInfoEvent(eventInterval Interval) bool {
 
 // IsInE2ENamespace returns true if the eventInterval is in an e2e namespace
 func IsInE2ENamespace(eventInterval Interval) bool {
-	// Old style
-	if strings.Contains(eventInterval.Locator, "ns/e2e-") {
-		return true
-	}
-	// New style
-	if strings.Contains(eventInterval.Locator, "namespace/e2e-") {
-		return true
-	}
-	return false
+	return strings.HasPrefix(NamespaceFromLocator(eventInterval.StructuredLocator), "e2e-")
 }
 
 func IsForDisruptionBackend(backend string) EventIntervalMatchesFunc {
@@ -549,9 +541,7 @@ func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 		if ns, ok := eventInterval.StructuredLocator.Keys[LocatorNamespaceKey]; ok {
 			return namespaces.Has(ns)
 		}
-		// TODO: For legacy locators, can be removed soon
-		ns := NamespaceFromLocator(eventInterval.Locator)
-		return namespaces.Has(ns)
+		return false
 	}
 }
 

@@ -100,7 +100,7 @@ func NewPodEventIntervalRenderer() podRendering {
 func (r podRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
 	allNamespaces := sets.NewString()
 	for _, interval := range events {
-		allNamespaces.Insert(monitorapi.NamespaceFromLocator(interval.Locator))
+		allNamespaces.Insert(monitorapi.NamespaceFromLocator(interval.StructuredLocator))
 	}
 
 	namespaceGroups := wellKnownNamespaceGroups()

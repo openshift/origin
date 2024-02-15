@@ -24,7 +24,7 @@ func NonUniquePodToNode(intervals monitorapi.Intervals) map[NonUniquePodKey]stri
 			continue
 		}
 
-		pod := monitorapi.PodFrom(interval.Locator)
+		pod := monitorapi.PodFrom(interval.StructuredLocator)
 		if len(pod.Name) == 0 {
 			continue
 		}
@@ -54,7 +54,7 @@ func NonUniqueEtcdMemberToPod(intervals monitorapi.Intervals) map[string]NonUniq
 			continue
 		}
 
-		pod := monitorapi.PodFrom(interval.Locator)
+		pod := monitorapi.PodFrom(interval.StructuredLocator)
 		if len(pod.Name) == 0 {
 			continue
 		}
@@ -72,29 +72,4 @@ func NonUniqueEtcdMemberToPod(intervals monitorapi.Intervals) map[string]NonUniq
 	}
 
 	return ret
-}
-
-func UniquePodToNode(intervals monitorapi.Intervals) map[PodKey]string {
-	ret := map[PodKey]string{}
-	for _, interval := range intervals {
-		pod := monitorapi.PodFrom(interval.Locator)
-		if len(pod.UID) == 0 {
-			continue
-		}
-		node, _ := monitorapi.NodeFromLocator(interval.Locator)
-		if len(node) == 0 {
-			continue
-		}
-
-		key := PodKey{
-			Namespace: pod.Namespace,
-			Name:      pod.Name,
-			UID:       pod.UID,
-		}
-		ret[key] = node
-
-	}
-
-	return ret
-
 }

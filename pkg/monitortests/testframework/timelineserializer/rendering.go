@@ -96,7 +96,7 @@ func BelongsInSpyglass(eventInterval monitorapi.Interval) bool {
 		if eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPathological] != "true" {
 			return false
 		}
-		ns := monitorapi.NamespaceFromLocator(eventInterval.Locator)
+		ns := monitorapi.NamespaceFromLocator(eventInterval.StructuredLocator)
 		if strings.Contains(ns, "e2e") {
 			return false
 		}
@@ -155,7 +155,7 @@ func isPlatformPodEvent(eventInterval monitorapi.Interval) bool {
 	if !IsPodLifecycle(eventInterval) {
 		return false
 	}
-	pod := monitorapi.PodFrom(eventInterval.Locator)
+	pod := monitorapi.PodFrom(eventInterval.StructuredLocator)
 	if len(pod.UID) == 0 {
 		return false
 	}

@@ -21,7 +21,7 @@ func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end 
 		if _, ok := event.StructuredLocator.Keys[monitorapi.LocatorPodKey]; !ok {
 			continue
 		}
-		podLocator := monitorapi.PodFrom(event.Locator).ToLocator()
+		podLocator := monitorapi.PodFrom(event.StructuredLocator).ToLocator()
 		reason := event.StructuredMessage.Reason
 		switch reason {
 		case monitorapi.PodPendingReason, monitorapi.PodNotPendingReason, monitorapi.PodReasonDeleted:
@@ -302,7 +302,7 @@ func (t podLifecycleTimeBounder) getPodCreationTime(inLocator monitorapi.Locator
 }
 
 func (t podLifecycleTimeBounder) getPodDeletionPlusGraceTime(inLocator monitorapi.Locator) *time.Time {
-	podCoordinates := monitorapi.PodFrom(inLocator.OldLocator())
+	podCoordinates := monitorapi.PodFrom(inLocator)
 	instanceKey := monitorapi.InstanceKey{
 		Namespace: podCoordinates.Namespace,
 		Name:      podCoordinates.Name,
@@ -331,7 +331,7 @@ func (t podLifecycleTimeBounder) getPodDeletionPlusGraceTime(inLocator monitorap
 }
 
 func (t podLifecycleTimeBounder) getRunOnceContainerEnd(inLocator monitorapi.Locator) *time.Time {
-	podCoordinates := monitorapi.PodFrom(inLocator.OldLocator())
+	podCoordinates := monitorapi.PodFrom(inLocator)
 	instanceKey := monitorapi.InstanceKey{
 		Namespace: podCoordinates.Namespace,
 		Name:      podCoordinates.Name,

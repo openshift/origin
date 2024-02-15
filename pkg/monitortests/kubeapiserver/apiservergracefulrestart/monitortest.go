@@ -70,7 +70,7 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 		//  - when we create the end event, set 'Related' field of the end event
 		//    to that of the start event.
 		// TODO: With the above approach, finding the pair will be more deterministic
-		podRef := monitorapi.PodFrom(currInterval.Locator)
+		podRef := monitorapi.PodFrom(currInterval.StructuredLocator)
 		nodeName, _ := monitorapi.NodeFromLocator(currInterval.Locator)
 		key := fmt.Sprintf("ns/%s pod/%s node/%s", podRef.Namespace, podRef.Name, nodeName)
 
@@ -103,7 +103,7 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 
 	// and now close everything still open with a warning
 	for fakeLocator, startTime := range startedIntervals {
-		podRef := monitorapi.PodFrom(fakeLocator)
+		podRef := podFrom(fakeLocator)
 		nodeName, _ := monitorapi.NodeFromLocator(fakeLocator)
 
 		computedIntervals = append(computedIntervals,
@@ -121,6 +121,27 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 	}
 
 	return computedIntervals, nil
+}
+
+// Deprecated: podFrom is a fork of the monitorapi.PodFrom function that was required due to the way this module is using
+// keys in a map. Unfortunately we need to preserve this as structs do not work well in map keys, so we'd need a
+// deeper refactor. For now, continue parsing locator info out of these strings in this one spot, but avoid
+// use of this function.
+func podFrom(locator string) monitorapi.PodReference {
+	parts := monitorapi.LocatorParts(locator)
+	namespace := monitorapi.NamespaceFrom(parts)
+	name := parts[string(monitorapi.LocatorPodKey)]
+	uid := parts[string(monitorapi.LocatorUIDKey)]
+	if len(namespace) == 0 || len(name) == 0 {
+		return monitorapi.PodReference{}
+	}
+	return monitorapi.PodReference{
+		NamespacedReference: monitorapi.NamespacedReference{
+			Namespace: namespace,
+			Name:      name,
+			UID:       uid,
+		},
+	}
 }
 
 func (*apiserverGracefulShutdownAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
