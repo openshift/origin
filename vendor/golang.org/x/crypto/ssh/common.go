@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 	"sync"
 
 	_ "crypto/sha1"
@@ -127,14 +128,6 @@ func isRSA(algo string) bool {
 	return contains(algos, underlyingAlgo(algo))
 }
 
-func isRSACert(algo string) bool {
-	_, ok := certKeyAlgoNames[algo]
-	if !ok {
-		return false
-	}
-	return isRSA(algo)
-}
-
 // supportedPubKeyAuthAlgos specifies the supported client public key
 // authentication algorithms. Note that this doesn't include certificate types
 // since those use the underlying algorithm. This list is sent to the client if
@@ -146,6 +139,8 @@ var supportedPubKeyAuthAlgos = []string{
 	KeyAlgoRSASHA256, KeyAlgoRSASHA512, KeyAlgoRSA,
 	KeyAlgoDSA,
 }
+
+var supportedPubKeyAuthAlgosList = strings.Join(supportedPubKeyAuthAlgos, ",")
 
 // unexpectedMessageError results when the SSH message that we received didn't
 // match what we wanted.

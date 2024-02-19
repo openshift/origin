@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build freebsd || netbsd
+// +build freebsd netbsd
 
 package unix
 

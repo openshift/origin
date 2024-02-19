@@ -10,10 +10,8 @@ filters:
     - p0lyn0mial
     approvers:
     - DennisPeriquet
-    - deads2k
     - dgoodwin
     - neisw
-    - soltysh
     - stbenjam
     - xueqzhan
   "^\\.go.(mod|sum)$":

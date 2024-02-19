@@ -30,7 +30,7 @@ func (xl termlist) String() string {
 	var buf bytes.Buffer
 	for i, x := range xl {
 		if i > 0 {
-			buf.WriteString(" | ")
+			buf.WriteString(" ∪ ")
 		}
 		buf.WriteString(x.String())
 	}
