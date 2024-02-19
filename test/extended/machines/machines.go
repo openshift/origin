@@ -144,6 +144,10 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		ctx := context.Background()
 
 		infrastructure, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+		// if the Cluster CR is not found it most likely means this is running on a UPI installation and does not have CPMSO support
+		if errors.IsNotFound(err) {
+			e2eskipper.Skipf("No Cluster object found, this frequently means there is no Control Plane Machine Set Operator, skipping test")
+		}
 		o.Expect(err).ToNot(o.HaveOccurred())
 		o.Expect(infrastructure).ToNot(o.BeNil())
 
