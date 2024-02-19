@@ -19,11 +19,8 @@ const (
 	newCloudConnectionTestName    = "[sig-trt] disruption/azure-network-liveness connection/new should be available throughout the test"
 	reusedCloudConnectionTestName = "[sig-trt] disruption/azure-network-liveness connection/reused should be available throughout the test"
 
-	// Cloud function URL
-	//externalServiceURL = "https://us-east4-openshift-gce-devel.cloudfunctions.net/openshift-tests-endpoint"
-
 	// Load balancer URL
-	externalServiceURL = "http://52.168.131.231/health"
+	externalServiceURL = "http://20.102.111.171/health"
 )
 
 type cloudAvailability struct {
