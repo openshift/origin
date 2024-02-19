@@ -24,6 +24,7 @@ import (
 
 	"golang.org/x/tools/go/types/objectpath"
 	"golang.org/x/tools/internal/tokeninternal"
+	"golang.org/x/tools/internal/typeparams"
 )
 
 // IExportShallow encodes "shallow" export data for the specified package.
@@ -480,7 +481,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 		}
 
 		// Function.
-		if sig.TypeParams().Len() == 0 {
+		if typeparams.ForSignature(sig).Len() == 0 {
 			w.tag('F')
 		} else {
 			w.tag('G')
@@ -493,7 +494,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 		//
 		// While importing the type parameters, tparamList computes and records
 		// their export name, so that it can be later used when writing the index.
-		if tparams := sig.TypeParams(); tparams.Len() > 0 {
+		if tparams := typeparams.ForSignature(sig); tparams.Len() > 0 {
 			w.tparamList(obj.Name(), tparams, obj.Pkg())
 		}
 		w.signature(sig)
@@ -506,14 +507,14 @@ func (p *iexporter) doDecl(obj types.Object) {
 	case *types.TypeName:
 		t := obj.Type()
 
-		if tparam, ok := t.(*types.TypeParam); ok {
+		if tparam, ok := t.(*typeparams.TypeParam); ok {
 			w.tag('P')
 			w.pos(obj.Pos())
 			constraint := tparam.Constraint()
 			if p.version >= iexportVersionGo1_18 {
 				implicit := false
 				if iface, _ := constraint.(*types.Interface); iface != nil {
-					implicit = iface.IsImplicit()
+					implicit = typeparams.IsImplicit(iface)
 				}
 				w.bool(implicit)
 			}
@@ -534,17 +535,17 @@ func (p *iexporter) doDecl(obj types.Object) {
 			panic(internalErrorf("%s is not a defined type", t))
 		}
 
-		if named.TypeParams().Len() == 0 {
+		if typeparams.ForNamed(named).Len() == 0 {
 			w.tag('T')
 		} else {
 			w.tag('U')
 		}
 		w.pos(obj.Pos())
 
-		if named.TypeParams().Len() > 0 {
+		if typeparams.ForNamed(named).Len() > 0 {
 			// While importing the type parameters, tparamList computes and records
 			// their export name, so that it can be later used when writing the index.
-			w.tparamList(obj.Name(), named.TypeParams(), obj.Pkg())
+			w.tparamList(obj.Name(), typeparams.ForNamed(named), obj.Pkg())
 		}
 
 		underlying := obj.Type().Underlying()
@@ -564,7 +565,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 
 			// Receiver type parameters are type arguments of the receiver type, so
 			// their name must be qualified before exporting recv.
-			if rparams := sig.RecvTypeParams(); rparams.Len() > 0 {
+			if rparams := typeparams.RecvTypeParams(sig); rparams.Len() > 0 {
 				prefix := obj.Name() + "." + m.Name()
 				for i := 0; i < rparams.Len(); i++ {
 					rparam := rparams.At(i)
@@ -739,19 +740,19 @@ func (w *exportWriter) doTyp(t types.Type, pkg *types.Package) {
 	}
 	switch t := t.(type) {
 	case *types.Named:
-		if targs := t.TypeArgs(); targs.Len() > 0 {
+		if targs := typeparams.NamedTypeArgs(t); targs.Len() > 0 {
 			w.startType(instanceType)
 			// TODO(rfindley): investigate if this position is correct, and if it
 			// matters.
 			w.pos(t.Obj().Pos())
 			w.typeList(targs, pkg)
-			w.typ(t.Origin(), pkg)
+			w.typ(typeparams.NamedTypeOrigin(t), pkg)
 			return
 		}
 		w.startType(definedType)
 		w.qualifiedType(t.Obj())
 
-	case *types.TypeParam:
+	case *typeparams.TypeParam:
 		w.startType(typeParamType)
 		w.qualifiedType(t.Obj())
 
@@ -867,7 +868,7 @@ func (w *exportWriter) doTyp(t types.Type, pkg *types.Package) {
 			w.signature(sig)
 		}
 
-	case *types.Union:
+	case *typeparams.Union:
 		w.startType(unionType)
 		nt := t.Len()
 		w.uint64(uint64(nt))
@@ -947,14 +948,14 @@ func (w *exportWriter) signature(sig *types.Signature) {
 	}
 }
 
-func (w *exportWriter) typeList(ts *types.TypeList, pkg *types.Package) {
+func (w *exportWriter) typeList(ts *typeparams.TypeList, pkg *types.Package) {
 	w.uint64(uint64(ts.Len()))
 	for i := 0; i < ts.Len(); i++ {
 		w.typ(ts.At(i), pkg)
 	}
 }
 
-func (w *exportWriter) tparamList(prefix string, list *types.TypeParamList, pkg *types.Package) {
+func (w *exportWriter) tparamList(prefix string, list *typeparams.TypeParamList, pkg *types.Package) {
 	ll := uint64(list.Len())
 	w.uint64(ll)
 	for i := 0; i < list.Len(); i++ {
@@ -972,7 +973,7 @@ const blankMarker = "$"
 // differs from its actual object name: it is prefixed with a qualifier, and
 // blank type parameter names are disambiguated by their index in the type
 // parameter list.
-func tparamExportName(prefix string, tparam *types.TypeParam) string {
+func tparamExportName(prefix string, tparam *typeparams.TypeParam) string {
 	assert(prefix != "")
 	name := tparam.Obj().Name()
 	if name == "_" {
