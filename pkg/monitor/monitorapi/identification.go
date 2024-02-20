@@ -88,11 +88,6 @@ func BackendDisruptionNameFromLocator(locator Locator) string {
 	return locator.Keys[LocatorBackendDisruptionNameKey]
 }
 
-// BackendDisruptionNameFrom holds the value used to store and locate historical data related to the amount of disruption.
-func BackendDisruptionNameFrom(locatorParts map[string]string) string {
-	return locatorParts[string(LocatorBackendDisruptionNameKey)]
-}
-
 func DisruptionConnectionTypeFrom(locatorParts map[string]string) BackendConnectionType {
 	return BackendConnectionType(locatorParts[string(LocatorConnectionKey)])
 }

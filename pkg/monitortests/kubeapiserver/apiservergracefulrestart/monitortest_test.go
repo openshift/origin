@@ -9,7 +9,7 @@ import (
 
 func TestBuilder(t *testing.T) {
 	oldLocator := "node/node-name ns/openshift-kube-apiserver pod/pod-name"
-	podRef := monitorapi.PodFrom(oldLocator)
+	podRef := podFrom(oldLocator)
 	nodeName, _ := monitorapi.NodeFromLocator(oldLocator)
 
 	interval := monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Info).
