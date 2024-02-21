@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
@@ -88,7 +89,7 @@ func (r *monitorTestRegistry) StartCollection(ctx context.Context, adminRESTConf
 			defer wg.Done()
 
 			testName := fmt.Sprintf("[Jira:%q] monitor test %v setup", invariant.jiraComponent, invariant.name)
-			fmt.Printf("  Starting %v for %v\n", invariant.name, invariant.jiraComponent)
+			logrus.Infof("  Starting %v for %v", invariant.name, invariant.jiraComponent)
 
 			start := time.Now()
 			err := startCollectionWithPanicProtection(ctx, invariant.monitorTest, adminRESTConfig, recorder)
@@ -151,6 +152,7 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 	junitCh := make(chan []*junitapi.JUnitTestCase, 3*len(r.monitorTests))
 	errCh := make(chan error, len(r.monitorTests))
 
+	logrus.Infof("Starting CollectData for all monitor tests")
 	for i := range r.monitorTests {
 		wg.Add(1)
 		go func(ctx context.Context, monitorTest *monitorTesttItem) {
@@ -158,6 +160,7 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 			testName := fmt.Sprintf("[Jira:%q] monitor test %v collection", monitorTest.jiraComponent, monitorTest.name)
 
 			start := time.Now()
+			logrus.Infof("  Starting CollectData for %s", testName)
 			localIntervals, localJunits, err := collectDataWithPanicProtection(ctx, monitorTest.monitorTest, storageDir, beginning, end)
 			intervalsCh <- localIntervals
 			junitCh <- localJunits
@@ -175,6 +178,7 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 							},
 						},
 					}
+					logrus.WithError(nsErr).Errorf("  Finished CollectData for %s with not-supported error", testName)
 					return
 				}
 				junitCh <- []*junitapi.JUnitTestCase{
@@ -189,6 +193,7 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 				}
 				var flakeErr *FlakeError
 				if !errors.As(err, &flakeErr) {
+					logrus.WithError(flakeErr).Errorf("  Finished CollectData for %s with flake error", testName)
 					return
 				}
 			}
@@ -199,6 +204,7 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 					Duration: duration.Seconds(),
 				},
 			}
+			logrus.Infof("  Finished CollectData for %s", testName)
 		}(ctx, r.monitorTests[i])
 	}
 
@@ -220,6 +226,7 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 		errs = append(errs, curr)
 	}
 
+	logrus.Infof("Finished CollectData for all monitor tests")
 	return intervals, junits, utilerrors.NewAggregate(errs)
 }
 
