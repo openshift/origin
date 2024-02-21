@@ -52,7 +52,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 			}
 		}
 
-		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--boot=0").Execute()).To(o.Succeed())
+		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--boot=0", "--tail=100").Execute()).To(o.Succeed())
 
 		o.Expect(oc.Run("adm", "node-logs").Args(randomNode(oc), "--since=-2m", "--until=-1m").Execute()).To(o.Succeed())
 
