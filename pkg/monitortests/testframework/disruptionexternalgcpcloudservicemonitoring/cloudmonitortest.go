@@ -33,10 +33,6 @@ type cloudAvailability struct {
 }
 
 func NewCloudAvailabilityInvariant() monitortestframework.MonitorTest {
-	return &cloudAvailability{}
-}
-
-func NewRecordCloudAvailabilityOnly() monitortestframework.MonitorTest {
 	return &cloudAvailability{
 		suppressJunit: true,
 	}
