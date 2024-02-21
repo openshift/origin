@@ -3,6 +3,7 @@ package iooptions
 import (
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -34,6 +35,10 @@ func (o *OutputFlags) ConfigureIOStreams(streams genericclioptions.IOStreams, st
 	if len(o.OutFile) == 0 {
 		streamSetter.SetIOStreams(streams)
 		return doNothing, nil
+	}
+
+	if err := os.MkdirAll(filepath.Dir(o.OutFile), 0770); err != nil {
+		return doNothing, err
 	}
 
 	f, err := os.OpenFile(o.OutFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)

@@ -38,7 +38,7 @@ func (o *PollServiceOptions) Run(ctx context.Context) error {
 		return err
 	}
 	if len(startingContent) > 0 {
-		//print starting content to the log so that we can simply scrape the log to find all entries at the end
+		// print starting content to the log so that we can simply scrape the log to find all entries at the end
 		o.OriginalOutFile.Write(startingContent)
 	}
 
