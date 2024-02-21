@@ -3,6 +3,7 @@ package disruptionexternalgcpcloudservicemonitoring
 import (
 	"context"
 	_ "embed"
+	"os"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -33,8 +34,17 @@ type cloudAvailability struct {
 }
 
 func NewCloudAvailabilityInvariant() monitortestframework.MonitorTest {
+
+	// Proxy jobs may require a whitelist we don't want to deal with:
+	var notSupportedReason error
+	proxy, ok := os.LookupEnv("HTTP_PROXY")
+	if ok && len(proxy) > 0 {
+		notSupportedReason = &monitortestframework.NotSupportedError{Reason: "gcp-network-liveness disruption monitor is disabled when HTTP_PROXY is in use"}
+	}
+
 	return &cloudAvailability{
-		suppressJunit: true,
+		suppressJunit:      true,
+		notSupportedReason: notSupportedReason,
 	}
 }
 
