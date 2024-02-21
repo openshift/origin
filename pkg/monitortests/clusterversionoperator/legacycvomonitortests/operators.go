@@ -3,6 +3,8 @@ package legacycvomonitortests
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"strings"
 	"time"
 
@@ -38,7 +40,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
 }
 
-func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig ...*rest.Config) []*junitapi.JUnitTestCase {
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
@@ -99,10 +101,28 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals) []*junitap
 		return "", nil
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig...)
 }
 
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback) []*junitapi.JUnitTestCase {
+func checkReplicas(namespace string, operator string, clientConfig *rest.Config) (int32, error) {
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	if err != nil {
+		return 0, err
+	}
+	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	deployment, err := kubeClient.AppsV1().Deployments(namespace).Get(context.Background(), operator, metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	if deployment.Spec.Replicas != nil {
+		return *deployment.Spec.Replicas, nil
+	}
+	return 0, fmt.Errorf("Error fetching replicas")
+}
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig ...*rest.Config) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -136,7 +156,10 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 
 			excepted := []string{}
 			fatal := []string{}
-
+			var replicaCount int32
+			if operatorName == "image-registry" && len(clientConfig) > 0 {
+				replicaCount, _ = checkReplicas("openshift-image-registry", operatorName, clientConfig[0])
+			}
 			for _, eventInterval := range operatorEvents {
 				condition := monitorapi.GetOperatorConditionStatus(eventInterval)
 				if condition == nil {
@@ -172,7 +195,11 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 
 				exception, err := except(operatorName, condition)
 				if err != nil || exception == "" {
-					fatal = append(fatal, failure)
+					if operatorName == "image-registry" && replicaCount == 1 {
+						excepted = append(excepted, fmt.Sprintf("%s (exception: %s)", failure, "image-registry has only single replica"))
+					} else {
+						fatal = append(fatal, failure)
+					}
 				} else {
 					excepted = append(excepted, fmt.Sprintf("%s (exception: %s)", failure, exception))
 				}
