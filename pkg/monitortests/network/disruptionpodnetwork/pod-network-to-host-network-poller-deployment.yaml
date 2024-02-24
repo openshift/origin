@@ -25,7 +25,7 @@ spec:
             - /usr/bin/openshift-tests
             - disruption
             - watch-endpoint-slice
-            - --output-file=/var/log/persistent-logs/disruption-pod-to-host.jsonl
+            - --output-file=/var/log/persistent-logs/disruption-pod-to-host-$(DEPLOYMENT_ID).jsonl
             - --disruption-backend-prefix=pod-to-host
             - --disruption-target-service-name=host-network-service
             - --stop-configmap=stop-collecting
@@ -45,6 +45,9 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: DEPLOYMENT_ID
+              #to be overwritten at deployment initialization time
+              value: "DEFAULT"
           volumeMounts:
             - mountPath: /var/log/persistent-logs
               name: persistent-log-dir

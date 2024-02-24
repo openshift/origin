@@ -7,6 +7,7 @@ import (
 	"embed"
 	_ "embed"
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 	"time"
 
@@ -87,7 +88,21 @@ func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInit
 	}
 }
 
+func updateDeploymentENVs(deployment *appsv1.Deployment, deploymentID, serviceClusterIP string) *appsv1.Deployment {
+	for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
+		if env.Name == "DEPLOYMENT_ID" {
+			deployment.Spec.Template.Spec.Containers[0].Env[i].Value = deploymentID
+		} else if env.Name == "SERVICE_CLUSTER_IP" && len(serviceClusterIP) > 0 {
+			deployment.Spec.Template.Spec.Containers[0].Env[i].Value = serviceClusterIP
+		}
+	}
+
+	return deployment
+}
+
 func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	deploymentID := uuid.New().String()
+
 	openshiftTestsImagePullSpec, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, pna.payloadImagePullSpec)
 	if err != nil {
 		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("unable to determine openshift-tests image: %v", err)}
@@ -118,21 +133,25 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 
 	podNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	podNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	podNetworkToPodNetworkPollerDeployment = updateDeploymentENVs(podNetworkToPodNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	podNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	podNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	podNetworkToHostNetworkPollerDeployment = updateDeploymentENVs(podNetworkToHostNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	hostNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	hostNetworkToPodNetworkPollerDeployment = updateDeploymentENVs(hostNetworkToPodNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	hostNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
+	hostNetworkToHostNetworkPollerDeployment = updateDeploymentENVs(hostNetworkToHostNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
@@ -168,11 +187,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	for _, deployment := range []*appsv1.Deployment{podNetworkServicePollerDep, hostNetworkServicePollerDep} {
 		deployment.Spec.Replicas = &numNodes
 		deployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
-			if env.Name == "SERVICE_CLUSTER_IP" {
-				deployment.Spec.Template.Spec.Containers[0].Env[i].Value = service.Spec.ClusterIP
-			}
-		}
+		deployment = updateDeploymentENVs(deployment, deploymentID, service.Spec.ClusterIP)
 		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), deployment, metav1.CreateOptions{}); err != nil {
 			return err
 		}
