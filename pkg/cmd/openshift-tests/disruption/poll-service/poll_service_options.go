@@ -31,7 +31,7 @@ type PollServiceOptions struct {
 }
 
 func (o *PollServiceOptions) Run(ctx context.Context) error {
-	fmt.Fprintf(o.Out, "Initializing to watch clusterIP %s:%d\n", o.ClusterIP, o.Port)
+	fmt.Fprintf(o.OriginalOutFile, "Initializing to watch clusterIP %s:%d\n", o.ClusterIP, o.Port)
 
 	startingContent, err := os.ReadFile(o.OutputFile)
 	if err != nil && !os.IsNotExist(err) {
@@ -55,7 +55,7 @@ func (o *PollServiceOptions) Run(ctx context.Context) error {
 		o.ClusterIP,
 		o.Port,
 		recorder,
-		o.IOStreams.Out,
+		o.OriginalOutFile,
 		o.StopConfigMapName,
 		namespacedScopedCoreInformers.ConfigMaps(),
 	)
@@ -63,15 +63,15 @@ func (o *PollServiceOptions) Run(ctx context.Context) error {
 	go podToServiceChecker.Run(ctx, cleanupFinished)
 	go kubeInformers.Start(ctx.Done())
 
-	fmt.Fprintf(o.Out, "Watching configmaps...\n")
+	fmt.Fprintf(o.OriginalOutFile, "Watching configmaps...\n")
 
 	<-ctx.Done()
 
 	// now wait for the watchers to shutdown
-	fmt.Fprintf(o.Out, "Waiting for watchers to close...\n")
+	fmt.Fprintf(o.OriginalOutFile, "Waiting for watchers to close...\n")
 	// TODO add time interrupt too
 	<-cleanupFinished
-	fmt.Fprintf(o.Out, "Exiting...\n")
+	fmt.Fprintf(o.OriginalOutFile, "Exiting...\n")
 
 	return nil
 }
