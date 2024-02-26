@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -18,7 +19,6 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog/v2"
 )
 
 type PollServiceController struct {
@@ -40,6 +40,8 @@ type PollServiceController struct {
 
 	syncHandler func(ctx context.Context, key string) error
 	queue       workqueue.RateLimitingInterface
+
+	logger logrus.FieldLogger
 }
 
 type watcher struct {
@@ -59,6 +61,7 @@ func NewPollServiceWatcher(
 	outFile io.Writer,
 	stopConfigMapName string,
 	configmapInformer coreinformers.ConfigMapInformer,
+	logger logrus.FieldLogger,
 ) *PollServiceController {
 
 	c := &PollServiceController{
@@ -70,6 +73,7 @@ func NewPollServiceWatcher(
 		recorder:          recorder,
 		stopConfigMapName: stopConfigMapName,
 		outFile:           outFile,
+		logger:            logger,
 
 		configmapLister: configmapInformer.Lister(),
 		informersToSync: []cache.InformerSynced{
@@ -113,7 +117,7 @@ func (c *PollServiceController) syncServicePoller(ctx context.Context, key strin
 
 	if c.watcher == nil {
 		url := fmt.Sprintf("http://%s", net.JoinHostPort(c.clusterIP, fmt.Sprintf("%d", c.port)))
-		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, c.nodeName)
+		c.logger.Infof("Adding and starting: %v", url)
 
 		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
 		historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.NewConnectionType)
@@ -138,7 +142,7 @@ func (c *PollServiceController) syncServicePoller(ctx context.Context, key strin
 		c.watcher.newConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
 		c.watcher.reusedConnectionSampler.StartEndpointMonitoring(ctx, c.recorder, nil)
 
-		fmt.Fprintf(c.outFile, "Successfully started: %v on node/%v\n", url, c.nodeName)
+		c.logger.Infof("Successfully started %v", url)
 	}
 	return nil
 }
@@ -148,15 +152,15 @@ func (c *PollServiceController) removeAllWatchers() {
 	defer c.watcherLock.Unlock()
 
 	if c.watcher == nil {
-		fmt.Fprintf(c.outFile, "No watchers running, skipping removal\n")
+		c.logger.Info("No watchers running, skipping removal")
 		return
 	}
 
-	fmt.Fprintf(c.outFile, "Stopping and removing: %v for node/%v\n", c.watcher.address, c.nodeName)
+	c.logger.Infof("Stopping and removing: %v for node/%v", c.watcher.address, c.nodeName)
 	c.watcher.newConnectionSampler.Stop()
 	c.watcher.reusedConnectionSampler.Stop()
 	c.watcher = nil
-	fmt.Fprintf(c.outFile, "Stopped all watchers\n")
+	c.logger.Info("Stopped all watchers")
 }
 
 func (c *PollServiceController) Run(ctx context.Context, finishedCleanup chan struct{}) {
@@ -164,9 +168,8 @@ func (c *PollServiceController) Run(ctx context.Context, finishedCleanup chan st
 	defer c.queue.ShutDown()
 	defer close(finishedCleanup)
 
-	logger := klog.FromContext(ctx)
-	logger.Info("Starting PollService controller")
-	defer logger.Info("Shutting down PollService controller")
+	c.logger.Info("Starting PollService controller")
+	defer c.logger.Info("Shutting down PollService controller")
 
 	if !cache.WaitForNamedCacheSync("ServicePoller", ctx.Done(), c.informersToSync...) {
 		return
