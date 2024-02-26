@@ -196,13 +196,14 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 	}
 
 	id := uuid.New().String()
+	ts := time.Now().Format(time.RFC3339)
 	for watcherKey := range watchersForCurrEndpoints {
 		if _, ok := c.watchers[watcherKey]; ok {
 			continue
 		}
 		newWatcher := watchersForCurrEndpoints[watcherKey]
 		url := fmt.Sprintf("%s://%s%s", c.scheme, net.JoinHostPort(newWatcher.address, newWatcher.port), c.path)
-		fmt.Fprintf(c.outFile, "Adding and starting endpoint watcher: %v on node/%v, id:%s\n", url, newWatcher.nodeName, id)
+		fmt.Fprintf(c.outFile, "Adding and starting endpoint watcher: %v on node/%v, id:%s, time: %s\n", url, newWatcher.nodeName, id, ts)
 
 		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
 		historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.NewConnectionType)

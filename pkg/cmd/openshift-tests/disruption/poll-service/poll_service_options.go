@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitor"
@@ -39,7 +40,11 @@ func (o *PollServiceOptions) Run(ctx context.Context) error {
 	}
 	if len(startingContent) > 0 {
 		// print starting content to the log so that we can simply scrape the log to find all entries at the end
-		o.OriginalOutFile.Write([]byte(fmt.Sprintf("Found existing content %s end existing content", string(startingContent))))
+		replayContent := string(startingContent)
+		lines := strings.Split(replayContent, "\n")
+		for _, line := range lines {
+			o.OriginalOutFile.Write([]byte(fmt.Sprintf("Found existing content: %s", line)))
+		}
 	}
 
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.IOStreams.Out, nil)

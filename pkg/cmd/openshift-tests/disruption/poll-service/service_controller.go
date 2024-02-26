@@ -114,8 +114,9 @@ func (c *PollServiceController) syncServicePoller(ctx context.Context, key strin
 
 	if c.watcher == nil {
 		id := uuid.New().String()
+		ts := time.Now().Format(time.RFC3339)
 		url := fmt.Sprintf("http://%s", net.JoinHostPort(c.clusterIP, fmt.Sprintf("%d", c.port)))
-		fmt.Fprintf(c.outFile, "Adding and starting service controller: %v on node/%v, id: %s\n", url, c.nodeName, id)
+		fmt.Fprintf(c.outFile, "Adding and starting service controller: %v on node/%v, id: %s, time: %s\n", url, c.nodeName, id, ts)
 
 		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
 		historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.NewConnectionType)
