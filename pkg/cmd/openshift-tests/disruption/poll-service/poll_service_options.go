@@ -43,7 +43,7 @@ func (o *PollServiceOptions) Run(ctx context.Context) error {
 		replayContent := string(startingContent)
 		lines := strings.Split(replayContent, "\n")
 		for _, line := range lines {
-			o.OriginalOutFile.Write([]byte(fmt.Sprintf("Found existing content: %s", line)))
+			o.OriginalOutFile.Write([]byte(fmt.Sprintf("Found existing content: %s\n", line)))
 		}
 	}
 
