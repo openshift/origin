@@ -7,33 +7,39 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/kustomize/kyaml/sets"
 )
 
-func testMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func TestMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	// multipleFailuresTestPrefix is for tests that track a few single second disruptions
 	const multipleFailuresTestPrefix = "[sig-network] there should be nearly zero single second disruptions for "
+	// manyFailureTestPrefix is for tests that track a lot of single second disruptions (more severe than the above)
 	const manyFailureTestPrefix = "[sig-network] there should be reasonably few single second disruptions for "
 
 	allServers := sets.String{}
 	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
+	logrus.Infof("filtered %d intervals down to %d disruption intervals", len(events), len(allDisruptionEventsIntervals))
 	for _, eventInterval := range allDisruptionEventsIntervals {
-		backend := monitorapi.ThisDisruptionInstanceFrom(monitorapi.LocatorParts(eventInterval.Locator))
+		backend := eventInterval.StructuredLocator.Keys[monitorapi.LocatorBackendDisruptionNameKey]
 		switch {
 		case strings.HasPrefix(backend, "ingress-"):
-			allServers.Insert(eventInterval.Locator)
-		case strings.HasSuffix(backend, "-api"):
-			allServers.Insert(eventInterval.Locator)
+			allServers.Insert(backend)
+		case strings.Contains(backend, "-api-"):
+			allServers.Insert(backend)
 		}
 	}
+	logrus.Infof("allServers = %s", allServers)
 
 	ret := []*junitapi.JUnitTestCase{}
-	for _, serverLocator := range allServers.List() {
+	for _, backend := range allServers.List() {
 		allDisruptionEvents := events.Filter(
 			monitorapi.And(
-				monitorapi.IsEventForLocator(serverLocator),
+				monitorapi.IsForDisruptionBackend(backend),
 				monitorapi.IsErrorEvent,
 			),
 		)
+		logrus.Infof("found %d disruption events for backend %s", len(allDisruptionEvents), backend)
 
 		disruptionEvents := monitorapi.Intervals{}
 		for i, interval := range allDisruptionEvents {
@@ -62,8 +68,8 @@ func testMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitap
 			disruptionEvents = append(disruptionEvents, allDisruptionEvents[i])
 		}
 
-		multipleFailuresTestName := multipleFailuresTestPrefix + serverLocator
-		manyFailuresTestName := manyFailureTestPrefix + serverLocator
+		multipleFailuresTestName := multipleFailuresTestPrefix + backend
+		manyFailuresTestName := manyFailureTestPrefix + backend
 		multipleFailuresPass := &junitapi.JUnitTestCase{
 			Name:      multipleFailuresTestName,
 			SystemOut: strings.Join(disruptionEvents.Strings(), "\n"),
@@ -75,27 +81,27 @@ func testMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitap
 		multipleFailuresFail := &junitapi.JUnitTestCase{
 			Name: multipleFailuresTestName,
 			FailureOutput: &junitapi.FailureOutput{
-				Output: fmt.Sprintf("%s had %v single second disruptions", serverLocator, len(disruptionEvents)),
+				Output: fmt.Sprintf("%s had %v single second disruptions", backend, len(disruptionEvents)),
 			},
 			SystemOut: strings.Join(disruptionEvents.Strings(), "\n"),
 		}
 		manyFailuresFail := &junitapi.JUnitTestCase{
 			Name: manyFailuresTestName,
 			FailureOutput: &junitapi.FailureOutput{
-				Output: fmt.Sprintf("%s had %v single second disruptions", serverLocator, len(disruptionEvents)),
+				Output: fmt.Sprintf("%s had %v single second disruptions", backend, len(disruptionEvents)),
 			},
 			SystemOut: strings.Join(disruptionEvents.Strings(), "\n"),
 		}
 
 		switch {
-		case len(disruptionEvents) < 20:
-			ret = append(ret, multipleFailuresPass, manyFailuresPass)
+		case len(disruptionEvents) >= 50: // 50 chosen to be big enough that we should not hit this unless something is really really wrong
+			ret = append(ret, multipleFailuresFail, manyFailuresFail)
 
-		case len(disruptionEvents) > 20: // chosen to be big enough that we should not hit this unless something is weird
+		case len(disruptionEvents) > 20: // 20 chosen to be big enough that we should not hit this unless something is weird
 			ret = append(ret, multipleFailuresFail, manyFailuresPass)
 
-		case len(disruptionEvents) > 50: // chosen to be big enough that we should not hit this unless something is really really wrong
-			ret = append(ret, multipleFailuresFail, manyFailuresFail)
+		default: // Less than 20 = pass both tests
+			ret = append(ret, multipleFailuresPass, manyFailuresPass)
 		}
 	}
 

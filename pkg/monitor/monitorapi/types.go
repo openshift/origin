@@ -534,6 +534,15 @@ func IsInE2ENamespace(eventInterval Interval) bool {
 	return false
 }
 
+func IsForDisruptionBackend(backend string) EventIntervalMatchesFunc {
+	return func(eventInterval Interval) bool {
+		if eventInterval.StructuredLocator.Keys[LocatorBackendDisruptionNameKey] == backend {
+			return true
+		}
+		return false
+	}
+}
+
 func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
 		// For new, structured locators:
