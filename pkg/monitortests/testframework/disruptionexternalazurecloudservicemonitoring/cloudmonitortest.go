@@ -5,8 +5,10 @@ import (
 	_ "embed"
 	"time"
 
+	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	"github.com/sirupsen/logrus"
 
 	"k8s.io/client-go/rest"
 
@@ -30,7 +32,12 @@ type cloudAvailability struct {
 }
 
 func NewCloudAvailabilityInvariant() monitortestframework.MonitorTest {
-	return &cloudAvailability{}
+	var notSupportedReason error
+
+	return &cloudAvailability{
+		suppressJunit:      true,
+		notSupportedReason: notSupportedReason,
+	}
 }
 
 func NewRecordCloudAvailabilityOnly() monitortestframework.MonitorTest {
@@ -40,6 +47,23 @@ func NewRecordCloudAvailabilityOnly() monitortestframework.MonitorTest {
 }
 
 func (w *cloudAvailability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+
+	// Proxy jobs may require a whitelist we don't want to deal with:
+	clusterState, err := clusterdiscovery.DiscoverClusterState(adminRESTConfig)
+	if err != nil {
+		logrus.WithError(err).Error("error loading cluster state")
+		return err
+	}
+	clusterConfig, err := clusterdiscovery.LoadConfig(clusterState)
+	if err != nil {
+		logrus.WithError(err).Error("error loading cluster config")
+		return err
+	}
+	if clusterConfig.IsProxied {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{Reason: "azure-network-liveness disruption monitor is disabled when HTTP_PROXY is in use"}
+		return w.notSupportedReason
+	}
+
 	newConnectionDisruptionSampler := backenddisruption.NewSimpleBackendFromOpenshiftTests(
 		externalServiceURL,
 		"azure-network-liveness-new-connections",
