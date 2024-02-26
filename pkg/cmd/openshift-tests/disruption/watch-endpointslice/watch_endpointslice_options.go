@@ -38,7 +38,7 @@ type WatchEndpointSliceOptions struct {
 }
 
 func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
-	fmt.Fprintf(o.Out, "Initializing to watch -n %v service/%v\n", o.Namespace, o.ServiceName)
+	fmt.Fprintf(o.OriginalOutFile, "Initializing to watch -n %v service/%v\n", o.Namespace, o.ServiceName)
 
 	startingContent, err := os.ReadFile(o.OutputFile)
 	if err != nil && !os.IsNotExist(err) {
@@ -66,7 +66,7 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 		o.Path,
 		o.ExpectedStatusCode,
 		recorder,
-		o.IOStreams.Out,
+		o.OriginalOutFile,
 		namespaceScopedEndpointSliceInformers.EndpointSlices(),
 		namespaceScopedCoreInformers.ConfigMaps(),
 	)
@@ -74,15 +74,15 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 
 	go kubeInformers.Start(ctx.Done())
 
-	fmt.Fprintf(o.Out, "Watching endpoints....\n")
+	fmt.Fprintf(o.OriginalOutFile, "Watching endpoints....\n")
 
 	<-ctx.Done()
 
 	// now wait for the watchers to shut down
-	fmt.Fprintf(o.Out, "Waiting for watchers to close....\n")
+	fmt.Fprintf(o.OriginalOutFile, "Waiting for watchers to close....\n")
 	// TODO add time interrupt too
 	<-cleanupFinished
-	fmt.Fprintf(o.Out, "Exiting....\n")
+	fmt.Fprintf(o.OriginalOutFile, "Exiting....\n")
 
 	return nil
 }

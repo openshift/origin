@@ -25,7 +25,7 @@ spec:
             - /usr/bin/openshift-tests
             - disruption
             - watch-endpoint-slice
-            - --output-file=/var/log/persistent-logs/disruption-pod-to-pod.jsonl
+            - --output-file=/var/log/persistent-logs/$(MY_NAME_SPACE)/disruption-pod-to-pod.jsonl
             - --disruption-backend-prefix=pod-to-pod
             - --disruption-target-service-name=pod-network-service
             - --stop-configmap=stop-collecting
@@ -43,6 +43,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: MY_NAME_SPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           volumeMounts:
             - mountPath: /var/log/persistent-logs
               name: persistent-log-dir

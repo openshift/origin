@@ -25,7 +25,7 @@ spec:
             - /usr/bin/openshift-tests
             - disruption
             - poll-service
-            - --output-file=/var/log/persistent-logs/disruption-host-to-service-network.jsonl
+            - --output-file=/var/log/persistent-logs/$(MY_NAME_SPACE)/disruption-host-to-service-network.jsonl
             - --disruption-backend-prefix=host-to-service
             - --stop-configmap=stop-collecting
             - --my-node-name=$(MY_NODE_NAME)
@@ -43,6 +43,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: MY_NAME_SPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: SERVICE_CLUSTER_IP
               #to be overwritten by the service clusterIP
               value: ""
