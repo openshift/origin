@@ -3,6 +3,7 @@ package watch_endpointslice
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"io"
 	"net"
 	"sync"
@@ -194,13 +195,14 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 		delete(c.watchers, watcherKey)
 	}
 
+	id := uuid.New().String()
 	for watcherKey := range watchersForCurrEndpoints {
 		if _, ok := c.watchers[watcherKey]; ok {
 			continue
 		}
 		newWatcher := watchersForCurrEndpoints[watcherKey]
 		url := fmt.Sprintf("%s://%s%s", c.scheme, net.JoinHostPort(newWatcher.address, newWatcher.port), c.path)
-		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, newWatcher.nodeName)
+		fmt.Fprintf(c.outFile, "Adding and starting endpoint watcher: %v on node/%v, id:%s\n", url, newWatcher.nodeName, id)
 
 		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
 		historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.NewConnectionType)
