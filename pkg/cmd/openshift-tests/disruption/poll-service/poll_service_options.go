@@ -2,12 +2,13 @@ package poll_service
 
 import (
 	"context"
-	"fmt"
 	"io"
+	"math/rand"
 	"os"
 
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitor"
+	"github.com/sirupsen/logrus"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/informers"
 	coreinformers "k8s.io/client-go/informers/core/v1"
@@ -31,15 +32,28 @@ type PollServiceOptions struct {
 }
 
 func (o *PollServiceOptions) Run(ctx context.Context) error {
-	fmt.Fprintf(o.Out, "Initializing to watch clusterIP %s:%d\n", o.ClusterIP, o.Port)
+	logInst := logrus.New()
+	logInst.SetOutput(o.IOStreams.Out)
+	logger := logInst.WithFields(logrus.Fields{
+		"backendPrefix": o.BackendPrefix,
+		"node":          o.MyNodeName,
+		"namespace":     o.Namespace,
+		"clusterIP":     o.ClusterIP,
+		"port":          o.Port,
+		"uid":           rand.Intn(100000000),
+	})
+
+	logger.Infof("Initializing to watch clusterIP %s:%d", o.ClusterIP, o.Port)
 
 	startingContent, err := os.ReadFile(o.OutputFile)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	if len(startingContent) > 0 {
+		logger.Info("replaying startingContent")
 		//print starting content to the log so that we can simply scrape the log to find all entries at the end
 		o.OriginalOutFile.Write(startingContent)
+		logger.Info("done replaying startingContent")
 	}
 
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.IOStreams.Out, nil)
@@ -58,20 +72,21 @@ func (o *PollServiceOptions) Run(ctx context.Context) error {
 		o.IOStreams.Out,
 		o.StopConfigMapName,
 		namespacedScopedCoreInformers.ConfigMaps(),
+		logger,
 	)
 
 	go podToServiceChecker.Run(ctx, cleanupFinished)
 	go kubeInformers.Start(ctx.Done())
 
-	fmt.Fprintf(o.Out, "Watching configmaps...\n")
+	logger.Info("Watching configmaps...")
 
 	<-ctx.Done()
 
 	// now wait for the watchers to shutdown
-	fmt.Fprintf(o.Out, "Waiting for watchers to close...\n")
+	logger.Info("Waiting for watchers to close...")
 	// TODO add time interrupt too
 	<-cleanupFinished
-	fmt.Fprintf(o.Out, "Exiting...\n")
+	logger.Info("Exiting...")
 
 	return nil
 }
