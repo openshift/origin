@@ -168,6 +168,8 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 				}
 				if endpoint.NodeName != nil {
 					watchersForCurrEndpoints[address].nodeName = *endpoint.NodeName
+
+					fmt.Fprintf(c.outFile, "Setting node name for : %v for node/%v\n", address, watchersForCurrEndpoints[address].nodeName)
 				}
 			}
 		}
