@@ -38,8 +38,8 @@ func (o *PollServiceOptions) Run(ctx context.Context) error {
 		return err
 	}
 	if len(startingContent) > 0 {
-		//print starting content to the log so that we can simply scrape the log to find all entries at the end
-		o.OriginalOutFile.Write(startingContent)
+		// print starting content to the log so that we can simply scrape the log to find all entries at the end
+		o.OriginalOutFile.Write([]byte(fmt.Sprintf("Found existing content %s end existing content", string(startingContent))))
 	}
 
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.IOStreams.Out, nil)
