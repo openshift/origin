@@ -22,7 +22,7 @@ const (
 	reusedCloudConnectionTestName = "[sig-trt] disruption/azure-network-liveness connection/reused should be available throughout the test"
 
 	// Load balancer URL
-	externalServiceURL = "http://20.102.111.171/health"
+	externalServiceURL = "http://20.127.186.25/health"
 )
 
 type cloudAvailability struct {
