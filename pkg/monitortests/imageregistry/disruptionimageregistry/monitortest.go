@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
+
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
@@ -149,12 +152,35 @@ func (w *availability) WriteContentToStorage(ctx context.Context, storageDir, ti
 	return w.notSupportedReason
 }
 
+func (w *availability) routeDeleted(ctx context.Context) (bool, error) {
+	_, err := w.routeClient.RouteV1().Routes("openshift-image-registry").Get(ctx, w.imageRegistryRoute.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return true, nil
+	}
+
+	if err != nil {
+		klog.Errorf("Error checking for deleted route: %s, %s", w.imageRegistryRoute.Name, err.Error())
+		return false, err
+	}
+
+	return false, nil
+}
+
 func (w *availability) Cleanup(ctx context.Context) error {
 	if w.imageRegistryRoute != nil {
 		err := w.routeClient.RouteV1().Routes("openshift-image-registry").Delete(ctx, w.imageRegistryRoute.Name, metav1.DeleteOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to delete route: %w", err)
 		}
+
+		startTime := time.Now()
+		err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 20*time.Minute, true, w.routeDeleted)
+		if err != nil {
+			return err
+		}
+
+		klog.Infof("Deleting route: %s took %.2f seconds", w.imageRegistryRoute.Name, time.Now().Sub(startTime).Seconds())
+
 	}
 
 	return w.notSupportedReason
