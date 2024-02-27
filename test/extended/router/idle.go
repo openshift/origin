@@ -184,21 +184,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 
 			var annotations map[string]string
 
-			g.By("Fetching the endpoints and checking the idle annotations are present")
-			err = wait.PollImmediate(time.Second, timeout, func() (bool, error) {
-				endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), "idle-test", metav1.GetOptions{})
-				if err != nil {
-					e2e.Logf("Error getting endpoints: %v", err)
-					return false, nil
-				}
-				annotations = endpoints.Annotations
-				_, idledAt := annotations[unidlingapi.IdledAtAnnotation]
-				_, unidleTarget := annotations[unidlingapi.UnidleTargetAnnotation]
-				return idledAt && unidleTarget, nil
-			})
-			o.Expect(err).NotTo(o.HaveOccurred(), "failed to fetch the endpoints")
-			mustVerifyIdleAnnotationValues(annotations)
-
 			g.By("Fetching the service and checking the idle annotations are present")
 			err = wait.PollImmediate(time.Second, timeout, func() (bool, error) {
 				service, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), "idle-test", metav1.GetOptions{})

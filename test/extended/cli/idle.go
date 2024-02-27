@@ -116,7 +116,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))
 
-		out, err = oc.Run("get").Args("endpoints", "idling-echo", idledTemplate, "--output=go-template").Output()
+		out, err = oc.Run("get").Args("service", "idling-echo", idledTemplate, "--output=go-template").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.BeEmpty())
 	})
@@ -126,7 +126,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))
 
-		out, err = oc.Run("get").Args("endpoints", "idling-echo", idledTemplate, "--output=go-template").Output()
+		out, err = oc.Run("get").Args("service", "idling-echo", idledTemplate, "--output=go-template").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.BeEmpty())
 	})
@@ -136,7 +136,7 @@ var _ = g.Describe("[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:rout
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(expectedOutput))
 
-		out, err = oc.Run("get").Args("endpoints", "idling-echo", idledTemplate, "--output=go-template").Output()
+		out, err = oc.Run("get").Args("service", "idling-echo", idledTemplate, "--output=go-template").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.BeEmpty())
 	})
