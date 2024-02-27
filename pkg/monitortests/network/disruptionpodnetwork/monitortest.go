@@ -12,6 +12,7 @@ import (
 	"time"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -356,11 +357,34 @@ func (pna *podNetworkAvalibility) WriteContentToStorage(ctx context.Context, sto
 	return pna.notSupportedReason
 }
 
+func (pna *podNetworkAvalibility) namespaceDeleted(ctx context.Context) (bool, error) {
+	_, err := pna.kubeClient.CoreV1().Namespaces().Get(ctx, pna.namespaceName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return true, nil
+	}
+
+	if err != nil {
+		klog.Errorf("Error checking for deleted namespace: %s, %s", pna.namespaceName, err.Error())
+		return false, err
+	}
+
+	return false, nil
+}
+
 func (pna *podNetworkAvalibility) Cleanup(ctx context.Context) error {
 	if len(pna.namespaceName) > 0 && pna.kubeClient != nil {
 		if err := pna.kubeClient.CoreV1().Namespaces().Delete(ctx, pna.namespaceName, metav1.DeleteOptions{}); err != nil {
 			return err
 		}
+
+		startTime := time.Now()
+		err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, pna.namespaceDeleted)
+		if err != nil {
+			return err
+		}
+
+		klog.Infof("Deleting namespace: %s took %.2f seconds", pna.namespaceName, time.Now().Sub(startTime).Seconds())
+
 	}
 	return nil
 }

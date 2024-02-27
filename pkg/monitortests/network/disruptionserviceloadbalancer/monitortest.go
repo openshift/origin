@@ -11,6 +11,9 @@ import (
 	"strconv"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog/v2"
+
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -272,12 +275,35 @@ func (w *availability) WriteContentToStorage(ctx context.Context, storageDir, ti
 	return w.notSupportedReason
 }
 
+func (w *availability) namespaceDeleted(ctx context.Context) (bool, error) {
+	_, err := w.kubeClient.CoreV1().Namespaces().Get(ctx, w.namespaceName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return true, nil
+	}
+
+	if err != nil {
+		klog.Errorf("Error checking for deleted namespace: %s, %s", w.namespaceName, err.Error())
+		return false, err
+	}
+
+	return false, nil
+}
+
 func (w *availability) Cleanup(ctx context.Context) error {
 	if len(w.namespaceName) > 0 && w.kubeClient != nil {
 		if err := w.kubeClient.CoreV1().Namespaces().Delete(ctx, w.namespaceName, metav1.DeleteOptions{}); err != nil {
 			return err
 		}
 	}
+
+	startTime := time.Now()
+	err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, w.namespaceDeleted)
+	if err != nil {
+		return err
+	}
+
+	klog.Infof("Deleting namespace: %s took %.2f seconds", w.namespaceName, time.Now().Sub(startTime).Seconds())
+
 	return nil
 }
 
