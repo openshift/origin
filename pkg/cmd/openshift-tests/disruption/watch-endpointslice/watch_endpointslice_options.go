@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	coreinformers "k8s.io/client-go/informers/core/v1"
 
@@ -46,7 +47,11 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 	}
 	if len(startingContent) > 0 {
 		// print starting content to the log so that we can simply scrape the log to find all entries at the end.
-		o.OriginalOutFile.Write(startingContent)
+		replayContent := string(startingContent)
+		lines := strings.Split(replayContent, "\n")
+		for _, line := range lines {
+			o.OriginalOutFile.Write([]byte(fmt.Sprintf("Found existing content: %s\n", line)))
+		}
 	}
 
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.IOStreams.Out, nil)
