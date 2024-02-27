@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
@@ -23,7 +24,6 @@ import (
 	discoverylisters "k8s.io/client-go/listers/discovery/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog/v2"
 	"k8s.io/kubernetes/pkg/controller"
 )
 
@@ -48,6 +48,7 @@ type EndpointSliceController struct {
 
 	syncHandler func(ctx context.Context, key string) error
 	queue       workqueue.RateLimitingInterface
+	logger      logrus.FieldLogger
 }
 
 type watcher struct {
@@ -72,6 +73,7 @@ func NewEndpointWatcher(
 
 	endpointSliceInformer discoveryinformers.EndpointSliceInformer,
 	configmapInformer coreinformers.ConfigMapInformer,
+	logger logrus.FieldLogger,
 ) *EndpointSliceController {
 	c := &EndpointSliceController{
 		backendPrefix:      backendPrefix,
@@ -84,6 +86,7 @@ func NewEndpointWatcher(
 		expectedStatusCode: expectedStatusCode,
 		recorder:           recorder,
 		outFile:            outFile,
+		logger:             logger,
 
 		endpointSliceLister: endpointSliceInformer.Lister(),
 		configmapLister:     configmapInformer.Lister(),
@@ -188,7 +191,7 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 		}
 	}
 	for watcherKey, watcherToDelete := range watchersToDelete {
-		fmt.Fprintf(c.outFile, "Stopping and removing: %v for node/%v\n", watcherToDelete.address, watcherToDelete.nodeName)
+		c.logger.Infof("Stopping and removing: %v for node/%v", watcherToDelete.address, watcherToDelete.nodeName)
 		watcherToDelete.newConnectionSampler.Stop()
 		watcherToDelete.reusedConnectionSampler.Stop()
 		delete(c.watchers, watcherKey)
@@ -200,7 +203,7 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 		}
 		newWatcher := watchersForCurrEndpoints[watcherKey]
 		url := fmt.Sprintf("%s://%s%s", c.scheme, net.JoinHostPort(newWatcher.address, newWatcher.port), c.path)
-		fmt.Fprintf(c.outFile, "Adding and starting: %v on node/%v\n", url, newWatcher.nodeName)
+		c.logger.Infof("Adding and starting: %v on node/%v", url, newWatcher.nodeName)
 
 		// the interval locator is unique for every tuple of poller to target, but the backend is per connection type
 		historicalBackendDisruptionDataForNewConnectionsName := fmt.Sprintf("%s-%v-connections", c.backendPrefix, monitorapi.NewConnectionType)
@@ -230,7 +233,7 @@ func (c *EndpointSliceController) syncEndpointSlice(ctx context.Context, key str
 
 		c.watchers[watcherKey] = newWatcher
 
-		fmt.Fprintf(c.outFile, "Successfully started: %v on node/%v\n", url, newWatcher.nodeName)
+		c.logger.Infof("Successfully started: %v on node/%v", url, newWatcher.nodeName)
 	}
 
 	return err
@@ -241,13 +244,13 @@ func (c *EndpointSliceController) removeAllWatchers() {
 	defer c.watcherLock.Unlock()
 
 	for _, watcherToDelete := range c.watchers {
-		fmt.Fprintf(c.outFile, "Stopping and removing: %v for node/%v\n", watcherToDelete.address, watcherToDelete.nodeName)
+		c.logger.Infof("Stopping and removing: %v for node/%v", watcherToDelete.address, watcherToDelete.nodeName)
 
 		watcherToDelete.newConnectionSampler.Stop()
 		watcherToDelete.reusedConnectionSampler.Stop()
 	}
 
-	fmt.Fprintf(c.outFile, "Stopped all watchers\n")
+	c.logger.Info("Stopped all watchers")
 	c.watchers = map[string]*watcher{}
 }
 
@@ -257,9 +260,8 @@ func (c *EndpointSliceController) Run(ctx context.Context, finishedCleanup chan 
 	defer c.queue.ShutDown()
 	defer close(finishedCleanup)
 
-	logger := klog.FromContext(ctx)
-	logger.Info("Starting EndpointWatcher controller")
-	defer logger.Info("Shutting down EndpointWatcher controller")
+	c.logger.Info("Starting EndpointWatcher controller")
+	defer c.logger.Info("Shutting down EndpointWatcher controller")
 
 	if !cache.WaitForNamedCacheSync("EndpointWatcher", ctx.Done(), c.informersToSync...) {
 		return

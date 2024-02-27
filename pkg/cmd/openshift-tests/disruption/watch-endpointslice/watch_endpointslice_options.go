@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
@@ -38,15 +40,27 @@ type WatchEndpointSliceOptions struct {
 }
 
 func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
-	fmt.Fprintf(o.Out, "Initializing to watch -n %v service/%v\n", o.Namespace, o.ServiceName)
+	logInst := logrus.New()
+	logInst.SetOutput(o.Out)
+	logger := logInst.WithFields(logrus.Fields{
+		"backendPrefix": o.BackendPrefix,
+		"node":          o.MyNodeName,
+		"namespace":     o.Namespace,
+		"service":       o.ServiceName,
+		"uid":           rand.Intn(100000000),
+	})
+	logger.Infof("Initializing to watch -n %v service/%v", o.Namespace, o.ServiceName)
 
+	logger.Info("reading startingContent from %s", o.OutputFile)
 	startingContent, err := os.ReadFile(o.OutputFile)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	if len(startingContent) > 0 {
 		// print starting content to the log so that we can simply scrape the log to find all entries at the end.
+		logger.Info("replaying startingContent")
 		o.OriginalOutFile.Write(startingContent)
+		logger.Info("done replaying startingContent")
 	}
 
 	recorder := monitor.WrapWithJSONLRecorder(monitor.NewRecorder(), o.IOStreams.Out, nil)
@@ -69,6 +83,7 @@ func (o *WatchEndpointSliceOptions) Run(ctx context.Context) error {
 		o.IOStreams.Out,
 		namespaceScopedEndpointSliceInformers.EndpointSlices(),
 		namespaceScopedCoreInformers.ConfigMaps(),
+		logger,
 	)
 	go podToPodChecker.Run(ctx, cleanupFinished)
 

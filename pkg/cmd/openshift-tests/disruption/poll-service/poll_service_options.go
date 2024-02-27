@@ -45,6 +45,7 @@ func (o *PollServiceOptions) Run(ctx context.Context) error {
 
 	logger.Infof("Initializing to watch clusterIP %s:%d", o.ClusterIP, o.Port)
 
+	logger.Info("reading startingContent from %s", o.OutputFile)
 	startingContent, err := os.ReadFile(o.OutputFile)
 	if err != nil && !os.IsNotExist(err) {
 		return err
