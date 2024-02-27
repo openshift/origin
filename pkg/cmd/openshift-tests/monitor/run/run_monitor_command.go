@@ -186,7 +186,7 @@ func (o *RunMonitorOptions) Run() error {
 
 	fmt.Fprintf(o.Out, "Monitor shutting down, this may take up to five minutes...\n")
 
-	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cleanupCancel()
 	// ignore the ResultState because we're interested in whether we collected, not whether what we collected passed.
 	if _, err := m.Stop(cleanupContext); err != nil {
