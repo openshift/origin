@@ -22,7 +22,7 @@ import (
 
 func skipArch(oc *exutil.CLI, arches []string) bool {
 	allWorkerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
-		LabelSelector: "node-role.kubernetes.io/worker",
+		LabelSelector: nodeLabelSelectorWorker,
 	})
 	if err != nil {
 		e2e.Logf("problem getting nodes for arch check: %s", err)
