@@ -50,7 +50,7 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 		}
 		releaseInfo := &ReleaseInfo{}
 		if err := json.Unmarshal([]byte(out), &releaseInfo); err != nil {
-			e2e.Failf("unable to decode release payload with error: %v", err)
+			e2e.Failf("unable to decode release payload with error: %v \n output: %s", err, out)
 		}
 		e2e.Logf("Release Info image=%s", releaseInfo.Image)
 		e2e.Logf("Release Info number of tags %v", len(releaseInfo.References.Spec.Tags))
