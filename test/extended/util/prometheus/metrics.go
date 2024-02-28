@@ -8,6 +8,8 @@ import (
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	dto "github.com/prometheus/client_model/go"
+
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 )
 
 // CreateMetricFamilies takes Prometheus /api/v1/metadata query result and
@@ -101,6 +103,15 @@ func GetInvalidLabelsPerMetric(ns, execPodName, baseURL, bearerToken string) (ma
 		}
 	}
 	return metricInvalidLabels, nil
+}
+
+func GetBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
+	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	if err != nil {
+		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	return output, nil
 }
 
 var camelCase = regexp.MustCompile(`[a-z][A-Z]`)

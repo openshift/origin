@@ -352,7 +352,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-				results, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
+				results, err := helper.GetBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
@@ -629,7 +629,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
-			metadata, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/metadata", prometheusSvcURL), bearerToken)
+			metadata, err := helper.GetBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/metadata", prometheusSvcURL), bearerToken)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			families, err := helper.CreateMetricFamilies([]byte(metadata))
@@ -775,15 +775,6 @@ func expectBearerTokenURLStatusCodeExec(ns, execPodName, url, bearer string, sta
 		return fmt.Errorf("last response from server was not %d: %s", statusCode, output)
 	}
 	return nil
-}
-
-func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
-	}
-	return output, nil
 }
 
 // telemetryIsEnabled returns (nil, nil) if Telemetry is enabled,
