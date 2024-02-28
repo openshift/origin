@@ -377,7 +377,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 				}
 				return false, nil
 			})).NotTo(o.HaveOccurred(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total"))
-			
+
 			g.By("verifying the Thanos querier service requires authentication")
 			err := helper.ExpectURLStatusCodeExecViaPod(ns, execPod.Name, querySvcURL, 401, 403)
 			o.Expect(err).NotTo(o.HaveOccurred())

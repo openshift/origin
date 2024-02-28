@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -29,6 +28,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 )
 
 const (
