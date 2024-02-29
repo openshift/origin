@@ -89,6 +89,8 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=users [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-api-machinery][Late][Feature:APIServer] load-balancer signing certificate should be the installer created one": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the AlwaysAllow policy": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the IfHealthyBudget policy": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
