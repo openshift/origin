@@ -1401,7 +1401,7 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:bond] should create a pod with bond interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:commatrix][Serial] create a comm matrix should cover all ports that the nodes are actually listening on": " [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:commatrix][Serial] should cover all ports that the nodes are actually listening on": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:tap] should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 

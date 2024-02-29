@@ -629,14 +629,15 @@ github.com/libopenstorage/openstorage/volume
 # github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de
 ## explicit
 github.com/liggitt/tabwriter
-# github.com/liornoy/node-comm-lib v0.0.0-20231128085749-2ad08a779eb6
+# github.com/liornoy/node-comm-lib v0.0.0-20240314172519-da785c72469f
 ## explicit; go 1.20
+github.com/liornoy/node-comm-lib/commatrix
 github.com/liornoy/node-comm-lib/pkg/client
-github.com/liornoy/node-comm-lib/pkg/commatrix
 github.com/liornoy/node-comm-lib/pkg/consts
 github.com/liornoy/node-comm-lib/pkg/endpointslices
-github.com/liornoy/node-comm-lib/pkg/pointer
-github.com/liornoy/node-comm-lib/pkg/ss
+github.com/liornoy/node-comm-lib/pkg/nftables
+github.com/liornoy/node-comm-lib/pkg/nodes
+github.com/liornoy/node-comm-lib/pkg/types
 # github.com/lithammer/dedent v1.1.0
 ## explicit
 github.com/lithammer/dedent
@@ -3559,7 +3560,7 @@ k8s.io/pod-security-admission/policy
 k8s.io/sample-apiserver/pkg/apis/wardle
 k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1
 k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1
-# k8s.io/utils v0.0.0-20230726121419-3b25d923346b
+# k8s.io/utils v0.0.0-20231127182322-b307cd553661
 ## explicit; go 1.18
 k8s.io/utils/buffer
 k8s.io/utils/clock

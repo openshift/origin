@@ -1,8 +1,6 @@
 module github.com/openshift/origin
 
-go 1.21
-
-toolchain go1.21.5
+go 1.20
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
@@ -22,7 +20,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.3.0
 	github.com/lestrrat/go-jsschema v0.0.0-20181205002244-5c81c58ffcc3
-	github.com/liornoy/node-comm-lib v0.0.0-20231128085749-2ad08a779eb6
+	github.com/liornoy/node-comm-lib v0.0.0-20240314172519-da785c72469f
 	github.com/lithammer/dedent v1.1.0
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.29.0
@@ -67,7 +65,7 @@ require (
 	k8s.io/kubernetes v1.29.0
 	k8s.io/legacy-cloud-providers v0.29.0
 	k8s.io/pod-security-admission v0.29.0
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
+	k8s.io/utils v0.0.0-20231127182322-b307cd553661
 	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1
 	sigs.k8s.io/yaml v1.3.0
