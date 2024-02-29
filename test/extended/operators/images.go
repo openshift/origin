@@ -42,7 +42,7 @@ var _ = Describe("[sig-arch] Managed cluster", func() {
 		}
 
 		// find out the current installed release info using the temp file
-		out, err := oc.Run("adm", "release", "info").Args("--pullspecs", "-o", "json", "--registry-config", imagePullFile.Name()).Output()
+		out, _, err := oc.Run("adm", "release", "info").Args("--pullspecs", "-o", "json", "--registry-config", imagePullFile.Name()).Outputs()
 		if err != nil {
 			// TODO need to determine why release tests are not having access to read payload
 			e2e.Logf("unable to read release payload with error: %v", err)
