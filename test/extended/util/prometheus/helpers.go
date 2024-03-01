@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 )
 
 const (
@@ -343,6 +345,23 @@ func ExpectHTTPStatusCode(url, bearerToken string, statusCodes ...int) error {
 		}
 	}
 	return fmt.Errorf("%s: last response from server was not in %v: %d", url, statusCodes, resp.StatusCode)
+}
+
+// ExpectURLStatusCodeExecViaPod attempts connection to url via exec pod and returns an error
+// upon failure or if status return code is not equal to any of the statusCodes.
+func ExpectURLStatusCodeExecViaPod(ns, execPodName, url string, statusCodes ...int) error {
+	cmd := fmt.Sprintf("curl -k -s -o /dev/null -w '%%{http_code}' %q", url)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	if err != nil {
+		return fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	for _, statusCode := range statusCodes {
+		if output == strconv.Itoa(statusCode) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("last response from server was not in %v: %s", statusCodes, output)
 }
 
 // ExpectPrometheusEndpoint attempts to connect to the metrics endpoint with
