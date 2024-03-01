@@ -294,15 +294,15 @@ func (w *availability) Cleanup(ctx context.Context) error {
 		if err := w.kubeClient.CoreV1().Namespaces().Delete(ctx, w.namespaceName, metav1.DeleteOptions{}); err != nil {
 			return err
 		}
-	}
 
-	startTime := time.Now()
-	err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, w.namespaceDeleted)
-	if err != nil {
-		return err
-	}
+		startTime := time.Now()
+		err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, w.namespaceDeleted)
+		if err != nil {
+			return err
+		}
 
-	klog.Infof("Deleting namespace: %s took %.2f seconds", w.namespaceName, time.Now().Sub(startTime).Seconds())
+		klog.Infof("Deleting namespace: %s took %.2f seconds", w.namespaceName, time.Now().Sub(startTime).Seconds())
+	}
 
 	return nil
 }
