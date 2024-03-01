@@ -15,7 +15,6 @@ import (
 
 	v1 "github.com/openshift/api/config/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,6 +26,8 @@ import (
 	"k8s.io/client-go/rest"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -144,10 +145,6 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		ctx := context.Background()
 
 		infrastructure, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
-		// if the Cluster CR is not found it most likely means this is running on a UPI installation and does not have CPMSO support
-		if errors.IsNotFound(err) {
-			e2eskipper.Skipf("No Cluster object found, this frequently means there is no Control Plane Machine Set Operator, skipping test")
-		}
 		o.Expect(err).ToNot(o.HaveOccurred())
 		o.Expect(infrastructure).ToNot(o.BeNil())
 
@@ -180,6 +177,9 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 		g.By("getting the control plane machine set")
 		cpmsClient := machineClientSet.MachineV1().ControlPlaneMachineSets("openshift-machine-api")
 		cpms, err := cpmsClient.Get(ctx, "cluster", metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			e2eskipper.Skipf("no control plane machine set, skipping test")
+		}
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("getting the events from the control plane machine set")
