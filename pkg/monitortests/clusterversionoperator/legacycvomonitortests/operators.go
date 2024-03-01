@@ -20,10 +20,10 @@ import (
 
 // exceptionCallback consumes a suspicious condition and returns an
 // exception string if does not think the condition should be fatal.
-type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, clientConfig ...*rest.Config) (string, error)
+type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, clientConfig *rest.Config) (string, error)
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ ...*rest.Config) (string, error) {
+	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
@@ -41,7 +41,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 }
 
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, clientConfig ...*rest.Config) (string, error) {
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
@@ -97,10 +97,8 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
 			}
 		case "image-registry":
-			if len(clientConfig) > 0 {
-				if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig[0]); replicaCount == 1 {
-					return "image-registry has only single replica", nil
-				}
+			if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
+				return "image-registry has only single replica", nil
 			}
 		}
 
@@ -196,8 +194,11 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				if len(concurrentE2E) > 0 {
 					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n"))
 				}
-
-				exception, err := except(operatorName, condition, clientConfig...)
+				var Config *rest.Config
+				if len(clientConfig) > 0 {
+					Config = clientConfig[0]
+				}
+				exception, err := except(operatorName, condition, Config)
 				if err != nil || exception == "" {
 					fatal = append(fatal, failure)
 				} else {
