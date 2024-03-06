@@ -148,6 +148,10 @@ func recordAddOrUpdateEvent(
 				}
 			}
 		}
+	case "CABundleUpdateRequired", "SignerUpdateRequired", "TargetUpdateRequired", "CertificateUpdated", "CertificateRemoved":
+		message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
+	case "CertificateUpdateFailed":
+		message = message.WithAnnotation(monitorapi.AnnotationPathological, "true")
 	default:
 	}
 
