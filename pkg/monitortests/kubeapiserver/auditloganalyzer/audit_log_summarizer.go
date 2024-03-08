@@ -66,7 +66,19 @@ func (i *auditEventInfo) getGroupVersionResource(auditEvent *auditv1.Event) sche
 		return *i.groupVersionResource
 	}
 
-	_, gvr, _, _ := URIToParts(auditEvent.RequestURI)
+	// Prefer trusting the API server for the data we're after about the resource the request is for. The audit event
+	// won't have an object reference for non-resource requests, but in those cases it's not clear that we can do
+	// anything of value anyway.
+	var gvr schema.GroupVersionResource
+	if auditEvent.ObjectRef != nil {
+		gvr = schema.GroupVersionResource{
+			Group:    auditEvent.ObjectRef.APIGroup,
+			Version:  auditEvent.ObjectRef.ResourceVersion,
+			Resource: auditEvent.ObjectRef.Resource,
+		}
+	} else {
+		_, gvr, _, _ = URIToParts(auditEvent.RequestURI)
+	}
 	i.groupVersionResource = &gvr
 	return *i.groupVersionResource
 }
