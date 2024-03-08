@@ -104,8 +104,8 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 		ctx,
 		m.recorder.Intervals(time.Time{}, time.Time{}), // compute intervals based on *all* the intervals.
 		m.recorder.CurrentResourceState(),
-		m.startTime, // still allow computation to understand the begining and end for bounding.
-		m.stopTime)  // still allow computation to understand the begining and end for bounding.
+		m.startTime, // still allow computation to understand the beginning and end for bounding.
+		m.stopTime)  // still allow computation to understand the beginning and end for bounding.
 	if err != nil {
 		// these errors are represented as junit, always continue to the next step
 		fmt.Fprintf(os.Stderr, "Error computing intervals, continuing, junit will reflect this. %v\n", err)

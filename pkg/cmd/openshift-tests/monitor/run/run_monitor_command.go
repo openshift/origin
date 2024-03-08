@@ -184,7 +184,7 @@ func (o *RunMonitorOptions) Run() error {
 
 	<-ctx.Done()
 
-	fmt.Fprintf(o.Out, "Monitor shutting down, this may take up to five minutes...\n")
+	fmt.Fprintf(o.Out, "Monitor shutting down, this may take up to twenty minutes...\n")
 
 	cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer cleanupCancel()
