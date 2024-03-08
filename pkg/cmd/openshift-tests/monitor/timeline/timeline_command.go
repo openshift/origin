@@ -51,7 +51,7 @@ func NewTimelineOptions(ioStreams genericclioptions.IOStreams) *TimelineOptions 
 			"operators":     timelineserializer.BelongsInOperatorRollout,
 			"apiserver":     timelineserializer.BelongsInKubeAPIServer,
 			"spyglass":      timelineserializer.BelongsInSpyglass,
-			"pod-lifecycle": timelineserializer.IsOriginalPodEvent,
+			"pod-lifecycle": timelineserializer.IsOriginalPodEvent, // TODO: may not be used?
 		},
 	}
 }
