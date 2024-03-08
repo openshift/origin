@@ -49,6 +49,12 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 	)
 
 	g.BeforeEach(func() {
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isMicroShift {
+			g.Skip("MicroShift does not have Prometheus")
+		}
+
 		infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		platformType := infra.Status.Platform
