@@ -35,6 +35,10 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		// The kube-apiserver proxy exists only in Hypershift. It is used to proxy the kubelet->kube-apiserver connection, hence it must be a static pod
 		// which makes the kubelet add a keyless noExecution toleration, so we have to exclude it here.
 		whitelistPods.Insert("kube-apiserver-proxy")
+		// The kube-rbac-proxy-crio pod exists in the machine config operator
+		// namespace. It is a static pod which makes the kubelet add a keyless
+		// noExecution toleration, so we have to exclude it here.
+		whitelistPods.Insert("kube-rbac-proxy-crio")
 		for _, pod := range pods.Items {
 			// exclude non-control plane namespaces
 			if !hasPrefixSet(pod.Namespace, namespacePrefixes) {
