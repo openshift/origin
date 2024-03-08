@@ -1,8 +1,6 @@
 package podaccess
 
 import (
-	"strings"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
@@ -20,7 +18,7 @@ type PodKey struct {
 func NonUniquePodToNode(intervals monitorapi.Intervals) map[NonUniquePodKey]string {
 	ret := map[NonUniquePodKey]string{}
 	for _, interval := range intervals {
-		if !strings.Contains(interval.Locator, "pod/") {
+		if !interval.StructuredLocator.HasKey(monitorapi.LocatorPodKey) {
 			continue
 		}
 
@@ -28,7 +26,7 @@ func NonUniquePodToNode(intervals monitorapi.Intervals) map[NonUniquePodKey]stri
 		if len(pod.Name) == 0 {
 			continue
 		}
-		node, _ := monitorapi.NodeFromLocator(interval.Locator)
+		node, _ := interval.StructuredLocator.Keys[monitorapi.LocatorNodeKey]
 		if len(node) == 0 {
 			continue
 		}
@@ -47,10 +45,13 @@ func NonUniquePodToNode(intervals monitorapi.Intervals) map[NonUniquePodKey]stri
 func NonUniqueEtcdMemberToPod(intervals monitorapi.Intervals) map[string]NonUniquePodKey {
 	ret := map[string]NonUniquePodKey{}
 	for _, interval := range intervals {
-		if !strings.Contains(interval.Locator, "pod/") {
+		if interval.Source != monitorapi.SourceEtcdLog {
 			continue
 		}
-		if !strings.Contains(interval.Message, "local-member-id/") {
+		if !interval.StructuredLocator.HasKey(monitorapi.LocatorPodKey) {
+			continue
+		}
+		if _, ok := interval.StructuredMessage.Annotations[monitorapi.AnnotationEtcdLocalMember]; !ok {
 			continue
 		}
 
@@ -58,7 +59,7 @@ func NonUniqueEtcdMemberToPod(intervals monitorapi.Intervals) map[string]NonUniq
 		if len(pod.Name) == 0 {
 			continue
 		}
-		memberName := monitorapi.AnnotationsFromMessage(interval.Message)[monitorapi.AnnotationEtcdLocalMember]
+		memberName := interval.StructuredMessage.Annotations[monitorapi.AnnotationEtcdLocalMember]
 		if len(memberName) == 0 {
 			continue
 		}

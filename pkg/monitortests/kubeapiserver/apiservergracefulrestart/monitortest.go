@@ -71,7 +71,7 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 		//    to that of the start event.
 		// TODO: With the above approach, finding the pair will be more deterministic
 		podRef := monitorapi.PodFrom(currInterval.StructuredLocator)
-		nodeName, _ := monitorapi.NodeFromLocator(currInterval.Locator)
+		nodeName, _ := currInterval.StructuredLocator.Keys[monitorapi.LocatorNodeKey]
 		key := fmt.Sprintf("ns/%s pod/%s node/%s", podRef.Namespace, podRef.Name, nodeName)
 
 		switch reason {

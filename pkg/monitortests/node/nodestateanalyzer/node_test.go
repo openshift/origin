@@ -9,9 +9,12 @@ import (
 
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
+	// regenerate this file if schema changes by getting an updated e2e-events file, finding a worker node, and running:
+	// cat e2e-events_20240308-085144.json | jq '.items [] | select(.tempStructuredLocator.keys.node == "ci-op-0774jw7y-f9945-k9278-worker-a-c2l9q") | select(.tempStructuredMessage.reason? | match("RegisteredNode|Starting|Cordon|Drain|NodeNotSchedulable|OSUpdateStarted|InClusterUpgrade|OSUpdateStaged|PendingConfig|Reboot|DiskPressure|MemoryPressure|PIDPressure|Ready|NodeNotReady|NotReady"))'
 	intervals, err := monitorserialization.EventsFromFile("testdata/node.json")
 	if err != nil {
 		t.Fatal(err)
@@ -21,7 +24,7 @@ func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 		t.Logf("%s - %s", c.From.UTC().Format(time.RFC3339), c.Message)
 	}
 	//out, _ := monitorserialization.EventsIntervalsToJSON(changes)
-	assert.Equal(t, 3, len(changes))
+	require.Equal(t, 3, len(changes))
 	assert.Equal(t, "constructed/node-lifecycle-constructor phase/Drain reason/NodeUpdate roles/worker drained node",
 		changes[0].Message, "unexpected event")
 	assert.Equal(t, "constructed/node-lifecycle-constructor phase/OperatingSystemUpdate reason/NodeUpdate roles/worker updated operating system",

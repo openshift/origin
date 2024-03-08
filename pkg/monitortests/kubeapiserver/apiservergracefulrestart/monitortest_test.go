@@ -23,7 +23,7 @@ func TestBuilder(t *testing.T) {
 		Display().
 		Build(time.Time{}, time.Time{})
 
-	if interval.Locator != "namespace/openshift-kube-apiserver node/node-name pod/pod-name server/kube-apiserver shutdown/apiserver" {
-		t.Fatal(interval.Locator)
+	if interval.StructuredLocator.OldLocator() != "namespace/openshift-kube-apiserver node/node-name pod/pod-name server/kube-apiserver shutdown/apiserver" {
+		t.Fatal(interval.StructuredLocator.OldLocator())
 	}
 }

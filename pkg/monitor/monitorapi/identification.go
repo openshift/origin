@@ -32,11 +32,6 @@ func NodeFromLocator(locator string) (string, bool) {
 	return ret, len(ret) > 0
 }
 
-func OperatorFromLocator(locator string) (string, bool) {
-	ret := OperatorFrom(LocatorParts(locator))
-	return ret, len(ret) > 0
-}
-
 func NamespaceFromLocator(locator Locator) string {
 	return locator.Keys[LocatorNamespaceKey]
 }

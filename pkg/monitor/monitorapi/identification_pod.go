@@ -22,26 +22,9 @@ func NonUniquePodLocatorFrom(locator string) string {
 	return fmt.Sprintf("ns/%s pod/%s", namespace, parts["pod"])
 }
 
-// TODO:  all callers should eventuall be using structured locator variant below:
-func PodFrom(locator Locator) PodReference {
-	namespace := locator.Keys[LocatorNamespaceKey]
-	name := locator.Keys[LocatorPodKey]
-	uid := locator.Keys[LocatorUIDKey]
-	if len(namespace) == 0 || len(name) == 0 {
-		return PodReference{}
-	}
-	return PodReference{
-		NamespacedReference: NamespacedReference{
-			Namespace: namespace,
-			Name:      name,
-			UID:       uid,
-		},
-	}
-}
-
-// PodFromLocator is used to strip down a locator to just a pod. (as it may contain additional keys like container or node)
+// PodFrom is used to strip down a locator to just a pod. (as it may contain additional keys like container or node)
 // that we do not want for some uses.
-func PodFromLocator(locator Locator) PodReference {
+func PodFrom(locator Locator) PodReference {
 	namespace := locator.Keys[LocatorNamespaceKey]
 	name := locator.Keys[LocatorPodKey]
 	uid := locator.Keys[LocatorUIDKey]
