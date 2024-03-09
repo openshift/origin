@@ -107,7 +107,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] using build configuration
 						}
 						continue
 					}
-					// When the the other two builds we started after waiting for the first
+					// When the other two builds we started after waiting for the first
 					// build to become running are Pending, verify the first build is still
 					// running (so the other two builds are started in parallel with first
 					// build).

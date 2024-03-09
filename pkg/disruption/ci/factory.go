@@ -71,7 +71,7 @@ type TestConfiguration struct {
 // TestDescriptor defines the disruption test type, the user must
 // provide a complete specification for the desired test.
 type TestDescriptor struct {
-	// TargetServer is the server that is is being tested
+	// TargetServer is the server that is being tested
 	TargetServer ServerNameType
 
 	// LoadBalancerType is the type of load balancer through which the
