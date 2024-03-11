@@ -200,7 +200,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines] Managed cluster sh
 // Use this early in a test that relies on Machine API functionality.
 //
 // It checks to see if the machine custom resource is installed in the cluster.
-// If machines are not installed it skips the test case.
+// If machines are not installed, or there are no machines in the cluster, it skips the test case.
 // It then checks to see if the `openshift-machine-api` namespace is installed.
 // If the namespace is not present it skips the test case.
 func skipUnlessMachineAPIOperator(dc dynamic.Interface, c coreclient.NamespaceInterface) {
@@ -208,11 +208,22 @@ func skipUnlessMachineAPIOperator(dc dynamic.Interface, c coreclient.NamespaceIn
 
 	err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
 		// Listing the resource will return an IsNotFound error when the CRD has not been installed.
-		// Otherwise it would return an empty list.
-		_, err := machineClient.List(context.Background(), metav1.ListOptions{})
+		// Otherwise it would return an empty list if no Machines are in use, which should not be
+		// possible if the MachineAPI operator is in use.
+		machines, err := machineClient.List(context.Background(), metav1.ListOptions{})
+		// If no error was returned and the list of Machines is populated, this cluster is using MachineAPI
 		if err == nil {
+			// If the Machine CRD exists but there are no Machine objects in the cluster we should
+			// skip the test because any cluster that is using MachineAPI from the install will have
+			// Machines for the control plane nodes at the minimum.
+			if len(machines.Items) == 0 {
+				e2eskipper.Skipf("The cluster supports the Machine CRD but has no Machines available")
+			}
+
 			return true, nil
 		}
+
+		// Not found error on the Machine CRD, cluster is not using MachineAPI
 		if errors.IsNotFound(err) {
 			e2eskipper.Skipf("The cluster does not support machine instances")
 		}
@@ -222,6 +233,8 @@ func skipUnlessMachineAPIOperator(dc dynamic.Interface, c coreclient.NamespaceIn
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+		// Check if the openshift-machine-api namespace is present, if not then this
+		// cluster is not using MachineAPI.
 		_, err := c.Get(context.Background(), "openshift-machine-api", metav1.GetOptions{})
 		if err == nil {
 			return true, nil
