@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/origin/pkg/certs"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -36,7 +37,7 @@ func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certs.PKIRegistryInfo,
 			currCert := currPKI.InClusterResourceData.CertKeyPairs[i]
 			existing, ok := inClusterCertKeyPairs[currCert.SecretLocation]
 			if ok && !reflect.DeepEqual(existing, currCert.CertKeyInfo) {
-				errs = append(errs, fmt.Errorf("mismatch of certificate info for --namespace=%v secret/%v", currCert.SecretLocation.Namespace, currCert.SecretLocation.Name))
+				errs = append(errs, fmt.Errorf("mismatch of certificate info for --namespace=%v secret/%v:\n%v\n", currCert.SecretLocation.Namespace, currCert.SecretLocation.Name, cmp.Diff(existing, currCert.CertKeyInfo)))
 				continue
 			}
 
@@ -46,7 +47,7 @@ func ProcessByLocation(rawData []*certgraphapi.PKIList) (*certs.PKIRegistryInfo,
 			currCert := currPKI.InClusterResourceData.CertificateAuthorityBundles[i]
 			existing, ok := inClusterCABundles[currCert.ConfigMapLocation]
 			if ok && !reflect.DeepEqual(existing, currCert.CABundleInfo) {
-				errs = append(errs, fmt.Errorf("mismatch of certificate info for --namespace=%v configmap/%v", currCert.ConfigMapLocation.Namespace, currCert.ConfigMapLocation.Name))
+				errs = append(errs, fmt.Errorf("mismatch of certificate info for --namespace=%v configmap/%v:\n%v\n", currCert.ConfigMapLocation.Namespace, currCert.ConfigMapLocation.Name, cmp.Diff(existing, currCert.CABundleInfo)))
 				continue
 			}
 
