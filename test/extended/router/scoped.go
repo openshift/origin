@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
-			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, exutil.IPUrl(routerIP), changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
@@ -142,7 +142,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
-			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, exutil.IPUrl(routerIP), changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
@@ -208,7 +208,7 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 
 			g.By("waiting for the healthz endpoint to respond")
 			healthzURI := fmt.Sprintf("http://%s/healthz", net.JoinHostPort(routerIP, "1936"))
-			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, exutil.IPUrl(routerIP), changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPod.Name, healthzURI, routerIP, changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
@@ -241,6 +241,8 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 })
 
 func waitForRouterOKResponseExec(ns, execPodName, url, host string, timeoutSeconds int) error {
+	// bracket IPv6 IPs when used as URI
+	host = exutil.IPUrl(host)
 	cmd := fmt.Sprintf(`
 		set -e
 		pass=%[4]d
