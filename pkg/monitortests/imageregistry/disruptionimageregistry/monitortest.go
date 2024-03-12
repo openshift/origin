@@ -174,7 +174,7 @@ func (w *availability) Cleanup(ctx context.Context) error {
 		}
 
 		startTime := time.Now()
-		err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, w.routeDeleted)
+		err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 20*time.Minute, true, w.routeDeleted)
 		if err != nil {
 			return err
 		}
