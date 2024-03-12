@@ -47,6 +47,14 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		if svc.Spec.Type != corev1.ServiceTypeLoadBalancer {
 			g.Skip("default router is not exposed by a load balancer service")
 		}
+
+		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+		if err != nil {
+			o.Expect(err).NotTo(o.HaveOccurred(), "error determining if running on MicroShift: %v", err)
+		}
+		if isMicroShift {
+			g.Skip("MicroShift does not support ingress-canary or monitoring")
+		}
 	})
 
 	g.It("should expose cluster services outside the cluster [apigroup:route.openshift.io]", func() {
