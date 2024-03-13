@@ -43,6 +43,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	watchtools "k8s.io/client-go/tools/watch"
 )
@@ -85,6 +86,45 @@ func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernete
 	)
 }
 
+func cleanupEtcdCertificates(ctx context.Context, kubeClient kubernetes.Interface, masters []*corev1.Node) error {
+	etcdNamespace := "openshift-etcd"
+	exceptions := sets.NewString("etcd-client", "etcd-metric-client")
+	managedLabel := labels.SelectorFromSet(map[string]string{"auth.openshift.io/managed-certificate-type": "target"})
+
+	secretsList, err := kubeClient.CoreV1().Secrets(etcdNamespace).List(ctx, metav1.ListOptions{
+		LabelSelector: managedLabel.String(),
+	})
+	if err != nil {
+		return err
+	}
+
+	errs := []error{}
+	for _, secret := range secretsList.Items {
+		if exceptions.Has(secret.Name) {
+			continue
+		}
+		found := false
+		for _, node := range masters {
+			if strings.Contains(secret.Name, node.Name) {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+
+		err = kubeClient.CoreV1().Secrets(etcdNamespace).Delete(ctx, secret.Name, metav1.DeleteOptions{})
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) != 0 {
+		return utilerrors.NewAggregate(errs)
+	}
+	return nil
+}
+
 var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g.Ordered, func() {
 	defer g.GinkgoRecover()
 
@@ -92,12 +132,11 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 	ctx := context.Background()
 
 	g.BeforeAll(func() {
-		ctx := context.Background()
+		var err error
 		kubeClient := oc.AdminKubeClient()
 		if ok, _ := exutil.IsMicroShiftCluster(kubeClient); ok {
 			g.Skip("microshift does not auto-collect TLS.")
 		}
-		var err error
 		onDiskPKIContent := &certgraphapi.PKIList{}
 
 		jobType, err = platformidentification.GetJobType(context.TODO(), oc.AdminConfig())
@@ -110,6 +149,10 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		for i := range nodeList.Items {
 			masters = append(masters, &nodeList.Items[i])
 		}
+
+		// etcd operator doesn't immediately remove the certificate for boostrap
+		err = cleanupEtcdCertificates(ctx, kubeClient, masters)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient, masters)
 		o.Expect(err).NotTo(o.HaveOccurred())
