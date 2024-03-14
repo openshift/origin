@@ -43,37 +43,37 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 	oc := exutil.NewCLI("baremetal")
 
 	g.BeforeEach(func() {
-		skipIfNotBaremetal(oc)
+		SkipIfNotBaremetal(oc)
 	})
 
 	g.It("have baremetalhost resources", func() {
 		dc := oc.AdminDynamicClient()
-		bmc := baremetalClient(dc)
+		bmc := BaremetalClient(dc)
 
 		hosts, err := bmc.List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 		for _, h := range hosts.Items {
-			expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
-			expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
-			expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
+			ExpectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
+			ExpectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
+			ExpectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
 
 		}
 	})
 
 	g.It("have preprovisioning images for workers", func() {
 		dc := oc.AdminDynamicClient()
-		bmc := baremetalClient(dc)
+		bmc := BaremetalClient(dc)
 		ppiClient := preprovisioningImagesClient(dc)
 
 		hosts, err := bmc.List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, h := range hosts.Items {
-			state := getStringField(h, "baremetalhost", "status.provisioning.state")
+			state := GetStringField(h, "baremetalhost", "status.provisioning.state")
 			if state != "externally provisioned" {
-				hostName := getStringField(h, "baremetalhost", "metadata.name")
+				hostName := GetStringField(h, "baremetalhost", "metadata.name")
 				_, err := ppiClient.Get(context.Background(), hostName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
@@ -83,15 +83,15 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 	g.It("have hostfirmwaresetting resources", func() {
 		dc := oc.AdminDynamicClient()
 
-		bmc := baremetalClient(dc)
+		bmc := BaremetalClient(dc)
 		hosts, err := bmc.List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
-		hfsClient := hostfirmwaresettingsClient(dc)
+		hfsClient := HostfirmwaresettingsClient(dc)
 
 		for _, h := range hosts.Items {
-			hostName := getStringField(h, "baremetalhost", "metadata.name")
+			hostName := GetStringField(h, "baremetalhost", "metadata.name")
 
 			g.By(fmt.Sprintf("check that baremetalhost %s has a corresponding hostfirmwaresettings", hostName))
 			hfs, err := hfsClient.Get(context.Background(), hostName, metav1.GetOptions{})
@@ -103,11 +103,11 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 			// expectStringMapField(*hfs, "hostfirmwaresettings", "status.settings").ToNot(o.BeEmpty())
 
 			g.By("check that hostfirmwaresettings conditions show resource is valid")
-			checkConditionStatus(*hfs, "Valid", "True")
+			CheckConditionStatus(*hfs, "Valid", "True")
 
 			g.By("check that hostfirmwaresettings reference a schema")
-			refName := getStringField(*hfs, "hostfirmwaresettings", "status.schema.name")
-			refNS := getStringField(*hfs, "hostfirmwaresettings", "status.schema.namespace")
+			refName := GetStringField(*hfs, "hostfirmwaresettings", "status.schema.name")
+			refNS := GetStringField(*hfs, "hostfirmwaresettings", "status.schema.namespace")
 
 			schemaClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "firmwareschemas", Version: "v1alpha1"}).Namespace(refNS)
 			schema, err := schemaClient.Get(context.Background(), refName, metav1.GetOptions{})
@@ -118,14 +118,14 @@ var _ = g.Describe("[sig-installer][Feature:baremetal] Baremetal platform should
 
 	g.It("not allow updating BootMacAddress", func() {
 		dc := oc.AdminDynamicClient()
-		bmc := baremetalClient(dc)
+		bmc := BaremetalClient(dc)
 
 		hosts, err := bmc.List(context.Background(), metav1.ListOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 		host := hosts.Items[0]
-		expectStringField(host, "baremetalhost", "spec.bootMACAddress").ShouldNot(o.BeNil())
+		ExpectStringField(host, "baremetalhost", "spec.bootMACAddress").ShouldNot(o.BeNil())
 		// Already verified that bootMACAddress exists
 		bootMACAddress, _, _ := unstructured.NestedString(host.Object, "spec", "bootMACAddress")
 		testMACAddress := "11:11:11:11:11:11"
@@ -156,7 +156,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	)
 
 	g.BeforeEach(func() {
-		skipIfNotBaremetal(oc)
+		SkipIfNotBaremetal(oc)
 		helper = NewBaremetalTestHelper(oc.AdminDynamicClient())
 		helper.Setup()
 	})

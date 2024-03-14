@@ -16,7 +16,7 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
-func skipIfNotBaremetal(oc *exutil.CLI) {
+func SkipIfNotBaremetal(oc *exutil.CLI) {
 	g.By("checking platform type")
 
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
@@ -52,7 +52,7 @@ func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 	case configv1.GCPPlatformType:
 		fallthrough
 	case configv1.NonePlatformType:
-		provisioningNetwork := getProvisioningNetwork(dc)
+		provisioningNetwork := GetProvisioningNetwork(dc)
 		if provisioningNetwork != "Disabled" {
 			e2eskipper.Skipf("Unsupported config in supported platform detected")
 		} else if provisioningNetwork == "" {
@@ -65,7 +65,7 @@ func skipIfUnsupportedPlatformOrConfig(oc *exutil.CLI, dc dynamic.Interface) {
 	}
 }
 
-func getProvisioningNetwork(dc dynamic.Interface) string {
+func GetProvisioningNetwork(dc dynamic.Interface) string {
 	provisioningGVR := schema.GroupVersionResource{Group: "metal3.io", Resource: "provisionings", Version: "v1alpha1"}
 	provisioningClient := dc.Resource(provisioningGVR)
 	provisioningConfig, err := provisioningClient.Get(context.Background(), "provisioning-configuration", metav1.GetOptions{})
@@ -83,12 +83,12 @@ func getProvisioningNetwork(dc dynamic.Interface) string {
 	return provisioningNetwork
 }
 
-func baremetalClient(dc dynamic.Interface) dynamic.ResourceInterface {
+func BaremetalClient(dc dynamic.Interface) dynamic.ResourceInterface {
 	baremetalClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "baremetalhosts", Version: "v1alpha1"})
 	return baremetalClient.Namespace("openshift-machine-api")
 }
 
-func hostfirmwaresettingsClient(dc dynamic.Interface) dynamic.ResourceInterface {
+func HostfirmwaresettingsClient(dc dynamic.Interface) dynamic.ResourceInterface {
 	hfsClient := dc.Resource(schema.GroupVersionResource{Group: "metal3.io", Resource: "hostfirmwaresettings", Version: "v1alpha1"})
 	return hfsClient.Namespace("openshift-machine-api")
 }
@@ -109,13 +109,13 @@ func expectField(object unstructured.Unstructured, resource string, nestedField 
 	return o.Expect(value)
 }
 
-func expectStringField(object unstructured.Unstructured, resource string, nestedField string) o.Assertion {
+func ExpectStringField(object unstructured.Unstructured, resource string, nestedField string) o.Assertion {
 	return expectField(object, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
 		return unstructured.NestedString(obj, fields...)
 	})
 }
 
-func expectBoolField(object unstructured.Unstructured, resource string, nestedField string) o.Assertion {
+func ExpectBoolField(object unstructured.Unstructured, resource string, nestedField string) o.Assertion {
 	return expectField(object, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
 		return unstructured.NestedBool(obj, fields...)
 	})
@@ -134,7 +134,7 @@ func expectSliceField(object unstructured.Unstructured, resource string, nestedF
 }
 
 // Conditions are stored as a slice of maps, check that the type has the correct status
-func checkConditionStatus(hfs unstructured.Unstructured, condType string, condStatus string) {
+func CheckConditionStatus(hfs unstructured.Unstructured, condType string, condStatus string) {
 
 	conditions, _, err := unstructured.NestedSlice(hfs.Object, "status", "conditions")
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -163,7 +163,7 @@ func getField(object unstructured.Unstructured, resource string, nestedField str
 	return value.(string)
 }
 
-func getStringField(object unstructured.Unstructured, resource string, nestedField string) string {
+func GetStringField(object unstructured.Unstructured, resource string, nestedField string) string {
 	return getField(object, resource, nestedField, func(obj map[string]interface{}, fields ...string) (interface{}, bool, error) {
 		return unstructured.NestedFieldNoCopy(obj, fields...)
 	})

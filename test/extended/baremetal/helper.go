@@ -39,7 +39,7 @@ func NewBaremetalTestHelper(dc dynamic.Interface) *BaremetalTestHelper {
 
 	return &BaremetalTestHelper{
 		clientSet: clientSet,
-		bmcClient: baremetalClient(dc),
+		bmcClient: BaremetalClient(dc),
 	}
 }
 
