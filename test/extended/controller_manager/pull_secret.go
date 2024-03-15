@@ -111,7 +111,14 @@ func getServiceAccountPullSecret(client kubernetes.Interface, ns, name string) (
 		return "", "", err
 	}
 	for _, secret := range secrets.Items {
-		if secret.Type == corev1.SecretTypeDockercfg && secret.Annotations[corev1.ServiceAccountNameKey] == name {
+		if secret.Type != corev1.SecretTypeDockercfg {
+			continue
+		}
+		if secret.Annotations["openshift.io/internal-registry-auth-token.service-account"] == name {
+			return secret.Name, string(secret.Data[corev1.DockerConfigKey]), nil
+		}
+		// TODO remove after 4.16
+		if secret.Annotations[corev1.ServiceAccountNameKey] == name {
 			return secret.Name, string(secret.Data[corev1.DockerConfigKey]), nil
 		}
 	}
@@ -158,6 +165,13 @@ var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 		dockercfgSecret, err := clusterAdminKubeClient.CoreV1().Secrets(sa.Namespace).Get(context.Background(), dockercfgSecretName, metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// TODO the rest of this test can be removed after 4.16
+
+		if dockercfgSecret.Annotations["openshift.io/internal-registry-auth-token.binding"] == "bound" {
+			// image pull secret auth contains bound service account API tokens so no service account API token secret to be found
+			return
 		}
 		secretName := dockercfgSecret.Annotations["openshift.io/token-secret.name"]
 		if len(secretName) == 0 {
