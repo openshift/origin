@@ -9,10 +9,10 @@ import (
 	"time"
 
 	v1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 	"github.com/sirupsen/logrus"
 
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -20,6 +20,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 var reMatchFirstQuote = regexp.MustCompile(`"([^"]+)"( in (\d+(\.\d+)?(s|ms)$))?`)
@@ -244,11 +246,16 @@ func eventForContainer(fieldPath string) (string, bool) {
 }
 
 func nodeRoles(node *corev1.Node) string {
-	const roleLabel = "node-role.kubernetes.io"
+	const roleLabel = "node-role.kubernetes.io/"
 	var roles []string
 	for label := range node.Labels {
 		if strings.Contains(label, roleLabel) {
-			roles = append(roles, label[len(roleLabel)+1:])
+			role := label[len(roleLabel):]
+			if role == "" {
+				logrus.Warningf("ignoring blank role label %s", roleLabel)
+				continue
+			}
+			roles = append(roles, role)
 		}
 	}
 
