@@ -16,10 +16,10 @@ func LocatePod(pod *corev1.Pod) string {
 // NonUniquePodLocatorFrom produces an inexact locator based on namespace and name.  This is useful when dealing with events
 // that are produced that do not contain UIDs.  Ultimately, we should use UIDs everywhere, but this is will keep some our
 // matching working until then.
-func NonUniquePodLocatorFrom(locator string) string {
-	parts := LocatorParts(locator)
-	namespace := NamespaceFrom(parts)
-	return fmt.Sprintf("ns/%s pod/%s", namespace, parts["pod"])
+func NonUniquePodLocatorFrom(locator Locator) string {
+	namespace := locator.Keys[LocatorNamespaceKey]
+	pod := locator.Keys[LocatorPodKey]
+	return fmt.Sprintf("ns/%s pod/%s", namespace, pod)
 }
 
 // PodFrom is used to strip down a locator to just a pod. (as it may contain additional keys like container or node)
