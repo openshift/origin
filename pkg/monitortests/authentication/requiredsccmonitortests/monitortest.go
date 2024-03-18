@@ -61,7 +61,10 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 
 	junits := []*junitapi.JUnitTestCase{}
 	for _, ns := range namespaces.Items {
-		if !strings.HasPrefix(ns.Name, "openshift") && !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" {
+		// require that all workloads in openshift, kube-* or default namespaces must have the required-scc annotation
+		// ignore openshift-must-gather-* namespaces which are generated dynamically
+		isPermanentOpenShiftNamespace := (ns.Name == "openshift" || strings.HasPrefix(ns.Name, "openshift-")) && !strings.HasPrefix(ns.Name, "openshift-must-gather-")
+		if !strings.HasPrefix(ns.Name, "kube-") && ns.Name != "default" && !isPermanentOpenShiftNamespace {
 			continue
 		}
 
