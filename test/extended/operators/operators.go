@@ -109,6 +109,12 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 					continue
 				}
 
+				// For 4.14 onwards the cluster-network-operator is used to prevent upgrades for OpenStack clusters with Kuryr.
+				// This will eventually go away once Kuryr is removed from the product.
+				if infra.Get("status.platformStatus.type").String() == "OpenStack" && name == "network" && isNetworkOperatorUpgradableKuryrConfiguredCondition(worstCondition) {
+					continue
+				}
+
 				unready = append(unready, fmt.Sprintf("%s (%s=%s %s: %s)",
 					name,
 					worstCondition.Type,
@@ -317,6 +323,13 @@ func isUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCondition
 // Ref: https://github.com/openshift/cluster-cloud-controller-manager-operator/pull/257
 func isCloudControllerManagerUpgradableNoUpgradeCondition(cond configv1.ClusterOperatorStatusCondition) bool {
 	return cond.Reason == "PlatformTechPreview" &&
+		cond.Status == "False" &&
+		cond.Type == "Upgradeable"
+}
+
+// Kuryr SDN is removed from 4.15 and 4.14 CNO blocks upgrades if it's configured.
+func isNetworkOperatorUpgradableKuryrConfiguredCondition(cond configv1.ClusterOperatorStatusCondition) bool {
+	return cond.Reason == "KuryrConfigured" &&
 		cond.Status == "False" &&
 		cond.Type == "Upgradeable"
 }
