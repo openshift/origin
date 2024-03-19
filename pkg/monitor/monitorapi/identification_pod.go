@@ -9,8 +9,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func LocatePod(pod *corev1.Pod) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s uid/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, pod.UID)
+func LocatePod(pod *corev1.Pod) Locator {
+	return Locator{
+		Type: LocatorTypePod,
+		Keys: map[LocatorKey]string{
+			LocatorNamespaceKey: pod.Namespace,
+			LocatorPodKey:       pod.Name,
+			LocatorNodeKey:      pod.Spec.NodeName,
+			LocatorUIDKey:       string(pod.UID),
+		},
+	}
 }
 
 // NonUniquePodLocatorFrom produces an inexact locator based on namespace and name.  This is useful when dealing with events

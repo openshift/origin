@@ -339,6 +339,12 @@ func (b *LocatorBuilder) APIServerShutdown(loadBalancer string) Locator {
 	return b.Build()
 }
 
+func (b *LocatorBuilder) KubeAPIServer() Locator {
+	b.targetType = LocatorTypeKubeAPIServer
+	b.annotations[LocatorServerKey] = "kube-apiserver"
+	return b.Build()
+}
+
 func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) Locator {
 	b.PodFromPod(pod)
 	b.targetType = LocatorTypeContainer

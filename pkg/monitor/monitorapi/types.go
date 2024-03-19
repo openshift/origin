@@ -103,6 +103,7 @@ const (
 	LocatorTypeNode              LocatorType = "Node"
 	LocatorTypeAlert             LocatorType = "Alert"
 	LocatorTypeClusterOperator   LocatorType = "ClusterOperator"
+	LocatorTypeKubeAPIServer     LocatorType = "KubeAPIServer"
 	LocatorTypeOther             LocatorType = "Other"
 	LocatorTypeDisruption        LocatorType = "Disruption"
 	LocatorTypeKubeEvent         LocatorType = "KubeEvent"

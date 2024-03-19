@@ -1,7 +1,6 @@
 package watchclusteroperators
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -45,9 +44,9 @@ func (w *errorRecordingListWatcher) handle(err error) {
 	if err != nil {
 		if !w.receivedError {
 			w.recorder.Record(monitorapi.Condition{
-				Level:   monitorapi.Error,
-				Locator: "kube-apiserver",
-				Message: fmt.Sprintf("failed contacting the API: %v", err),
+				Level:             monitorapi.Error,
+				StructuredLocator: monitorapi.NewLocator().KubeAPIServer(),
+				StructuredMessage: monitorapi.NewMessage().HumanMessagef("failed contacting the API: %v", err).Build(),
 			})
 		}
 		w.receivedError = true
