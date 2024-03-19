@@ -43,11 +43,18 @@ func (w *errorRecordingListWatcher) handle(err error) {
 	defer w.lock.Unlock()
 	if err != nil {
 		if !w.receivedError {
-			w.recorder.Record(monitorapi.Condition{
-				Level:             monitorapi.Error,
-				StructuredLocator: monitorapi.NewLocator().KubeAPIServer(),
-				StructuredMessage: monitorapi.NewMessage().HumanMessagef("failed contacting the API: %v", err).Build(),
-			})
+
+			i := monitorapi.NewInterval(monitorapi.APIServerClusterOperatorWatcher, monitorapi.Error).
+				Locator(monitorapi.NewLocator().
+					LocateServer("kube-apiserver", "", "", ""),
+				).
+				Message(monitorapi.NewMessage().
+					Reason(monitorapi.FailedContactingAPIReason).
+					HumanMessagef("failed contacting the API: %v", err),
+				).
+				Display().
+				BuildNow()
+			w.recorder.AddIntervals(i)
 		}
 		w.receivedError = true
 	} else {

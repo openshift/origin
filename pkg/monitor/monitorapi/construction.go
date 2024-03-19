@@ -266,16 +266,7 @@ func (b *LocatorBuilder) LocateDisruptionCheck(backendDisruptionName, thisInstan
 		Build()
 }
 
-func (b *LocatorBuilder) LocateServer(serverName, nodeName, namespace, podName string, isShutdown bool) Locator {
-	if isShutdown {
-		return b.
-			withShutdown().
-			withServer(serverName).
-			withNode(nodeName).
-			withNamespace(namespace).
-			withPodName(podName).
-			Build()
-	}
+func (b *LocatorBuilder) LocateServer(serverName, nodeName, namespace, podName string) Locator {
 	return b.
 		withServer(serverName).
 		withNode(nodeName).
@@ -284,15 +275,18 @@ func (b *LocatorBuilder) LocateServer(serverName, nodeName, namespace, podName s
 		Build()
 }
 
-// TODO remove this once we know what all breaks.
-func (b *LocatorBuilder) withShutdown() *LocatorBuilder {
-	b.annotations[LocatorShutdown] = "apiserver"
-	return b
-}
-
 func (b *LocatorBuilder) withServer(serverName string) *LocatorBuilder {
 	b.annotations[LocatorServerKey] = serverName
 	return b
+}
+
+func (b *LocatorBuilder) KubeAPIServerWithLB(loadBalancer string) Locator {
+	b.targetType = LocatorTypeAPIServer
+	b.annotations[LocatorServerKey] = "kube-apiserver"
+	if len(loadBalancer) > 0 {
+		b.annotations[LocatorLoadBalancerKey] = loadBalancer
+	}
+	return b.Build()
 }
 
 // TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
@@ -326,22 +320,6 @@ func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 	if len(event.InvolvedObject.Namespace) > 0 {
 		b.annotations[LocatorNamespaceKey] = event.InvolvedObject.Namespace
 	}
-	return b.Build()
-}
-
-func (b *LocatorBuilder) APIServerShutdown(loadBalancer string) Locator {
-	b.targetType = LocatorTypeAPIServerShutdown
-	b.annotations[LocatorShutdownKey] = "graceful"
-	b.annotations[LocatorServerKey] = "kube-apiserver"
-	if len(loadBalancer) > 0 {
-		b.annotations[LocatorLoadBalancerKey] = loadBalancer
-	}
-	return b.Build()
-}
-
-func (b *LocatorBuilder) KubeAPIServer() Locator {
-	b.targetType = LocatorTypeKubeAPIServer
-	b.annotations[LocatorServerKey] = "kube-apiserver"
 	return b.Build()
 }
 

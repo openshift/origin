@@ -14,7 +14,7 @@ func TestBuilder(t *testing.T) {
 
 	interval := monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Info).
 		Locator(monitorapi.NewLocator().
-			LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name, true),
+			LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name),
 		).
 		Message(monitorapi.NewMessage().
 			Constructed("graceful-shutdown-analyzer").
@@ -23,7 +23,7 @@ func TestBuilder(t *testing.T) {
 		Display().
 		Build(time.Time{}, time.Time{})
 
-	if interval.StructuredLocator.OldLocator() != "namespace/openshift-kube-apiserver node/node-name pod/pod-name server/kube-apiserver shutdown/apiserver" {
+	if interval.StructuredLocator.OldLocator() != "namespace/openshift-kube-apiserver node/node-name pod/pod-name server/kube-apiserver" {
 		t.Fatal(interval.StructuredLocator.OldLocator())
 	}
 }

@@ -98,34 +98,29 @@ type Condition struct {
 type LocatorType string
 
 const (
-	LocatorTypePod               LocatorType = "Pod"
-	LocatorTypeContainer         LocatorType = "Container"
-	LocatorTypeNode              LocatorType = "Node"
-	LocatorTypeAlert             LocatorType = "Alert"
-	LocatorTypeClusterOperator   LocatorType = "ClusterOperator"
-	LocatorTypeKubeAPIServer     LocatorType = "KubeAPIServer"
-	LocatorTypeOther             LocatorType = "Other"
-	LocatorTypeDisruption        LocatorType = "Disruption"
-	LocatorTypeKubeEvent         LocatorType = "KubeEvent"
-	LocatorTypeE2ETest           LocatorType = "E2ETest"
-	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
-	LocatorTypeClusterVersion    LocatorType = "ClusterVersion"
-	LocatorTypeKind              LocatorType = "Kind"
-	LocatorTypeCloudMetrics      LocatorType = "CloudMetrics"
+	LocatorTypePod             LocatorType = "Pod"
+	LocatorTypeContainer       LocatorType = "Container"
+	LocatorTypeNode            LocatorType = "Node"
+	LocatorTypeAlert           LocatorType = "Alert"
+	LocatorTypeClusterOperator LocatorType = "ClusterOperator"
+	LocatorTypeDisruption      LocatorType = "Disruption"
+	LocatorTypeKubeEvent       LocatorType = "KubeEvent"
+	LocatorTypeE2ETest         LocatorType = "E2ETest"
+	LocatorTypeAPIServer       LocatorType = "APIServer"
+	LocatorTypeClusterVersion  LocatorType = "ClusterVersion"
+	LocatorTypeKind            LocatorType = "Kind"
+	LocatorTypeCloudMetrics    LocatorType = "CloudMetrics"
 )
 
 type LocatorKey string
 
 const (
-	LocatorServer             LocatorKey = "server"   // TODO this looks like a bad name.  Aggregated apiserver?  Do we even need it?
-	LocatorShutdown           LocatorKey = "shutdown" // TODO this should not exist.  This is a reason and message
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
 	LocatorClusterVersionKey  LocatorKey = "clusterversion"
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorDeploymentKey      LocatorKey = "deployment"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
-	LocatorKindKey            LocatorKey = "kind"
 	LocatorNameKey            LocatorKey = "name"
 	LocatorHmsgKey            LocatorKey = "hmsg"
 	LocatorPodKey             LocatorKey = "pod"
@@ -143,7 +138,6 @@ const (
 	LocatorProtocolKey              LocatorKey = "protocol"
 	LocatorTargetKey                LocatorKey = "target"
 	LocatorRowKey                   LocatorKey = "row"
-	LocatorShutdownKey              LocatorKey = "shutdown"
 	LocatorServerKey                LocatorKey = "server"
 	LocatorMetricKey                LocatorKey = "metric"
 )
@@ -163,7 +157,8 @@ const (
 	DisruptionBeganEventReason              IntervalReason = "DisruptionBegan"
 	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
 	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
-	GracefulAPIServerShutdown               IntervalReason = "GracefulShutdownWindow"
+	GracefulAPIServerShutdown               IntervalReason = "GracefulAPIServerShutdown"
+	IncompleteAPIServerShutdown             IntervalReason = "IncompleteAPIServerShutdown"
 
 	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
 
@@ -207,6 +202,7 @@ const (
 	CloudMetricsExtrenuous                IntervalReason = "CloudMetricsExtrenuous"
 	FailedToDeleteCGroupsPath             IntervalReason = "FailedToDeleteCGroupsPath"
 	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
+	FailedContactingAPIReason             IntervalReason = "FailedContactingAPI"
 )
 
 type AnnotationKey string
@@ -271,19 +267,21 @@ type Message struct {
 type IntervalSource string
 
 const (
-	SourceAlert                   IntervalSource = "Alert"
-	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
-	SourceDisruption              IntervalSource = "Disruption"
-	SourceE2ETest                 IntervalSource = "E2ETest"
-	SourceKubeEvent               IntervalSource = "KubeEvent"
-	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
-	SourceNodeMonitor             IntervalSource = "NodeMonitor"
-	SourceKubeletLog              IntervalSource = "KubeletLog"
-	SourcePodLog                  IntervalSource = "PodLog"
-	SourceEtcdLog                 IntervalSource = "EtcdLog"
-	SourceEtcdLeadership          IntervalSource = "EtcdLeadership"
-	SourcePodMonitor              IntervalSource = "PodMonitor"
-	APIServerGracefulShutdown     IntervalSource = "APIServerGracefulShutdown"
+	SourceAlert                     IntervalSource = "Alert"
+	SourceAPIServerShutdown         IntervalSource = "APIServerShutdown"
+	SourceDisruption                IntervalSource = "Disruption"
+	SourceE2ETest                   IntervalSource = "E2ETest"
+	SourceKubeEvent                 IntervalSource = "KubeEvent"
+	SourceNetworkManagerLog         IntervalSource = "NetworkMangerLog"
+	SourceNodeMonitor               IntervalSource = "NodeMonitor"
+	SourceKubeletLog                IntervalSource = "KubeletLog"
+	SourcePodLog                    IntervalSource = "PodLog"
+	SourceEtcdLog                   IntervalSource = "EtcdLog"
+	SourceEtcdLeadership            IntervalSource = "EtcdLeadership"
+	SourcePodMonitor                IntervalSource = "PodMonitor"
+	APIServerGracefulShutdown       IntervalSource = "APIServerGracefulShutdown"
+	APIServerClusterOperatorWatcher IntervalSource = "APIServerClusterOperatorWatcher"
+
 	SourceTestData                IntervalSource = "TestData" // some tests have no real source to assign
 	SourceOVSVswitchdLog          IntervalSource = "OVSVswitchdLog"
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
