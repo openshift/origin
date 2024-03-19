@@ -18,44 +18,6 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-func waitForServiceAccountToken(client kubernetes.Interface, ns, name string, attempts int, interval time.Duration) (string, error) {
-	for i := 0; i <= attempts; i++ {
-		time.Sleep(interval)
-		token, err := getServiceAccountToken(client, ns, name)
-		if err != nil {
-			return "", err
-		}
-		if len(token) > 0 {
-			return token, nil
-		}
-	}
-	return "", nil
-}
-
-func getServiceAccountToken(client kubernetes.Interface, ns, name string) (string, error) {
-	secrets, err := client.CoreV1().Secrets(ns).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return "", err
-	}
-	for _, secret := range secrets.Items {
-		if secret.Type == corev1.SecretTypeServiceAccountToken && secret.Annotations[corev1.ServiceAccountNameKey] == name {
-			sa, err := client.CoreV1().ServiceAccounts(ns).Get(context.Background(), name, metav1.GetOptions{})
-			if err != nil {
-				return "", err
-			}
-
-			for _, ref := range sa.Secrets {
-				if ref.Name == secret.Name {
-					return string(secret.Data[corev1.ServiceAccountTokenKey]), nil
-				}
-			}
-
-		}
-	}
-
-	return "", nil
-}
-
 var _ = g.Describe("[sig-devex][Feature:OpenShiftControllerManager]", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("pull-secrets")
