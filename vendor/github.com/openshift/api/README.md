@@ -3,12 +3,145 @@ The canonical location of the OpenShift API definition.
 This repo holds the API type definitions and serialization code used by [openshift/client-go](https://github.com/openshift/client-go)
 APIs in this repo ship inside OCP payloads.
 
+## Adding new FeatureGates
+Add your FeatureGate to feature_gates.go.
+The threshold for merging a fully disabled or TechPreview FeatureGate is an open enhancement.
+To promote to Default on any ClusterProfile, the threshold is 99% passing tests on all platforms or QE sign off.
+
+### Adding new TechPreview FeatureGate to all ClusterProfiles (Hypershift and SelfManaged)
+```go
+FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
+			reportProblemsToJiraComponent("my-jira-component").
+			contactPerson("my-team-lead").
+			productScope(ocpSpecific).
+			enableIn(TechPreviewNoUpgrade).
+			mustRegister()
+```
+
+### Adding new TechPreview FeatureGate to all only Hypershift
+This will be enabled in TechPreview on Hypershift, but never enabled on SelfManaged
+```go
+FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
+			reportProblemsToJiraComponent("my-jira-component").
+			contactPerson("my-team-lead").
+			productScope(ocpSpecific).
+			enableForClusterProfile(Hypershift, TechPreviewNoUpgrade).
+			mustRegister()
+```
+
+### Promoting to Default, but only on Hypershift
+This will be enabled in TechPreview on all ClusterProfiles and also by Default on Hypershift.
+It will be disabled in Default on SelfManaged.
+```go
+FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
+			reportProblemsToJiraComponent("my-jira-component").
+			contactPerson("my-team-lead").
+			productScope([ocpSpecific|kubernetes]).
+			enableIn(TechPreviewNoUpgrade).
+			enableForClusterProfile(Hypershift, Default).
+			mustRegister()
+```
+
+### Promoting to Default on all ClusterProfiles
+```go
+FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
+			reportProblemsToJiraComponent("my-jira-component").
+			contactPerson("my-team-lead").
+			productScope([ocpSpecific|kubernetes]).
+            enableIn(Default, TechPreviewNoUpgrade).
+			mustRegister()
+```
+
 ## defining new APIs
 
 When defining a new API, please follow [the OpenShift API
 conventions](https://github.com/openshift/enhancements/blob/master/CONVENTIONS.md#api),
 and then follow the instructions below to regenerate CRDs (if necessary) and
 submit a pull request with your new API definitions and generated files.
+
+### Adding a new stable API (v1)
+When copying, it matters which `// +foo` markers are two comments blocks up and which are one comment block up.
+
+```go
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// the next line of whitespace matters
+
+// MyAPI is amazing, let me describe it!
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
+// +openshift:file-pattern=cvoRunLevel=0000_50,operatorName=my-operator,operatorOrdering=01
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=myapis,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/<this PR number>
+// +openshift:capability=IfYouHaveOne
+// +kubebuilder:printcolumn:name=Column Name,JSONPath=.status.something,type=string,description=how users should interpret this.
+// +kubebuilder:metadata:annotations=key=value
+// +kubebuilder:metadata:labels=key=value
+// +kubebuilder:metadata:annotations=include.release.openshift.io/single-node-developer=true
+// +kubebuilder:validation:XValidation:rule=
+type MyAPI struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// spec is the desired state of the cluster version - the operator will work
+	// to ensure that the desired version is applied to the cluster.
+	// +kubebuilder:validation:Required
+	Spec MyAPISpec `json:"spec"`
+	// status contains information about the available updates and any in-progress
+	// updates.
+	// +optional
+	Status MyAPIStatus `json:"status"`
+}
+
+```
+
+### Adding a new unstable API (v1alpha) 
+First, add a FeatureGate as described above.
+
+Like above, but there's an additional
+
+```go
+// +kubebuilder:validation:XValidation:rule=
+// +openshift:enable:FeatureGate=MyFeatureGate
+type MyAPI struct {
+	...
+}
+```
+
+### Adding new fields
+Here are few other use-cases for convenience, but have a look in `./example` for other possibilities. 
+
+
+```go
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=MyFeatureGate,rule="has(oldSelf.coolNewField) ? has(self.coolNewField) : true",message="coolNewField may not be removed once set"
+type MyAPI struct {
+    // +openshift:enable:FeatureGate=MyFeatureGate
+    // +optional
+    CoolNewField string `json:"coolNewField"`
+}
+
+// EvolvingDiscriminator defines the audit policy profile type.
+// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum="";StableValue
+// +openshift:validation:FeatureGateAwareEnum:featureGate=MyFeatureGate,enum="";StableValue;TechPreviewOnlyValue
+type EvolvingDiscriminator string
+
+const (
+  // "StableValue" is always present.
+  StableValue EvolvingDiscriminator = "StableValue"
+
+  // "TechPreviewOnlyValue" should only be allowed when TechPreviewNoUpgrade is set in the cluster
+  TechPreviewOnlyValue EvolvingDiscriminator = "TechPreviewOnlyValue"
+)
+
+```
+
 
 ### required labels
 

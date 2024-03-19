@@ -13,6 +13,13 @@ import (
 // workflows in the OpenShift web console.
 //
 // Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=consolequickstarts,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/750
+// +openshift:file-pattern=operatorOrdering=00
+// +openshift:capability=Console
+// +kubebuilder:metadata:annotations="description=Extension for guiding user through various workflows in the OpenShift web console."
+// +kubebuilder:metadata:annotations="displayName=ConsoleQuickStart"
 // +openshift:compatibility-gen:level=2
 type ConsoleQuickStart struct {
 	metav1.TypeMeta `json:",inline"`

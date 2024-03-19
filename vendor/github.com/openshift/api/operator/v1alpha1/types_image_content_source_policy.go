@@ -10,6 +10,11 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // When multiple policies are defined, the outcome of the behavior is defined on each field.
 //
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=imagecontentsourcepolicies,scope=Cluster
+// +kubebuilder:subresource:status
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/470
+// +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
 // +openshift:compatibility-gen:level=4
 type ImageContentSourcePolicy struct {
 	metav1.TypeMeta `json:",inline"`

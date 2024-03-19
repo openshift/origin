@@ -24,7 +24,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.29.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20231218131639-7a5aa77cc72d
+	github.com/openshift/api v0.0.0-20240319191223-06c557c039fa
 	github.com/openshift/apiserver-library-go v0.0.0-20231218150122-47b436d2f389
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/client-go v0.0.0-20231218155125-ff7d9f9bf415

@@ -11,6 +11,14 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // dynamically loading code from another service running on the cluster.
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=consoleplugins,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1186
+// +openshift:file-pattern=operatorOrdering=90
+// +openshift:capability=Console
+// +kubebuilder:metadata:annotations="description=Extension for configuring openshift web console plugins."
+// +kubebuilder:metadata:annotations="displayName=ConsolePlugin"
+// +kubebuilder:metadata:annotations="service.beta.openshift.io/inject-cabundle=true"
 type ConsolePlugin struct {
 	metav1.TypeMeta `json:",inline"`
 

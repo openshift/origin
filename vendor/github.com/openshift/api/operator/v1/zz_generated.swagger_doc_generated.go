@@ -655,7 +655,7 @@ func (Server) SwaggerDoc() map[string]string {
 }
 
 var map_Upstream = map[string]string{
-	"":        "Upstream can either be of type SystemResolvConf, or of type Network.\n\n* For an Upstream of type SystemResolvConf, no further fields are necessary:\n  The upstream will be configured to use /etc/resolv.conf.\n* For an Upstream of type Network, a NetworkResolver field needs to be defined\n  with an IP address or IP:port if the upstream listens on a port other than 53.",
+	"":        "Upstream can either be of type SystemResolvConf, or of type Network.\n\n  - For an Upstream of type SystemResolvConf, no further fields are necessary:\n    The upstream will be configured to use /etc/resolv.conf.\n  - For an Upstream of type Network, a NetworkResolver field needs to be defined\n    with an IP address or IP:port if the upstream listens on a port other than 53.",
 	"type":    "Type defines whether this upstream contains an IP/IP:port resolver or the local /etc/resolv.conf. Type accepts 2 possible values: SystemResolvConf or Network.\n\n* When SystemResolvConf is used, the Upstream structure does not require any further fields to be defined:\n  /etc/resolv.conf will be used\n* When Network is used, the Upstream structure must contain at least an Address",
 	"address": "Address must be defined when Type is set to Network. It will be ignored otherwise. It must be a valid ipv4 or ipv6 address.",
 	"port":    "Port may be defined when Type is set to Network. It will be ignored otherwise. Port must be between 65535",
@@ -1274,6 +1274,51 @@ func (MachineConfigurationList) SwaggerDoc() map[string]string {
 	return map_MachineConfigurationList
 }
 
+var map_MachineConfigurationSpec = map[string]string{
+	"managedBootImages": "managedBootImages allows configuration for the management of boot images for machine resources within the cluster. This configuration allows users to select resources that should be updated to the latest boot images during cluster upgrades, ensuring that new machines always boot with the current cluster version's boot image. When omitted, no boot images will be updated.",
+}
+
+func (MachineConfigurationSpec) SwaggerDoc() map[string]string {
+	return map_MachineConfigurationSpec
+}
+
+var map_MachineManager = map[string]string{
+	"":          "MachineManager describes a target machine resource that is registered for boot image updates. It stores identifying information such as the resource type and the API Group of the resource. It also provides granular control via the selection field.",
+	"resource":  "resource is the machine management resource's type. The only current valid value is machinesets. machinesets means that the machine manager will only register resources of the kind MachineSet.",
+	"apiGroup":  "apiGroup is name of the APIGroup that the machine management resource belongs to. The only current valid value is machine.openshift.io. machine.openshift.io means that the machine manager will only register resources that belong to OpenShift machine API group.",
+	"selection": "selection allows granular control of the machine management resources that will be registered for boot image updates.",
+}
+
+func (MachineManager) SwaggerDoc() map[string]string {
+	return map_MachineManager
+}
+
+var map_MachineManagerSelector = map[string]string{
+	"mode":    "mode determines how machine managers will be selected for updates. Valid values are All and Partial. All means that every resource matched by the machine manager will be updated. Partial requires specified selector(s) and allows customisation of which resources matched by the machine manager will be updated.",
+	"partial": "partial provides label selector(s) that can be used to match machine management resources. Only permitted when mode is set to \"Partial\".",
+}
+
+func (MachineManagerSelector) SwaggerDoc() map[string]string {
+	return map_MachineManagerSelector
+}
+
+var map_ManagedBootImages = map[string]string{
+	"machineManagers": "machineManagers can be used to register machine management resources for boot image updates. The Machine Config Operator will watch for changes to this list. Only one entry is permitted per type of machine management resource.",
+}
+
+func (ManagedBootImages) SwaggerDoc() map[string]string {
+	return map_ManagedBootImages
+}
+
+var map_PartialSelector = map[string]string{
+	"":                        "PartialSelector provides label selector(s) that can be used to match machine management resources.",
+	"machineResourceSelector": "machineResourceSelector is a label selector that can be used to select machine resources like MachineSets.",
+}
+
+func (PartialSelector) SwaggerDoc() map[string]string {
+	return map_PartialSelector
+}
+
 var map_AdditionalNetworkDefinition = map[string]string{
 	"":                    "AdditionalNetworkDefinition configures an extra network that is available but not created by default. Instead, pods must request them by name. type must be specified, along with exactly one \"Config\" that matches the type.",
 	"type":                "type is the type of network The supported values are NetworkTypeRaw, NetworkTypeSimpleMacvlan",
@@ -1372,6 +1417,14 @@ var map_IPFIXConfig = map[string]string{
 
 func (IPFIXConfig) SwaggerDoc() map[string]string {
 	return map_IPFIXConfig
+}
+
+var map_IPsecConfig = map[string]string{
+	"mode": "mode defines the behaviour of the ipsec configuration within the platform. Valid values are `Disabled`, `External` and `Full`. When 'Disabled', ipsec will not be enabled at the node level. When 'External', ipsec is enabled on the node level but requires the user to configure the secure communication parameters. This mode is for external secure communications and the configuration can be done using the k8s-nmstate operator. When 'Full', ipsec is configured on the node level and inter-pod secure communication within the cluster is configured. Note with `Full`, if ipsec is desired for communication with external (to the cluster) entities (such as storage arrays), this is left to the user to configure.",
+}
+
+func (IPsecConfig) SwaggerDoc() map[string]string {
+	return map_IPsecConfig
 }
 
 var map_IPv4GatewayConfig = map[string]string{

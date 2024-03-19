@@ -106,6 +106,11 @@ func (in *ConfigSpec) DeepCopyInto(out *ConfigSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.SkippedHelmCharts != nil {
+		in, out := &in.SkippedHelmCharts, &out.SkippedHelmCharts
+		*out = make([]HelmChartName, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

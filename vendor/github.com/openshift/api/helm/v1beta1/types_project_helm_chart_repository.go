@@ -13,6 +13,11 @@ import (
 //
 // Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=2
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=projecthelmchartrepositories,scope=Namespaced
+// +kubebuilder:subresource:status
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1084
+// +openshift:file-pattern=operatorOrdering=00
 type ProjectHelmChartRepository struct {
 	metav1.TypeMeta `json:",inline"`
 

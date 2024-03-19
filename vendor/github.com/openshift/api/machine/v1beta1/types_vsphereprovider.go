@@ -51,6 +51,12 @@ type VSphereMachineProviderSpec struct {
 	// This parameter will be ignored if 'LinkedClone' CloneMode is set.
 	// +optional
 	DiskGiB int32 `json:"diskGiB,omitempty"`
+	// tagIDs is an optional set of tags to add to an instance. Specified tagIDs
+	// must use URN-notation instead of display names. A maximum of 10 tag IDs may be specified.
+	// +kubebuilder:validation:Pattern:="^(urn):(vmomi):(InventoryServiceTag):([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):([^:]+)$"
+	// +kubebuilder:example=urn:vmomi:InventoryServiceTag:5736bf56-49f5-4667-b38c-b97e09dc9578:GLOBAL
+	// +optional
+	TagIDs []string `json:"tagIDs,omitempty"`
 	// Snapshot is the name of the snapshot from which the VM was cloned
 	// +optional
 	Snapshot string `json:"snapshot"`

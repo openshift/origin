@@ -1,0 +1,67 @@
+etcdbackups.operator.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1482
+  CRDName: etcdbackups.operator.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - AutomatedEtcdBackup
+  FilenameOperatorName: etcd
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: operator.openshift.io
+  HasStatus: true
+  KindName: EtcdBackup
+  Labels: {}
+  PluralName: etcdbackups
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - AutomatedEtcdBackup
+  Version: v1alpha1
+
+imagecontentsourcepolicies.operator.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/470
+  CRDName: imagecontentsourcepolicies.operator.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: config-operator
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: operator.openshift.io
+  HasStatus: true
+  KindName: ImageContentSourcePolicy
+  Labels: {}
+  PluralName: imagecontentsourcepolicies
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1alpha1
+
+olms.operator.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1504
+  CRDName: olms.operator.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - NewOLM
+  FilenameOperatorName: operator-lifecycle-manager
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: operator.openshift.io
+  HasStatus: true
+  KindName: OLM
+  Labels: {}
+  PluralName: olms
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - NewOLM
+  Version: v1alpha1
+

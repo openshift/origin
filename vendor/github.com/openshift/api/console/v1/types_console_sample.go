@@ -9,6 +9,13 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // ConsoleSample is an extension to customizing OpenShift web console by adding samples.
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=consolesamples,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/481
+// +openshift:file-pattern=operatorOrdering=00
+// +openshift:capability=Console
+// +kubebuilder:metadata:annotations="description=ConsoleSample is an extension to customizing OpenShift web console by adding samples."
+// +kubebuilder:metadata:annotations="displayName=ConsoleSample"
 // +openshift:compatibility-gen:level=1
 type ConsoleSample struct {
 	metav1.TypeMeta `json:",inline"`

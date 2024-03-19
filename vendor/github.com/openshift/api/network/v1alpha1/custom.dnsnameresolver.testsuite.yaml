@@ -1,6 +1,6 @@
 apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
 name: "[CustomNoUpgrade] DNSNameResolver"
-crd: 0000_70_dnsnameresolver_00-techpreview.crd.yaml
+crd: 0000_70_dns_00_dnsnameresolvers-CustomNoUpgrade.crd.yaml
 tests:
   onCreate:
   - name: Should be able to create a minimal DNSNameResolver with a regular DNS name
@@ -268,7 +268,7 @@ tests:
           - ip: "256.256.256.256"
             ttlSeconds: 60
             lastLookupTime: "2023-08-08T15:07:04Z"
-    expectedStatusError: "DNSNameResolver.network.openshift.io \"example\" is invalid: [<nil>: Invalid value: \"\": \"status.resolvedNames[0].resolvedAddresses[0].ip\" must validate at least one schema (anyOf), status.resolvedNames[0].resolvedAddresses[0].ip: Invalid value: \"256.256.256.256\": status.resolvedNames[0].resolvedAddresses[0].ip in body must be of type ipv4: \"256.256.256.256\", <nil>: Invalid value: \"null\": some validation rules were not checked because the object was invalid; correct the existing errors to complete validation]"
+    expectedStatusError: "DNSNameResolver.network.openshift.io \"example\" is invalid: [<nil>: Invalid value: \"\": \"resolvedNames[0].resolvedAddresses[0].ip\" must validate at least one schema (anyOf), resolvedNames[0].resolvedAddresses[0].ip: Invalid value: \"256.256.256.256\": resolvedNames[0].resolvedAddresses[0].ip in body must be of type ipv4: \"256.256.256.256\", <nil>: Invalid value: \"null\": some validation rules were not checked because the object was invalid; correct the existing errors to complete validation]"
   - name: Should be able to add valid IPv6 address
     initial: |
       apiVersion: network.openshift.io/v1alpha1
@@ -399,4 +399,4 @@ tests:
           - ip: "10000:10000:10000:10000:10000:10000:10000:10000"
             ttlSeconds: 60
             lastLookupTime: "2023-08-08T15:07:04Z"
-    expectedStatusError: "DNSNameResolver.network.openshift.io \"example\" is invalid: [<nil>: Invalid value: \"\": \"status.resolvedNames[0].resolvedAddresses[0].ip\" must validate at least one schema (anyOf), status.resolvedNames[0].resolvedAddresses[0].ip: Invalid value: \"10000:10000:10000:10000:10000:10000:10000:10000\": status.resolvedNames[0].resolvedAddresses[0].ip in body must be of type ipv4: \"10000:10000:10000:10000:10000:10000:10000:10000\", <nil>: Invalid value: \"null\": some validation rules were not checked because the object was invalid; correct the existing errors to complete validation]"
+    expectedStatusError: "DNSNameResolver.network.openshift.io \"example\" is invalid: [<nil>: Invalid value: \"\": \"resolvedNames[0].resolvedAddresses[0].ip\" must validate at least one schema (anyOf), resolvedNames[0].resolvedAddresses[0].ip: Invalid value: \"10000:10000:10000:10000:10000:10000:10000:10000\": resolvedNames[0].resolvedAddresses[0].ip in body must be of type ipv4: \"10000:10000:10000:10000:10000:10000:10000:10000\", <nil>: Invalid value: \"null\": some validation rules were not checked because the object was invalid; correct the existing errors to complete validation]"

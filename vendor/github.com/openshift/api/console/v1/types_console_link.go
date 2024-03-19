@@ -9,6 +9,18 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // ConsoleLink is an extension for customizing OpenShift web console links.
 //
 // Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=consolelinks,scope=Cluster
+// +kubebuilder:subresource:status
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/481
+// +openshift:file-pattern=operatorOrdering=00
+// +openshift:capability=Console
+// +kubebuilder:metadata:annotations="description=Extension for customizing OpenShift web console links"
+// +kubebuilder:metadata:annotations="displayName=ConsoleLinks"
+// +kubebuilder:printcolumn:name=Text,JSONPath=.spec.text,type=string
+// +kubebuilder:printcolumn:name=URL,JSONPath=.spec.href,type=string
+// +kubebuilder:printcolumn:name=Menu,JSONPath=.spec.menu,type=string
+// +kubebuilder:printcolumn:name=Age,JSONPath=.metadata.creationTimestamp,type=date
 // +openshift:compatibility-gen:level=2
 type ConsoleLink struct {
 	metav1.TypeMeta `json:",inline"`
