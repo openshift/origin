@@ -132,11 +132,11 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 
 	for _, event := range finalIntervals {
 		// only messages that include a Pulled reason
-		if !strings.Contains(" "+event.Message, " reason/Pulled ") {
+		if event.StructuredMessage.Reason != "Pulled" {
 			continue
 		}
 		// only look at pull events from an e2e-* namespace
-		if !strings.Contains(" "+event.Locator, " ns/e2e-") {
+		if !strings.Contains(event.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey], "e2e-") {
 			continue
 		}
 
@@ -146,36 +146,36 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 		if len(images) < 3 {
 			continue
 		}
-		image := ""
+		img := ""
 		for i := 1; i < len(images); i++ {
-			image = images[i]
+			img = images[i]
 			// the match will be either 2nd or 3rd element in the list
-			if image != "" {
+			if img != "" {
 				break
 			}
 		}
-		if hasAnyStringPrefix(image, allowedPrefixesSlice) || allowedImages.Has(image) {
+		if hasAnyStringPrefix(img, allowedPrefixesSlice) || allowedImages.Has(img) {
 			continue
 		}
-		byImage, ok := pulls[image]
+		byImage, ok := pulls[img]
 		if !ok {
 			byImage = sets.NewString()
-			pulls[image] = byImage
-			fmt.Printf("[sig-arch] unknown image: %s (%v)\n", image, event.Message)
+			pulls[img] = byImage
+			fmt.Printf("[sig-arch] unknown image: %s (%v)\n", img, event.Message)
 		}
-		byImage.Insert(event.Locator)
+		byImage.Insert(event.StructuredLocator.OldLocator())
 	}
 
 	if len(pulls) > 0 {
 		images := make([]string, 0, len(pulls))
-		for image := range pulls {
-			images = append(images, image)
+		for img := range pulls {
+			images = append(images, img)
 		}
 		sort.Strings(images)
 		buf := &bytes.Buffer{}
-		for _, image := range images {
-			fmt.Fprintf(buf, "%s from pods:\n", image)
-			for _, locator := range pulls[image].List() {
+		for _, img := range images {
+			fmt.Fprintf(buf, "%s from pods:\n", img)
+			for _, locator := range pulls[img].List() {
 				fmt.Fprintf(buf, "  %s\n", locator)
 			}
 		}

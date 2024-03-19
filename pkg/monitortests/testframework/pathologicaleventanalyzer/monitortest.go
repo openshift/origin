@@ -3,13 +3,9 @@ package pathologicaleventanalyzer
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
-
-	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -48,8 +44,12 @@ func (*pathologicalEventAnalyzer) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-var removeNTimes = regexp.MustCompile(`\s+\(\d+ times\)`)
-var removeHmsg = regexp.MustCompile(`\s+(hmsg/[0-9a-f]+)`)
+// getPathologicalEventMapKey returns a string key that can be used in a map to identify other occurrences of the same
+// event.
+func getPathologicalEventMapKey(interval monitorapi.Interval) string {
+	return fmt.Sprintf("%s %s %s", interval.StructuredLocator.OldLocator(),
+		interval.StructuredMessage.Reason, interval.StructuredMessage.HumanMessage)
+}
 
 // markMissedPathologicalEvents goes through the list of events looking for all events marked
 // as "pathological/true" (this implies the event was previously unknown and happened > 20 times).
@@ -63,37 +63,27 @@ func markMissedPathologicalEvents(events monitorapi.Intervals) monitorapi.Interv
 	amPathoEvents := map[string]string{}
 
 	for _, pathologicalEvent := range events {
-		if !strings.Contains(pathologicalEvent.Message, pathologicaleventlibrary.PathologicalMark) {
-			// TODO make a single pathlogical marker to watch, this will require consruction here
+		if pathologicalEvent.StructuredMessage.Annotations[monitorapi.AnnotationPathological] != "true" {
 			// We only are interested in those EventIntervals with pathological/true
 			continue
 		}
-		if strings.Contains(pathologicalEvent.Message, pathologicaleventlibrary.InterestingMark) {
-			// TODO make a single pathlogical marker to watch, this will require consruction here
+		if pathologicalEvent.StructuredMessage.Annotations[monitorapi.AnnotationInteresting] == "true" {
 			// If this message is known, we don't need to process it because we already
 			// created an interval when it came in initially.
 			continue
 		}
 
-		// Events marked as pathological/true have the mark and "n times" number on the message
-		// and the locator ends with hmsg/xxxxxxxxxx.
-		// Events that are to be marked don't have the pathological/true mark and don't have the hmsg (message hash).
-		msgWithoutTimes := removeNTimes.ReplaceAllString(pathologicalEvent.Message, "")
-		locWithoutHmsg := removeHmsg.ReplaceAllString(pathologicalEvent.Locator, "")
-		// TODO mutate the locator with a constructed bit
-		amPathoEvents[msgWithoutTimes+locWithoutHmsg] = pathologicalEvent.Locator
+		amPathoEvents[getPathologicalEventMapKey(pathologicalEvent)] = pathologicalEvent.StructuredLocator.OldLocator()
 	}
 	logrus.Infof("Number of pathological keys: %d", len(amPathoEvents))
 
 	for i, scannedEvent := range events {
-		msgWithPathoMark := fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, removeNTimes.ReplaceAllString(scannedEvent.Message, ""))
-		if pLocator, ok := amPathoEvents[msgWithPathoMark+scannedEvent.Locator]; ok {
+		if _, ok := amPathoEvents[getPathologicalEventMapKey(scannedEvent)]; ok {
 			constructedEventCopy := events[i].DeepCopy()
 
 			// This is a match, so update the event with the pathological/true mark and locator that contains the hmsg (message hash).
-			constructedEventCopy.Message = fmt.Sprintf("%s %s", pathologicaleventlibrary.PathologicalMark, scannedEvent.Message)
-			constructedEventCopy.Locator = pLocator
-			logrus.Infof("Found a times match: Locator=%s Message=%s", events[i].Locator, events[i].Message)
+			constructedEventCopy.StructuredMessage.Annotations[monitorapi.AnnotationPathological] = "true"
+			logrus.Infof("Found a times match: Locator=%s Message=%s", events[i].StructuredLocator.OldLocator(), events[i].StructuredMessage.HumanMessage)
 			pathologicalEvents = append(pathologicalEvents, *constructedEventCopy)
 		}
 	}
