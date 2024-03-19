@@ -127,11 +127,11 @@ func testDNSOverlapDisruption(events monitorapi.Intervals) []*junitapi.JUnitTest
 	disruptionIntervals := []monitorapi.Interval{}
 	for _, event := range events {
 		// DNS outage
-		if reason := monitorapi.ReasonFrom(event.Message); reason == "DisruptionSamplerOutageBegan" {
+		if event.StructuredMessage.Reason == "DisruptionSamplerOutageBegan" {
 			dnsIntervals = append(dnsIntervals, event)
 		}
 		// real disruption
-		if reason := monitorapi.ReasonFrom(event.Message); reason == "DisruptionBegan" {
+		if event.StructuredMessage.Reason == "DisruptionBegan" {
 			disruptionIntervals = append(disruptionIntervals, event)
 		}
 	}
