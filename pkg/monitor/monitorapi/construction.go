@@ -411,9 +411,12 @@ func NewMessage() *MessageBuilder {
 
 // ExpandMessage parses a message that was collapsed into a string to extract each annotation
 // and the original message.
-func ExpandMessage(prevMessage string) *MessageBuilder {
-	prevAnnotations := AnnotationsFromMessage(prevMessage)
-	prevNonAnnotationMessage := NonAnnotationMessage(prevMessage)
+func ExpandMessage(prevMessage Message) *MessageBuilder {
+	prevAnnotations := prevMessage.Annotations
+	prevNonAnnotationMessage := prevMessage.HumanMessage
+	if prevAnnotations == nil {
+		prevAnnotations = map[AnnotationKey]string{}
+	}
 	return &MessageBuilder{
 		annotations:  prevAnnotations,
 		humanMessage: prevNonAnnotationMessage,

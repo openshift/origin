@@ -106,7 +106,7 @@
         {
             "level": "Info",
             "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-            "message": "cause/ constructed/pod-lifecycle-constructor duration/3.00s reason/ContainerStart",
+            "message": "constructed/pod-lifecycle-constructor duration/3.00s reason/ContainerStart",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -122,7 +122,6 @@
                 "cause": "",
                 "humanMessage": "",
                 "annotations": {
-                    "cause": "",
                     "constructed": "pod-lifecycle-constructor",
                     "duration": "3.00s",
                     "reason": "ContainerStart"

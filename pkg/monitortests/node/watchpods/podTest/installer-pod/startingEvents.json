@@ -17,7 +17,9 @@
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Created"
+        }
       },
       "from": "2022-03-21T21:37:20Z",
       "to": "2022-03-21T21:37:20Z"
@@ -40,7 +42,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "node": "ci-op-97t906zm-db044-bwrrn-master-0"
+          "node": "ci-op-97t906zm-db044-bwrrn-master-0",
+          "reason": "Scheduled"
         }
       },
       "from": "2022-03-21T21:37:20Z",
@@ -64,7 +67,9 @@
         "reason": "NotReady",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "NotReady"
+        }
       },
       "from": "2022-03-21T21:37:20Z",
       "to": "2022-03-21T21:37:20Z"
@@ -87,7 +92,9 @@
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Ready"
+        }
       },
       "from": "2022-03-21T21:37:23Z",
       "to": "2022-03-21T21:37:23Z"
@@ -112,7 +119,8 @@
         "humanMessage": "",
         "annotations": {
           "cause": "",
-          "duration": "3.00s"
+          "duration": "3.00s",
+          "reason": "ContainerStart"
         }
       },
       "from": "2022-03-21T21:37:23Z",
@@ -136,7 +144,9 @@
         "reason": "NotReady",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "NotReady"
+        }
       },
       "from": "2022-03-21T21:37:56Z",
       "to": "2022-03-21T21:37:56Z"
@@ -161,7 +171,8 @@
         "humanMessage": "",
         "annotations": {
           "cause": "Completed",
-          "code": "0"
+          "code": "0",
+          "reason": "ContainerExit"
         }
       },
       "from": "2022-03-21T21:37:56Z",
@@ -185,7 +196,9 @@
         "reason": "DeletedAfterCompletion",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "DeletedAfterCompletion"
+        }
       },
       "from": "2022-03-21T22:22:32Z",
       "to": "2022-03-21T22:22:32Z"
@@ -207,7 +220,9 @@
         "reason": "Deleted",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Deleted"
+        }
       },
       "from": "2022-03-21T22:22:32Z",
       "to": "2022-03-21T22:22:32Z"
