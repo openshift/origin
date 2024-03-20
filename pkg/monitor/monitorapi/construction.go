@@ -345,12 +345,17 @@ func (b *LocatorBuilder) ContainerFromNames(namespace, podName, uid, containerNa
 }
 
 func (b *LocatorBuilder) PodFromNames(namespace, podName, uid string) Locator {
-	return b.
-		withTargetType(LocatorTypePod).
-		withNamespace(namespace).
-		withPodName(podName).
-		withUID(uid).
-		Build()
+	bldr := b.withTargetType(LocatorTypePod)
+	if len(namespace) > 0 {
+		bldr = bldr.withNamespace(namespace)
+	}
+	if len(podName) > 0 {
+		bldr = bldr.withPodName(podName)
+	}
+	if len(uid) > 0 {
+		bldr = bldr.withUID(uid)
+	}
+	return bldr.Build()
 }
 
 func (b *LocatorBuilder) withPodName(podName string) *LocatorBuilder {
