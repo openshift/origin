@@ -140,7 +140,7 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 			continue
 		}
 
-		images := imageRe.FindStringSubmatch(event.Message)
+		images := imageRe.FindStringSubmatch(event.StructuredMessage.HumanMessage)
 		// the images will contain full match and two group matches, see above
 		// for the regexp definition, so we skip the first in the below for-loop
 		if len(images) < 3 {
@@ -161,7 +161,7 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 		if !ok {
 			byImage = sets.NewString()
 			pulls[img] = byImage
-			fmt.Printf("[sig-arch] unknown image: %s (%v)\n", img, event.Message)
+			fmt.Printf("[sig-arch] unknown image: %s (%v)\n", img, event.StructuredMessage.OldMessage())
 		}
 		byImage.Insert(event.StructuredLocator.OldLocator())
 	}

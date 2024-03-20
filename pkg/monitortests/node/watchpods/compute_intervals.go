@@ -556,7 +556,7 @@ func buildTransitionsForCategory(locatorToIntervals map[string][]monitorapi.Inte
 				// .Build() was private before I found this.
 				msg := monitorapi.NewMessage().Constructed(monitorapi.ConstructionOwnerPodLifecycle).Reason(startReason).HumanMessagef("missed real %q", startReason)
 				nextInterval.StructuredMessage = msg.Build()
-				nextInterval.Message = msg.BuildString()
+				nextInterval.Message = msg.BuildString() // TODO: Remove
 			}
 
 			// if the current reason is a logical ending point, reset to an empty previous

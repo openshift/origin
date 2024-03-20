@@ -139,7 +139,7 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.Interval) bool {
 }
 
 func IsPodLifecycle(eventInterval monitorapi.Interval) bool {
-	return monitorapi.ConstructionOwnerFrom(eventInterval.Message) == monitorapi.ConstructionOwnerPodLifecycle
+	return eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerPodLifecycle
 }
 
 func IsOriginalPodEvent(eventInterval monitorapi.Interval) bool {
