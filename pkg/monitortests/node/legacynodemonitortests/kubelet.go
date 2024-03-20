@@ -20,8 +20,8 @@ func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*j
 
 	var failures []string
 	for _, event := range events {
-		if strings.Contains(event.Message, "did not terminate gracefully") || strings.Contains(event.Message, "reason/NonGracefulTermination") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+		if strings.Contains(event.StructuredMessage.HumanMessage, "did not terminate gracefully") || event.StructuredMessage.Reason == "NonGracefulTermination" {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 
@@ -53,8 +53,8 @@ func testErrImagePullUnrecognizedSignatureFormat(events monitorapi.Intervals) []
 
 	var failures []string
 	for _, event := range events {
-		if strings.Contains(event.Message, "reason/ErrImagePull UnrecognizedSignatureFormat") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+		if event.StructuredMessage.Reason == "ErrImagePull" && strings.Contains(event.StructuredMessage.HumanMessage, "UnrecognizedSignatureFormat") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 
@@ -79,8 +79,8 @@ func testHttpConnectionLost(events monitorapi.Intervals) []*junitapi.JUnitTestCa
 
 	var failures []string
 	for _, event := range events {
-		if strings.Contains(event.Message, "reason/HttpClientConnectionLost") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+		if event.StructuredMessage.Reason == "HttpClientConnectionLost" {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 
@@ -113,12 +113,12 @@ func testLeaseUpdateError(events monitorapi.Intervals) []*junitapi.JUnitTestCase
 			continue
 		}
 
-		if strings.Contains(event.Message, "FailedToUpdateLease") {
+		if event.StructuredMessage.Reason == "FailedToUpdateLease" {
 			// start with a 30 minute grace period as we do see some FailedToUpdateLease errors
 			// under normal conditions, it is the late ones that indicate a node may have go unready unexpectedly
 			// if we get false hits we can increase the grace period
 			if event.From.After(firstEventTime.Add(30 * time.Minute)) {
-				failures = append(failures, fmt.Sprintf("%s %v - %v", event.From.Format(time.RFC3339), event.StructuredLocator.OldLocator(), event.Message))
+				failures = append(failures, fmt.Sprintf("%s %v - %v", event.From.Format(time.RFC3339), event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 			}
 		}
 	}
@@ -144,7 +144,7 @@ func testAnonymousCertConnectionFailure(events monitorapi.Intervals) []*junitapi
 	var failures []string
 	for _, event := range events {
 		if event.Source == monitorapi.SourceKubeletLog && event.StructuredMessage.Reason == "FailedToAuthenticateWithOpenShiftUser" {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 
@@ -170,8 +170,8 @@ func testFailedToDeleteCGroupsPath(events monitorapi.Intervals) []*junitapi.JUni
 
 	var failures []string
 	for _, event := range events {
-		if strings.Contains(event.Message, "reason/FailedToDeleteCGroupsPath") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+		if event.StructuredMessage.Reason == "FailedToDeleteCGroupsPath" {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 
@@ -197,8 +197,8 @@ func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*junita
 
 	var failures []string
 	for _, event := range events {
-		if strings.Contains(event.Message, "reason/GracefulTerminationTimeout") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+		if event.StructuredMessage.Reason == "GracefulTerminationTimeout" {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 
@@ -227,19 +227,19 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 		if !strings.Contains(event.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey], "openshift-") {
 			continue
 		}
-		reason := monitorapi.ReasonFrom(event.Message)
-		code := monitorapi.AnnotationsFromMessage(event.Message)[monitorapi.AnnotationContainerExitCode]
+		reason := event.StructuredMessage.Reason
+		code := event.StructuredMessage.Annotations[monitorapi.AnnotationContainerExitCode]
 		switch {
 		// errors during container start should be highlighted because they are unexpected
 		case reason == monitorapi.ContainerReasonContainerWait:
-			if strings.Contains(event.Message, "cause/ContainerCreating ") {
+			if event.StructuredMessage.Annotations[monitorapi.AnnotationCause] == "ContainerCreating" {
 				continue
 			}
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 
 		// workload containers should never exit non-zero during normal operations
 		case reason == monitorapi.ContainerReasonContainerExit && code != "0":
-			containerExits[event.StructuredLocator.OldLocator()] = append(containerExits[event.StructuredLocator.OldLocator()], event.Message)
+			containerExits[event.StructuredLocator.OldLocator()] = append(containerExits[event.StructuredLocator.OldLocator()], event.StructuredMessage.OldMessage())
 		}
 	}
 
@@ -288,7 +288,7 @@ func testKubeApiserverProcessOverlap(events monitorapi.Intervals) []*junitapi.JU
 	success := &junitapi.JUnitTestCase{Name: testName}
 	failures := []string{}
 	for _, event := range events {
-		if strings.Contains(event.Message, "reason/TerminationProcessOverlapDetected") {
+		if event.StructuredMessage.Reason == "TerminationProcessOverlapDetected" {
 			failures = append(failures, fmt.Sprintf("[%s - %s] %s", event.From, event.To, event.StructuredLocator.OldLocator()))
 		}
 	}
@@ -313,16 +313,16 @@ func testDeleteGracePeriodZero(events monitorapi.Intervals) []*junitapi.JUnitTes
 
 	failures := []string{}
 	for _, event := range events {
-		if !strings.Contains(event.Message, "reason/ForceDelete") {
+		if event.StructuredMessage.Reason != "ForceDelete" {
 			continue
 		}
 		if !strings.Contains(event.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey], "openshift-") {
 			continue
 		}
-		if strings.Contains(event.Message, "mirrored/true") {
+		if event.StructuredMessage.Annotations["mirrored"] == "true" {
 			continue
 		}
-		if strings.Contains(event.Message, "node/ ") {
+		if len(event.StructuredLocator.Keys[monitorapi.LocatorNodeKey]) == 0 {
 			continue
 		}
 		failures = append(failures, event.StructuredLocator.OldLocator())
@@ -348,8 +348,8 @@ func testPodTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 
 	failures := []string{}
 	for _, event := range events {
-		if strings.Contains(event.Message, "pod should not transition") || strings.Contains(event.Message, "pod moved back to Pending") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+		if strings.Contains(event.StructuredMessage.HumanMessage, "pod should not transition") || strings.Contains(event.StructuredMessage.HumanMessage, "pod moved back to Pending") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 	if len(failures) == 0 {
@@ -394,7 +394,7 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals) []*junitapi.JUnitTe
 				(string(event.StructuredMessage.Reason) == "UpgradeStarted" ||
 					string(event.StructuredMessage.Reason) == "UpgradeRollback") {
 
-				text = event.Message
+				text = event.StructuredMessage.HumanMessage
 				events = events[i+1:]
 				foundEnd = true
 				fmt.Fprintf(&buf, "DEBUG: found upgrade start event: %v\n", event.String())
@@ -404,10 +404,10 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals) []*junitapi.JUnitTe
 			if !isNode {
 				continue
 			}
-			if !strings.HasPrefix(event.Message, "condition/Ready ") || !strings.HasSuffix(event.Message, " changed") {
+			if event.StructuredMessage.Annotations[monitorapi.AnnotationCondition] != "Ready " || !strings.HasSuffix(event.StructuredMessage.HumanMessage, " changed") {
 				continue
 			}
-			if strings.Contains(event.Message, " status/True ") {
+			if event.StructuredMessage.Annotations[monitorapi.AnnotationStatus] == "True" {
 				if currentNodeReady[node] {
 					failures = append(failures, fmt.Sprintf("Node %s was reported ready twice in a row, this should be impossible", node))
 					continue
@@ -498,8 +498,8 @@ func testSystemDTimeout(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 
 	failures := []string{}
 	for _, event := range events {
-		if strings.Contains(event.Message, "systemd timed out for pod") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
+		if strings.Contains(event.StructuredMessage.HumanMessage, "systemd timed out for pod") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 	if len(failures) == 0 {
@@ -647,7 +647,7 @@ func buildTestsFailIfRegexMatch(testName string, matchRE *regexp.Regexp, dontMat
 
 	matchedIntervalMsgs := make([]string, 0, len(matchedIntervals))
 	for _, ei := range matchedIntervals {
-		matchedIntervalMsgs = append(matchedIntervalMsgs, fmt.Sprintf("%s: %s", ei.StructuredLocator.OldLocator(), ei.Message))
+		matchedIntervalMsgs = append(matchedIntervalMsgs, fmt.Sprintf("%s: %s", ei.StructuredLocator.OldLocator(), ei.StructuredMessage.OldMessage()))
 	}
 	sort.Strings(matchedIntervalMsgs)
 

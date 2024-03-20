@@ -307,7 +307,12 @@ type Interval struct {
 
 func (i Interval) String() string {
 	if i.From.Equal(i.To) {
-		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), i.Level.String()[:1], i.StructuredLocator.OldLocator(), strings.Replace(i.Message, "\n", "\\n", -1))
+		return fmt.Sprintf("%s.%03d %s %s %s",
+			i.From.Format("Jan 02 15:04:05"),
+			i.From.Nanosecond()/int(time.Millisecond),
+			i.Level.String()[:1],
+			i.StructuredLocator.OldLocator(),
+			strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
 	}
 	duration := i.To.Sub(i.From)
 	if duration < time.Second {
@@ -317,14 +322,14 @@ func (i Interval) String() string {
 			strconv.Itoa(int(duration/time.Millisecond))+"ms",
 			i.Level.String()[:1],
 			i.StructuredLocator.OldLocator(),
-			strings.Replace(i.Message, "\n", "\\n", -1))
+			strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
 	}
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s",
 		i.From.Format("Jan 02 15:04:05"),
 		i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s",
 		i.Level.String()[:1],
 		i.StructuredLocator.OldLocator(),
-		strings.Replace(i.Message, "\n", "\\n", -1))
+		strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
 }
 
 func (i Message) OldMessage() string {
@@ -461,8 +466,11 @@ func (intervals Intervals) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	if intervals[i].Message != intervals[j].Message {
-		return intervals[i].Message < intervals[j].Message
+	if intervals[i].StructuredMessage.Reason != intervals[j].StructuredMessage.Reason {
+		return intervals[i].StructuredMessage.Reason < intervals[j].StructuredMessage.Reason
+	}
+	if intervals[i].StructuredMessage.HumanMessage != intervals[j].StructuredMessage.HumanMessage {
+		return intervals[i].StructuredMessage.HumanMessage < intervals[j].StructuredMessage.HumanMessage
 	}
 
 	// TODO: this could be a bit slow, but leaving it simple if we can get away with it. Sorting structured locators
@@ -632,25 +640,19 @@ func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
 }
 
 func NodeUpdate(eventInterval Interval) bool {
-	reason := ReasonFrom(eventInterval.Message)
+	reason := eventInterval.StructuredMessage.Reason
 	return NodeUpdateReason == reason
 }
 
 func AlertFiring() EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
-			return true
-		}
-		return false
+		return eventInterval.StructuredMessage.Annotations[AnnotationAlertState] == "firing"
 	}
 }
 
 func AlertPending() EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
-			return true
-		}
-		return false
+		return eventInterval.StructuredMessage.Annotations[AnnotationAlertState] == "pending"
 	}
 }
 

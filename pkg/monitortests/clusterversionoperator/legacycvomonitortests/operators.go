@@ -371,7 +371,7 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
 	nodeOSUpdateTimes := map[string]*startedStaged{}
 	for _, e := range events {
-		if strings.Contains(e.Message, "reason/OSUpdateStarted") {
+		if e.StructuredMessage.Reason == "OSUpdateStarted" {
 			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
 			_, ok := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
 			if !ok {
@@ -380,7 +380,7 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 			// for this type of event, the from/to time are identical as this is a point in time event.
 			ss := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
 			ss.OSUpdateStarted = e.To
-		} else if strings.Contains(e.Message, "reason/OSUpdateStaged") {
+		} else if e.StructuredMessage.Reason == "OSUpdateStaged" {
 			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
 			_, ok := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
 			if !ok {

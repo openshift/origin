@@ -14,7 +14,7 @@ func testAPIServerIPTablesAccessDisruption(events monitorapi.Intervals) []*junit
 	namespacesToCount := map[string]int{}
 	messages := []string{}
 	for _, event := range events {
-		reason := monitorapi.ReasonFrom(event.Message)
+		reason := event.StructuredMessage.Reason
 		if reason != "iptables-operation-not-permitted" {
 			continue
 		}
