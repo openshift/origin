@@ -60,7 +60,6 @@ func TestMonitorApiIntervals(t *testing.T) {
 						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-monitoring",
 							"pod":       "prometheus-adapter-7m6srg4dfreoi",
-							"uid":       "",
 							"container": "",
 						},
 					},
@@ -328,7 +327,6 @@ func TestRegexToContainerReference(t *testing.T) {
 					monitorapi.LocatorContainerKey: "",
 					monitorapi.LocatorNamespaceKey: "openshift-monitoring",
 					monitorapi.LocatorPodKey:       "prometheus-adapter-7m6srg4dfreoi",
-					monitorapi.LocatorUIDKey:       "",
 				},
 			},
 		},
