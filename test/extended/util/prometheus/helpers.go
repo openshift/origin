@@ -19,7 +19,7 @@ import (
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	v1 "k8s.io/api/core/v1"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
@@ -143,29 +143,14 @@ func LocatePrometheusUsingRoutes(oc *exutil.CLI) (queryURL, prometheusURL, beare
 }
 
 func GetPrometheusSABearerToken(oc *exutil.CLI) string {
-	var bearerToken string
-	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
-	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, secret := range secrets.Items {
-			if secret.Type != v1.SecretTypeServiceAccountToken {
-				continue
-			}
-			if !strings.HasPrefix(secret.Name, "prometheus-k8s-token") {
-				continue
-			}
-			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
-			break
-		}
-		if len(bearerToken) == 0 {
-			framework.Logf("Waiting for prometheus service account secret to show up")
-			time.Sleep(time.Second)
-			continue
-		}
-	}
-	o.Expect(bearerToken).ToNot(o.BeEmpty())
-	return bearerToken
+	expirationSeconds := int64(12 * time.Hour / time.Second)
+	req, err := oc.AdminKubeClient().CoreV1().ServiceAccounts("openshift-monitoring").CreateToken(context.Background(), "prometheus-k8s",
+		&authenticationv1.TokenRequest{
+			Spec: authenticationv1.TokenRequestSpec{ExpirationSeconds: &expirationSeconds},
+		}, metav1.CreateOptions{})
+	o.Expect(err).ToNot(o.HaveOccurred(), "error requesting token for service account prometheus-k8s")
+	o.Expect(req.Status.Token).ToNot(o.BeEmpty())
+	return req.Status.Token
 }
 
 type MetricCondition struct {
