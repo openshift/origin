@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	"github.com/openshift/origin/pkg/test/ginkgo/result"
 	exutil "github.com/openshift/origin/test/extended/util"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
+	"k8s.io/apimachinery/pkg/api/errors"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
@@ -23,25 +25,29 @@ var _ = g.Describe("[sig-storage][Late] Metrics", func() {
 	var (
 		oc = exutil.NewCLIWithoutNamespace("prometheus")
 
-		url, bearerToken string
+		url, token string
 	)
 
-	g.BeforeEach(func() {
-		var ok bool
-		url, _, bearerToken, ok = helper.LocatePrometheusUsingRoutes(oc)
-		if !ok {
+	g.BeforeEach(func(ctx g.SpecContext) {
+		_, err := helper.PrometheusServiceURL(ctx, oc)
+		if errors.IsNotFound(err) {
 			g.Skip("Prometheus could not be located on this cluster, skipping prometheus test")
 		}
+		o.Expect(err).NotTo(o.HaveOccurred(), "Verify prometheus service exists")
+		url, err = helper.ThanosQuerierRouteURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of thanos querier")
+		token, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
 	})
-	g.It("should report short attach times", func() {
-		checkOperation(oc, url, bearerToken, "kube-controller-manager", "volume_attach", expectedAttachTimeSeconds)
+	g.It("should report short attach times", func(ctx g.SpecContext) {
+		checkOperation(ctx, oc, url, token, "kube-controller-manager", "volume_attach", expectedAttachTimeSeconds)
 	})
-	g.It("should report short mount times", func() {
-		checkOperation(oc, url, bearerToken, "kubelet", "volume_mount", expectedMountTimeSeconds)
+	g.It("should report short mount times", func(ctx g.SpecContext) {
+		checkOperation(ctx, oc, url, token, "kubelet", "volume_mount", expectedMountTimeSeconds)
 	})
 })
 
-func checkOperation(oc *exutil.CLI, url string, bearerToken string, component string, name string, threshold int) {
+func checkOperation(ctx context.Context, oc *exutil.CLI, url string, bearerToken string, component string, name string, threshold int) {
 	plugins := []string{"kubernetes.io/azure-disk", "kubernetes.io/aws-ebs", "kubernetes.io/gce-pd", "kubernetes.io/cinder", "kubernetes.io/vsphere-volume"}
 
 	// we only consider series sent since the beginning of the test
@@ -63,7 +69,7 @@ func checkOperation(oc *exutil.CLI, url string, bearerToken string, component st
 		tests[query] = false
 	}
 
-	err := helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), tests, oc)
+	err := helper.RunQueries(ctx, oc.NewPrometheusClient(ctx), tests, oc)
 	if err != nil {
 		result.Flakef("Operation %s of plugin %s took more than %d seconds: %s", name, plugins, threshold, err)
 	}

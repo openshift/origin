@@ -4,11 +4,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/watch"
 )
 
 // LimitTestsToStartTime returns a time.Time which should be the earliest
@@ -83,20 +78,4 @@ func unixTimeFromEnv(name string) time.Time {
 		return time.Time{}
 	}
 	return time.Unix(seconds, 0)
-}
-
-// ServiceAccountHasSecrets returns true if the service account has at least one secret,
-// false if it does not, or an error.
-// This is originally from k8s.io/kubernetes/pkg/client/conditions/conditions.go, but it
-// got removed in https://github.com/kubernetes/kubernetes/pull/115110.
-func ServiceAccountHasSecrets(event watch.Event) (bool, error) {
-	switch event.Type {
-	case watch.Deleted:
-		return false, errors.NewNotFound(schema.GroupResource{Resource: "serviceaccounts"}, "")
-	}
-	switch t := event.Object.(type) {
-	case *v1.ServiceAccount:
-		return len(t.Secrets) > 0, nil
-	}
-	return false, nil
 }

@@ -213,24 +213,22 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 	var alertingRules map[string][]promv1.AlertingRule
 	oc := exutil.NewCLIWithoutNamespace("prometheus")
 
-	g.BeforeEach(func() {
+	g.BeforeEach(func(ctx context.Context) {
 		err := exutil.WaitForAnImageStream(
 			oc.AdminImageClient().ImageV1().ImageStreams("openshift"), "tools",
 			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		url, _, bearerToken, ok := helper.LocatePrometheusUsingRoutes(oc)
-		if !ok {
-			e2e.Failf("Prometheus could not be located on this cluster, failing prometheus test")
-		}
+		_, err = helper.PrometheusServiceURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Verify prometheus service exists")
 
 		if alertingRules == nil {
-			var err error
-
-			alertingRules, err = helper.FetchAlertingRules(url, bearerToken)
-			if err != nil {
-				e2e.Failf("Failed to fetch alerting rules: %v", err)
-			}
+			url, err := helper.PrometheusRouteURL(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of prometheus")
+			token, err := helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
+			alertingRules, err = helper.FetchAlertingRules(url, token)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Fetching alerting rules")
 		}
 	})
 
@@ -423,21 +421,22 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 		queryURL, prometheusURL, querySvcURL, prometheusSvcURL, bearerToken string
 	)
 
-	g.BeforeEach(func() {
+	g.BeforeEach(func(ctx g.SpecContext) {
 		err := exutil.WaitForAnImageStream(
 			oc.AdminImageClient().ImageV1().ImageStreams("openshift"), "tools",
 			exutil.CheckImageStreamLatestTagPopulated, exutil.CheckImageStreamTagNotFound)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		var ok bool
-		querySvcURL, prometheusSvcURL, bearerToken, ok = helper.LocatePrometheus(oc)
-		if !ok {
-			e2e.Failf("Prometheus URLs through services could not be located on this cluster, failing prometheus test")
-		}
-		queryURL, prometheusURL, _, ok = helper.LocatePrometheusUsingRoutes(oc)
-		if !ok {
-			e2e.Failf("Prometheus URLs through routes could not be located on this cluster, failing prometheus test")
-		}
+		queryURL, err = helper.ThanosQuerierRouteURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of thanos querier")
+		prometheusURL, err = helper.PrometheusRouteURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Get public url of prometheus")
+		querySvcURL, err = helper.ThanosQuerierServiceURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Get url of thanos querier service")
+		prometheusSvcURL, err = helper.PrometheusServiceURL(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Get url of prometheus service")
+		bearerToken, err = helper.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+		o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
 	})
 
 	g.Describe("when installed on the cluster", func() {
