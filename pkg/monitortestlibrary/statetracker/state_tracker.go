@@ -150,7 +150,7 @@ func (t *stateTracker) CloseInterval(locator monitorapi.Locator, state StateInfo
 	if !hasCondition {
 		return nil
 	}
-	return []monitorapi.Interval{ib.Build(from, to)}
+	return []monitorapi.Interval{ib.Display().Build(from, to)}
 }
 
 func (t *stateTracker) CloseAllIntervals(locatorToMessageAnnotations map[string]map[string]string, end time.Time) []monitorapi.Interval {

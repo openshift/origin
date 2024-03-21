@@ -625,6 +625,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 				v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())
 			currInterval := monitorapi.NewInterval(monitorapi.SourceDisruption, level).
 				Locator(b.backendSampler.GetLocator()).
+				Display().
 				Message(message).Build(currSample.startTime, time.Time{})
 			previousIntervalID = monitorRecorder.StartInterval(currInterval)
 
@@ -656,7 +657,7 @@ func (b *disruptionSampler) consumeSamples(ctx context.Context, consumerDoneCh c
 				v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())
 			currInterval := monitorapi.NewInterval(monitorapi.SourceDisruption, level).
 				Locator(b.backendSampler.GetLocator()).
-				Message(message).Build(currSample.startTime, time.Time{})
+				Message(message).Display().Build(currSample.startTime, time.Time{})
 			previousIntervalID = monitorRecorder.StartInterval(currInterval)
 
 		default:

@@ -77,6 +77,7 @@ func (h *ciHandler) Unavailable(from, to *backend.SampleResult) {
 		nil, v1.EventTypeWarning, string(eventReason), "detected", message.BuildString())
 
 	interval := monitorapi.NewInterval(monitorapi.SourceDisruption, level).Locator(h.descriptor.DisruptionLocator()).
+		Display().
 		Message(message).Build(fs.StartedAt, time.Time{})
 	openIntervalID := h.monitorRecorder.StartInterval(interval)
 	// TODO: unlikely in the real world, if from == to for some reason,
