@@ -33,6 +33,7 @@ import (
 )
 
 var (
+	vmGVR   = schema.GroupVersionResource{Group: "kubevirt.io", Resource: "virtualmachines", Version: "v1"}
 	vmiGVR  = schema.GroupVersionResource{Group: "kubevirt.io", Resource: "virtualmachineinstances", Version: "v1"}
 	vmimGVR = schema.GroupVersionResource{Group: "kubevirt.io", Resource: "virtualmachineinstancemigrations", Version: "v1"}
 	vmimGVK = schema.GroupVersionKind{Group: "kubevirt.io", Kind: "VirtualMachineInstanceMigration", Version: "v1"}
@@ -385,6 +386,10 @@ func virtualMachineInstanceClient(dc dynamic.Interface) dynamic.NamespaceableRes
 	return dc.Resource(vmiGVR)
 }
 
+func virtualMachineClient(dc dynamic.Interface) dynamic.NamespaceableResourceInterface {
+	return dc.Resource(vmGVR)
+}
+
 func virtualMachineInstanceMigrationClient(dc dynamic.Interface) dynamic.NamespaceableResourceInterface {
 	return dc.Resource(vmimGVR)
 }
@@ -496,4 +501,45 @@ func dumpKubevirtArtifacts(f *e2e.Framework) {
 	}
 	e2e.Logf("vmims: %s", string(vmimListYAML))
 
+}
+
+func rebootWorkerNode(f *e2e.Framework, hostedClusterNodeVMName string) error {
+	By(fmt.Sprintf("restarting hosted cluster worker %q", hostedClusterNodeVMName))
+
+	vmClient := virtualMachineClient(f.DynamicClient)
+	hostedClusterNodeVM, err := vmClient.Namespace(f.Namespace.Name).Get(
+		context.Background(),
+		hostedClusterNodeVMName,
+		metav1.GetOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed retrieving hosted cluster worker VM at namespace %s: %v", f.Namespace.Name, err)
+	}
+
+	vmName := hostedClusterNodeVM.GetName()
+	launcherPods, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).List(
+		context.Background(),
+		metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("kubevirt.io/vm=%s", vmName),
+			FieldSelector: "status.phase=Running",
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("error finding out the pod where the VM %q is running: %v", vmName, err)
+	} else if len(launcherPods.Items) == 0 {
+		return fmt.Errorf("no pod found for VM %q", vmName)
+	} else if len(launcherPods.Items) > 1 {
+		return fmt.Errorf("more than one live pod for VM %q. There are %d pods", vmName, len(launcherPods.Items))
+	}
+
+	podName := launcherPods.Items[0].Name
+	if err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(
+		context.Background(),
+		podName,
+		metav1.DeleteOptions{},
+	); err != nil {
+		return fmt.Errorf("could not delete pod for running VM %q: %v", hostedClusterNodeVMName, err)
+	}
+
+	return nil
 }
