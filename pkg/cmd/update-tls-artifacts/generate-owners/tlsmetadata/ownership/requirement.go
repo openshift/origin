@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/openshift/api/annotations"
+	"github.com/openshift/origin/pkg/certs"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
@@ -47,19 +49,31 @@ func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (t
 		violationJSONBytes)
 }
 
-func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.PKIRegistryInfo {
-	ret := &certgraphapi.PKIRegistryInfo{}
+func generateViolationJSON(pkiInfo *certs.PKIRegistryInfo) *certs.PKIRegistryInfo {
+	ret := &certs.PKIRegistryInfo{}
 
-	for i := range pkiInfo.CertKeyPairs {
-		curr := pkiInfo.CertKeyPairs[i]
-		owner := curr.CertKeyInfo.OwningJiraComponent
+	for _, curr := range pkiInfo.CertKeyPairs {
+		certKeyPairInfo := certgraphapi.PKIRegistryCertKeyPairInfo{}
+		switch {
+		case curr.InClusterLocation != nil:
+			certKeyPairInfo = curr.InClusterLocation.CertKeyInfo
+		case curr.OnDiskLocation != nil:
+			certKeyPairInfo = curr.OnDiskLocation.CertKeyInfo
+		}
+		owner := certKeyPairInfo.OwningJiraComponent
 		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
 		}
 	}
-	for i := range pkiInfo.CertificateAuthorityBundles {
-		curr := pkiInfo.CertificateAuthorityBundles[i]
-		owner := curr.CABundleInfo.OwningJiraComponent
+	for _, curr := range pkiInfo.CertificateAuthorityBundles {
+		caBundleInfo := certgraphapi.PKIRegistryCertificateAuthorityInfo{}
+		switch {
+		case curr.InClusterLocation != nil:
+			caBundleInfo = curr.InClusterLocation.CABundleInfo
+		case curr.OnDiskLocation != nil:
+			caBundleInfo = curr.OnDiskLocation.CABundleInfo
+		}
+		owner := caBundleInfo.OwningJiraComponent
 		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
 		}
@@ -68,32 +82,17 @@ func generateViolationJSON(pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.
 	return ret
 }
 
-func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
-	certsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
-	certsWithoutOwners := []certgraphapi.PKIRegistryInClusterCertKeyPair{}
-	caBundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
-	caBundlesWithoutOwners := []certgraphapi.PKIRegistryInClusterCABundle{}
-
-	for i := range pkiInfo.CertKeyPairs {
-		curr := pkiInfo.CertKeyPairs[i]
-		owner := curr.CertKeyInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
-			certsWithoutOwners = append(certsWithoutOwners, curr)
-			continue
-		}
-		certsByOwner[owner] = append(certsByOwner[owner], curr)
-	}
-	for i := range pkiInfo.CertificateAuthorityBundles {
-		curr := pkiInfo.CertificateAuthorityBundles[i]
-		owner := curr.CABundleInfo.OwningJiraComponent
-		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
-			caBundlesWithoutOwners = append(caBundlesWithoutOwners, curr)
-			continue
-		}
-		caBundlesByOwner[owner] = append(caBundlesByOwner[owner], curr)
-	}
+func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
+	complianceIntermediate := tlsmetadatainterfaces.BuildAnnotationComplianceIntermediate(
+		pkiInfo, tlsmetadatainterfaces.InspectAnnotationHasValue(annotations.OpenShiftComponent))
+	compliantCertsByOwner := complianceIntermediate.CompliantCertsByOwner
+	violatingCertsByOwner := complianceIntermediate.ViolatingCertsByOwner
+	compliantCABundlesByOwner := complianceIntermediate.CompliantCABundlesByOwner
+	violatingCABundlesByOwner := complianceIntermediate.ViolatingCABundlesByOwner
 
 	md := tlsmetadatainterfaces.NewMarkdown("Certificate Ownership")
+	certsWithoutOwners := violatingCertsByOwner[tlsmetadatainterfaces.UnknownOwner]
+	caBundlesWithoutOwners := violatingCABundlesByOwner[tlsmetadatainterfaces.UnknownOwner]
 
 	if len(certsWithoutOwners) > 0 || len(caBundlesWithoutOwners) > 0 {
 		md.Title(2, fmt.Sprintf("Missing Owners (%d)", len(certsWithoutOwners)+len(caBundlesWithoutOwners)))
@@ -102,9 +101,7 @@ func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 			md.OrderedListStart()
 			for _, curr := range certsWithoutOwners {
 				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.SecretLocation.Namespace, curr.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.CertKeyInfo.Description)
-				md.Text("\n")
+				tlsmetadatainterfaces.MarkdownFor(md, curr)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -114,42 +111,36 @@ func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 			md.OrderedListStart()
 			for _, curr := range caBundlesWithoutOwners {
 				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.CABundleInfo.Description)
-				md.Text("\n")
+				tlsmetadatainterfaces.MarkdownFor(md, curr)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
 		}
 	}
 
-	allOwners := sets.StringKeySet(certsByOwner)
-	allOwners.Insert(sets.StringKeySet(caBundlesByOwner).UnsortedList()...)
+	allOwners := sets.StringKeySet(compliantCertsByOwner)
+	allOwners.Insert(sets.StringKeySet(compliantCABundlesByOwner).UnsortedList()...)
 	for _, owner := range allOwners.List() {
-		md.Title(2, fmt.Sprintf("%s (%d)", owner, len(certsByOwner[owner])+len(caBundlesByOwner[owner])))
-		certs := certsByOwner[owner]
+		md.Title(2, fmt.Sprintf("%s (%d)", owner, len(compliantCertsByOwner[owner])+len(compliantCABundlesByOwner[owner])))
+		certs := compliantCertsByOwner[owner]
 		if len(certs) > 0 {
 			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certs)))
 			md.OrderedListStart()
 			for _, curr := range certs {
 				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.SecretLocation.Namespace, curr.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.CertKeyInfo.Description)
-				md.Text("\n")
+				tlsmetadatainterfaces.MarkdownFor(md, curr)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
 		}
 
-		caBundles := caBundlesByOwner[owner]
+		caBundles := compliantCABundlesByOwner[owner]
 		if len(caBundles) > 0 {
 			md.Title(3, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 			md.OrderedListStart()
 			for _, curr := range caBundles {
 				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.CABundleInfo.Description)
-				md.Text("\n")
+				tlsmetadatainterfaces.MarkdownFor(md, curr)
 			}
 			md.OrderedListEnd()
 			md.Text("\n")

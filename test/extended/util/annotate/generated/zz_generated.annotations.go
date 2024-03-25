@@ -239,6 +239,8 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Late][Jira:\"kube-apiserver\"] collect certificate data": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-arch][Late][Jira:\"kube-apiserver\"] ondisk tls artifacts must have expected attributes": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:Authentication]  TestFrontProxy should succeed": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:BootstrapUser] The bootstrap user should successfully login with password decoded from kubeadmin secret [Disruptive]": " [Serial]",
