@@ -52667,8 +52667,7 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isInterestingOrPathological(eventInterval) {
-        return !!(eventInterval.tempSource === 'KubeEvent' && eventInterval.tempStructuredMessage.annotations["pathological"] === "true");
-
+        return eventInterval.tempSource === 'KubeEvent' && eventInterval.tempStructuredMessage.annotations["pathological"] === "true";
     }
 
     function isE2EFailed(eventInterval) {
