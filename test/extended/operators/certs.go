@@ -218,7 +218,7 @@ func fetchOnDiskCertificates(ctx context.Context, kubeClient kubernetes.Interfac
 	if err != nil {
 		return nil, err
 	}
-	defer kubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
+	//defer kubeClient.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
 
 	err = createServiceAccount(ctx, kubeClient, namespace)
 	if err != nil {
