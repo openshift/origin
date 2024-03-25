@@ -354,7 +354,7 @@
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "rhel8/mysql-80:latest",
+                "image": "image-registry.openshift-image-registry.svc/openshift/mysql:8.0-el8",
                 "ports": [
                   {
                     "containerPort": 3306,

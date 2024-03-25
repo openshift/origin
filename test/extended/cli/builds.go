@@ -69,6 +69,12 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 		testDockerfileContent = fmt.Sprintf("FROM %s", image.ShellImage())
 	)
 
+	g.It("import necessary images [Early]", func() {
+		imageStreamsCentos := exutil.FixturePath("testdata", "cmd", "test", "cmd", "testdata", "image-streams", "image-streams-builds.json")
+		err := oc.Run("apply").Args("-f", imageStreamsCentos).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
 	g.It("new-build [apigroup:build.openshift.io]", func() {
 		g.By("build from a binary with no inputs requires name")
 		out, err := oc.Run("new-build").Args("--binary").Output()

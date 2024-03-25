@@ -390,7 +390,7 @@
             "containers": [
               {
                 "name": "ruby-helloworld-database",
-                "image": "rhel8/mysql-80:latest",
+                "image": "quay.io/sclorg/mysql-80-c8s:latest",
                 "ports": [
                   {
                     "containerPort": 3306,
