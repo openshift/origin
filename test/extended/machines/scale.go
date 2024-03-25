@@ -27,7 +27,7 @@ const (
 	machineAPIGroup                = "machine.openshift.io"
 	machineSetOwningLabel          = "machine.openshift.io/cluster-api-machineset"
 	machineSetDeleteNodeAnnotaiton = "machine.openshift.io/cluster-api-delete-machine"
-	scalingTime                    = 15 * time.Minute
+	scalingTime                    = 30 * time.Minute
 )
 
 // machineSetClient returns a client for machines scoped to the proper namespace
