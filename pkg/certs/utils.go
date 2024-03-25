@@ -9,25 +9,22 @@ import (
 )
 
 func GetPKIInfoFromEmbeddedOwnership(ownershipFile []byte) (*certgraphapi.PKIRegistryInfo, error) {
-	certs := SecretInfoByNamespaceName{}
-	caBundles := ConfigMapInfoByNamespaceName{}
-
 	currPKI := &certgraphapi.PKIRegistryInfo{}
 	err := json.Unmarshal(ownershipFile, currPKI)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, currCert := range currPKI.CertKeyPairs {
-		certs[currCert.SecretLocation] = currCert.CertKeyInfo
-	}
-	for _, currCABundle := range currPKI.CertificateAuthorityBundles {
-		caBundles[currCABundle.ConfigMapLocation] = currCABundle.CABundleInfo
-	}
-	return CertsToRegistryInfo(certs, caBundles), nil
+	return currPKI, nil
 }
 
-func CertsToRegistryInfo(certs SecretInfoByNamespaceName, caBundles ConfigMapInfoByNamespaceName) *certgraphapi.PKIRegistryInfo {
+func CertsToRegistryInfo(
+	certs SecretInfoByNamespaceName,
+	caBundles ConfigMapInfoByNamespaceName,
+	certificatesOnDiskByPath map[string]certgraphapi.OnDiskLocationWithMetadata,
+	keysOnDiskByPath map[string]certgraphapi.OnDiskLocationWithMetadata,
+	caBundlesOnDiskByPath map[string]certgraphapi.OnDiskLocationWithMetadata,
+) *certgraphapi.PKIRegistryInfo {
 	result := &certgraphapi.PKIRegistryInfo{}
 
 	certKeys := sets.KeySet[certgraphapi.InClusterSecretLocation, certgraphapi.PKIRegistryCertKeyPairInfo](certs).UnsortedList()
@@ -47,5 +44,16 @@ func CertsToRegistryInfo(certs SecretInfoByNamespaceName, caBundles ConfigMapInf
 			CABundleInfo:      caBundles[key],
 		})
 	}
+
+	for _, path := range sets.List(sets.KeySet(certificatesOnDiskByPath)) {
+		result.CertificatesOnDisk = append(result.CertificatesOnDisk, certificatesOnDiskByPath[path])
+	}
+	for _, path := range sets.List(sets.KeySet(keysOnDiskByPath)) {
+		result.KeysOnDisk = append(result.KeysOnDisk, keysOnDiskByPath[path])
+	}
+	for _, path := range sets.List(sets.KeySet(caBundlesOnDiskByPath)) {
+		result.CertificateAuthorityBundlesOnDisk = append(result.CertificateAuthorityBundlesOnDisk, caBundlesOnDiskByPath[path])
+	}
+
 	return result
 }
