@@ -96,7 +96,7 @@ func BelongsInSpyglass(eventInterval monitorapi.Interval) bool {
 		if eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPathological] != "true" {
 			return false
 		}
-		ns := monitorapi.NamespaceFromLocator(eventInterval.Locator)
+		ns := monitorapi.NamespaceFromLocator(eventInterval.StructuredLocator)
 		if strings.Contains(ns, "e2e") {
 			return false
 		}
@@ -144,24 +144,23 @@ func IsPodLifecycle(eventInterval monitorapi.Interval) bool {
 
 func IsOriginalPodEvent(eventInterval monitorapi.Interval) bool {
 	// constructed events are not original
-	if len(monitorapi.ConstructionOwnerFrom(eventInterval.Message)) > 0 {
+	if len(eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed]) > 0 {
 		return false
 	}
-	return strings.Contains(eventInterval.Locator, "pod/")
+	return eventInterval.StructuredLocator.HasKey(monitorapi.LocatorPodKey)
 }
 
 func isPlatformPodEvent(eventInterval monitorapi.Interval) bool {
 	// only include pod events that were created in CreatePodIntervalsFromInstants
-	if !IsPodLifecycle(eventInterval) {
+	if !(eventInterval.Source == monitorapi.SourcePodState) {
 		return false
 	}
-	pod := monitorapi.PodFrom(eventInterval.Locator)
+	pod := monitorapi.PodFrom(eventInterval.StructuredLocator)
 	if len(pod.UID) == 0 {
 		return false
 	}
 
-	locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-	namespace := monitorapi.NamespaceFrom(locatorParts)
+	namespace := eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
 	if strings.HasPrefix(namespace, "openshift-") {
 		return true
 	}
@@ -187,9 +186,7 @@ var kubeAPIServerDependentNamespaces = sets.NewString(
 )
 
 func isInterestingNamespace(eventInterval monitorapi.Interval, interestingNamespaces sets.String) bool {
-	locatorParts := monitorapi.LocatorParts(eventInterval.Locator)
-	namespace := monitorapi.NamespaceFrom(locatorParts)
-	return interestingNamespaces.Has(namespace)
+	return interestingNamespaces.Has(eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey])
 }
 
 func isLessInterestingAlert(eventInterval monitorapi.Interval) bool {

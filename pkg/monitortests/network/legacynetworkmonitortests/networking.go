@@ -284,7 +284,7 @@ func categorizeBySubset(categorizers []testCategorizer, failures, flakes []strin
 func getEventsByPodName(events monitorapi.Intervals) map[string]monitorapi.Intervals {
 	eventsByPods := map[string]monitorapi.Intervals{}
 	for _, event := range events {
-		if !strings.Contains(event.Locator, "pod/") {
+		if !event.StructuredLocator.HasKey(monitorapi.LocatorPodKey) {
 			continue
 		}
 		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)

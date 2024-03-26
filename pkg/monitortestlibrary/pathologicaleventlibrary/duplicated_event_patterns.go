@@ -79,18 +79,19 @@ func (ade *SimplePathologicalEventMatcher) Name() string {
 func (ade *SimplePathologicalEventMatcher) Matches(i monitorapi.Interval) bool {
 	l := i.StructuredLocator
 	msg := i.StructuredMessage
+	log := logrus.WithField("allower", ade.Name())
 	for lk, r := range ade.locatorKeyRegexes {
 		if !r.MatchString(l.Keys[lk]) {
-			logrus.WithField("allower", ade.Name).Debugf("key %s did not match", lk)
+			log.Debugf("%s: key %s did not match", ade.Name(), lk)
 			return false
 		}
 	}
 	if ade.messageHumanRegex != nil && !ade.messageHumanRegex.MatchString(msg.HumanMessage) {
-		logrus.WithField("allower", ade.Name).Debugf("human message did not match")
+		log.Debugf("%s: human message did not match", ade.Name())
 		return false
 	}
 	if ade.messageReasonRegex != nil && !ade.messageReasonRegex.MatchString(string(msg.Reason)) {
-		logrus.WithField("allower", ade.Name).Debugf("message reason did not match")
+		log.Debugf("%s: message reason did not match", ade.Name())
 		return false
 	}
 

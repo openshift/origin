@@ -162,7 +162,8 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 
 func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
 	ret := EventInterval{
-		Level:             fmt.Sprintf("%v", interval.Level),
+		Level: fmt.Sprintf("%v", interval.Level),
+		// TODO: remove this when we're ready to fully ditch the legacy flat string locator
 		Locator:           interval.Locator,
 		Message:           interval.Message,
 		StructuredLocator: interval.StructuredLocator,

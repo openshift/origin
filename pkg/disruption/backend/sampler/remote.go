@@ -387,7 +387,7 @@ func fetchEventsFromFileOnNode(ctx context.Context, clientset *kubernetes.Client
 	fmt.Fprintf(os.Stdout, "Fetched %d events from node %s\n", len(allEvents), nodeName)
 	// Keep only disruption events
 	for _, event := range allEvents {
-		backendDisruptionName := monitorapi.BackendDisruptionNameFrom(monitorapi.LocatorParts(event.Locator))
+		backendDisruptionName := monitorapi.BackendDisruptionNameFromLocator(event.StructuredLocator)
 		if len(backendDisruptionName) == 0 {
 			continue
 		}

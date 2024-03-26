@@ -15,7 +15,7 @@ func testEtcdShouldNotLogSlowFdataSyncs(events monitorapi.Intervals) []*junitapi
 	var failures []string
 	for _, event := range events {
 		if strings.Contains(event.Message, "slow fdatasync") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
 		}
 	}
 
@@ -42,7 +42,7 @@ func testEtcdShouldNotLogDroppedRaftMessages(events monitorapi.Intervals) []*jun
 	var failures []string
 	for _, event := range events {
 		if strings.Contains(event.Message, "dropped internal Raft message since sending buffer is full") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator, event.Message))
+			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.Message))
 		}
 	}
 

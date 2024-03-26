@@ -3,10 +3,11 @@ package legacycvomonitortests
 import (
 	"context"
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"strings"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 
@@ -259,13 +260,13 @@ func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.
 	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
 	nodeNameToOSUpdateTimes := map[string]*startedStaged{}
 	for _, e := range events {
-		nodeName, _ := monitorapi.NodeFromLocator(e.Locator)
+		nodeName := e.StructuredLocator.Keys[monitorapi.LocatorNodeKey]
 		if len(nodeName) == 0 {
 			continue
 		}
 
-		reason := monitorapi.ReasonFrom(e.Message)
-		phase := monitorapi.PhaseFrom(e.Message)
+		reason := e.StructuredMessage.Reason
+		phase := e.StructuredMessage.Annotations[monitorapi.AnnotationPhase]
 		switch {
 		case reason == "OSUpdateStarted":
 			_, ok := nodeNameToOSUpdateTimes[nodeName]
@@ -372,21 +373,21 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 	for _, e := range events {
 		if strings.Contains(e.Message, "reason/OSUpdateStarted") {
 			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
-			_, ok := nodeOSUpdateTimes[e.Locator]
+			_, ok := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
 			if !ok {
-				nodeOSUpdateTimes[e.Locator] = &startedStaged{}
+				nodeOSUpdateTimes[e.StructuredLocator.OldLocator()] = &startedStaged{}
 			}
 			// for this type of event, the from/to time are identical as this is a point in time event.
-			ss := nodeOSUpdateTimes[e.Locator]
+			ss := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
 			ss.OSUpdateStarted = e.To
 		} else if strings.Contains(e.Message, "reason/OSUpdateStaged") {
 			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
-			_, ok := nodeOSUpdateTimes[e.Locator]
+			_, ok := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
 			if !ok {
-				nodeOSUpdateTimes[e.Locator] = &startedStaged{}
+				nodeOSUpdateTimes[e.StructuredLocator.OldLocator()] = &startedStaged{}
 			}
 			// for this type of event, the from/to time are identical as this is a point in time event.
-			ss := nodeOSUpdateTimes[e.Locator]
+			ss := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
 			ss.OSUpdateStaged = e.To
 		}
 	}
@@ -425,7 +426,7 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 func getEventsByOperator(events monitorapi.Intervals) map[string]monitorapi.Intervals {
 	eventsByClusterOperator := map[string]monitorapi.Intervals{}
 	for _, event := range events {
-		operatorName, ok := monitorapi.OperatorFromLocator(event.Locator)
+		operatorName, ok := event.StructuredLocator.Keys[monitorapi.LocatorClusterOperatorKey]
 		if !ok {
 			continue
 		}

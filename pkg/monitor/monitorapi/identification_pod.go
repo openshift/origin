@@ -22,27 +22,9 @@ func NonUniquePodLocatorFrom(locator string) string {
 	return fmt.Sprintf("ns/%s pod/%s", namespace, parts["pod"])
 }
 
-// TODO:  all callers should eventuall be using structured locator variant below:
-func PodFrom(locator string) PodReference {
-	parts := LocatorParts(locator)
-	namespace := NamespaceFrom(parts)
-	name := parts[string(LocatorPodKey)]
-	uid := parts[string(LocatorUIDKey)]
-	if len(namespace) == 0 || len(name) == 0 {
-		return PodReference{}
-	}
-	return PodReference{
-		NamespacedReference: NamespacedReference{
-			Namespace: namespace,
-			Name:      name,
-			UID:       uid,
-		},
-	}
-}
-
-// PodFromLocator is used to strip down a locator to just a pod. (as it may contain additional keys like container or node)
+// PodFrom is used to strip down a locator to just a pod. (as it may contain additional keys like container or node)
 // that we do not want for some uses.
-func PodFromLocator(locator Locator) PodReference {
+func PodFrom(locator Locator) PodReference {
 	namespace := locator.Keys[LocatorNamespaceKey]
 	name := locator.Keys[LocatorPodKey]
 	uid := locator.Keys[LocatorUIDKey]
@@ -59,7 +41,7 @@ func PodFromLocator(locator Locator) PodReference {
 }
 
 func ContainerFrom(locator Locator) ContainerReference {
-	pod := PodFrom(locator.OldLocator())
+	pod := PodFrom(locator)
 	name := locator.Keys[LocatorContainerKey]
 	if len(name) == 0 || len(pod.UID) == 0 {
 		return ContainerReference{}
@@ -175,12 +157,12 @@ var (
 type ByTimeWithNamespacedPods []Interval
 
 func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
-	lhsIsPodConstructed := strings.Contains(intervals[i].Message, "constructed") && strings.Contains(intervals[i].Locator, "pod/")
-	rhsIsPodConstructed := strings.Contains(intervals[j].Message, "constructed") && strings.Contains(intervals[j].Locator, "pod/")
+	lhsIsPodConstructed := strings.Contains(intervals[i].Message, "constructed") && len(intervals[i].StructuredLocator.Keys[LocatorPodKey]) > 0
+	rhsIsPodConstructed := strings.Contains(intervals[j].Message, "constructed") && len(intervals[j].StructuredLocator.Keys[LocatorPodKey]) > 0
 	switch {
 	case lhsIsPodConstructed && rhsIsPodConstructed:
-		lhsNamespace := NamespaceFromLocator(intervals[i].Locator)
-		rhsNamespace := NamespaceFromLocator(intervals[j].Locator)
+		lhsNamespace := NamespaceFromLocator(intervals[i].StructuredLocator)
+		rhsNamespace := NamespaceFromLocator(intervals[j].StructuredLocator)
 		if lhsNamespace < rhsNamespace {
 			return true
 		} else if lhsNamespace > rhsNamespace {

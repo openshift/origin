@@ -2,8 +2,25 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
+      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm hmsg/94b2a62d8a",
       "message": "reason/Cordon roles/worker Cordoned node to apply update",
+      "tempSource": "KubeEvent",
+      "tempStructuredLocator": {
+        "type": "Node",
+        "keys": {
+          "hmsg": "94b2a62d8a",
+          "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Cordon",
+        "cause": "",
+        "humanMessage": "Cordoned node to apply update",
+        "annotations": {
+          "reason": "Cordon",
+          "roles": "worker"
+        }
+      },
       "from": "2023-07-18T16:40:16Z",
       "to": "2023-07-18T16:40:16Z"
     },
@@ -11,6 +28,24 @@
       "level": "Info",
       "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
       "message": "reason/Drain roles/worker Draining node to update config.",
+      "tempSource": "KubeEvent",
+      "tempStructuredLocator": {
+        "type": "Node",
+        "keys": {
+          "hmsg": "502676ccb6",
+          "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Drain",
+        "cause": "",
+        "humanMessage": "Draining node to update config.",
+        "annotations": {
+          "reason": "Drain",
+          "roles": "worker"
+        }
+      },
+
       "from": "2023-07-18T16:40:16Z",
       "to": "2023-07-18T16:40:16Z"
     },
@@ -18,6 +53,24 @@
       "level": "Info",
       "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
       "message": "reason/InClusterUpgrade roles/worker Updating from oscontainer registry.build04.ci.openshift.org/ci-op-wh7nq7n4/stable@sha256:42fef51c3f19f40f5573f1ba6a393c3e8fbe53b78eb977aea957f60b85b1458a",
+      "tempSource": "KubeEvent",
+      "tempStructuredLocator": {
+        "type": "Node",
+        "keys": {
+          "hmsg": "0294347a34",
+          "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "InClusterUpgrade",
+        "cause": "",
+        "humanMessage": "Updating from oscontainer registry.build04.ci.openshift.org/ci-op-wh7nq7n4/stable@sha256:42fef51c3f19f40f5573f1ba6a393c3e8fbe53b78eb977aea957f60b85b1458a",
+        "annotations": {
+          "reason": "InClusterUpgrade",
+          "roles": "worker"
+        }
+      },
+
       "from": "2023-07-18T16:41:49Z",
       "to": "2023-07-18T16:41:49Z"
     },
@@ -25,6 +78,23 @@
       "level": "Info",
       "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
       "message": "reason/OSUpdateStarted roles/worker Upgrading OS",
+      "tempSource": "KubeEvent",
+      "tempStructuredLocator": {
+        "type": "Node",
+        "keys": {
+          "hmsg": "873e8ad5d9",
+          "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "OSUpdateStarted",
+        "cause": "",
+        "humanMessage": "Upgrading OS",
+        "annotations": {
+          "reason": "OSUpdateStarted",
+          "roles": "worker"
+        }
+      },
       "from": "2023-07-18T16:41:49Z",
       "to": "2023-07-18T16:41:49Z"
     }
