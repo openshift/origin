@@ -694,3 +694,60 @@ func GetIPAddressFamily(oc *exutil.CLI) (bool, bool, error) {
 	}
 	return hasIPv4, hasIPv6, nil
 }
+
+func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, generateName string) (*v1.Pod, error) {
+	contName := fmt.Sprintf("%s-container", generateName)
+	runAsUser := int64(0)
+	securityContext := &v1.SecurityContext{
+		RunAsUser: &runAsUser,
+		Capabilities: &v1.Capabilities{
+			Add: []v1.Capability{
+				"SETFCAP",
+				"CAP_NET_RAW",
+				"CAP_NET_ADMIN",
+			},
+		},
+	}
+
+	pod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Pod",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: generateName,
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:            contName,
+					Image:           tcpdumpImage,
+					Command:         []string{"sleep", "100000"},
+					SecurityContext: securityContext,
+				},
+			},
+			NodeName:      nodeName,
+			RestartPolicy: v1.RestartPolicyNever,
+			HostNetwork:   true,
+		},
+	}
+
+	p, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.Background(), pod, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		retrievedPod, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(ctx, p.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		p = retrievedPod
+		return retrievedPod.Status.Phase == corev1.PodRunning, nil
+	})
+
+	return p, err
+}
+
+func isConnResetErr(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "connection reset by peer")
+}
