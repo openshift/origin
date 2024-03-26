@@ -223,10 +223,6 @@ func recordAddOrUpdateEvent(
 	interval := intervalBuilder.Locator(locator).
 		Message(message).Build(pathoFrom, to)
 
-	logrus.WithField("event", *obj).Info("processed event")
-	logrus.WithField("locator", interval.StructuredLocator).Info("resulting interval locator")
-	logrus.WithField("message", interval.StructuredMessage).Info("resulting interval message")
-
 	recorder.AddIntervals(interval)
 }
 
