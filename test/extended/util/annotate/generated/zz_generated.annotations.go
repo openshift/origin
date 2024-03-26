@@ -1357,6 +1357,14 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes ensure traffic between local pod to a remote pod is IPsec encrypted when IPsecMode configured in Full mode [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes ensure traffic between local pod to a remote pod is not IPsec encrypted when IPsec is Disabled [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes ensure traffic between local pod to a remote pod is not IPsec encrypted when IPsecMode configured in External mode [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes ensure traffic between local pod to a remote pod is working when IPsec rollout in progress [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io] should enforce a network policies on secondary network IPv4": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io] should enforce a network policies on secondary network IPv6": " [Suite:openshift/conformance/serial]",

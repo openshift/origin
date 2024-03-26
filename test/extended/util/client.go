@@ -63,6 +63,7 @@ import (
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	mcv1client "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned"
@@ -699,6 +700,10 @@ func (c *CLI) AdminSecurityClient() securityv1client.Interface {
 
 func (c *CLI) AdminTemplateClient() templatev1client.Interface {
 	return templatev1client.NewForConfigOrDie(c.AdminConfig())
+}
+
+func (c *CLI) MachineConfigurationClient() mcv1client.Interface {
+	return mcv1client.NewForConfigOrDie(c.AdminConfig())
 }
 
 // KubeClient provides a Kubernetes client for the current namespace
