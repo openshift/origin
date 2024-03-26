@@ -17,7 +17,9 @@
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Created"
+        }
       },
       "from": "2022-03-07T22:47:04Z",
       "to": "2022-03-07T22:47:04Z"
@@ -40,7 +42,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "node": "ip-10-0-154-151.ec2.internal"
+          "node": "ip-10-0-154-151.ec2.internal",
+          "reason": "Scheduled"
         }
       },
       "from": "2022-03-07T22:47:04Z",
@@ -65,7 +68,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "duration": "3.00s"
+          "duration": "3.00s",
+          "reason": "ContainerStart"
         }
       },
       "from": "2022-03-07T22:47:07Z",
@@ -89,7 +93,9 @@
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Ready"
+        }
       },
       "from": "2022-03-07T22:47:14Z",
       "to": "2022-03-07T22:47:14Z"
@@ -112,7 +118,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "duration": "1s"
+          "duration": "1s",
+          "reason": "GracefulDelete"
         }
       },
       "from": "2022-03-07T22:47:14Z",
@@ -138,7 +145,8 @@
         "humanMessage": "",
         "annotations": {
           "code": "0",
-          "cause": "Completed"
+          "cause": "Completed",
+          "reason": "ContainerExit"
         }
       },
       "from": "2022-03-07T22:47:15Z",
@@ -162,7 +170,9 @@
         "reason": "NotReady",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "NotReady"
+        }
       },
       "from": "2022-03-07T22:47:15Z",
       "to": "2022-03-07T22:47:15Z"
@@ -184,7 +194,9 @@
         "reason": "Deleted",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Deleted"
+        }
       },
       "from": "2022-03-07T22:47:15Z",
       "to": "2022-03-07T22:47:15Z"

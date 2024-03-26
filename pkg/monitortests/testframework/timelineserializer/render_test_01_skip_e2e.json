@@ -3,14 +3,44 @@
     {
       "level": "Info",
       "locator": "ns/e2e-daemonsets-2620 pod/daemon-set-cx5wt uid/7f73a02a-584e-4b86-a4e4-efb786051ac6",
+      "tempStructuredLocator": {
+        "type": "Pod",
+        "keys": {
+          "namespace": "e2e-daemonsets-2620",
+          "pod": "daemon-set-cx5wt",
+          "uid": "7f73a02a-584e-4b86-a4e4-efb786051ac6"
+        }
+      },
       "message": "constructed/pod-lifecycle-constructor reason/Created ",
+      "tempStructuredMessage": {
+        "reason": "Created",
+        "annotations": {
+          "constructed": "pod-lifecycle-constructor"
+        }
+      },
       "from": "2022-03-07T22:46:16Z",
       "to": "2022-03-07T22:46:16Z"
     },
     {
       "level": "Info",
       "locator": "ns/e2e-daemonsets-2620 pod/daemon-set-cx5wt uid/7f73a02a-584e-4b86-a4e4-efb786051ac6 container/app",
+      "tempStructuredLocator": {
+        "type": "Container",
+        "keys": {
+          "namespace": "e2e-daemonsets-2620",
+          "pod": "daemon-set-cx5wt",
+          "uid": "7f73a02a-584e-4b86-a4e4-efb786051ac6",
+          "container": "app"
+        }
+      },
       "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
+      "tempStructuredMessage": {
+        "reason": "ContainerWait",
+        "humanMessage": "missed real \"ContainerWait\"",
+        "annotations": {
+          "constructed": "pod-lifecycle-constructor"
+        }
+      },
       "from": "2022-03-07T22:46:16Z",
       "to": "2022-03-07T22:46:22Z"
     }

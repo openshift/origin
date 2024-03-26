@@ -17,7 +17,9 @@
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Created"
+        }
       },
       "from": "2022-03-07T18:41:46Z",
       "to": "2022-03-07T18:41:46Z"
@@ -40,7 +42,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "node": "ip-10-0-141-9.us-west-2.compute.internal"
+          "node": "ip-10-0-141-9.us-west-2.compute.internal",
+          "reason": "Scheduled"
         }
       },
       "from": "2022-03-07T18:41:46Z",
@@ -65,7 +68,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "duration": "6.00s"
+          "duration": "6.00s",
+          "reason": "ContainerStart"
         }
       },
       "from": "2022-03-07T18:41:52Z",
@@ -89,7 +93,9 @@
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Ready"
+        }
       },
       "from": "2022-03-07T18:41:52Z",
       "to": "2022-03-07T18:41:52Z"
@@ -112,7 +118,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "mirrored": "false"
+          "mirrored": "false",
+          "reason": "ForceDelete"
         }
       },
       "from": "2022-03-07T18:41:54Z",
@@ -135,7 +142,9 @@
         "reason": "Deleted",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Deleted"
+        }
       },
       "from": "2022-03-07T18:41:54Z",
       "to": "2022-03-07T18:41:54Z"

@@ -14,11 +14,11 @@ func testAPIServerIPTablesAccessDisruption(events monitorapi.Intervals) []*junit
 	namespacesToCount := map[string]int{}
 	messages := []string{}
 	for _, event := range events {
-		reason := monitorapi.ReasonFrom(event.Message)
+		reason := event.StructuredMessage.Reason
 		if reason != "iptables-operation-not-permitted" {
 			continue
 		}
-		ns := monitorapi.NamespaceFromLocator(event.Locator)
+		ns := monitorapi.NamespaceFromLocator(event.StructuredLocator)
 		namespacesToCount[ns] = namespacesToCount[ns] + 1
 		messages = append(messages, event.String())
 	}

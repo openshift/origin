@@ -206,7 +206,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 
 			// key used in a map to identify the common interval that is repeating and we may
 			// encounter multiple times.
-			eventDisplayMessage := fmt.Sprintf("%s - reason/%s %s", event.Locator,
+			eventDisplayMessage := fmt.Sprintf("%s - reason/%s %s", event.StructuredLocator.OldLocator(),
 				event.StructuredMessage.Reason, event.StructuredMessage.HumanMessage)
 
 			if _, ok := displayToCount[eventDisplayMessage]; !ok {
@@ -312,17 +312,7 @@ func getBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient opera
 // BuildTestDupeKubeEvent is a test utility to make the process of creating these specific intervals a little
 // more brief.
 func BuildTestDupeKubeEvent(namespace, pod, reason, msg string, count int) monitorapi.Interval {
-
-	l := monitorapi.Locator{
-		Type: monitorapi.LocatorTypePod,
-		Keys: map[monitorapi.LocatorKey]string{},
-	}
-	if namespace != "" {
-		l.Keys[monitorapi.LocatorNamespaceKey] = namespace
-	}
-	if pod != "" {
-		l.Keys[monitorapi.LocatorPodKey] = pod
-	}
+	l := monitorapi.NewLocator().PodFromNames(namespace, pod, "")
 
 	i := monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
 		Locator(l).

@@ -266,16 +266,7 @@ func (b *LocatorBuilder) LocateDisruptionCheck(backendDisruptionName, thisInstan
 		Build()
 }
 
-func (b *LocatorBuilder) LocateServer(serverName, nodeName, namespace, podName string, isShutdown bool) Locator {
-	if isShutdown {
-		return b.
-			withShutdown().
-			withServer(serverName).
-			withNode(nodeName).
-			withNamespace(namespace).
-			withPodName(podName).
-			Build()
-	}
+func (b *LocatorBuilder) LocateServer(serverName, nodeName, namespace, podName string) Locator {
 	return b.
 		withServer(serverName).
 		withNode(nodeName).
@@ -284,15 +275,18 @@ func (b *LocatorBuilder) LocateServer(serverName, nodeName, namespace, podName s
 		Build()
 }
 
-// TODO remove this once we know what all breaks.
-func (b *LocatorBuilder) withShutdown() *LocatorBuilder {
-	b.annotations[LocatorShutdown] = "apiserver"
-	return b
-}
-
 func (b *LocatorBuilder) withServer(serverName string) *LocatorBuilder {
 	b.annotations[LocatorServerKey] = serverName
 	return b
+}
+
+func (b *LocatorBuilder) KubeAPIServerWithLB(loadBalancer string) Locator {
+	b.targetType = LocatorTypeAPIServer
+	b.annotations[LocatorServerKey] = "kube-apiserver"
+	if len(loadBalancer) > 0 {
+		b.annotations[LocatorLoadBalancerKey] = loadBalancer
+	}
+	return b.Build()
 }
 
 // TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
@@ -329,16 +323,6 @@ func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 	return b.Build()
 }
 
-func (b *LocatorBuilder) APIServerShutdown(loadBalancer string) Locator {
-	b.targetType = LocatorTypeAPIServerShutdown
-	b.annotations[LocatorShutdownKey] = "graceful"
-	b.annotations[LocatorServerKey] = "kube-apiserver"
-	if len(loadBalancer) > 0 {
-		b.annotations[LocatorLoadBalancerKey] = loadBalancer
-	}
-	return b.Build()
-}
-
 func (b *LocatorBuilder) ContainerFromPod(pod *corev1.Pod, containerName string) Locator {
 	b.PodFromPod(pod)
 	b.targetType = LocatorTypeContainer
@@ -361,12 +345,17 @@ func (b *LocatorBuilder) ContainerFromNames(namespace, podName, uid, containerNa
 }
 
 func (b *LocatorBuilder) PodFromNames(namespace, podName, uid string) Locator {
-	return b.
-		withTargetType(LocatorTypePod).
-		withNamespace(namespace).
-		withPodName(podName).
-		withUID(uid).
-		Build()
+	bldr := b.withTargetType(LocatorTypePod)
+	if len(namespace) > 0 {
+		bldr = bldr.withNamespace(namespace)
+	}
+	if len(podName) > 0 {
+		bldr = bldr.withPodName(podName)
+	}
+	if len(uid) > 0 {
+		bldr = bldr.withUID(uid)
+	}
+	return bldr.Build()
 }
 
 func (b *LocatorBuilder) withPodName(podName string) *LocatorBuilder {
@@ -427,9 +416,12 @@ func NewMessage() *MessageBuilder {
 
 // ExpandMessage parses a message that was collapsed into a string to extract each annotation
 // and the original message.
-func ExpandMessage(prevMessage string) *MessageBuilder {
-	prevAnnotations := AnnotationsFromMessage(prevMessage)
-	prevNonAnnotationMessage := NonAnnotationMessage(prevMessage)
+func ExpandMessage(prevMessage Message) *MessageBuilder {
+	prevAnnotations := prevMessage.Annotations
+	prevNonAnnotationMessage := prevMessage.HumanMessage
+	if prevAnnotations == nil {
+		prevAnnotations = map[AnnotationKey]string{}
+	}
 	return &MessageBuilder{
 		annotations:  prevAnnotations,
 		humanMessage: prevNonAnnotationMessage,

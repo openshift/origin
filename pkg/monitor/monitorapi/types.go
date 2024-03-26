@@ -98,33 +98,29 @@ type Condition struct {
 type LocatorType string
 
 const (
-	LocatorTypePod               LocatorType = "Pod"
-	LocatorTypeContainer         LocatorType = "Container"
-	LocatorTypeNode              LocatorType = "Node"
-	LocatorTypeAlert             LocatorType = "Alert"
-	LocatorTypeClusterOperator   LocatorType = "ClusterOperator"
-	LocatorTypeOther             LocatorType = "Other"
-	LocatorTypeDisruption        LocatorType = "Disruption"
-	LocatorTypeKubeEvent         LocatorType = "KubeEvent"
-	LocatorTypeE2ETest           LocatorType = "E2ETest"
-	LocatorTypeAPIServerShutdown LocatorType = "APIServerShutdown"
-	LocatorTypeClusterVersion    LocatorType = "ClusterVersion"
-	LocatorTypeKind              LocatorType = "Kind"
-	LocatorTypeCloudMetrics      LocatorType = "CloudMetrics"
+	LocatorTypePod             LocatorType = "Pod"
+	LocatorTypeContainer       LocatorType = "Container"
+	LocatorTypeNode            LocatorType = "Node"
+	LocatorTypeAlert           LocatorType = "Alert"
+	LocatorTypeClusterOperator LocatorType = "ClusterOperator"
+	LocatorTypeDisruption      LocatorType = "Disruption"
+	LocatorTypeKubeEvent       LocatorType = "KubeEvent"
+	LocatorTypeE2ETest         LocatorType = "E2ETest"
+	LocatorTypeAPIServer       LocatorType = "APIServer"
+	LocatorTypeClusterVersion  LocatorType = "ClusterVersion"
+	LocatorTypeKind            LocatorType = "Kind"
+	LocatorTypeCloudMetrics    LocatorType = "CloudMetrics"
 )
 
 type LocatorKey string
 
 const (
-	LocatorServer             LocatorKey = "server"   // TODO this looks like a bad name.  Aggregated apiserver?  Do we even need it?
-	LocatorShutdown           LocatorKey = "shutdown" // TODO this should not exist.  This is a reason and message
 	LocatorClusterOperatorKey LocatorKey = "clusteroperator"
 	LocatorClusterVersionKey  LocatorKey = "clusterversion"
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorDeploymentKey      LocatorKey = "deployment"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
-	LocatorKindKey            LocatorKey = "kind"
 	LocatorNameKey            LocatorKey = "name"
 	LocatorHmsgKey            LocatorKey = "hmsg"
 	LocatorPodKey             LocatorKey = "pod"
@@ -142,7 +138,6 @@ const (
 	LocatorProtocolKey              LocatorKey = "protocol"
 	LocatorTargetKey                LocatorKey = "target"
 	LocatorRowKey                   LocatorKey = "row"
-	LocatorShutdownKey              LocatorKey = "shutdown"
 	LocatorServerKey                LocatorKey = "server"
 	LocatorMetricKey                LocatorKey = "metric"
 )
@@ -162,7 +157,8 @@ const (
 	DisruptionBeganEventReason              IntervalReason = "DisruptionBegan"
 	DisruptionEndedEventReason              IntervalReason = "DisruptionEnded"
 	DisruptionSamplerOutageBeganEventReason IntervalReason = "DisruptionSamplerOutageBegan"
-	GracefulAPIServerShutdown               IntervalReason = "GracefulShutdownWindow"
+	GracefulAPIServerShutdown               IntervalReason = "GracefulAPIServerShutdown"
+	IncompleteAPIServerShutdown             IntervalReason = "IncompleteAPIServerShutdown"
 
 	HttpClientConnectionLost IntervalReason = "HttpClientConnectionLost"
 
@@ -206,6 +202,7 @@ const (
 	CloudMetricsExtrenuous                IntervalReason = "CloudMetricsExtrenuous"
 	FailedToDeleteCGroupsPath             IntervalReason = "FailedToDeleteCGroupsPath"
 	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
+	FailedContactingAPIReason             IntervalReason = "FailedContactingAPI"
 )
 
 type AnnotationKey string
@@ -270,19 +267,21 @@ type Message struct {
 type IntervalSource string
 
 const (
-	SourceAlert                   IntervalSource = "Alert"
-	SourceAPIServerShutdown       IntervalSource = "APIServerShutdown"
-	SourceDisruption              IntervalSource = "Disruption"
-	SourceE2ETest                 IntervalSource = "E2ETest"
-	SourceKubeEvent               IntervalSource = "KubeEvent"
-	SourceNetworkManagerLog       IntervalSource = "NetworkMangerLog"
-	SourceNodeMonitor             IntervalSource = "NodeMonitor"
-	SourceKubeletLog              IntervalSource = "KubeletLog"
-	SourcePodLog                  IntervalSource = "PodLog"
-	SourceEtcdLog                 IntervalSource = "EtcdLog"
-	SourceEtcdLeadership          IntervalSource = "EtcdLeadership"
-	SourcePodMonitor              IntervalSource = "PodMonitor"
-	APIServerGracefulShutdown     IntervalSource = "APIServerGracefulShutdown"
+	SourceAlert                     IntervalSource = "Alert"
+	SourceAPIServerShutdown         IntervalSource = "APIServerShutdown"
+	SourceDisruption                IntervalSource = "Disruption"
+	SourceE2ETest                   IntervalSource = "E2ETest"
+	SourceKubeEvent                 IntervalSource = "KubeEvent"
+	SourceNetworkManagerLog         IntervalSource = "NetworkMangerLog"
+	SourceNodeMonitor               IntervalSource = "NodeMonitor"
+	SourceKubeletLog                IntervalSource = "KubeletLog"
+	SourcePodLog                    IntervalSource = "PodLog"
+	SourceEtcdLog                   IntervalSource = "EtcdLog"
+	SourceEtcdLeadership            IntervalSource = "EtcdLeadership"
+	SourcePodMonitor                IntervalSource = "PodMonitor"
+	APIServerGracefulShutdown       IntervalSource = "APIServerGracefulShutdown"
+	APIServerClusterOperatorWatcher IntervalSource = "APIServerClusterOperatorWatcher"
+
 	SourceTestData                IntervalSource = "TestData" // some tests have no real source to assign
 	SourceOVSVswitchdLog          IntervalSource = "OVSVswitchdLog"
 	SourcePathologicalEventMarker IntervalSource = "PathologicalEventMarker" // not sure if this is really helpful since the events all have a different origin
@@ -308,7 +307,12 @@ type Interval struct {
 
 func (i Interval) String() string {
 	if i.From.Equal(i.To) {
-		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
+		return fmt.Sprintf("%s.%03d %s %s %s",
+			i.From.Format("Jan 02 15:04:05"),
+			i.From.Nanosecond()/int(time.Millisecond),
+			i.Level.String()[:1],
+			i.StructuredLocator.OldLocator(),
+			strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
 	}
 	duration := i.To.Sub(i.From)
 	if duration < time.Second {
@@ -317,15 +321,15 @@ func (i Interval) String() string {
 			i.From.Nanosecond()/int(time.Millisecond),
 			strconv.Itoa(int(duration/time.Millisecond))+"ms",
 			i.Level.String()[:1],
-			i.Locator,
-			strings.Replace(i.Message, "\n", "\\n", -1))
+			i.StructuredLocator.OldLocator(),
+			strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
 	}
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s",
 		i.From.Format("Jan 02 15:04:05"),
 		i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s",
 		i.Level.String()[:1],
-		i.Locator,
-		strings.Replace(i.Message, "\n", "\\n", -1))
+		i.StructuredLocator.OldLocator(),
+		strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
 }
 
 func (i Message) OldMessage() string {
@@ -369,6 +373,11 @@ func (i Locator) OldLocator() string {
 	annotationString := strings.Join(annotations, " ")
 
 	return annotationString
+}
+
+func (i Locator) HasKey(k LocatorKey) bool {
+	_, ok := i.Keys[k]
+	return ok
 }
 
 // sortKeys ensures that some keys appear in the order we require (least specific to most), so rows with locators
@@ -457,11 +466,16 @@ func (intervals Intervals) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	if intervals[i].Message != intervals[j].Message {
-		return intervals[i].Message < intervals[j].Message
+	if intervals[i].StructuredMessage.Reason != intervals[j].StructuredMessage.Reason {
+		return intervals[i].StructuredMessage.Reason < intervals[j].StructuredMessage.Reason
+	}
+	if intervals[i].StructuredMessage.HumanMessage != intervals[j].StructuredMessage.HumanMessage {
+		return intervals[i].StructuredMessage.HumanMessage < intervals[j].StructuredMessage.HumanMessage
 	}
 
-	return intervals[i].Locator < intervals[j].Locator
+	// TODO: this could be a bit slow, but leaving it simple if we can get away with it. Sorting structured locators
+	// that use keys is trickier than the old flat string method.
+	return intervals[i].StructuredLocator.OldLocator() < intervals[j].StructuredLocator.OldLocator()
 }
 func (intervals Intervals) Len() int { return len(intervals) }
 func (intervals Intervals) Swap(i, j int) {
@@ -523,15 +537,7 @@ func IsInfoEvent(eventInterval Interval) bool {
 
 // IsInE2ENamespace returns true if the eventInterval is in an e2e namespace
 func IsInE2ENamespace(eventInterval Interval) bool {
-	// Old style
-	if strings.Contains(eventInterval.Locator, "ns/e2e-") {
-		return true
-	}
-	// New style
-	if strings.Contains(eventInterval.Locator, "namespace/e2e-") {
-		return true
-	}
-	return false
+	return strings.HasPrefix(NamespaceFromLocator(eventInterval.StructuredLocator), "e2e-")
 }
 
 func IsForDisruptionBackend(backend string) EventIntervalMatchesFunc {
@@ -549,18 +555,16 @@ func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 		if ns, ok := eventInterval.StructuredLocator.Keys[LocatorNamespaceKey]; ok {
 			return namespaces.Has(ns)
 		}
-		// TODO: For legacy locators, can be removed soon
-		ns := NamespaceFromLocator(eventInterval.Locator)
-		return namespaces.Has(ns)
+		return false
 	}
 }
 
 // ContainsAllParts ensures that all listed key match at least one of the values.
 func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		actualParts := LocatorParts(eventInterval.Locator)
+		actualParts := eventInterval.StructuredLocator.Keys
 		for key, possibleValues := range matchers {
-			actualValue := actualParts[key]
+			actualValue := actualParts[LocatorKey(key)]
 
 			found := false
 			for _, possibleValue := range possibleValues {
@@ -581,9 +585,9 @@ func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatches
 // NotContainsAllParts returns a function that returns false if any key matches.
 func NotContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		actualParts := LocatorParts(eventInterval.Locator)
+		actualParts := eventInterval.StructuredLocator.Keys
 		for key, possibleValues := range matchers {
-			actualValue := actualParts[key]
+			actualValue := actualParts[LocatorKey(key)]
 
 			for _, possibleValue := range possibleValues {
 				if possibleValue.MatchString(actualValue) {
@@ -636,25 +640,19 @@ func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
 }
 
 func NodeUpdate(eventInterval Interval) bool {
-	reason := ReasonFrom(eventInterval.Message)
+	reason := eventInterval.StructuredMessage.Reason
 	return NodeUpdateReason == reason
 }
 
 func AlertFiring() EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
-			return true
-		}
-		return false
+		return eventInterval.StructuredMessage.Annotations[AnnotationAlertState] == "firing"
 	}
 }
 
 func AlertPending() EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
-			return true
-		}
-		return false
+		return eventInterval.StructuredMessage.Annotations[AnnotationAlertState] == "pending"
 	}
 }
 

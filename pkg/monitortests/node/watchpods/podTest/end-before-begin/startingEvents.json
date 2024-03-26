@@ -17,7 +17,9 @@
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Created"
+        }
       },
       "from": "2022-03-21T16:43:39Z",
       "to": "2022-03-21T16:43:39Z"
@@ -36,11 +38,12 @@
         }
       },
       "tempStructuredMessage": {
-        "reason": "Created",
+        "reason": "Scheduled",
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "node": "ip-10-0-214-214.us-west-1.compute.internal"
+          "node": "ip-10-0-214-214.us-west-1.compute.internal",
+          "reason": "Scheduled"
         }
       },
       "from": "2022-03-21T16:43:39Z",
@@ -64,7 +67,9 @@
         "reason": "NotReady",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "NotReady"
+        }
       },
       "from": "2022-03-21T16:43:39Z",
       "to": "2022-03-21T16:43:39Z"

@@ -31,63 +31,49 @@ func TestIntervals_Duration(t *testing.T) {
 			intervals: Intervals{
 				Interval{
 					Condition: Condition{
-						Level:   Info,
-						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
-						Message: "started responding to GET requests over new connections",
+						Level: Info,
 					},
 					From: start1,
 					To:   start2,
 				},
 				Interval{
 					Condition: Condition{
-						Level:   Error,
-						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
-						Message: "stopped responding to GET requests over new connections: Get \"https://api.ci-op-n37nl0in-c1303.ci2.azure.devcluster.openshift.com:6443/apis/oauth.openshift.io/v1/oauthclients\": context deadline exceeded",
+						Level: Error,
 					},
 					From: start2,
 					To:   start3,
 				},
 				Interval{
 					Condition: Condition{
-						Level:   Info,
-						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
-						Message: "started responding to GET requests over new connections",
+						Level: Info,
 					},
 					From: start3,
 					To:   start4,
 				},
 				Interval{
 					Condition: Condition{
-						Level:   Error,
-						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
-						Message: "stopped responding to GET requests over new connections: Get \"https://api.ci-op-n37nl0in-c1303.ci2.azure.devcluster.openshift.com:6443/apis/oauth.openshift.io/v1/oauthclients\": context deadline exceeded",
+						Level: Error,
 					},
 					From: start4,
 					To:   start5,
 				},
 				Interval{
 					Condition: Condition{
-						Level:   Info,
-						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
-						Message: "started responding to GET requests over new connections",
+						Level: Info,
 					},
 					From: start5,
 					To:   start6,
 				},
 				Interval{
 					Condition: Condition{
-						Level:   Error,
-						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
-						Message: "stopped responding to GET requests over new connections: Get \"https://api.ci-op-n37nl0in-c1303.ci2.azure.devcluster.openshift.com:6443/apis/oauth.openshift.io/v1/oauthclients\": context deadline exceeded",
+						Level: Error,
 					},
 					From: start6,
 					To:   start7,
 				},
 				Interval{
 					Condition: Condition{
-						Level:   Info,
-						Locator: "disruption/oauth-api connection/new disruption/oauth-api connection/new",
-						Message: "started responding to GET requests over new connections",
+						Level: Info,
 					},
 					From: start7,
 					To:   start8,

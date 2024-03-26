@@ -2,8 +2,25 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
+      "locator": "ns/openshift-machine-config-operator node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7 hmsg/502676ccb6",
       "message": "reason/Drain roles/worker Draining node to update config.",
+      "tempSource": "KubeEvent",
+      "tempStructuredLocator": {
+        "type": "Node",
+        "keys": {
+          "hmsg": "502676ccb6",
+          "node": "ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "Drain",
+        "cause": "",
+        "humanMessage": "Draining node to update config.",
+        "annotations": {
+          "reason": "Drain",
+          "roles": "worker"
+        }
+      },
       "from": "2023-07-17T22:58:52Z",
       "to": "2023-07-17T22:58:52Z"
     },
@@ -11,6 +28,23 @@
       "level": "Info",
       "locator": "ns/openshift-machine-config-operator node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
       "message": "reason/OSUpdateStarted roles/worker Upgrading OS",
+      "tempSource": "KubeEvent",
+      "tempStructuredLocator": {
+        "type": "Node",
+        "keys": {
+          "hmsg": "873e8ad5d9",
+          "node": "ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7"
+        }
+      },
+      "tempStructuredMessage": {
+        "reason": "OSUpdateStarted",
+        "cause": "",
+        "humanMessage": "Upgrading OS",
+        "annotations": {
+          "reason": "OSUpdateStarted",
+          "roles": "worker"
+        }
+      },
       "from": "2023-07-17T23:00:24Z",
       "to": "2023-07-17T23:00:24Z"
     }

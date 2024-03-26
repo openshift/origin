@@ -17,7 +17,9 @@
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Created"
+        }
       },
       "from": "2022-03-22T22:02:53Z",
       "to": "2022-03-22T22:02:53Z"
@@ -40,7 +42,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "node": "ci-op-ckiwry67-db044-lzjpd-master-0"
+          "node": "ci-op-ckiwry67-db044-lzjpd-master-0",
+          "reason": "Scheduled"
         }
       },
       "from": "2022-03-22T22:02:53Z",
@@ -64,7 +67,9 @@
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Ready"
+        }
       },
       "from": "2022-03-22T22:02:53Z",
       "to": "2022-03-22T22:02:53Z"
@@ -87,7 +92,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "duration": "30s"
+          "duration": "30s",
+          "reason": "GracefulDelete"
         }
       },
       "from": "2022-03-22T22:29:35Z",
@@ -111,7 +117,9 @@
         "reason": "NotReady",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "NotReady"
+        }
       },
       "from": "2022-03-22T22:29:36Z",
       "to": "2022-03-22T22:29:36Z"
@@ -134,7 +142,9 @@
         "reason": "TerminationStateCleared",
         "cause": "",
         "humanMessage": "lastState.terminated was cleared on a pod (bug https://bugzilla.redhat.com/show_bug.cgi?id=1933760 or similar)",
-        "annotations": null
+        "annotations": {
+          "reason": "TerminationStateCleared"
+        }
       },
       "from": "2022-03-22T22:29:36Z",
       "to": "2022-03-22T22:29:36Z"
@@ -158,7 +168,8 @@
         "cause": "Completed",
         "humanMessage": "",
         "annotations": {
-          "code": "0"
+          "code": "0",
+          "reason": "ContainerExit"
         }
       },
       "from": "2022-03-22T22:29:36Z",
@@ -181,7 +192,9 @@
         "reason": "Deleted",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Deleted"
+        }
       },
       "from": "2022-03-22T22:29:36Z",
       "to": "2022-03-22T22:29:36Z"

@@ -100,7 +100,7 @@ func NewPodEventIntervalRenderer() podRendering {
 func (r podRendering) WriteRunData(artifactDir string, _ monitorapi.ResourcesMap, events monitorapi.Intervals, timeSuffix string) error {
 	allNamespaces := sets.NewString()
 	for _, interval := range events {
-		allNamespaces.Insert(monitorapi.NamespaceFromLocator(interval.Locator))
+		allNamespaces.Insert(monitorapi.NamespaceFromLocator(interval.StructuredLocator))
 	}
 
 	namespaceGroups := wellKnownNamespaceGroups()
@@ -175,9 +175,9 @@ func (r ingressServicePodRendering) WriteRunData(artifactDir string, _ monitorap
 			switch {
 			case isInterestingNamespace(eventInterval, relevantNamespaces):
 				return true
-			case monitorapi.IsNode(eventInterval.Locator):
+			case monitorapi.IsNode(eventInterval.StructuredLocator):
 				return true
-			case disruptionReasons.Has(monitorapi.ReasonFrom(eventInterval.Message)):
+			case disruptionReasons.Has(eventInterval.StructuredMessage.Reason):
 				return true
 			}
 			return false

@@ -21,7 +21,7 @@ func WasMasterNodeUpdated(events monitorapi.Intervals) string {
 		// vs
 		// "locator": "node/ip-10-0-228-209.us-west-1.compute.internal",
 		//            "message": "reason/NodeUpdate phase/Update config/rendered-worker-722803a00bad408ee94572ab244ad3bc roles/worker reached desired config roles/worker",
-		if strings.Contains(i.Message, "master") {
+		if strings.Contains(i.StructuredMessage.Annotations[monitorapi.AnnotationRoles], "master") {
 			return "Y"
 		}
 	}
@@ -29,7 +29,7 @@ func WasMasterNodeUpdated(events monitorapi.Intervals) string {
 	return "N"
 }
 
-// TODO this should be taking a client, not a kubeconfig. Can't test a client.
+// TODO this should be taking a client, not a kubeconfig. Can't test a kubeconfig.
 func CollectClusterData(adminKubeConfig *rest.Config, masterNodeUpdated string) platformidentification.ClusterData {
 	clusterData := platformidentification.ClusterData{}
 	var errs *[]error

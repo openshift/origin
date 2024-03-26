@@ -23,8 +23,7 @@ func TestIntervalsFromEvents_OperatorProgressing(t *testing.T) {
 		monitorapi.Interval{
 			Source: monitorapi.SourceClusterOperatorMonitor,
 			Condition: monitorapi.Condition{
-				Level:   monitorapi.Info,
-				Locator: "clusteroperator/network",
+				Level: monitorapi.Info,
 				StructuredLocator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeClusterOperator,
 					Keys: map[monitorapi.LocatorKey]string{
@@ -78,8 +77,7 @@ func TestIntervalsFromEvents_OperatorProgressing2(t *testing.T) {
 		monitorapi.Interval{
 			Source: monitorapi.SourceClusterOperatorMonitor,
 			Condition: monitorapi.Condition{
-				Level:   monitorapi.Warning,
-				Locator: "clusteroperator/kube-apiserver",
+				Level: monitorapi.Warning,
 				StructuredLocator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeClusterOperator,
 					Keys: map[monitorapi.LocatorKey]string{
@@ -102,8 +100,7 @@ func TestIntervalsFromEvents_OperatorProgressing2(t *testing.T) {
 		monitorapi.Interval{
 			Source: monitorapi.SourceClusterOperatorMonitor,
 			Condition: monitorapi.Condition{
-				Level:   monitorapi.Warning,
-				Locator: "clusteroperator/kube-apiserver",
+				Level: monitorapi.Warning,
 				StructuredLocator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeClusterOperator,
 					Keys: map[monitorapi.LocatorKey]string{

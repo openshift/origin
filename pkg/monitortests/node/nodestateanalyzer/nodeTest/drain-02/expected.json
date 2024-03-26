@@ -5,6 +5,7 @@
             "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm row/NodeUpdatePhases",
             "message": "constructed/node-lifecycle-constructor phase/Drain reason/NodeUpdate roles/worker drained node",
             "tempSource": "NodeState",
+            "display": true,
             "tempStructuredLocator": {
                 "type": "Node",
                 "keys": {
@@ -31,6 +32,7 @@
             "locator": "node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm row/NodeUpdatePhases",
             "message": "constructed/node-lifecycle-constructor reason/NodeUpdate roles/worker state/OperatingSystemUpdate never completed",
             "tempSource": "NodeState",
+            "display": true,
             "tempStructuredLocator": {
                 "type": "Node",
                 "keys": {

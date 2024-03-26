@@ -106,7 +106,7 @@
         {
             "level": "Info",
             "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
-            "message": "cause/ constructed/pod-lifecycle-constructor duration/6.00s reason/ContainerStart",
+            "message": "constructed/pod-lifecycle-constructor duration/6.00s reason/ContainerStart",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -122,7 +122,6 @@
                 "cause": "",
                 "humanMessage": "",
                 "annotations": {
-                    "cause": "",
                     "constructed": "pod-lifecycle-constructor",
                     "duration": "6.00s",
                     "reason": "ContainerStart"

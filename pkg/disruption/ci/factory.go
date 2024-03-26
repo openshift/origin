@@ -103,7 +103,7 @@ func (t TestDescriptor) DisruptionLocator() monitorapi.Locator {
 }
 
 func (t TestDescriptor) ShutdownLocator() monitorapi.Locator {
-	return monitorapi.NewLocator().APIServerShutdown(string(t.LoadBalancerType))
+	return monitorapi.NewLocator().KubeAPIServerWithLB(string(t.LoadBalancerType))
 }
 
 func (t TestDescriptor) Validate() error {
