@@ -1398,16 +1398,10 @@ var schemaYAML = typed.YAMLObject(`types:
           elementRelationship: atomic
 - name: com.github.openshift.api.operator.v1.IPsecConfig
   map:
-    elementType:
-      scalar: untyped
-      list:
-        elementType:
-          namedType: __untyped_atomic_
-        elementRelationship: atomic
-      map:
-        elementType:
-          namedType: __untyped_deduced_
-        elementRelationship: separable
+    fields:
+    - name: mode
+      type:
+        scalar: string
 - name: com.github.openshift.api.operator.v1.IPv4GatewayConfig
   map:
     fields:
@@ -2506,6 +2500,8 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: ipsecConfig
       type:
         namedType: com.github.openshift.api.operator.v1.IPsecConfig
+      default:
+        mode: Disabled
     - name: mtu
       type:
         scalar: numeric

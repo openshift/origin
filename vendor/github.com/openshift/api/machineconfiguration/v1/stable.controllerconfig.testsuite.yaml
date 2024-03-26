@@ -1,0 +1,219 @@
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
+name: "[Stable] ControllerConfig"
+crd: 0000_80_machine-config_01_controllerconfigs-Default.crd.yaml
+tests:
+  onCreate:
+  - name: Should be able to create a minimal ControllerConfig
+    initial: |
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: ControllerConfig
+      spec:
+        additionalTrustBundle: Y2VydGlmaWNhdGUK
+        baseOSContainerImage: example.com/example/openshift-release-dev@sha256:d98795f7932441b30bb8bcfbbf05912875383fad1f2b3be08a22ec148d68607e
+        baseOSExtensionsContainerImage: example.com/example/openshift-release-dev@sha256:d98795f7932441b30bb8bcfbbf05912875383fad1f2b3be08a22ec148d68607e
+        cloudProviderCAData: null
+        cloudProviderConfig: ""
+        clusterDNSIP: fd02::a
+        dns:
+          apiVersion: config.openshift.io/v1
+          kind: DNS
+          spec:
+            baseDomain: fake.redhat.com
+        images:
+          machineConfigOperator: rexample.com/example/openshift-release-dev@sha256:2c3ea52ac3a41c6d58e85977c3149413e3fa4b70eb2397426456863adbf43306
+        infra:
+          apiVersion: config.openshift.io/v1
+          kind: Infrastructure
+          spec:
+            cloudConfig:
+              name: ""
+            platformSpec:
+              type: None
+          status:
+            apiServerInternalURI: https://api-int.cnfde4.sno.ptp.lab.eng.bos.redhat.com:6443
+            apiServerURL: https://api.cnfde4.sno.ptp.lab.eng.bos.redhat.com:6443
+            cpuPartitioning: "None"
+            controlPlaneTopology: SingleReplica
+            etcdDiscoveryDomain: ""
+            infrastructureName: cnfde4-sxhr7
+            infrastructureTopology: SingleReplica
+            platform: None
+            platformStatus:
+              type: None
+        ipFamilies: IPv6
+        kubeAPIServerServingCAData: Y2VydGlmaWNhdGUK
+        network: null
+        networkType: OVNKubernetes
+        osImageURL: example.com/example/openshift-release-dev@sha256:eacdc37aec78fdbf8caa9601e4012ab31453cf59b086474901900e853e803ea8
+        platform: none
+        proxy: null
+        pullSecret:
+          name: pull-secret
+          namespace: openshift-config
+        releaseImage: ""
+        rootCAData: Y2VydGlmaWNhdGUK
+    expected: |
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: ControllerConfig
+      spec:
+        additionalTrustBundle: Y2VydGlmaWNhdGUK
+        baseOSContainerImage: example.com/example/openshift-release-dev@sha256:d98795f7932441b30bb8bcfbbf05912875383fad1f2b3be08a22ec148d68607e
+        baseOSExtensionsContainerImage: example.com/example/openshift-release-dev@sha256:d98795f7932441b30bb8bcfbbf05912875383fad1f2b3be08a22ec148d68607e
+        cloudProviderCAData: null
+        cloudProviderConfig: ""
+        clusterDNSIP: fd02::a
+        dns:
+          apiVersion: config.openshift.io/v1
+          kind: DNS
+          spec:
+            baseDomain: fake.redhat.com
+        images:
+          machineConfigOperator: rexample.com/example/openshift-release-dev@sha256:2c3ea52ac3a41c6d58e85977c3149413e3fa4b70eb2397426456863adbf43306
+        infra:
+          apiVersion: config.openshift.io/v1
+          kind: Infrastructure
+          spec:
+            cloudConfig:
+              name: ""
+            platformSpec:
+              type: None
+          status:
+            apiServerInternalURI: https://api-int.cnfde4.sno.ptp.lab.eng.bos.redhat.com:6443
+            apiServerURL: https://api.cnfde4.sno.ptp.lab.eng.bos.redhat.com:6443
+            cpuPartitioning: "None"
+            controlPlaneTopology: SingleReplica
+            etcdDiscoveryDomain: ""
+            infrastructureName: cnfde4-sxhr7
+            infrastructureTopology: SingleReplica
+            platform: None
+            platformStatus:
+              type: None
+        ipFamilies: IPv6
+        kubeAPIServerServingCAData: Y2VydGlmaWNhdGUK
+        network: null
+        networkType: OVNKubernetes
+        osImageURL: example.com/example/openshift-release-dev@sha256:eacdc37aec78fdbf8caa9601e4012ab31453cf59b086474901900e853e803ea8
+        platform: none
+        proxy: null
+        pullSecret:
+          name: pull-secret
+          namespace: openshift-config
+        releaseImage: ""
+        rootCAData: Y2VydGlmaWNhdGUK
+  - name: Should be able to create a ControllerConfig for vSphere with external load balancer
+    initial: |
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: ControllerConfig
+      spec:
+        additionalTrustBundle: Y2VydGlmaWNhdGUK
+        baseOSContainerImage: example.com/example/openshift-release-dev@sha256:d98795f7932441b30bb8bcfbbf05912875383fad1f2b3be08a22ec148d68607e
+        baseOSExtensionsContainerImage: example.com/example/openshift-release-dev@sha256:d98795f7932441b30bb8bcfbbf05912875383fad1f2b3be08a22ec148d68607e
+        cloudProviderCAData: null
+        cloudProviderConfig: ""
+        clusterDNSIP: fd02::a
+        dns:
+          apiVersion: config.openshift.io/v1
+          kind: DNS
+          spec:
+            baseDomain: fake.redhat.com
+        images:
+          machineConfigOperator: rexample.com/example/openshift-release-dev@sha256:2c3ea52ac3a41c6d58e85977c3149413e3fa4b70eb2397426456863adbf43306
+        infra:
+          apiVersion: config.openshift.io/v1
+          kind: Infrastructure
+          spec:
+            cloudConfig:
+              name: ""
+            platformSpec:
+              type: VSphere
+              vsphere: {}
+          status:
+            apiServerInternalURI: https://api-int.cnfde4.sno.ptp.lab.eng.bos.redhat.com:6443
+            apiServerURL: https://api.cnfde4.sno.ptp.lab.eng.bos.redhat.com:6443
+            cpuPartitioning: "None"
+            controlPlaneTopology: SingleReplica
+            etcdDiscoveryDomain: ""
+            infrastructureName: cnfde4-sxhr7
+            infrastructureTopology: SingleReplica
+            platform: VSphere
+            platformStatus:
+              type: VSphere
+              vsphere:
+                apiServerInternalIP: 10.38.153.2
+                apiServerInternalIPs:
+                - 10.38.153.2
+                ingressIP: 10.38.153.3
+                ingressIPs:
+                - 10.38.153.3
+                loadBalancer:
+                  type: UserManaged
+        ipFamilies: IPv6
+        kubeAPIServerServingCAData: Y2VydGlmaWNhdGUK
+        network: null
+        networkType: OVNKubernetes
+        osImageURL: example.com/example/openshift-release-dev@sha256:eacdc37aec78fdbf8caa9601e4012ab31453cf59b086474901900e853e803ea8
+        platform: none
+        proxy: null
+        pullSecret:
+          name: pull-secret
+          namespace: openshift-config
+        releaseImage: ""
+        rootCAData: Y2VydGlmaWNhdGUK
+    expected: |
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: ControllerConfig
+      spec:
+        additionalTrustBundle: Y2VydGlmaWNhdGUK
+        baseOSContainerImage: example.com/example/openshift-release-dev@sha256:d98795f7932441b30bb8bcfbbf05912875383fad1f2b3be08a22ec148d68607e
+        baseOSExtensionsContainerImage: example.com/example/openshift-release-dev@sha256:d98795f7932441b30bb8bcfbbf05912875383fad1f2b3be08a22ec148d68607e
+        cloudProviderCAData: null
+        cloudProviderConfig: ""
+        clusterDNSIP: fd02::a
+        dns:
+          apiVersion: config.openshift.io/v1
+          kind: DNS
+          spec:
+            baseDomain: fake.redhat.com
+        images:
+          machineConfigOperator: rexample.com/example/openshift-release-dev@sha256:2c3ea52ac3a41c6d58e85977c3149413e3fa4b70eb2397426456863adbf43306
+        infra:
+          apiVersion: config.openshift.io/v1
+          kind: Infrastructure
+          spec:
+            cloudConfig:
+              name: ""
+            platformSpec:
+              type: VSphere
+              vsphere: {}
+          status:
+            apiServerInternalURI: https://api-int.cnfde4.sno.ptp.lab.eng.bos.redhat.com:6443
+            apiServerURL: https://api.cnfde4.sno.ptp.lab.eng.bos.redhat.com:6443
+            cpuPartitioning: "None"
+            controlPlaneTopology: SingleReplica
+            etcdDiscoveryDomain: ""
+            infrastructureName: cnfde4-sxhr7
+            infrastructureTopology: SingleReplica
+            platform: VSphere
+            platformStatus:
+              type: VSphere
+              vsphere:
+                apiServerInternalIP: 10.38.153.2
+                apiServerInternalIPs:
+                - 10.38.153.2
+                ingressIP: 10.38.153.3
+                ingressIPs:
+                - 10.38.153.3
+                loadBalancer:
+                  type: UserManaged
+        ipFamilies: IPv6
+        kubeAPIServerServingCAData: Y2VydGlmaWNhdGUK
+        network: null
+        networkType: OVNKubernetes
+        osImageURL: example.com/example/openshift-release-dev@sha256:eacdc37aec78fdbf8caa9601e4012ab31453cf59b086474901900e853e803ea8
+        platform: none
+        proxy: null
+        pullSecret:
+          name: pull-secret
+          namespace: openshift-config
+        releaseImage: ""
+        rootCAData: Y2VydGlmaWNhdGUK

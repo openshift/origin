@@ -1,6 +1,8 @@
 module github.com/openshift/origin
 
-go 1.20
+go 1.21
+
+toolchain go1.21.1
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
@@ -27,7 +29,7 @@ require (
 	github.com/openshift/api v0.0.0-20240319191223-06c557c039fa
 	github.com/openshift/apiserver-library-go v0.0.0-20231218150122-47b436d2f389
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
-	github.com/openshift/client-go v0.0.0-20231218155125-ff7d9f9bf415
+	github.com/openshift/client-go v0.0.0-20240312121557-60dd5f9fbf8d
 	github.com/openshift/cluster-network-operator v0.0.0-20240111190956-90754aa19843
 	github.com/openshift/library-go v0.0.0-20240123164245-c92e150237e3
 	github.com/pborman/uuid v1.2.0
@@ -43,28 +45,29 @@ require (
 	github.com/stretchr/testify v1.8.4
 	go.etcd.io/etcd/client/pkg/v3 v3.5.10
 	go.etcd.io/etcd/client/v3 v3.5.10
-	golang.org/x/crypto v0.14.0
-	golang.org/x/net v0.17.0
+	golang.org/x/crypto v0.21.0
+	golang.org/x/net v0.22.0
 	golang.org/x/oauth2 v0.10.0
+	golang.org/x/sync v0.3.0
 	google.golang.org/grpc v1.58.3
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.29.0
+	k8s.io/api v0.29.2
 	k8s.io/apiextensions-apiserver v0.29.0
-	k8s.io/apimachinery v0.29.0
+	k8s.io/apimachinery v0.29.2
 	k8s.io/apiserver v0.29.0
 	k8s.io/cli-runtime v0.29.0
 	k8s.io/client-go v0.29.0
 	k8s.io/component-base v0.29.0
 	k8s.io/component-helpers v0.29.0
-	k8s.io/klog/v2 v2.110.1
+	k8s.io/klog/v2 v2.120.1
 	k8s.io/kube-aggregator v0.29.0
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
 	k8s.io/kubectl v0.29.0
 	k8s.io/kubernetes v1.29.0
 	k8s.io/legacy-cloud-providers v0.29.0
 	k8s.io/pod-security-admission v0.29.0
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
+	k8s.io/utils v0.0.0-20240310230437-4693a0247e57
 	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1
 	sigs.k8s.io/yaml v1.3.0
@@ -130,7 +133,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
-	github.com/go-logr/logr v1.3.0 // indirect
+	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
@@ -252,10 +255,9 @@ require (
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.12.0 // indirect
 	google.golang.org/api v0.126.0 // indirect

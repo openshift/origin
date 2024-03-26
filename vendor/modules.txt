@@ -332,11 +332,10 @@ github.com/go-errors/errors
 # github.com/go-ldap/ldap/v3 v3.4.3
 ## explicit; go 1.13
 github.com/go-ldap/ldap/v3
-# github.com/go-logr/logr v1.3.0
+# github.com/go-logr/logr v1.4.1
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
-github.com/go-logr/logr/slogr
 # github.com/go-logr/stdr v1.2.2
 ## explicit; go 1.16
 github.com/go-logr/stdr
@@ -806,6 +805,8 @@ github.com/openshift/api/machine
 github.com/openshift/api/machine/v1
 github.com/openshift/api/machine/v1alpha1
 github.com/openshift/api/machine/v1beta1
+github.com/openshift/api/machineconfiguration/v1
+github.com/openshift/api/machineconfiguration/v1alpha1
 github.com/openshift/api/monitoring
 github.com/openshift/api/monitoring/v1alpha1
 github.com/openshift/api/network
@@ -875,7 +876,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20231218155125-ff7d9f9bf415
+# github.com/openshift/client-go v0.0.0-20240312121557-60dd5f9fbf8d
 ## explicit; go 1.21
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal
@@ -935,6 +936,13 @@ github.com/openshift/client-go/machine/clientset/versioned
 github.com/openshift/client-go/machine/clientset/versioned/scheme
 github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1
 github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1
+github.com/openshift/client-go/machineconfiguration/applyconfigurations/internal
+github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1
+github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1alpha1
+github.com/openshift/client-go/machineconfiguration/clientset/versioned
+github.com/openshift/client-go/machineconfiguration/clientset/versioned/scheme
+github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1
+github.com/openshift/client-go/machineconfiguration/clientset/versioned/typed/machineconfiguration/v1alpha1
 github.com/openshift/client-go/network/applyconfigurations/internal
 github.com/openshift/client-go/network/applyconfigurations/network/v1
 github.com/openshift/client-go/network/clientset/versioned/scheme
@@ -1425,8 +1433,8 @@ go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
 go.uber.org/zap/zaptest
-# golang.org/x/crypto v0.14.0
-## explicit; go 1.17
+# golang.org/x/crypto v0.21.0
+## explicit; go 1.18
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
@@ -1463,8 +1471,8 @@ golang.org/x/exp/slices
 # golang.org/x/mod v0.12.0
 ## explicit; go 1.17
 golang.org/x/mod/semver
-# golang.org/x/net v0.17.0
-## explicit; go 1.17
+# golang.org/x/net v0.22.0
+## explicit; go 1.18
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/html
@@ -1492,8 +1500,8 @@ golang.org/x/oauth2/jwt
 ## explicit; go 1.17
 golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.13.0
-## explicit; go 1.17
+# golang.org/x/sys v0.18.0
+## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/plan9
@@ -1501,11 +1509,11 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc
-# golang.org/x/term v0.13.0
-## explicit; go 1.17
+# golang.org/x/term v0.18.0
+## explicit; go 1.18
 golang.org/x/term
-# golang.org/x/text v0.13.0
-## explicit; go 1.17
+# golang.org/x/text v0.14.0
+## explicit; go 1.18
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
@@ -1781,7 +1789,7 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.29.0 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20240111201904-913d16a5d9fb
+# k8s.io/api v0.29.2 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20240111201904-913d16a5d9fb
 ## explicit; go 1.20
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1888,7 +1896,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor
 k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
-# k8s.io/apimachinery v0.29.0 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20240111201904-913d16a5d9fb
+# k8s.io/apimachinery v0.29.2 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20240111201904-913d16a5d9fb
 ## explicit; go 1.20
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/equality
@@ -2560,8 +2568,8 @@ k8s.io/csi-translation-lib/plugins
 # k8s.io/dynamic-resource-allocation v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/dynamic-resource-allocation v0.0.0-20240111201904-913d16a5d9fb
 ## explicit; go 1.20
 k8s.io/dynamic-resource-allocation/resourceclaim
-# k8s.io/klog/v2 v2.110.1
-## explicit; go 1.13
+# k8s.io/klog/v2 v2.120.1
+## explicit; go 1.18
 k8s.io/klog/v2
 k8s.io/klog/v2/internal/buffer
 k8s.io/klog/v2/internal/clock
@@ -3546,7 +3554,7 @@ k8s.io/pod-security-admission/policy
 k8s.io/sample-apiserver/pkg/apis/wardle
 k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1
 k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1
-# k8s.io/utils v0.0.0-20230726121419-3b25d923346b
+# k8s.io/utils v0.0.0-20240310230437-4693a0247e57
 ## explicit; go 1.18
 k8s.io/utils/buffer
 k8s.io/utils/clock
