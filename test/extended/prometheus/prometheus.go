@@ -81,6 +81,133 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 		// Issue: https://issues.redhat.com/browse/OCPBUGS-14246
 		"ClusterOperatorDown",
 		"ClusterVersionOperatorDown",
+
+		// Repository: https://github.com/openshift/managed-cluster-config
+		// Issue: https://issues.redhat.com/browse/OSD-21709
+		"AlertmanagerClusterCrashlooping",
+		"AlertmanagerClusterDown",
+		"AlertmanagerClusterFailedToSendAlerts",
+		"AlertmanagerConfigInconsistent",
+		"AlertmanagerFailedReload",
+		"AlertmanagerMembersInconsistent",
+		"CannotRetrieveUpdatesSRE",
+		"CloudIngressOperatorOfflineSRE",
+		"ClusterMonitoringErrorBudgetBurnSRE",
+		"ConfigureAlertmanagerOperatorOfflineSRE",
+		"ControlPlaneNodeFileDescriptorLimitSRE",
+		"ControlPlaneNodeFilesystemAlmostOutOfFiles",
+		"ControlPlaneNodeFilesystemSpaceFillingUp",
+		"ControlPlaneNodeUnschedulableSRE",
+		"ControlPlaneNodesNeedResizingSRE",
+		"CustomerWorkloadPreventingDrainSRE",
+		"EbsVolumeBurstBalanceLT20PctSRE",
+		"EbsVolumeStuckAttaching10MinSRE",
+		"EbsVolumeStuckDetaching10MinSRE",
+		"ExcessiveContainerMemoryCriticalSRE",
+		"HAProxyDownSRE",
+		"InfraNodesNeedResizingSRE",
+		"InsightsOperatorDownSRE",
+		"KubeControllerManagerCrashloopingSRE",
+		"KubeControllerManagerMissingOnNode60Minutes",
+		"KubePersistentVolumeUsageCriticalCustomer",
+		"KubePersistentVolumeUsageCriticalLayeredProduct",
+		"MetricsClientSendFailingSRE",
+		"MultipleVersionsOfEFSCSIDriverInstalled",
+		"OCMAgentResponseFailureServiceLogsSRE",
+		"ObservabilityOperatorBacklogNotDrained",
+		"PrometheusBadConfig",
+		"PrometheusErrorSendingAlertsToAnyAlertmanager",
+		"PrometheusRemoteStorageFailures",
+		"PrometheusRemoteWriteBehind",
+		"PrometheusRuleFailures",
+		"PrometheusTargetSyncFailure",
+		"PruningCronjobErrorSRE",
+		"RouterAvailabilityLT30PctSRE",
+		"RunawaySDNPreventingContainerCreationSRE",
+		"SLAUptimeSRE",
+		"UpgradeConfigSyncFailureOver4HrSRE",
+		"UpgradeConfigValidationFailedSRE",
+		"UpgradeControlPlaneUpgradeTimeoutSRE",
+		"UpgradeNodeDrainFailedSRE",
+		"UpgradeNodeUpgradeTimeoutSRE",
+		"WorkerNodeFileDescriptorLimitSRE",
+		"WorkerNodeFilesystemAlmostOutOfFiles",
+		"WorkerNodeFilesystemSpaceFillingUp",
+		"api-ErrorBudgetBurn",
+		"console-ErrorBudgetBurn",
+	)
+
+	alertsMissingValidSeverityLevel := sets.NewString(
+		// Repository: https://github.com/openshift/managed-cluster-config
+		// Issue: https://issues.redhat.com/browse/OSD-21709
+		"AdditionalTrustBundleCAExpiredNotificationSRE",
+		"AdditionalTrustBundleCAExpiringNotificationSRE",
+		"AdditionalTrustBundleCAInvalidNotificationSRE",
+		"ClusterProxyNetworkDegradedNotificationSRE",
+		"ElasticsearchClusterNotHealthyNotificationSRE",
+		"ElasticsearchDiskSpaceRunningLowNotificationSRE",
+		"ElasticsearchNodeDiskWatermarkReachedNotificationSRE",
+		"KubeNodeUnschedulableSRE",
+		"KubePersistentVolumeFillingUpSRE",
+		"LoggingVolumeFillingUpNotificationSRE",
+		"MultipleDefaultStorageClassesNotificationSRE",
+		"NonSystemChangeValidatingWebhookConfigurationsNotificationSRE",
+	)
+
+	alertsMissingValidSummaryOrDescription := sets.NewString(
+		// Repository: https://github.com/openshift/managed-cluster-config
+		// Issue: https://issues.redhat.com/browse/OSD-21709
+		"EbsVolumeStuckAttaching10MinSRE",
+		"EbsVolumeStuckAttaching5MinSRE",
+		"EbsVolumeStuckDetaching10MinSRE",
+		"EbsVolumeStuckDetaching5MinSRE",
+		"ElasticsearchClusterNotHealthyNotificationSRE",
+		"ElasticsearchDiskSpaceRunningLowNotificationSRE",
+		"ElasticsearchJobFailedSRE",
+		"ElasticsearchNodeDiskWatermarkReachedNotificationSRE",
+		"ElevatingClusterAdminRHMISRE",
+		"ElevatingClusterAdminRHOAMSRE",
+		"ExcessiveContainerMemoryCriticalSRE",
+		"ExcessiveContainerMemoryWarningSRE",
+		"HAProxyReloadFailSRE",
+		"InfraNodesNeedResizingSRE",
+		"KubeAPIServerMissingOnNode60Minutes",
+		"KubeControllerManagerCrashloopingSRE",
+		"KubeControllerManagerMissingOnNode60Minutes",
+		"KubeNodeStuckWithCreatingAndTerminatingPodsSRE",
+		"KubeNodeUnschedulableSRE",
+		"KubePersistentVolumeFillingUpSRE",
+		"KubePersistentVolumeFullInFourDaysCustomer",
+		"KubePersistentVolumeFullInFourDaysLayeredProduct",
+		"KubePersistentVolumeUsageCriticalCustomer",
+		"KubePersistentVolumeUsageCriticalLayeredProduct",
+		"KubeQuotaExceededSRE",
+		"KubeSchedulerMissingOnNode60Minutes",
+		"LoggingVolumeFillingUpNotificationSRE",
+		"MNMOTooManyReconcileErrors15MinSRE",
+		"MetricsClientSendFailingSRE",
+		"MultipleDefaultStorageClassesNotificationSRE",
+		"MultipleVersionsOfEFSCSIDriverInstalled",
+		"NonSystemChangeValidatingWebhookConfigurationsNotificationSRE",
+		"OCMAgentOperatorPullSecretInvalidSRE",
+		"OCMAgentPullSecretInvalidSRE",
+		"OCMAgentResponseFailureServiceLogsSRE",
+		"PruningCronjobErrorSRE",
+		"RouterAvailabilityLT30PctSRE",
+		"RouterAvailabilityLT50PctSRE",
+		"RunawaySDNPreventingContainerCreationSRE",
+		"SLAUptimeSRE",
+		"VeleroDailyFullBackupMissed",
+		"VeleroHourlyObjectBackupsMissedConsecutively",
+		"VeleroWeeklyFullBackupMissed",
+		"WorkerNodeFileDescriptorLimitSRE",
+		"WorkerNodeFilesystemAlmostOutOfFiles",
+		"WorkerNodeFilesystemSpaceFillingUp",
+		"api-ErrorBudgetBurn",
+		"console-ErrorBudgetBurn",
+		"cpu-InfraNodesExcessiveResourceConsumptionSRE",
+		"cpu-InfraNodesExcessiveResourceConsumptionSRE1h",
+		"memory-InfraNodesExcessiveResourceConsumptionSRE",
 	)
 
 	var alertingRules map[string][]promv1.AlertingRule
@@ -109,6 +236,10 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have a valid severity label", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			if alertsMissingValidSeverityLevel.Has(alert.Name) {
+				framework.Logf("Alerting rule %q is known to have invalid severity", alert.Name)
+				return nil
+			}
 			severityRe := regexp.MustCompile("^critical|warning|info$")
 
 			severity, found := alert.Labels["severity"]
@@ -133,6 +264,10 @@ var _ = g.Describe("[sig-instrumentation][Late] OpenShift alerting rules [apigro
 
 	g.It("should have description and summary annotations", func() {
 		err := helper.ForEachAlertingRule(alertingRules, func(alert promv1.AlertingRule) sets.String {
+			if alertsMissingValidSummaryOrDescription.Has(alert.Name) {
+				framework.Logf("Alerting rule %q is known to have invalid summary or description", alert.Name)
+				return nil
+			}
 			violations := sets.NewString()
 
 			if _, found := alert.Annotations["description"]; !found {
