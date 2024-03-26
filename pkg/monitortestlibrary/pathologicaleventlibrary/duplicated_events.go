@@ -222,7 +222,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 	nsResults := map[string]*eventResult{}
 	for intervalDisplayMsg, interval := range displayToCount {
 		namespace := interval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
-		intervalMsgWithTime := intervalDisplayMsg + " From: " + interval.From.Format("15:04:05Z") + " To: " + interval.To.Format("15:04:05Z")
+		intervalMsgWithTime := intervalDisplayMsg + " (" + interval.From.Format("15:04:05Z") + ")"
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v",
 			GetTimesAnEventHappened(interval.StructuredMessage), intervalMsgWithTime)
 
