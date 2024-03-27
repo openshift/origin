@@ -2,6 +2,7 @@ package descriptions
 
 import (
 	"github.com/openshift/api/annotations"
+	"github.com/openshift/library-go/pkg/markdown"
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 )
 
@@ -9,7 +10,7 @@ type DescriptionRequirements struct{}
 
 func NewDescriptionRequirement() tlsmetadatainterfaces.Requirement {
 
-	md := tlsmetadatainterfaces.NewMarkdown("")
+	md := markdown.NewMarkdown("")
 	md.Text("TLS artifacts must have user-facing descriptions on their in-cluster resources.")
 	md.Text("These descriptions must be in the style of API documentation and must include")
 	md.OrderedListStart()

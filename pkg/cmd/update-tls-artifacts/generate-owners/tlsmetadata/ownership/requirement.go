@@ -3,6 +3,7 @@ package ownership
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/openshift/library-go/pkg/markdown"
 
 	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
 
@@ -93,7 +94,7 @@ func generateOwnershipMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, e
 		caBundlesByOwner[owner] = append(caBundlesByOwner[owner], curr)
 	}
 
-	md := tlsmetadatainterfaces.NewMarkdown("Certificate Ownership")
+	md := markdown.NewMarkdown("Certificate Ownership")
 
 	if len(certsWithoutOwners) > 0 || len(caBundlesWithoutOwners) > 0 {
 		md.Title(2, fmt.Sprintf("Missing Owners (%d)", len(certsWithoutOwners)+len(caBundlesWithoutOwners)))
