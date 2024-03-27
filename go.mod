@@ -2,8 +2,6 @@ module github.com/openshift/origin
 
 go 1.21
 
-toolchain go1.21.8
-
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/monitor/armmonitor v0.10.2
