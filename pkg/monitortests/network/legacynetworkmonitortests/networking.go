@@ -66,6 +66,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 		{by: " by ovn default network ready", substring: "have you checked that your default network is ready? still waiting for readinessindicatorfile"},
 		{by: " by adding pod to network", substring: "failed (add)"},
 		{by: " by initializing docker source", substring: `can't talk to a V1 container registry`},
+		{by: " by binding hostport", substring: "failed to add hostport"},
 		{by: " by other", substring: " "}, // always matches
 	}
 
@@ -164,6 +165,13 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 				flakes = append(flakes, fmt.Sprintf("%v - i/o timeout common flake when pinging container registry on azure - %v", event.Locator, event.Message))
 				continue
 			}
+		}
+		if strings.Contains(event.Message, "cannot open hostport 21017") {
+			// The "Should recreate evicted statefulset" test intentionally
+			// causes a hostport conflict and then ensures that it gets
+			// resolved correctly when the conflict goes away, but in some
+			// cases, it will transiently hit this error.
+			continue
 		}
 
 		partialLocator := monitorapi.NonUniquePodLocatorFrom(event.Locator)
