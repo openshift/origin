@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sa-token
+  namespace: e2e-ns
+spec:
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/master
+      operator: Exists
+      effect: NoSchedule
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: sleeper
+      image: registry.build03.ci.openshift.org/ci-ln-i4f498b/stable@sha256:9f9772bb3afa8877a2d58de06d35e75e213bc75df692ee2223746ff3cdf9ced1
+      command:
+        - sleep
+      args:
+        - "1200"
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
