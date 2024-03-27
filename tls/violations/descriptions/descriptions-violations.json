@@ -3,22 +3,6 @@
         {
             "configMapLocation": {
                 "Namespace": "openshift-apiserver",
-                "Name": "etcd-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-apiserver",
                 "Name": "trusted-ca-bundle"
             },
             "certificateAuthorityBundleInfo": {
@@ -262,49 +246,13 @@
                 "Name": "admin-kubeconfig-client-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "etcd-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "etcd-metric-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Etcd"
+                        "value": "kube-apiserver"
                     }
                 ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-config",
-                "Name": "etcd-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
+                "owningJiraComponent": "kube-apiserver",
                 "description": ""
             }
         },
@@ -350,10 +298,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-controller-manager"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-controller-manager",
@@ -382,7 +326,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -400,10 +344,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -420,10 +360,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -450,10 +386,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-controller-manager"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-controller-manager",
@@ -544,10 +476,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -567,100 +495,6 @@
                     }
                 ],
                 "owningJiraComponent": "Networking / cluster-network-operator",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-metrics-proxy-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-client-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd-operator",
-                "Name": "etcd-ca-bundle"
-            },
-            "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-etcd-operator",
-                "Name": "etcd-metric-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -724,7 +558,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -742,29 +576,9 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -778,10 +592,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -798,10 +608,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-controller-manager"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-controller-manager",
@@ -836,7 +642,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -856,7 +662,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -874,10 +680,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -894,10 +696,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -914,10 +712,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -936,7 +730,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -954,10 +748,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -976,7 +766,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -994,10 +784,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -1014,10 +800,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-controller-manager"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-controller-manager",
@@ -1050,10 +832,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-controller-manager"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-controller-manager",
@@ -1070,10 +848,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-controller-manager"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-controller-manager",
@@ -1106,10 +880,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-scheduler"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-scheduler",
@@ -1250,23 +1020,17 @@
                 "Name": "network-node-identity-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "configMapLocation": {
-                "Namespace": "openshift-oauth-apiserver",
-                "Name": "etcd-serving-ca"
-            },
-            "certificateAuthorityBundleInfo": {
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Etcd"
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
                     }
                 ],
-                "owningJiraComponent": "Etcd",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -1276,7 +1040,17 @@
                 "Name": "ovn-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -1286,7 +1060,17 @@
                 "Name": "signer-ca"
             },
             "certificateAuthorityBundleInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -1300,10 +1084,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -1312,86 +1092,6 @@
         }
     ],
     "certKeyPairs": [
-        {
-            "secretLocation": {
-                "Namespace": "openshift-apiserver",
-                "Name": "etcd-client"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-config",
-                "Name": "etcd-client"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-config",
-                "Name": "etcd-metric-client"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-config",
-                "Name": "etcd-metric-signer"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-config",
-                "Name": "etcd-signer"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
         {
             "secretLocation": {
                 "Namespace": "openshift-config-managed",
@@ -1404,7 +1104,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1424,203 +1124,11 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-client"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-\u003cmaster-0\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-\u003cmaster-1\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-peer-\u003cmaster-2\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-\u003cmaster-0\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-\u003cmaster-1\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-\u003cmaster-2\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-\u003cmaster-0\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-\u003cmaster-1\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd",
-                "Name": "etcd-serving-metrics-\u003cmaster-2\u003e"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd-operator",
-                "Name": "etcd-client"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-etcd-operator",
-                "Name": "etcd-metric-client"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -1656,7 +1164,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1676,7 +1184,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1696,27 +1204,11 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-kube-apiserver",
-                "Name": "etcd-client"
-            },
-            "certKeyInfo": {
-                "selectedCertMetadataAnnotations": [
-                    {
-                        "key": "openshift.io/owning-component",
-                        "value": "Etcd"
-                    }
-                ],
-                "owningJiraComponent": "Etcd",
                 "description": ""
             }
         },
@@ -1732,7 +1224,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1752,7 +1244,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1772,7 +1264,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1790,10 +1282,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -1812,7 +1300,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1832,7 +1320,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1914,10 +1402,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-apiserver"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-apiserver",
@@ -1952,7 +1436,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -1972,7 +1456,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -2006,10 +1490,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-controller-manager"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-controller-manager",
@@ -2028,7 +1508,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -2046,10 +1526,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "kube-controller-manager"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "kube-controller-manager",
@@ -2084,7 +1560,7 @@
                         "value": "kube-apiserver"
                     },
                     {
-                        "key": "openshift.io/description",
+                        "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
                         "value": ""
                     }
                 ],
@@ -2128,10 +1604,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "Monitoring"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "Monitoring",
@@ -2148,10 +1620,6 @@
                     {
                         "key": "openshift.io/owning-component",
                         "value": "Monitoring"
-                    },
-                    {
-                        "key": "openshift.io/description",
-                        "value": ""
                     }
                 ],
                 "owningJiraComponent": "Monitoring",
@@ -2164,7 +1632,17 @@
                 "Name": "network-node-identity-ca"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2174,23 +1652,17 @@
                 "Name": "network-node-identity-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
-                "description": ""
-            }
-        },
-        {
-            "secretLocation": {
-                "Namespace": "openshift-oauth-apiserver",
-                "Name": "etcd-client"
-            },
-            "certKeyInfo": {
                 "selectedCertMetadataAnnotations": [
                     {
                         "key": "openshift.io/owning-component",
-                        "value": "Etcd"
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
                     }
                 ],
-                "owningJiraComponent": "Etcd",
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2252,7 +1724,17 @@
                 "Name": "ovn-ca"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2262,7 +1744,17 @@
                 "Name": "ovn-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2272,7 +1764,17 @@
                 "Name": "signer-ca"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         },
@@ -2282,7 +1784,17 @@
                 "Name": "signer-cert"
             },
             "certKeyInfo": {
-                "owningJiraComponent": "",
+                "selectedCertMetadataAnnotations": [
+                    {
+                        "key": "openshift.io/owning-component",
+                        "value": "Networking / cluster-network-operator"
+                    },
+                    {
+                        "key": "openshift.io/description",
+                        "value": ""
+                    }
+                ],
+                "owningJiraComponent": "Networking / cluster-network-operator",
                 "description": ""
             }
         }
