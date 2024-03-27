@@ -12944,7 +12944,7 @@ func examplesHelloOpenshiftDockerfile() (*asset, error) {
 
 var _examplesHelloOpenshiftGoMod = []byte(`module github.com/openshift/origin/examples/hello-openshift
 
-go 1.19
+go 1.21
 `)
 
 func examplesHelloOpenshiftGoModBytes() ([]byte, error) {
