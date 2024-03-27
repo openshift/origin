@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	"github.com/openshift/library-go/pkg/markdown"
 	"github.com/openshift/origin/pkg/certs"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -99,7 +100,7 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 		compliantCABundlesByOwner[owner] = append(compliantCABundlesByOwner[owner], curr)
 	}
 
-	md := NewMarkdown(o.title)
+	md := markdown.NewMarkdown(o.title)
 	md.Title(2, "How to meet the requirement")
 	md.ExactText(o.explanationMD)
 

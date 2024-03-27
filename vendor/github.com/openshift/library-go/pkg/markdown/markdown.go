@@ -1,4 +1,4 @@
-package tlsmetadatainterfaces
+package markdown
 
 import (
 	"bytes"
@@ -29,7 +29,7 @@ func (m *Markdown) Bytes() []byte {
 	ret := &bytes.Buffer{}
 	fmt.Fprintf(ret, "# %s\n\n", m.title)
 	fmt.Fprintf(ret, "## Table of Contents\n")
-	fmt.Fprintf(ret, m.tableOfContents.String())
+	fmt.Fprint(ret, m.tableOfContents.String())
 	fmt.Fprintln(ret, "")
 	fmt.Fprintln(ret, "")
 	fmt.Fprintf(ret, m.body.String())
@@ -74,6 +74,10 @@ func (m *Markdown) ExactText(text string) {
 	fmt.Fprintf(m.body, "%s%s\n", prefix, text)
 }
 
+func (m *Markdown) Exact(text string) {
+	fmt.Fprintf(m.body, "%s", text)
+}
+
 func (m *Markdown) Text(text string) {
 	m.ExactText(EscapeForLiteral(text))
 }
@@ -104,6 +108,14 @@ func (m *Markdown) OrderedListEnd() {
 	if m.orderedListDepth < 0 {
 		m.orderedListDepth = 0
 	}
+}
+
+func (m *Markdown) NextTableColumn() {
+	m.Exact("| ")
+}
+
+func (m *Markdown) EndTableRow() {
+	m.Exact(" |\n")
 }
 
 // EscapeForLiteral escapes common characters so they render properly
