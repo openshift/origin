@@ -84,6 +84,7 @@ func (f *RunUpgradeSuiteFlags) ToOptions(args []string) (*RunUpgradeSuiteOptions
 		f.AvailableSuites,
 		args,
 		kubeconfig.NewDiscoveryGetter(adminRESTConfig),
+		kubeconfig.NewConfigClientGetter(adminRESTConfig),
 		f.GinkgoRunSuiteOptions.DryRun,
 		nil,
 	)
