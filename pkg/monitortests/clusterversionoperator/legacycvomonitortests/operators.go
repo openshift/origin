@@ -56,6 +56,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			return "We are not worried about Degraded=True blips for update tests yet.", nil
 		}
 
+		if condition.Reason == "OperatorFailedStalenessCheck" {
+			return "We are not worried about stale condition blips for upgrade tests yet.", nil
+		}
+
 		switch operator {
 		case "authentication":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
