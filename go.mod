@@ -323,3 +323,5 @@ replace (
 	k8s.io/sample-cli-plugin => github.com/openshift/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20240111201904-913d16a5d9fb
 	k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20240111201904-913d16a5d9fb
 )
+
+replace github.com/openshift/library-go => github.com/sanchezl/library-go prometheus-k8s-bound-token
