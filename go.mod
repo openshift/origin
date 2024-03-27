@@ -1,6 +1,8 @@
 module github.com/openshift/origin
 
-go 1.20
+go 1.21
+
+toolchain go1.21.8
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
@@ -324,4 +326,4 @@ replace (
 	k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20240111201904-913d16a5d9fb
 )
 
-replace github.com/openshift/library-go => github.com/sanchezl/library-go prometheus-k8s-bound-token
+replace github.com/openshift/library-go => github.com/sanchezl/library-go v0.0.0-20240326204256-92a630e99176
