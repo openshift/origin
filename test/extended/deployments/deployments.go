@@ -108,6 +108,23 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		imageChangeTriggerFixture       = exutil.FixturePath("testdata", "deployments", "deployment-trigger.yaml")
 	)
 
+	// Check if there are nodes of different architectures
+	isMultiArchCluster := false
+	output, err := oc.WithoutNamespace().AsAdmin().Run("get").Args("nodes", "-o=jsonpath={.items[*].status.nodeInfo.architecture}").Output()
+	if err != nil {
+		e2e.Logf("unable to get the cluster architecture: %v", err)
+	} else {
+		if output != "" {
+			architectureList := strings.Split(output, " ")
+			for _, nodeArchitecture := range architectureList[1:] {
+				if nodeArchitecture != architectureList[0] {
+					isMultiArchCluster = true
+					break
+				}
+			}
+		}
+	}
+
 	g.Describe("when run iteratively", func() {
 		dcName := "deployment-simple"
 		g.AfterEach(func() {
@@ -428,7 +445,11 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(waitForSyncedConfig(oc, dcName, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
 			g.By("tagging the initial test:v1 image")
-			_, err = oc.Run("tag").Args(image.LimitedShellImage(), "test:v1").Output()
+			args := []string{image.LimitedShellImage(), "test:v1"}
+			if isMultiArchCluster {
+				args = append(args, "--import-mode=PreserveOriginal")
+			}
+			_, err = oc.Run("tag").Args(args...).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			expectLatestVersion := func(version int) {
@@ -459,7 +480,11 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(waitForSyncedConfig(oc, dcName, deploymentRunTimeout)).NotTo(o.HaveOccurred())
 
 			g.By("tagging a different image as test:v2")
-			_, err = oc.Run("tag").Args(image.ShellImage(), "test:v2").Output()
+			args = []string{image.ShellImage(), "test:v2"}
+			if isMultiArchCluster {
+				args = append(args, "--import-mode=PreserveOriginal")
+			}
+			_, err = oc.Run("tag").Args(args...).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("ensuring the deployment config latest version is 2 and rollout completed")
@@ -548,10 +573,18 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 		g.It("should run a successful deployment with multiple triggers [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
 			g.By("creating DC")
 
-			_, err := oc.Run("import-image").Args("registry.redhat.io/ubi8/ruby-30:latest", "--confirm", "--reference-policy=local").Output()
+			args := []string{"registry.redhat.io/ubi8/ruby-30:latest", "--confirm", "--reference-policy=local"}
+			if isMultiArchCluster {
+				args = append(args, "--import-mode=PreserveOriginal")
+			}
+			_, err := oc.Run("import-image").Args(args...).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			_, err = oc.Run("import-image").Args("registry.redhat.io/rhel8/postgresql-13:latest", "--confirm", "--reference-policy=local").Output()
+			args = []string{"registry.redhat.io/rhel8/postgresql-13:latest", "--confirm", "--reference-policy=local"}
+			if isMultiArchCluster {
+				args = append(args, "--import-mode=PreserveOriginal")
+			}
+			_, err = oc.Run("import-image").Args(args...).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			dc, err := createDeploymentConfig(oc, multipleICTFixture)
@@ -563,7 +596,11 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 
 		g.It("should run a successful deployment with a trigger used by different containers [apigroup:apps.openshift.io][apigroup:image.openshift.io]", func() {
 
-			_, err := oc.Run("import-image").Args("registry.redhat.io/ubi8/ruby-30:latest", "--confirm", "--reference-policy=local").Output()
+			args := []string{"registry.redhat.io/ubi8/ruby-30:latest", "--confirm", "--reference-policy=local"}
+			if isMultiArchCluster {
+				args = append(args, "--import-mode=PreserveOriginal")
+			}
+			_, err := oc.Run("import-image").Args(args...).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			dc, err := createDeploymentConfig(oc, anotherMultiICTFixture)
@@ -1535,7 +1572,11 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("tagging the tools image as test:v1 to create ImageStream")
-			out, err := oc.Run("tag").Args(image.ShellImage(), "test:v1").Output()
+			args := []string{image.ShellImage(), "test:v1"}
+			if isMultiArchCluster {
+				args = append(args, "--import-mode=PreserveOriginal")
+			}
+			out, err := oc.Run("tag").Args(args...).Output()
 			e2e.Logf("%s", out)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
