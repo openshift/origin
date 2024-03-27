@@ -316,7 +316,7 @@ replace (
 	k8s.io/kube-scheduler => github.com/openshift/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20240111201904-913d16a5d9fb
 	k8s.io/kubectl => github.com/openshift/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20240111201904-913d16a5d9fb
 	k8s.io/kubelet => github.com/openshift/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20240111201904-913d16a5d9fb
-	k8s.io/kubernetes => github.com/openshift/kubernetes v1.29.0-rc.1.0.20240111201904-913d16a5d9fb
+	k8s.io/kubernetes => github.com/sanchezl/kubernetes no-token-secrets-01
 	k8s.io/legacy-cloud-providers => github.com/openshift/kubernetes/staging/src/k8s.io/legacy-cloud-providers v0.0.0-20240111201904-913d16a5d9fb
 	k8s.io/metrics => github.com/openshift/kubernetes/staging/src/k8s.io/metrics v0.0.0-20240111201904-913d16a5d9fb
 	k8s.io/mount-utils => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20240111201904-913d16a5d9fb
