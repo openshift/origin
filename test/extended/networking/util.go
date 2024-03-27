@@ -593,9 +593,9 @@ func networkAttachmentDefinitionClient(config *rest.Config) (dynamic.Namespaceab
 }
 
 func getIPFamilyForCluster(f *e2e.Framework) IPFamily {
-	podIPs, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
+	p, err := createPod(f.ClientSet, f.Namespace.Name, "test-ip-family-pod")
 	expectNoError(err)
-	return getIPFamily(podIPs)
+	return getIPFamily(p.Status.PodIPs)
 }
 
 func getIPFamily(podIPs []v1.PodIP) IPFamily {
@@ -622,21 +622,25 @@ func getIPFamily(podIPs []v1.PodIP) IPFamily {
 	}
 }
 
-func createPod(client k8sclient.Interface, ns, generateName string) ([]corev1.PodIP, error) {
+func createPod(client k8sclient.Interface, ns, generateName string, tweak ...func(*corev1.Pod)) (*corev1.Pod, error) {
 	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
 	pod.ObjectMeta.GenerateName = generateName
+	for _, f := range tweak {
+		f(pod)
+	}
+
 	execPod, err := client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 	expectNoError(err, "failed to create new pod in namespace: %s", ns)
-	var podIPs []corev1.PodIP
+	var p *corev1.Pod
 	err = wait.PollImmediate(poll, 2*time.Minute, func() (bool, error) {
 		retrievedPod, err := client.CoreV1().Pods(execPod.Namespace).Get(context.TODO(), execPod.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
-		podIPs = retrievedPod.Status.PodIPs
+		p = retrievedPod
 		return retrievedPod.Status.Phase == corev1.PodRunning, nil
 	})
-	return podIPs, err
+	return p, err
 }
 
 // SubnetIPs enumerates all IP addresses in an IP subnet (starting with the provided IP address and including the broadcast address).
@@ -693,4 +697,64 @@ func GetIPAddressFamily(oc *exutil.CLI) (bool, bool, error) {
 		}
 	}
 	return hasIPv4, hasIPv6, nil
+}
+
+func updatePodLabels(f *e2e.Framework, pod *v1.Pod, labels map[string]string) error {
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		p, err := f.ClientSet.CoreV1().Pods(pod.Namespace).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		p.Labels = labels
+		_, err = f.ClientSet.CoreV1().Pods(pod.Namespace).Update(context.TODO(), p, metav1.UpdateOptions{})
+		return err
+	})
+
+	return err
+}
+
+func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, generateName string) (*v1.Pod, error) {
+	contName := fmt.Sprintf("%s-container", generateName)
+	runAsUser := int64(0)
+	securityContext := &v1.SecurityContext{
+		RunAsUser: &runAsUser,
+		Capabilities: &v1.Capabilities{
+			Add: []v1.Capability{
+				"SETFCAP",
+				"CAP_NET_RAW",
+				"CAP_NET_ADMIN",
+			},
+		},
+	}
+
+	pod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Pod",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: generateName,
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:            contName,
+					Image:           tcpdumpImage,
+					Command:         []string{"sleep", "100000"},
+					SecurityContext: securityContext,
+				},
+			},
+			NodeName:      nodeName,
+			RestartPolicy: v1.RestartPolicyNever,
+			HostNetwork:   true,
+		},
+	}
+
+	p, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Create(context.Background(), pod, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = frameworkpod.WaitForPodRunningInNamespace(context.Background(), f.ClientSet, p)
+	return p, err
 }
