@@ -107,7 +107,7 @@ var _ = g.Describe("[sig-node-tuning] NTO should", func() {
 		stalldRuntimeDuration, err := exutil.DebugNodeRetryWithOptionsAndChroot(oc, firstCoreOSWorkerNodes, ntoNamespace, "/bin/bash", "-c", "ps -o etime= -p "+stalldCurrentPID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(stalldRuntimeDuration).NotTo(o.BeEmpty())
-		e2e.Logf("the the stalld process keep running for %v", stalldRuntimeDuration)
+		e2e.Logf("the stalld process keep running for %v", stalldRuntimeDuration)
 
 		if errWait != nil {
 			e2e.Logf("%v", errWait)

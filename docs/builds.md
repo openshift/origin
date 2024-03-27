@@ -39,7 +39,7 @@ OpenShift supports Docker builds. Using this strategy, users may supply a URL to
 
 To implement Docker builds, OpenShift provides build containers access to a node’s Docker daemon.
 
-During a build, a pod containing a single container–a build container–is created. The node’s Docker socket is bind mounted into the build container. The build container executes `docker build` using the the supplied Docker context, and all interaction with Docker occurs via the node's Docker daemon.
+During a build, a pod containing a single container–a build container–is created. The node’s Docker socket is bind mounted into the build container. The build container executes `docker build` using the supplied Docker context, and all interaction with Docker occurs via the node's Docker daemon.
 
 **Advantages**
 
