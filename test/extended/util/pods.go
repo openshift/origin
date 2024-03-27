@@ -19,6 +19,7 @@ import (
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
 	"github.com/openshift/origin/test/extended/util/image"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
 const (
@@ -75,10 +76,23 @@ func RemovePodsWithPrefixes(oc *CLI, prefixes ...string) error {
 // The security context of this pod complies to the "restricted" profile.
 // If necessary this can be overriden in tweaks.
 func CreateExecPodOrFail(client kubernetes.Interface, ns, name string, tweak ...func(*v1.Pod)) *v1.Pod {
+	return createExecPodOrFail(client, ns, name, image.ShellImage(), tweak...)
+}
+
+// CreateAgnhostPodOrFail creates a pod used as a vessel for kubectl exec commands. Image comes from
+// a public registry instead of the local one.
+// Pod name is uniquely generated.
+// The security context of this pod complies to the "restricted" profile.
+// If necessary this can be overriden in tweaks.
+func CreateAgnhostPodOrFail(client kubernetes.Interface, ns, name string, tweak ...func(*v1.Pod)) *v1.Pod {
+	return createExecPodOrFail(client, ns, name, podframework.GetTestImage(imageutils.Agnhost), tweak...)
+}
+
+func createExecPodOrFail(client kubernetes.Interface, ns, name, image string, tweak ...func(*v1.Pod)) *v1.Pod {
 	return podframework.CreateExecPodOrFail(context.TODO(), client, ns, name, func(pod *v1.Pod) {
 		pod.Name = name
 		pod.GenerateName = ""
-		pod.Spec.Containers[0].Image = image.ShellImage()
+		pod.Spec.Containers[0].Image = image
 		pod.Spec.Containers[0].Command = []string{"sh", "-c", "trap exit TERM; while true; do sleep 5; done"}
 		pod.Spec.Containers[0].Args = nil
 		pod.Spec.Containers[0].SecurityContext = podframework.GetRestrictedContainerSecurityContext()
