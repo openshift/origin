@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionserviceloadbalancer"
 	"github.com/openshift/origin/pkg/monitortests/network/legacynetworkmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/node/kubeletlogcollector"
+	"github.com/openshift/origin/pkg/monitortests/node/kubeletselinuxlabels"
 	"github.com/openshift/origin/pkg/monitortests/node/legacynodemonitortests"
 	"github.com/openshift/origin/pkg/monitortests/node/nodestateanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/node/watchnodes"
@@ -161,6 +162,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("node-kubelet-selinux-labels", "Node / Kubelet", kubeletselinuxlabels.NewSelinuxLabelWatcher())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
 
