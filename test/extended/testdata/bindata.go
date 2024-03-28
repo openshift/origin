@@ -346,6 +346,7 @@
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm
 // test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json
+// test/extended/testdata/ipsec/nmstate.yaml
 // test/extended/testdata/kernel/rt-tests-environment.yaml
 // test/extended/testdata/kernel/rt-tests-pod.yaml
 // test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt
@@ -45476,6 +45477,27 @@ func testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson() (*asset, error) 
 	return a, nil
 }
 
+var _testExtendedTestdataIpsecNmstateYaml = []byte(`apiVersion: nmstate.io/v1
+kind: NMState
+metadata:
+  name: nmstate
+`)
+
+func testExtendedTestdataIpsecNmstateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataIpsecNmstateYaml, nil
+}
+
+func testExtendedTestdataIpsecNmstateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataIpsecNmstateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/ipsec/nmstate.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataKernelRtTestsEnvironmentYaml = []byte(`kind: Project
 apiVersion: project.openshift.io/v1
 metadata:
@@ -55180,6 +55202,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/index.pl":                                         testExtendedTestdataImage_ecosystemPerlHotdeployIndexPl,
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/lib/My/Test.pm":                                   testExtendedTestdataImage_ecosystemPerlHotdeployLibMyTestPm,
 	"test/extended/testdata/image_ecosystem/perl-hotdeploy/perl.json":                                        testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson,
+	"test/extended/testdata/ipsec/nmstate.yaml":                                                              testExtendedTestdataIpsecNmstateYaml,
 	"test/extended/testdata/kernel/rt-tests-environment.yaml":                                                testExtendedTestdataKernelRtTestsEnvironmentYaml,
 	"test/extended/testdata/kernel/rt-tests-pod.yaml":                                                        testExtendedTestdataKernelRtTestsPodYaml,
 	"test/extended/testdata/ldap/groupsync/ad/blacklist_ldap.txt":                                            testExtendedTestdataLdapGroupsyncAdBlacklist_ldapTxt,
@@ -55901,6 +55924,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						}},
 						"perl.json": {testExtendedTestdataImage_ecosystemPerlHotdeployPerlJson, map[string]*bintree{}},
 					}},
+				}},
+				"ipsec": {nil, map[string]*bintree{
+					"nmstate.yaml": {testExtendedTestdataIpsecNmstateYaml, map[string]*bintree{}},
 				}},
 				"kernel": {nil, map[string]*bintree{
 					"rt-tests-environment.yaml": {testExtendedTestdataKernelRtTestsEnvironmentYaml, map[string]*bintree{}},

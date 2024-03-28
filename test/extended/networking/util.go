@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
@@ -22,6 +23,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,6 +35,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2edeployment "k8s.io/kubernetes/test/e2e/framework/deployment"
 	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
@@ -416,6 +419,21 @@ func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *c
 	return &candidates[0], &candidates[0], nil
 }
 
+func findControlPlaneNode(f *e2e.Framework) (*corev1.Node, error) {
+	nodes, err := e2enode.GetReadyNodesIncludingTainted(context.TODO(), f.ClientSet)
+	if err != nil {
+		return nil, err
+	}
+	for i := range nodes.Items {
+		for key := range nodes.Items[i].Labels {
+			if strings.Contains(key, "master") || strings.Contains(key, "control-plane") {
+				return &nodes.Items[i], nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no control plane node found on the cluster")
+}
+
 func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 	makeNamespaceScheduleToAllNodes(f1)
 	makeNamespaceScheduleToAllNodes(f2)
@@ -695,6 +713,137 @@ func GetIPAddressFamily(oc *exutil.CLI) (bool, bool, error) {
 	return hasIPv4, hasIPv6, nil
 }
 
+func deployNmstateHandler(oc *exutil.CLI) error {
+	err := waitForDeploymentComplete(oc, "openshift-nmstate", "nmstate-operator")
+	if err != nil {
+		return fmt.Errorf("nmstate operator is not running: %v", err)
+	}
+	nmStateConfigYaml := exutil.FixturePath("testdata", "ipsec", nmstateConfigureManifestFile)
+	err = oc.AsAdmin().Run("create").Args("-f", nmStateConfigYaml, "--namespace=openshift-nmstate").Execute()
+	if err != nil {
+		return fmt.Errorf("error configuring nmstate: %v", err)
+	}
+	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			// Ensure nmstate handler is running.
+			return isDaemonSetRunning(oc, "openshift-nmstate", "nmstate-handler")
+		})
+	if err != nil {
+		return fmt.Errorf("failed to get nmstate handler running: %v", err)
+	}
+	err = waitForDeploymentComplete(oc, "openshift-nmstate", "nmstate-webhook")
+	if err != nil {
+		return fmt.Errorf("nmstate webhook is not running: %v", err)
+	}
+	return nil
+}
+
+func undeployNmstateHandler(oc *exutil.CLI) error {
+	nmStateConfigYaml := exutil.FixturePath("testdata", "ipsec", nmstateConfigureManifestFile)
+	err := oc.AsAdmin().Run("delete").Args("-f", nmStateConfigYaml, "--namespace=openshift-nmstate").Execute()
+	if err != nil {
+		return fmt.Errorf("error deleting nmstate configuration: %v", err)
+	}
+	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			_, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-nmstate").Get(context.Background(), "nmstate-handler", metav1.GetOptions{})
+			if err != nil && apierrors.IsNotFound(err) {
+				return true, nil
+			}
+			return false, err
+		})
+	if err != nil {
+		return fmt.Errorf("failed to remove nmstate crd and handler: %v", err)
+	}
+	return nil
+}
+
+func waitForDeploymentComplete(oc *exutil.CLI, namespace, name string) error {
+	deployment, err := oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	return e2edeployment.WaitForDeploymentComplete(oc.KubeClient(), deployment)
+}
+
+func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
+	ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+	// Be sure that it has ds pod running in each node.
+	desired, scheduled, ready := ds.Status.DesiredNumberScheduled, ds.Status.CurrentNumberScheduled, ds.Status.NumberReady
+	return desired == scheduled && desired == ready, nil
+}
+
+func launchIPsecCertsConfig(oc *exutil.CLI, configImage, leftIP, rightIP, nodeName, generateName string) (*mcfgv1.MachineConfig, error) {
+	pod := &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Pod",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: generateName,
+			Namespace:    cnoNamespace,
+		},
+		Spec: v1.PodSpec{
+			ServiceAccountName: cnoSAName,
+			Containers: []v1.Container{
+				{
+					Name:  fmt.Sprintf("%s-container", generateName),
+					Image: configImage,
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						fmt.Sprintf(ipsecCertConfigScript, nsCertMachineConfigName),
+					},
+					Env: []v1.EnvVar{
+						{Name: "LEFT_IP", Value: leftIP},
+						{Name: "RIGHT_IP", Value: rightIP},
+					},
+				},
+			},
+			NodeName:      nodeName,
+			RestartPolicy: v1.RestartPolicyNever,
+			HostNetwork:   true,
+			HostPID:       true,
+		},
+	}
+	p, err := oc.AdminKubeClient().CoreV1().Pods(cnoNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var nsCertMachineConfig *mcfgv1.MachineConfig
+	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
+		retrievedPod, err := oc.AdminKubeClient().CoreV1().Pods(cnoNamespace).Get(ctx, p.Name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		if retrievedPod.Status.Phase != corev1.PodRunning {
+			return false, nil
+		}
+		nsCertMachineConfig, err = oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigs().Get(context.Background(),
+			nsCertMachineConfigName, metav1.GetOptions{})
+		if err != nil && apierrors.IsNotFound(err) {
+			return false, nil
+		} else if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	return nsCertMachineConfig, err
+}
+
+func deleteNSCertMachineConfig(oc *exutil.CLI) error {
+	err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigs().Delete(context.Background(),
+		nsCertMachineConfigName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
 func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, generateName string) (*v1.Pod, error) {
 	contName := fmt.Sprintf("%s-container", generateName)
 	runAsUser := int64(0)
@@ -750,4 +899,122 @@ func launchHostNetworkedPodForTCPDump(f *e2e.Framework, tcpdumpImage, nodeName, 
 
 func isConnResetErr(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "connection reset by peer")
+}
+
+// This checks master and worker role machine config pools status are set with ipsec
+// extension which confirms extension is successfully rolled out on all nodes.
+func areMachineConfigPoolsReadyWithIPsec(oc *exutil.CLI) (bool, error) {
+	masterWithIPsec, err := areMasterMachineConfigPoolsWithIPsec(oc)
+	if err != nil {
+		return false, err
+	}
+	workerWithIPsec, err := areWorkerMachineConfigPoolsReadyWithIPsec(oc)
+	if err != nil {
+		return false, err
+	}
+	return masterWithIPsec && workerWithIPsec, nil
+}
+
+func areMasterMachineConfigPoolsWithIPsec(oc *exutil.CLI) (bool, error) {
+	return areMachineConfigPoolsReady(oc, "machineconfiguration.openshift.io/role=master", masterIPsecMachineConfigName, true)
+}
+
+func areWorkerMachineConfigPoolsReadyWithIPsec(oc *exutil.CLI) (bool, error) {
+	return areWorkerMachineConfigPoolsReady(oc, workerIPSecMachineConfigName, true)
+}
+
+func areWorkerMachineConfigPoolsReady(oc *exutil.CLI, machineConfigName string, mustExist bool) (bool, error) {
+	return areMachineConfigPoolsReady(oc, "machineconfiguration.openshift.io/role=worker", machineConfigName, mustExist)
+}
+
+func areMachineConfigPoolsReady(oc *exutil.CLI, mcpSelectorLabel string, machineConfigName string, mustExist bool) (bool, error) {
+	poolList, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().List(context.Background(),
+		metav1.ListOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get ipsec machine config pools: %v", err)
+	}
+	if len(poolList.Items) == 0 {
+		return false, fmt.Errorf("no machine config pools found")
+	}
+	var pools []mcfgv1.MachineConfigPool
+	for _, pool := range poolList.Items {
+		if pool.Spec.MachineConfigSelector == nil {
+			continue
+		}
+		for lKey, lValue := range pool.Spec.MachineConfigSelector.MatchLabels {
+			if mcpSelectorLabel == fmt.Sprintf("%s=%s", lKey, lValue) {
+				pools = append(pools, pool)
+			}
+		}
+	}
+	if len(pools) == 0 {
+		return false, fmt.Errorf("empty machine config pools found for the selector")
+	}
+	if mustExist {
+		return isMachineConfigReadyInPools(pools, machineConfigName), nil
+	}
+	return areMachineConfigPoolReadyWithoutMachineConfig(pools, machineConfigName), nil
+}
+
+func isMachineConfigReadyInPools(pools []mcfgv1.MachineConfigPool, machineConfigName string) bool {
+	mcExistsInPool := func(status mcfgv1.MachineConfigPoolStatus, name string) bool {
+		return status.MachineCount == status.UpdatedMachineCount &&
+			hasSourceInMachineConfigStatus(status, name)
+	}
+	for _, pool := range pools {
+		if !mcExistsInPool(pool.Status, machineConfigName) {
+			return false
+		}
+	}
+	return true
+}
+
+func areMachineConfigPoolReadyWithoutMachineConfig(pools []mcfgv1.MachineConfigPool, machineConfigName string) bool {
+	mcNotExistsInPool := func(status mcfgv1.MachineConfigPoolStatus, name string) bool {
+		return status.MachineCount == status.UpdatedMachineCount &&
+			!hasSourceInMachineConfigStatus(status, name)
+	}
+	for _, pool := range pools {
+		if !mcNotExistsInPool(pool.Status, machineConfigName) {
+			return false
+		}
+	}
+	return true
+}
+
+func hasSourceInMachineConfigStatus(machineConfigStatus mcfgv1.MachineConfigPoolStatus, machineConfigName string) bool {
+	for _, source := range machineConfigStatus.Configuration.Source {
+		if source.Name == machineConfigName {
+			return true
+		}
+	}
+	return false
+}
+
+// areClusterOperatorsReady returns true when every cluster operator is with available state and neither in degraded
+// nor in progressing state, otherwise returns false.
+func areClusterOperatorsReady(oc *exutil.CLI) (bool, error) {
+	cos, err := oc.AdminConfigClient().ConfigV1().ClusterOperators().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+	for _, co := range cos.Items {
+		available, degraded, progressing := false, true, true
+		for _, condition := range co.Status.Conditions {
+			isConditionTrue := condition.Status == configv1.ConditionTrue
+			switch condition.Type {
+			case configv1.OperatorAvailable:
+				available = isConditionTrue
+			case configv1.OperatorDegraded:
+				degraded = isConditionTrue
+			case configv1.OperatorProgressing:
+				progressing = isConditionTrue
+			}
+		}
+		isCOReady := available && !degraded && !progressing
+		if !isCOReady {
+			return false, nil
+		}
+	}
+	return true, nil
 }
