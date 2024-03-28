@@ -1365,6 +1365,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes ensure traffic between local pod to a remote pod is working when IPsec rollout in progress [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes validate north south traffic when IPsec mode is set to External [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io] should enforce a network policies on secondary network IPv4": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:MultiNetworkPolicy][Serial][apigroup:operator.openshift.io] should enforce a network policies on secondary network IPv6": " [Suite:openshift/conformance/serial]",

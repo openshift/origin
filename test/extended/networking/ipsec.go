@@ -26,8 +26,186 @@ const (
 	// tcpdumpESPFilter can be used to filter out IPsec packets destined to target node.
 	tcpdumpESPFilter = "esp or udp port 4500 and src %s and dst %s"
 	// tcpdumpGeneveFilter can be used to filter out Geneve encapsulated packets destined to target node.
-	tcpdumpGeneveFilter = "udp port 6081 and src %s and dst %s"
+	tcpdumpGeneveFilter      = "udp port 6081 and src %s and dst %s"
+	nmstateDeployManifest    = "deploy-nmstate.yaml"
+	nmstateConfigureManifest = "nmstate.yaml"
 )
+
+var ipsecConfigScript = `#!/bin/bash
+set -o nounset
+set -o errexit
+set -o pipefail
+
+nssdb="/var/lib/ipsec/nss"
+tmp_dir=/tmp/ipsec-ns
+CERTUTIL_NOISE="dsadasdasdasdadasdasdasdasdsadfwerwerjfdksdjfksdlfhjsdk"
+mcp_role="worker"
+
+left_ip=$LEFT_IP
+right_ip=$RIGHT_IP
+
+if [ -d "$tmp_dir" ]; then
+	echo "ipsec-ns directory exists. Deleting and recreating..."
+	rm -r "$tmp_dir"
+fi
+mkdir "$tmp_dir" && cd "$tmp_dir"
+
+echo "\n-----Create Certs and export to mcp file----\n"
+
+certutil_noise_file="${tmp_dir}/certutil-noise.txt"
+echo ${CERTUTIL_NOISE} > ${certutil_noise_file}
+
+create_cert()
+{
+echo "----Creating CA cert-----"
+certutil -v 120 -S -k rsa -n "CA" -s "CN=CA" -v 12 -t "CT,C,C" -x -d ${nssdb} -z ${certutil_noise_file}
+sleep 5s
+echo "CA cert was created"
+}
+
+create_left_user_cert()
+{
+echo "----Creating left server cert.----"
+certutil -v 120 -S -k rsa -c "CA" -n "left_server" -s "CN=left_server" -v 12 -t "u,u,u" -d ${nssdb} --extSAN "ip:${left_ip}" -z ${certutil_noise_file}
+sleep 5s
+echo "Left server cert was created"
+}
+
+create_right_user_cert()
+{
+echo "-----Creating right server cert.-----"
+certutil -v 120 -S -k rsa -c "CA" -n "right_server" -s "CN=right_server" -v 12 -t "u,u,u" -d ${nssdb} --extSAN "ip:${right_ip}" -z ${certutil_noise_file}
+sleep 5s
+echo "Right server cert was created"
+}
+
+export_ca_cert()
+{
+echo "---Exporting CA cert to p12 and output to pem-----"
+pk12util -o ${tmp_dir}/ca.p12 -n CA -d ${nssdb} -W ""
+openssl pkcs12 -in ca.p12 -out ca.pem -clcerts -nokeys -passin pass:""
+}
+
+export_left_user_cert()
+{
+echo "----Exporting left user cert to p12-------"
+pk12util -o $tmp_dir/left_server.p12 -n left_server -d $nssdb -W ""
+}
+
+export_right_user_cert()
+{
+echo "----Exporting right user cert to p12-------"
+pk12util -o $tmp_dir/right_server.p12 -n right_server -d $nssdb -W ""
+}
+
+echo "Create certifications and export CA and certs!!"
+create_cert
+create_left_user_cert
+create_right_user_cert
+export_ca_cert
+export_left_user_cert
+export_right_user_cert
+chmod 644 $tmp_dir/ca.pem
+chmod 644 $tmp_dir/left_server.p12
+
+echo "Create bu file for ipsec configuration on the host!"
+cat > $tmp_dir/config.bu <<EOF
+variant: openshift
+version: %s
+metadata:
+  name: 99-worker-configure-ipsec-ns
+  labels:
+	machineconfiguration.openshift.io/role: ${mcp_role}
+systemd:
+  units:
+	- name: ipsec-import.service
+	  enabled: true
+	  contents: |
+		[Unit]
+		Description=Import external certs into ipsec NSS
+		Before=ipsec.service
+
+		[Service]
+		Type=oneshot
+		ExecStart=/usr/local/bin/ipsec-addcert.sh
+		RemainAfterExit=false
+		StandardOutput=journal
+
+		[Install]
+		WantedBy=multi-user.target
+storage:
+  files:
+  - path: /etc/pki/certs/ca.pem
+	mode: 0400
+	overwrite: true
+	contents:
+	  local: ca.pem
+  - path: /etc/pki/certs/left_server.p12
+	mode: 0400
+	overwrite: true
+	contents:
+	  local: left_server.p12
+  - path: /etc/pki/certs/right_server.p12
+	mode: 0400
+	overwrite: true
+	contents:
+	  local: right_server.p12
+  - path: /usr/local/bin/ipsec-addcert.sh
+	mode: 0740
+	overwrite: true
+	contents:
+	  inline: |
+		#!/bin/bash -e
+		echo "importing cert to NSS"
+		certutil -A -n "CA" -t "CT,C,C" -d /var/lib/ipsec/nss/ -i /etc/pki/certs/ca.pem
+		pk12util -W "" -i /etc/pki/certs/left_server.p12 -d /var/lib/ipsec/nss/
+		certutil -M -n "left_server" -t "u,u,u" -d /var/lib/ipsec/nss/
+		pk12util -W "" -i /etc/pki/certs/right_server.p12 -d /var/lib/ipsec/nss/
+		certutil -M -n "right_server" -t "u,u,u" -d /var/lib/ipsec/nss/
+
+EOF
+
+echo "Creating mcp file..."
+butane --files-dir $tmp_dir $tmp_dir/config.bu -o $tmp_dir/config_ipsec_ns.yaml
+
+echo "Importing certs to worker nodes."
+kubectl apply -f $tmp_dir/config_ipsec_ns.yaml
+
+echo "IPSEC North-Sourth configuration completed!"
+sleep infinity
+env:
+- name: LEFT_IP
+value: %s
+- name: RIGHT_IP
+value: %s
+`
+
+var nodeConfigIPSec = `
+kind: NodeNetworkConfigurationPolicy
+apiVersion: nmstate.io/v1
+metadata:
+  name: ipsec-policy-%s-config
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: %s
+  desiredState:
+    interfaces:
+    - name: vpn1
+      type: ipsec
+      libreswan:
+        left: %s
+        leftid: '%fromcert'
+        leftrsasigkey: '%cert'
+        leftcert: left_server
+        leftmodecfgclient: false
+        right: %s
+        rightid: '%fromcert'
+        rightrsasigkey: '%cert'
+        ike: aes_gcm256-sha2_256
+        esp: aes_gcm256
+        ikev2: insist
+        type: transport
+`
 
 // configureIPsec helps to rollout specified IPsecConfig on the cluster.
 func configureIPsec(oc *exutil.CLI, ipsecConfig *v1.IPsecConfig) error {
@@ -512,6 +690,10 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 			g.By("wait for IPsec rollout to complete")
 			waitForIPsecConfigToComplete(oc, desiredIPsecMode)
+		})
+
+		g.It("validate north south traffic when IPsec mode is set to External [apigroup:config.openshift.io] [Serial]", func() {
+			// TODO:
 		})
 	})
 })
