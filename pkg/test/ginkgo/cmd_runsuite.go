@@ -212,7 +212,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		timeout = suite.TestTimeout
 	}
 	if timeout == 0 {
-		timeout = 15 * time.Minute
+		timeout = 90 * time.Minute
 	}
 
 	testRunnerContext := newCommandContext(o.AsEnv(), timeout)

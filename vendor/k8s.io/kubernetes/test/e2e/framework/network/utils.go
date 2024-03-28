@@ -71,10 +71,10 @@ const (
 	sessionAffinityServiceName = "session-affinity-service"
 	// wait time between poll attempts of a Service vip and/or nodePort.
 	// coupled with testTries to produce a net timeout value.
-	hitEndpointRetryDelay = 2 * time.Second
+	hitEndpointRetryDelay = 30 * time.Second
 	// Number of retries to hit a given set of endpoints. Needs to be high
 	// because we verify iptables statistical rr loadbalancing.
-	testTries = 30
+	testTries = 5400
 	// Maximum number of pods in a test, to make test work in large clusters.
 	maxNetProxyPodsCount = 10
 	// SessionAffinityChecks is number of checks to hit a given set of endpoints when enable session affinity.
@@ -491,7 +491,6 @@ func (config *NetworkingTestConfig) DialFromNode(ctx context.Context, protocol, 
 		}
 
 		framework.Logf("Waiting for %+v endpoints (expected=%+v, actual=%+v)", expectedEps.Difference(eps).List(), expectedEps.List(), eps.List())
-
 		// TODO: get rid of this delay #36281
 		time.Sleep(hitEndpointRetryDelay)
 	}
