@@ -102,7 +102,7 @@ type GCPMachineProviderSpec struct {
 	NetworkInterfaces []*GCPNetworkInterface `json:"networkInterfaces,omitempty"`
 	// ServiceAccounts is a list of GCP service accounts to be used by the VM.
 	ServiceAccounts []GCPServiceAccount `json:"serviceAccounts"`
-	// Tags list of tags to apply to the VM.
+	// Tags list of network tags to apply to the VM.
 	Tags []string `json:"tags,omitempty"`
 	// TargetPools are used for network TCP/UDP load balancing. A target pool references member instances,
 	// an associated legacy HttpHealthCheck resource, and, optionally, a backup target pool
@@ -149,6 +149,49 @@ type GCPMachineProviderSpec struct {
 	// +kubebuilder:validation:Enum=Enabled;Disabled
 	// +optional
 	ConfidentialCompute ConfidentialComputePolicy `json:"confidentialCompute,omitempty"`
+
+	// resourceManagerTags is an optional list of tags to apply to the GCP resources created for
+	// the cluster. See https://cloud.google.com/resource-manager/docs/tags/tags-overview for
+	// information on tagging GCP resources. GCP supports a maximum of 50 tags per resource.
+	// +kubebuilder:validation:MaxItems=50
+	// +listType=map
+	// +listMapKey=key
+	// +optional
+	ResourceManagerTags []ResourceManagerTag `json:"resourceManagerTags,omitempty"`
+}
+
+// ResourceManagerTag is a tag to apply to GCP resources created for the cluster.
+type ResourceManagerTag struct {
+	// parentID is the ID of the hierarchical resource where the tags are defined
+	// e.g. at the Organization or the Project level. To find the Organization or Project ID ref
+	// https://cloud.google.com/resource-manager/docs/creating-managing-organization#retrieving_your_organization_id
+	// https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects
+	// An OrganizationID can have a maximum of 32 characters and must consist of decimal numbers, and
+	// cannot have leading zeroes. A ProjectID must be 6 to 30 characters in length, can only contain
+	// lowercase letters, numbers, and hyphens, and must start with a letter, and cannot end with a hyphen.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=32
+	// +kubebuilder:validation:Pattern=`(^[1-9][0-9]{0,31}$)|(^[a-z][a-z0-9-]{4,28}[a-z0-9]$)`
+	ParentID string `json:"parentID"`
+
+	// key is the key part of the tag. A tag key can have a maximum of 63 characters and cannot be empty.
+	// Tag key must begin and end with an alphanumeric character, and must contain only uppercase, lowercase
+	// alphanumeric characters, and the following special characters `._-`.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([0-9A-Za-z_.-]{0,61}[a-zA-Z0-9])?$`
+	Key string `json:"key"`
+
+	// value is the value part of the tag. A tag value can have a maximum of 63 characters and cannot be empty.
+	// Tag value must begin and end with an alphanumeric character, and must contain only uppercase, lowercase
+	// alphanumeric characters, and the following special characters `_-.@%=+:,*#&(){}[]` and spaces.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9]([0-9A-Za-z_.@%=+:,*#&()\[\]{}\-\s]{0,61}[a-zA-Z0-9])?$`
+	Value string `json:"value"`
 }
 
 // GCPDisk describes disks for GCP.

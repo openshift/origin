@@ -9,6 +9,13 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // ConsoleYAMLSample is an extension for customizing OpenShift web console YAML samples.
 //
 // Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=consoleyamlsamples,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/481
+// +openshift:file-pattern=operatorOrdering=00
+// +openshift:capability=Console
+// +kubebuilder:metadata:annotations="description=Extension for configuring openshift web console YAML samples."
+// +kubebuilder:metadata:annotations="displayName=ConsoleYAMLSample"
 // +openshift:compatibility-gen:level=2
 type ConsoleYAMLSample struct {
 	metav1.TypeMeta `json:",inline"`

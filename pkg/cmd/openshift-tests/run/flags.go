@@ -101,6 +101,7 @@ func (f *RunSuiteFlags) ToOptions(args []string) (*RunSuiteOptions, error) {
 		f.AvailableSuites,
 		args,
 		kubeconfig.NewDiscoveryGetter(adminRESTConfig),
+		kubeconfig.NewConfigClientGetter(adminRESTConfig),
 		f.GinkgoRunSuiteOptions.DryRun,
 		providerConfig.MatchFn(),
 	)

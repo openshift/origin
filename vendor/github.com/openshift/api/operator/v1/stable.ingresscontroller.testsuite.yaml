@@ -1,6 +1,6 @@
 apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
 name: "[Stable] IngressController"
-crd: 0000_50_ingress-operator_00-ingresscontroller.crd.yaml
+crd: 0000_50_ingress_00_ingresscontrollers.crd.yaml
 tests:
   onCreate:
   - name: Should be able to create a minimal IngressController

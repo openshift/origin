@@ -10,7 +10,11 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // Please view network.spec for an explanation on what applies when configuring this resource.
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/470
 // +openshift:compatibility-gen:level=1
+// +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=networks,scope=Cluster
 type Network struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -95,7 +99,7 @@ type NetworkStatus struct {
 	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
-	// +openshift:enable:FeatureSets=CustomNoUpgrade;TechPreviewNoUpgrade
+	// +openshift:enable:FeatureGate=NetworkLiveMigration
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
 
