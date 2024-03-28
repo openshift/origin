@@ -233,7 +233,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			namespace:       "openshift",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/openshift - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/openshift - reason/SomeEvent1 foo (04:00:00Z) result=reject ",
 		},
 		{
 			name: "matches 22 with namespace e2e",
@@ -249,7 +249,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/random - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/random - reason/SomeEvent1 foo (04:00:00Z) result=reject ",
 		},
 		{
 			name: "matches 22 with no namespace",
@@ -263,7 +263,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			namespace:       "",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.SingleReplicaTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - reason/SomeEvent1 foo From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - reason/SomeEvent1 foo (04:00:00Z) result=reject ",
 		},
 		{
 			name: "matches 12 with namespace openshift",
@@ -337,7 +337,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			namespace:       "openshift-controller-manager",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/openshift-controller-manager - reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong: namespace/openshift-controller-manager - reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (04:00:00Z) result=reject ",
 		},
 		{
 			// This still matches despite the masters updating because it's not in an openshift namespace
@@ -376,7 +376,7 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 			namespace:       "mynamespace",
 			platform:        v1.AWSPlatformType,
 			topology:        v1.HighlyAvailableTopologyMode,
-			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/mynamespace reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. From: 04:00:00Z To: 04:00:00Z result=reject ",
+			expectedMessage: "1 events happened too frequently\n\nevent happened 22 times, something is wrong:  - ns/mynamespace reason/FailedScheduling 0/6 nodes are available: 2 node(s) were unschedulable, 4 node(s) didn't match pod anti-affinity rules. preemption: 0/6 nodes are available: 2 Preemption is not helpful for scheduling, 4 No preemption victims found for incoming pod.. (04:00:00Z) result=reject ",
 		},
 	}
 
