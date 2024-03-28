@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"github.com/openshift/origin/test/extended/util/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
@@ -347,29 +347,7 @@ func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 	if kapierrs.IsNotFound(err) {
 		return "", "", false
 	}
-
-	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
-	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, secret := range secrets.Items {
-			if secret.Type != corev1.SecretTypeServiceAccountToken {
-				continue
-			}
-			if !strings.HasPrefix(secret.Name, "prometheus-") {
-				continue
-			}
-			bearerToken = string(secret.Data[corev1.ServiceAccountTokenKey])
-			break
-		}
-		if len(bearerToken) == 0 {
-			e2e.Logf("Waiting for prometheus service account secret to show up")
-			time.Sleep(time.Second)
-			continue
-		}
-	}
-	o.Expect(bearerToken).ToNot(o.BeEmpty())
-
+	bearerToken = prometheus.GetPrometheusSABearerToken(oc)
 	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
