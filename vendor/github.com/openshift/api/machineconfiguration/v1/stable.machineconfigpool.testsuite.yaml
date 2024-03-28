@@ -1,0 +1,14 @@
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
+name: "[Stable] MachineConfigPool"
+crd: 0000_80_machine-config_01_machineconfigpools.crd.yaml
+tests:
+  onCreate:
+  - name: Should be able to create a minimal MachineConfigPool
+    initial: |
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfigPool
+      spec: {} # No spec is required for a MachineConfigPool
+    expected: |
+      apiVersion: machineconfiguration.openshift.io/v1
+      kind: MachineConfigPool
+      spec: {}

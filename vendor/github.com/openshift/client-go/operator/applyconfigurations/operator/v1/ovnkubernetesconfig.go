@@ -2,17 +2,13 @@
 
 package v1
 
-import (
-	operatorv1 "github.com/openshift/api/operator/v1"
-)
-
 // OVNKubernetesConfigApplyConfiguration represents an declarative configuration of the OVNKubernetesConfig type for use
 // with apply.
 type OVNKubernetesConfigApplyConfiguration struct {
 	MTU                 *uint32                                `json:"mtu,omitempty"`
 	GenevePort          *uint32                                `json:"genevePort,omitempty"`
 	HybridOverlayConfig *HybridOverlayConfigApplyConfiguration `json:"hybridOverlayConfig,omitempty"`
-	IPsecConfig         *operatorv1.IPsecConfig                `json:"ipsecConfig,omitempty"`
+	IPsecConfig         *IPsecConfigApplyConfiguration         `json:"ipsecConfig,omitempty"`
 	PolicyAuditConfig   *PolicyAuditConfigApplyConfiguration   `json:"policyAuditConfig,omitempty"`
 	GatewayConfig       *GatewayConfigApplyConfiguration       `json:"gatewayConfig,omitempty"`
 	V4InternalSubnet    *string                                `json:"v4InternalSubnet,omitempty"`
@@ -53,8 +49,8 @@ func (b *OVNKubernetesConfigApplyConfiguration) WithHybridOverlayConfig(value *H
 // WithIPsecConfig sets the IPsecConfig field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the IPsecConfig field is set to the value of the last call.
-func (b *OVNKubernetesConfigApplyConfiguration) WithIPsecConfig(value operatorv1.IPsecConfig) *OVNKubernetesConfigApplyConfiguration {
-	b.IPsecConfig = &value
+func (b *OVNKubernetesConfigApplyConfiguration) WithIPsecConfig(value *IPsecConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
+	b.IPsecConfig = value
 	return b
 }
 

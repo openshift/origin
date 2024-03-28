@@ -1,0 +1,80 @@
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this
+name: "[TechPreview] MachineConfigNode"
+crd: 0000_80_machine-config_01_machineconfignodes-TechPreviewNoUpgrade.crd.yaml
+tests:
+  onCreate:
+  - name: Should be able to create a minimal MachineConfigNode
+    initial: |
+      apiVersion: machineconfiguration.openshift.io/v1alpha1
+      kind: MachineConfigNode
+      metadata:
+        name: foobar
+      spec:
+        node:
+          name: foobar
+        pool:
+          name: worker
+        configVersion:
+          desired: rendered-worker-abc
+    expected: |
+      apiVersion: machineconfiguration.openshift.io/v1alpha1
+      kind: MachineConfigNode
+      metadata:
+        name: foobar
+      spec:
+        node:
+          name: foobar
+        pool:
+          name: worker
+        configVersion:
+          desired: rendered-worker-abc
+  - name: Node name must match the Object name.
+    initial: |
+      apiVersion: machineconfiguration.openshift.io/v1alpha1
+      kind: MachineConfigNode
+      metadata:
+        name: foobar
+      spec:
+        node:
+          name: barfoo
+        pool:
+          name: worker
+        configVersion:
+          desired: rendered-worker-abc
+    expectedError: "Invalid value: \"object\": spec.node.name should match metadata.name"
+  - name: Pool is required.
+    initial: |
+      apiVersion: machineconfiguration.openshift.io/v1alpha1
+      kind: MachineConfigNode
+      metadata:
+        name: foobar
+      spec:
+        node:
+          name: barfoo
+        configVersion:
+          desired: rendered-worker-abc
+    expectedError: "spec.pool: Required value, <nil>: Invalid value: \"null\""
+  - name: Node is required.
+    initial: |
+      apiVersion: machineconfiguration.openshift.io/v1alpha1
+      kind: MachineConfigNode
+      metadata:
+        name: foobar
+      spec:
+        pool:
+          name: barfoo
+        configVersion:
+          desired: rendered-worker-abc
+    expectedError: "spec.node: Required value, <nil>: Invalid value: \"null\""
+  - name: ConfigVersion is required.
+    initial: |
+      apiVersion: machineconfiguration.openshift.io/v1alpha1
+      kind: MachineConfigNode
+      metadata:
+        name: foobar
+      spec:
+        pool:
+          name: barfoo
+        node:
+          name: foobar
+    expectedError: "spec.configVersion: Required value, <nil>: Invalid value: \"null\""
