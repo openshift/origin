@@ -284,17 +284,26 @@ func ApplyConfigMapImproved(ctx context.Context, client coreclientv1.ConfigMapsG
 
 	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 
+	// injected by cluster-network-operator: https://github.com/openshift/cluster-network-operator/blob/acc819ee0f3424a341b9ad4e1e83ca0a742c230a/docs/architecture.md?L192#configmap-ca-injector
 	caBundleInjected := required.Labels["config.openshift.io/inject-trusted-cabundle"] == "true"
 	_, newCABundleRequired := required.Data["ca-bundle.crt"]
 
+	// injected by service-ca-operator: https://github.com/openshift/service-ca-operator/blob/f409fb9e308ace1e5f8596add187d2239b073e23/README.md#openshift-service-ca-operator
+	serviceCAInjected := required.Annotations["service.beta.openshift.io/inject-cabundle"] == "true"
+	_, newServiceCARequired := required.Data["service-ca.crt"]
+
 	var modifiedKeys []string
 	for existingCopyKey, existingCopyValue := range existingCopy.Data {
-		// if we're injecting a ca-bundle and the required isn't forcing the value, then don't use the value of existing
+		// if we're injecting a ca-bundle or a service-ca and the required isn't forcing the value, then don't use the value of existing
 		// to drive a diff detection. If required has set the value then we need to force the value in order to have apply
 		// behave predictably.
 		if caBundleInjected && !newCABundleRequired && existingCopyKey == "ca-bundle.crt" {
 			continue
 		}
+		if serviceCAInjected && !newServiceCARequired && existingCopyKey == "service-ca.crt" {
+			continue
+		}
+
 		if requiredValue, ok := required.Data[existingCopyKey]; !ok || (existingCopyValue != requiredValue) {
 			modifiedKeys = append(modifiedKeys, "data."+existingCopyKey)
 		}
