@@ -3,6 +3,7 @@ package builds
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -51,9 +52,20 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 				exutil.DumpConfigMapStates(oc)
 				exutil.DumpPodLogsStartingWith("", oc)
 			}
+
+			if strings.Contains(g.CurrentGinkgoTestDescription().TestText, "docker strategy") {
+				g.By("deleting deployment config and build config")
+				oc.Run("delete").Args("-f", dockerBuildConfig, "--wait=true").Execute()
+				oc.Run("delete").Args("-f", dockerDeploymentConfig, "--wait=true").Execute()
+			}
+			if strings.Contains(g.CurrentGinkgoTestDescription().TestText, "source strategy") {
+				g.By("deleting deployment config and build config")
+				oc.Run("delete").Args("-f", s2iBuildConfig, "--wait=true").Execute()
+				oc.Run("delete").Args("-f", s2iDeploymentConfig, "--wait=true").Execute()
+			}
 		})
 
-		g.It("should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+		testSourceBuild := func(logsMustMatchRegexp string, startBuildAddArgs ...string) {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -63,7 +75,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a build and waiting for it to complete")
-			br, _ := exutil.StartBuildAndWait(oc, "mys2itest")
+			br, err := exutil.StartBuildAndWait(oc, append([]string{"mys2itest"}, startBuildAddArgs...)...)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertSuccess()
 
 			g.By("ensuring that the build pod logs contain the provided secret and configmap values")
@@ -71,6 +84,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(buildPodLogs).To(o.ContainSubstring("my-secret-value"))
 			o.Expect(buildPodLogs).To(o.ContainSubstring("my-configmap-value"))
+			if logsMustMatchRegexp != "" {
+				g.By(fmt.Sprintf("verify that the build log included a message that matched %q", logsMustMatchRegexp))
+				o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+			}
 
 			g.By("creating a deployment config")
 			err = oc.Run("create").Args("-f", s2iDeploymentConfig).Execute()
@@ -89,9 +106,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			out, err = oc.Run("rsh").Args("dc/mys2itest", "cat", "/var/run/configmaps/some-configmap/key").Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cat: /var/run/configmaps/some-configmap/key: No such file or directory"))
-		})
+		}
 
-		g.It("should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+		testDockerBuild := func(logsMustMatchRegexp string, startBuildAddArgs ...string) {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -101,7 +118,8 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a build and waiting for it to complete")
-			br, _ := exutil.StartBuildAndWait(oc, "mydockertest")
+			br, err := exutil.StartBuildAndWait(oc, append([]string{"mydockertest"}, startBuildAddArgs...)...)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertSuccess()
 
 			g.By("ensuring that the build pod logs contain the provided secret and configmap values")
@@ -109,6 +127,10 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(buildPodLogs).To(o.ContainSubstring("my-secret-value"))
 			o.Expect(buildPodLogs).To(o.ContainSubstring("my-configmap-value"))
+			if logsMustMatchRegexp != "" {
+				g.By(fmt.Sprintf("verify that the build log included a message that matched %q", logsMustMatchRegexp))
+				o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+			}
 
 			g.By("creating a deployment config")
 			err = oc.Run("create").Args("-f", dockerDeploymentConfig).Execute()
@@ -127,6 +149,21 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] build volumes", func()
 			out, err = oc.Run("rsh").Args("dc/mydockertest", "cat", "/var/run/configmaps/some-configmap/key").Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cat: /var/run/configmaps/some-configmap/key: No such file or directory"))
+		}
+		g.It("should mount given secrets and configmaps into the build pod for privileged source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testSourceBuild(buildInDefaultUserNSRegexp)
+		})
+
+		g.It("should mount given secrets and configmaps into the build pod for privileged docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testDockerBuild(buildInDefaultUserNSRegexp)
+		})
+
+		g.It("should mount given secrets and configmaps into the build pod for unprivileged source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testSourceBuild(buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
+		})
+
+		g.It("should mount given secrets and configmaps into the build pod for unprivileged docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testDockerBuild(buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
 		})
 	})
 })
@@ -147,7 +184,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 		csiSharedRoleBinding                       = filepath.Join(baseDir, "csi-sharedresourcerolebinding.yaml")
 		csiS2iBuildConfig                          = filepath.Join(baseDir, "csi-s2i-buildconfig.yaml")
 		csiDockerBuildConfig                       = filepath.Join(baseDir, "csi-docker-buildconfig.yaml")
-		csiWihthoutResourceRefreshS2iBuildConfig   = filepath.Join(baseDir, "csi-without-rr-s2i-buildconfig.yaml")
+		csiWithoutResourceRefreshS2iBuildConfig    = filepath.Join(baseDir, "csi-without-rr-s2i-buildconfig.yaml")
 		csiWithoutResourceRefreshDockerBuildConfig = filepath.Join(baseDir, "csi-without-rr-docker-buildconfig.yaml")
 	)
 
@@ -196,13 +233,54 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			}
 		})
 
-		g.It("should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+		testSourceBuild := func(buildConfig, logsMustMatchRegexp string, startBuildAddArgs ...string) {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating a build config")
-			err = oc.Run("create").Args("-f", csiS2iBuildConfig).Execute()
+			err = oc.Run("create").Args("-f", buildConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("starting a build and waiting for it to complete")
+			br, err := exutil.StartBuildAndWait(oc, append([]string{"mys2itest"}, startBuildAddArgs...)...)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			br.AssertSuccess()
+
+			g.By("ensuring that the build pod logs contain the provided shared secret")
+			buildPodLogs, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(buildPodLogs).To(o.ContainSubstring("my-secret-value"))
+			if logsMustMatchRegexp != "" {
+				g.By(fmt.Sprintf("verify that the build log included a message that matched %q", logsMustMatchRegexp))
+				o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+			}
+
+			g.By("creating a deployment config")
+			err = oc.Run("create").Args("-f", s2iDeploymentConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the deployment to complete")
+			_, err = deploymentutil.WaitForDeployerToComplete(oc, "mys2itest-1", 5*time.Minute)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("ensuring that the shared secret does not exist in the build image")
+			out, err := oc.Run("rsh").Args("dc/mys2itest", "cat", "/var/run/secrets/some-secret/key").Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("cat: /var/run/secrets/some-secret/key: No such file or directory"))
+		}
+
+		g.It("should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testSourceBuild(csiS2iBuildConfig, "")
+		})
+
+		g.It("should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			g.By("creating an imagestream")
+			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("creating a build config")
+			err = oc.Run("create").Args("-f", csiWithoutResourceRefreshS2iBuildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a build and waiting for it to complete")
@@ -229,54 +307,39 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 		})
 
 		g.It("should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
-			g.By("creating an imagestream")
-			err := oc.Run("create").Args("-f", s2iImageStream).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("creating a build config")
-			err = oc.Run("create").Args("-f", csiWihthoutResourceRefreshS2iBuildConfig).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("starting a build and waiting for it to complete")
-			br, _ := exutil.StartBuildAndWait(oc, "mys2itest")
-			br.AssertSuccess()
-
-			g.By("ensuring that the build pod logs contain the provided shared secret")
-			buildPodLogs, err := br.Logs()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(buildPodLogs).To(o.ContainSubstring("my-secret-value"))
-
-			g.By("creating a deployment config")
-			err = oc.Run("create").Args("-f", s2iDeploymentConfig).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the deployment to complete")
-			_, err = deploymentutil.WaitForDeployerToComplete(oc, "mys2itest-1", 5*time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("ensuring that the shared secret does not exist in the build image")
-			out, err := oc.Run("rsh").Args("dc/mys2itest", "cat", "/var/run/secrets/some-secret/key").Output()
-			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cat: /var/run/secrets/some-secret/key: No such file or directory"))
+			testSourceBuild(csiWithoutResourceRefreshS2iBuildConfig, buildInDefaultUserNSRegexp)
 		})
 
-		g.It("should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+		g.It("should mount given csi shared resource secret into the build pod for unprivileged source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testSourceBuild(csiS2iBuildConfig, buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
+		})
+
+		g.It("should mount given csi shared resource secret without resource refresh into the build pod for unprivileged source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testSourceBuild(csiWithoutResourceRefreshS2iBuildConfig, buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
+		})
+
+		testDockerBuild := func(buildConfig, logsMustMatchRegexp string, startBuildAddArgs ...string) {
 			g.By("creating an imagestream")
 			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating a build config")
-			err = oc.Run("create").Args("-f", csiDockerBuildConfig).Execute()
+			err = oc.Run("create").Args("-f", buildConfig).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a build and waiting for it to complete")
-			br, _ := exutil.StartBuildAndWait(oc, "mydockertest")
+			br, err := exutil.StartBuildAndWait(oc, append([]string{"mydockertest"}, startBuildAddArgs...)...)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertSuccess()
 
 			g.By("ensuring that the build pod logs contain the provided shared")
 			buildPodLogs, err := br.Logs()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(buildPodLogs).To(o.ContainSubstring("my-secret-value"))
+			if logsMustMatchRegexp != "" {
+				g.By(fmt.Sprintf("verify that the build log included a message that matched %q", logsMustMatchRegexp))
+				o.Expect(buildPodLogs).To(o.MatchRegexp(logsMustMatchRegexp))
+			}
 
 			g.By("creating a deployment config")
 			err = oc.Run("create").Args("-f", dockerDeploymentConfig).Execute()
@@ -290,38 +353,22 @@ var _ = g.Describe("[sig-builds][Feature:Builds][volumes] csi build volumes with
 			out, err := oc.Run("rsh").Args("dc/mydockertest", "cat", "/var/run/secrets/some-secret/key").Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("cat: /var/run/secrets/some-secret/key: No such file or directory"))
+		}
+
+		g.It("should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testDockerBuild(csiDockerBuildConfig, buildInDefaultUserNSRegexp, "--build-loglevel=2")
 		})
 
 		g.It("should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
-			g.By("creating an imagestream")
-			err := oc.Run("create").Args("-f", dockerImageStream).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			testDockerBuild(csiWithoutResourceRefreshDockerBuildConfig, buildInDefaultUserNSRegexp, "--build-loglevel=2")
+		})
 
-			g.By("creating a build config")
-			err = oc.Run("create").Args("-f", csiWithoutResourceRefreshDockerBuildConfig).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+		g.It("should mount given csi shared resource secret into the build pod for unprivileged docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testDockerBuild(csiDockerBuildConfig, buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
+		})
 
-			g.By("starting a build and waiting for it to complete")
-			br, _ := exutil.StartBuildAndWait(oc, "mydockertest")
-			br.AssertSuccess()
-
-			g.By("ensuring that the build pod logs contain the provided shared")
-			buildPodLogs, err := br.Logs()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(buildPodLogs).To(o.ContainSubstring("my-secret-value"))
-
-			g.By("creating a deployment config")
-			err = oc.Run("create").Args("-f", dockerDeploymentConfig).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("waiting for the deployment to complete")
-			_, err = deploymentutil.WaitForDeployerToComplete(oc, "mydockertest-1", 5*time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("ensuring that the shared secret does not exist in the build image")
-			out, err := oc.Run("rsh").Args("dc/mydockertest", "cat", "/var/run/secrets/some-secret/key").Output()
-			o.Expect(err).To(o.HaveOccurred())
-			o.Expect(out).To(o.ContainSubstring("cat: /var/run/secrets/some-secret/key: No such file or directory"))
+		g.It("should mount given csi shared resource secret without resource refresh into the build pod for unprivileged docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
+			testDockerBuild(csiWithoutResourceRefreshDockerBuildConfig, buildInUserNSRegexp, "--env", buildInUserNSEnvVar)
 		})
 	})
 })

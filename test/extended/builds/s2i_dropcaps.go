@@ -48,6 +48,32 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] Capabilities should be dr
 				g.By("start the root-access-build which attempts root access")
 				br2, _ := exutil.StartBuildAndWait(oc, "root-access-build")
 				br2.AssertFailure()
+
+				g.By("patching the rootable-builder buildconfig to run unprivileged")
+				err = oc.Run("patch").Args("bc/rootable-ruby", "-p", buildInUserNSPatch("dockerStrategy", 2)).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("starting the unprivileged rootable-ruby build")
+				br, _ = exutil.StartBuildAndWait(oc, "rootable-ruby", fmt.Sprintf("--from-dir=%s", s2ibuilderFixture))
+				br.AssertSuccess()
+
+				g.By("verify that the unprivileged rootable-ruby build ran in a user namespace")
+				logs, err := br.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).To(o.MatchRegexp(buildInUserNSRegexp))
+
+				g.By("patching to run unprivileged the buildconfig that tries to gain root access via su")
+				err = oc.Run("patch").Args("bc/root-access-build", "-p", buildInUserNSPatch("sourceStrategy", 2)).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("start the unprivileged root-access-build which attempts root access")
+				br2, _ = exutil.StartBuildAndWait(oc, "root-access-build")
+				br2.AssertFailure()
+
+				g.By("verify that the unprivileged root-access-build which attempts root access ran in a user namespace")
+				logs, err = br2.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).To(o.MatchRegexp(buildInUserNSRegexp))
 			})
 		})
 	})
