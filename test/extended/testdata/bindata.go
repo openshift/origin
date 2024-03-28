@@ -41166,7 +41166,7 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 3Gi
+            memory: 200Mi
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
@@ -42764,7 +42764,7 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 3Gi
+            memory: 200Mi
 `)
 
 func testExtendedTestdataDeploymentsTagImagesDeploymentYamlBytes() ([]byte, error) {
@@ -52322,7 +52322,7 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 3Gi
+            memory: 200Mi
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       volumes:
