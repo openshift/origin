@@ -38,6 +38,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testEtcdShouldNotLogSlowFdataSyncs(finalIntervals)...)
 	junits = append(junits, testEtcdShouldNotLogDroppedRaftMessages(finalIntervals)...)
 	junits = append(junits, testOperatorStatusChanged(finalIntervals)...)
+	junits = append(junits, testEtcdDoesNotLogExcessiveTookTooLongMessages(finalIntervals)...)
 
 	return junits, nil
 }
