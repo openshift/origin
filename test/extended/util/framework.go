@@ -2096,6 +2096,20 @@ func IsTechPreviewNoUpgrade(oc *CLI) bool {
 	return featureGate.Spec.FeatureSet == configv1.TechPreviewNoUpgrade
 }
 
+// IsNoUpgradeFeatureSet checks if a cluster has a non-upgradeable featureset
+// such as TechPreviewNoUpgrade or CustomNoUpgrade.
+func IsNoUpgradeFeatureSet(oc *CLI) bool {
+	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return false
+		}
+		e2e.Failf("could not retrieve feature-gate: %v", err)
+	}
+	featureSet := featureGate.Spec.FeatureSet
+	return (featureSet == configv1.TechPreviewNoUpgrade || featureSet == configv1.CustomNoUpgrade)
+}
+
 // DoesApiResourceExist searches the list of ApiResources and returns "true" if a given
 // apiResourceName Exists. Valid search strings are for example "cloudprivateipconfigs" or "machines".
 func DoesApiResourceExist(config *rest.Config, apiResourceName, group string) (bool, error) {
