@@ -114,6 +114,13 @@ var s2iImages = map[string][]tc{
 			Version:  "530",
 			Cmd:      "perl --version",
 			Expected: "v5.30",
+			Tag:      "5.30-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
+		{
+			Version:  "530",
+			Cmd:      "perl --version",
+			Expected: "v5.30",
 			Tag:      "5.30-el7",
 			Arches:   []string{"amd64", "ppc64le", "s390x"},
 		},
@@ -149,6 +156,13 @@ var s2iImages = map[string][]tc{
 		},
 	},
 	"nginx": {
+		{
+			Version:  "120",
+			Cmd:      "nginx -V",
+			Expected: "nginx/1.20",
+			Tag:      "1.20-ubi8",
+			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
+		},
 		{
 			Version:  "120",
 			Cmd:      "nginx -V",
