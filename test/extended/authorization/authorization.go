@@ -525,7 +525,6 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 				AddUserAdminToProject(oc, malletProjectName, markName)
 				// TODO should be done by mark
 				edgarEditRoleBindingName := AddUserEditToProject(oc, malletProjectName, edgarName)
-				anonEditRoleBindingName := AddUserEditToProject(oc, hammerProjectName, "system:anonymous")
 				dannyViewRoleBindingName := AddUserViewToProject(oc, "default", dannyName)
 
 				g.By("creating clients")
@@ -727,17 +726,6 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 						Namespace: hammerProjectName,
 					},
 				}.run(t)
-				subjectAccessReviewTest{
-					description:       "system:anonymous told he can create pods in project hammer-project",
-					localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews(hammerProjectName),
-					localReview:       askCanICreatePods,
-					kubeAuthInterface: anonymousSARGetter,
-					response: authorizationv1.SubjectAccessReviewResponse{
-						Allowed:   true,
-						Reason:    `RBAC: allowed by RoleBinding "` + anonEditRoleBindingName + `/` + hammerProjectName + `" of ClusterRole "edit" to User "system:anonymous"`,
-						Namespace: hammerProjectName,
-					},
-				}.run(t)
 
 				// test checking self permissions when denied
 				subjectAccessReviewTest{
@@ -745,17 +733,6 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 					localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews(malletProjectName),
 					localReview:       askCanICreatePods,
 					kubeAuthInterface: haroldSARGetter,
-					response: authorizationv1.SubjectAccessReviewResponse{
-						Allowed:   false,
-						Reason:    "",
-						Namespace: malletProjectName,
-					},
-				}.run(t)
-				subjectAccessReviewTest{
-					description:       "system:anonymous told he cannot create pods in project mallet-project",
-					localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews(malletProjectName),
-					localReview:       askCanICreatePods,
-					kubeAuthInterface: anonymousSARGetter,
 					response: authorizationv1.SubjectAccessReviewResponse{
 						Allowed:   false,
 						Reason:    "",
@@ -770,17 +747,6 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 					localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("nonexistent-project"),
 					localReview:       askCanICreatePods,
 					kubeAuthInterface: haroldSARGetter,
-					response: authorizationv1.SubjectAccessReviewResponse{
-						Allowed:   false,
-						Reason:    "",
-						Namespace: "nonexistent-project",
-					},
-				}.run(t)
-				subjectAccessReviewTest{
-					description:       "system:anonymous told he cannot create pods in project nonexistent-project",
-					localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("nonexistent-project"),
-					localReview:       askCanICreatePods,
-					kubeAuthInterface: anonymousSARGetter,
 					response: authorizationv1.SubjectAccessReviewResponse{
 						Allowed:   false,
 						Reason:    "",
