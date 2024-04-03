@@ -31,8 +31,8 @@ USER 1001
 FROM %[1]s as other
 COPY --from=test /usr/bin/curl /test/
 COPY --from=%[2]s /bin/echo /test/
-COPY --from=%[2]s /bin/ping /test/
-`, image.LimitedShellImage(), image.ShellImage())
+COPY --from=%[2]s /bin/wget /test/
+`, image.LimitedShellImage(), image.MustGatherImage())
 	)
 
 	g.AfterEach(func() {
@@ -124,7 +124,7 @@ COPY --from=%[2]s /bin/ping /test/
 		m, err := oc.Run("logs").Args("-f", "test", "-c", "check").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(m).To(o.ContainSubstring("echo"))
-		o.Expect(m).To(o.ContainSubstring("ping"))
+		o.Expect(m).To(o.ContainSubstring("wget"))
 		e2e.Logf("Pod logs:\n%s\n%s", string(data), string(m))
 	})
 })
