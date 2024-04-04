@@ -9,7 +9,7 @@ import (
 
 func TestBuilder(t *testing.T) {
 	oldLocator := "node/node-name ns/openshift-kube-apiserver pod/pod-name"
-	podRef := monitorapi.PodFrom(oldLocator)
+	podRef := podFrom(oldLocator)
 	nodeName, _ := monitorapi.NodeFromLocator(oldLocator)
 
 	interval := monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Info).
@@ -23,7 +23,7 @@ func TestBuilder(t *testing.T) {
 		Display().
 		Build(time.Time{}, time.Time{})
 
-	if interval.Locator != "namespace/openshift-kube-apiserver node/node-name pod/pod-name server/kube-apiserver shutdown/apiserver" {
-		t.Fatal(interval.Locator)
+	if interval.StructuredLocator.OldLocator() != "namespace/openshift-kube-apiserver node/node-name pod/pod-name server/kube-apiserver shutdown/apiserver" {
+		t.Fatal(interval.StructuredLocator.OldLocator())
 	}
 }

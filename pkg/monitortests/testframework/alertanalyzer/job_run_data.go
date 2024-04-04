@@ -129,8 +129,7 @@ func getAlertLevelFromEvent(event monitorapi.Interval) AlertLevel {
 func computeAlertData(events monitorapi.Intervals) *AlertList {
 	alertEvents := events.Filter(
 		func(eventInterval monitorapi.Interval) bool {
-			locator := monitorapi.LocatorParts(eventInterval.Locator)
-			alertName := monitorapi.AlertFrom(locator)
+			alertName := eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
 			if len(alertName) == 0 {
 				return false
 			}
@@ -147,10 +146,9 @@ func computeAlertData(events monitorapi.Intervals) *AlertList {
 
 	alertMap := map[AlertKey]*Alert{}
 	for _, alertInterval := range alertEvents {
-		alertLocator := monitorapi.LocatorParts(alertInterval.Locator)
 		alertKey := AlertKey{
-			Name:      monitorapi.AlertFrom(alertLocator),
-			Namespace: monitorapi.NamespaceFrom(alertLocator),
+			Name:      alertInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey],
+			Namespace: alertInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey],
 			Level:     getAlertLevelFromEvent(alertInterval),
 		}
 		alert, ok := alertMap[alertKey]

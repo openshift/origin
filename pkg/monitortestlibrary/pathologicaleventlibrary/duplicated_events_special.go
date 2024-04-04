@@ -25,7 +25,7 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	var failureOutput, flakeOutput []string
 	for _, e := range events {
 		if s.matcher.Allows(e, "") {
-			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
+			msg := fmt.Sprintf("%s - %s", e.StructuredLocator.OldLocator(), e.StructuredMessage.HumanMessage)
 			times := GetTimesAnEventHappened(e.StructuredMessage)
 			switch {
 			case s.failThreshold > 0 && times > s.failThreshold:
@@ -76,7 +76,7 @@ func (s *singleEventThresholdCheck) getNamespacedFailuresAndFlakes(events monito
 
 		var failPresent, flakePresent bool
 		if s.matcher.Allows(e, "") {
-			msg := fmt.Sprintf("%s - %s", e.Locator, e.StructuredMessage.HumanMessage)
+			msg := fmt.Sprintf("%s - %s", e.StructuredLocator.OldLocator(), e.StructuredMessage.HumanMessage)
 			times := GetTimesAnEventHappened(e.StructuredMessage)
 
 			failPresent = false

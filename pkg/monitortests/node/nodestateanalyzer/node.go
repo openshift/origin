@@ -24,11 +24,11 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		// ready events because they have a node in the locator, and a reason of "Ready".
 		// Once the reasons marked "not ported" in the comments below are ported, we could filter here on
 		// event.Source to ensure we only look at what we intend.
-		node, ok := monitorapi.NodeFromLocator(event.Locator)
+		node, ok := event.StructuredLocator.Keys[monitorapi.LocatorNodeKey]
 		if !ok {
 			continue
 		}
-		reason := monitorapi.ReasonFrom(event.Message)
+		reason := event.StructuredMessage.Reason
 		if len(reason) == 0 {
 			continue
 		}

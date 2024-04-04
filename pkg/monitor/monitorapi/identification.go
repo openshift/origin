@@ -1,6 +1,7 @@
 package monitorapi
 
 import (
+	"reflect"
 	"strings"
 )
 
@@ -31,26 +32,11 @@ func NodeFromLocator(locator string) (string, bool) {
 	return ret, len(ret) > 0
 }
 
-func OperatorFromLocator(locator string) (string, bool) {
-	ret := OperatorFrom(LocatorParts(locator))
-	return ret, len(ret) > 0
+func NamespaceFromLocator(locator Locator) string {
+	return locator.Keys[LocatorNamespaceKey]
 }
 
-func NamespaceFromLocator(locator string) string {
-	locatorParts := LocatorParts(locator)
-	if ns, ok := locatorParts["ns"]; ok {
-		return ns
-	}
-	if ns, ok := locatorParts["namespace"]; ok {
-		return ns
-	}
-	return ""
-}
-
-func AlertFromLocator(locator string) string {
-	return AlertFrom(LocatorParts(locator))
-}
-
+// TODO: remove all uses
 func LocatorParts(locator string) map[string]string {
 	parts := map[string]string{}
 
@@ -97,27 +83,19 @@ func BackendDisruptionNameFromLocator(locator Locator) string {
 	return locator.Keys[LocatorBackendDisruptionNameKey]
 }
 
-// BackendDisruptionNameFrom holds the value used to store and locate historical data related to the amount of disruption.
-func BackendDisruptionNameFrom(locatorParts map[string]string) string {
-	return locatorParts[string(LocatorBackendDisruptionNameKey)]
-}
-
 func DisruptionConnectionTypeFrom(locatorParts map[string]string) BackendConnectionType {
 	return BackendConnectionType(locatorParts[string(LocatorConnectionKey)])
 }
 
-func IsEventForLocator(locator string) EventIntervalMatchesFunc {
+func IsEventForLocator(locator Locator) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		if eventInterval.Locator == locator {
-			return true
-		}
-		return false
+		return reflect.DeepEqual(eventInterval.StructuredLocator, locator)
 	}
 }
 
 func IsEventForBackendDisruptionName(backendDisruptionName string) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		if BackendDisruptionNameFrom(LocatorParts(eventInterval.Locator)) == backendDisruptionName {
+		if BackendDisruptionNameFromLocator(eventInterval.StructuredLocator) == backendDisruptionName {
 			return true
 		}
 		return false

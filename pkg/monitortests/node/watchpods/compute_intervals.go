@@ -21,7 +21,7 @@ func intervalsFromEvents_PodChanges(events monitorapi.Intervals, beginning, end 
 		if _, ok := event.StructuredLocator.Keys[monitorapi.LocatorPodKey]; !ok {
 			continue
 		}
-		podLocator := monitorapi.PodFrom(event.Locator).ToLocator()
+		podLocator := monitorapi.PodFrom(event.StructuredLocator).ToLocator()
 		reason := event.StructuredMessage.Reason
 		switch reason {
 		case monitorapi.PodPendingReason, monitorapi.PodNotPendingReason, monitorapi.PodReasonDeleted:
@@ -68,7 +68,7 @@ func createPodIntervalsFromInstants(input monitorapi.Intervals, recordedResource
 		}
 
 		// We have to strip out container, this needs to be just pod locator here
-		podLocator := monitorapi.PodFromLocator(event.StructuredLocator).ToLocator()
+		podLocator := monitorapi.PodFrom(event.StructuredLocator).ToLocator()
 		pls := podLocator.OldLocator()
 		locatorKeyToLocator[pls] = podLocator
 		reason := event.StructuredMessage.Reason
@@ -198,7 +198,7 @@ func (t podLifecycleTimeBounder) getStartTime(inLocator monitorapi.Locator) time
 	podCreationTime := t.getPodCreationTime(inLocator)
 
 	// We could have been given a container locator if we were delegated to, create a purely pod locator:
-	podLocator := monitorapi.PodFromLocator(inLocator).ToLocator()
+	podLocator := monitorapi.PodFrom(inLocator).ToLocator()
 	podLocatorStr := podLocator.OldLocator()
 
 	// use the earliest known event as a creation time, since it clearly existed at that point in time.
@@ -233,7 +233,7 @@ func (t podLifecycleTimeBounder) getStartTime(inLocator monitorapi.Locator) time
 func (t podLifecycleTimeBounder) getEndTime(inLocator monitorapi.Locator) time.Time {
 
 	// We could have been given a container locator if we were delegated to, create a purely pod locator:
-	podLocator := monitorapi.PodFromLocator(inLocator).ToLocator()
+	podLocator := monitorapi.PodFrom(inLocator).ToLocator()
 	podLocatorStr := podLocator.OldLocator()
 
 	// if this is a RunOnce pod that has finished running all of its containers, then the intervals chart will show that
@@ -265,7 +265,7 @@ func (t podLifecycleTimeBounder) getEndTime(inLocator monitorapi.Locator) time.T
 }
 
 func (t podLifecycleTimeBounder) getPodCreationTime(inLocator monitorapi.Locator) *time.Time {
-	podCoordinates := monitorapi.PodFromLocator(inLocator)
+	podCoordinates := monitorapi.PodFrom(inLocator)
 	instanceKey := monitorapi.InstanceKey{
 		Namespace: podCoordinates.Namespace,
 		Name:      podCoordinates.Name,
@@ -302,7 +302,7 @@ func (t podLifecycleTimeBounder) getPodCreationTime(inLocator monitorapi.Locator
 }
 
 func (t podLifecycleTimeBounder) getPodDeletionPlusGraceTime(inLocator monitorapi.Locator) *time.Time {
-	podCoordinates := monitorapi.PodFrom(inLocator.OldLocator())
+	podCoordinates := monitorapi.PodFrom(inLocator)
 	instanceKey := monitorapi.InstanceKey{
 		Namespace: podCoordinates.Namespace,
 		Name:      podCoordinates.Name,
@@ -331,7 +331,7 @@ func (t podLifecycleTimeBounder) getPodDeletionPlusGraceTime(inLocator monitorap
 }
 
 func (t podLifecycleTimeBounder) getRunOnceContainerEnd(inLocator monitorapi.Locator) *time.Time {
-	podCoordinates := monitorapi.PodFrom(inLocator.OldLocator())
+	podCoordinates := monitorapi.PodFrom(inLocator)
 	instanceKey := monitorapi.InstanceKey{
 		Namespace: podCoordinates.Namespace,
 		Name:      podCoordinates.Name,

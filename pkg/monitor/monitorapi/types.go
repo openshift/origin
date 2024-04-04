@@ -308,7 +308,7 @@ type Interval struct {
 
 func (i Interval) String() string {
 	if i.From.Equal(i.To) {
-		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), i.Level.String()[:1], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
+		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), i.Level.String()[:1], i.StructuredLocator.OldLocator(), strings.Replace(i.Message, "\n", "\\n", -1))
 	}
 	duration := i.To.Sub(i.From)
 	if duration < time.Second {
@@ -317,14 +317,14 @@ func (i Interval) String() string {
 			i.From.Nanosecond()/int(time.Millisecond),
 			strconv.Itoa(int(duration/time.Millisecond))+"ms",
 			i.Level.String()[:1],
-			i.Locator,
+			i.StructuredLocator.OldLocator(),
 			strings.Replace(i.Message, "\n", "\\n", -1))
 	}
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s",
 		i.From.Format("Jan 02 15:04:05"),
 		i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s",
 		i.Level.String()[:1],
-		i.Locator,
+		i.StructuredLocator.OldLocator(),
 		strings.Replace(i.Message, "\n", "\\n", -1))
 }
 
@@ -369,6 +369,11 @@ func (i Locator) OldLocator() string {
 	annotationString := strings.Join(annotations, " ")
 
 	return annotationString
+}
+
+func (i Locator) HasKey(k LocatorKey) bool {
+	_, ok := i.Keys[k]
+	return ok
 }
 
 // sortKeys ensures that some keys appear in the order we require (least specific to most), so rows with locators
@@ -461,7 +466,9 @@ func (intervals Intervals) Less(i, j int) bool {
 		return intervals[i].Message < intervals[j].Message
 	}
 
-	return intervals[i].Locator < intervals[j].Locator
+	// TODO: this could be a bit slow, but leaving it simple if we can get away with it. Sorting structured locators
+	// that use keys is trickier than the old flat string method.
+	return intervals[i].StructuredLocator.OldLocator() < intervals[j].StructuredLocator.OldLocator()
 }
 func (intervals Intervals) Len() int { return len(intervals) }
 func (intervals Intervals) Swap(i, j int) {
@@ -523,15 +530,7 @@ func IsInfoEvent(eventInterval Interval) bool {
 
 // IsInE2ENamespace returns true if the eventInterval is in an e2e namespace
 func IsInE2ENamespace(eventInterval Interval) bool {
-	// Old style
-	if strings.Contains(eventInterval.Locator, "ns/e2e-") {
-		return true
-	}
-	// New style
-	if strings.Contains(eventInterval.Locator, "namespace/e2e-") {
-		return true
-	}
-	return false
+	return strings.HasPrefix(NamespaceFromLocator(eventInterval.StructuredLocator), "e2e-")
 }
 
 func IsForDisruptionBackend(backend string) EventIntervalMatchesFunc {
@@ -549,18 +548,16 @@ func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 		if ns, ok := eventInterval.StructuredLocator.Keys[LocatorNamespaceKey]; ok {
 			return namespaces.Has(ns)
 		}
-		// TODO: For legacy locators, can be removed soon
-		ns := NamespaceFromLocator(eventInterval.Locator)
-		return namespaces.Has(ns)
+		return false
 	}
 }
 
 // ContainsAllParts ensures that all listed key match at least one of the values.
 func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		actualParts := LocatorParts(eventInterval.Locator)
+		actualParts := eventInterval.StructuredLocator.Keys
 		for key, possibleValues := range matchers {
-			actualValue := actualParts[key]
+			actualValue := actualParts[LocatorKey(key)]
 
 			found := false
 			for _, possibleValue := range possibleValues {
@@ -581,9 +578,9 @@ func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatches
 // NotContainsAllParts returns a function that returns false if any key matches.
 func NotContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		actualParts := LocatorParts(eventInterval.Locator)
+		actualParts := eventInterval.StructuredLocator.Keys
 		for key, possibleValues := range matchers {
-			actualValue := actualParts[key]
+			actualValue := actualParts[LocatorKey(key)]
 
 			for _, possibleValue := range possibleValues {
 				if possibleValue.MatchString(actualValue) {

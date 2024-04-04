@@ -21,8 +21,5 @@ func BackendDisruptionSeconds(backendDisruptionName string, events Intervals) (t
 }
 
 func IsDisruptionEvent(eventInterval Interval) bool {
-	if disruptionBackend := BackendDisruptionNameFrom(LocatorParts(eventInterval.Locator)); len(disruptionBackend) > 0 {
-		return true
-	}
-	return false
+	return eventInterval.Source == SourceDisruption
 }

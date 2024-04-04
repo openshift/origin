@@ -173,9 +173,22 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			expectedAllowName: "",
 			expectedMatchName: "EtcdReadinessProbeFailuresPerRevisionChange",
 		},
+		{
+			name: "multiple versions found probably in transition",
+			locator: monitorapi.Locator{
+				Keys: map[monitorapi.LocatorKey]string{
+					monitorapi.LocatorNamespaceKey:  "openshift-kube-scheduler-operator",
+					monitorapi.LocatorDeploymentKey: "openshift-kube-scheduler-operator",
+				},
+			},
+
+			msg: monitorapi.NewMessage().HumanMessage("multiple versions found, probably in transition: registry.build05.ci.openshift.org/ci-op-322dfkrq/stable-initial@sha256:c5a14ed931427603ac0cc4f342c59e9d63ed66ef4fa16f4c9c3a6ae7bc3307a7,registry.build05.ci.openshift.org/ci-op-322dfkrq/stable@sha256:c5a14ed931427603ac0cc4f342c59e9d63ed66ef4fa16f4c9c3a6ae7bc3307a7").
+				Reason("MultipleVersions").Build(),
+			expectedAllowName: "OperatorMultipleVersions",
+		},
 	}
 	for _, test := range tests {
-		registry := NewUniversalPathologicalEventMatchers(nil, nil)
+		registry := NewUpgradePathologicalEventMatchers(nil, nil)
 		t.Run(test.name, func(t *testing.T) {
 			i := monitorapi.Interval{
 				Condition: monitorapi.Condition{

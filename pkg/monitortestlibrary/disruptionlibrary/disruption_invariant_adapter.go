@@ -190,7 +190,7 @@ func (w *Availability) junitForNewConnections(ctx context.Context, finalInterval
 			w.newConnectionTestName, newConnectionAllowed, newConnectionDisruptionDetails, w.newConnectionDisruptionSampler.GetLocator(),
 			finalIntervals.Filter(
 				monitorapi.And(
-					monitorapi.IsEventForLocator(w.newConnectionDisruptionSampler.GetLocator().OldLocator()),
+					monitorapi.IsEventForLocator(w.newConnectionDisruptionSampler.GetLocator()),
 					monitorapi.IsErrorEvent,
 				),
 			),
@@ -208,7 +208,7 @@ func (w *Availability) junitForReusedConnections(ctx context.Context, finalInter
 			w.reusedConnectionTestName, reusedConnectionAllowed, reusedConnectionDisruptionDetails, w.reusedConnectionDisruptionSampler.GetLocator(),
 			finalIntervals.Filter(
 				monitorapi.And(
-					monitorapi.IsEventForLocator(w.reusedConnectionDisruptionSampler.GetLocator().OldLocator()),
+					monitorapi.IsEventForLocator(w.reusedConnectionDisruptionSampler.GetLocator()),
 					monitorapi.IsErrorEvent,
 				),
 			),

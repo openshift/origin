@@ -22,12 +22,27 @@ func TestComputeDisruptionData(t *testing.T) {
 			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-60 * time.Minute),
-					To:   time.Now().Add(-1 * time.Minute),
+					From:   time.Now().Add(-60 * time.Minute),
+					To:     time.Now().Add(-1 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 			},
 			expected: map[string]BackendDisruption{
@@ -45,30 +60,75 @@ func TestComputeDisruptionData(t *testing.T) {
 			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-60 * time.Minute),
-					To:   time.Now().Add(-30 * time.Minute),
+					From:   time.Now().Add(-60 * time.Minute),
+					To:     time.Now().Add(-30 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Error,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
+						Level: monitorapi.Error,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionBeganEventReason,
+							Cause:        "",
+							HumanMessage: "foo",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionBeganEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-30 * time.Minute),
-					To:   time.Now().Add(-20 * time.Minute),
+					From:   time.Now().Add(-30 * time.Minute),
+					To:     time.Now().Add(-20 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-20 * time.Minute),
-					To:   time.Now().Add(-10 * time.Minute),
+					From:   time.Now().Add(-20 * time.Minute),
+					To:     time.Now().Add(-10 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 			},
 			expected: map[string]BackendDisruption{
@@ -85,48 +145,123 @@ func TestComputeDisruptionData(t *testing.T) {
 			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-60 * time.Minute),
-					To:   time.Now().Add(-50 * time.Minute),
+					From:   time.Now().Add(-60 * time.Minute),
+					To:     time.Now().Add(-50 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Error,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
+						Level: monitorapi.Error,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionBeganEventReason,
+							Cause:        "",
+							HumanMessage: "foo",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionBeganEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-50 * time.Minute),
-					To:   time.Now().Add(-40 * time.Minute),
+					From:   time.Now().Add(-50 * time.Minute),
+					To:     time.Now().Add(-40 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-40 * time.Minute),
-					To:   time.Now().Add(-30 * time.Minute),
+					From:   time.Now().Add(-40 * time.Minute),
+					To:     time.Now().Add(-30 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Error,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
+						Level: monitorapi.Error,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionBeganEventReason,
+							Cause:        "",
+							HumanMessage: "foo",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionBeganEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-30 * time.Minute),
-					To:   time.Now().Add(-20 * time.Minute),
+					From:   time.Now().Add(-30 * time.Minute),
+					To:     time.Now().Add(-20 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-20 * time.Minute),
-					To:   time.Now().Add(-10 * time.Minute),
+					From:   time.Now().Add(-20 * time.Minute),
+					To:     time.Now().Add(-10 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 			},
 			expected: map[string]BackendDisruption{
@@ -143,57 +278,147 @@ func TestComputeDisruptionData(t *testing.T) {
 			intervals: []monitorapi.Interval{
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-60 * time.Minute),
-					To:   time.Now().Add(-30 * time.Minute),
+					From:   time.Now().Add(-60 * time.Minute),
+					To:     time.Now().Add(-30 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Error,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
+						Level: monitorapi.Error,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionBeganEventReason,
+							Cause:        "",
+							HumanMessage: "foo",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionBeganEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-30 * time.Minute),
-					To:   time.Now().Add(-20 * time.Minute),
+					From:   time.Now().Add(-30 * time.Minute),
+					To:     time.Now().Add(-20 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/kube-api-new-connections disruption/kube-api connection/new",
-						Message: "disruption/kube-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "kube-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-20 * time.Minute),
-					To:   time.Now().Add(-10 * time.Minute),
+					From:   time.Now().Add(-20 * time.Minute),
+					To:     time.Now().Add(-10 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/openshift-api-new-connections disruption/openshift-api connection/new",
-						Message: "disruption/openshift-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "openshift-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "openshift-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/openshift-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-60 * time.Minute),
-					To:   time.Now().Add(-30 * time.Minute),
+					From:   time.Now().Add(-60 * time.Minute),
+					To:     time.Now().Add(-30 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Error,
-						Locator: "backend-disruption-name/openshift-api-new-connections disruption/openshift-api connection/new",
-						Message: "reason/DisruptionBegan ns/openshift-image-registry route/test-disruption-new disruption/image-registry connection/new stopped responding to GET requests over new connections: Get \"https://test-disruption-new-openshift-image-registry.apps.ci-op-4mb5069g-03fd1.XXXXXXXXXXXXXXXXXXXXXX/healthz\": dial tcp 104.154.53.8:443: connect: connection refused",
+						Level: monitorapi.Error,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "openshift-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "openshift-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionBeganEventReason,
+							Cause:        "",
+							HumanMessage: "foo",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionBeganEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-30 * time.Minute),
-					To:   time.Now().Add(-25 * time.Minute),
+					From:   time.Now().Add(-30 * time.Minute),
+					To:     time.Now().Add(-25 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 				{
 					Condition: monitorapi.Condition{
-						Level:   monitorapi.Info,
-						Locator: "backend-disruption-name/openshift-api-new-connections disruption/openshift-api connection/new",
-						Message: "disruption/openshift-api connection/new started responding to GET requests over new connections",
+						Level: monitorapi.Info,
+						StructuredLocator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeDisruption,
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorBackendDisruptionNameKey: "openshift-api-new-connections",
+								monitorapi.LocatorDisruptionKey:            "openshift-api",
+								monitorapi.LocatorConnectionKey:            "new",
+							},
+						},
+						StructuredMessage: monitorapi.Message{
+							Reason:       monitorapi.DisruptionEndedEventReason,
+							Cause:        "",
+							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: string(monitorapi.DisruptionEndedEventReason),
+							},
+						},
 					},
-					From: time.Now().Add(-25 * time.Minute),
-					To:   time.Now().Add(-10 * time.Minute),
+					From:   time.Now().Add(-25 * time.Minute),
+					To:     time.Now().Add(-10 * time.Minute),
+					Source: monitorapi.SourceDisruption,
 				},
 			},
 			expected: map[string]BackendDisruption{
