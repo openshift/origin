@@ -1,7 +1,7 @@
 package kubeletselinuxlabels
 
 import (
-	images "github.com/openshift/origin/test/extended/util/image"
+	"github.com/openshift/origin/test/extended/util/image"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +41,7 @@ func selinuxPodSpec(name, namespace, nodeName string) *corev1.Pod {
 			Containers: []corev1.Container{
 				{
 
-					Image:           images.LimitedShellImage(),
+					Image:           image.LocationFor("quay.io/redhat-developer/nfs-server:1.1"),
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Name:            name,
 					Command: []string{
