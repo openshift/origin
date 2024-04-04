@@ -112,6 +112,7 @@ func RunResourceWatch() error {
 		coreResource("nodes"),
 		coreResource("replicationcontrollers"),
 		coreResource("services"),
+		coreResource("serviceaccounts"),
 	}
 
 	configmonitor.WireResourceInformersToGitRepo(
