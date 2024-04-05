@@ -191,7 +191,6 @@ func (*selinuxLabelWatcher) ConstructComputedIntervals(ctx context.Context, star
 }
 
 func (lw *selinuxLabelWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-
 	podsList, err := lw.kubeClient.CoreV1().Pods(lw.namespaceName).List(ctx, v1.ListOptions{})
 	if err != nil {
 		return []*junitapi.JUnitTestCase{{Name: testName, SystemErr: err.Error()}}, err
@@ -209,7 +208,6 @@ func (*selinuxLabelWatcher) WriteContentToStorage(ctx context.Context, storageDi
 }
 
 func (lw *selinuxLabelWatcher) Cleanup(ctx context.Context) error {
-
 	if len(lw.namespaceName) > 0 && lw.kubeClient != nil {
 		if err := lw.kubeClient.CoreV1().Namespaces().Delete(ctx, lw.namespaceName, v1.DeleteOptions{}); err != nil {
 			return err
@@ -248,8 +246,8 @@ func (lw *selinuxLabelWatcher) allPodsStarted(ctx context.Context) (bool, error)
 		return false, err
 	}
 	for _, val := range pods.Items {
-		if !exutil.CheckPodIsReady(val) {
-			return false, fmt.Errorf("pod %s/%s is not ready with status %+v", val.Namespace, val.Name, val.Status.ContainerStatuses)
+		if !exutil.CheckPodIsRunning(val) {
+			return false, fmt.Errorf("pod %s/%s is not running with status %+v", val.Namespace, val.Name, val.Status.ContainerStatuses)
 		}
 	}
 
