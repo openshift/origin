@@ -109,6 +109,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-new-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
 
 	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
+	monitorTestRegistry.AddMonitorTestOrDie("node-kubelet-selinux-labels", "Node / Kubelet", kubeletselinuxlabels.NewSelinuxLabelWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewAvailabilityInvariant())
 
@@ -162,7 +163,6 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("node-state-analyzer", "Node / Kubelet", nodestateanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("pod-lifecycle", "Node / Kubelet", watchpods.NewPodWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("node-lifecycle", "Node / Kubelet", watchnodes.NewNodeWatcher())
-	monitorTestRegistry.AddMonitorTestOrDie("node-kubelet-selinux-labels", "Node / Kubelet", kubeletselinuxlabels.NewSelinuxLabelWatcher())
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-storage-invariants", "Storage", legacystoragemonitortests.NewLegacyTests())
 

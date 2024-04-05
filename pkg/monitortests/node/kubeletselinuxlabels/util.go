@@ -41,7 +41,7 @@ func selinuxPodSpec(name, namespace, nodeName string) *corev1.Pod {
 			Containers: []corev1.Container{
 				{
 
-					Image:           image.LocationFor("quay.io/redhat-developer/nfs-server:1.1"),
+					Image:           image.ShellImage(),
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Name:            name,
 					Command: []string{

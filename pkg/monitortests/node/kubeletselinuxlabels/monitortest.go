@@ -34,8 +34,7 @@ var (
 	//go:embed *.yaml
 	yamls embed.FS
 
-	namespace                *corev1.Namespace
-	hostNetworkTargetService *corev1.Pod
+	namespace *corev1.Namespace
 )
 
 func yamlOrDie(name string) []byte {
@@ -215,14 +214,10 @@ func (lw *selinuxLabelWatcher) Cleanup(ctx context.Context) error {
 			return err
 		}
 
-		startTime := time.Now()
 		err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 20*time.Minute, true, lw.namespaceDeleted)
 		if err != nil {
 			return err
 		}
-
-		klog.Infof("Deleting namespace: %s took %.2f seconds", lw.namespaceName, time.Now().Sub(startTime).Seconds())
-
 	}
 	return nil
 }
