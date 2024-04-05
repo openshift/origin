@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/statetracker"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -15,7 +14,6 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -29,13 +27,13 @@ const (
 	msgPhaseOSUpdate = "updated operating system"
 	msgPhaseReboot   = "rebooted and kubelet started"
 	testName         = "[sig-node][kubelet] selinux labels on kubelet process should always be kubelet_t"
+	namespace        = "kube-system"
 )
 
 var (
 	//go:embed *.yaml
 	yamls embed.FS
 
-	namespace                *corev1.Namespace
 	hostNetworkTargetService *corev1.Pod
 )
 
@@ -48,13 +46,8 @@ func yamlOrDie(name string) []byte {
 	return ret
 }
 
-func init() {
-	namespace = resourceread.ReadNamespaceV1OrDie(yamlOrDie("namespace.yaml"))
-}
-
 type selinuxLabelWatcher struct {
-	kubeClient    *kubernetes.Clientset
-	namespaceName string
+	kubeClient *kubernetes.Clientset
 }
 
 // This test was added to detect that selinux labels for the kubelet process
@@ -75,11 +68,6 @@ func (lw *selinuxLabelWatcher) StartCollection(ctx context.Context, adminRESTCon
 	if err != nil {
 		return err
 	}
-	actualNamespace, err := lw.kubeClient.CoreV1().Namespaces().Create(context.Background(), namespace, v1.CreateOptions{})
-	if err != nil {
-		return err
-	}
-	lw.namespaceName = actualNamespace.Name
 
 	// wait for pull secret to show up
 	if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 400*time.Second, true, func(ctx context.Context) (bool, error) {
@@ -93,10 +81,10 @@ func (lw *selinuxLabelWatcher) StartCollection(ctx context.Context, adminRESTCon
 	}
 
 	for i, val := range nodes.Items {
-		podWithNodeName := selinuxPodSpec(fmt.Sprintf("label-%d", i), actualNamespace.Name, val.Name)
-		_, err := lw.kubeClient.CoreV1().Pods(lw.namespaceName).Create(ctx, podWithNodeName, v1.CreateOptions{})
+		podWithNodeName := selinuxPodSpec(fmt.Sprintf("label-%d", i), namespace, val.Name)
+		_, err := lw.kubeClient.CoreV1().Pods(namespace).Create(ctx, podWithNodeName, v1.CreateOptions{})
 		if err != nil {
-			klog.InfoS("Failed to create pods", "Namespace", lw.namespaceName, "Name", val.Name)
+			klog.InfoS("Failed to create pods", "Namespace", namespace, "Name", val.Name)
 			return err
 		}
 	}
@@ -203,7 +191,7 @@ func (*selinuxLabelWatcher) ConstructComputedIntervals(ctx context.Context, star
 }
 
 func (lw *selinuxLabelWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	podsList, err := lw.kubeClient.CoreV1().Pods(lw.namespaceName).List(ctx, v1.ListOptions{})
+	podsList, err := lw.kubeClient.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{})
 	if err != nil {
 		return []*junitapi.JUnitTestCase{{Name: testName, SystemErr: err.Error()}}, err
 	}
@@ -220,41 +208,13 @@ func (*selinuxLabelWatcher) WriteContentToStorage(ctx context.Context, storageDi
 }
 
 func (lw *selinuxLabelWatcher) Cleanup(ctx context.Context) error {
-	if len(lw.namespaceName) > 0 && lw.kubeClient != nil {
-		if err := lw.kubeClient.CoreV1().Namespaces().Delete(ctx, lw.namespaceName, v1.DeleteOptions{}); err != nil {
-			return err
-		}
-
-		startTime := time.Now()
-		err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 20*time.Minute, true, lw.namespaceDeleted)
-		if err != nil {
-			return err
-		}
-
-		klog.Infof("Deleting namespace: %s took %.2f seconds", lw.namespaceName, time.Now().Sub(startTime).Seconds())
-
-	}
 	return nil
 }
 
-func (lw *selinuxLabelWatcher) namespaceDeleted(ctx context.Context) (bool, error) {
-	_, err := lw.kubeClient.CoreV1().Namespaces().Get(ctx, lw.namespaceName, v1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		return true, nil
-	}
-
-	if err != nil {
-		klog.Errorf("Error checking for deleted namespace: %s, %s", lw.namespaceName, err.Error())
-		return false, err
-	}
-
-	return false, nil
-}
-
 func (lw *selinuxLabelWatcher) allPodsStarted(ctx context.Context) (bool, error) {
-	pods, err := lw.kubeClient.CoreV1().Pods(lw.namespaceName).List(ctx, v1.ListOptions{})
+	pods, err := lw.kubeClient.CoreV1().Pods(namespace).List(ctx, v1.ListOptions{})
 	if err != nil {
-		klog.Errorf("Error checking for pods: %s, %s", lw.namespaceName, err.Error())
+		klog.Errorf("Error checking for pods: %s, %s", namespace, err.Error())
 		return false, err
 	}
 	for _, val := range pods.Items {
