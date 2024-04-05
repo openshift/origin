@@ -82,9 +82,8 @@ func (lw *selinuxLabelWatcher) StartCollection(ctx context.Context, adminRESTCon
 	lw.namespaceName = actualNamespace.Name
 
 	// wait for pull secret to show up
-	oc := exutil.NewCLIWithoutNamespace("operators")
 	if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 400*time.Second, true, func(ctx context.Context) (bool, error) {
-		_, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
+		_, err := kubeClient.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
