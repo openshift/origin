@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -79,6 +80,18 @@ func (lw *selinuxLabelWatcher) StartCollection(ctx context.Context, adminRESTCon
 		return err
 	}
 	lw.namespaceName = actualNamespace.Name
+
+	// wait for pull secret to show up
+	oc := exutil.NewCLIWithoutNamespace("operators")
+	if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 400*time.Second, true, func(ctx context.Context) (bool, error) {
+		_, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
 
 	for i, val := range nodes.Items {
 		podWithNodeName := selinuxPodSpec(fmt.Sprintf("label-%d", i), actualNamespace.Name, val.Name)
