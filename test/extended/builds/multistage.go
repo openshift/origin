@@ -57,7 +57,7 @@ COPY --from=%[2]s /bin/wget /test/
 					Source: buildv1.BuildSource{
 						Dockerfile: &testDockerfile,
 						Images: []buildv1.ImageSource{
-							{From: corev1.ObjectReference{Kind: "DockerImage", Name: image.ShellImage()}, As: []string{"scratch"}},
+							{From: corev1.ObjectReference{Kind: "DockerImage", Name: image.LimitedShellImage()}, As: []string{"scratch"}},
 						},
 					},
 					Strategy: buildv1.BuildStrategy{
@@ -92,7 +92,7 @@ COPY --from=%[2]s /bin/wget /test/
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(s).ToNot(o.ContainSubstring("--> FROM scratch"))
 		o.Expect(s).ToNot(o.ContainSubstring("FROM busybox"))
-		o.Expect(s).To(o.MatchRegexp("(\\[1/2\\] STEP 1/3|STEP 1/2|STEP 1): FROM %s AS test", regexp.QuoteMeta(image.ShellImage())))
+		o.Expect(s).To(o.MatchRegexp("(\\[1/2\\] STEP 1/3|STEP 1/2|STEP 1): FROM %s AS test", regexp.QuoteMeta(image.LimitedShellImage())))
 		o.Expect(s).To(o.ContainSubstring("COPY --from"))
 		o.Expect(s).To(o.ContainSubstring("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace()))
 		e2e.Logf("Build logs:\n%s", result)
