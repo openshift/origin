@@ -94,13 +94,6 @@ var s2iImages = map[string][]tc{
 			Tag:      "16-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
-		{
-			Version:  "14",
-			Cmd:      "node --version",
-			Expected: "v14",
-			Tag:      "14-ubi7",
-			Arches:   []string{"amd64", "ppc64le", "s390x"},
-		},
 	},
 	"perl": {
 		{
@@ -108,13 +101,6 @@ var s2iImages = map[string][]tc{
 			Cmd:      "perl --version",
 			Expected: "v5.32",
 			Tag:      "5.32-ubi8",
-			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
-		},
-		{
-			Version:  "530",
-			Cmd:      "perl --version",
-			Expected: "v5.30",
-			Tag:      "5.30-ubi8",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
@@ -160,7 +146,7 @@ var s2iImages = map[string][]tc{
 			Version:  "120",
 			Cmd:      "nginx -V",
 			Expected: "nginx/1.20",
-			Tag:      "1.20-ubi8",
+			Tag:      "1.20-ubi9",
 			Arches:   []string{"amd64", "arm64", "ppc64le", "s390x"},
 		},
 		{
