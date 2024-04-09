@@ -392,8 +392,10 @@ func (r *monitorTestRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTes
 
 	for _, monitorTest := range r.monitorTests {
 		testName := fmt.Sprintf("[Jira:%q] monitor test %v cleanup", monitorTest.jiraComponent, monitorTest.name)
+		log := logrus.WithField("monitorTest", monitorTest.name)
 
 		start := time.Now()
+		log.Info("beginning cleanup")
 		err := cleanupWithPanicProtection(ctx, monitorTest.monitorTest)
 		end := time.Now()
 		duration := end.Sub(start)
@@ -410,6 +412,7 @@ func (r *monitorTestRegistry) Cleanup(ctx context.Context) ([]*junitapi.JUnitTes
 				continue
 			}
 
+			log.WithError(err).Error("failed during cleanup")
 			errs = append(errs, err)
 			junits = append(junits, &junitapi.JUnitTestCase{
 				Name:     testName,

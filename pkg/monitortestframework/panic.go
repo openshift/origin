@@ -82,7 +82,7 @@ func cleanupWithPanicProtection(ctx context.Context, monitortest MonitorTest) (e
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("caught panic: %v", r)
-			logrus.Error("recovering from panic")
+			logrus.WithError(err).Error("recovering from panic")
 			fmt.Print(debug.Stack())
 		}
 	}()
