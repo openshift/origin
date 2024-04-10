@@ -65,6 +65,8 @@ type FeatureGateSelection struct {
 	// Turning on or off features may cause irreversible changes in your cluster which cannot be undone.
 	// +unionDiscriminator
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="oldSelf == 'CustomNoUpgrade' ? self == 'CustomNoUpgrade' : true",message="CustomNoUpgrade may not be changed"
+	// +kubebuilder:validation:XValidation:rule="oldSelf == 'TechPreviewNoUpgrade' ? self == 'TechPreviewNoUpgrade' : true",message="TechPreviewNoUpgrade may not be changed"
 	FeatureSet FeatureSet `json:"featureSet,omitempty"`
 
 	// customNoUpgrade allows the enabling or disabling of any feature. Turning this feature set on IS NOT SUPPORTED, CANNOT BE UNDONE, and PREVENTS UPGRADES.

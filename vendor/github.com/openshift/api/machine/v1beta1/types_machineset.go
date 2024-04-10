@@ -17,7 +17,6 @@ import (
 // +openshift:capability=MachineAPI
 // +kubebuilder:metadata:annotations="exclude.release.openshift.io/internal-openshift-hosted=true"
 // +kubebuilder:metadata:annotations="include.release.openshift.io/self-managed-high-availability=true"
-// +kubebuilder:metadata:annotations="include.release.openshift.io/single-node-developer=true"
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector
 // +kubebuilder:printcolumn:name="Desired",type="integer",JSONPath=".spec.replicas",description="Desired Replicas"
 // +kubebuilder:printcolumn:name="Current",type="integer",JSONPath=".status.replicas",description="Current Replicas"
