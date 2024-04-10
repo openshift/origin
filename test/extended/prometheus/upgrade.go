@@ -83,6 +83,42 @@ func (t *MetricsAvailableAfterUpgradeTest) Skip(_ upgrades.UpgradeContext) bool 
 	return !isPersistentStorageEnabled(client)
 }
 
+// Check Resource Metrics API is also available after the upgrade.
+type ResourceMetricsAPIAvailableAfterUpgradeTest struct {
+	executionTimestamp time.Time
+}
+
+func (t *ResourceMetricsAPIAvailableAfterUpgradeTest) Name() string {
+	return "resource-metrics-api-available-after-upgrade"
+}
+
+func (t *ResourceMetricsAPIAvailableAfterUpgradeTest) DisplayName() string {
+	return "[sig-instrumentation] Resource Metrics API should be available after an upgrade"
+}
+
+func (t *ResourceMetricsAPIAvailableAfterUpgradeTest) Setup(ctx context.Context, f *e2e.Framework) {
+	oc := exutil.NewCLIWithFramework(f)
+	g.By("getting the nodes.metrics before the upgrade")
+	preUpgradeResponse, err := oc.Run("get").Args("nodes.metrics").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(preUpgradeResponse).NotTo(o.BeEmpty())
+}
+
+func (t *ResourceMetricsAPIAvailableAfterUpgradeTest) Test(ctx context.Context, f *e2e.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
+	<-done
+
+	oc := exutil.NewCLIWithFramework(f)
+
+	g.By("verifying whether the nodes.metrics command works after the upgrade")
+	postUpgradeResponse, err := oc.Run("get").Args("nodes.metrics").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Expect(postUpgradeResponse).NotTo(o.BeEmpty())
+}
+
+func (t ResourceMetricsAPIAvailableAfterUpgradeTest) Teardown(ctx context.Context, f *e2e.Framework) {
+	return
+}
+
 func isPersistentStorageEnabled(kubeClient kubernetes.Interface) bool {
 	cmClient := kubeClient.CoreV1().ConfigMaps("openshift-monitoring")
 	config, err := cmClient.Get(context.TODO(), "cluster-monitoring-config", metav1.GetOptions{})

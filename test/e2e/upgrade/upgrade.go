@@ -65,6 +65,7 @@ func AllTests() []upgrades.Test {
 		&apps.DaemonSetUpgradeTest{},
 		&prometheus.ImagePullsAreFast{},
 		&prometheus.MetricsAvailableAfterUpgradeTest{},
+		&prometheus.ResourceMetricsAPIAvailableAfterUpgradeTest{},
 		&dns.UpgradeTest{},
 	}
 }
