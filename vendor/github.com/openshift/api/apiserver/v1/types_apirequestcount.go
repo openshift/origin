@@ -24,7 +24,6 @@ const (
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/897
 // +openshift:file-pattern=operatorName=kube-apiserver
 // +kubebuilder:metadata:annotations=include.release.openshift.io/self-managed-high-availability=true
-// +kubebuilder:metadata:annotations=include.release.openshift.io/single-node-developer=true
 // +kubebuilder:printcolumn:name=RemovedInRelease,JSONPath=.status.removedInRelease,type=string,description=Release in which an API will be removed.
 // +kubebuilder:printcolumn:name=RequestsInCurrentHour,JSONPath=.status.currentHour.requestCount,type=integer,description=Number of requests in the current hour.
 // +kubebuilder:printcolumn:name=RequestsInLast24h,JSONPath=.status.requestCount,type=integer,description=Number of requests in the last 24h.

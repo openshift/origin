@@ -1,4 +1,7 @@
 reviewers:
+  - adambkaplan
   - bparees
-  - gabemontero
+  - sayan-biswas
+emeritus_reviewers:
   - jim-minter
+  - gabemontero

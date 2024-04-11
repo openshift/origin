@@ -22,8 +22,7 @@ type ClusterProfileName string
 var (
 	Hypershift         = ClusterProfileName("include.release.openshift.io/ibm-cloud-managed")
 	SelfManaged        = ClusterProfileName("include.release.openshift.io/self-managed-high-availability")
-	SingleNode         = ClusterProfileName("include.release.openshift.io/single-node-developer")
-	AllClusterProfiles = []ClusterProfileName{Hypershift, SelfManaged, SingleNode}
+	AllClusterProfiles = []ClusterProfileName{Hypershift, SelfManaged}
 )
 
 type OwningProduct string
@@ -171,6 +170,27 @@ func AllFeatureSets() map[ClusterProfileName]map[FeatureSet]*FeatureGateEnabledD
 
 var (
 	allFeatureGates = map[ClusterProfileName]map[FeatureSet]*FeatureGateEnabledDisabled{}
+
+	FeatureGateServiceAccountTokenNodeBindingValidation = newFeatureGate("ServiceAccountTokenNodeBindingValidation").
+								reportProblemsToJiraComponent("apiserver-auth").
+								contactPerson("stlaz").
+								productScope(kubernetes).
+								enableIn(TechPreviewNoUpgrade).
+								mustRegister()
+
+	FeatureGateServiceAccountTokenNodeBinding = newFeatureGate("ServiceAccountTokenNodeBinding").
+							reportProblemsToJiraComponent("apiserver-auth").
+							contactPerson("stlaz").
+							productScope(kubernetes).
+							enableIn(TechPreviewNoUpgrade).
+							mustRegister()
+
+	FeatureGateServiceAccountTokenPodNodeInfo = newFeatureGate("ServiceAccountTokenPodNodeInfo").
+							reportProblemsToJiraComponent("apiserver-auth").
+							contactPerson("stlaz").
+							productScope(kubernetes).
+							enableIn(TechPreviewNoUpgrade).
+							mustRegister()
 
 	FeatureGateValidatingAdmissionPolicy = newFeatureGate("ValidatingAdmissionPolicy").
 						reportProblemsToJiraComponent("kube-apiserver").
@@ -336,7 +356,7 @@ var (
 					reportProblemsToJiraComponent("Networking/ovn-kubernetes").
 					contactPerson("tssurya").
 					productScope(ocpSpecific).
-					enableIn(TechPreviewNoUpgrade).
+					enableIn(Default, TechPreviewNoUpgrade).
 					mustRegister()
 
 	FeatureGateNetworkLiveMigration = newFeatureGate("NetworkLiveMigration").
@@ -345,6 +365,13 @@ var (
 					productScope(ocpSpecific).
 					enableIn(Default, TechPreviewNoUpgrade).
 					mustRegister()
+
+	FeatureGateNetworkDiagnosticsConfig = newFeatureGate("NetworkDiagnosticsConfig").
+						reportProblemsToJiraComponent("Networking/cluster-network-operator").
+						contactPerson("kyrtapz").
+						productScope(ocpSpecific).
+						enableIn(TechPreviewNoUpgrade).
+						mustRegister()
 
 	FeatureGateHardwareSpeed = newFeatureGate("HardwareSpeed").
 					reportProblemsToJiraComponent("etcd").
@@ -432,6 +459,7 @@ var (
 								reportProblemsToJiraComponent("cloud-provider").
 								contactPerson("jspeed").
 								productScope(kubernetes).
+								enableIn(Default, TechPreviewNoUpgrade).
 								mustRegister()
 
 	FeatureGateOnClusterBuild = newFeatureGate("OnClusterBuild").
@@ -553,4 +581,18 @@ var (
 				productScope(ocpSpecific).
 				enableIn(TechPreviewNoUpgrade).
 				mustRegister()
+
+	FeatureGateNodeDisruptionPolicy = newFeatureGate("NodeDisruptionPolicy").
+					reportProblemsToJiraComponent("MachineConfigOperator").
+					contactPerson("jerzhang").
+					productScope(ocpSpecific).
+					enableIn(TechPreviewNoUpgrade).
+					mustRegister()
+
+	FeatureGateMetricsCollectionProfiles = newFeatureGate("MetricsCollectionProfiles").
+						reportProblemsToJiraComponent("Monitoring").
+						contactPerson("rexagod").
+						productScope(ocpSpecific).
+						enableIn(TechPreviewNoUpgrade).
+						mustRegister()
 )

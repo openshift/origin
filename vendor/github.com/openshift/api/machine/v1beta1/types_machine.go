@@ -184,7 +184,6 @@ const (
 // +openshift:capability=MachineAPI
 // +kubebuilder:metadata:annotations="exclude.release.openshift.io/internal-openshift-hosted=true"
 // +kubebuilder:metadata:annotations="include.release.openshift.io/self-managed-high-availability=true"
-// +kubebuilder:metadata:annotations="include.release.openshift.io/single-node-developer=true"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Phase of machine"
 // +kubebuilder:printcolumn:name="Type",type="string",JSONPath=".metadata.labels['machine\\.openshift\\.io/instance-type']",description="Type of instance"
 // +kubebuilder:printcolumn:name="Region",type="string",JSONPath=".metadata.labels['machine\\.openshift\\.io/region']",description="Region associated with machine"
