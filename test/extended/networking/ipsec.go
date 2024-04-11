@@ -34,8 +34,7 @@ const (
 	ipsecRolloutWaitDuration     = 20 * time.Minute
 	ipsecRolloutWaitInterval     = 1 * time.Minute
 	nmstateConfigureManifestFile = "nmstate.yaml"
-	cnoNamespace                 = "openshift-network-operator"
-	cnoSAName                    = "cluster-network-operator"
+	nsCertMachineConfigFile      = "ipsec-nsconfig-machine-config.yaml"
 	nsCertMachineConfigName      = "99-worker-north-south-ipsec-config"
 	leftNodeIPsecPolicyName      = "left-node-ipsec-policy"
 	rightNodeIPsecPolicyName     = "right-node-ipsec-policy"
@@ -43,149 +42,7 @@ const (
 	rightNodeIPsecConfigYaml     = "ipsec-right-node.yaml"
 )
 
-var ipsecCertConfigScript = `#!/bin/bash
-set -o nounset
-set -o errexit
-set -o pipefail
-
-nssdb="/var/lib/ipsec/nss"
-tmp_dir=/tmp/ipsec-ns
-CERTUTIL_NOISE="dsadasdasdasdadasdasdasdasdsadfwerwerjfdksdjfksdlfhjsdk"
-mcp_role="worker"
-
-left_ip=$LEFT_IP
-right_ip=$RIGHT_IP
-
-if [ -d "$tmp_dir" ]; then
-    echo "ipsec-ns directory exists. Deleting and recreating..."
-    rm -r "$tmp_dir"
-fi
-mkdir "$tmp_dir" && cd "$tmp_dir"
-
-echo "\n-----Create Certs and export to mcp file----\n"
-
-certutil_noise_file="${tmp_dir}/certutil-noise.txt"
-echo ${CERTUTIL_NOISE} > ${certutil_noise_file}
-
-create_cert()
-{
-echo "----Creating CA cert-----"
-certutil -v 120 -S -k rsa -n "CA" -s "CN=CA" -v 12 -t "CT,C,C" -x -d ${nssdb} -z ${certutil_noise_file}
-sleep 5s
-echo "CA cert was created"
-}
-
-create_left_user_cert()
-{
-echo "----Creating left server cert.----"
-certutil -v 120 -S -k rsa -c "CA" -n "left_server" -s "CN=left_server" -v 12 -t "u,u,u" -d ${nssdb} --extSAN "email:pepalani@redhat.com" -z ${certutil_noise_file}
-sleep 5s
-echo "Left server cert was created"
-}
-
-create_right_user_cert()
-{
-echo "-----Creating right server cert.-----"
-certutil -v 120 -S -k rsa -c "CA" -n "right_server" -s "CN=right_server" -v 12 -t "u,u,u" -d ${nssdb} --extSAN "email:pepalani@redhat.com" -z ${certutil_noise_file}
-sleep 5s
-echo "Right server cert was created"
-}
-
-export_ca_cert()
-{
-echo "---Exporting CA cert to p12 and output to pem-----"
-pk12util -o ${tmp_dir}/ca.p12 -n CA -d ${nssdb} -W ""
-openssl pkcs12 -in ca.p12 -out ca.pem -clcerts -nokeys -passin pass:""
-}
-
-export_left_user_cert()
-{
-echo "----Exporting left user cert to p12-------"
-pk12util -o $tmp_dir/left_server.p12 -n left_server -d $nssdb -W ""
-}
-
-export_right_user_cert()
-{
-echo "----Exporting right user cert to p12-------"
-pk12util -o $tmp_dir/right_server.p12 -n right_server -d $nssdb -W ""
-}
-
-echo "Create certifications and export CA and certs!!"
-create_cert
-create_left_user_cert
-create_right_user_cert
-export_ca_cert
-export_left_user_cert
-export_right_user_cert
-chmod 644 $tmp_dir/ca.pem
-chmod 644 $tmp_dir/left_server.p12
-
-echo "Create bu file for ipsec configuration on the host!"
-cat > $tmp_dir/config.bu <<EOF
-variant: openshift
-version: 4.15.0
-metadata:
-  name: %s
-  labels:
-    machineconfiguration.openshift.io/role: ${mcp_role}
-systemd:
-  units:
-    - name: ipsec-import.service
-      enabled: true
-      contents: |
-        [Unit]
-        Description=Import external certs into ipsec NSS
-        Before=ipsec.service
-
-        [Service]
-        Type=oneshot
-        ExecStart=/usr/local/bin/ipsec-addcert.sh
-        RemainAfterExit=false
-        StandardOutput=journal
-
-        [Install]
-        WantedBy=multi-user.target
-storage:
-  files:
-  - path: /etc/pki/certs/ca.pem
-    mode: 0400
-    overwrite: true
-    contents:
-      local: ca.pem
-  - path: /etc/pki/certs/left_server.p12
-    mode: 0400
-    overwrite: true
-    contents:
-      local: left_server.p12
-  - path: /etc/pki/certs/right_server.p12
-    mode: 0400
-    overwrite: true
-    contents:
-      local: right_server.p12
-  - path: /usr/local/bin/ipsec-addcert.sh
-    mode: 0740
-    overwrite: true
-    contents:
-      inline: |
-        #!/bin/bash -e
-        echo "importing cert to NSS"
-        certutil -A -n "CA" -t "CT,C,C" -d /var/lib/ipsec/nss/ -i /etc/pki/certs/ca.pem
-        pk12util -W "" -i /etc/pki/certs/left_server.p12 -d /var/lib/ipsec/nss/
-        certutil -M -n "left_server" -t "u,u,u" -d /var/lib/ipsec/nss/
-        pk12util -W "" -i /etc/pki/certs/right_server.p12 -d /var/lib/ipsec/nss/
-        certutil -M -n "right_server" -t "u,u,u" -d /var/lib/ipsec/nss/
-EOF
-
-echo "Creating mcp file..."
-butane --files-dir $tmp_dir $tmp_dir/config.bu -o $tmp_dir/config_ipsec_ns.yaml
-
-echo "Importing certs to worker nodes."
-kubectl apply -f $tmp_dir/config_ipsec_ns.yaml
-
-echo "IPSEC North-South configuration completed!"
-sleep infinity
-`
-
+// TODO: consider bringing in the NNCP api.
 var nodeIPsecConfigManifest = `
 kind: NodeNetworkConfigurationPolicy
 apiVersion: nmstate.io/v1
@@ -216,6 +73,16 @@ spec:
         ikev2: insist
         type: transport
 `
+
+// properties of nsCertMachineConfigFile.
+var (
+	// certificate name of the left server.
+	leftServerCertName = "left_server"
+	// certificate name of the right server.
+	rightServerCertName = "right_server"
+	// Expiration date for certificates.
+	certExpirationDate = time.Date(2034, time.April, 10, 0, 0, 0, 0, time.UTC)
+)
 
 // configureIPsecMode helps to rollout specified IPsec Mode on the cluster. If the cluster is already
 // configured with specified mode, then this is almost like no-op for the cluster.
@@ -372,10 +239,9 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			nodeIP     string
 		}
 		type testConfig struct {
-			controlPlaneNode string
-			ipsecMode        v1.IPsecMode
-			srcNodeConfig    *testNodeConfig
-			dstNodeConfig    *testNodeConfig
+			ipsecMode     v1.IPsecMode
+			srcNodeConfig *testNodeConfig
+			dstNodeConfig *testNodeConfig
 		}
 		// The config object contains test configuration that can be leveraged by each ipsec test.
 		var config *testConfig
@@ -523,15 +389,9 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			ipsecMode, err := getIPsecMode(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// Choose a control plane node which is used for scheduling a pod to rollout
-			// IPsec certificates for north south traffic test.
-			node, err := findControlPlaneNode(f)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By(fmt.Sprintf("Chosen control plane node %s", node.Name))
-
 			srcNode, dstNode := &testNodeConfig{}, &testNodeConfig{}
-			config = &testConfig{ipsecMode: ipsecMode, controlPlaneNode: node.Name,
-				srcNodeConfig: srcNode, dstNodeConfig: dstNode}
+			config = &testConfig{ipsecMode: ipsecMode, srcNodeConfig: srcNode,
+				dstNodeConfig: dstNode}
 		})
 
 		g.BeforeEach(func() {
@@ -625,15 +485,13 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			waitForIPsecConfigToComplete(oc, v1.IPsecModeExternal)
 			checkForGeneveOnlyTraffic(config)
 
-			// TODO: replace private image with network-tools after updating it with
-			// required packages (libreswan, bluto, openssl) to configure the certs.
-			// It also spins up the pod in openshift-network-operator namespace so that
-			// pod has ability to rollout a machine config for importing the certs into
-			// worker nodes.
 			g.By("configure IPsec certs on the worker nodes")
-			nsCertMachineConfig, err := launchIPsecCertsConfig(oc, "quay.io/pepalani/ipsec-tools:latest",
-				config.srcNodeConfig.nodeIP, config.dstNodeConfig.nodeIP, config.controlPlaneNode,
-				"ipsec-ns-config")
+			// The certificates in the Machine Config has validity period of 120 months starting from April 11, 2024.
+			// so proceed with test if system date is before April 10, 2034. Otherwise fail the test.
+			if !time.Now().Before(certExpirationDate) {
+				framework.Failf("certficates in the Machine Config are expired, Please consider recreating those certificates")
+			}
+			nsCertMachineConfig, err := createIPsecCertsMachineConfig(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(nsCertMachineConfig).NotTo(o.BeNil())
 			o.Eventually(func() bool {
@@ -650,7 +508,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 
 			g.By("rollout IPsec configuration via nmstate")
 			leftConfig := fmt.Sprintf(nodeIPsecConfigManifest, leftNodeIPsecPolicyName, config.srcNodeConfig.nodeName,
-				config.srcNodeConfig.nodeIP, "left_server", config.dstNodeConfig.nodeIP)
+				config.srcNodeConfig.nodeIP, leftServerCertName, config.dstNodeConfig.nodeIP)
 			err = os.WriteFile(leftNodeIPsecConfigYaml, []byte(leftConfig), 0644)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("desired left node network config policy:\n%s", leftConfig)
@@ -658,7 +516,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			rightConfig := fmt.Sprintf(nodeIPsecConfigManifest, rightNodeIPsecPolicyName, config.dstNodeConfig.nodeName,
-				config.dstNodeConfig.nodeIP, "right_server", config.srcNodeConfig.nodeIP)
+				config.dstNodeConfig.nodeIP, rightServerCertName, config.srcNodeConfig.nodeIP)
 			err = os.WriteFile(rightNodeIPsecConfigYaml, []byte(rightConfig), 0644)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			framework.Logf("desired right node network config policy:\n%s", rightConfig)

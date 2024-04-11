@@ -419,21 +419,6 @@ func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *c
 	return &candidates[0], &candidates[0], nil
 }
 
-func findControlPlaneNode(f *e2e.Framework) (*corev1.Node, error) {
-	nodes, err := e2enode.GetReadyNodesIncludingTainted(context.TODO(), f.ClientSet)
-	if err != nil {
-		return nil, err
-	}
-	for i := range nodes.Items {
-		for key := range nodes.Items[i].Labels {
-			if strings.Contains(key, "master") || strings.Contains(key, "control-plane") {
-				return &nodes.Items[i], nil
-			}
-		}
-	}
-	return nil, fmt.Errorf("no control plane node found on the cluster")
-}
-
 func checkPodIsolation(f1, f2 *e2e.Framework, nodeType NodeType) error {
 	makeNamespaceScheduleToAllNodes(f1)
 	makeNamespaceScheduleToAllNodes(f2)
@@ -778,51 +763,14 @@ func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
 	return desired == scheduled && desired == ready, nil
 }
 
-func launchIPsecCertsConfig(oc *exutil.CLI, configImage, leftIP, rightIP, nodeName, generateName string) (*mcfgv1.MachineConfig, error) {
-	pod := &v1.Pod{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Pod",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: generateName,
-			Namespace:    cnoNamespace,
-		},
-		Spec: v1.PodSpec{
-			ServiceAccountName: cnoSAName,
-			Containers: []v1.Container{
-				{
-					Name:  fmt.Sprintf("%s-container", generateName),
-					Image: configImage,
-					Command: []string{
-						"/bin/bash",
-						"-c",
-						fmt.Sprintf(ipsecCertConfigScript, nsCertMachineConfigName),
-					},
-					Env: []v1.EnvVar{
-						{Name: "LEFT_IP", Value: leftIP},
-						{Name: "RIGHT_IP", Value: rightIP},
-					},
-				},
-			},
-			NodeName:      nodeName,
-			RestartPolicy: v1.RestartPolicyNever,
-			HostNetwork:   true,
-			HostPID:       true,
-		},
-	}
-	p, err := oc.AdminKubeClient().CoreV1().Pods(cnoNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
+func createIPsecCertsMachineConfig(oc *exutil.CLI) (*mcfgv1.MachineConfig, error) {
+	ipSecCertsMachineConfig := exutil.FixturePath("testdata", "ipsec", nsCertMachineConfigFile)
+	err := oc.AsAdmin().Run("create").Args("-f", ipSecCertsMachineConfig).Execute()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error deploying IPsec certs Machine Config: %v", err)
 	}
 	var nsCertMachineConfig *mcfgv1.MachineConfig
 	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true, func(ctx context.Context) (bool, error) {
-		retrievedPod, err := oc.AdminKubeClient().CoreV1().Pods(cnoNamespace).Get(ctx, p.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		if retrievedPod.Status.Phase != corev1.PodRunning {
-			return false, nil
-		}
 		nsCertMachineConfig, err = oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigs().Get(context.Background(),
 			nsCertMachineConfigName, metav1.GetOptions{})
 		if err != nil && apierrors.IsNotFound(err) {
