@@ -343,8 +343,8 @@ func (r *monitorTestRegistry) WriteContentToStorage(ctx context.Context, storage
 		fmt.Fprintf(os.Stderr, "  finalIntervals size = %d\n", finalIntervalLength)
 		if finalIntervalLength > 1 {
 			fmt.Fprintf(os.Stderr, "  first interval time: From = %s; To = %s\n", finalIntervals[0].From, finalIntervals[0].To)
+			fmt.Fprintf(os.Stderr, "  last interval time: From = %s; To = %s\n", finalIntervals[finalIntervalLength-1].From, finalIntervals[finalIntervalLength-1].To)
 		}
-		fmt.Fprintf(os.Stderr, "  last interval time: From = %s; To = %s\n", finalIntervals[finalIntervalLength-1].From, finalIntervals[finalIntervalLength-1].To)
 
 		err := writeContentToStorageWithPanicProtection(ctx, monitorTest.monitorTest, storageDir, timeSuffix, finalIntervals, finalResourceState)
 		end := time.Now()

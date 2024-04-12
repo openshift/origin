@@ -12,7 +12,7 @@ import (
 type SerializedAuditLogSummary struct {
 	LineReadFailureCount      int
 	RequestCounts             SerializedRequestCounts
-	PerUserRequestCount       []SerializedPerUserRequestCount
+	PerUserRequestCount       []SerializedPerUserRequestCountWithVerbs
 	PerResourceRequestCount   []SerializedPerResourceRequestCount
 	PerHTTPStatusRequestCount []SerializedPerHTTPStatusRequestCount
 }
@@ -25,8 +25,17 @@ type SerializedRequestCounts struct {
 	PerHTTPStatusRequestCount []SerializedPerHTTPStatusCount
 }
 
+type SerializedRequestCountsWithVerbs struct {
+	SerializedRequestCounts SerializedRequestCounts `json:",inline"`
+	PerVerbRequestCount     []SerializedPerVerbCountOnly
+}
+
 func mostRequestsFirst(lhs, rhs SerializedRequestCounts) bool {
 	return lhs.RequestFinishedCount > rhs.RequestFinishedCount
+}
+
+func mostRequestsFirstWithVerbs(lhs, rhs SerializedRequestCountsWithVerbs) bool {
+	return mostRequestsFirst(lhs.SerializedRequestCounts, rhs.SerializedRequestCounts)
 }
 
 type SerializedPerHTTPStatusCount struct {
@@ -72,6 +81,21 @@ type userCountByBiggestCount []SerializedPerUserRequestCount
 func (a userCountByBiggestCount) Len() int      { return len(a) }
 func (a userCountByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a userCountByBiggestCount) Less(i, j int) bool {
+	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
+}
+
+type SerializedPerUserRequestCountWithVerbs struct {
+	User                    string
+	RequestCounts           SerializedRequestCounts
+	PerResourceRequestCount []SerializedPerResourceCountWithVerbs
+	PerVerbRequestCount     []SerializedPerVerbCountOnly
+}
+
+type userCountWithVerbsByBiggestCount []SerializedPerUserRequestCountWithVerbs
+
+func (a userCountWithVerbsByBiggestCount) Len() int      { return len(a) }
+func (a userCountWithVerbsByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a userCountWithVerbsByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
 
@@ -129,16 +153,29 @@ func (a resourceCountOnlyByBiggestCount) Less(i, j int) bool {
 	return mostRequestsFirst(a[i].RequestCounts, a[j].RequestCounts)
 }
 
+type SerializedPerResourceCountWithVerbs struct {
+	GroupVersionResource schema.GroupVersionResource
+	RequestCounts        SerializedRequestCountsWithVerbs
+}
+
+type resourceCountWithVerbsByBiggestCount []SerializedPerResourceCountWithVerbs
+
+func (a resourceCountWithVerbsByBiggestCount) Len() int      { return len(a) }
+func (a resourceCountWithVerbsByBiggestCount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a resourceCountWithVerbsByBiggestCount) Less(i, j int) bool {
+	return mostRequestsFirstWithVerbs(a[i].RequestCounts, a[j].RequestCounts)
+}
+
 func NewSerializedAuditLogSummary(summary AuditLogSummary) SerializedAuditLogSummary {
 	ret := SerializedAuditLogSummary{
 		LineReadFailureCount:      summary.lineReadFailureCount,
 		RequestCounts:             NewSerializedRequestCounts(summary.requestCounts),
-		PerUserRequestCount:       []SerializedPerUserRequestCount{},
+		PerUserRequestCount:       []SerializedPerUserRequestCountWithVerbs{},
 		PerResourceRequestCount:   []SerializedPerResourceRequestCount{},
 		PerHTTPStatusRequestCount: []SerializedPerHTTPStatusRequestCount{},
 	}
 	for _, v := range summary.perUserRequestCount {
-		ret.PerUserRequestCount = append(ret.PerUserRequestCount, NewSerializedPerUserRequestCount(*v))
+		ret.PerUserRequestCount = append(ret.PerUserRequestCount, NewSerializedPerUserRequestCountWithVerbs(*v))
 	}
 	for _, v := range summary.perResourceRequestCount {
 		ret.PerResourceRequestCount = append(ret.PerResourceRequestCount, NewSerializedPerResourceRequestCount(*v))
@@ -146,7 +183,7 @@ func NewSerializedAuditLogSummary(summary AuditLogSummary) SerializedAuditLogSum
 	for _, v := range summary.perHTTPStatusRequestCount {
 		ret.PerHTTPStatusRequestCount = append(ret.PerHTTPStatusRequestCount, NewSerializedPerStatusRequestCount(*v))
 	}
-	sort.Sort(userCountByBiggestCount(ret.PerUserRequestCount))
+	sort.Sort(userCountWithVerbsByBiggestCount(ret.PerUserRequestCount))
 	sort.Sort(resourceCountByBiggestCount(ret.PerResourceRequestCount))
 	sort.Sort(statusCountByBiggestCount(ret.PerHTTPStatusRequestCount))
 
@@ -171,6 +208,21 @@ func NewSerializedRequestCounts(summary RequestCounts) SerializedRequestCounts {
 
 	return ret
 }
+func NewSerializedRequestCountsWithVerbs(summary RequestCountsWithVerbs) SerializedRequestCountsWithVerbs {
+	ret := SerializedRequestCountsWithVerbs{
+		SerializedRequestCounts: NewSerializedRequestCounts(*summary.requestCounts),
+		PerVerbRequestCount:     []SerializedPerVerbCountOnly{},
+	}
+	for k, v := range summary.perVerbRequestCount {
+		ret.PerVerbRequestCount = append(ret.PerVerbRequestCount, SerializedPerVerbCountOnly{
+			Verb:          k,
+			RequestCounts: NewSerializedRequestCounts(*v),
+		})
+	}
+	sort.Sort(verbCountOnlyByBiggestCount(ret.PerVerbRequestCount))
+
+	return ret
+}
 
 func NewSerializedPerStatusRequestCount(summary PerHTTPStatusRequestCount) SerializedPerHTTPStatusRequestCount {
 	ret := SerializedPerHTTPStatusRequestCount{
@@ -191,20 +243,20 @@ func NewSerializedPerStatusRequestCount(summary PerHTTPStatusRequestCount) Seria
 	return ret
 }
 
-func NewSerializedPerUserRequestCount(summary PerUserRequestCount) SerializedPerUserRequestCount {
-	ret := SerializedPerUserRequestCount{
+func NewSerializedPerUserRequestCountWithVerbs(summary PerUserRequestCount) SerializedPerUserRequestCountWithVerbs {
+	ret := SerializedPerUserRequestCountWithVerbs{
 		User:                    summary.user,
 		RequestCounts:           NewSerializedRequestCounts(summary.requestCounts),
-		PerResourceRequestCount: []SerializedPerResourceCountOnly{},
+		PerResourceRequestCount: []SerializedPerResourceCountWithVerbs{},
 		PerVerbRequestCount:     []SerializedPerVerbCountOnly{},
 	}
 	for k, v := range summary.perResourceRequestCount {
-		ret.PerResourceRequestCount = append(ret.PerResourceRequestCount, NewSerializedPerResourceCountOnly(k, *v))
+		ret.PerResourceRequestCount = append(ret.PerResourceRequestCount, NewSerializedPerResourceCountWithVerbs(k, *v))
 	}
 	for k, v := range summary.perVerbRequestCount {
 		ret.PerVerbRequestCount = append(ret.PerVerbRequestCount, NewSerializedPerVerbCountOnly(k, *v))
 	}
-	sort.Sort(resourceCountOnlyByBiggestCount(ret.PerResourceRequestCount))
+	sort.Sort(resourceCountWithVerbsByBiggestCount(ret.PerResourceRequestCount))
 	sort.Sort(verbCountOnlyByBiggestCount(ret.PerVerbRequestCount))
 
 	return ret
@@ -245,5 +297,11 @@ func NewSerializedPerResourceCountOnly(gvr schema.GroupVersionResource, count Re
 	return SerializedPerResourceCountOnly{
 		GroupVersionResource: gvr,
 		RequestCounts:        NewSerializedRequestCounts(count),
+	}
+}
+func NewSerializedPerResourceCountWithVerbs(gvr schema.GroupVersionResource, count RequestCountsWithVerbs) SerializedPerResourceCountWithVerbs {
+	return SerializedPerResourceCountWithVerbs{
+		GroupVersionResource: gvr,
+		RequestCounts:        NewSerializedRequestCountsWithVerbs(count),
 	}
 }
