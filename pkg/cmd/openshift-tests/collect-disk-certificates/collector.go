@@ -181,7 +181,7 @@ func (o *RunCollectDiskCertificatesOptions) Run(ctx context.Context) error {
 			certgraphanalysis.SkipRevisionedLocations,
 			certgraphanalysis.StripTimestamps,
 			certgraphanalysis.StripRootFSMountPoint(o.RootFSMountpoint),
-			certgraphanalysis.RewriteNodeIPs(masters))
+			certgraphanalysis.RewriteNodeNames(masters, ""))
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %s", srcDir, err))
 		}
