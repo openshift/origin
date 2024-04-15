@@ -66,7 +66,7 @@ var (
 	jobType            *platformidentification.JobType
 )
 
-func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, masters []*corev1.Node) (*certgraphapi.PKIList, error) {
+func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, masters []*corev1.Node, bootstrapHostname string) (*certgraphapi.PKIList, error) {
 	annotationsToCollect := []string{annotations.OpenShiftComponent}
 	for _, currRequirement := range tlsmetadatadefaults.GetDefaultTLSRequirements() {
 		annotationRequirement, ok := currRequirement.(tlsmetadatainterfaces.AnnotationRequirement)
@@ -79,7 +79,7 @@ func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernete
 		certgraphanalysis.SkipRevisioned,
 		certgraphanalysis.SkipHashed,
 		certgraphanalysis.ElideProxyCADetails,
-		certgraphanalysis.RewriteNodeNames(masters, ""),
+		certgraphanalysis.RewriteNodeNames(masters, bootstrapHostname),
 		certgraphanalysis.CollectAnnotations(annotationsToCollect...),
 	)
 }
@@ -110,7 +110,9 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 			masters = append(masters, &nodeList.Items[i])
 		}
 
-		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient, masters)
+		_, bootstrapHostname, err := certgraphanalysis.GetBootstrapIPAndHostname(ctx, kubeClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient, masters, bootstrapHostname)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		openshiftTestImagePullSpec, err := disruptionpodnetwork.GetOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig(), "", oc)
@@ -339,8 +341,8 @@ func createRBACBindings(ctx context.Context, kubeClient kubernetes.Interface, na
 	privilegedRoleBindingObj := resourceread.ReadRoleBindingV1OrDie(roleBindingPrivilegedYaml)
 	privilegedRoleBindingObj.Namespace = namespace
 
-	client := kubeClient.RbacV1().RoleBindings(namespace)
-	_, err := client.Create(ctx, privilegedRoleBindingObj, metav1.CreateOptions{})
+	namespaceRBClient := kubeClient.RbacV1().RoleBindings(namespace)
+	_, err := namespaceRBClient.Create(ctx, privilegedRoleBindingObj, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return "", fmt.Errorf("error creating hostaccess SCC CRB: %v", err)
 	}
