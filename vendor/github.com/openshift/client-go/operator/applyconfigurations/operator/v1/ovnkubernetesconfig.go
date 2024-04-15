@@ -2,22 +2,20 @@
 
 package v1
 
-import (
-	operatorv1 "github.com/openshift/api/operator/v1"
-)
-
 // OVNKubernetesConfigApplyConfiguration represents an declarative configuration of the OVNKubernetesConfig type for use
 // with apply.
 type OVNKubernetesConfigApplyConfiguration struct {
-	MTU                 *uint32                                `json:"mtu,omitempty"`
-	GenevePort          *uint32                                `json:"genevePort,omitempty"`
-	HybridOverlayConfig *HybridOverlayConfigApplyConfiguration `json:"hybridOverlayConfig,omitempty"`
-	IPsecConfig         *operatorv1.IPsecConfig                `json:"ipsecConfig,omitempty"`
-	PolicyAuditConfig   *PolicyAuditConfigApplyConfiguration   `json:"policyAuditConfig,omitempty"`
-	GatewayConfig       *GatewayConfigApplyConfiguration       `json:"gatewayConfig,omitempty"`
-	V4InternalSubnet    *string                                `json:"v4InternalSubnet,omitempty"`
-	V6InternalSubnet    *string                                `json:"v6InternalSubnet,omitempty"`
-	EgressIPConfig      *EgressIPConfigApplyConfiguration      `json:"egressIPConfig,omitempty"`
+	MTU                 *uint32                                    `json:"mtu,omitempty"`
+	GenevePort          *uint32                                    `json:"genevePort,omitempty"`
+	HybridOverlayConfig *HybridOverlayConfigApplyConfiguration     `json:"hybridOverlayConfig,omitempty"`
+	IPsecConfig         *IPsecConfigApplyConfiguration             `json:"ipsecConfig,omitempty"`
+	PolicyAuditConfig   *PolicyAuditConfigApplyConfiguration       `json:"policyAuditConfig,omitempty"`
+	GatewayConfig       *GatewayConfigApplyConfiguration           `json:"gatewayConfig,omitempty"`
+	V4InternalSubnet    *string                                    `json:"v4InternalSubnet,omitempty"`
+	V6InternalSubnet    *string                                    `json:"v6InternalSubnet,omitempty"`
+	EgressIPConfig      *EgressIPConfigApplyConfiguration          `json:"egressIPConfig,omitempty"`
+	IPv4                *IPv4OVNKubernetesConfigApplyConfiguration `json:"ipv4,omitempty"`
+	IPv6                *IPv6OVNKubernetesConfigApplyConfiguration `json:"ipv6,omitempty"`
 }
 
 // OVNKubernetesConfigApplyConfiguration constructs an declarative configuration of the OVNKubernetesConfig type for use with
@@ -53,8 +51,8 @@ func (b *OVNKubernetesConfigApplyConfiguration) WithHybridOverlayConfig(value *H
 // WithIPsecConfig sets the IPsecConfig field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the IPsecConfig field is set to the value of the last call.
-func (b *OVNKubernetesConfigApplyConfiguration) WithIPsecConfig(value operatorv1.IPsecConfig) *OVNKubernetesConfigApplyConfiguration {
-	b.IPsecConfig = &value
+func (b *OVNKubernetesConfigApplyConfiguration) WithIPsecConfig(value *IPsecConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
+	b.IPsecConfig = value
 	return b
 }
 
@@ -95,5 +93,21 @@ func (b *OVNKubernetesConfigApplyConfiguration) WithV6InternalSubnet(value strin
 // If called multiple times, the EgressIPConfig field is set to the value of the last call.
 func (b *OVNKubernetesConfigApplyConfiguration) WithEgressIPConfig(value *EgressIPConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
 	b.EgressIPConfig = value
+	return b
+}
+
+// WithIPv4 sets the IPv4 field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IPv4 field is set to the value of the last call.
+func (b *OVNKubernetesConfigApplyConfiguration) WithIPv4(value *IPv4OVNKubernetesConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
+	b.IPv4 = value
+	return b
+}
+
+// WithIPv6 sets the IPv6 field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the IPv6 field is set to the value of the last call.
+func (b *OVNKubernetesConfigApplyConfiguration) WithIPv6(value *IPv6OVNKubernetesConfigApplyConfiguration) *OVNKubernetesConfigApplyConfiguration {
+	b.IPv6 = value
 	return b
 }

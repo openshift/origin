@@ -28,15 +28,15 @@ func ApplyAPIService(ctx context.Context, client apiregistrationv1client.APIServ
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	serviceSame := equality.Semantic.DeepEqual(existingCopy.Spec.Service, required.Spec.Service)
 	prioritySame := existingCopy.Spec.VersionPriority == required.Spec.VersionPriority && existingCopy.Spec.GroupPriorityMinimum == required.Spec.GroupPriorityMinimum
 	insecureSame := existingCopy.Spec.InsecureSkipTLSVerify == required.Spec.InsecureSkipTLSVerify
 	// there was no change to metadata, the service and priorities were right
-	if !*modified && serviceSame && prioritySame && insecureSame {
+	if !modified && serviceSame && prioritySame && insecureSame {
 		return existingCopy, false, nil
 	}
 

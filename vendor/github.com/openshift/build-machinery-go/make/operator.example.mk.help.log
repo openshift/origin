@@ -31,3 +31,4 @@ verify-golang-versions
 verify-golint
 verify-govet
 verify-profile-manifests
+vulncheck

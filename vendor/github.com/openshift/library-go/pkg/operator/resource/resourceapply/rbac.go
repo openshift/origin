@@ -28,14 +28,14 @@ func ApplyClusterRole(ctx context.Context, client rbacclientv1.ClusterRolesGette
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	rulesContentSame := equality.Semantic.DeepEqual(existingCopy.Rules, required.Rules)
 	aggregationRuleContentSame := equality.Semantic.DeepEqual(existingCopy.AggregationRule, required.AggregationRule)
 
-	if aggregationRuleContentSame && rulesContentSame && !*modified {
+	if aggregationRuleContentSame && rulesContentSame && !modified {
 		return existingCopy, false, nil
 	}
 
@@ -74,7 +74,7 @@ func ApplyClusterRoleBinding(ctx context.Context, client rbacclientv1.ClusterRol
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 	requiredCopy := required.DeepCopy()
 
@@ -93,12 +93,12 @@ func ApplyClusterRoleBinding(ctx context.Context, client rbacclientv1.ClusterRol
 		}
 	}
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, requiredCopy.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, requiredCopy.ObjectMeta)
 
 	subjectsAreSame := equality.Semantic.DeepEqual(existingCopy.Subjects, requiredCopy.Subjects)
 	roleRefIsSame := equality.Semantic.DeepEqual(existingCopy.RoleRef, requiredCopy.RoleRef)
 
-	if subjectsAreSame && roleRefIsSame && !*modified {
+	if subjectsAreSame && roleRefIsSame && !modified {
 		return existingCopy, false, nil
 	}
 
@@ -128,12 +128,12 @@ func ApplyRole(ctx context.Context, client rbacclientv1.RolesGetter, recorder ev
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	contentSame := equality.Semantic.DeepEqual(existingCopy.Rules, required.Rules)
-	if contentSame && !*modified {
+	if contentSame && !modified {
 		return existingCopy, false, nil
 	}
 
@@ -162,7 +162,7 @@ func ApplyRoleBinding(ctx context.Context, client rbacclientv1.RoleBindingsGette
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 	requiredCopy := required.DeepCopy()
 
@@ -181,12 +181,12 @@ func ApplyRoleBinding(ctx context.Context, client rbacclientv1.RoleBindingsGette
 		}
 	}
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, requiredCopy.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, requiredCopy.ObjectMeta)
 
 	subjectsAreSame := equality.Semantic.DeepEqual(existingCopy.Subjects, requiredCopy.Subjects)
 	roleRefIsSame := equality.Semantic.DeepEqual(existingCopy.RoleRef, requiredCopy.RoleRef)
 
-	if subjectsAreSame && roleRefIsSame && !*modified {
+	if subjectsAreSame && roleRefIsSame && !modified {
 		return existingCopy, false, nil
 	}
 

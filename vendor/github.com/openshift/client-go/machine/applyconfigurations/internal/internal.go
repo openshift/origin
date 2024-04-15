@@ -238,7 +238,9 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             namedType: com.github.openshift.api.machine.v1.VSphereFailureDomain
-          elementRelationship: atomic
+          elementRelationship: associative
+          keys:
+          - name
     unions:
     - discriminator: platform
       fields:

@@ -16,7 +16,7 @@ import (
 type KubeInformersForNamespaces interface {
 	Start(stopCh <-chan struct{})
 	InformersFor(namespace string) informers.SharedInformerFactory
-	Namespaces() sets.String
+	Namespaces() sets.Set[string]
 
 	ConfigMapLister() corev1listers.ConfigMapLister
 	SecretLister() corev1listers.SecretLister
@@ -48,8 +48,8 @@ func (i kubeInformersForNamespaces) Start(stopCh <-chan struct{}) {
 	}
 }
 
-func (i kubeInformersForNamespaces) Namespaces() sets.String {
-	return sets.StringKeySet(i)
+func (i kubeInformersForNamespaces) Namespaces() sets.Set[string] {
+	return sets.KeySet(i)
 }
 func (i kubeInformersForNamespaces) InformersFor(namespace string) informers.SharedInformerFactory {
 	return i[namespace]

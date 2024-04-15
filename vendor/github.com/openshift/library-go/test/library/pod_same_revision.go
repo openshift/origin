@@ -54,13 +54,13 @@ func arePodsOnTheSameRevision(t LoggingT, podClient corev1client.PodInterface, p
 	return true, nil
 }
 
-func getRevisions(revisionLabel string, pods []corev1.Pod) (sets.String, sets.String, bool, error) {
+func getRevisions(revisionLabel string, pods []corev1.Pod) (sets.Set[string], sets.Set[string], bool, error) {
 	if len(pods) == 0 {
 		return nil, nil, true, nil
 	}
 
-	goodRevisions := sets.NewString()
-	badRevisions := sets.NewString()
+	goodRevisions := sets.New[string]()
+	badRevisions := sets.New[string]()
 
 	for _, apiServerPod := range pods {
 		switch phase := apiServerPod.Status.Phase; phase {
