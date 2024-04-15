@@ -1019,11 +1019,7 @@ var Annotations = map[string]string{
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][nodejs] test nodejs images with nodejs-rest-http-crud db repo Building nodejs-postgresql app from new-app should build a nodejs-postgresql image and run it in a pod [apigroup:build.openshift.io]": "",
 
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo Building cakephp-mysql app from new-app should build a cakephp-mysql image and run it in a pod [apigroup:build.openshift.io]": "",
-
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][python] test python images with django-ex db repo Building django-psql app from new-app should build a django-psql image and run it in a pod [apigroup:build.openshift.io]": "",
-
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories [sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo Building rails-postgresql app from new-app should build a rails-postgresql image and run it in a pod [apigroup:build.openshift.io]": "",
 
 	"[sig-devex][Feature:ImageEcosystem][mariadb][Slow] openshift mariadb image Creating from a template should instantiate the template [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
