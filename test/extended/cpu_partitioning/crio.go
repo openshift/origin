@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	"k8s.io/utils/cpuset"
 )
@@ -109,11 +108,6 @@ func (c *crioContainerData) getAnnotationCPUShare() (int, error) {
 	return value, nil
 }
 
-func (c *crioContainerData) isStaticContainer() bool {
-	source, ok := c.Annotations[kubetypes.ConfigSourceAnnotationKey]
-	return ok && source == kubetypes.FileSource
-}
-
 var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation", func() {
 
 	var (
@@ -181,12 +175,6 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 
 				o.Expect(parsedContainer.Equals(expectedCPUSet)).To(o.BeTrue(), "cpusets do not match between container and desired")
 
-				// TODO: Remove after bug OCPBUGS-30806 is resolved.
-				// When TuneD is applied during RT runs this will fail due to the above bug on
-				// static pods, we skip that for now.
-				if containerInfo.isStaticContainer() && !isClusterCPUPartitioned {
-					continue
-				}
 				// Empty CPUSets mean wide open, so we check the processes are not being limited.
 				// If the expected CPUSet is not empty, we make sure the host is respecting it.
 				if expectedCPUSet.IsEmpty() {
