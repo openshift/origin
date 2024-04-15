@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
+	"time"
 
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -898,13 +900,48 @@ func newSingleNodeConnectionRefusedEventMatcher(finalIntervals monitorapi.Interv
 	const (
 		ocpAPINamespace      = "openshift-apiserver"
 		ocpOAuthAPINamespace = "openshift-oauth-apiserver"
+		defaultNamespace     = "default"
+
+		bufferTime     = time.Second * 45
+		bufferSourceID = "GeneratedSNOBufferInterval"
 	)
 	snoTopology := v1.SingleReplicaTopologyMode
+
+	// Intervals are collected as they come to the monitorapi and the `from` and `to` is recorded at that point,
+	// this works fine for most runs however for single node the events might be sent at irregular intervals.
+	// This makes it hard to determine if connection refused errors are false positives,
+	// here we collect intervals we know are acceptable for connection refused errors to occur for single node.
+	bufferInterval := []monitorapi.Interval{}
+
 	ocpAPISeverTargetDownIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceAlert &&
-			eventInterval.Locator.Keys[monitorapi.LocatorAlertKey] == "TargetDown" &&
-			(eventInterval.Locator.Keys[monitorapi.LocatorNamespaceKey] == ocpAPINamespace ||
-				eventInterval.Locator.Keys[monitorapi.LocatorNamespaceKey] == ocpOAuthAPINamespace)
+
+		// If we find a graceful shutdown event, we create a buffer interval after shutdown to account
+		// for the API Server coming back up, as well as a 5 second before `from` buffer to account for a
+		// situation where the `event.from` falls exactly on the `interval.from` thus causing time.Before() logic to return false.
+		if eventInterval.Source == monitorapi.APIServerGracefulShutdown && eventInterval.Message.Reason == monitorapi.GracefulAPIServerShutdown {
+			temp := eventInterval
+			temp.Locator = monitorapi.Locator{Type: bufferSourceID, Keys: temp.Locator.Keys}
+			temp.Source = bufferSourceID
+			temp.From = eventInterval.From.Add(time.Second * -5)
+			temp.To = eventInterval.To.Add(bufferTime)
+			bufferInterval = append(bufferInterval, temp)
+		}
+
+		isTargetDownAlert := eventInterval.Source == monitorapi.SourceAlert && eventInterval.Locator.Keys[monitorapi.LocatorAlertKey] == "TargetDown"
+		identifiedSkipInterval := false
+
+		switch eventInterval.Locator.Keys[monitorapi.LocatorNamespaceKey] {
+		case ocpAPINamespace, ocpOAuthAPINamespace:
+			identifiedSkipInterval = true
+		case defaultNamespace:
+			identifiedSkipInterval = strings.Contains(eventInterval.Message.HumanMessage, "apiserver")
+		}
+
+		return isTargetDownAlert && identifiedSkipInterval
+	})
+	ocpAPISeverTargetDownIntervals = append(ocpAPISeverTargetDownIntervals, bufferInterval...)
+	sort.SliceStable(ocpAPISeverTargetDownIntervals, func(i, j int) bool {
+		return ocpAPISeverTargetDownIntervals[i].To.Before(ocpAPISeverTargetDownIntervals[j].To)
 	})
 	if len(ocpAPISeverTargetDownIntervals) > 0 {
 		logrus.Infof("found %d OCP APIServer TargetDown intervals", len(ocpAPISeverTargetDownIntervals))
