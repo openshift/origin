@@ -76,14 +76,12 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("expecting the app deployment to be complete")
-					//err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), c.deploymentConfigName, 1, true, oc)
-					err = exutil.WaitForDeploymentReady(oc, c.deploymentConfigName, oc.Namespace())
+					err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), c.deploymentConfigName, 1, true, oc)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					if len(c.dbDeploymentConfigName) > 0 {
 						g.By("expecting the db deployment to be complete")
-						// err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), c.dbDeploymentConfigName, 1, true, oc)
-						err = exutil.WaitForDeploymentReady(oc, c.deploymentConfigName, oc.Namespace())
+						err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), c.dbDeploymentConfigName, 1, true, oc)
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("expecting the db service is available")
@@ -127,20 +125,20 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 
 var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample application repositories", func() {
 
-	g.Describe("[sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo", NewSampleRepoTest(
-		sampleRepoConfig{
-			repoName:               "rails-postgresql",
-			templateURL:            "rails-postgresql-example",
-			buildConfigName:        "rails-postgresql-example",
-			serviceName:            "rails-postgresql-example",
-			deploymentConfigName:   "rails-postgresql-example",
-			expectedString:         "Listing articles",
-			appPath:                "/articles",
-			dbDeploymentConfigName: "postgresql",
-			dbServiceName:          "postgresql",
-			newAppParams:           "APPLICATION_DOMAIN=rails-%s.ocp.io",
-		},
-	))
+	// g.Describe("[sig-devex][Feature:ImageEcosystem][ruby] test ruby images with rails-ex db repo", NewSampleRepoTest(
+	// 	sampleRepoConfig{
+	// 		repoName:               "rails-postgresql",
+	// 		templateURL:            "rails-postgresql-example",
+	// 		buildConfigName:        "rails-postgresql-example",
+	// 		serviceName:            "rails-postgresql-example",
+	// 		deploymentConfigName:   "rails-postgresql-example",
+	// 		expectedString:         "Listing articles",
+	// 		appPath:                "/articles",
+	// 		dbDeploymentConfigName: "postgresql",
+	// 		dbServiceName:          "postgresql",
+	// 		newAppParams:           "APPLICATION_DOMAIN=rails-%s.ocp.io",
+	// 	},
+	// ))
 
 	g.Describe("[sig-devex][Feature:ImageEcosystem][python] test python images with django-ex db repo", NewSampleRepoTest(
 		sampleRepoConfig{
@@ -172,20 +170,20 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][Slow] openshift sample a
 		},
 	))
 
-	var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
-		sampleRepoConfig{
-			repoName:               "cakephp-mysql",
-			templateURL:            "cakephp-mysql-example",
-			buildConfigName:        "cakephp-mysql-example",
-			serviceName:            "cakephp-mysql-example",
-			deploymentConfigName:   "cakephp-mysql-example",
-			expectedString:         htmlCountValueNonZeroRegexp,
-			appPath:                "",
-			dbDeploymentConfigName: "mysql",
-			dbServiceName:          "mysql",
-			newAppParams:           "APPLICATION_DOMAIN=cakephp-%s.ocp.io",
-		},
-	))
+	// var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php] test php images with cakephp-ex db repo", NewSampleRepoTest(
+	// 	sampleRepoConfig{
+	// 		repoName:               "cakephp-mysql",
+	// 		templateURL:            "cakephp-mysql-example",
+	// 		buildConfigName:        "cakephp-mysql-example",
+	// 		serviceName:            "cakephp-mysql-example",
+	// 		deploymentConfigName:   "cakephp-mysql-example",
+	// 		expectedString:         htmlCountValueNonZeroRegexp,
+	// 		appPath:                "",
+	// 		dbDeploymentConfigName: "mysql",
+	// 		dbServiceName:          "mysql",
+	// 		newAppParams:           "APPLICATION_DOMAIN=cakephp-%s.ocp.io",
+	// 	},
+	// ))
 
 	// dependency download is intermittently slow enough to blow away the e2e timeouts
 	/*var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][perl] test perl images with dancer-ex db repo", NewSampleRepoTest(

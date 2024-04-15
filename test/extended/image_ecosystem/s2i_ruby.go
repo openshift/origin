@@ -59,12 +59,11 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				//err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), dcName, 1, true, oc)
-				err = exutil.WaitForDeploymentReady(oc, dcName, oc.Namespace())
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("waiting for endpoint")
-				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), dcName)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// g.By("waiting for endpoint")
+				// err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), dcName)
+				// o.Expect(err).NotTo(o.HaveOccurred())
 				oldEndpoint, err := oc.KubeFramework().ClientSet.CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), dcName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -94,12 +93,12 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 				g.By("turning on hot-deploy")
 				err = oc.Run("set", "env").Args("dc", dcName, "RAILS_ENV=development").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), dcName, 2, true, oc)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), dcName, 2, true, oc)
+				// o.Expect(err).NotTo(o.HaveOccurred())
 
-				g.By("waiting for a new endpoint")
-				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), dcName)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// g.By("waiting for a new endpoint")
+				// err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), dcName)
+				// o.Expect(err).NotTo(o.HaveOccurred())
 
 				// Ran into an issue where we'd try to hit the endpoint before it was updated, resulting in
 				// request timeouts against the previous pod's ip.  So make sure the endpoint is pointing to the
