@@ -1437,6 +1437,18 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:vlan] should create pingable pods with vlan interface on an in-container master [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should be enabled by default": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should function without any target pods": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should move the source diagnostics pods based on the new selector and tolerations": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should move the target diagnostics pods based on the new selector and tolerations": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should remove all network diagnostics pods when disabled": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should set the condition to false if there are no nodes able to host the source pods": " [Suite:openshift/conformance/serial]",
+
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of Endpoints pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
