@@ -64,9 +64,7 @@ func (*auditLogAnalyzer) Cleanup(ctx context.Context) error {
 
 func intervalsFromAuditLogs(ctx context.Context, kubeClient kubernetes.Interface, beginning, end time.Time) (*AuditLogSummary, monitorapi.Intervals, error) {
 	ret := monitorapi.Intervals{}
-
-	// TODO honor begin and end times.  maybe
-	auditLogSummary, err := GetKubeAuditLogSummary(ctx, kubeClient)
+	auditLogSummary, err := GetKubeAuditLogSummary(ctx, kubeClient, &beginning, &end)
 	if err != nil {
 		// TODO report the error AND the best possible summary we have
 		return auditLogSummary, nil, err

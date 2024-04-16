@@ -3,14 +3,19 @@ package auditloganalyzer
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/openshift/origin/pkg/dataloader"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 )
+
+var monitoredUsers = []string{"system:serviceaccount:kube-", "system:serviceaccount:openshift-", "system:node"}
 
 // every audit log summarizer is not threadsafe. The idea is that you use one per thread and
 // later combine the summarizers together into an overall summary
@@ -445,6 +450,42 @@ func URIToParts(uri string) (string, schema.GroupVersionResource, string, string
 	return ns, gvr, name, ""
 }
 
+func isMonitoredUser(user string) bool {
+	for _, userPrefix := range monitoredUsers {
+		if strings.HasPrefix(user, userPrefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func writeAuditLogDL(artifactDir, timeSuffix string, auditLogSummary *AuditLogSummary) {
+	rows := make([]map[string]string, 0)
+	for _, uv := range auditLogSummary.perUserRequestCount {
+		if !isMonitoredUser(uv.user) {
+			continue
+		}
+		for rk, rv := range uv.perResourceRequestCount {
+			for vk, vv := range rv.perVerbRequestCount {
+				for sk, sv := range vv.perHTTPStatusRequestCount {
+					rows = append(rows, map[string]string{"User": uv.user, "Resource": rk.Resource, "Verb": vk, "HttpStatus": strconv.FormatInt(int64(sk), 10), "RequestCount": strconv.FormatInt(int64(sv), 10)})
+				}
+			}
+		}
+	}
+
+	dataFile := dataloader.DataFile{
+		TableName: "audit_resource_requests_per_user",
+		Schema:    map[string]dataloader.DataType{"User": dataloader.DataTypeString, "Resource": dataloader.DataTypeString, "Verb": dataloader.DataTypeString, "HttpStatus": dataloader.DataTypeInteger, "RequestCount": dataloader.DataTypeInteger},
+		Rows:      rows,
+	}
+	fileName := filepath.Join(artifactDir, fmt.Sprintf("audit-resource-requests-per-user%s-%s", timeSuffix, dataloader.AutoDataLoaderSuffix))
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
+}
+
 func WriteAuditLogSummary(artifactDir, timeSuffix string, auditLogSummary *AuditLogSummary) error {
 	serializable := NewSerializedAuditLogSummary(*auditLogSummary)
 	writeSummary(artifactDir, fmt.Sprintf("audit-log-summary_%s.json", timeSuffix), serializable)
@@ -470,6 +511,8 @@ func WriteAuditLogSummary(artifactDir, timeSuffix string, auditLogSummary *Audit
 		justResources.PerResourceRequestCount[i].PerUserRequestCount = nil
 	}
 	writeSummary(artifactDir, fmt.Sprintf("just-resources-audit-log-summary_%s.json", timeSuffix), justResources)
+
+	writeAuditLogDL(artifactDir, timeSuffix, auditLogSummary)
 
 	return nil
 }
