@@ -53,7 +53,7 @@ var (
 
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
-		"registry.k8s.io/e2e-test-images/agnhost:2.45": 1,
+		"registry.k8s.io/e2e-test-images/agnhost:2.47": 1,
 		"registry.k8s.io/e2e-test-images/nginx:1.15-4": 21,
 	}
 )

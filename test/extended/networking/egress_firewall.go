@@ -23,7 +23,7 @@ const (
 	egressFWTestPod      = "egressfirewall"
 	egressFWE2E          = "egress-firewall-e2e"
 	noEgressFWE2E        = "no-egress-firewall-e2e"
-	egressFWTestImage    = "registry.k8s.io/e2e-test-images/agnhost:2.45"
+	egressFWTestImage    = "registry.k8s.io/e2e-test-images/agnhost:2.47"
 	oVNKManifest         = "ovnk-egressfirewall-test.yaml"
 	openShiftSDNManifest = "sdn-egressnetworkpolicy-test.yaml"
 )
