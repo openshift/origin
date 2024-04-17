@@ -70,9 +70,17 @@ func InitializeTestFramework(context *e2e.TestContextType, config *ClusterConfig
 	// IPFamily constants are taken from kube e2e and used by tests
 	context.IPFamily = config.IPFamily
 
+	coreClient, err := e2e.LoadClientset(true)
+	if err != nil {
+		return err
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(coreClient)
+	if err != nil {
+		return err
+	}
 	// As an extra precaution for now, we do not run this check on all tests since some might fail to pull
 	// release payload information
-	if config.HasNoOptionalCapabilities {
+	if config.HasNoOptionalCapabilities && !isMicroShift {
 		imageStreamString, _, err := exutil.NewCLIWithoutNamespace("").AsAdmin().Run("adm", "release", "info", `-ojsonpath={.references}`).Outputs()
 		if err != nil {
 			return err

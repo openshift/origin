@@ -15,6 +15,7 @@ import (
 	azureutil "github.com/openshift/origin/test/extended/util/azure"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/objx"
+	"k8s.io/client-go/kubernetes"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,8 +32,9 @@ const (
 )
 
 type azureMetricsCollector struct {
-	adminRESTConfig *rest.Config
-	flakeErr        error
+	adminRESTConfig    *rest.Config
+	flakeErr           error
+	notSupportedReason error
 }
 
 // metricTest is used to group test data such as azure metrics query params and threshold
@@ -47,7 +49,20 @@ func NewAzureMetricsCollector() monitortestframework.MonitorTest {
 
 func (w *azureMetricsCollector) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
-	return nil
+	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: "platform MicroShift not supported",
+		}
+	}
+	return w.notSupportedReason
 }
 
 func objects(from *objx.Value) []objx.Map {
@@ -139,6 +154,9 @@ func fetchExtrenuousMetrics(ctx context.Context, allVMs []string, client *armmon
 // CollectData collects azure metrics. Since azure metrics are collected to facilitate debugging, some errors (like cloud throttling) are not considered fatal.
 // We will simply log the error and return nil to the caller.
 func (w *azureMetricsCollector) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if w.notSupportedReason != nil {
+		return nil, nil, w.notSupportedReason
+	}
 	// Only collect if we are on azure
 	oc := exutil.NewCLI("cloudmetrics").AsAdmin()
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
