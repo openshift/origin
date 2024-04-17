@@ -136,7 +136,7 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 			continue
 		}
 		// only look at pull events from an e2e-* namespace
-		if !strings.Contains(event.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey], "e2e-") {
+		if !strings.HasPrefix(event.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey], "e2e-") {
 			continue
 		}
 
