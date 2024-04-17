@@ -71,11 +71,14 @@ type GinkgoRunSuiteOptions struct {
 
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
+
+	ExternalTests []string
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
 	return &GinkgoRunSuiteOptions{
-		IOStreams: streams,
+		IOStreams:     streams,
+		ExternalTests: []string{"gingko=hyperkube:/usr/bin/k8s-tests"},
 	}
 }
 
@@ -95,6 +98,7 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.StringSliceVar(&o.ExactMonitorTests, "monitor", o.ExactMonitorTests,
 		fmt.Sprintf("list of exactly which monitors to enable. All others will be disabled.  Current monitors are: [%s]", strings.Join(monitorNames, ", ")))
 	flags.StringSliceVar(&o.DisableMonitorTests, "disable-monitor", o.DisableMonitorTests, "list of monitors to disable.  Defaults for others will be honored.")
+	flags.StringSliceVar(&o.ExternalTests, "external-test", o.ExternalTests, "List of external test binaries to run. Format is test-type=image-tag:path where test-type is 'ginkgo' or 'gotest'; 'image-tag' is the tag in the release payload that contains the tests and 'path' is the path under which the test binaries are placed.")
 }
 
 func (o *GinkgoRunSuiteOptions) Validate() error {
@@ -145,11 +149,11 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		strings.EqualFold(o.FromRepository, "quay.io/openshift/community-e2e-images") {
 		buf := &bytes.Buffer{}
 		fmt.Fprintf(buf, "Attempting to pull tests from external binary...\n")
-		externalTests, err := externalTestsForSuite(ctx)
+		externalTests, err := externalTestsForSuite(ctx, o.ExternalTests)
 		if err == nil {
 			filteredTests := []*testCase{}
 			for _, test := range tests {
-				// tests contains all the tests "registered" in openshif-tests binary,
+				// tests contains all the tests "registered" in openshift-tests binary,
 				// this also includes vendored k8s tests, since this path assumes we're
 				// using external binary to run these tests we need to remove them
 				// from the final lists, which contains:
