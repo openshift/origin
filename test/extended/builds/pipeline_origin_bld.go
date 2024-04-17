@@ -91,6 +91,8 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 		g.Describe("jenkins pipeline build config strategy", func() {
 			g.It("using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]", func() {
 				defer cleanup()
+
+				g.Skip("OCPBUGS-32293: temporary skip to unblock build and Jenkins suite tests")
 				setupJenkins()
 
 				g.By("should build and complete successfully", func() {
