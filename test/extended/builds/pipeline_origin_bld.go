@@ -40,7 +40,7 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "jenkins", 1, false, oc)
+			err = exutil.WaitForDeploymentReady(oc, "jenkins", oc.Namespace())
 			if err != nil {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 			}
@@ -91,8 +91,6 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 		g.Describe("jenkins pipeline build config strategy", func() {
 			g.It("using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]", func() {
 				defer cleanup()
-
-				g.Skip("OCPBUGS-32293: temporary skip to unblock build and Jenkins suite tests")
 				setupJenkins()
 
 				g.By("should build and complete successfully", func() {
