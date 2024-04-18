@@ -26,6 +26,7 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 		kubeEvent              *corev1.Event
 	}
 
+	first := time.Now().Add(-30 * time.Minute)
 	now := time.Now()
 
 	tests := []struct {
@@ -49,8 +50,9 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 						Namespace: "openshift-authentication",
 						Name:      "testpod-927947",
 					},
-					Message:       "sample message",
-					LastTimestamp: metav1.Now(),
+					Message:        "sample message",
+					FirstTimestamp: metav1.NewTime(first),
+					LastTimestamp:  metav1.NewTime(now),
 				},
 			},
 			expectedLocator: monitorapi.Locator{
@@ -62,7 +64,10 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				},
 			},
 			expectedMessage: monitorapi.NewMessage().Reason("SomethingHappened").
-				HumanMessage("sample message").WithAnnotation(monitorapi.AnnotationCount, "2").Build(),
+				HumanMessage("sample message").WithAnnotation(monitorapi.AnnotationCount, "2").
+				WithAnnotation("FirstTimestamp", first.Format(time.RFC3339)).
+				WithAnnotation("LastTimestamp", now.Format(time.RFC3339)).
+				Build(),
 		},
 		{
 			name: "unknown pathological event",
@@ -77,8 +82,9 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 						Namespace: "openshift-authentication",
 						Name:      "testpod-927947",
 					},
-					Message:       "sample message",
-					LastTimestamp: metav1.Now(),
+					Message:        "sample message",
+					FirstTimestamp: metav1.NewTime(first),
+					LastTimestamp:  metav1.NewTime(now),
 				},
 			},
 			expectedLocator: monitorapi.Locator{
@@ -92,6 +98,8 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			expectedMessage: monitorapi.NewMessage().Reason("SomethingHappened").
 				HumanMessage("sample message").WithAnnotation(monitorapi.AnnotationCount, "40").
 				WithAnnotation(monitorapi.AnnotationPathological, "true").
+				WithAnnotation("FirstTimestamp", first.Format(time.RFC3339)).
+				WithAnnotation("LastTimestamp", now.Format(time.RFC3339)).
 				Build(),
 		},
 		{
@@ -107,8 +115,9 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 						Namespace: "openshift-e2e-loki",
 						Name:      "loki-promtail-982739",
 					},
-					Message:       "Readiness probe failed",
-					LastTimestamp: metav1.Now(),
+					Message:        "Readiness probe failed",
+					FirstTimestamp: metav1.NewTime(first),
+					LastTimestamp:  metav1.NewTime(now),
 				},
 				significantlyBeforeNow: now.UTC().Add(-15 * time.Minute),
 			},
@@ -125,6 +134,8 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				WithAnnotation(monitorapi.AnnotationCount, "40").
 				WithAnnotation(monitorapi.AnnotationPathological, "true").
 				WithAnnotation(monitorapi.AnnotationInteresting, "true").
+				WithAnnotation("FirstTimestamp", first.Format(time.RFC3339)).
+				WithAnnotation("LastTimestamp", now.Format(time.RFC3339)).
 				Build(),
 		},
 	}

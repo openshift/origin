@@ -172,6 +172,10 @@ func recordAddOrUpdateEvent(
 		}
 		return
 	}
+
+	message = message.WithAnnotation("FirstTimestamp", obj.FirstTimestamp.Format(time.RFC3339))
+	message = message.WithAnnotation("LastTimestamp", obj.LastTimestamp.Format(time.RFC3339))
+
 	// We start with to equal to from, the majority of kube event intervals had this, and these get filtered out
 	// when generating spyglass html. For interesting/pathological events, we're adding a second, which causes them
 	// to get included in the html.
