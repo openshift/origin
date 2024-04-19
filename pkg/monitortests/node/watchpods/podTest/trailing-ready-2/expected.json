@@ -2,8 +2,6 @@
     "items": [
         {
             "level": "Info",
-            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
-            "message": "constructed/pod-lifecycle-constructor reason/Created",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -27,8 +25,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -53,8 +49,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
-            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-231-18.us-east-2.compute.internal reason/Scheduled",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -79,8 +73,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
-            "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",

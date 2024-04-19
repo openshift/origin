@@ -16,9 +16,6 @@ import (
 type EventInterval struct {
 	Level string `json:"level"`
 
-	Locator string `json:"locator"`
-	Message string `json:"message"`
-
 	// TODO: Remove the omitempty, just here to keep from having to repeatedly updated the json
 	// files used in some new tests
 	Source string `json:"tempSource,omitempty"` // also temporary, unsure if this concept will survive
@@ -70,9 +67,7 @@ func IntervalsFromJSON(data []byte) (monitorapi.Intervals, error) {
 			Display: interval.Display,
 			Condition: monitorapi.Condition{
 				Level:             level,
-				Locator:           interval.Locator,
 				StructuredLocator: interval.StructuredLocator,
-				Message:           interval.Message,
 				StructuredMessage: interval.StructuredMessage,
 			},
 
@@ -98,8 +93,6 @@ func IntervalFromJSON(data []byte) (*monitorapi.Interval, error) {
 		Display: serializedInterval.Display,
 		Condition: monitorapi.Condition{
 			Level:             level,
-			Locator:           serializedInterval.Locator,
-			Message:           serializedInterval.Message,
 			StructuredLocator: serializedInterval.StructuredLocator,
 			StructuredMessage: serializedInterval.StructuredMessage,
 		},
@@ -162,10 +155,7 @@ func EventsIntervalsToJSON(events monitorapi.Intervals) ([]byte, error) {
 
 func monitorEventIntervalToEventInterval(interval monitorapi.Interval) EventInterval {
 	ret := EventInterval{
-		Level: fmt.Sprintf("%v", interval.Level),
-		// TODO: remove this when we're ready to fully ditch the legacy flat string locator
-		Locator:           interval.Locator,
-		Message:           interval.Message,
+		Level:             fmt.Sprintf("%v", interval.Level),
 		StructuredLocator: interval.StructuredLocator,
 		StructuredMessage: interval.StructuredMessage,
 		Source:            string(interval.Source),
@@ -195,11 +185,12 @@ func (intervals byTime) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	if intervals[i].Message != intervals[j].Message {
-		return intervals[i].Message < intervals[j].Message
+	if intervals[i].StructuredMessage.OldMessage() != intervals[j].StructuredMessage.OldMessage() {
+		return intervals[i].StructuredMessage.OldMessage() < intervals[j].StructuredMessage.OldMessage()
 	}
 
-	return intervals[i].Locator < intervals[j].Locator
+	// TODO: more performant way to do this?
+	return intervals[i].StructuredLocator.OldLocator() < intervals[j].StructuredLocator.OldLocator()
 }
 
 func (intervals byTime) Len() int { return len(intervals) }

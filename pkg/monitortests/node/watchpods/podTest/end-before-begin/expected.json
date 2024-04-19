@@ -2,8 +2,6 @@
     "items": [
         {
             "level": "Info",
-            "locator": "namespace/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9",
-            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-214-214.us-west-1.compute.internal reason/Scheduled",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -28,8 +26,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9",
-            "message": "constructed/pod-lifecycle-constructor reason/Created",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -53,8 +49,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-kube-apiserver pod/revision-pruner-7-ip-10-0-214-214.us-west-1.compute.internal uid/6a81964d-169c-47e0-a986-551429370ae9 container/pruner",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",

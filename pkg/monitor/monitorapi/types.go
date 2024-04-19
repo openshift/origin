@@ -88,10 +88,7 @@ func ConditionLevelFromString(s string) (IntervalLevel, error) {
 type Condition struct {
 	Level IntervalLevel
 
-	// TODO: Goal here is to drop Locator/Message, and rename the structured variants to Locator/Message
-	Locator           string
 	StructuredLocator Locator
-	Message           string
 	StructuredMessage Message
 }
 

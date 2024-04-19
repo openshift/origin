@@ -40,9 +40,7 @@ func (b *IntervalBuilder) Display() *IntervalBuilder {
 func (b *IntervalBuilder) BuildCondition() Condition {
 	ret := Condition{
 		Level:             b.level,
-		Locator:           b.structuredLocator.OldLocator(),
 		StructuredLocator: b.structuredLocator,
-		Message:           b.structuredMessage.OldMessage(),
 		StructuredMessage: b.structuredMessage,
 	}
 

@@ -2,8 +2,6 @@
     "items": [
         {
             "level": "Info",
-            "locator": "namespace/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21",
-            "message": "constructed/pod-lifecycle-constructor reason/Created",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -27,8 +25,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
-            "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -53,8 +49,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21",
-            "message": "constructed/pod-lifecycle-constructor node/ci-op-97t906zm-db044-bwrrn-master-0 reason/Scheduled",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -79,8 +73,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -105,8 +97,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
-            "message": "cause/ constructed/pod-lifecycle-constructor duration/3.00s reason/ContainerStart",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -133,8 +123,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
-            "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -159,8 +147,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-etcd pod/installer-9-ci-op-97t906zm-db044-bwrrn-master-0 uid/6fb10c53-7ed9-4f51-88db-f8a689050f21 container/installer",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",

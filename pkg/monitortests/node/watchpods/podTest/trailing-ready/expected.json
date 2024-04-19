@@ -2,8 +2,6 @@
     "items": [
         {
             "level": "Info",
-            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-            "message": "constructed/pod-lifecycle-constructor reason/Created",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -27,8 +25,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-            "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -53,8 +49,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-154-151.ec2.internal reason/Scheduled",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -79,8 +73,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -105,8 +97,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-            "message": "constructed/pod-lifecycle-constructor duration/3.00s reason/ContainerStart",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -132,8 +122,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-            "message": "constructed/pod-lifecycle-constructor duration/1s reason/GracefulDelete",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Pod",
@@ -158,8 +146,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-            "message": "constructed/pod-lifecycle-constructor reason/Ready",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
@@ -184,8 +170,6 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady",
             "tempSource": "PodState",
             "tempStructuredLocator": {
                 "type": "Container",
