@@ -51,12 +51,12 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy fo
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				// err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "cakephp-mysql-example", 1, true, oc)
-				// o.Expect(err).NotTo(o.HaveOccurred())
+				err = exutil.WaitForDeploymentReady(oc, "cakephp-mysql-example", oc.Namespace())
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-				// g.By("waiting for endpoint")
-				// err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "cakephp-mysql-example")
-				// o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("waiting for endpoint")
+				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "cakephp-mysql-example")
+				o.Expect(err).NotTo(o.HaveOccurred())
 
 				assertPageCountRegexp := func(priorValue string) string {
 					_, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
