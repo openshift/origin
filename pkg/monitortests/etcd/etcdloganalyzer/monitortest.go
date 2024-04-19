@@ -91,12 +91,12 @@ func (*etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, starting
 	etcdMemberIDToPod := podaccess.NonUniqueEtcdMemberToPod(startingIntervals)
 
 	for _, currInterval := range startingIntervals {
-		reason := currInterval.StructuredMessage.Reason
+		reason := currInterval.Message.Reason
 		if !interestingReasons.Has(string(reason)) {
 			continue
 		}
 
-		annotations := currInterval.StructuredMessage.Annotations
+		annotations := currInterval.Message.Annotations
 		newLeader := annotations[monitorapi.AnnotationEtcdLeader]
 		newTerm := annotations[monitorapi.AnnotationEtcdTerm]
 

@@ -24,13 +24,13 @@ func TestIntervalsFromEvents_OperatorProgressing(t *testing.T) {
 			Source: monitorapi.SourceClusterOperatorMonitor,
 			Condition: monitorapi.Condition{
 				Level: monitorapi.Info,
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeClusterOperator,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorClusterOperatorKey: "network",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "Deploying",
 					HumanMessage: "Deployment \\\"openshift-network-diagnostics/network-check-source\\\" is not available (awaiting 1 nodes)",
 					Annotations: map[monitorapi.AnnotationKey]string{
@@ -47,13 +47,13 @@ func TestIntervalsFromEvents_OperatorProgressing(t *testing.T) {
 			Source: monitorapi.SourceClusterOperatorMonitor,
 			Condition: monitorapi.Condition{
 				Level: monitorapi.Info,
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeClusterOperator,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorClusterOperatorKey: "network",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					HumanMessage: "",
 					Annotations: map[monitorapi.AnnotationKey]string{
 						monitorapi.AnnotationCondition: "Progressing",
@@ -78,13 +78,13 @@ func TestIntervalsFromEvents_OperatorProgressing2(t *testing.T) {
 			Source: monitorapi.SourceClusterOperatorMonitor,
 			Condition: monitorapi.Condition{
 				Level: monitorapi.Warning,
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeClusterOperator,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorClusterOperatorKey: "kube-apiserver",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "NodeInstaller",
 					HumanMessage: "NodeInstallerProgressing: 3 nodes are at revision 6; 0 nodes have achieved new revision 7",
 					Annotations: map[monitorapi.AnnotationKey]string{
@@ -101,13 +101,13 @@ func TestIntervalsFromEvents_OperatorProgressing2(t *testing.T) {
 			Source: monitorapi.SourceClusterOperatorMonitor,
 			Condition: monitorapi.Condition{
 				Level: monitorapi.Warning,
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeClusterOperator,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorClusterOperatorKey: "kube-apiserver",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "AsExpected",
 					HumanMessage: "NodeInstallerProgressing: 3 nodes are at revision 7",
 					Annotations: map[monitorapi.AnnotationKey]string{

@@ -93,10 +93,10 @@ func BelongsInSpyglass(eventInterval monitorapi.Interval) bool {
 	}
 	// Pathologically repeating kube events:
 	if eventInterval.Source == monitorapi.SourceKubeEvent {
-		if eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationPathological] != "true" {
+		if eventInterval.Message.Annotations[monitorapi.AnnotationPathological] != "true" {
 			return false
 		}
-		ns := monitorapi.NamespaceFromLocator(eventInterval.StructuredLocator)
+		ns := monitorapi.NamespaceFromLocator(eventInterval.Locator)
 		if strings.Contains(ns, "e2e") {
 			return false
 		}
@@ -105,7 +105,7 @@ func BelongsInSpyglass(eventInterval monitorapi.Interval) bool {
 }
 
 func BelongsInOperatorRollout(eventInterval monitorapi.Interval) bool {
-	if monitorapi.IsE2ETest(eventInterval.StructuredLocator) {
+	if monitorapi.IsE2ETest(eventInterval.Locator) {
 		return false
 	}
 	if IsPodLifecycle(eventInterval) {
@@ -119,7 +119,7 @@ func BelongsInOperatorRollout(eventInterval monitorapi.Interval) bool {
 }
 
 func BelongsInKubeAPIServer(eventInterval monitorapi.Interval) bool {
-	if monitorapi.IsE2ETest(eventInterval.StructuredLocator) {
+	if monitorapi.IsE2ETest(eventInterval.Locator) {
 		return false
 	}
 	if isLessInterestingAlert(eventInterval) {
@@ -139,15 +139,15 @@ func BelongsInKubeAPIServer(eventInterval monitorapi.Interval) bool {
 }
 
 func IsPodLifecycle(eventInterval monitorapi.Interval) bool {
-	return eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerPodLifecycle
+	return eventInterval.Message.Annotations[monitorapi.AnnotationConstructed] == monitorapi.ConstructionOwnerPodLifecycle
 }
 
 func IsOriginalPodEvent(eventInterval monitorapi.Interval) bool {
 	// constructed events are not original
-	if len(eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationConstructed]) > 0 {
+	if len(eventInterval.Message.Annotations[monitorapi.AnnotationConstructed]) > 0 {
 		return false
 	}
-	return eventInterval.StructuredLocator.HasKey(monitorapi.LocatorPodKey)
+	return eventInterval.Locator.HasKey(monitorapi.LocatorPodKey)
 }
 
 func isPlatformPodEvent(eventInterval monitorapi.Interval) bool {
@@ -155,12 +155,12 @@ func isPlatformPodEvent(eventInterval monitorapi.Interval) bool {
 	if !(eventInterval.Source == monitorapi.SourcePodState) {
 		return false
 	}
-	pod := monitorapi.PodFrom(eventInterval.StructuredLocator)
+	pod := monitorapi.PodFrom(eventInterval.Locator)
 	if len(pod.UID) == 0 {
 		return false
 	}
 
-	namespace := eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+	namespace := eventInterval.Locator.Keys[monitorapi.LocatorNamespaceKey]
 	if strings.HasPrefix(namespace, "openshift-") {
 		return true
 	}
@@ -186,19 +186,19 @@ var kubeAPIServerDependentNamespaces = sets.NewString(
 )
 
 func isInterestingNamespace(eventInterval monitorapi.Interval, interestingNamespaces sets.String) bool {
-	return interestingNamespaces.Has(eventInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey])
+	return interestingNamespaces.Has(eventInterval.Locator.Keys[monitorapi.LocatorNamespaceKey])
 }
 
 func isLessInterestingAlert(eventInterval monitorapi.Interval) bool {
 	if eventInterval.Source != monitorapi.SourceAlert {
 		return false
 	}
-	if eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationAlertState] == "pending" {
+	if eventInterval.Message.Annotations[monitorapi.AnnotationAlertState] == "pending" {
 		// Skip pending alerts:
 		return true
 	}
 
-	alertName := eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
+	alertName := eventInterval.Locator.Keys[monitorapi.LocatorAlertKey]
 	if len(alertName) == 0 {
 		return true
 	}

@@ -16,12 +16,12 @@ func Test_testErrorUpdatingEndpointSlices(t *testing.T) {
 			name: "pass",
 			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorNamespaceKey: "openshift-ovn-kubernetes",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       monitorapi.IntervalReason("FailedToUpdateEndpointSlices"),
 						HumanMessage: "Error updating Endpoint Slices for Service openshift-ovn-kubernetes/ovn-kubernetes-master: node \"ip-10-0-168-211.us-east-2.compute.internal\" not found",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -36,12 +36,12 @@ func Test_testErrorUpdatingEndpointSlices(t *testing.T) {
 			name: "flake over 20",
 			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorNamespaceKey: "openshift-ovn-kubernetes",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       monitorapi.IntervalReason("FailedToUpdateEndpointSlices"),
 						HumanMessage: "Error updating Endpoint Slices for Service openshift-ovn-kubernetes/ovn-kubernetes-master: node \"ip-10-0-168-211.us-east-2.compute.internal\" not found",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -56,12 +56,12 @@ func Test_testErrorUpdatingEndpointSlices(t *testing.T) {
 			name: "flake over 10",
 			interval: monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorNamespaceKey: "openshift-ovn-kubernetes",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       monitorapi.IntervalReason("FailedToUpdateEndpointSlices"),
 						HumanMessage: "Error updating Endpoint Slices for Service openshift-ovn-kubernetes/ovn-kubernetes-master: node \"ip-10-0-168-211.us-east-2.compute.internal\" not found",
 						Annotations: map[monitorapi.AnnotationKey]string{

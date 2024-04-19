@@ -18,15 +18,15 @@ type PodKey struct {
 func NonUniquePodToNode(intervals monitorapi.Intervals) map[NonUniquePodKey]string {
 	ret := map[NonUniquePodKey]string{}
 	for _, interval := range intervals {
-		if !interval.StructuredLocator.HasKey(monitorapi.LocatorPodKey) {
+		if !interval.Locator.HasKey(monitorapi.LocatorPodKey) {
 			continue
 		}
 
-		pod := monitorapi.PodFrom(interval.StructuredLocator)
+		pod := monitorapi.PodFrom(interval.Locator)
 		if len(pod.Name) == 0 {
 			continue
 		}
-		node, _ := interval.StructuredLocator.Keys[monitorapi.LocatorNodeKey]
+		node, _ := interval.Locator.Keys[monitorapi.LocatorNodeKey]
 		if len(node) == 0 {
 			continue
 		}
@@ -48,18 +48,18 @@ func NonUniqueEtcdMemberToPod(intervals monitorapi.Intervals) map[string]NonUniq
 		if interval.Source != monitorapi.SourceEtcdLog {
 			continue
 		}
-		if !interval.StructuredLocator.HasKey(monitorapi.LocatorPodKey) {
+		if !interval.Locator.HasKey(monitorapi.LocatorPodKey) {
 			continue
 		}
-		if _, ok := interval.StructuredMessage.Annotations[monitorapi.AnnotationEtcdLocalMember]; !ok {
+		if _, ok := interval.Message.Annotations[monitorapi.AnnotationEtcdLocalMember]; !ok {
 			continue
 		}
 
-		pod := monitorapi.PodFrom(interval.StructuredLocator)
+		pod := monitorapi.PodFrom(interval.Locator)
 		if len(pod.Name) == 0 {
 			continue
 		}
-		memberName := interval.StructuredMessage.Annotations[monitorapi.AnnotationEtcdLocalMember]
+		memberName := interval.Message.Annotations[monitorapi.AnnotationEtcdLocalMember]
 		if len(memberName) == 0 {
 			continue
 		}

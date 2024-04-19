@@ -70,8 +70,8 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 		//  - when we create the end event, set 'Related' field of the end event
 		//    to that of the start event.
 		// TODO: With the above approach, finding the pair will be more deterministic
-		podRef := monitorapi.PodFrom(currInterval.StructuredLocator)
-		nodeName, _ := currInterval.StructuredLocator.Keys[monitorapi.LocatorNodeKey]
+		podRef := monitorapi.PodFrom(currInterval.Locator)
+		nodeName, _ := currInterval.Locator.Keys[monitorapi.LocatorNodeKey]
 		key := fmt.Sprintf("ns/%s pod/%s node/%s", podRef.Namespace, podRef.Name, nodeName)
 
 		switch reason {
@@ -158,7 +158,7 @@ func (*apiserverGracefulShutdownAnalyzer) Cleanup(ctx context.Context) error {
 }
 
 func interesting(interval monitorapi.Interval) (monitorapi.IntervalReason, bool) {
-	reason := interval.StructuredMessage.Reason
+	reason := interval.Message.Reason
 	switch reason {
 	// openshift-apiserver still is using the old event name TerminationStart
 	case "ShutdownInitiated", "TerminationStart", "TerminationGracefulTerminationFinished":

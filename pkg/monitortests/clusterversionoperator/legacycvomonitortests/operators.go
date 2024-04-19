@@ -185,7 +185,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 					if overlap.Level == monitorapi.Info {
 						continue
 					}
-					e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.StructuredLocator)
+					e2eTest, ok := monitorapi.E2ETestFromLocator(overlap.Locator)
 					if !ok {
 						continue
 					}
@@ -260,13 +260,13 @@ func testOperatorOSUpdateStaged(events monitorapi.Intervals, clientConfig *rest.
 	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
 	nodeNameToOSUpdateTimes := map[string]*startedStaged{}
 	for _, e := range events {
-		nodeName := e.StructuredLocator.Keys[monitorapi.LocatorNodeKey]
+		nodeName := e.Locator.Keys[monitorapi.LocatorNodeKey]
 		if len(nodeName) == 0 {
 			continue
 		}
 
-		reason := e.StructuredMessage.Reason
-		phase := e.StructuredMessage.Annotations[monitorapi.AnnotationPhase]
+		reason := e.Message.Reason
+		phase := e.Message.Annotations[monitorapi.AnnotationPhase]
 		switch {
 		case reason == "OSUpdateStarted":
 			_, ok := nodeNameToOSUpdateTimes[nodeName]
@@ -371,23 +371,23 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 	// Scan all OSUpdateStarted and OSUpdateStaged events, sort by node.
 	nodeOSUpdateTimes := map[string]*startedStaged{}
 	for _, e := range events {
-		if e.StructuredMessage.Reason == "OSUpdateStarted" {
+		if e.Message.Reason == "OSUpdateStarted" {
 			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
-			_, ok := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
+			_, ok := nodeOSUpdateTimes[e.Locator.OldLocator()]
 			if !ok {
-				nodeOSUpdateTimes[e.StructuredLocator.OldLocator()] = &startedStaged{}
+				nodeOSUpdateTimes[e.Locator.OldLocator()] = &startedStaged{}
 			}
 			// for this type of event, the from/to time are identical as this is a point in time event.
-			ss := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
+			ss := nodeOSUpdateTimes[e.Locator.OldLocator()]
 			ss.OSUpdateStarted = e.To
-		} else if e.StructuredMessage.Reason == "OSUpdateStaged" {
+		} else if e.Message.Reason == "OSUpdateStaged" {
 			// locator will be of the form: node/ci-op-j34hmfqt-253f3-cq852-master-1
-			_, ok := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
+			_, ok := nodeOSUpdateTimes[e.Locator.OldLocator()]
 			if !ok {
-				nodeOSUpdateTimes[e.StructuredLocator.OldLocator()] = &startedStaged{}
+				nodeOSUpdateTimes[e.Locator.OldLocator()] = &startedStaged{}
 			}
 			// for this type of event, the from/to time are identical as this is a point in time event.
-			ss := nodeOSUpdateTimes[e.StructuredLocator.OldLocator()]
+			ss := nodeOSUpdateTimes[e.Locator.OldLocator()]
 			ss.OSUpdateStaged = e.To
 		}
 	}
@@ -426,7 +426,7 @@ func testOperatorOSUpdateStartedEventRecorded(events monitorapi.Intervals, clien
 func getEventsByOperator(events monitorapi.Intervals) map[string]monitorapi.Intervals {
 	eventsByClusterOperator := map[string]monitorapi.Intervals{}
 	for _, event := range events {
-		operatorName, ok := event.StructuredLocator.Keys[monitorapi.LocatorClusterOperatorKey]
+		operatorName, ok := event.Locator.Keys[monitorapi.LocatorClusterOperatorKey]
 		if !ok {
 			continue
 		}

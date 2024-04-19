@@ -23,7 +23,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -31,7 +31,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
@@ -61,7 +61,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -69,7 +69,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
@@ -85,7 +85,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Error,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -93,7 +93,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionBeganEventReason,
 							Cause:        "",
 							HumanMessage: "foo",
@@ -109,7 +109,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -117,7 +117,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
@@ -146,7 +146,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -154,7 +154,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
@@ -170,7 +170,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Error,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -178,7 +178,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionBeganEventReason,
 							Cause:        "",
 							HumanMessage: "foo",
@@ -194,7 +194,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -202,7 +202,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
@@ -218,7 +218,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Error,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -226,7 +226,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionBeganEventReason,
 							Cause:        "",
 							HumanMessage: "foo",
@@ -242,7 +242,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -250,7 +250,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
@@ -279,7 +279,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -287,7 +287,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
@@ -303,7 +303,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Error,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -311,7 +311,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionBeganEventReason,
 							Cause:        "",
 							HumanMessage: "foo",
@@ -327,7 +327,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "kube-api-new-connections",
@@ -335,7 +335,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",
@@ -351,7 +351,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "openshift-api-new-connections",
@@ -359,7 +359,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/openshift-api connection/new started responding to GET requests over new connections",
@@ -375,7 +375,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Error,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "openshift-api-new-connections",
@@ -383,7 +383,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionBeganEventReason,
 							Cause:        "",
 							HumanMessage: "foo",
@@ -399,7 +399,7 @@ func TestComputeDisruptionData(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeDisruption,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorBackendDisruptionNameKey: "openshift-api-new-connections",
@@ -407,7 +407,7 @@ func TestComputeDisruptionData(t *testing.T) {
 								monitorapi.LocatorConnectionKey:            "new",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.DisruptionEndedEventReason,
 							Cause:        "",
 							HumanMessage: "disruption/kube-api connection/new started responding to GET requests over new connections",

@@ -24,11 +24,11 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		// ready events because they have a node in the locator, and a reason of "Ready".
 		// Once the reasons marked "not ported" in the comments below are ported, we could filter here on
 		// event.Source to ensure we only look at what we intend.
-		node, ok := event.StructuredLocator.Keys[monitorapi.LocatorNodeKey]
+		node, ok := event.Locator.Keys[monitorapi.LocatorNodeKey]
 		if !ok {
 			continue
 		}
-		reason := event.StructuredMessage.Reason
+		reason := event.Message.Reason
 		if len(reason) == 0 {
 			continue
 		}
@@ -78,7 +78,7 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		case "MachineConfigReached":
 			if event.Source == monitorapi.SourceNodeMonitor {
 				mb := monitorapi.NewMessage().Reason(monitorapi.NodeUpdateReason).
-					HumanMessage(event.StructuredMessage.HumanMessage). // re-use the human message from the MachineConfigReached event
+					HumanMessage(event.Message.HumanMessage). // re-use the human message from the MachineConfigReached event
 					WithAnnotation(monitorapi.AnnotationConstructed, monitorapi.ConstructionOwnerNodeLifecycle).
 					WithAnnotation(monitorapi.AnnotationRoles, roles).
 					WithAnnotation(monitorapi.AnnotationPhase, "Update")

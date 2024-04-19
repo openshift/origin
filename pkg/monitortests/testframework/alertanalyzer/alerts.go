@@ -119,7 +119,7 @@ func blackoutEvents(startingEvents, blackoutWindows []monitorapi.Interval) []mon
 	blackoutsByLocator := indexByLocator(blackoutWindows)
 	for i := range startingEvents {
 		startingEvent := startingEvents[i]
-		blackouts := blackoutsByLocator[startingEvent.StructuredLocator.OldLocator()]
+		blackouts := blackoutsByLocator[startingEvent.Locator.OldLocator()]
 		if len(blackouts) == 0 {
 			ret = append(ret, startingEvent)
 			continue
@@ -285,7 +285,7 @@ func indexByLocator(events []monitorapi.Interval) map[string][]monitorapi.Interv
 	ret := map[string][]monitorapi.Interval{}
 	for i := range events {
 		event := events[i]
-		ret[event.StructuredLocator.OldLocator()] = append(ret[event.StructuredLocator.OldLocator()], event)
+		ret[event.Locator.OldLocator()] = append(ret[event.Locator.OldLocator()], event)
 	}
 	return ret
 }

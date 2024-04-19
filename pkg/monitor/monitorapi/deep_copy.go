@@ -14,9 +14,9 @@ func (o *Interval) DeepCopy() *Interval {
 
 func (o *Condition) DeepCopy() *Condition {
 	ret := &Condition{
-		Level:             o.Level,
-		StructuredLocator: *o.StructuredLocator.DeepCopy(),
-		StructuredMessage: *o.StructuredMessage.DeepCopy(),
+		Level:   o.Level,
+		Locator: *o.Locator.DeepCopy(),
+		Message: *o.Message.DeepCopy(),
 	}
 
 	return ret

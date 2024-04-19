@@ -22,25 +22,25 @@ func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	}
 	changes := intervalsFromEvents_NodeChanges(intervals, nil, time.Time{}, time.Now())
 	for _, c := range changes {
-		t.Logf("%s - %s", c.From.UTC().Format(time.RFC3339), c.StructuredMessage.OldMessage())
-		assert.Equal(t, "node-lifecycle-constructor", c.StructuredMessage.Annotations[monitorapi.AnnotationConstructed])
+		t.Logf("%s - %s", c.From.UTC().Format(time.RFC3339), c.Message.OldMessage())
+		assert.Equal(t, "node-lifecycle-constructor", c.Message.Annotations[monitorapi.AnnotationConstructed])
 	}
 
 	require.Equal(t, 4, len(changes))
-	assert.Equal(t, "NodeUpdate", string(changes[0].StructuredMessage.Reason))
-	assert.Equal(t, "Drain", changes[0].StructuredMessage.Annotations[monitorapi.AnnotationPhase])
-	assert.Contains(t, "drained node", changes[0].StructuredMessage.HumanMessage)
+	assert.Equal(t, "NodeUpdate", string(changes[0].Message.Reason))
+	assert.Equal(t, "Drain", changes[0].Message.Annotations[monitorapi.AnnotationPhase])
+	assert.Contains(t, "drained node", changes[0].Message.HumanMessage)
 
-	assert.Equal(t, "NodeUpdate", string(changes[1].StructuredMessage.Reason))
-	assert.Equal(t, "OperatingSystemUpdate", changes[1].StructuredMessage.Annotations[monitorapi.AnnotationPhase])
-	assert.Contains(t, "updated operating system", changes[1].StructuredMessage.HumanMessage)
+	assert.Equal(t, "NodeUpdate", string(changes[1].Message.Reason))
+	assert.Equal(t, "OperatingSystemUpdate", changes[1].Message.Annotations[monitorapi.AnnotationPhase])
+	assert.Contains(t, "updated operating system", changes[1].Message.HumanMessage)
 
-	assert.Equal(t, "NodeUpdate", string(changes[2].StructuredMessage.Reason))
-	assert.Equal(t, "Reboot", changes[2].StructuredMessage.Annotations[monitorapi.AnnotationPhase])
-	assert.Contains(t, "rebooted and kubelet started", changes[2].StructuredMessage.HumanMessage)
+	assert.Equal(t, "NodeUpdate", string(changes[2].Message.Reason))
+	assert.Equal(t, "Reboot", changes[2].Message.Annotations[monitorapi.AnnotationPhase])
+	assert.Contains(t, "rebooted and kubelet started", changes[2].Message.HumanMessage)
 
-	assert.Equal(t, "NotReady", string(changes[3].StructuredMessage.Reason))
-	assert.Contains(t, "node is not ready", changes[3].StructuredMessage.HumanMessage)
+	assert.Equal(t, "NotReady", string(changes[3].Message.Reason))
+	assert.Contains(t, "node is not ready", changes[3].Message.HumanMessage)
 }
 
 func TestNodeUpdateCreation(t *testing.T) {

@@ -187,8 +187,8 @@ func recordAddOrUpdateEvent(
 	// We don't yet have a full interval, create one for the purpose of matching the simple matchers.
 	tmpInterval := monitorapi.Interval{
 		Condition: monitorapi.Condition{
-			StructuredLocator: locator,
-			StructuredMessage: message.Build(),
+			Locator: locator,
+			Message: message.Build(),
 		},
 	}
 	isInteresting, _ := registry.MatchesAny(tmpInterval)
@@ -222,8 +222,8 @@ func recordAddOrUpdateEvent(
 		Message(message).Build(pathoFrom, to)
 
 	logrus.WithField("event", *obj).Info("processed event")
-	logrus.WithField("locator", interval.StructuredLocator).Info("resulting interval locator")
-	logrus.WithField("message", interval.StructuredMessage).Info("resulting interval message")
+	logrus.WithField("locator", interval.Locator).Info("resulting interval locator")
+	logrus.WithField("message", interval.Message).Info("resulting interval message")
 
 	recorder.AddIntervals(interval)
 }

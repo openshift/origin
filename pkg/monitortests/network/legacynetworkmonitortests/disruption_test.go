@@ -12,14 +12,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 	events := []monitorapi.Interval{
 		{
 			Condition: monitorapi.Condition{
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeDisruption,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorDisruptionKey: "openshift-api",
 						monitorapi.LocatorConnectionKey: "new",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "DisruptionSamplerOutageBegan",
 					HumanMessage: "DNS lookup timeouts began",
 				},
@@ -29,14 +29,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			Condition: monitorapi.Condition{
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeDisruption,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorDisruptionKey: "openshift-api",
 						monitorapi.LocatorConnectionKey: "new",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "DisruptionSamplerOutageBegan",
 					HumanMessage: "DNS lookup timeouts began",
 				},
@@ -46,14 +46,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			Condition: monitorapi.Condition{
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeDisruption,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorDisruptionKey: "openshift-api",
 						monitorapi.LocatorConnectionKey: "new",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "DisruptionSamplerOutageBegan",
 					HumanMessage: "DNS lookup timeouts began",
 				},
@@ -63,14 +63,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			Condition: monitorapi.Condition{
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeDisruption,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorDisruptionKey: "openshift-api",
 						monitorapi.LocatorConnectionKey: "new",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "DisruptionBegan",
 					HumanMessage: "disruption",
 				},
@@ -80,14 +80,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			Condition: monitorapi.Condition{
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeDisruption,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorDisruptionKey: "openshift-api",
 						monitorapi.LocatorConnectionKey: "new",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "DisruptionBegan",
 					HumanMessage: "disruption",
 				},
@@ -97,14 +97,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 		},
 		{
 			Condition: monitorapi.Condition{
-				StructuredLocator: monitorapi.Locator{
+				Locator: monitorapi.Locator{
 					Type: monitorapi.LocatorTypeDisruption,
 					Keys: map[monitorapi.LocatorKey]string{
 						monitorapi.LocatorDisruptionKey: "openshift-api",
 						monitorapi.LocatorConnectionKey: "new",
 					},
 				},
-				StructuredMessage: monitorapi.Message{
+				Message: monitorapi.Message{
 					Reason:       "DisruptionBegan",
 					HumanMessage: "disruption",
 				},
@@ -128,14 +128,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 			name: "Partial Overlap between DNS and disruption",
 			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeDisruption,
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorDisruptionKey: "openshift-api",
 							monitorapi.LocatorConnectionKey: "new",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "DisruptionBegan",
 						HumanMessage: "disruption",
 					},
@@ -149,14 +149,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 			name: "Complete Overlap between DNS and disruption",
 			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeDisruption,
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorDisruptionKey: "openshift-api",
 							monitorapi.LocatorConnectionKey: "new",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "DisruptionBegan",
 						HumanMessage: "disruption",
 					},
@@ -170,14 +170,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 			name: "Overlap within 10 seconds between DNS and disruption",
 			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeDisruption,
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorDisruptionKey: "openshift-api",
 							monitorapi.LocatorConnectionKey: "new",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "DisruptionSamplerOutageBegan",
 						HumanMessage: "DNS lookup timeouts began",
 					},
@@ -191,14 +191,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 			name: "Overlap between DNS and disruption with same start time",
 			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeDisruption,
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorDisruptionKey: "openshift-api",
 							monitorapi.LocatorConnectionKey: "new",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "DisruptionBegan",
 						HumanMessage: "disruption",
 					},
@@ -212,14 +212,14 @@ func Test_dnsOverlapDisruption(t *testing.T) {
 			name: "Overlap between DNS and disruption with same end time",
 			events: append(events, monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeDisruption,
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorDisruptionKey: "openshift-api",
 							monitorapi.LocatorConnectionKey: "new",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "DisruptionBegan",
 						HumanMessage: "disruption",
 					},

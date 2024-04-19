@@ -14,7 +14,7 @@ func E2ETestEventIntervals(events monitorapi.Intervals) monitorapi.Intervals {
 		if event.From == event.To {
 			continue
 		}
-		if !monitorapi.IsE2ETest(event.StructuredLocator) {
+		if !monitorapi.IsE2ETest(event.Locator) {
 			continue
 		}
 		e2eEventIntervals = append(e2eEventIntervals, event)

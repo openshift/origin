@@ -33,14 +33,14 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 	interval := monitorapi.Interval{
 		Condition: monitorapi.Condition{
 			Level: monitorapi.Warning,
-			StructuredLocator: monitorapi.Locator{
+			Locator: monitorapi.Locator{
 				Type: monitorapi.LocatorTypeAlert,
 				Keys: map[monitorapi.LocatorKey]string{
 					monitorapi.LocatorAlertKey:     "FakeAlert",
 					monitorapi.LocatorNamespaceKey: "fakens",
 				},
 			},
-			StructuredMessage: monitorapi.Message{
+			Message: monitorapi.Message{
 				HumanMessage: "jibberish",
 				Annotations: map[monitorapi.AnnotationKey]string{
 					monitorapi.AnnotationAlertState: "firing",
@@ -89,14 +89,14 @@ func TestNoNewAlertsFiringBackstop(t *testing.T) {
 			firingIntervals: monitorapi.Intervals{monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Warning,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeAlert,
 						Keys: map[monitorapi.LocatorKey]string{
 							monitorapi.LocatorAlertKey:     "FakeAlert",
 							monitorapi.LocatorNamespaceKey: "fakens",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						HumanMessage: "jibberish",
 						Annotations: map[monitorapi.AnnotationKey]string{
 							monitorapi.AnnotationAlertState: "firing",

@@ -132,15 +132,15 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 
 	for _, event := range finalIntervals {
 		// only messages that include a Pulled reason
-		if event.StructuredMessage.Reason != "Pulled" {
+		if event.Message.Reason != "Pulled" {
 			continue
 		}
 		// only look at pull events from an e2e-* namespace
-		if !strings.HasPrefix(event.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey], "e2e-") {
+		if !strings.HasPrefix(event.Locator.Keys[monitorapi.LocatorNamespaceKey], "e2e-") {
 			continue
 		}
 
-		images := imageRe.FindStringSubmatch(event.StructuredMessage.HumanMessage)
+		images := imageRe.FindStringSubmatch(event.Message.HumanMessage)
 		// the images will contain full match and two group matches, see above
 		// for the regexp definition, so we skip the first in the below for-loop
 		if len(images) < 3 {
@@ -161,9 +161,9 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 		if !ok {
 			byImage = sets.NewString()
 			pulls[img] = byImage
-			fmt.Printf("[sig-arch] unknown image: %s (%v)\n", img, event.StructuredMessage.OldMessage())
+			fmt.Printf("[sig-arch] unknown image: %s (%v)\n", img, event.Message.OldMessage())
 		}
-		byImage.Insert(event.StructuredLocator.OldLocator())
+		byImage.Insert(event.Locator.OldLocator())
 	}
 
 	if len(pulls) > 0 {

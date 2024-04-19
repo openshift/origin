@@ -29,7 +29,7 @@ func intervalsFromEvents_OperatorStatus(intervals monitorapi.Intervals, beginnin
 		if event.Source != monitorapi.SourceClusterOperatorMonitor {
 			continue
 		}
-		operatorName := event.StructuredLocator.Keys[monitorapi.LocatorClusterOperatorKey]
+		operatorName := event.Locator.Keys[monitorapi.LocatorClusterOperatorKey]
 		logrus.WithField("event", event).WithField("operator", operatorName).
 			Infof("operator status: processing event")
 
@@ -86,7 +86,7 @@ func intervalsFromEvents_OperatorStatus(intervals monitorapi.Intervals, beginnin
 			}
 		}
 		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceOperatorState, level).
-			Locator(event.StructuredLocator).
+			Locator(event.Locator).
 			Message(monitorapi.NewMessage().Reason(monitorapi.IntervalReason(lastReason)).
 					HumanMessage(lastMessage).
 					WithAnnotation(monitorapi.AnnotationCondition, string(conditionType)).

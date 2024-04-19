@@ -18,7 +18,7 @@ func TestGetOperatorConditionStatus(t *testing.T) {
 			interval: Interval{
 				Source: SourceClusterOperatorMonitor,
 				Condition: Condition{
-					StructuredMessage: Message{
+					Message: Message{
 						Reason:       "DNSDegraded",
 						HumanMessage: "DNS default is degraded",
 						Annotations: map[AnnotationKey]string{
@@ -41,7 +41,7 @@ func TestGetOperatorConditionStatus(t *testing.T) {
 			interval: Interval{
 				Source: SourceClusterOperatorMonitor,
 				Condition: Condition{
-					StructuredMessage: Message{
+					Message: Message{
 						Reason:       "NoData",
 						HumanMessage: "blah blah",
 						Annotations: map[AnnotationKey]string{

@@ -165,12 +165,12 @@ var (
 type ByTimeWithNamespacedPods []Interval
 
 func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
-	lhsIsPodConstructed := len(intervals[i].StructuredMessage.Annotations[AnnotationConstructed]) > 0 && len(intervals[i].StructuredLocator.Keys[LocatorPodKey]) > 0
-	rhsIsPodConstructed := len(intervals[j].StructuredMessage.Annotations[AnnotationConstructed]) > 0 && len(intervals[j].StructuredLocator.Keys[LocatorPodKey]) > 0
+	lhsIsPodConstructed := len(intervals[i].Message.Annotations[AnnotationConstructed]) > 0 && len(intervals[i].Locator.Keys[LocatorPodKey]) > 0
+	rhsIsPodConstructed := len(intervals[j].Message.Annotations[AnnotationConstructed]) > 0 && len(intervals[j].Locator.Keys[LocatorPodKey]) > 0
 	switch {
 	case lhsIsPodConstructed && rhsIsPodConstructed:
-		lhsNamespace := NamespaceFromLocator(intervals[i].StructuredLocator)
-		rhsNamespace := NamespaceFromLocator(intervals[j].StructuredLocator)
+		lhsNamespace := NamespaceFromLocator(intervals[i].Locator)
+		rhsNamespace := NamespaceFromLocator(intervals[j].Locator)
 		if lhsNamespace < rhsNamespace {
 			return true
 		} else if lhsNamespace > rhsNamespace {
@@ -198,7 +198,7 @@ func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	return intervals[i].StructuredMessage.HumanMessage < intervals[j].StructuredMessage.HumanMessage
+	return intervals[i].Message.HumanMessage < intervals[j].Message.HumanMessage
 }
 
 func (intervals ByTimeWithNamespacedPods) Len() int { return len(intervals) }

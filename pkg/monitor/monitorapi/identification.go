@@ -89,13 +89,13 @@ func DisruptionConnectionTypeFrom(locatorParts map[string]string) BackendConnect
 
 func IsEventForLocator(locator Locator) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		return reflect.DeepEqual(eventInterval.StructuredLocator, locator)
+		return reflect.DeepEqual(eventInterval.Locator, locator)
 	}
 }
 
 func IsEventForBackendDisruptionName(backendDisruptionName string) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		if BackendDisruptionNameFromLocator(eventInterval.StructuredLocator) == backendDisruptionName {
+		if BackendDisruptionNameFromLocator(eventInterval.Locator) == backendDisruptionName {
 			return true
 		}
 		return false

@@ -10,10 +10,10 @@ func DidUpgradeHappenDuringCollection(intervals monitorapi.Intervals, beginning,
 	pertinentIntervals := intervals.Slice(beginning, end)
 
 	for _, event := range pertinentIntervals {
-		if event.Source != monitorapi.SourceKubeEvent || event.StructuredLocator.Keys[monitorapi.LocatorClusterVersionKey] != "cluster" {
+		if event.Source != monitorapi.SourceKubeEvent || event.Locator.Keys[monitorapi.LocatorClusterVersionKey] != "cluster" {
 			continue
 		}
-		reason := string(event.StructuredMessage.Reason)
+		reason := string(event.Message.Reason)
 		if reason == "UpgradeStarted" || reason == "UpgradeRollback" {
 			return true
 		}

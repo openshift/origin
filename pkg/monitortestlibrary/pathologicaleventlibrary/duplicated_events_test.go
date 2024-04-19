@@ -192,8 +192,8 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			i := monitorapi.Interval{
 				Condition: monitorapi.Condition{
-					StructuredMessage: test.msg,
-					StructuredLocator: test.locator,
+					Message: test.msg,
+					Locator: test.locator,
 				},
 			}
 			allowed, matchedAllowedDupe := registry.AllowedByAny(i, test.topology)
@@ -301,11 +301,11 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeNode,
 							Keys: map[monitorapi.LocatorKey]string{}, // what node doesn't matter, all we can do is see if masters are updating
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeUpdateReason,
 							HumanMessage: "config/rendered-master-5ab4844b3b5a58958785e2c27d99f50f phase/Update roles/control-plane,master reached desired config roles/control-plane,master",
 							Annotations: map[monitorapi.AnnotationKey]string{
@@ -359,11 +359,11 @@ func TestPathologicalEventsWithNamespaces(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeNode,
 							Keys: map[monitorapi.LocatorKey]string{}, // what node doesn't matter, all we can do is see if masters are updating
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeUpdateReason,
 							HumanMessage: "config/rendered-master-5ab4844b3b5a58958785e2c27d99f50f phase/Update roles/control-plane,master reached desired config roles/control-plane,master",
 							Annotations: map[monitorapi.AnnotationKey]string{
@@ -565,13 +565,13 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeE2ETest,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorE2ETestKey: "[sig-node] NoExecuteTaintManager Single Pod [Serial] doesn't evict pod with tolerations from tainted nodes [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/serial] [Suite:k8s]",
 							},
 						},
-						StructuredMessage: monitorapi.Message{},
+						Message: monitorapi.Message{},
 					},
 					Source: monitorapi.SourceE2ETest,
 					From:   from.Add(-10 * time.Minute),
@@ -580,14 +580,14 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypePod,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorNamespaceKey: "openshift-dns",
 								monitorapi.LocatorPodKey:       "dns-default-jq2qn",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason: monitorapi.PodReasonGracefulDeleteStarted,
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationConstructed: "pod-lifecycle-constructor",
@@ -602,7 +602,7 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: "",
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorNamespaceKey:   "openshift-dns",
@@ -610,7 +610,7 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 								monitorapi.LocatorHmsgKey:        "ade328ddf3",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       "TopologyAwareHintsDisabled",
 							HumanMessage: "Unable to allocate minimum required endpoints to each zone without exceeding overload threshold (5 endpoints, 3 zones), addressType: IPv4",
 							Annotations: map[monitorapi.AnnotationKey]string{
@@ -626,7 +626,7 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeContainer,
 							Keys: map[monitorapi.LocatorKey]string{
 								monitorapi.LocatorNamespaceKey: "openshift-dns",
@@ -634,7 +634,7 @@ func TestPathologicalEventsTopologyAwareHintsDisabled(t *testing.T) {
 								monitorapi.LocatorPodKey:       "dns-default-jq2qn",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason: monitorapi.ContainerReasonReady,
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationConstructed: "pod-lifecycle-constructor",
