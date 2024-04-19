@@ -2,8 +2,8 @@
     "items": [
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "e2e-kubectl-3271",
@@ -11,7 +11,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Created",
                 "cause": "",
                 "humanMessage": "",
@@ -25,8 +25,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "without-label",
@@ -35,7 +35,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerWait",
                 "cause": "",
                 "humanMessage": "missed real \"ContainerWait\"",
@@ -49,8 +49,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "e2e-kubectl-3271",
@@ -58,7 +58,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Scheduled",
                 "cause": "",
                 "humanMessage": "",
@@ -73,8 +73,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "without-label",
@@ -83,7 +83,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "missed real \"NotReady\"",
@@ -97,8 +97,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "without-label",
@@ -107,7 +107,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerStart",
                 "cause": "",
                 "humanMessage": "",
@@ -122,8 +122,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "without-label",
@@ -132,7 +132,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Ready",
                 "cause": "",
                 "humanMessage": "",

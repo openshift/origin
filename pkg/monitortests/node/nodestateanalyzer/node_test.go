@@ -15,7 +15,7 @@ import (
 
 func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	// regenerate this file if schema changes by getting an updated e2e-events file, finding a worker node, and running:
-	// cat e2e-events_20240308-085144.json | jq '.items |= map(select(.tempStructuredLocator.keys.node == "ci-op-0774jw7y-f9945-k9278-worker-a-c2l9q") | select(.tempStructuredMessage.reason? | match("RegisteredNode|Starting|Cordon|Drain|NodeNotSchedulable|OSUpdateStarted|InClusterUpgrade|OSUpdateStaged|PendingConfig|Reboot|DiskPressure|MemoryPressure|PIDPressure|Ready|NodeNotReady|NotReady")))' > pkg/monitortests/node/nodestateanalyzer/testdata/node.json
+	// cat e2e-events_20240308-085144.json | jq '.items |= map(select(.locator.keys.node == "ci-op-0774jw7y-f9945-k9278-worker-a-c2l9q") | select(.message.reason? | match("RegisteredNode|Starting|Cordon|Drain|NodeNotSchedulable|OSUpdateStarted|InClusterUpgrade|OSUpdateStaged|PendingConfig|Reboot|DiskPressure|MemoryPressure|PIDPressure|Ready|NodeNotReady|NotReady")))' > pkg/monitortests/node/nodestateanalyzer/testdata/node.json
 	intervals, err := monitorserialization.EventsFromFile("testdata/node.json")
 	if err != nil {
 		t.Fatal(err)

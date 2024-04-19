@@ -2,8 +2,8 @@
     "items": [
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-marketplace",
@@ -11,7 +11,7 @@
                     "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Created",
                 "cause": "",
                 "humanMessage": "",
@@ -25,8 +25,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "registry-server",
@@ -35,7 +35,7 @@
                     "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerWait",
                 "cause": "",
                 "humanMessage": "missed real \"ContainerWait\"",
@@ -49,8 +49,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-marketplace",
@@ -58,7 +58,7 @@
                     "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Scheduled",
                 "cause": "",
                 "humanMessage": "",
@@ -73,8 +73,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "registry-server",
@@ -83,7 +83,7 @@
                     "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "missed real \"NotReady\"",
@@ -97,8 +97,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "registry-server",
@@ -107,7 +107,7 @@
                     "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerStart",
                 "cause": "",
                 "humanMessage": "",
@@ -122,8 +122,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-marketplace",
@@ -131,7 +131,7 @@
                     "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "GracefulDelete",
                 "cause": "",
                 "humanMessage": "",
@@ -146,8 +146,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "registry-server",
@@ -156,7 +156,7 @@
                     "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Ready",
                 "cause": "",
                 "humanMessage": "",
@@ -170,8 +170,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "registry-server",
@@ -180,7 +180,7 @@
                     "uid": "efb1885a-1fe1-4f5b-ad41-044e55f806a9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "",

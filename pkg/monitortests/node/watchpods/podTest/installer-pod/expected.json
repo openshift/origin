@@ -2,8 +2,8 @@
     "items": [
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-etcd",
@@ -11,7 +11,7 @@
                     "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Created",
                 "cause": "",
                 "humanMessage": "",
@@ -25,8 +25,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "installer",
@@ -35,7 +35,7 @@
                     "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerWait",
                 "cause": "",
                 "humanMessage": "missed real \"ContainerWait\"",
@@ -49,8 +49,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-etcd",
@@ -58,7 +58,7 @@
                     "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Scheduled",
                 "cause": "",
                 "humanMessage": "",
@@ -73,8 +73,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "installer",
@@ -83,7 +83,7 @@
                     "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "",
@@ -97,8 +97,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "installer",
@@ -107,7 +107,7 @@
                     "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerStart",
                 "cause": "",
                 "humanMessage": "",
@@ -123,8 +123,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "installer",
@@ -133,7 +133,7 @@
                     "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Ready",
                 "cause": "",
                 "humanMessage": "",
@@ -147,8 +147,8 @@
         },
         {
             "level": "Info",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "installer",
@@ -157,7 +157,7 @@
                     "uid": "6fb10c53-7ed9-4f51-88db-f8a689050f21"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "",

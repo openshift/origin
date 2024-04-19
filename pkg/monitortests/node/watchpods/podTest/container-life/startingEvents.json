@@ -4,7 +4,7 @@
       "level": "Info",
       "locator": "namespace/e2e-kubectl-3271 pod/without-label node/ uid/e185b70c-ea3e-4600-850a-b2370a729a73",
       "message": "reason/Created ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "without-label",
@@ -13,7 +13,7 @@
           "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
@@ -28,7 +28,7 @@
       "level": "Warning",
       "locator": "namespace/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73",
       "message": "reason/Scheduled node/ip-10-0-141-9.us-west-2.compute.internal",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "without-label",
@@ -37,7 +37,7 @@
           "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Scheduled",
         "cause": "",
         "humanMessage": "",
@@ -53,7 +53,7 @@
       "level": "Info",
       "locator": "namespace/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
       "message": "reason/ContainerStart cause/ duration/6.00s",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Container",
         "keys": {
           "container": "without-label",
@@ -63,7 +63,7 @@
           "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "ContainerStart",
         "cause": "",
         "humanMessage": "",
@@ -79,7 +79,7 @@
       "level": "Info",
       "locator": "namespace/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
       "message": "reason/Ready ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Container",
         "keys": {
           "container": "without-label",
@@ -89,7 +89,7 @@
           "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",
@@ -104,7 +104,7 @@
       "level": "Info",
       "locator": "namespace/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73",
       "message": "reason/ForceDelete mirrored/false",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "without-label",
@@ -113,7 +113,7 @@
           "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "ForceDelete",
         "cause": "",
         "humanMessage": "",
@@ -129,7 +129,7 @@
       "level": "Info",
       "locator": "namespace/e2e-kubectl-3271 pod/without-label node/ip-10-0-141-9.us-west-2.compute.internal uid/e185b70c-ea3e-4600-850a-b2370a729a73",
       "message": "reason/Deleted ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "without-label",
@@ -138,7 +138,7 @@
           "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Deleted",
         "cause": "",
         "humanMessage": "",
