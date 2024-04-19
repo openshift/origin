@@ -53424,19 +53424,6 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
     // Structure the locator data and then categorize the event
     _.forEach(eventIntervals.items, function(eventInterval) {
-        eventInterval.locatorObj = {};
-        if (eventInterval.locator.includes("e2e-test/")) {
-            var value = eventInterval.locator.slice(eventInterval.locator.indexOf('/') + 1);
-            eventInterval.locatorObj.e2e_test = value;
-        }
-        else {
-            var locatorChunks = eventInterval.locator.split(" ");
-            _.forEach(locatorChunks, function(chunk){
-                var key = chunk.slice(0, chunk.indexOf('/'));
-                var value = chunk.slice(chunk.indexOf('/') + 1);
-                eventInterval.locatorObj[key] = value;
-            });
-        }
 
         // TODO Wasn't clear if an event is only supposed to be in one category or if it can show up in multiple, with the existing implementation
         // it can show up more than once if it passes more than one of the category checks. If it is meant to only be one category this
@@ -53445,7 +53432,6 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
         // Categorizing the events once on page load will save time on filtering later
         eventInterval.categories = {};
-        var categorized = false;
         eventInterval.categories.operator_unavailable = isOperatorAvailable(eventInterval);
         eventInterval.categories.operator_progressing = isOperatorProgressing(eventInterval);
         eventInterval.categories.operator_degraded = isOperatorDegraded(eventInterval);
@@ -53462,47 +53448,39 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     });
 
     function isOperatorAvailable(eventInterval) {
-        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Available") && eventInterval.message.includes("status/False")) {
-            return true
-        }
-        return false
+        return eventInterval.tempStructuredLocator.type === "ClusterOperator" &&
+            eventInterval.tempStructuredMessage.annotations["condition"] === "Available" &&
+            eventInterval.tempStructuredMessage.annotations["status"] === "False";
     }
 
+
     function isOperatorDegraded(eventInterval) {
-        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Degraded") && eventInterval.message.includes("status/True")) {
-            return true
-        }
-        return false
+        return eventInterval.tempStructuredLocator.type === "ClusterOperator" &&
+            eventInterval.tempStructuredMessage.annotations["condition"] === "Degraded" &&
+            eventInterval.tempStructuredMessage.annotations["status"] === "True";
     }
 
     function isOperatorProgressing(eventInterval) {
-        if (eventInterval.locator.includes("clusteroperator/") && eventInterval.message.includes("condition/Progressing") && eventInterval.message.includes("status/True")) {
-            return true
-        }
-        return false
+        return eventInterval.tempStructuredLocator.type === "ClusterOperator" &&
+            eventInterval.tempStructuredMessage.annotations["condition"] === "Progressing" &&
+            eventInterval.tempStructuredMessage.annotations["status"] === "True";
     }
 
     function isPodLog(eventInterval) {
-        if (eventInterval.locator.includes("src/podLog")) {
+        if (eventInterval.tempSource === 'PodLog') {
             return true
         }
-        if (eventInterval.locator.includes("etcd-member/")) {
-            return true
-        }
-        return false
+        return eventInterval.tempSource === 'EtcdLog';
+
     }
 
     function isInterestingOrPathological(eventInterval) {
-        if (eventInterval.message.includes("pathological/true") || (eventInterval.message.includes("interesting/true"))) {
-            return true
-        }
-        return false
+        return eventInterval.tempSource === 'KubeEvent' && eventInterval.tempStructuredMessage.annotations["pathological"] === "true";
     }
 
     function isPod(eventInterval) {
         // this check was added to keep the repeating events out fo the "pods" section
-        const nTimes = new RegExp("\\(\\d+ times\\)")
-        if (eventInterval.message.match(nTimes)) {
+        if (eventInterval.tempStructuredMessage.annotations.hasOwnProperty("count")) {
             return false
         }
         // this check was added to avoid the events from the "interesting-events" section from being
@@ -53510,79 +53488,90 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         if (isInterestingOrPathological(eventInterval)) {
             return false
         }
-        if (eventInterval.locator.includes("pod/") && !eventInterval.locator.includes("alert/")) {
+        if (eventInterval.tempStructuredLocator.keys.hasOwnProperty("pod") && !eventInterval.tempStructuredLocator.keys.hasOwnProperty("alert")) {
             return true
         }
         return false
     }
 
     function isPodLifecycle(eventInterval) {
-        if (eventInterval.locator.includes("pod/") && (eventInterval.message.includes("reason/Created") || eventInterval.message.includes("reason/Scheduled") || eventInterval.message.includes("reason/GracefulDelete"))) {
+        if (eventInterval.tempStructuredLocator.keys.hasOwnProperty("pod") &&
+            (eventInterval.tempStructuredMessage.reason === "Created" ||
+                eventInterval.tempStructuredMessage.reason === "Scheduled" ||
+                eventInterval.tempStructuredMessage.reason === "GracefulDelete")) {
             return true
         }
         return false
     }
 
     function isContainerLifecycle(eventInterval) {
-        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ContainerExit") || eventInterval.message.includes("reason/ContainerStart") || eventInterval.message.includes("reason/ContainerWait"))) {
+        if (eventInterval.tempStructuredLocator.keys.hasOwnProperty("container") &&
+            (eventInterval.tempStructuredMessage.reason === "ContainerExit" ||
+                eventInterval.tempStructuredMessage.reason === "ContainerStart" ||
+                eventInterval.tempStructuredMessage.reason === "ContainerWait")) {
             return true
         }
         return false
     }
 
     function isContainerReadiness(eventInterval) {
-        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/Ready") || eventInterval.message.includes("reason/NotReady"))) {
+        if (eventInterval.tempStructuredLocator.keys.hasOwnProperty("container") &&
+            (eventInterval.tempStructuredMessage.reason === "Ready" ||
+                eventInterval.tempStructuredMessage.reason === "NotReady")) {
             return true
         }
         return false
     }
 
     function isKubeletReadinessCheck(eventInterval) {
-        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/ReadinessFailed") || eventInterval.message.includes("reason/ReadinessErrored"))) {
+        if (eventInterval.tempStructuredLocator.keys.hasOwnProperty("container/") &&
+            (eventInterval.tempStructuredMessage.reason === "ReadinessFailed" ||
+                eventInterval.tempStructuredMessage.reason === "ReadinessErrored")) {
             return true
         }
         return false
     }
 
     function isKubeletStartupProbeFailure(eventInterval) {
-        if (eventInterval.locator.includes("container/") && (eventInterval.message.includes("reason/StartupProbeFailed"))) {
+        if (eventInterval.tempStructuredLocator.keys.hasOwnProperty("container") &&
+            (eventInterval.tempStructuredMessage.reason === "StartupProbeFailed")) {
             return true
         }
         return false
     }
 
     function isE2EFailed(eventInterval) {
-        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Failed")) {
+        if (eventInterval.tempSource === "E2ETest" && eventInterval.tempStructuredMessage.annotations["status"] === "Failed") {
             return true
         }
         return false
     }
 
     function isE2EFlaked(eventInterval) {
-        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Flaked")) {
+        if (eventInterval.tempSource === "E2ETest" && eventInterval.tempStructuredMessage.annotations["status"] === "Flaked") {
             return true
         }
         return false
     }
 
     function isE2EPassed(eventInterval) {
-        if (eventInterval.locator.includes("e2e-test/") && eventInterval.message.includes("finished As \"Passed")) {
+        if (eventInterval.tempSource === "E2ETest" && eventInterval.tempStructuredMessage.annotations["status"] === "Passed") {
             return true
         }
         return false
     }
 
     function isEndpointConnectivity(eventInterval) {
-        if (!eventInterval.message.includes("reason/DisruptionBegan") && !eventInterval.message.includes("reason/DisruptionSamplerOutageBegan")){
+        if (eventInterval.tempStructuredMessage.reason !== "DisruptionBegan" && eventInterval.tempStructuredMessage.reason !== "DisruptionSamplerOutageBegan") {
             return false
         }
-        if (eventInterval.locator.includes("disruption/")) {
+        if (eventInterval.tempSource === "Disruption") {
             return true
         }
-        if (eventInterval.locator.includes("ns/e2e-k8s-service-lb-available")) {
+        if (eventInterval.tempStructuredLocator.keys["namespace"] === "e2e-k8s-service-lb-available") {
             return true
         }
-        if (eventInterval.locator.includes(" route/")) {
+        if (eventInterval.tempStructuredLocator.keys.hasOwnProperty("route")) {
             return true
         }
 
@@ -53590,137 +53579,144 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function isNodeState(eventInterval) {
-        return eventInterval.tempStructuredLocator.type === "Node" &&
-            (eventInterval.tempStructuredMessage.reason === "NodeUpdate" ||
-                eventInterval.tempStructuredMessage.reason === "NotReady");
+        return eventInterval.tempSource === "NodeState"
     }
 
-
     function isAlert(eventInterval) {
-        if (eventInterval.locator.includes("alert/")) {
-            return true
-        }
-        return false
+        return eventInterval.tempSource === "Alert"
     }
 
     function interestingEvents(item) {
-        if (item.message.includes("pathological/true")) {
-            if (item.message.includes("interesting/true")) {
-                return [item.locator, ` + "`" + ` (pathological known)` + "`" + `, "PathologicalKnown"];
+        if (item.tempStructuredMessage.annotations["pathological"] === "true") {
+            if (item.tempStructuredMessage.annotations["interesting"] === "true") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pathological known)` + "`" + `, "PathologicalKnown"];
             } else {
-                return [item.locator, ` + "`" + ` (pathological new)` + "`" + `, "PathologicalNew"];
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pathological new)` + "`" + `, "PathologicalNew"];
             }
         }
-        if (item.message.includes("interesting/true")) {
-            return [item.locator, ` + "`" + ` (interesting event)` + "`" + `, "InterestingEvent"];
+        // TODO: hack that can likely be removed when we get to structured intervals for these
+        // Always show pod sandbox events even if they didn't make it to pathological
+        if (item.tempStructuredMessage.annotations["interesting"] === "true" && item.tempStructuredMessage.humanMessage.includes("pod sandbox")) {
+            return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pod sandbox)` + "`" + `, "PodSandbox"];
         }
     }
 
     function podLogs(item) {
         if (item.level == "Warning") {
-            return [item.locator, ` + "`" + ` (pod log)` + "`" + `, "PodLogWarning"];
+            return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pod log)` + "`" + `, "PodLogWarning"];
         }
         if (item.level == "Error") {
-            return [item.locator, ` + "`" + ` (pod log)` + "`" + `, "PodLogError"];
+            return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pod log)` + "`" + `, "PodLogError"];
         }
-        return [item.locator, ` + "`" + ` (pod log)` + "`" + `, "PodLogInfo"];
+        return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pod log)` + "`" + `, "PodLogInfo"];
     }
 
+    // Used for the actual locators displayed on the right hand side of the chart. Based on the origin go code that does
+    // similar for whenever we serialize a locator to display.
+    function buildLocatorDisplayString(i) {
+        let keys = Object.keys(i.keys);
+        keys = sortKeys(keys);
 
-    const reReason = new RegExp("(^| )reason/([^ ]+)")
+        let annotations = [];
+        for (let k of keys) {
+            let v = i.keys[k];
+            if (k === 'LocatorE2ETestKey') {
+                annotations.push(` + "`" + `${k}/${JSON.stringify(v)}` + "`" + `);
+            } else {
+                annotations.push(` + "`" + `${k}/${v}` + "`" + `);
+            }
+        }
+
+        return annotations.join(' ');
+    }
+
     function podStateValue(item) {
-        let m = item.message.match(reReason);
+        let reason = item.tempStructuredMessage.reason
+        if (isPodLifecycle(item)){
+            if (reason === "Created") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pod lifecycle)` + "`" + `, "PodCreated"];
+            }
+            if (reason === "Scheduled") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pod lifecycle)` + "`" + `, "PodScheduled"];
+            }
+            if (reason === "GracefulDelete") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (pod lifecycle)` + "`" + `, "PodTerminating"];
+            }
+        }
+        if (isContainerLifecycle(item)){
+            if (reason === "ContainerWait") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerWait"];
+            }
+            if (reason === "ContainerStart") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerStart"];
+            }
+        }
+        if (isContainerReadiness(item)){
+            if (reason === "NotReady") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (container readiness)` + "`" + `, "ContainerNotReady"];
+            }
+            if (reason === "Ready") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (container readiness)` + "`" + `, "ContainerReady"];
+            }
+        }
+        if (isKubeletReadinessCheck(item)){
+            if (reason === "ReadinessFailed") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (kubelet container readiness)` + "`" + `, "ContainerReadinessFailed"];
+            }
+            if (reason === "ReadinessErrored") {
+                return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (kubelet container readiness)` + "`" + `, "ContainerReadinessErrored"];
+            }
+        }
+        if (isKubeletStartupProbeFailure(item)){
+            return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (kubelet container startupProbe)` + "`" + `, "StartupProbeFailed"];
+        }
 
-        if (m && isPodLifecycle(item)){
-            if (m[2] == "Created") {
-                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodCreated"];
-            }
-            if (m[2] == "Scheduled") {
-                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodScheduled"];
-            }
-            if (m[2] == "GracefulDelete") {
-                return [item.locator, ` + "`" + ` (pod lifecycle)` + "`" + `, "PodTerminating"];
-            }
-        }
-        if (m && isContainerLifecycle(item)){
-            if (m[2] == "ContainerWait") {
-                return [item.locator, ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerWait"];
-            }
-            if (m[2] == "ContainerStart") {
-                return [item.locator, ` + "`" + ` (container lifecycle)` + "`" + `, "ContainerStart"];
-            }
-        }
-        if (m && isContainerReadiness(item)){
-            if (m[2] == "NotReady") {
-                return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerNotReady"];
-            }
-            if (m[2] == "Ready") {
-                return [item.locator, ` + "`" + ` (container readiness)` + "`" + `, "ContainerReady"];
-            }
-        }
-        if (m && isKubeletReadinessCheck(item)){
-            if (m[2] == "ReadinessFailed") {
-                return [item.locator, ` + "`" + ` (kubelet container readiness)` + "`" + `, "ContainerReadinessFailed"];
-            }
-            if (m[2] == "ReadinessErrored") {
-                return [item.locator, ` + "`" + ` (kubelet container readiness)` + "`" + `, "ContainerReadinessErrored"];
-            }
-        }
-        if (m && isKubeletStartupProbeFailure(item)){
-            return [item.locator, ` + "`" + ` (kubelet container startupProbe)` + "`" + `, "StartupProbeFailed"];
-        }
-
-        return [item.locator, "", "Unknown"];
+        return [buildLocatorDisplayString(item.tempStructuredLocator), "", "Unknown"];
     }
 
     const rePhase = new RegExp("(^| )phase/([^ ]+)")
     function nodeStateValue(item) {
         let roles = ""
         if (item.tempStructuredMessage.annotations.hasOwnProperty('roles')) {
-            roles = item.tempStructuredMessage.roles
+            roles = item.tempStructuredMessage.annotations.roles
         }
 
         if (item.tempStructuredMessage.reason === 'NotReady') {
-            return [item.locator, ` + "`" + ` (${roles})` + "`" + `, "NodeNotReady"]
+            return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (${roles})` + "`" + `, "NodeNotReady"]
         }
         let m = item.tempStructuredMessage.annotations.phase;
-        return [item.locator, ` + "`" + ` (${roles})` + "`" + `, m];
+        return [buildLocatorDisplayString(item.tempStructuredLocator), ` + "`" + ` (${roles})` + "`" + `, m];
     }
 
 
     function alertSeverity(item) {
         // the other types can be pending, so check pending first
-        let pendingIndex = item.message.indexOf("pending")
-        if (pendingIndex != -1) {
-            return [item.locator, "", "AlertPending"]
+        if (item.tempStructuredMessage.annotations["alertstate"] === "pending") {
+            return [buildLocatorDisplayString(item.tempStructuredLocator), "", "AlertPending"]
         }
 
-        let infoIndex = item.message.indexOf("info")
-        if (infoIndex != -1) {
-            return [item.locator, "", "AlertInfo"]
+        if (item.tempStructuredMessage.annotations["severity"] === "info") {
+            return [buildLocatorDisplayString(item.tempStructuredLocator), "", "AlertInfo"]
         }
-        let warningIndex = item.message.indexOf("warning")
-        if (warningIndex != -1) {
-            return [item.locator, "", "AlertWarning"]
+        if (item.tempStructuredMessage.annotations["severity"] === "warning") {
+            return [buildLocatorDisplayString(item.tempStructuredLocator), "", "AlertWarning"]
         }
-        let criticalIndex = item.message.indexOf("critical")
-        if (criticalIndex != -1) {
-            return [item.locator, "", "AlertCritical"]
+        if (item.tempStructuredMessage.annotations["severity"] === "critical") {
+            return [buildLocatorDisplayString(item.tempStructuredLocator), "", "AlertCritical"]
         }
 
         // color as critical if nothing matches so that we notice that something has gone wrong
-        return [item.locator, "", "AlertCritical"]
+        return [buildLocatorDisplayString(item.tempStructuredLocator), "", "AlertCritical"]
     }
 
     function disruptionValue(item) {
         // We classify these disruption samples with this message if it thinks
         // it looks like a problem in the CI cluster running the tests, not the cluster under test.
         // (typically DNS lookup problems)
-        let ciClusterDisruption = item.message.indexOf("likely a problem in cluster running tests")
-        if (ciClusterDisruption != -1) {
-            return [item.locator, "", "CIClusterDisruption"]
+        if (item.tempStructuredMessage.reason === "DisruptionSamplerOutageBegan") {
+            return [buildLocatorDisplayString(item.tempStructuredLocator), "", "CIClusterDisruption"]
         }
-        return [item.locator, "", "Disruption"]
+        return [buildLocatorDisplayString(item.tempStructuredLocator), "", "Disruption"]
     }
 
     function getDurationString(durationSeconds) {
@@ -53735,15 +53731,64 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
     }
 
     function defaultToolTip(item) {
-        let tt = item.message
-        if ('tempSource' in item) {
-            tt = tt + " source/" + item.tempSource
+        if (!item.tempStructuredMessage || !item.tempStructuredMessage.annotations) {
+            return '';
         }
+
+        const structuredMessage = item.tempStructuredMessage;
+        const annotations = structuredMessage.annotations;
+
+        const keyValuePairs = Object.entries(annotations).map(([key, value]) => {
+            return ` + "`" + `${key}/${value}` + "`" + `;
+        });
+
+        let tt = keyValuePairs.join(' ') + ' ' + structuredMessage.humanMessage;
+
+        // TODO: can probably remove this once we're confident all displayed intervals have it set
         if ('display' in item) {
-            tt = tt + " display/" + item.display
+            tt = "display/" + item.display + " " + tt
+        }
+        if ('tempSource' in item) {
+            tt = "source/" + item.tempSource + " " + tt
         }
         tt = tt + " " + getDurationString(((new Date(item.to)).getTime() - (new Date(item.from).getTime()))/1000);
         return tt
+    }
+
+    function sortKeys(keys) {
+        // Ensure these keys appear in this order. Other keys can be mixed in and will appear at the end in alphabetical order.
+        const orderedKeys = ["namespace", "node", "pod", "uid", "server", "container", "shutdown", "row"];
+
+        // Create a map to store the indices of keys in the orderedKeys array.
+        // This will allow us to efficiently check if a key is in orderedKeys and find its position.
+        const orderedKeyIndices = {};
+        orderedKeys.forEach((key, index) => {
+            orderedKeyIndices[key] = index;
+        });
+
+        // Define a custom sorting function that orders the keys based on the orderedKeys array.
+        keys.sort((a, b) => {
+            // Get the indices of keys a and b in orderedKeys.
+            const indexA = orderedKeyIndices[a];
+            const indexB = orderedKeyIndices[b];
+
+            // If both keys exist in orderedKeys, sort them based on their order.
+            if (indexA !== undefined && indexB !== undefined) {
+                return indexA - indexB;
+            }
+
+            // If only one of the keys exists in orderedKeys, move it to the front.
+            if (indexA !== undefined) {
+                return -1;
+            } else if (indexB !== undefined) {
+                return 1;
+            }
+
+            // If neither key is in orderedKeys, sort alphabetically so we have predictable ordering.
+            return a.localeCompare(b);
+        });
+
+        return keys;
     }
 
     function createTimelineData(timelineVal, timelineData, filteredEventIntervals, category) {
@@ -53769,7 +53814,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
             if (!item.to) {
                 endDate = latest
             }
-            let label = item.locator
+            let label = buildLocatorDisplayString(item.tempStructuredLocator)
             let sub = ""
             let val = timelineVal
             if (typeof val === "function") {
@@ -53862,8 +53907,8 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
                 for (let [key, positiveSelectionRow] of positiveSelectionRows) {
                     if (positiveSelectionRow.isSet){
-                        matchRegex = positiveSelectionRow.regexStr.length == 0 || positiveSelectionRow.regex.test(eventInterval.locator)
-                        matchNS = positiveSelectionRow.namespace.length == 0 || eventInterval.locatorObj.ns && eventInterval.locatorObj.ns.includes(positiveSelectionRow.namespace)
+                        matchRegex = positiveSelectionRow.regexStr.length == 0 || positiveSelectionRow.regex.test(buildLocatorDisplayString(eventInterval.tempStructuredLocator))
+                        matchNS = positiveSelectionRow.namespace.length == 0 || eventInterval.tempStructuredLocator.keys.namespace && eventInterval.tempStructuredLocator.namespace.includes(positiveSelectionRow.namespace)
                         matchCategory = positiveSelectionRow.category.length == 0 || eventInterval.categories[positiveSelectionRow.category]
                         matchLodash = true
                         if (positiveSelectionRow.lodash.length > 0){
@@ -53878,8 +53923,8 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
                             for (let [key, negativeSelectionRow] of negativeSelectionRows) {
                                 if (negativeSelectionRow.isSet){
                                     console.log("checking negative")
-                                    matchRegex = negativeSelectionRow.regexStr.length == 0 || negativeSelectionRow.regex.test(eventInterval.locator)
-                                    matchNS = negativeSelectionRow.namespace.length == 0 || eventInterval.locatorObj.ns && eventInterval.locatorObj.ns.includes(negativeSelectionRow.namespace)
+                                    matchRegex = negativeSelectionRow.regexStr.length == 0 || negativeSelectionRow.regex.test(buildLocatorDisplayString(eventInterval.tempStructuredLocator))
+                                    matchNS = negativeSelectionRow.namespace.length == 0 || eventInterval.tempStructuredLocator.keys.namespace && eventInterval.tempStructuredLocator.keys.namespace.includes(negativeSelectionRow.namespace)
                                     matchCategory = negativeSelectionRow.category.length == 0 || eventInterval.categories[negativeSelectionRow.category]
                                     matchLodash = true
                                     if (negativeSelectionRow.lodash.length > 0){
