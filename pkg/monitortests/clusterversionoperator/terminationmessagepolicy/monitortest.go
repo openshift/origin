@@ -47,6 +47,10 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		if !strings.HasPrefix(pod.Namespace, "openshift") {
 			continue
 		}
+		// skip generated platform namespaces
+		if strings.HasPrefix(pod.Namespace, "openshift-must-gather") {
+			continue
+		}
 		if _, ok := failuresByNamespace[pod.Namespace]; !ok {
 			failuresByNamespace[pod.Namespace] = []string{}
 		}
