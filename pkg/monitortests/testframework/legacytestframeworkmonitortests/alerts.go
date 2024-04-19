@@ -177,7 +177,7 @@ func runBackstopTest(
 			continue
 		}
 		seconds := firing.To.Sub(firing.From)
-		violation := fmt.Sprintf("V2 alert %s fired for %s seconds with labels: %s", fan, seconds, firing.Message)
+		violation := fmt.Sprintf("V2 alert %s fired for %s seconds with labels: %s", fan, seconds, firing.StructuredMessage.OldMessage())
 		if cause := allowedFiringAlerts.MatchesInterval(firing); cause != nil {
 			// TODO: this seems to never be happening? no search.ci results show allowed
 			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))
@@ -196,7 +196,7 @@ func runBackstopTest(
 			continue
 		}
 		seconds := pending.To.Sub(pending.From)
-		violation := fmt.Sprintf("V2 alert %s pending for %s seconds with labels: %s", fan, seconds, pending.Message)
+		violation := fmt.Sprintf("V2 alert %s pending for %s seconds with labels: %s", fan, seconds, pending.StructuredMessage.OldMessage())
 		if cause := allowedPendingAlerts.MatchesInterval(pending); cause != nil {
 			// TODO: this seems to never be happening? no search.ci results show allowed
 			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))

@@ -13,8 +13,8 @@ func testPodNodeNameIsImmutable(events monitorapi.Intervals) []*junitapi.JUnitTe
 
 	failures := []string{}
 	for _, event := range events {
-		if strings.Contains(event.Message, "pod once assigned to a node must stay on it") {
-			failures = append(failures, fmt.Sprintf("%v %v", event.StructuredLocator.OldLocator(), event.Message))
+		if strings.Contains(event.StructuredMessage.HumanMessage, "pod once assigned to a node must stay on it") {
+			failures = append(failures, fmt.Sprintf("%v %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
 		}
 	}
 	if len(failures) == 0 {

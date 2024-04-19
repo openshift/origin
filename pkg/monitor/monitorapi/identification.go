@@ -22,8 +22,8 @@ func E2ETestFromLocator(l Locator) (string, bool) {
 	return test, ok
 }
 
-func IsNode(locator string) bool {
-	_, ret := NodeFromLocator(locator)
+func IsNode(locator Locator) bool {
+	_, ret := locator.Keys[LocatorNodeKey]
 	return ret
 }
 

@@ -17,7 +17,9 @@
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Created"
+        }
       },
       "from": "2022-03-08T23:17:18Z",
       "to": "2022-03-08T23:17:18Z"
@@ -40,7 +42,8 @@
         "cause": "",
         "humanMessage": "",
         "annotations": {
-          "node": "ip-10-0-231-18.us-east-2.compute.internal"
+          "node": "ip-10-0-231-18.us-east-2.compute.internal",
+          "reason": "Scheduled"
         }
       },
       "from": "2022-03-08T23:17:18Z",
@@ -64,7 +67,9 @@
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",
-        "annotations": null
+        "annotations": {
+          "reason": "Ready"
+        }
       },
       "from": "2022-03-08T23:17:18Z",
       "to": "2022-03-08T23:17:18Z"

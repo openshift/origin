@@ -9,17 +9,25 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func LocatePod(pod *corev1.Pod) string {
-	return fmt.Sprintf("ns/%s pod/%s node/%s uid/%s", pod.Namespace, pod.Name, pod.Spec.NodeName, pod.UID)
+func LocatePod(pod *corev1.Pod) Locator {
+	return Locator{
+		Type: LocatorTypePod,
+		Keys: map[LocatorKey]string{
+			LocatorNamespaceKey: pod.Namespace,
+			LocatorPodKey:       pod.Name,
+			LocatorNodeKey:      pod.Spec.NodeName,
+			LocatorUIDKey:       string(pod.UID),
+		},
+	}
 }
 
 // NonUniquePodLocatorFrom produces an inexact locator based on namespace and name.  This is useful when dealing with events
 // that are produced that do not contain UIDs.  Ultimately, we should use UIDs everywhere, but this is will keep some our
 // matching working until then.
-func NonUniquePodLocatorFrom(locator string) string {
-	parts := LocatorParts(locator)
-	namespace := NamespaceFrom(parts)
-	return fmt.Sprintf("ns/%s pod/%s", namespace, parts["pod"])
+func NonUniquePodLocatorFrom(locator Locator) string {
+	namespace := locator.Keys[LocatorNamespaceKey]
+	pod := locator.Keys[LocatorPodKey]
+	return fmt.Sprintf("ns/%s pod/%s", namespace, pod)
 }
 
 // PodFrom is used to strip down a locator to just a pod. (as it may contain additional keys like container or node)
@@ -157,8 +165,8 @@ var (
 type ByTimeWithNamespacedPods []Interval
 
 func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
-	lhsIsPodConstructed := strings.Contains(intervals[i].Message, "constructed") && len(intervals[i].StructuredLocator.Keys[LocatorPodKey]) > 0
-	rhsIsPodConstructed := strings.Contains(intervals[j].Message, "constructed") && len(intervals[j].StructuredLocator.Keys[LocatorPodKey]) > 0
+	lhsIsPodConstructed := len(intervals[i].StructuredMessage.Annotations[AnnotationConstructed]) > 0 && len(intervals[i].StructuredLocator.Keys[LocatorPodKey]) > 0
+	rhsIsPodConstructed := len(intervals[j].StructuredMessage.Annotations[AnnotationConstructed]) > 0 && len(intervals[j].StructuredLocator.Keys[LocatorPodKey]) > 0
 	switch {
 	case lhsIsPodConstructed && rhsIsPodConstructed:
 		lhsNamespace := NamespaceFromLocator(intervals[i].StructuredLocator)
@@ -190,7 +198,7 @@ func (intervals ByTimeWithNamespacedPods) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	return intervals[i].Message < intervals[j].Message
+	return intervals[i].StructuredMessage.HumanMessage < intervals[j].StructuredMessage.HumanMessage
 }
 
 func (intervals ByTimeWithNamespacedPods) Len() int { return len(intervals) }

@@ -431,10 +431,8 @@ func AlertFiringInNamespace(alertName, namespace string) monitorapi.EventInterva
 				if eventAlertName != alertName {
 					return false
 				}
-				if strings.Contains(eventInterval.Message, `alertstate="firing"`) {
-					return true
-				}
-				return false
+
+				return eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationAlertState] == "firing"
 			},
 			InNamespace(namespace),
 		)(eventInterval)
@@ -449,10 +447,7 @@ func AlertPendingInNamespace(alertName, namespace string) monitorapi.EventInterv
 				if eventAlertName != alertName {
 					return false
 				}
-				if strings.Contains(eventInterval.Message, `alertstate="pending"`) {
-					return true
-				}
-				return false
+				return eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationAlertState] == "pending"
 			},
 			InNamespace(namespace),
 		)(eventInterval)

@@ -28,8 +28,8 @@ func testAPIQuotaEvents(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	for i := range events {
 		event := events[i]
 		for _, msg := range throttlingMessages {
-			if msg.MatchString(event.Message) {
-				matches = append(matches, event.Message)
+			if msg.MatchString(event.StructuredMessage.HumanMessage) {
+				matches = append(matches, event.StructuredMessage.HumanMessage)
 			}
 		}
 	}

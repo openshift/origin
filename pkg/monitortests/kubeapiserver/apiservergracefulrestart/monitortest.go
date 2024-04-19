@@ -89,7 +89,7 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 			computedIntervals = append(computedIntervals,
 				monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Info).
 					Locator(monitorapi.NewLocator().
-						LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name, true),
+						LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name),
 					).
 					Message(monitorapi.NewMessage().
 						Constructed("graceful-shutdown-analyzer").
@@ -109,11 +109,11 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 		computedIntervals = append(computedIntervals,
 			monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Error).
 				Locator(monitorapi.NewLocator().
-					LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name, true),
+					LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name),
 				).
 				Message(monitorapi.NewMessage().
 					Constructed("graceful-shutdown-analyzer").
-					Reason("incomplete shutdown"),
+					Reason(monitorapi.IncompleteAPIServerShutdown),
 				).
 				Display().
 				Build(startTime, time.Time{}),
@@ -158,7 +158,7 @@ func (*apiserverGracefulShutdownAnalyzer) Cleanup(ctx context.Context) error {
 }
 
 func interesting(interval monitorapi.Interval) (monitorapi.IntervalReason, bool) {
-	reason := monitorapi.ReasonFrom(interval.Message)
+	reason := interval.StructuredMessage.Reason
 	switch reason {
 	// openshift-apiserver still is using the old event name TerminationStart
 	case "ShutdownInitiated", "TerminationStart", "TerminationGracefulTerminationFinished":

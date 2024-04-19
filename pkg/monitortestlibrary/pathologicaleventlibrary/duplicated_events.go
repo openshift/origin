@@ -312,17 +312,7 @@ func getBiggestRevisionForEtcdOperator(ctx context.Context, operatorClient opera
 // BuildTestDupeKubeEvent is a test utility to make the process of creating these specific intervals a little
 // more brief.
 func BuildTestDupeKubeEvent(namespace, pod, reason, msg string, count int) monitorapi.Interval {
-
-	l := monitorapi.Locator{
-		Type: monitorapi.LocatorTypePod,
-		Keys: map[monitorapi.LocatorKey]string{},
-	}
-	if namespace != "" {
-		l.Keys[monitorapi.LocatorNamespaceKey] = namespace
-	}
-	if pod != "" {
-		l.Keys[monitorapi.LocatorPodKey] = pod
-	}
+	l := monitorapi.NewLocator().PodFromNames(namespace, pod, "")
 
 	i := monitorapi.NewInterval(monitorapi.SourceKubeEvent, monitorapi.Info).
 		Locator(l).

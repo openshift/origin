@@ -22,7 +22,7 @@ func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	}
 	changes := intervalsFromEvents_NodeChanges(intervals, nil, time.Time{}, time.Now())
 	for _, c := range changes {
-		t.Logf("%s - %s", c.From.UTC().Format(time.RFC3339), c.Message)
+		t.Logf("%s - %s", c.From.UTC().Format(time.RFC3339), c.StructuredMessage.OldMessage())
 		assert.Equal(t, "node-lifecycle-constructor", c.StructuredMessage.Annotations[monitorapi.AnnotationConstructed])
 	}
 

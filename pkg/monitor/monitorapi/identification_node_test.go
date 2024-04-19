@@ -9,16 +9,14 @@ func TestGetNodeRoles(t *testing.T) {
 	}{
 		{
 			event: Interval{
-				Condition: Condition{
-					Message: "",
-				},
+				Condition: Condition{},
 			},
 			expected: "",
 		},
 		{
 			event: Interval{
 				Condition: Condition{
-					Message: "roles/master",
+					StructuredMessage: Message{Annotations: map[AnnotationKey]string{AnnotationRoles: "master"}},
 				},
 			},
 			expected: "master",
@@ -26,7 +24,7 @@ func TestGetNodeRoles(t *testing.T) {
 		{
 			event: Interval{
 				Condition: Condition{
-					Message: "roles/worker",
+					StructuredMessage: Message{Annotations: map[AnnotationKey]string{AnnotationRoles: "worker"}},
 				},
 			},
 			expected: "worker",
@@ -34,7 +32,7 @@ func TestGetNodeRoles(t *testing.T) {
 		{
 			event: Interval{
 				Condition: Condition{
-					Message: "roles/master,worker",
+					StructuredMessage: Message{Annotations: map[AnnotationKey]string{AnnotationRoles: "master,worker"}},
 				},
 			},
 			expected: "master,worker",
