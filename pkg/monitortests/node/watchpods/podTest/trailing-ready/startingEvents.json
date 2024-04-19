@@ -2,8 +2,6 @@
   "items": [
     {
       "level": "Info",
-      "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm node/ uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-      "message": "reason/Created ",
       "locator": {
         "type": "Pod",
         "keys": {
@@ -26,8 +24,6 @@
     },
     {
       "level": "Warning",
-      "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-      "message": "reason/Scheduled node/ip-10-0-154-151.ec2.internal",
       "locator": {
         "type": "Pod",
         "keys": {
@@ -51,8 +47,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-      "message": "reason/ContainerStart cause/ duration/3.00s",
       "locator": {
         "type": "Container",
         "keys": {
@@ -77,8 +71,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-      "message": "reason/Ready ",
       "locator": {
         "type": "Container",
         "keys": {
@@ -102,8 +94,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-      "message": "reason/GracefulDelete duration/1s",
       "locator": {
         "type": "Pod",
         "keys": {
@@ -127,8 +117,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-      "message": "reason/ContainerExit code/0 cause/Completed ",
       "locator": {
         "type": "Container",
         "keys": {
@@ -154,8 +142,6 @@
     },
     {
       "level": "Warning",
-      "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9 container/registry-server",
-      "message": "reason/NotReady ",
       "locator": {
         "type": "Container",
         "keys": {
@@ -179,8 +165,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-marketplace pod/community-operators-sp6lm node/ip-10-0-154-151.ec2.internal uid/efb1885a-1fe1-4f5b-ad41-044e55f806a9",
-      "message": "reason/Deleted ",
       "locator": {
         "type": "Pod",
         "keys": {

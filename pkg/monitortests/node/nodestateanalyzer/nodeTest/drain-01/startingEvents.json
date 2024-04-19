@@ -2,8 +2,6 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7 hmsg/502676ccb6",
-      "message": "reason/Drain roles/worker Draining node to update config.",
       "source": "KubeEvent",
       "locator": {
         "type": "Node",
@@ -26,8 +24,6 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
-      "message": "reason/OSUpdateStarted roles/worker Upgrading OS",
       "source": "KubeEvent",
       "locator": {
         "type": "Node",

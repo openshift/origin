@@ -2,8 +2,6 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm hmsg/94b2a62d8a",
-      "message": "reason/Cordon roles/worker Cordoned node to apply update",
       "source": "KubeEvent",
       "locator": {
         "type": "Node",
@@ -26,8 +24,6 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
-      "message": "reason/Drain roles/worker Draining node to update config.",
       "source": "KubeEvent",
       "locator": {
         "type": "Node",
@@ -51,8 +47,6 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
-      "message": "reason/InClusterUpgrade roles/worker Updating from oscontainer registry.build04.ci.openshift.org/ci-op-wh7nq7n4/stable@sha256:42fef51c3f19f40f5573f1ba6a393c3e8fbe53b78eb977aea957f60b85b1458a",
       "source": "KubeEvent",
       "locator": {
         "type": "Node",
@@ -76,8 +70,6 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
-      "message": "reason/OSUpdateStarted roles/worker Upgrading OS",
       "source": "KubeEvent",
       "locator": {
         "type": "Node",

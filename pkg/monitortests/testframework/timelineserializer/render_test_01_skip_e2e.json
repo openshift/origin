@@ -2,7 +2,6 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/e2e-daemonsets-2620 pod/daemon-set-cx5wt uid/7f73a02a-584e-4b86-a4e4-efb786051ac6",
       "locator": {
         "type": "Pod",
         "keys": {
@@ -11,7 +10,6 @@
           "uid": "7f73a02a-584e-4b86-a4e4-efb786051ac6"
         }
       },
-      "message": "constructed/pod-lifecycle-constructor reason/Created ",
       "message": {
         "reason": "Created",
         "annotations": {
@@ -23,7 +21,6 @@
     },
     {
       "level": "Info",
-      "locator": "ns/e2e-daemonsets-2620 pod/daemon-set-cx5wt uid/7f73a02a-584e-4b86-a4e4-efb786051ac6 container/app",
       "locator": {
         "type": "Container",
         "keys": {
@@ -33,7 +30,6 @@
           "container": "app"
         }
       },
-      "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
       "message": {
         "reason": "ContainerWait",
         "humanMessage": "missed real \"ContainerWait\"",

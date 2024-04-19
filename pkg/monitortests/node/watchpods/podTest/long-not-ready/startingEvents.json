@@ -2,8 +2,6 @@
   "items": [
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c",
-      "message": "reason/Created ",
       "locator": {
         "type": "Pod",
         "keys": {
@@ -26,8 +24,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c",
-      "message": "reason/Scheduled node/ip-10-0-142-23.us-east-2.compute.internal",
       "locator": {
         "type": "Pod",
         "keys": {
@@ -51,8 +47,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/fix-audit-permissions",
-      "message": "reason/Ready ",
       "locator": {
         "type": "Container",
         "keys": {
@@ -76,8 +70,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver",
-      "message": "reason/Ready ",
       "locator": {
         "type": "Container",
         "keys": {
@@ -101,8 +93,6 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver-check-endpoints",
-      "message": "reason/Ready ",
       "locator": {
         "type": "Container",
         "keys": {
