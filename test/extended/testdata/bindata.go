@@ -42764,7 +42764,7 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 3Gi
+            memory: 1.4Gi
 `)
 
 func testExtendedTestdataDeploymentsTagImagesDeploymentYamlBytes() ([]byte, error) {

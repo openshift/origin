@@ -371,7 +371,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*appsv1.DeploymentConfig, []*c
 type deploymentConditionFunc func(dc *appsv1.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) (bool, error)
 
 func waitForLatestCondition(oc *exutil.CLI, name string, timeout time.Duration, fn deploymentConditionFunc) error {
-	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
+	return wait.PollImmediate(500*time.Millisecond, timeout, func() (bool, error) {
 		dc, rcs, pods, err := deploymentInfo(oc, name)
 		if err != nil {
 			return false, err
