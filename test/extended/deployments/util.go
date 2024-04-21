@@ -2,6 +2,7 @@ package deployments
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"reflect"
@@ -240,7 +241,7 @@ func deploymentReachedCompletion(dc *appsv1.DeploymentConfig, rcs []*corev1.Repl
 		return false, fmt.Errorf("deployment is complete but doesn't have expected spec replicas: %d %d", *rc.Spec.Replicas, *expectedReplicas)
 	}
 	if expectedReplicas == nil {
-		return false, fmt.Errorf("expectedReplicas should not be nil")
+		return false, errors.New("expectedReplicas should not be nil")
 	}
 	if rc.Status.Replicas != *expectedReplicas {
 		e2e.Logf("POSSIBLE_ANOMALY: deployment is complete but doesn't have expected status replicas: %d %d", rc.Status.Replicas, *expectedReplicas)
@@ -426,7 +427,7 @@ func WaitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duratio
 
 func isControllerRefChange(controllee metav1.Object, old *metav1.OwnerReference) (bool, error) {
 	if old != nil && old.Controller != nil && *old.Controller == false {
-		return false, fmt.Errorf("old ownerReference is not a controllerRef")
+		return false, errors.New("old ownerReference is not a controllerRef")
 	}
 	return !reflect.DeepEqual(old, metav1.GetControllerOf(controllee)), nil
 }
@@ -445,7 +446,7 @@ func rCConditionFromMeta(condition func(metav1.Object) (bool, error)) func(rc *c
 
 func waitForRCChange(ctx context.Context, client corev1client.CoreV1Interface, namespace string, name string, resourceVersion string, condition func(rc *corev1.ReplicationController) (bool, error)) (*corev1.ReplicationController, error) {
 	if len(resourceVersion) == 0 {
-		return nil, fmt.Errorf("watch requires initial resource version")
+		return nil, errors.New("watch requires initial resource version")
 	}
 
 	w := &cache.ListWatch{
@@ -496,7 +497,7 @@ func waitForRCState(ctx context.Context, client corev1client.CoreV1Interface, na
 
 func waitForDCModification(ctx context.Context, client appstypedclient.AppsV1Interface, namespace string, name string, resourceVersion string, condition func(dc *appsv1.DeploymentConfig) (bool, error)) (*appsv1.DeploymentConfig, error) {
 	if len(resourceVersion) == 0 {
-		return nil, fmt.Errorf("watch requires initial resource version")
+		return nil, errors.New("watch requires initial resource version")
 	}
 
 	w := &cache.ListWatch{

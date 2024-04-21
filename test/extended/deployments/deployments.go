@@ -1547,7 +1547,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 				case appsv1.DeploymentStatusComplete:
 					return true, nil
 				case appsv1.DeploymentStatusFailed:
-					return true, fmt.Errorf("deployment #1 failed")
+					return true, errors.New("deployment #1 failed")
 				default:
 					return false, nil
 				}
@@ -1688,7 +1688,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 					e2e.Logf("wait: LatestVersion: %d", e.Object.(*appsv1.DeploymentConfig).Status.LatestVersion)
 					return evDC.Status.LatestVersion == 2 && evDC.Status.AvailableReplicas == evDC.Spec.Replicas, nil
 				case watch.Deleted:
-					return true, fmt.Errorf("dc deleted while waiting for latestVersion to be raised")
+					return true, errors.New("dc deleted while waiting for latestVersion to be raised")
 				case watch.Error:
 					return true, kerrors.FromObject(e.Object)
 				default:
@@ -1711,7 +1711,7 @@ var _ = g.Describe("[sig-apps][Feature:DeploymentConfig] deploymentconfigs", fun
 					evDC := e.Object.(*appsv1.DeploymentConfig)
 					return evDC.Status.AvailableReplicas == evDC.Spec.Replicas, nil
 				case watch.Deleted:
-					return true, fmt.Errorf("dc deleted while waiting for latestVersion to be raised")
+					return true, errors.New("dc deleted while waiting for latestVersion to be raised")
 				case watch.Error:
 					return true, kerrors.FromObject(e.Object)
 				default:

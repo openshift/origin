@@ -2,6 +2,7 @@ package networking
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -145,7 +146,7 @@ func migrateCNI(ctx context.Context, c configv1client.Interface, config *restcli
 	if inProgress, err := isMigrationInProgressTrue(ctx, c); err != nil {
 		return err
 	} else if inProgress {
-		return fmt.Errorf("migration is already in-progress")
+		return errors.New("migration is already in-progress")
 	}
 	if isDeployed, err := isCNIDeployed(ctx, c, targetCNI); err != nil {
 		return err
