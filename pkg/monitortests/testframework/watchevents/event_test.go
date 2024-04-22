@@ -65,8 +65,8 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			},
 			expectedMessage: monitorapi.NewMessage().Reason("SomethingHappened").
 				HumanMessage("sample message").WithAnnotation(monitorapi.AnnotationCount, "2").
-				WithAnnotation("FirstTimestamp", first.Format(time.RFC3339)).
-				WithAnnotation("LastTimestamp", now.Format(time.RFC3339)).
+				WithAnnotation("firstTimestamp", first.Format(time.RFC3339)).
+				WithAnnotation("lastTimestamp", now.Format(time.RFC3339)).
 				Build(),
 		},
 		{
@@ -98,8 +98,8 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			expectedMessage: monitorapi.NewMessage().Reason("SomethingHappened").
 				HumanMessage("sample message").WithAnnotation(monitorapi.AnnotationCount, "40").
 				WithAnnotation(monitorapi.AnnotationPathological, "true").
-				WithAnnotation("FirstTimestamp", first.Format(time.RFC3339)).
-				WithAnnotation("LastTimestamp", now.Format(time.RFC3339)).
+				WithAnnotation("firstTimestamp", first.Format(time.RFC3339)).
+				WithAnnotation("lastTimestamp", now.Format(time.RFC3339)).
 				Build(),
 		},
 		{
@@ -134,8 +134,8 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 				WithAnnotation(monitorapi.AnnotationCount, "40").
 				WithAnnotation(monitorapi.AnnotationPathological, "true").
 				WithAnnotation(monitorapi.AnnotationInteresting, "true").
-				WithAnnotation("FirstTimestamp", first.Format(time.RFC3339)).
-				WithAnnotation("LastTimestamp", now.Format(time.RFC3339)).
+				WithAnnotation("firstTimestamp", first.Format(time.RFC3339)).
+				WithAnnotation("lastTimestamp", now.Format(time.RFC3339)).
 				Build(),
 		},
 	}
