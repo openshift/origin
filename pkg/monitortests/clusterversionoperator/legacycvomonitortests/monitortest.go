@@ -42,7 +42,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	if isUpgrade {
 		junits = append(junits, testUpgradeOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
 	} else {
-		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals)...)
+		junits = append(junits, testStableSystemOperatorStateTransitions(finalIntervals, w.adminRESTConfig)...)
 	}
 
 	return junits, nil
