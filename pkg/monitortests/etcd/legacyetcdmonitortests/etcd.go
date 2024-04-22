@@ -76,7 +76,7 @@ func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals)
 	counter := 0
 	for _, event := range events {
 		if event.Source == monitorapi.SourceEtcdLog &&
-			strings.Contains(event.StructuredMessage.HumanMessage, "took too long") {
+			strings.Contains(event.Message.HumanMessage, "took too long") {
 			counter++
 		}
 	}
