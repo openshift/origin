@@ -30,8 +30,12 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 // These capabilities should not be used by applications needing long term support.
 // +openshift:compatibility-gen:level=4
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=sharedsecrets,scope=Cluster
 // +kubebuilder:subresource:status
-//
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/979
+// +kubebuilder:metadata:annotations="description=Extension for sharing Secrets across Namespaces"
+// +kubebuilder:metadata:annotations="displayName=SharedSecret"
 type SharedSecret struct {
 	metav1.TypeMeta `json:",inline"`
 

@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 
@@ -28,8 +29,9 @@ const (
 var statefulsetsToCheck = []string{"prometheus-k8s", "alertmanager-main"}
 
 type statefulsetsChecker struct {
-	statefulsetsUID map[string]string
-	kubeClient      kubernetes.Interface
+	statefulsetsUID    map[string]string
+	kubeClient         kubernetes.Interface
+	notSupportedReason error
 }
 
 // NewStatefulsetsChecker makes sure that some statefulsets are not recreated
@@ -45,11 +47,21 @@ func (sc *statefulsetsChecker) StartCollection(
 	adminRESTConfig *rest.Config,
 	recorder monitorapi.RecorderWriter,
 ) error {
-	var err error
 
+	var err error
 	sc.kubeClient, err = kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(sc.kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		sc.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: "platform MicroShift not supported",
+		}
+		return sc.notSupportedReason
 	}
 	sc.statefulsetsUID, err = sc.getStatefulsetsUID(ctx)
 	if err != nil {
@@ -63,6 +75,9 @@ func (sc *statefulsetsChecker) CollectData(
 	storageDir string,
 	beginning, end time.Time,
 ) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if sc.notSupportedReason != nil {
+		return nil, nil, sc.notSupportedReason
+	}
 	return nil, nil, nil
 }
 

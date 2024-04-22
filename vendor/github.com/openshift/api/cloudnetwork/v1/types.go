@@ -23,6 +23,8 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=cloudprivateipconfigs,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/859
+// +openshift:file-pattern=operatorOrdering=001
 // +openshift:compatibility-gen:level=1
 type CloudPrivateIPConfig struct {
 	metav1.TypeMeta `json:",inline"`

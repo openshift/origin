@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	ocpv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -102,7 +101,7 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			o.Expect(cleanup(oc, namespace)).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should not be allowed if CPUPartitioningMode = AllNodes", func() {
+		g.It("should be allowed if CPUPartitioningMode = AllNodes with a warning annotation", func() {
 
 			e := createNamespace(oc, namespace, nil)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating namespace %s", namespace)
@@ -110,37 +109,25 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 			e = createDeployment(oc, name, namespace, deploymentLabels, deploymentPodAnnotation)
 			o.Expect(e).ToNot(o.HaveOccurred(), "error creating pinned deployment")
 
-			switch {
-			case !isClusterCPUPartitioned:
-				_, e = exutil.WaitForPods(
-					oc.KubeClient().CoreV1().Pods(namespace),
-					labels.SelectorFromSet(deploymentLabels),
-					exutil.CheckPodIsRunning, 1, time.Minute*3,
-				)
-				o.Expect(e).ToNot(o.HaveOccurred(), "error waiting for pod")
-			default:
-				failureMessage := ""
-				// Sometimes querying a deployment can be faster than it takes to update the status of that deployment,
-				// we poll here to avoid that scenario.
-				err := wait.Poll(3*time.Second, time.Second*30, func() (bool, error) {
-					d, e := oc.KubeClient().AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
-					if e != nil {
-						return false, e
-					}
-					for _, condition := range d.Status.Conditions {
-						if condition.Reason == "FailedCreate" {
-							failureMessage = condition.Message
-							return true, nil
-						}
-					}
-					return false, nil
-				})
-				o.Expect(err).ToNot(o.HaveOccurred(), "error getting deployment")
-				o.Expect(failureMessage).To(
-					o.ContainSubstring(
-						"is forbidden: autoscaling.openshift.io/ManagementCPUsOverride the pod namespace \"%s\" does not allow the workload type",
-						namespace,
-					))
+			_, e = exutil.WaitForPods(
+				oc.KubeClient().CoreV1().Pods(namespace),
+				labels.SelectorFromSet(deploymentLabels),
+				exutil.CheckPodIsRunning, 1, time.Minute*3,
+			)
+			o.Expect(e).ToNot(o.HaveOccurred(), "error waiting for pod")
+
+			pods, e := oc.KubeClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: "app=workload",
+			})
+			o.Expect(e).ToNot(o.HaveOccurred(), "error getting pods")
+			for _, pod := range pods.Items {
+				val, ok := pod.GetAnnotations()["workload.openshift.io/warning"]
+				if isClusterCPUPartitioned {
+					o.Expect(ok).To(o.BeTrue(), "expected warning annotation to be present")
+					o.Expect(val).To(o.ContainSubstring("namespace is not annotated with workload.openshift.io/allowed"))
+				} else {
+					o.Expect(ok).To(o.BeFalse(), "expected warning annotation to not be present")
+				}
 			}
 
 		})

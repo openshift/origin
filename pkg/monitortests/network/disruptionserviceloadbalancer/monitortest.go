@@ -11,10 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/klog/v2"
-
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/sirupsen/logrus"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -282,7 +281,7 @@ func (w *availability) namespaceDeleted(ctx context.Context) (bool, error) {
 	}
 
 	if err != nil {
-		klog.Errorf("Error checking for deleted namespace: %s, %s", w.namespaceName, err.Error())
+		logrus.Errorf("Error checking for deleted namespace: %s, %s", w.namespaceName, err.Error())
 		return false, err
 	}
 
@@ -291,17 +290,21 @@ func (w *availability) namespaceDeleted(ctx context.Context) (bool, error) {
 
 func (w *availability) Cleanup(ctx context.Context) error {
 	if len(w.namespaceName) > 0 && w.kubeClient != nil {
+		log := logrus.WithField("monitorTest", "service-type-load-balancer-availability").WithField("namespace", w.namespaceName)
+		log.Info("deleting namespace")
 		if err := w.kubeClient.CoreV1().Namespaces().Delete(ctx, w.namespaceName, metav1.DeleteOptions{}); err != nil {
+			log.WithError(err).Error("error during namespace deletion")
 			return err
 		}
 
 		startTime := time.Now()
-		err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 15*time.Minute, true, w.namespaceDeleted)
+		log.Info("waiting for namespace deletion to complete")
+		err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 20*time.Minute, true, w.namespaceDeleted)
 		if err != nil {
+			log.WithError(err).Error("error waiting for namespace to delete")
 			return err
 		}
-
-		klog.Infof("Deleting namespace: %s took %.2f seconds", w.namespaceName, time.Now().Sub(startTime).Seconds())
+		log.Infof("namespace deleted in %.2f seconds", time.Now().Sub(startTime).Seconds())
 	}
 
 	return nil

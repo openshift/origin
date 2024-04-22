@@ -14,6 +14,12 @@ import (
 //
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 // +openshift:compatibility-gen:level=4
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=olms,scope=Cluster
+// +kubebuilder:subresource:status
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1504
+// +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=operator-lifecycle-manager,operatorOrdering=01
+// +openshift:enable:FeatureGate=NewOLM
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'cluster'",message="olm is a singleton, .metadata.name must be 'cluster'"
 type OLM struct {
 	metav1.TypeMeta `json:",inline"`

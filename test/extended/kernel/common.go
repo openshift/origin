@@ -15,7 +15,12 @@ import (
 )
 
 var (
-	realTimeKernelRE = regexp.MustCompile(".*.rt[0-9]+.[0-9]+..*")
+	// Kernel versions contain rt for realtime
+	// Version Formats:
+	// - 5.14.0-284.57.1.rt14.342.el9_2.x86_64
+	// - 5.14.0-430.el9.x86_64+rt
+	// Continue using regex to tighten the match for both versions
+	realTimeKernelRE = regexp.MustCompile(".*[.+]rt.*")
 	rtEnvFixture     = exutil.FixturePath("testdata", "kernel", "rt-tests-environment.yaml")
 	rtPodFixture     = exutil.FixturePath("testdata", "kernel", "rt-tests-pod.yaml")
 	rtNamespace      = "ci-realtime-testbed"

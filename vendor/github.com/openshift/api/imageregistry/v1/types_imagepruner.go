@@ -33,6 +33,11 @@ type ImagePrunerList struct {
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=imagepruners,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/555
+// +openshift:file-pattern=operatorOrdering=01
 type ImagePruner struct {
 	metav1.TypeMeta `json:",inline"`
 

@@ -1,0 +1,42 @@
+configs.imageregistry.operator.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/519
+  CRDName: configs.imageregistry.operator.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "00"
+  FilenameRunLevel: ""
+  GroupName: imageregistry.operator.openshift.io
+  HasStatus: true
+  KindName: Config
+  Labels: {}
+  PluralName: configs
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+imagepruners.imageregistry.operator.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/555
+  CRDName: imagepruners.imageregistry.operator.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: ""
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: ""
+  GroupName: imageregistry.operator.openshift.io
+  HasStatus: true
+  KindName: ImagePruner
+  Labels: {}
+  PluralName: imagepruners
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+

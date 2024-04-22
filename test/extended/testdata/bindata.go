@@ -3008,7 +3008,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/httpd-24-centos7:latest"
+              "name": "quay.io/centos7/httpd-24-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3030,7 +3030,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/httpd-24-centos7:latest"
+              "name": "quay.io/centos7/httpd-24-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3211,7 +3211,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mariadb-105-centos7:latest"
+              "name": "quay.io/centos7/mariadb-105-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3231,7 +3231,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mariadb-103-centos7:latest"
+              "name": "quay.io/centos7/mariadb-103-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3251,7 +3251,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mariadb-103-centos7:latest"
+              "name": "quay.io/centos7/mariadb-103-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3311,7 +3311,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mysql-80-centos7:latest"
+              "name": "quay.io/centos7/mysql-80-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3331,7 +3331,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mysql-80-centos7:latest"
+              "name": "quay.io/centos7/mysql-80-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3802,7 +3802,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/perl-530-centos7:latest"
+              "name": "quay.io/centos7/perl-530-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3824,7 +3824,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/perl-530-centos7:latest"
+              "name": "quay.io/centos7/perl-530-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -3998,7 +3998,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/php-73-centos7:latest"
+              "name": "quay.io/centos7/php-73-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4058,7 +4058,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-13-centos7:latest"
+              "name": "quay.io/centos7/postgresql-13-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4078,7 +4078,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-13-centos7:latest"
+              "name": "quay.io/centos7/postgresql-13-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4098,7 +4098,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-12-centos7:latest"
+              "name": "quay.io/centos7/postgresql-12-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4118,7 +4118,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-12-centos7:latest"
+              "name": "quay.io/centos7/postgresql-12-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4138,7 +4138,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-10-centos7:latest"
+              "name": "quay.io/centos7/postgresql-10-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4158,7 +4158,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-10-centos7:latest"
+              "name": "quay.io/centos7/postgresql-10-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4392,7 +4392,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/redis-5-centos7:latest"
+              "name": "quay.io/centos7/redis-5-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4412,7 +4412,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/redis-5-centos7:latest"
+              "name": "quay.io/centos7/redis-5-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -4585,7 +4585,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/ruby-27-centos7:latest"
+              "name": "quay.io/centos7/ruby-27-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -12944,7 +12944,7 @@ func examplesHelloOpenshiftDockerfile() (*asset, error) {
 
 var _examplesHelloOpenshiftGoMod = []byte(`module github.com/openshift/origin/examples/hello-openshift
 
-go 1.19
+go 1.21
 `)
 
 func examplesHelloOpenshiftGoModBytes() ([]byte, error) {
@@ -36171,7 +36171,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/httpd-24-centos7:latest"
+              "name": "quay.io/centos7/httpd-24-centos7:centos7"
             },
             "name": "2.4",
             "referencePolicy": {
@@ -36269,7 +36269,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mariadb-103-centos7:latest"
+              "name": "quay.io/centos7/mariadb-103-centos7:centos7"
             },
             "name": "10.3",
             "referencePolicy": {
@@ -36287,7 +36287,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mariadb-105-centos7:latest"
+              "name": "quay.io/centos7/mariadb-105-centos7:centos7"
             },
             "name": "10.5",
             "referencePolicy": {
@@ -36336,7 +36336,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mongodb-26-centos7:latest"
+              "name": "quay.io/centos7/mongodb-26-centos7:centos7"
             },
             "name": "2.7",
             "referencePolicy": {
@@ -36354,7 +36354,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mongodb-32-centos7:latest"
+              "name": "quay.io/centos7/mongodb-32-centos7:centos7"
             },
             "name": "3.2",
             "referencePolicy": {
@@ -36372,7 +36372,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mongodb-34-centos7:latest"
+              "name": "quay.io/centos7/mongodb-34-centos7:centos7"
             },
             "name": "3.4",
             "referencePolicy": {
@@ -36421,7 +36421,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mysql-80-centos7:latest"
+              "name": "quay.io/centos7/mysql-80-centos7:centos7"
             },
             "name": "8",
             "referencePolicy": {
@@ -36455,7 +36455,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/nginx-114-centos7:latest"
+              "name": "quay.io/centos7/nginx-114-centos7:centos7"
             },
             "name": "1.14",
             "referencePolicy": {
@@ -36475,7 +36475,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/nginx-116-centos7:latest"
+              "name": "quay.io/centos7/nginx-116-centos7:centos7"
             },
             "name": "1.16",
             "referencePolicy": {
@@ -36546,7 +36546,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/nodejs-10-centos7:latest"
+              "name": "quay.io/centos7/nodejs-10-centos7:centos7"
             },
             "name": "10",
             "referencePolicy": {
@@ -36565,7 +36565,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/nodejs-12-centos7:latest"
+              "name": "quay.io/centos7/nodejs-12-centos7:centos7"
             },
             "name": "12",
             "referencePolicy": {
@@ -36641,7 +36641,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/perl-530-centos7:latest"
+              "name": "quay.io/centos7/perl-530-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -36695,7 +36695,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/php-70-centos7:latest"
+              "name": "quay.io/centos7/php-70-centos7:centos7"
             },
             "name": "7.0",
             "referencePolicy": {
@@ -36715,7 +36715,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/php-71-centos7:latest"
+              "name": "quay.io/centos7/php-71-centos7:centos7"
             },
             "name": "7.1",
             "referencePolicy": {
@@ -36764,7 +36764,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-95-centos7:latest"
+              "name": "quay.io/centos7/postgresql-95-centos7:centos7"
             },
             "name": "9.5",
             "referencePolicy": {
@@ -36782,7 +36782,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-96-centos7:latest"
+              "name": "quay.io/centos7/postgresql-96-centos7:centos7"
             },
             "name": "9.6",
             "referencePolicy": {
@@ -36835,7 +36835,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/python-27-centos7:latest"
+              "name": "quay.io/centos7/python-27-centos7:centos7"
             },
             "name": "2.7",
             "referencePolicy": {
@@ -36855,7 +36855,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/python-36-centos7:latest"
+              "name": "quay.io/centos7/python-36-centos7:centos7"
             },
             "name": "3.6",
             "referencePolicy": {
@@ -36904,7 +36904,7 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/redis-5-centos7:latest"
+              "name": "quay.io/centos7/redis-5-centos7:centos7"
             },
             "name": "5",
             "referencePolicy": {
@@ -42764,7 +42764,7 @@ spec:
         resources:
           limits:
             cpu: 100m
-            memory: 3Gi
+            memory: 1.4Gi
 `)
 
 func testExtendedTestdataDeploymentsTagImagesDeploymentYamlBytes() ([]byte, error) {
@@ -52928,6 +52928,13 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return keys;
     }
 
+    function segmentTooltipFunc(d) {
+        return '<span style="max-inline-size: min-content; display: inline-block;">'
+        + '<strong>' + d.labelVal + '</strong><br/>'
+        + '<strong>From: </strong>' + new Date(d.timeRange[0]).toUTCString() + '<br>'
+        + '<strong>To: </strong>' + new Date(d.timeRange[1]).toUTCString() + '</span>';
+    }
+
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc, regex) {
         const data = {}
         var now = new Date();
@@ -53060,6 +53067,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         createTimelineData(pathologicalEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isInterestingOrPathological, regex)
 
         var segmentFunc = function (segment) {
+            // Copy label to clipboard
+            navigator.clipboard.writeText(segment.labelVal);
+
             // for (var i in data) {
             //     if (data[i].group == segment.group) {
             //         var groupdata = data[i].data
@@ -53117,7 +53127,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         maxHeight(10000).
         zColorScale(ordinalScale).
         zoomX([new Date(eventIntervals.items[0].from), new Date(eventIntervals.items[eventIntervals.items.length - 1].to)]).
-        onSegmentClick(segmentFunc)
+        onSegmentClick(segmentFunc).
+        segmentTooltipContent(segmentTooltipFunc)
         (el);
 
 
@@ -53791,6 +53802,13 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         return keys;
     }
 
+    function segmentTooltipFunc(d) {
+        return '<span style="max-inline-size: min-content; display: inline-block;">'
+        + '<strong>' + d.labelVal + '</strong><br/>'
+        + '<strong>From: </strong>' + new Date(d.timeRange[0]).toUTCString() + '<br>'
+        + '<strong>To: </strong>' + new Date(d.timeRange[1]).toUTCString() + '</span>';
+    }
+
     function createTimelineData(timelineVal, timelineData, filteredEventIntervals, category) {
         const data = {}
         var now = new Date();
@@ -54008,6 +54026,8 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "interesting_events");
 
         var segmentFunc = function (segment) {
+            // Copy label to clipboard
+            navigator.clipboard.writeText(segment.labelVal);
             // for (var i in data) {
             //     if (data[i].group == segment.group) {
             //         var groupdata = data[i].data
@@ -54063,7 +54083,8 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         maxHeight(10000).
         zColorScale(ordinalScale).
         zoomX([new Date(eventIntervals.items[0].from), new Date(eventIntervals.items[eventIntervals.items.length - 1].to)]).
-        onSegmentClick(segmentFunc)
+        onSegmentClick(segmentFunc).
+        segmentTooltipContent(segmentTooltipFunc)
         (el);
 
 

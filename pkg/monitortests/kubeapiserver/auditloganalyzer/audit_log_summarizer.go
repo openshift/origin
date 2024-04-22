@@ -30,6 +30,11 @@ type RequestCounts struct {
 	perHTTPStatusRequestCount map[int32]int
 }
 
+type RequestCountsWithVerbs struct {
+	requestCounts       *RequestCounts
+	perVerbRequestCount map[string]*RequestCounts
+}
+
 type PerHTTPStatusRequestCount struct {
 	httpStatus              int32
 	requestCounts           RequestCounts
@@ -40,7 +45,7 @@ type PerHTTPStatusRequestCount struct {
 type PerUserRequestCount struct {
 	user                    string
 	requestCounts           RequestCounts
-	perResourceRequestCount map[schema.GroupVersionResource]*RequestCounts
+	perResourceRequestCount map[schema.GroupVersionResource]*RequestCountsWithVerbs
 	perVerbRequestCount     map[string]*RequestCounts
 }
 
@@ -121,6 +126,11 @@ func (s *RequestCounts) Add(auditEvent *auditv1.Event) {
 	}
 }
 
+func (s *RequestCountsWithVerbs) Add(auditEvent *auditv1.Event) {
+	s.requestCounts.Add(auditEvent)
+	AddPerVerbRequestCount(s.perVerbRequestCount, auditEvent)
+}
+
 func (s *PerHTTPStatusRequestCount) Add(auditEvent *auditv1.Event, auditEventInfo auditEventInfo) {
 	if auditEvent.ResponseStatus == nil {
 		return
@@ -150,14 +160,18 @@ func (s *PerUserRequestCount) Add(auditEvent *auditv1.Event, auditEventInfo audi
 
 	gvr := auditEventInfo.getGroupVersionResource(auditEvent)
 	if _, ok := s.perResourceRequestCount[gvr]; !ok {
-		s.perResourceRequestCount[gvr] = NewRequestCounts()
+		s.perResourceRequestCount[gvr] = NewRequestCountsWithVerbs()
 	}
 	s.perResourceRequestCount[gvr].Add(auditEvent)
 
-	if _, ok := s.perVerbRequestCount[auditEvent.Verb]; !ok {
-		s.perVerbRequestCount[auditEvent.Verb] = NewRequestCounts()
+	AddPerVerbRequestCount(s.perVerbRequestCount, auditEvent)
+}
+
+func AddPerVerbRequestCount(perVerbRequestCount map[string]*RequestCounts, auditEvent *auditv1.Event) {
+	if _, ok := perVerbRequestCount[auditEvent.Verb]; !ok {
+		perVerbRequestCount[auditEvent.Verb] = NewRequestCounts()
 	}
-	s.perVerbRequestCount[auditEvent.Verb].Add(auditEvent)
+	perVerbRequestCount[auditEvent.Verb].Add(auditEvent)
 }
 
 func (s *PerResourceRequestCount) Add(auditEvent *auditv1.Event, auditEventInfo auditEventInfo) {
@@ -172,10 +186,7 @@ func (s *PerResourceRequestCount) Add(auditEvent *auditv1.Event, auditEventInfo 
 	}
 	s.perUserRequestCount[auditEvent.User.Username].Add(auditEvent)
 
-	if _, ok := s.perVerbRequestCount[auditEvent.Verb]; !ok {
-		s.perVerbRequestCount[auditEvent.Verb] = NewRequestCounts()
-	}
-	s.perVerbRequestCount[auditEvent.Verb].Add(auditEvent)
+	AddPerVerbRequestCount(s.perVerbRequestCount, auditEvent)
 }
 
 func (s *AuditLogSummary) AddSummary(rhs *AuditLogSummary) {
@@ -212,6 +223,11 @@ func (s *RequestCounts) AddSummary(rhs *RequestCounts) {
 	}
 }
 
+func (s *RequestCountsWithVerbs) AddSummary(rhs *RequestCountsWithVerbs) {
+	s.requestCounts.AddSummary(rhs.requestCounts)
+	AddSummaryPerVerbRequestCount(s.perVerbRequestCount, rhs.perVerbRequestCount)
+}
+
 func (s *PerHTTPStatusRequestCount) AddSummary(rhs *PerHTTPStatusRequestCount) {
 	if s.httpStatus != rhs.httpStatus {
 		panic(fmt.Sprintf("mismatching key: have %v, need %v", s.httpStatus, rhs.httpStatus))
@@ -223,11 +239,15 @@ func (s *PerHTTPStatusRequestCount) AddSummary(rhs *PerHTTPStatusRequestCount) {
 		}
 		s.perResourceRequestCount[k].AddSummary(v)
 	}
-	for k, v := range rhs.perUserRequestCount {
-		if _, ok := s.perUserRequestCount[k]; !ok {
-			s.perUserRequestCount[k] = NewRequestCounts()
+	AddSummaryPerVerbRequestCount(s.perUserRequestCount, rhs.perUserRequestCount)
+}
+
+func AddSummaryPerVerbRequestCount(lhs, rhs map[string]*RequestCounts) {
+	for k, v := range rhs {
+		if _, ok := lhs[k]; !ok {
+			lhs[k] = NewRequestCounts()
 		}
-		s.perUserRequestCount[k].AddSummary(v)
+		lhs[k].AddSummary(v)
 	}
 }
 
@@ -238,7 +258,7 @@ func (s *PerUserRequestCount) AddSummary(rhs *PerUserRequestCount) {
 	s.requestCounts.AddSummary(&rhs.requestCounts)
 	for k, v := range rhs.perResourceRequestCount {
 		if _, ok := s.perResourceRequestCount[k]; !ok {
-			s.perResourceRequestCount[k] = NewRequestCounts()
+			s.perResourceRequestCount[k] = NewRequestCountsWithVerbs()
 		}
 		s.perResourceRequestCount[k].AddSummary(v)
 	}
@@ -283,6 +303,12 @@ func NewRequestCounts() *RequestCounts {
 		perHTTPStatusRequestCount: map[int32]int{},
 	}
 }
+func NewRequestCountsWithVerbs() *RequestCountsWithVerbs {
+	return &RequestCountsWithVerbs{
+		requestCounts:       NewRequestCounts(),
+		perVerbRequestCount: map[string]*RequestCounts{},
+	}
+}
 func NewPerStatusRequestCount(httpStatus int32) *PerHTTPStatusRequestCount {
 	return &PerHTTPStatusRequestCount{
 		httpStatus:              httpStatus,
@@ -295,7 +321,7 @@ func NewPerUserRequestCount(user string) *PerUserRequestCount {
 	return &PerUserRequestCount{
 		user:                    user,
 		requestCounts:           *NewRequestCounts(),
-		perResourceRequestCount: map[schema.GroupVersionResource]*RequestCounts{},
+		perResourceRequestCount: map[schema.GroupVersionResource]*RequestCountsWithVerbs{},
 		perVerbRequestCount:     map[string]*RequestCounts{},
 	}
 }

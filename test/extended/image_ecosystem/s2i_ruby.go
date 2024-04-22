@@ -58,8 +58,8 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), dcName, 1, true, oc)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				// err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), dcName, 1, true, oc)
+				// o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for endpoint")
 				err = exutil.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), dcName)

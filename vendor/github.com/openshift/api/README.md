@@ -3,12 +3,180 @@ The canonical location of the OpenShift API definition.
 This repo holds the API type definitions and serialization code used by [openshift/client-go](https://github.com/openshift/client-go)
 APIs in this repo ship inside OCP payloads.
 
+## Adding new FeatureGates
+Add your FeatureGate to feature_gates.go.
+The threshold for merging a fully disabled or TechPreview FeatureGate is an open enhancement.
+To promote to Default on any ClusterProfile, the threshold is 99% passing tests on all platforms or QE sign off.
+
+### Adding new TechPreview FeatureGate to all ClusterProfiles (Hypershift and SelfManaged)
+```go
+FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
+			reportProblemsToJiraComponent("my-jira-component").
+			contactPerson("my-team-lead").
+			productScope(ocpSpecific).
+			enableIn(TechPreviewNoUpgrade).
+			mustRegister()
+```
+
+### Adding new TechPreview FeatureGate to all only Hypershift
+This will be enabled in TechPreview on Hypershift, but never enabled on SelfManaged
+```go
+FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
+			reportProblemsToJiraComponent("my-jira-component").
+			contactPerson("my-team-lead").
+			productScope(ocpSpecific).
+			enableForClusterProfile(Hypershift, TechPreviewNoUpgrade).
+			mustRegister()
+```
+
+### Promoting to Default, but only on Hypershift
+This will be enabled in TechPreview on all ClusterProfiles and also by Default on Hypershift.
+It will be disabled in Default on SelfManaged.
+```go
+FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
+			reportProblemsToJiraComponent("my-jira-component").
+			contactPerson("my-team-lead").
+			productScope([ocpSpecific|kubernetes]).
+			enableIn(TechPreviewNoUpgrade).
+			enableForClusterProfile(Hypershift, Default).
+			mustRegister()
+```
+
+### Promoting to Default on all ClusterProfiles
+```go
+FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
+			reportProblemsToJiraComponent("my-jira-component").
+			contactPerson("my-team-lead").
+			productScope([ocpSpecific|kubernetes]).
+            enableIn(Default, TechPreviewNoUpgrade).
+			mustRegister()
+```
+
+### defining tests
+Tests are logically associated with FeatureGates.
+When adding any FeatureGated functionality a new test file is required.
+The test files are located in `<group>/<version>/tests/<crd-name>/FeatureGate.yaml`:
+```
+route/
+  v1/
+    tests/
+      routes.route.openshift.io/
+        AAA_ungated.yaml
+        ExternalRouteCertificate.yaml
+```
+Here's an `AAA_ungated.yaml` example:
+```yaml
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this.
+name: Route
+crdName: routes.route.openshift.io
+tests:
+```
+
+Here's an `ExternalRouteCertificate.yaml` example:
+```yaml
+apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this.
+name: Route
+crdName: routes.route.openshift.io
+featureGate: ExternalRouteCertificate
+tests:
+```
+
+The integration tests use the crdName and featureGate to determine which tests apply to which manifests and automatically
+react to changes when the FeatureGates are enabled/disabled on various FeatureSets and ClusterProfiles.
+
+[`gen-minimal-test.sh`](tests/hack/gen-minimal-test.sh) can still function to stub out files if you don't want to
+copy/paste an existing one.
+
+
 ## defining new APIs
 
 When defining a new API, please follow [the OpenShift API
 conventions](https://github.com/openshift/enhancements/blob/master/CONVENTIONS.md#api),
 and then follow the instructions below to regenerate CRDs (if necessary) and
 submit a pull request with your new API definitions and generated files.
+
+### Adding a new stable API (v1)
+When copying, it matters which `// +foo` markers are two comments blocks up and which are one comment block up.
+
+```go
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// the next line of whitespace matters
+
+// MyAPI is amazing, let me describe it!
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
+// +openshift:file-pattern=cvoRunLevel=0000_50,operatorName=my-operator,operatorOrdering=01
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=myapis,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/<this PR number>
+// +openshift:capability=IfYouHaveOne
+// +kubebuilder:printcolumn:name=Column Name,JSONPath=.status.something,type=string,description=how users should interpret this.
+// +kubebuilder:metadata:annotations=key=value
+// +kubebuilder:metadata:labels=key=value
+// +kubebuilder:validation:XValidation:rule=
+type MyAPI struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// spec is the desired state of the cluster version - the operator will work
+	// to ensure that the desired version is applied to the cluster.
+	// +kubebuilder:validation:Required
+	Spec MyAPISpec `json:"spec"`
+	// status contains information about the available updates and any in-progress
+	// updates.
+	// +optional
+	Status MyAPIStatus `json:"status"`
+}
+
+```
+
+### Adding a new unstable API (v1alpha) 
+First, add a FeatureGate as described above.
+
+Like above, but there's an additional
+
+```go
+// +kubebuilder:validation:XValidation:rule=
+// +openshift:enable:FeatureGate=MyFeatureGate
+type MyAPI struct {
+	...
+}
+```
+
+### Adding new fields
+Here are few other use-cases for convenience, but have a look in `./example` for other possibilities. 
+
+
+```go
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=MyFeatureGate,rule="has(oldSelf.coolNewField) ? has(self.coolNewField) : true",message="coolNewField may not be removed once set"
+type MyAPI struct {
+    // +openshift:enable:FeatureGate=MyFeatureGate
+    // +optional
+    CoolNewField string `json:"coolNewField"`
+}
+
+// EvolvingDiscriminator defines the audit policy profile type.
+// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum="";StableValue
+// +openshift:validation:FeatureGateAwareEnum:featureGate=MyFeatureGate,enum="";StableValue;TechPreviewOnlyValue
+type EvolvingDiscriminator string
+
+const (
+  // "StableValue" is always present.
+  StableValue EvolvingDiscriminator = "StableValue"
+
+  // "TechPreviewOnlyValue" should only be allowed when TechPreviewNoUpgrade is set in the cluster
+  TechPreviewOnlyValue EvolvingDiscriminator = "TechPreviewOnlyValue"
+)
+
+```
+
 
 ### required labels
 
@@ -39,6 +207,18 @@ Does this mean feature-freeze teams can use the no-FF process to merge code?
 No, signing a team up to be a no-FF team includes some basic education on the process and includes ensuring the associated QE+Docs
 participants are aware the team is moving to that model.  If you'd like to sign your team up, please speak with Gina Hargan who will
 be happy to help on-board your team.
+
+## vendoring generated manifests into other repositories
+If your repository relies on vendoring and copying CRD manifests (good job!), you'll need have an import line that
+depends on the package that contains the CRD manifests.
+For example, adding
+```go
+import (
+	_ "github.com/openshift/api/operatoringress/v1/zz_generated.crd-manifests"
+)
+```
+to any .go file will work, but some commonly chosen files are `tools/tools.go` or `pkg/dependencymagnet/doc.go`.
+Once added, a `go mod vendor` will pick up the package containing the manifests for you to copy.
 
 ## generating CRD schemas
 
@@ -78,13 +258,60 @@ After this, calling `make update-codegen-crds` should generate a new structural 
   
 For more information on the API markers to add to your Go types, see the [Kubebuilder book](https://book.kubebuilder.io/reference/markers.html)
 
-### Post-schema-generation Patches
+### Order of generation
+`make update-codegen-crds` does roughly this:
 
-Schema generation features might be limited or fall behind what CRD schemas supports in the latest Kubernetes version.
-To work around this, there are two patch mechanisms implemented by the `add-crd-gen` target. Basic idea is that you 
-place a patch file next to the CRD yaml manifest with either `yaml-merge-patch` or `yaml-patch` as extension, 
-but with the same base name. The `update-codegen-crds` Makefile target will apply these **after** calling 
-kubebuilder's controller-gen:
+1. Run the `empty-partial-schema` tool.  This creates empty CRD manifests in `zz_generated.featuregated-crd-manifests` for each FeatureGate.
+2. Run the `schemapatch` tool.  This fills in the schema for each per-FeatureGate CRD manifest.
+3. Run the `manifest-merge` tool.  This combines all the per-FeatureGate CRD manifests and `manual-overrides`
 
-- `yaml-merge-patch`: these are applied via `yq m -x <yaml-file> <patch-file>` compare https://mikefarah.gitbook.io/yq/commands/merge#overwrite-values.
-- `yaml-patch`: these are applied via `yaml-patch -o <patch-file> < <yaml-file>` using https://github.com/krishicks/yaml-patch.
+#### empty-partial-schema
+This tool is gengo based and scans all types for a `// +kubebuilder:object:root=true` marker.
+For each type match, the type is navigated and all tags that include a `featureGate`
+(`// +openshift:enable:FeatureGate`, `// +openshift:validation:FeatureGateAwareEnum`, and `// +openshift:validation:FeatureGateAwareXValidation`)
+are tracked.
+For each type, for each FeatureGate, a file CRD manifest is created in `zz_generated.featuregated-crd-manifests`.
+The most common kube-builder tags are re-implemented in this stage to fill in the non-schema portion of the CRD manifests.
+This includes things like metadata, resource, and some custom openshift tags as well.
+
+The generator ignores the schema when doing verify, so it doesn't fail on needing to run `schemapatch`.
+The generator should clean up old FeatureGated manifests when the gate is removed.
+Ungated files are created for resources that are sometimes ungated.
+Annotations are injected to indicate which FeatureGate a manifest is for: this is later read by `schemapatch` and `manifest-merge`.
+
+#### schemapatch
+This tool is kubebuilder based with patches to handle FeatureGated types, members, and validation.
+It reads the injected annotation from `empty-partial-schema` to decide which FeatureGate should be considered enabled when
+creating the schema that needs to be injected.
+It has no knowledge of whether the FeatureGate is enabled or disabled in particular ClusterProfile,FeatureSet tuples.
+It only needs a single pass over all the FeatureGated partial manifests.
+
+If the schema generation isn't doing what you want, `manual-override-crd-manifests` allows partially overlaying bits of the CRD manifest.
+`yamlpatch` is no longer supported.
+The format is just "write the CRD you want and delete the stuff the generator sets properly".
+More specifically, it is the partial manifest that server-side-apply (structured merge diff) would properly merge on top of
+the CRD that is generated otherwise.
+Caveat, you cannot test this with a kube-apiserver because the CRD schema uses atomic lists and we had to patch that
+schema to indicate map lists keyed by version.
+
+#### manifest-merge
+This tool is gengo based and it combines the files in `zz_generated.featuregated-crd-manifests` and `manual-override-crd-manifests`
+on a per ClusterProfile,FeatureSet tuple.
+This tool takes as input all possible ClusterProfiles and all possible FeatureSets.
+It then maps from ClusterProfile,FeatureSet tuple to the set of enabled and disabled FeatureGates.
+Then for each CRD,ClusterProfile,Feature tuple, it merges the pertinent input using structured-merge-diff (SSA) logic
+based on the CRD schema plus a patch to make atomic fields map-lists.
+Pertinence is determined based on
+1. does this manifest have preferred ClusterProfile annotations: if so, honor them; if not, include everywhere.
+2. does this manifest have FeatureGate annotations: if so, match against the enabled set for the ClusterProfile,FeatureSet tuple.
+   Note that CustomNoUpgrade selects everything
+
+Once we have CRD for each ClusterProfile,FeatureSet tuple we choose what to serialize.
+This roughly follows:
+1. if all the CRDs are the same, write a single file and annotate with no FeatureSet and every ClusterProfile. Done.
+2. if all the CRDs are the same across all ClusterProfiles for each FeatureSet, create one file per FeatureSet and
+   annotate with one FeatureSet and all ClusterProfiles. Done.
+3. if all the CRDs are the same across all FeatureSets for one ClusterProfile, create one file and annotate
+   with no FeatureSet and one ClusterProfile. Continue to 4.
+4. for all remaining ClusterProfile,FeatureSet tuples, serialize a file with one FeatureSet and one ClusterProfile.
+

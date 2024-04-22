@@ -55,6 +55,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	securityv1 "github.com/openshift/api/security/v1"
 	buildv1clienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
@@ -554,6 +555,11 @@ func DumpPodLogs(pods []corev1.Pod, oc *CLI) {
 	for _, pod := range pods {
 		descOutput, err := oc.AsAdmin().Run("describe").WithoutNamespace().Args("pod/"+pod.Name, "-n", pod.Namespace).Output()
 		if err == nil {
+			if strings.Contains(descOutput, "BEGIN PRIVATE KEY") {
+				// replace private key with XXXXX string
+				re := regexp.MustCompile(`BEGIN\s+PRIVATE\s+KEY.*END\s+PRIVATE\s+KEY`)
+				descOutput = re.ReplaceAllString(descOutput, "XXXXXXXXXXXXXX")
+			}
 			e2e.Logf("Describing pod %q\n%s\n\n", pod.Name, descOutput)
 		} else {
 			e2e.Logf("Error retrieving description for pod %q: %v\n\n", pod.Name, err)
@@ -2090,6 +2096,20 @@ func IsTechPreviewNoUpgrade(oc *CLI) bool {
 	return featureGate.Spec.FeatureSet == configv1.TechPreviewNoUpgrade
 }
 
+// IsNoUpgradeFeatureSet checks if a cluster has a non-upgradeable featureset
+// such as TechPreviewNoUpgrade or CustomNoUpgrade.
+func IsNoUpgradeFeatureSet(oc *CLI) bool {
+	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return false
+		}
+		e2e.Failf("could not retrieve feature-gate: %v", err)
+	}
+	featureSet := featureGate.Spec.FeatureSet
+	return (featureSet == configv1.TechPreviewNoUpgrade || featureSet == configv1.CustomNoUpgrade)
+}
+
 // DoesApiResourceExist searches the list of ApiResources and returns "true" if a given
 // apiResourceName Exists. Valid search strings are for example "cloudprivateipconfigs" or "machines".
 func DoesApiResourceExist(config *rest.Config, apiResourceName, group string) (bool, error) {
@@ -2134,6 +2154,33 @@ func IsNamespaceExist(kubeClient *kubernetes.Clientset, namespace string) (bool,
 	}
 
 	return true, nil
+}
+
+func IsSelfManagedHA(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, nil
+	}
+
+	return infrastructure.Status.ControlPlaneTopology == configv1.HighlyAvailableTopologyMode, nil
+}
+
+func IsSingleNode(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, nil
+	}
+
+	return infrastructure.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode, nil
+}
+
+func IsHypershift(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {
+	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, nil
+	}
+
+	return infrastructure.Status.ControlPlaneTopology == configv1.ExternalTopologyMode, nil
 }
 
 // IsMicroShiftCluster returns "true" if a cluster is MicroShift,

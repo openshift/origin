@@ -241,7 +241,7 @@ func TestDisruptionDataFileParsing(t *testing.T) {
 	jobType := platformidentification.JobType{
 		Release:      currentRelease,
 		FromRelease:  currentRelease,
-		Platform:     "aws",
+		Platform:     "azure",
 		Architecture: "amd64",
 		Network:      "ovn",
 		Topology:     "ha",

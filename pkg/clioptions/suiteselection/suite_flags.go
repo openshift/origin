@@ -2,8 +2,11 @@ package suiteselection
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"io/ioutil"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,6 +23,10 @@ import (
 
 type DiscoveryClientGetter interface {
 	GetDiscoveryClient() (discovery.AggregatedDiscoveryInterface, error)
+}
+
+type ConfigClientGetter interface {
+	GetConfigClient() (clientconfigv1.Interface, error)
 }
 
 // TestSuiteSelectionFlags is used to run a suite of tests by invoking each test
@@ -59,6 +66,7 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 	suites []*testginkgo.TestSuite,
 	args []string,
 	discoveryClientGetter DiscoveryClientGetter,
+	configClientGetter ConfigClientGetter,
 	dryRun bool,
 	additionalMatchFn testginkgo.TestMatchFunc,
 ) (*testginkgo.TestSuite, error) {
@@ -127,6 +135,24 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 				return nil, fmt.Errorf("unable to build api group filter: %w", err)
 			}
 			suite.AddRequiredMatchFunc(apiGroupFilter.includeTest)
+		}
+	}
+
+	configClient, err := configClientGetter.GetConfigClient()
+	switch {
+	case err != nil && dryRun:
+		fmt.Fprintf(f.ErrOut, "Unable to get config client, skipping FeatureGate check in the dry-run mode: %v\n", err)
+	case err != nil && !dryRun:
+		return nil, fmt.Errorf("unable to get config client, skipping FeatureGate check in the dry-run mode: %w", err)
+	default:
+		featureGateFilter, err := newFeatureGateFilter(context.TODO(), configClient)
+		switch {
+		case apierrors.IsNotFound(err):
+		// do nothing and we'll select all featuregated tests. this is the safest for something like microshift
+		case err != nil:
+			return nil, fmt.Errorf("unable to build FeatureGate filter: %w", err)
+		default:
+			suite.AddRequiredMatchFunc(featureGateFilter.includeTest)
 		}
 	}
 

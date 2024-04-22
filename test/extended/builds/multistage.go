@@ -31,8 +31,8 @@ USER 1001
 FROM %[1]s as other
 COPY --from=test /usr/bin/curl /test/
 COPY --from=%[2]s /bin/echo /test/
-COPY --from=%[2]s /bin/ping /test/
-`, image.LimitedShellImage(), image.ShellImage())
+COPY --from=%[2]s /bin/wget /test/
+`, image.LimitedShellImage(), image.MustGatherImage())
 	)
 
 	g.AfterEach(func() {
@@ -57,7 +57,7 @@ COPY --from=%[2]s /bin/ping /test/
 					Source: buildv1.BuildSource{
 						Dockerfile: &testDockerfile,
 						Images: []buildv1.ImageSource{
-							{From: corev1.ObjectReference{Kind: "DockerImage", Name: image.ShellImage()}, As: []string{"scratch"}},
+							{From: corev1.ObjectReference{Kind: "DockerImage", Name: image.LimitedShellImage()}, As: []string{"scratch"}},
 						},
 					},
 					Strategy: buildv1.BuildStrategy{
@@ -92,7 +92,7 @@ COPY --from=%[2]s /bin/ping /test/
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(s).ToNot(o.ContainSubstring("--> FROM scratch"))
 		o.Expect(s).ToNot(o.ContainSubstring("FROM busybox"))
-		o.Expect(s).To(o.MatchRegexp("(\\[1/2\\] STEP 1/3|STEP 1/2|STEP 1): FROM %s AS test", regexp.QuoteMeta(image.ShellImage())))
+		o.Expect(s).To(o.MatchRegexp("(\\[1/2\\] STEP 1/3|STEP 1/2|STEP 1): FROM %s AS test", regexp.QuoteMeta(image.LimitedShellImage())))
 		o.Expect(s).To(o.ContainSubstring("COPY --from"))
 		o.Expect(s).To(o.ContainSubstring("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace()))
 		e2e.Logf("Build logs:\n%s", result)
@@ -124,7 +124,7 @@ COPY --from=%[2]s /bin/ping /test/
 		m, err := oc.Run("logs").Args("-f", "test", "-c", "check").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(m).To(o.ContainSubstring("echo"))
-		o.Expect(m).To(o.ContainSubstring("ping"))
+		o.Expect(m).To(o.ContainSubstring("wget"))
 		e2e.Logf("Pod logs:\n%s\n%s", string(data), string(m))
 	})
 })

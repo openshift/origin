@@ -8,6 +8,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	configv1 "github.com/openshift/api/config/v1"
+	ocpv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -27,6 +28,15 @@ var _ = g.Describe("[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operat
 		if CSISnapshotEnabled, _ := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityCSISnapshot); !CSISnapshotEnabled {
 			g.Skip("Skip for CSISnapshot capability is not enabled on the test cluster!")
 		}
+
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// HyperShift the CSISnapshot controllers runs on management cluster
+		if *controlPlaneTopology == ocpv1.ExternalTopologyMode {
+			g.Skip("Skipped: Clusters with external control plane topology Cluster-CSI-Snapshot-Controller-Operator runs on management cluster")
+		}
+
 	})
 
 	g.AfterEach(func() {

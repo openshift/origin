@@ -31,7 +31,13 @@ import (
 // +genclient
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=alertingrules,scope=Namespaced
 // +kubebuilder:subresource:status
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1179
+// +openshift:file-pattern=cvoRunLevel=0000_50,operatorName=monitoring,operatorOrdering=01
+// +openshift:enable:FeatureGate=AlertingRules
+// +kubebuilder:metadata:annotations="description=OpenShift Monitoring alerting rules"
 type AlertingRule struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -230,6 +236,13 @@ type PrometheusRuleRef struct {
 // Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
 // +openshift:compatibility-gen:level=4
 // +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=alertrelabelconfigs,scope=Namespaced
+// +kubebuilder:subresource:status
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1179
+// +openshift:file-pattern=cvoRunLevel=0000_50,operatorName=monitoring,operatorOrdering=02
+// +openshift:enable:FeatureGate=AlertingRules
+// +kubebuilder:metadata:annotations="description=OpenShift Monitoring alert relabel configurations"
 type AlertRelabelConfig struct {
 	metav1.TypeMeta `json:",inline"`
 

@@ -89,6 +89,12 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=users [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-apimachinery] server-side-apply should function properly should clear fields when they are no longer being applied in FeatureGates": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-apimachinery] server-side-apply should function properly should clear fields when they are no longer being applied in built-in APIs": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-apimachinery] server-side-apply should function properly should clear fields when they are no longer being applied on CRDs": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the AlwaysAllow policy": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the IfHealthyBudget policy": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
@@ -223,15 +229,17 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Feature:ClusterUpgrade] Cluster should remain functional during upgrade [Disruptive]": " [Serial]",
 
-	"[sig-arch][Late] all registered tls artifacts must have no metadata violation regressions": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-arch][Late] all tls artifacts must be registered": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-arch][Late] clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-arch][Late] collect certificate data": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-arch][Late] operators should not create watch channels very often [apigroup:apiserver.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-arch][Late][Jira:\"kube-apiserver\"] all registered tls artifacts must have no metadata violation regressions": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-arch][Late][Jira:\"kube-apiserver\"] all tls artifacts must be registered": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-arch][Late][Jira:\"kube-apiserver\"] collect certificate data": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test when enabled": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:Authentication]  TestFrontProxy should succeed": " [Suite:openshift/conformance/parallel]",
 
@@ -941,17 +949,13 @@ var Annotations = map[string]string{
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nginx:1.20-ubi7\" should print the usage": "",
 
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nginx:1.20-ubi8\" should print the usage": "",
-
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:14-ubi7\" should print the usage": "",
+	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nginx:1.20-ubi9\" should print the usage": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:16-ubi8\" should print the usage": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.26-ubi8\" should print the usage": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30-el7\" should print the usage": "",
-
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30-ubi8\" should print the usage": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled returning s2i usage when running the image \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.32-ubi8\" should print the usage": "",
 
@@ -981,17 +985,13 @@ var Annotations = map[string]string{
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/nginx:1.20-ubi7\" should be SCL enabled": "",
 
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/nginx:1.20-ubi8\" should be SCL enabled": "",
-
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:14-ubi7\" should be SCL enabled": "",
+	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/nginx:1.20-ubi9\" should be SCL enabled": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/nodejs:16-ubi8\" should be SCL enabled": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.26-ubi8\" should be SCL enabled": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30-el7\" should be SCL enabled": "",
-
-	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.30-ubi8\" should be SCL enabled": "",
 
 	"[sig-devex][Feature:ImageEcosystem][Slow] openshift images should be SCL enabled using the SCL in s2i images \"image-registry.openshift-image-registry.svc:5000/openshift/perl:5.32-ubi8\" should be SCL enabled": "",
 
@@ -1469,7 +1469,7 @@ var Annotations = map[string]string{
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads in annotated namespaces should be modified if CPUPartitioningMode = AllNodes": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads in non-annotated namespaces should not be allowed if CPUPartitioningMode = AllNodes": " [Suite:openshift/conformance/parallel]",
+	"[sig-node][apigroup:config.openshift.io] CPU Partitioning cluster workloads in non-annotated namespaces should be allowed if CPUPartitioningMode = AllNodes with a warning annotation": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-node][apigroup:config.openshift.io] CPU Partitioning node validation should have correct cpuset and cpushare set in crio containers": " [Suite:openshift/conformance/parallel]",
 

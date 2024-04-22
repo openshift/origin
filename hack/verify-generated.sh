@@ -13,5 +13,6 @@ os::test::junit::declare_suite_start "verify/generated"
 os::cmd::expect_success "${OS_ROOT}/hack/update-generated.sh"
 os::cmd::expect_success "git diff --exit-code ${OS_ROOT}/test/extended/util/annotate/generated/"
 os::cmd::expect_success "git diff --exit-code ${OS_ROOT}/test/extended/util/image/zz_generated.txt"
+os::cmd::expect_success "git diff --exit-code ${OS_ROOT}/zz_generated.manifests"
 
 os::test::junit::declare_suite_end

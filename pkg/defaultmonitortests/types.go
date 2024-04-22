@@ -3,6 +3,8 @@ package defaultmonitortests
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalawscloudservicemonitoring"
+	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalazurecloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/disruptionexternalgcpcloudservicemonitoring"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 	"github.com/sirupsen/logrus"
@@ -16,6 +18,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/authentication/legacyauthenticationmonitortests"
+	"github.com/openshift/origin/pkg/monitortests/authentication/requiredsccmonitortests"
 	azuremetrics "github.com/openshift/origin/pkg/monitortests/cloud/azure/metrics"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/legacycvomonitortests"
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
@@ -112,6 +115,8 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
 	monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("external-gcp-cloud-service-availability", "Test Framework", disruptionexternalgcpcloudservicemonitoring.NewCloudAvailabilityInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("external-aws-cloud-service-availability", "Test Framework", disruptionexternalawscloudservicemonitoring.NewCloudAvailabilityInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("external-azure-cloud-service-availability", "Test Framework", disruptionexternalazurecloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("pathological-event-analyzer", "Test Framework", pathologicaleventanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
 
@@ -142,6 +147,7 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-cvo-invariants", "Cluster Version Operator", legacycvomonitortests.NewLegacyTests())
 	monitorTestRegistry.AddMonitorTestOrDie("operator-state-analyzer", "Cluster Version Operator", operatorstateanalyzer.NewAnalyzer())
+	monitorTestRegistry.AddMonitorTestOrDie("required-scc-annotation-checker", "Cluster Version Operator", requiredsccmonitortests.NewAnalyzer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("etcd-log-analyzer", "etcd", etcdloganalyzer.NewEtcdLogAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("legacy-etcd-invariants", "etcd", legacyetcdmonitortests.NewLegacyTests())

@@ -14,6 +14,14 @@ import (
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:resource:path=configs,scope=Cluster
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/513
+// +openshift:file-pattern=operatorOrdering=00
+// +kubebuilder:metadata:annotations="description=Extension for configuring openshift samples operator."
+// +kubebuilder:metadata:annotations="displayName=ConfigsSamples"
 type Config struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -64,7 +72,30 @@ type ConfigSpec struct {
 	// content but the operator will not recreate(or update) anything
 	// listed here.
 	SkippedTemplates []string `json:"skippedTemplates,omitempty" protobuf:"bytes,6,opt,name=skippedTemplates"`
+
+	// skippedHelmCharts specifies names of helm charts that should NOT be
+	// managed. Admins can use this to allow them to delete content
+	// they don’t want. They will still have to MANUALLY DELETE the
+	// content but the operator will not recreate(or update) anything
+	// listed here. Few examples of the name of helmcharts which can be skipped are
+	// 'redhat-redhat-perl-imagestreams','redhat-redhat-nodejs-imagestreams','redhat-nginx-imagestreams',
+	// 'redhat-redhat-ruby-imagestreams','redhat-redhat-python-imagestreams','redhat-redhat-php-imagestreams',
+	// 'redhat-httpd-imagestreams','redhat-redhat-dotnet-imagestreams'. Rest of the names can be obtained from
+	// openshift console --> helmcharts -->installed helmcharts. This will display the list of all the
+	// 12 helmcharts(of imagestreams)being installed by Samples Operator. The skippedHelmCharts must be a
+	// valid Kubernetes resource name. May contain only lowercase alphanumeric characters, hyphens and periods,
+	// and each period separated segment must begin and end with an alphanumeric character. It must be non-empty
+	// and at most 253 characters in length
+	// +listType=set
+	// +kubebuilder:validation:MaxItems=16
+	// +kubebuilder:validation:XValidation:rule="self.all(x, x.matches('^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$'))",message="skippedHelmCharts must be a valid Kubernetes resource name. May contain only lowercase alphanumeric characters, hyphens and periods, and each period separated segment must begin and end with an alphanumeric character"
+	SkippedHelmCharts []HelmChartName `json:"skippedHelmCharts,omitempty" protobuf:"bytes,7,opt,name=skippedhelmCharts"`
 }
+
+// HelmChartName is a string alias that is used to represent the name of a helm chart.
+// +kubebuilder:validation:MinLength=1
+// +kubebuilder:validation:MaxLength=253
+type HelmChartName string
 
 // ConfigStatus contains the actual configuration in effect, as well as various details
 // that describe the state of the Samples Operator.

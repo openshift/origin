@@ -130,20 +130,20 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 
 	g.By("Fetching the service and checking the annotations are present")
 	serviceName := resources["service"][0]
-	endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+	services, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	o.Expect(endpoints.Annotations).To(o.HaveKey(unidlingapi.IdledAtAnnotation))
-	o.Expect(endpoints.Annotations).To(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
+	o.Expect(services.Annotations).To(o.HaveKey(unidlingapi.IdledAtAnnotation))
+	o.Expect(services.Annotations).To(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
 
 	g.By("Checking the idled-at time")
-	idledAtAnnotation := endpoints.Annotations[unidlingapi.IdledAtAnnotation]
+	idledAtAnnotation := services.Annotations[unidlingapi.IdledAtAnnotation]
 	idledAtTime, err := time.Parse(time.RFC3339, idledAtAnnotation)
 	o.Expect(err).ToNot(o.HaveOccurred())
 	o.Expect(idledAtTime).To(o.BeTemporally("~", time.Now(), 5*time.Minute))
 
 	g.By("Checking the idle targets")
-	unidleTargetAnnotation := endpoints.Annotations[unidlingapi.UnidleTargetAnnotation]
+	unidleTargetAnnotation := services.Annotations[unidlingapi.UnidleTargetAnnotation]
 	unidleTargets := []unidlingapi.RecordedScaleReference{}
 	err = json.Unmarshal([]byte(unidleTargetAnnotation), &unidleTargets)
 	o.Expect(err).ToNot(o.HaveOccurred())

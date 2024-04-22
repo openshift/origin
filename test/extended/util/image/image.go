@@ -24,7 +24,9 @@ var (
 	releasePullSpecInitializationLock sync.RWMutex
 	releasePullSpecInitialized        bool
 	availablePullSpecs                = map[string]string{
-		"cli":   "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest",
+		"cli":         "image-registry.openshift-image-registry.svc:5000/openshift/cli:latest",
+		"must-gather": "image-registry.openshift-image-registry.svc:5000/openshift/must-gather:latest",
+		// tools during transition period, can be on a different rhel level
 		"tools": "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest",
 	}
 	imageRegistryPullSpecRegex = regexp.MustCompile(`image-registry\.openshift-image-registry\.svc:5000\/openshift\/([A-Za-z0-9._-]+)[@:A-Za-z0-9._-]*`)
@@ -178,6 +180,13 @@ the test/extended/util/image/README.md file.`, image))
 // extending an existing image.
 func ShellImage() string {
 	return GetPullSpecForOrPanic("tools")
+}
+
+// MustGatherImage returns a docker pull spec that any pod on the cluster
+// has access to that contains bash and standard commandline tools.
+// This image has oc and must-gather scripts.
+func MustGatherImage() string {
+	return GetPullSpecForOrPanic("must-gather")
 }
 
 // LimitedShellImage returns a docker pull spec that any pod on the cluster
