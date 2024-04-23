@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/nodeaccess"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface) (*AuditLogSummary, error) {
+func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface, beginning, end *time.Time) (*AuditLogSummary, error) {
 	masterOnly, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Exists, nil)
 	if err != nil {
 		panic(err)
@@ -40,8 +41,16 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 		wg.Add(1)
 		go func(ctx context.Context, nodeName string) {
 			defer wg.Done()
-
-			auditLogSummary, err := getNodeKubeAuditLogSummary(ctx, kubeClient, nodeName)
+			var microBeginning, microEnd *metav1.MicroTime
+			if nil != beginning {
+				micro := metav1.NewMicroTime(*beginning)
+				microBeginning = &micro
+			}
+			if nil != end {
+				micro := metav1.NewMicroTime(*end)
+				microEnd = &micro
+			}
+			auditLogSummary, err := getNodeKubeAuditLogSummary(ctx, kubeClient, nodeName, microBeginning, microEnd)
 			if err != nil {
 				errCh <- err
 				return
@@ -63,10 +72,10 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 	return ret, utilerrors.NewAggregate(errs)
 }
 
-func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string) (*AuditLogSummary, error) {
-	return getAuditLogSummary(ctx, client, nodeName, "kube-apiserver")
+func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string, beginning, end *metav1.MicroTime) (*AuditLogSummary, error) {
+	return getAuditLogSummary(ctx, client, nodeName, "kube-apiserver", beginning, end)
 }
-func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName, apiserver string) (*AuditLogSummary, error) {
+func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName, apiserver string, beginning, end *metav1.MicroTime) (*AuditLogSummary, error) {
 	auditLogFilenames, err := getAuditLogFilenames(ctx, client, nodeName, apiserver)
 	if err != nil {
 		return nil, err
@@ -113,6 +122,10 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 				if err := json.Unmarshal(auditLine, auditEvent); err != nil {
 					auditLogSummary.lineReadFailureCount++
 					fmt.Printf("unable to decode %q line %d: %s to audit event: %v\n", auditLogFilename, line, string(auditLine), err)
+					continue
+				}
+
+				if beginning != nil && auditEvent.RequestReceivedTimestamp.Before(beginning) || end != nil && end.Before(&auditEvent.RequestReceivedTimestamp) {
 					continue
 				}
 
