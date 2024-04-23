@@ -634,8 +634,8 @@ github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78 h1:R
 github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/selinux v1.11.0 h1:+5Zbo97w3Lbmb3PeqQtpmTkMwsW5nRI3YaLpt7tQ7oU=
 github.com/opencontainers/selinux v1.11.0/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
-github.com/openshift/api v0.0.0-20240410141538-3c0461467316 h1:YfatsH1e28WTbuNUl3LZl6PKCr6zBaYLR7JSxg+LJSU=
-github.com/openshift/api v0.0.0-20240410141538-3c0461467316/go.mod h1:CxgbWAlvu2iQB0UmKTtRu1YfepRg1/vJ64n2DlIEVz4=
+github.com/openshift/api v0.0.0-20240415140253-c0feb35ae9fb h1:VXw3qKECkLeZFJaNw5XPnAgwn8nCeLe3OeXgGHSzRsU=
+github.com/openshift/api v0.0.0-20240415140253-c0feb35ae9fb/go.mod h1:CxgbWAlvu2iQB0UmKTtRu1YfepRg1/vJ64n2DlIEVz4=
 github.com/openshift/apiserver-library-go v0.0.0-20240313131158-facc40cc7688 h1:E7U+i+BKXjzH1bZsB5a9ueSxF/8QeLxA9ZncCb0vecs=
 github.com/openshift/apiserver-library-go v0.0.0-20240313131158-facc40cc7688/go.mod h1:a6meSr6htNKfmmZ8ixLmnim/JL7NkgW7rX7J2vczMp4=
 github.com/openshift/build-machinery-go v0.0.0-20231128094528-1e9b1b0595c8 h1:cu3YUMVGsKIyFyJGO3F6BZKGYQZpCKxAv9cBPgQAca8=

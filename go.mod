@@ -24,7 +24,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.29.0
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20240410141538-3c0461467316
+	github.com/openshift/api v0.0.0-20240415140253-c0feb35ae9fb
 	github.com/openshift/apiserver-library-go v0.0.0-20240313131158-facc40cc7688
 	github.com/openshift/build-machinery-go v0.0.0-20231128094528-1e9b1b0595c8
 	github.com/openshift/client-go v0.0.0-20240408153607-64bd6feb83ae
@@ -49,6 +49,7 @@ require (
 	golang.org/x/oauth2 v0.10.0
 	golang.org/x/sync v0.5.0
 	google.golang.org/grpc v1.58.3
+	gopkg.in/ini.v1 v1.62.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.29.0
@@ -265,7 +266,6 @@ require (
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/gcfg.v1 v1.2.3 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.2 // indirect
