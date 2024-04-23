@@ -6,6 +6,13 @@ type PKIRegistryInfo struct {
 	CertificateAuthorityBundles []PKIRegistryInClusterCABundle `json:"certificateAuthorityBundles"`
 	// +mapType:=atomic
 	CertKeyPairs []PKIRegistryInClusterCertKeyPair `json:"certKeyPairs"`
+
+	// +mapType:=atomic
+	CertificateAuthorityBundlesOnDisk []OnDiskLocationWithMetadata `json:"certificateAuthorityBundlesOnDisk"`
+	// +mapType:=atomic
+	CertificatesOnDisk []OnDiskLocationWithMetadata `json:"certificatesOnDisk"`
+	// +mapType:=atomic
+	KeysOnDisk []OnDiskLocationWithMetadata `json:"keysOnDisk"`
 }
 
 // PKIRegistryInClusterCertKeyPair identifies certificate key pair and stores its metadata
@@ -60,3 +67,4 @@ type AnnotationValue struct {
 	// Value is the annotation value from the resource
 	Value string `json:"value"`
 }
+
