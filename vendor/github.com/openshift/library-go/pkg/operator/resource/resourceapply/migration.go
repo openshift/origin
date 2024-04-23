@@ -28,10 +28,10 @@ func ApplyStorageVersionMigration(ctx context.Context, client migrationclientv1a
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
-	if !*modified && reflect.DeepEqual(existingCopy.Spec, required.Spec) {
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	if !modified && reflect.DeepEqual(existingCopy.Spec, required.Spec) {
 		return existingCopy, false, nil
 	}
 

@@ -47,7 +47,7 @@ func GatherCertsFromDisk(ctx context.Context, kubeClient kubernetes.Interface, d
 	return pkiList, utilerrors.NewAggregate(errs)
 }
 
-var wellKnownPlatformNamespaces = sets.NewString(
+var wellKnownPlatformNamespaces = sets.New(
 	"openshift",
 	"default",
 	"kube-system",

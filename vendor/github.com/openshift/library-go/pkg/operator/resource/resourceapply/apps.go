@@ -125,12 +125,12 @@ func ApplyDeploymentWithForce(ctx context.Context, client appsclientv1.Deploymen
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	// there was no change to metadata, the generation was right, and we weren't asked for force the deployment
-	if !*modified && existingCopy.ObjectMeta.Generation == expectedGeneration && !forceRollout {
+	if !modified && existingCopy.ObjectMeta.Generation == expectedGeneration && !forceRollout {
 		return existingCopy, false, nil
 	}
 
@@ -212,12 +212,12 @@ func ApplyDaemonSetWithForce(ctx context.Context, client appsclientv1.DaemonSets
 		return nil, false, err
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	// there was no change to metadata, the generation was right, and we weren't asked for force the deployment
-	if !*modified && existingCopy.ObjectMeta.Generation == expectedGeneration && !forceRollout {
+	if !modified && existingCopy.ObjectMeta.Generation == expectedGeneration && !forceRollout {
 		return existingCopy, false, nil
 	}
 

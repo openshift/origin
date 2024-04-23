@@ -80,7 +80,7 @@ func CreateLDAPTestServer(oc *CLI) (svcNs, svcName, svcHostname string, caPem []
 	svcNs = oc.Namespace()
 	svcName = ldapService.Name
 	svcHostname = svcName + "." + svcNs + ".svc"
-	serverCertConfig, err := ca.MakeServerCert(sets.NewString("localhost", "127.0.0.1", svcHostname), 100)
+	serverCertConfig, err := ca.MakeServerCert(sets.New("localhost", "127.0.0.1", svcHostname), 100)
 	if err != nil {
 		return "", "", "", nil, err
 	}

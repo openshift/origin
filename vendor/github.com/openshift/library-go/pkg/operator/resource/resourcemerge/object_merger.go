@@ -36,10 +36,6 @@ func cleanRemovalKeys(required map[string]string) map[string]string {
 	return required
 }
 
-func stringPtr(val string) *string {
-	return &val
-}
-
 func SetString(modified *bool, existing *string, required string) {
 	if required != *existing {
 		*existing = required
@@ -55,15 +51,6 @@ func SetStringIfSet(modified *bool, existing *string, required string) {
 		*existing = required
 		*modified = true
 	}
-}
-
-func setStringPtr(modified *bool, existing **string, required *string) {
-	if *existing == nil || (required == nil && *existing != nil) {
-		*modified = true
-		*existing = required
-		return
-	}
-	SetString(modified, *existing, *required)
 }
 
 func SetStringSlice(modified *bool, existing *[]string, required []string) {
@@ -83,6 +70,7 @@ func SetStringSliceIfSet(modified *bool, existing *[]string, required []string) 
 	}
 }
 
+// Deprecated: Use k8s.io/utils/ptr.To instead.
 func BoolPtr(val bool) *bool {
 	return &val
 }
@@ -92,19 +80,6 @@ func SetBool(modified *bool, existing *bool, required bool) {
 		*existing = required
 		*modified = true
 	}
-}
-
-func setBoolPtr(modified *bool, existing **bool, required *bool) {
-	if *existing == nil || (required == nil && *existing != nil) {
-		*modified = true
-		*existing = required
-		return
-	}
-	SetBool(modified, *existing, *required)
-}
-
-func int64Ptr(val int64) *int64 {
-	return &val
 }
 
 func SetInt32(modified *bool, existing *int32, required int32) {
@@ -127,15 +102,6 @@ func SetInt64(modified *bool, existing *int64, required int64) {
 		*existing = required
 		*modified = true
 	}
-}
-
-func setInt64Ptr(modified *bool, existing **int64, required *int64) {
-	if *existing == nil || (required == nil && *existing != nil) {
-		*modified = true
-		*existing = required
-		return
-	}
-	SetInt64(modified, *existing, *required)
 }
 
 func MergeMap(modified *bool, existing *map[string]string, required map[string]string) {

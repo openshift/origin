@@ -175,6 +175,13 @@ func RewriteNodeIPs(nodeList []*corev1.Node) *metadataOptions {
 					if len(secret.Annotations) == 0 {
 						secret.Annotations = map[string]string{}
 					}
+					// Replace node name from annotation value
+					for key, value := range secret.Annotations {
+						newValue := strings.ReplaceAll(value, nodeName, fmt.Sprintf("<master-%d>", masterID))
+						if value != newValue {
+							secret.Annotations[key] = newValue
+						}
+					}
 					secret.Annotations[rewritePrefix+"RewriteNodeIPs"] = nodeName
 				}
 			}
