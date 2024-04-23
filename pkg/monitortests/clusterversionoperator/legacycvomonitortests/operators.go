@@ -11,8 +11,8 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 
-	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -36,7 +36,14 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 			}
 		}
 
-		return "We are not worried about Available=False or Degraded=True blips for stable-system tests yet.", nil
+		// For TRT-1576, if any operator has Available=False, we should fail the test.
+		// Before merging this, we need to find out what is failing.
+		if condition.Type == configv1.OperatorAvailable {
+			if condition.Status == configv1.ConditionFalse {
+				return "", nil
+			}
+		}
+		return "We are not worried about Degraded=True blips for stable-system tests yet.", nil
 	}
 
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
@@ -55,7 +62,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		}
 
 		if condition.Type == configv1.OperatorDegraded {
-			return "We are not worried about Degraded=True blips for update tests yet.", nil
+			// For TRT-1575, if any operator goes Degraded=True, we should fail the test.
+			// Before merging this, we need to find out what is failing.
+			//return "We are not worried about Degraded=True blips for update tests yet.", nil
+			return "", nil
 		}
 
 		switch operator {
