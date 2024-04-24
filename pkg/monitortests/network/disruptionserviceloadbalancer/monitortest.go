@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -203,6 +204,15 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return fmt.Errorf("error creating PDB: %w", err)
 	}
 
+	// On certain platforms hitting the hostname before it is ready leads to a blackhole, this code checks
+	// the host from the cluster's context
+	if infra.Spec.PlatformSpec.Type == configv1.PowerVSPlatformType || infra.Spec.PlatformSpec.Type == configv1.IBMCloudPlatformType {
+		nodeTgt := "node/" + nodeList.Items[0].ObjectMeta.Name
+		if err := checkHostnameReady(tcpService, nodeTgt); err != nil {
+			return err
+		}
+	}
+
 	// Hit it once before considering ourselves ready
 	fmt.Fprintf(os.Stderr, "hitting pods through the service's LoadBalancer\n")
 	timeout := 10 * time.Minute
@@ -343,4 +353,35 @@ func httpGetNoConnectionPoolTimeout(url string, timeout time.Duration) (*http.Re
 	}
 
 	return client.Get(url)
+}
+
+// Uses the first node in the cluster to verify the LoadBalancer host is active before returning
+func checkHostnameReady(tcpService *corev1.Service, nodeTgt string) error {
+	oc := exutil.NewCLIForMonitorTest(tcpService.GetObjectMeta().GetNamespace())
+
+	var (
+		stdOut string
+		err    error
+	)
+
+	for i := 0; i < 60; i++ {
+		fmt.Printf("Checking load balancer host is active \n")
+		wait.Poll(3*time.Second, 60*time.Second, func() (bool, error) {
+			stdOut, _, err = oc.AsAdmin().WithoutNamespace().RunInMonitorTest("debug").Args(nodeTgt, "--", "dig", "+short", tcpService.Status.LoadBalancer.Ingress[0].Hostname).Outputs()
+			if err != nil {
+				return false, nil
+			}
+			return true, nil
+		})
+
+		output := strings.TrimSpace(stdOut)
+		if output == "" {
+			fmt.Println("waiting for the LB to come active")
+			time.Sleep(1 * time.Minute)
+			continue
+		} else {
+			break
+		}
+	}
+	return nil
 }
