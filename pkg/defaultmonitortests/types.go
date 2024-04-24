@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
+	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/statefulsetsrecreation"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptioningress"
 	"github.com/openshift/origin/pkg/monitortests/network/disruptionpodnetwork"
@@ -118,6 +119,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
 
 	monitorTestRegistry.AddMonitorTestOrDie("monitoring-statefulsets-recreation", "Monitoring", statefulsetsrecreation.NewStatefulsetsChecker())
+	monitorTestRegistry.AddMonitorTestOrDie("metrics-api-availability", "Monitoring", disruptionmetricsapi.NewAvailabilityInvariant())
 
 	return monitorTestRegistry
 }
