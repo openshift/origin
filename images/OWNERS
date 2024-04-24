@@ -1,11 +1,8 @@
 reviewers:
-  - smarterclayton
-  - giuseppe
-  - JacobTanenbaum
-  - pweil-
-  - pecameron
+  - deads2k
   - sdodson
+  - soltysh
 approvers:
-  - smarterclayton
-  - pweil-
+  - deads2k
   - sdodson
+  - soltysh
