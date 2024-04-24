@@ -110,8 +110,12 @@ var _ = g.Describe("[sig-arch][Early] Managed cluster should [apigroup:config.op
 				}
 
 				// For 4.14 onwards the cluster-network-operator is used to prevent upgrades for OpenStack clusters with Kuryr.
-				// This will eventually go away once Kuryr is removed from the product.
+				// For 4.16 onwards the cluster-network-operator is used to prevent upgrades all cluster with OpenShift SDN.
+				// These can eventually go away once Kuryr and OpenShiftSDN are removed from the product.
 				if infra.Get("status.platformStatus.type").String() == "OpenStack" && name == "network" && isNetworkOperatorUpgradableKuryrConfiguredCondition(worstCondition) {
+					continue
+				}
+				if name == "network" && isNetworkOperatorUpgradableOpenShiftSDNConfiguredCondition(worstCondition) {
 					continue
 				}
 
@@ -330,6 +334,13 @@ func isCloudControllerManagerUpgradableNoUpgradeCondition(cond configv1.ClusterO
 // Kuryr SDN is removed from 4.15 and 4.14 CNO blocks upgrades if it's configured.
 func isNetworkOperatorUpgradableKuryrConfiguredCondition(cond configv1.ClusterOperatorStatusCondition) bool {
 	return cond.Reason == "KuryrConfigured" &&
+		cond.Status == "False" &&
+		cond.Type == "Upgradeable"
+}
+
+// OpenShiftSDN is removed from 4.17, and 4.16 CNO blocks upgrades if it's configured.
+func isNetworkOperatorUpgradableOpenShiftSDNConfiguredCondition(cond configv1.ClusterOperatorStatusCondition) bool {
+	return cond.Reason == "OpenShiftSDNConfigured" &&
 		cond.Status == "False" &&
 		cond.Type == "Upgradeable"
 }
