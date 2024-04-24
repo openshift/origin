@@ -503,7 +503,61 @@ type MachineConfigPoolStatus struct {
 	// +listType=atomic
 	// +optional
 	CertExpirys []CertExpiry `json:"certExpirys"`
+
+	// poolSynchronizersStatus is the status of the machines managed by the pool synchronizers.
+	// +openshift:enable:FeatureGate=PinnedImages
+	// +listType=map
+	// +listMapKey=poolSynchronizerType
+	// +optional
+	PoolSynchronizersStatus []PoolSynchronizerStatus `json:"poolSynchronizersStatus,omitempty"`
 }
+
+// +kubebuilder:validation:XValidation:rule="self.machineCount >= self.updatedMachineCount", message="machineCount must be greater than or equal to updatedMachineCount"
+// +kubebuilder:validation:XValidation:rule="self.machineCount >= self.availableMachineCount", message="machineCount must be greater than or equal to availableMachineCount"
+// +kubebuilder:validation:XValidation:rule="self.machineCount >= self.unavailableMachineCount", message="machineCount must be greater than or equal to unavailableMachineCount"
+// +kubebuilder:validation:XValidation:rule="self.machineCount >= self.readyMachineCount", message="machineCount must be greater than or equal to readyMachineCount"
+// +kubebuilder:validation:XValidation:rule="self.availableMachineCount >= self.readyMachineCount", message="availableMachineCount must be greater than or equal to readyMachineCount"
+type PoolSynchronizerStatus struct {
+	// poolSynchronizerType describes the type of the pool synchronizer.
+	// +kubebuilder:validation:Required
+	PoolSynchronizerType PoolSynchronizerType `json:"poolSynchronizerType"`
+	// machineCount is the number of machines that are managed by the node synchronizer.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=0
+	MachineCount int64 `json:"machineCount"`
+	// updatedMachineCount is the number of machines that have been updated by the node synchronizer.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=0
+	UpdatedMachineCount int64 `json:"updatedMachineCount"`
+	// readyMachineCount is the number of machines managed by the node synchronizer that are in a ready state.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=0
+	ReadyMachineCount int64 `json:"readyMachineCount"`
+	// availableMachineCount is the number of machines managed by the node synchronizer which are available.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=0
+	AvailableMachineCount int64 `json:"availableMachineCount"`
+	// unavailableMachineCount is the number of machines managed by the node synchronizer but are unavailable.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=0
+	UnavailableMachineCount int64 `json:"unavailableMachineCount"`
+	// +kubebuilder:validation:XValidation:rule="self >= oldSelf || (self == 0 && oldSelf > 0)", message="observedGeneration must not move backwards except to zero"
+	// observedGeneration is the last generation change that has been applied.
+	// +kubebuilder:validation:Minimum=0
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+}
+
+// PoolSynchronizerType is an enum that describe the type of pool synchronizer. A pool synchronizer is a one or more controllers that
+// manages the on disk state of a set of machines within a pool.
+// +kubebuilder:validation:Enum:="PinnedImageSets"
+// +kubebuilder:validation:MaxLength=256
+type PoolSynchronizerType string
+
+const (
+	// PinnedImageSets represents a pool synchronizer for pinned image sets.
+	PinnedImageSets PoolSynchronizerType = "PinnedImageSets"
+)
 
 // ceryExpiry contains the bundle name and the expiry date
 type CertExpiry struct {
@@ -574,6 +628,14 @@ const (
 
 	// MachineConfigPoolRenderDegraded means the rendered configuration for the pool cannot be generated because of an error
 	MachineConfigPoolRenderDegraded MachineConfigPoolConditionType = "RenderDegraded"
+
+	// MachineConfigPoolPinnedImageSetsDegraded means the pinned image sets for the pool cannot be populated because of an error
+	// +openshift:enable:FeatureGate=PinnedImages
+	MachineConfigPoolPinnedImageSetsDegraded MachineConfigPoolConditionType = "PinnedImageSetsDegraded"
+
+	// MachineConfigPoolSynchronizerDegraded means the pool synchronizer can not be updated because of an error
+	// +openshift:enable:FeatureGate=PinnedImages
+	MachineConfigPoolSynchronizerDegraded MachineConfigPoolConditionType = "PoolSynchronizerDegraded"
 
 	// MachineConfigPoolDegraded is the overall status of the pool based, today, on whether we fail with NodeDegraded or RenderDegraded
 	MachineConfigPoolDegraded MachineConfigPoolConditionType = "Degraded"

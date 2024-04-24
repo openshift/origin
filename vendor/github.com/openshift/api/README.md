@@ -52,7 +52,7 @@ FeatureGateMyFeatureName = newFeatureGate("MyFeatureName").
 			mustRegister()
 ```
 
-### defining tests
+### defining API validation tests
 Tests are logically associated with FeatureGates.
 When adding any FeatureGated functionality a new test file is required.
 The test files are located in `<group>/<version>/tests/<crd-name>/FeatureGate.yaml`:
@@ -86,6 +86,22 @@ react to changes when the FeatureGates are enabled/disabled on various FeatureSe
 
 [`gen-minimal-test.sh`](tests/hack/gen-minimal-test.sh) can still function to stub out files if you don't want to
 copy/paste an existing one.
+
+### defining FeatureGate e2e tests
+
+In order to move an API into the `Default` FeatureSet, it is necessary to demonstrate completeness and reliability.
+E2E tests are the ONLY category of test that automatically prevents regression over time: repository presubmits do NOT provide equivalent protection.
+To confirm this, there is an automated verify script that runs every time a FeatureGate is added to the `Default` FeatureSet.
+The script queries our CI system (sippy/component readiness) to retrieve a list of all automated tests for a given FeatureGate
+and then enforces the following rules.
+1. Tests must contain either `[OCPFeatureGate:<FeatureGateName>]` or the standard upstream `[FeatureGate:<FeatureGateName>]`.
+2. There must be at least five tests for each FeatureGate.
+3. Every test must be run on every TechPreview platform we have jobs for.  (Ask for an exception if your feature doesn't support a variant.)
+4. Every test must run at least 14 times on every platform/variant.
+5. Every test must pass at least 95% of the time on every platform/variant.
+
+If your FeatureGate lacks automated testing, there is an exception process that allows QE to sign off on the promotion by 
+commenting on the PR.
 
 
 ## defining new APIs
