@@ -2022,6 +2022,49 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.config.v1.NetworkStatus
       default: {}
+- name: com.github.openshift.api.config.v1.NetworkDiagnostics
+  map:
+    fields:
+    - name: mode
+      type:
+        scalar: string
+      default: ""
+    - name: sourcePlacement
+      type:
+        namedType: com.github.openshift.api.config.v1.NetworkDiagnosticsSourcePlacement
+      default: {}
+    - name: targetPlacement
+      type:
+        namedType: com.github.openshift.api.config.v1.NetworkDiagnosticsTargetPlacement
+      default: {}
+- name: com.github.openshift.api.config.v1.NetworkDiagnosticsSourcePlacement
+  map:
+    fields:
+    - name: nodeSelector
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.core.v1.Toleration
+          elementRelationship: atomic
+- name: com.github.openshift.api.config.v1.NetworkDiagnosticsTargetPlacement
+  map:
+    fields:
+    - name: nodeSelector
+      type:
+        map:
+          elementType:
+            scalar: string
+    - name: tolerations
+      type:
+        list:
+          elementType:
+            namedType: io.k8s.api.core.v1.Toleration
+          elementRelationship: atomic
 - name: com.github.openshift.api.config.v1.NetworkMigration
   map:
     fields:
@@ -2043,6 +2086,10 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: externalIP
       type:
         namedType: com.github.openshift.api.config.v1.ExternalIPConfig
+    - name: networkDiagnostics
+      type:
+        namedType: com.github.openshift.api.config.v1.NetworkDiagnostics
+      default: {}
     - name: networkType
       type:
         scalar: string
