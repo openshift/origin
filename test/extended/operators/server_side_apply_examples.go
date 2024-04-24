@@ -2,6 +2,15 @@ package operators
 
 import (
 	"context"
+	_ "embed"
+	"encoding/json"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"time"
 
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 
@@ -22,6 +31,33 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 )
 
+var (
+	//go:embed manifests/ssa-with-set/crd-with-ssa-set.yaml
+	ssaWithSet []byte
+	//go:embed manifests/ssa-with-set/new-instance.yaml
+	ssaWithSetNewInstance []byte
+	//go:embed manifests/ssa-with-set/take-ownership-instance.yaml
+	ssaWithSetTakeOwnership []byte
+	//go:embed manifests/ssa-with-set/updated-list.yaml
+	ssaWithSetUpdatedList []byte
+	//go:embed manifests/ssa-with-set/expected-final.yaml
+	ssaWithSetExpectedFinal []byte
+
+	ssaWithSetCRD              *apiextensionsv1.CustomResourceDefinition
+	ssaWithSetNewInstanceObj   *unstructured.Unstructured
+	ssaWithSetTakeOwnershipObj *unstructured.Unstructured
+	ssaWithSetUpdatedListObj   *unstructured.Unstructured
+	ssaWithSetExpectedFinalObj *unstructured.Unstructured
+)
+
+func init() {
+	ssaWithSetCRD = resourceread.ReadCustomResourceDefinitionV1OrDie(ssaWithSet)
+	ssaWithSetNewInstanceObj = resourceread.ReadUnstructuredOrDie(ssaWithSetNewInstance)
+	ssaWithSetTakeOwnershipObj = resourceread.ReadUnstructuredOrDie(ssaWithSetTakeOwnership)
+	ssaWithSetUpdatedListObj = resourceread.ReadUnstructuredOrDie(ssaWithSetUpdatedList)
+	ssaWithSetExpectedFinalObj = resourceread.ReadUnstructuredOrDie(ssaWithSetExpectedFinal)
+}
+
 var _ = g.Describe("[sig-apimachinery]", func() {
 
 	defer g.GinkgoRecover()
@@ -32,6 +68,67 @@ var _ = g.Describe("[sig-apimachinery]", func() {
 	}
 
 	g.Describe("server-side-apply should function properly", func() {
+		g.It("should take ownership of a list set", func() {
+			ctx := context.Background()
+
+			crdClient, err := apiextensionsclientset.NewForConfig(oc.AdminConfig())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			_, err = crdClient.ApiextensionsV1().CustomResourceDefinitions().Create(ctx, ssaWithSetCRD, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			defer func() {
+				err := crdClient.ApiextensionsV1().CustomResourceDefinitions().Delete(context.TODO(), ssaWithSetCRD.Name, metav1.DeleteOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}()
+
+			dynamicClient := oc.AdminDynamicClient()
+			ssaClient := dynamicClient.Resource(schema.GroupVersionResource{
+				Group:    "testing.openshift.io",
+				Version:  "v1",
+				Resource: "ssawithsets",
+			})
+
+			err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 30*time.Second, true,
+				func(ctx context.Context) (bool, error) {
+					_, err := ssaClient.Apply(ctx, ssaWithSetNewInstanceObj.GetName(), ssaWithSetNewInstanceObj, metav1.ApplyOptions{
+						FieldManager: "creator",
+					})
+					if err == nil {
+						return true, nil
+					}
+					if err != nil {
+						framework.Logf("failed to create: %v", err)
+					}
+
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			postApply, err := ssaClient.Apply(ctx, ssaWithSetTakeOwnershipObj.GetName(), ssaWithSetTakeOwnershipObj, metav1.ApplyOptions{
+				FieldManager: "new-owner",
+				Force:        true,
+			})
+			postBytes, _ := json.Marshal(postApply.Object)
+			framework.Logf("after sharing the field\n%v", string(postBytes))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			postApply, err = ssaClient.Apply(ctx, ssaWithSetUpdatedListObj.GetName(), ssaWithSetUpdatedListObj, metav1.ApplyOptions{
+				FieldManager: "new-owner",
+				Force:        true,
+			})
+			postBytes, _ = json.Marshal(postApply.Object)
+			framework.Logf("after trying to replace the field\n%v", string(postBytes))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			actualFinal, err := ssaClient.Get(ctx, ssaWithSetUpdatedListObj.GetName(), metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			actualSpec, _, err := unstructured.NestedMap(actualFinal.Object, "spec")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			expectedSpec, _, err := unstructured.NestedMap(ssaWithSetExpectedFinalObj.Object, "spec")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(actualSpec).To(o.Equal(expectedSpec))
+		})
+
 		g.It("should clear fields when they are no longer being applied on CRDs", func() {
 			ctx := context.Background()
 			isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())

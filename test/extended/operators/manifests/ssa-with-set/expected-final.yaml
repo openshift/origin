@@ -1,0 +1,9 @@
+apiVersion: testing.openshift.io/v1
+kind: SSAWithSet
+metadata:
+  name: foo
+spec:
+  unrelatedField: keep-original-owner
+  setList:
+    - apple
+    - banana

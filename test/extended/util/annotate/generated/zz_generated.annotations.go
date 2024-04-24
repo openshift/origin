@@ -95,6 +95,8 @@ var Annotations = map[string]string{
 
 	"[sig-apimachinery] server-side-apply should function properly should clear fields when they are no longer being applied on CRDs": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-apimachinery] server-side-apply should function properly should take ownership of a list set": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the AlwaysAllow policy": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-apps] poddisruptionbudgets with unhealthyPodEvictionPolicy should evict according to the IfHealthyBudget policy": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
