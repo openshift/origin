@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 
 	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -100,6 +101,21 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "image-registry":
 			if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
 				return "image-registry has only single replica", nil
+			}
+		case "storage":
+			// Allow transitions during upgrade for the cluster-storage-operator for vsphere since it has only 1 replica.
+			configClient, err := configclient.NewForConfig(clientConfig)
+			if err != nil {
+				return "Error creating clientConfig during exception check", err
+			}
+			infrastructure, err := configClient.Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
+			if err != nil {
+				return "Error getting platform type during exception check", err
+			}
+			if infrastructure.Status.PlatformStatus.Type == configv1.VSpherePlatformType {
+				if replicaCount, _ := checkReplicas("openshift-cluster-storage-operator", "cluster-storage-operator", clientConfig); replicaCount == 1 {
+					return "cluster-storage-operator has only single replica", nil
+				}
 			}
 		}
 
