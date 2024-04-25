@@ -174,14 +174,34 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] update failure status", f
 				var build *buildv1.Build
 				wait.PollImmediate(200*time.Millisecond, 30*time.Second, func() (bool, error) {
 					build, err = oc.BuildClient().BuildV1().Builds(oc.Namespace()).Get(context.Background(), br.Build.Name, metav1.GetOptions{})
-					if build.Status.Reason != buildv1.StatusReasonOutOfMemoryKilled {
+					// In 4.15, status reason may be filed as Error rather than OOMKilled
+					// (tracked in https://issues.redhat.com/browse/OCPBUGS-32498) and also there is a similar
+					// discussion in upstream (i.e. https://github.com/kubernetes/kubernetes/issues/119600) which seems to be
+					// fixed in 4.16. Therefore, we need to loosen the check by also relying on the oomkilled exit code 137
+					// to unblock the dependants in 4.15.
+					if build.Status.Reason != buildv1.StatusReasonOutOfMemoryKilled && build.Status.Reason != buildv1.StatusReasonGenericBuildFailed {
 						return false, nil
 					}
 					return true, nil
 				})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(build.Status.Reason).To(o.Equal(buildv1.StatusReasonOutOfMemoryKilled))
-				o.Expect(build.Status.Message).To(o.Equal("The build pod was killed due to an out of memory condition."))
+				o.Expect(build.Status.Reason).To(o.Or(o.Equal(buildv1.StatusReasonOutOfMemoryKilled), o.Equal(buildv1.StatusReasonGenericBuildFailed)))
+				if build.Status.Reason == buildv1.StatusReasonOutOfMemoryKilled {
+					o.Expect(build.Status.Message).To(o.Equal("The build pod was killed due to an out of memory condition."))
+				}
+
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), build.Name+"-build", metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				oomKilledExitCodeFound := false
+				for _, c := range pod.Status.ContainerStatuses {
+					if c.State.Terminated == nil {
+						continue
+					}
+					if c.State.Terminated.ExitCode == 137 {
+						oomKilledExitCodeFound = true
+					}
+				}
+				o.Expect(oomKilledExitCodeFound).To(o.BeTrue())
 
 				exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), br.Build, BuildFailedEventReason, BuildFailedEventMessage)
 			})
