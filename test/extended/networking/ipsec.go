@@ -28,7 +28,9 @@ const (
 	// tcpdumpESPFilter can be used to filter out IPsec packets destined to target node.
 	tcpdumpESPFilter = "esp and src %s and dst %s"
 	// tcpdumpGeneveFilter can be used to filter out Geneve encapsulated packets destined to target node.
-	tcpdumpGeneveFilter          = "udp port 6081 and src %s and dst %s"
+	tcpdumpGeneveFilter = "udp port 6081 and src %s and dst %s"
+	// tcpdumpICMPFilter can be used to filter out icmp packets destined to target node.
+	tcpdumpICMPFilter            = "icmp and src %s and dst %s"
 	masterIPsecMachineConfigName = "80-ipsec-master-extensions"
 	workerIPSecMachineConfigName = "80-ipsec-worker-extensions"
 	ipsecRolloutWaitDuration     = 20 * time.Minute
@@ -82,6 +84,14 @@ var (
 	rightServerCertName = "right_server"
 	// Expiration date for certificates.
 	certExpirationDate = time.Date(2034, time.April, 10, 0, 0, 0, 0, time.UTC)
+)
+
+type trafficType string
+
+const (
+	esp    trafficType = "esp"
+	geneve trafficType = "geneve"
+	icmp   trafficType = "icmp"
 )
 
 // configureIPsecMode helps to rollout specified IPsec Mode on the cluster. If the cluster is already
@@ -247,15 +257,22 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		var config *testConfig
 		// This function helps to generate ping traffic from src pod to dst pod and at the same time captures its
 		// node traffic on both src and dst node.
-		pingAndCheckNodeTraffic := func(src, dst *testNodeConfig, ipsecTraffic bool) error {
+		pingAndCheckNodeTraffic := func(src, dst *testNodeConfig, traffic trafficType) error {
 			tcpDumpSync := errgroup.Group{}
 			pingSync := errgroup.Group{}
+			var srcNodeTrafficFilter string
+			var dstNodeTrafficFilter string
 			// use tcpdump pod's ip address it's a node ip address because it's a hostnetworked pod.
-			srcNodeTrafficFilter := fmt.Sprintf(tcpdumpGeneveFilter, src.tcpdumpPod.Status.PodIP, dst.tcpdumpPod.Status.PodIP)
-			dstNodeTrafficFilter := fmt.Sprintf(tcpdumpGeneveFilter, dst.tcpdumpPod.Status.PodIP, src.tcpdumpPod.Status.PodIP)
-			if ipsecTraffic {
+			switch traffic {
+			case esp:
 				srcNodeTrafficFilter = fmt.Sprintf(tcpdumpESPFilter, src.tcpdumpPod.Status.PodIP, dst.tcpdumpPod.Status.PodIP)
 				dstNodeTrafficFilter = fmt.Sprintf(tcpdumpESPFilter, dst.tcpdumpPod.Status.PodIP, src.tcpdumpPod.Status.PodIP)
+			case geneve:
+				srcNodeTrafficFilter = fmt.Sprintf(tcpdumpGeneveFilter, src.tcpdumpPod.Status.PodIP, dst.tcpdumpPod.Status.PodIP)
+				dstNodeTrafficFilter = fmt.Sprintf(tcpdumpGeneveFilter, dst.tcpdumpPod.Status.PodIP, src.tcpdumpPod.Status.PodIP)
+			case icmp:
+				srcNodeTrafficFilter = fmt.Sprintf(tcpdumpICMPFilter, src.tcpdumpPod.Status.PodIP, dst.tcpdumpPod.Status.PodIP)
+				dstNodeTrafficFilter = fmt.Sprintf(tcpdumpICMPFilter, dst.tcpdumpPod.Status.PodIP, src.tcpdumpPod.Status.PodIP)
 			}
 			checkSrcNodeTraffic := func(src *testNodeConfig) error {
 				_, err := oc.AsAdmin().Run("exec").Args(src.tcpdumpPod.Name, "-n", src.tcpdumpPod.Namespace, "--",
@@ -298,7 +315,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			return nil
 		}
 
-		setupTestPods := func(config *testConfig) error {
+		setupTestPods := func(config *testConfig, isHostNetwork bool) error {
 			tcpdumpImage, err := exutil.DetermineImageFromRelease(oc, "network-tools")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			createSync := errgroup.Group{}
@@ -310,6 +327,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				}
 				config.srcNodeConfig.pingPod = e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "ipsec-test-srcpod-", func(p *corev1.Pod) {
 					p.Spec.NodeName = config.srcNodeConfig.nodeName
+					p.Spec.HostNetwork = isHostNetwork
 				})
 				return err
 			})
@@ -321,6 +339,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				}
 				config.dstNodeConfig.pingPod = e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "ipsec-test-dstpod-", func(p *corev1.Pod) {
 					p.Spec.NodeName = config.dstNodeConfig.nodeName
+					p.Spec.HostNetwork = isHostNetwork
 				})
 				return err
 			})
@@ -343,8 +362,8 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			config.dstNodeConfig.tcpdumpPod = nil
 		}
 
-		checkForGeneveOnlyTraffic := func(config *testConfig) {
-			err := setupTestPods(config)
+		checkForGeneveOnlyPodTraffic := func(config *testConfig) {
+			err := setupTestPods(config, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
 				// Don't cleanup test pods in error scenario.
@@ -353,14 +372,16 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				}
 				cleanupTestPods(config)
 			}()
-			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, false)
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, geneve)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, true)
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, esp)
+			o.Expect(err).To(o.HaveOccurred())
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
 			o.Expect(err).To(o.HaveOccurred())
 		}
 
-		checkForESPOnlyTraffic := func(config *testConfig) {
-			err := setupTestPods(config)
+		checkForESPOnlyPodTraffic := func(config *testConfig) {
+			err := setupTestPods(config, false)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer func() {
 				// Don't cleanup test pods in error scenario.
@@ -369,17 +390,39 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				}
 				cleanupTestPods(config)
 			}()
-			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, true)
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, esp)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, false)
+			err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, geneve)
 			o.Expect(err).To(o.HaveOccurred())
 		}
 
-		checkTraffic := func(mode v1.IPsecMode) {
+		checkPodTraffic := func(mode v1.IPsecMode) {
 			if mode == v1.IPsecModeFull {
-				checkForESPOnlyTraffic(config)
+				checkForESPOnlyPodTraffic(config)
 			} else {
-				checkForGeneveOnlyTraffic(config)
+				checkForGeneveOnlyPodTraffic(config)
+			}
+		}
+
+		checkNodeTraffic := func(mode v1.IPsecMode) {
+			err := setupTestPods(config, true)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			defer func() {
+				// Don't cleanup test pods in error scenario.
+				if err != nil && !framework.TestContext.DeleteNamespaceOnFailure {
+					return
+				}
+				cleanupTestPods(config)
+			}()
+			if mode == v1.IPsecModeFull || mode == v1.IPsecModeExternal {
+				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, esp)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
+				o.Expect(err).To(o.HaveOccurred())
+				return
+			} else {
+				err = pingAndCheckNodeTraffic(config.srcNodeConfig, config.dstNodeConfig, icmp)
+				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
 
@@ -450,40 +493,42 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
 		})
 
-		g.DescribeTable("check traffic between local pod to a remote pod [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func(mode v1.IPsecMode) {
+		g.DescribeTable("check traffic for east west IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func(mode v1.IPsecMode) {
 			o.Expect(config).NotTo(o.BeNil())
-			g.By("validate pod traffic before changing IPsec configuration")
-			// Ensure pod traffic is working with right encapsulation before rolling out IPsec configuration.
-			checkTraffic(config.ipsecMode)
-			g.By(fmt.Sprintf("configure IPsec in %s mode and validate pod traffic", mode))
+			g.By("validate traffic before changing IPsec configuration")
+			checkPodTraffic(config.ipsecMode)
+			// This test does not enable N/S ipsec config, so node traffic behaves as it were disabled
+			checkNodeTraffic(v1.IPsecModeDisabled)
+			g.By(fmt.Sprintf("configure IPsec in %s mode and validate traffic", mode))
 			err := configureIPsecMode(oc, mode)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			waitForIPsecConfigToComplete(oc, mode)
-			// Ensure pod traffic is working with right encapsulation after rolling out IPsec configuration.
-			checkTraffic(mode)
+			checkPodTraffic(mode)
+			// This test does not enable N/S ipsec config, so node traffic behaves as it were disabled
+			checkNodeTraffic(v1.IPsecModeDisabled)
 		},
 			g.Entry("with IPsec in full mode", v1.IPsecModeFull),
 			g.Entry("with IPsec in external mode", v1.IPsecModeExternal),
 			g.Entry("with IPsec in disabled mode", v1.IPsecModeDisabled),
 		)
 
-		// This test checks pod traffic to verify that N/S ipsec is enabled, and this wouldn't work to verify
-		// a working N/S ipsec in Full ipsec mode as in that case pod traffic would be encrypted anyway
-		// due to E/W ipsec configuration.
-		g.It("validate node traffic is IPsec encrypted for corresponding IPsec north south configuration [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func() {
+		g.DescribeTable("check traffic for north south IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func(mode v1.IPsecMode) {
 			o.Expect(config).NotTo(o.BeNil())
 
-			g.By("validate pod traffic before changing IPsec configuration")
-			// Ensure pod traffic is working before rolling out IPsec configuration.
-			checkTraffic(config.ipsecMode)
+			g.By("validate traffic before changing IPsec configuration")
+			checkPodTraffic(config.ipsecMode)
+			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
+			checkNodeTraffic(v1.IPsecModeDisabled)
 
-			g.By("configure IPsec in External mode")
+			g.By(fmt.Sprintf("configure IPsec in %s mode and validate traffic", mode))
 			// Change IPsec mode to External and packet capture on the node's interface
 			// must be geneve encapsulated ones.
-			err := configureIPsecMode(oc, v1.IPsecModeExternal)
+			err := configureIPsecMode(oc, mode)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			waitForIPsecConfigToComplete(oc, v1.IPsecModeExternal)
-			checkForGeneveOnlyTraffic(config)
+			waitForIPsecConfigToComplete(oc, mode)
+			checkPodTraffic(mode)
+			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
+			checkNodeTraffic(v1.IPsecModeDisabled)
 
 			g.By("configure IPsec certs on the worker nodes")
 			// The certificates in the Machine Config has validity period of 120 months starting from April 11, 2024.
@@ -527,8 +572,13 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			waitForIPsecNSConfigApplied()
 
 			g.By("validate IPsec traffic between nodes")
-			checkForESPOnlyTraffic(config)
-		})
+			// Pod traffic will be encrypted as a result N/S encryption being enabled between this two nodes
+			checkPodTraffic(v1.IPsecModeFull)
+			checkNodeTraffic(mode)
+		},
+			g.Entry("with IPsec in full mode", v1.IPsecModeFull),
+			g.Entry("with IPsec in external mode", v1.IPsecModeExternal),
+		)
 	})
 })
 
