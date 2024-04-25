@@ -22,7 +22,7 @@ import (
 
 // NewE2EPrometheusRouterClient returns a Prometheus HTTP API client configured to
 // use the Prometheus route host, a bearer token, and no certificate verification.
-func NewE2EPrometheusRouterClient(oc *util.CLI) (prometheusv1.API, error) {
+func NewE2EPrometheusRouterClient(ctx context.Context, oc *util.CLI) (prometheusv1.API, error) {
 	kubeClient := oc.AdminKubeClient()
 	routeClient := oc.AdminRouteClient()
 
@@ -45,7 +45,10 @@ func NewE2EPrometheusRouterClient(oc *util.CLI) (prometheusv1.API, error) {
 		return nil, err
 	}
 
-	token := promHelpers.GetPrometheusSABearerToken(oc)
+	token, err := promHelpers.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+	if err != nil {
+		return nil, err
+	}
 
 	// prometheus API client, configured for route host and bearer token auth, and no cert verification
 	client, err := api.NewClient(api.Config{

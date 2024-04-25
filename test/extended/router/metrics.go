@@ -9,31 +9,26 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	dto "github.com/prometheus/client_model/go"
-	"github.com/prometheus/common/expfmt"
-
-	authenticationv1 "k8s.io/api/authentication/v1"
-	corev1 "k8s.io/api/core/v1"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
-	clientset "k8s.io/client-go/kubernetes"
-	watchtools "k8s.io/client-go/tools/watch"
-	e2e "k8s.io/kubernetes/test/e2e/framework"
-	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
-	admissionapi "k8s.io/pod-security-admission/api"
-
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/prometheus"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/common/expfmt"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	admissionapi "k8s.io/pod-security-admission/api"
 )
 
 var _ = g.Describe("[sig-network][Feature:Router]", func() {
@@ -261,19 +256,21 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			o.Expect(results).To(o.ContainSubstring("# runtime.MemStats"))
 		})
 
-		g.It("should enable openshift-monitoring to pull metrics", func() {
-			prometheusURL, token, exists := locatePrometheus(oc)
-			if !exists {
+		g.It("should enable openshift-monitoring to pull metrics", func(ctx g.SpecContext) {
+			url, err := prometheus.PrometheusServiceURL(ctx, oc)
+			if errors.IsNotFound(err) {
 				g.Skip("prometheus not found on this cluster")
 			}
-
+			o.Expect(err).NotTo(o.HaveOccurred(), "Get url of prometheus service")
+			token, err := prometheus.RequestPrometheusServiceAccountAPIToken(ctx, oc)
+			o.Expect(err).NotTo(o.HaveOccurred(), "Request prometheus service account API token")
 			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
 			defer func() {
-				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+				_ = oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
 			}()
 
 			o.Expect(wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
-				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", prometheusURL), token)
+				contents, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/targets?state=active", url), token)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				targets := &promTargets{}
@@ -335,48 +332,6 @@ func (t *promTargets) Expect(l promLabels, health, scrapeURLPattern string) erro
 		return nil
 	}
 	return fmt.Errorf("no match for %v with health %s and scrape URL %s", l, health, scrapeURLPattern)
-}
-
-func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountName string, timeout time.Duration) error {
-	w, err := c.CoreV1().ServiceAccounts(ns).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: serviceAccountName}))
-	if err != nil {
-		return err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	_, err = watchtools.UntilWithoutRetry(ctx, w, exutil.ServiceAccountHasSecrets)
-	return err
-}
-
-func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
-	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
-	if kapierrs.IsNotFound(err) {
-		return "", "", false
-	}
-
-	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
-	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, secret := range secrets.Items {
-			if secret.Type != corev1.SecretTypeServiceAccountToken {
-				continue
-			}
-			if !strings.HasPrefix(secret.Name, "prometheus-") {
-				continue
-			}
-			bearerToken = string(secret.Data[corev1.ServiceAccountTokenKey])
-			break
-		}
-		if len(bearerToken) == 0 {
-			e2e.Logf("Waiting for prometheus service account secret to show up")
-			time.Sleep(time.Second)
-			continue
-		}
-	}
-	o.Expect(bearerToken).ToNot(o.BeEmpty())
-
-	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
 func findMetricsWithLabels(f *dto.MetricFamily, promLabels map[string]string) []*dto.Metric {

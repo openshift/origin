@@ -25,14 +25,14 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		earlyTimeStamp = time.Now()
 	})
 
-	g.It("leader changes are not excessive [Late]", func() {
+	g.It("leader changes are not excessive [Late]", func(ctx g.SpecContext) {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
 			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
 		}
 
-		prometheus, err := client.NewE2EPrometheusRouterClient(oc)
+		prometheus, err := client.NewE2EPrometheusRouterClient(ctx, oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// we only consider series sent since the beginning of the test
