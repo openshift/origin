@@ -14,6 +14,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
+// TODO: Remove this test if/when the JenkinsPipeline build strategy is removed.
+// JenkinsPipeline builds have been deprecated since OCP 4.3.
 var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins][Feature:Builds][sig-devex][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 
@@ -21,6 +23,15 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 		oc               = exutil.NewCLIWithPodSecurityLevel("jenkins-pipeline", admissionapi.LevelBaseline)
 		j                *jenkins.JenkinsRef
 		simplePipelineBC = exutil.FixturePath("testdata", "builds", "simple-pipeline-bc.yaml")
+
+		// jenkinsTemplate is an in-tree OpenShift Template to deploy Jenkins. It was initially derived from the openshift/jenkins template for release-4.14.
+		// This template should be updated as needed for subsequent OpenShift releases.
+		jenkinsTemplate = exutil.FixturePath("testdata", "builds", "jenkins-pipeline", "jenkins-ephemeral.json")
+
+		// jenkinsImageStream is an in-tree ImageStream manifest that imports the official Red Hat Build of Jenkins image.
+		// This was derived from the imagestream for release-4.14, and should be updated as needed for subsequent OpenShift releases.
+		// Jenkins image tags align with the supported OCP version, though older versions can often run just fine on newer OCP for this test.
+		jenkinsImageStream = exutil.FixturePath("testdata", "builds", "jenkins-pipeline", "jenkins-rhel.yaml")
 
 		cleanup = func() {
 			if g.CurrentSpecReport().Failed() {
@@ -32,12 +43,23 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 		setupJenkins = func() {
 			exutil.PreTestDump()
 
-			// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
-			newAppArgs := []string{"jenkins-ephemeral", "-p", "MEMORY_LIMIT=2Gi", "-p", "DISABLE_ADMINISTRATIVE_MONITORS=true"}
+			g.By("deploying Jenkins with OpenShift template")
 
-			g.By(fmt.Sprintf("calling oc new-app with %#v", newAppArgs))
+			// Deploy Jenkins using the in-tree template. Parameters are tuned to increase the
+			// default memory limit, disable admin monitors, and use the test namespace's Jenkins
+			// imagestream.
+			newAppArgs := []string{"--file",
+				jenkinsTemplate,
+				"-p",
+				"MEMORY_LIMIT=2Gi",
+				"-p",
+				"DISABLE_ADMINISTRATIVE_MONITORS=true",
+				"-p",
+				fmt.Sprintf("NAMESPACE=%s", oc.Namespace()),
+			}
+
 			err := oc.Run("new-app").Args(newAppArgs...).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(err).NotTo(o.HaveOccurred(), "failed to deploy Jenkins with oc new-app %#v", newAppArgs)
 
 			g.By("waiting for jenkins deployment")
 			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), "jenkins", 1, false, oc)
@@ -89,6 +111,14 @@ var _ = g.Describe("[sig-builds][Feature:JenkinsRHELImagesOnly][Feature:Jenkins]
 	g.Context("", func() {
 
 		g.Describe("jenkins pipeline build config strategy", func() {
+
+			g.BeforeEach(func() {
+				// Create the Jenkins imagestream in the test namespace. This ensures the test does
+				// not depend on the Samples Operator.
+				err := oc.Run("apply").Args("-f", jenkinsImageStream).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred(), "error creating the imagestream for Jenkins")
+			})
+
 			g.It("using a jenkins instance launched with the ephemeral template [apigroup:build.openshift.io]", func() {
 				defer cleanup()
 				setupJenkins()
