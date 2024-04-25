@@ -22,10 +22,10 @@ import (
 
 // exceptionCallback consumes a suspicious condition and returns an
 // exception string if does not think the condition should be fatal.
-type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, clientConfig *rest.Config) (string, error)
+type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) (string, error)
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ *rest.Config) (string, error) {
+	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, _ *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
@@ -49,8 +49,50 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
 }
 
+// isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
+func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.Interval) bool {
+	type upgradeWindow struct {
+		startInterval *monitorapi.Interval
+		endInterval   *monitorapi.Interval
+	}
+
+	var upgradeWindows []upgradeWindow
+	var currentWindow *upgradeWindow
+
+	// Scan through the event list to define all upgrade windows.
+	for _, event := range eventList {
+		if event.Source != monitorapi.SourceKubeEvent || event.StructuredLocator.Keys[monitorapi.LocatorClusterVersionKey] != "cluster" {
+			continue
+		}
+
+		reason := string(event.StructuredMessage.Reason)
+		if reason == "UpgradeStarted" || reason == "UpgradeRollback" {
+			currentWindow = &upgradeWindow{startInterval: &event}
+			upgradeWindows = append(upgradeWindows, *currentWindow)
+		} else if reason == "UpgradeCompleted" {
+			if currentWindow != nil && currentWindow.endInterval == nil {
+				// Close the current window with an end time
+				currentWindow.endInterval = &event
+			}
+		}
+	}
+
+	// Check if eventInterval.From falls within any of the defined upgrade windows.
+	for _, upgradeWindow := range upgradeWindows {
+		if eventInterval.From.After(upgradeWindow.startInterval.From) {
+
+			// upgrade windows without an end time are assumed to have no end.
+			if upgradeWindow.endInterval == nil || eventInterval.From.Before(upgradeWindow.endInterval.From) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, clientConfig *rest.Config) (string, error) {
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
@@ -68,6 +110,14 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			return "", nil
 		}
 
+		if condition.Status == configv1.ConditionFalse {
+			if condition.Type == configv1.OperatorAvailable {
+				if !isInUpgradeWindow(events, eventInterval) {
+					// This operator went Available=False outside of an upgrade window.
+					return "", nil
+				}
+			}
+		}
 		switch operator {
 		case "authentication":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
@@ -226,7 +276,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				if len(clientConfig) > 0 {
 					Config = clientConfig[0]
 				}
-				exception, err := except(operatorName, condition, Config)
+				exception, err := except(operatorName, condition, eventInterval, Config)
 				if err != nil || exception == "" {
 					fatal = append(fatal, failure)
 				} else {
