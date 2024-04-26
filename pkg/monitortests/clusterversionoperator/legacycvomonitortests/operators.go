@@ -36,8 +36,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 			}
 		}
 
-		// For TRT-1576, if any operator has Available=False, we should fail the test.
-		// Before merging this, we need to find out what is failing.
+		// For the non-upgrade case, if any operator has Available=False, fail the test.
 		if condition.Type == configv1.OperatorAvailable {
 			if condition.Status == configv1.ConditionFalse {
 				return "", nil
@@ -50,6 +49,8 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 }
 
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
+// If we don't find any upgrade starting point, we assume the eventInterval is not in an upgrade window.
+// If we don't find any upgrade ending point, we assume the ending point is at the end of the test.
 func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.Interval) bool {
 	type upgradeWindow struct {
 		startInterval *monitorapi.Interval
@@ -104,10 +105,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		}
 
 		if condition.Type == configv1.OperatorDegraded {
-			// For TRT-1575, if any operator goes Degraded=True, we should fail the test.
-			// Before merging this, we need to find out what is failing.
-			//return "We are not worried about Degraded=True blips for update tests yet.", nil
-			return "", nil
+			return "We are not worried about Degraded=True blips for update tests yet.", nil
 		}
 
 		if condition.Status == configv1.ConditionFalse {
