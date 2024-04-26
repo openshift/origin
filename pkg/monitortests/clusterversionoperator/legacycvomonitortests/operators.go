@@ -163,8 +163,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "image-registry has only single replica", nil
 			}
 		case "storage":
-			// Until https://issues.redhat.com/browse/OCPBUGS-29126 is addressed, we'll allow
-			// transitions during upgrade for the cluster-storage-operator for vsphere.
+			// Allow transitions during upgrade for the cluster-storage-operator for vsphere since it has only 1 replica.
 			configClient, err := configclient.NewForConfig(clientConfig)
 			if err != nil {
 				return "Error creating clientConfig", err
