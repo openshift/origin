@@ -14,6 +14,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -34,6 +35,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 		exampleGemfile     = exutil.FixturePath("testdata", "builds", "test-build-app", "Gemfile")
 		exampleBuild       = exutil.FixturePath("testdata", "builds", "test-build-app")
 		symlinkFixture     = exutil.FixturePath("testdata", "builds", "test-symlink-build.yaml")
+		webhookRoleBinding = exutil.FixturePath("testdata", "builds", "webhook", "webhooks-unauth.yaml")
 		exampleGemfileURL  = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
 		exampleArchiveURL  = "https://github.com/openshift/ruby-hello-world/archive/master.zip"
 		oc                 = exutil.NewCLIWithPodSecurityLevel("cli-start-build", admissionapi.LevelBaseline)
@@ -409,6 +411,20 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 			})
 
 			g.Describe("start a build via a webhook", func() {
+
+				// API-509: Webhooks do not allow unauthenticated requests by default.
+				// Create a role binding which allows unauthenticated webhooks.
+				g.BeforeEach(func() {
+					ctx := context.Background()
+					_, err := oc.AdminAuthorizationClient().AuthorizationV1().RoleBindings(oc.Namespace()).Get(ctx, "webooks-unauth", metav1.GetOptions{})
+					if apierrors.IsNotFound(err) {
+						err = oc.AsAdmin().Run("apply").Args("-f", webhookRoleBinding).Execute()
+						o.Expect(err).NotTo(o.HaveOccurred(), "creating webhook role binding")
+						return
+					}
+					o.Expect(err).NotTo(o.HaveOccurred(), "checking if webhook role binding exists")
+				})
+
 				g.It("should be able to start builds via the webhook with valid secrets and fail with invalid secrets [apigroup:build.openshift.io]", func() {
 					g.By("clearing existing builds")
 					_, err := oc.Run("delete").Args("builds", "--all").Output()

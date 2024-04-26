@@ -183,6 +183,7 @@
 // test/extended/testdata/builds/webhook/github/testdata/pushevent.json
 // test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json
 // test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json
+// test/extended/testdata/builds/webhook/webhooks-unauth.yaml
 // test/extended/testdata/cli/test-release-image-references.json
 // test/extended/testdata/cluster/master-vert.yaml
 // test/extended/testdata/cluster/quickstarts/cakephp-mysql.json
@@ -24475,6 +24476,40 @@ func testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson() (*asset, err
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsWebhookWebhooksUnauthYaml = []byte(`apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  name: webhooks-unauth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:webhook
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:authenticated
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:unauthenticated
+`)
+
+func testExtendedTestdataBuildsWebhookWebhooksUnauthYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsWebhookWebhooksUnauthYaml, nil
+}
+
+func testExtendedTestdataBuildsWebhookWebhooksUnauthYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsWebhookWebhooksUnauthYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/webhook/webhooks-unauth.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -54970,6 +55005,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/webhook/github/testdata/pushevent.json":                                   testExtendedTestdataBuildsWebhookGithubTestdataPusheventJson,
 	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent-not-master-branch.json":                 testExtendedTestdataBuildsWebhookGitlabTestdataPusheventNotMasterBranchJson,
 	"test/extended/testdata/builds/webhook/gitlab/testdata/pushevent.json":                                   testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson,
+	"test/extended/testdata/builds/webhook/webhooks-unauth.yaml":                                             testExtendedTestdataBuildsWebhookWebhooksUnauthYaml,
 	"test/extended/testdata/cli/test-release-image-references.json":                                          testExtendedTestdataCliTestReleaseImageReferencesJson,
 	"test/extended/testdata/cluster/master-vert.yaml":                                                        testExtendedTestdataClusterMasterVertYaml,
 	"test/extended/testdata/cluster/quickstarts/cakephp-mysql.json":                                          testExtendedTestdataClusterQuickstartsCakephpMysqlJson,
@@ -55602,6 +55638,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 								"pushevent.json":                   {testExtendedTestdataBuildsWebhookGitlabTestdataPusheventJson, map[string]*bintree{}},
 							}},
 						}},
+						"webhooks-unauth.yaml": {testExtendedTestdataBuildsWebhookWebhooksUnauthYaml, map[string]*bintree{}},
 					}},
 				}},
 				"cli": {nil, map[string]*bintree{
