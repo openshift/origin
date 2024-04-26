@@ -12,6 +12,7 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	v1 "k8s.io/api/rbac/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -416,6 +417,13 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					builds, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).List(context.Background(), metav1.ListOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(builds.Items).To(o.BeEmpty())
+
+					_, err = oc.KubeClient().RbacV1().RoleBindings(oc.Namespace()).Create(context.TODO(), &v1.RoleBinding{
+						ObjectMeta: metav1.ObjectMeta{Name: "anon", Namespace: oc.Namespace()},
+						Subjects:   []v1.Subject{{Kind: "Group", APIGroup: "rbac.authorization.k8s.io", Name: "system:unauthenticated"}},
+						RoleRef:    v1.RoleRef{APIGroup: "rbac.authorization.k8s.io", Kind: "ClusterRole", Name: "system:webhook"},
+					}, metav1.CreateOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("getting the api server host")
 					out, err := oc.WithoutNamespace().Run("status").Args().Output()
