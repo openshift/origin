@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
 
 	configv1 "github.com/openshift/api/config/v1"
-	configclient "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
@@ -110,12 +109,30 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 
 		if condition.Status == configv1.ConditionFalse {
 			if condition.Type == configv1.OperatorAvailable {
-				if !isInUpgradeWindow(events, eventInterval) {
-					// This operator went Available=False outside of an upgrade window.
+
+				// Available=False is expected for single replica operators during an upgrade window.
+				// Only image-registry and storage are known to be single replica operators.
+				var knownSingleReplicaOperator = false
+				switch operator {
+				case "image-registry":
+					if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
+						knownSingleReplicaOperator = true
+					}
+				case "storage":
+					if replicaCount, _ := checkReplicas("openshift-cluster-storage-operator", "cluster-storage-operator", clientConfig); replicaCount == 1 {
+						knownSingleReplicaOperator = true
+					}
+				}
+				if knownSingleReplicaOperator && isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute {
+					return fmt.Sprintf("%s has only single replica, Available=False is for < 10 minutes and within an upgrade window ", operator), nil
+				} else {
+
+					// For all other operators, if Available=False, fail the test.
 					return "", nil
 				}
 			}
 		}
+
 		switch operator {
 		case "authentication":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
@@ -159,21 +176,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "image-registry":
 			if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
 				return "image-registry has only single replica", nil
-			}
-		case "storage":
-			// Allow transitions during upgrade for the cluster-storage-operator for vsphere since it has only 1 replica.
-			configClient, err := configclient.NewForConfig(clientConfig)
-			if err != nil {
-				return "Error creating clientConfig", err
-			}
-			infrastructure, err := configClient.Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
-			if err != nil {
-				return "Error getting platform type", err
-			}
-			if infrastructure.Status.PlatformStatus.Type == configv1.VSpherePlatformType {
-				if replicaCount, _ := checkReplicas("openshift-cluster-storage-operator", "cluster-storage-operator", clientConfig); replicaCount == 1 {
-					return "cluster-storage-operator has only single replica", nil
-				}
 			}
 		}
 
