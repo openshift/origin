@@ -2,7 +2,8 @@ package dataloader
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
+	"os"
 )
 
 type DataType = string
@@ -60,5 +61,8 @@ func WriteDataFile(filename string, dataFile DataFile) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, jsonContent, 0644)
+	if err := os.WriteFile(filename, jsonContent, 0644); err != nil {
+		return fmt.Errorf("failed to write %v: %w", filename, err)
+	}
+	return nil
 }

@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 )
 
 // TODO find  way to create a registry of these based on struct mapping or some such that forces users to get this right
@@ -84,7 +85,15 @@ func ApplyConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGetter, r
 
 // ApplySecret merges objectmeta, requires data
 func ApplySecret(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, required *corev1.Secret) (*corev1.Secret, bool, error) {
-	return ApplySecretImproved(ctx, client, recorder, required, noCache)
+	return applySecretImproved(ctx, client, recorder, required, noCache, false)
+}
+
+// ApplySecretDoNotUse is depreated and will be removed
+// Deprecated: DO NOT USE, it is intended as a short term hack for a very specific use case,
+// and it works in tandem with a particular carry patch applied to the openshift kube-apiserver.
+// Use ApplySecret instead.
+func ApplySecretDoNotUse(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, required *corev1.Secret) (*corev1.Secret, bool, error) {
+	return applySecretImproved(ctx, client, recorder, required, noCache, true)
 }
 
 // ApplyNamespace merges objectmeta, does not worry about anything else
@@ -106,11 +115,11 @@ func ApplyNamespaceImproved(ctx context.Context, client coreclientv1.NamespacesG
 		return existing, false, nil
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
-	if !*modified {
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	if !modified {
 		cache.UpdateCachedResourceMetadata(required, existingCopy)
 		return existingCopy, false, nil
 	}
@@ -153,12 +162,12 @@ func ApplyServiceImproved(ctx context.Context, client coreclientv1.ServicesGette
 		return existing, false, nil
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
 	// This will catch also changes between old `required.spec` and current `required.spec`, because
 	// the annotation from SetSpecHashAnnotation will be different.
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	selectorSame := equality.Semantic.DeepEqual(existingCopy.Spec.Selector, required.Spec.Selector)
 
 	typeSame := false
@@ -168,7 +177,7 @@ func ApplyServiceImproved(ctx context.Context, client coreclientv1.ServicesGette
 		typeSame = true
 	}
 
-	if selectorSame && typeSame && !*modified {
+	if selectorSame && typeSame && !modified {
 		cache.UpdateCachedResourceMetadata(required, existingCopy)
 		return existingCopy, false, nil
 	}
@@ -205,11 +214,11 @@ func ApplyPodImproved(ctx context.Context, client coreclientv1.PodsGetter, recor
 		return existing, false, nil
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
-	if !*modified {
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	if !modified {
 		cache.UpdateCachedResourceMetadata(required, existingCopy)
 		return existingCopy, false, nil
 	}
@@ -243,11 +252,11 @@ func ApplyServiceAccountImproved(ctx context.Context, client coreclientv1.Servic
 		return existing, false, nil
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
-	if !*modified {
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	if !modified {
 		cache.UpdateCachedResourceMetadata(required, existingCopy)
 		return existingCopy, false, nil
 	}
@@ -279,22 +288,31 @@ func ApplyConfigMapImproved(ctx context.Context, client coreclientv1.ConfigMapsG
 		return existing, false, nil
 	}
 
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 
+	// injected by cluster-network-operator: https://github.com/openshift/cluster-network-operator/blob/acc819ee0f3424a341b9ad4e1e83ca0a742c230a/docs/architecture.md?L192#configmap-ca-injector
 	caBundleInjected := required.Labels["config.openshift.io/inject-trusted-cabundle"] == "true"
 	_, newCABundleRequired := required.Data["ca-bundle.crt"]
 
+	// injected by service-ca-operator: https://github.com/openshift/service-ca-operator/blob/f409fb9e308ace1e5f8596add187d2239b073e23/README.md#openshift-service-ca-operator
+	serviceCAInjected := required.Annotations["service.beta.openshift.io/inject-cabundle"] == "true"
+	_, newServiceCARequired := required.Data["service-ca.crt"]
+
 	var modifiedKeys []string
 	for existingCopyKey, existingCopyValue := range existingCopy.Data {
-		// if we're injecting a ca-bundle and the required isn't forcing the value, then don't use the value of existing
+		// if we're injecting a ca-bundle or a service-ca and the required isn't forcing the value, then don't use the value of existing
 		// to drive a diff detection. If required has set the value then we need to force the value in order to have apply
 		// behave predictably.
 		if caBundleInjected && !newCABundleRequired && existingCopyKey == "ca-bundle.crt" {
 			continue
 		}
+		if serviceCAInjected && !newServiceCARequired && existingCopyKey == "service-ca.crt" {
+			continue
+		}
+
 		if requiredValue, ok := required.Data[existingCopyKey]; !ok || (existingCopyValue != requiredValue) {
 			modifiedKeys = append(modifiedKeys, "data."+existingCopyKey)
 		}
@@ -316,7 +334,7 @@ func ApplyConfigMapImproved(ctx context.Context, client coreclientv1.ConfigMapsG
 	}
 
 	dataSame := len(modifiedKeys) == 0
-	if dataSame && !*modified {
+	if dataSame && !modified {
 		cache.UpdateCachedResourceMetadata(required, existingCopy)
 		return existingCopy, false, nil
 	}
@@ -347,6 +365,10 @@ func ApplyConfigMapImproved(ctx context.Context, client coreclientv1.ConfigMapsG
 
 // ApplySecret merges objectmeta, requires data
 func ApplySecretImproved(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, requiredInput *corev1.Secret, cache ResourceCache) (*corev1.Secret, bool, error) {
+	return applySecretImproved(ctx, client, recorder, requiredInput, cache, false)
+}
+
+func applySecretImproved(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, requiredInput *corev1.Secret, cache ResourceCache, updateOnly bool) (*corev1.Secret, bool, error) {
 	// copy the stringData to data.  Error on a data content conflict inside required.  This is usually a bug.
 
 	existing, err := client.Secrets(requiredInput.Namespace).Get(ctx, requiredInput.Name, metav1.GetOptions{})
@@ -386,7 +408,7 @@ func ApplySecretImproved(ctx context.Context, client coreclientv1.SecretsGetter,
 
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(resourcemerge.BoolPtr(false), &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(ptr.To(false), &existingCopy.ObjectMeta, required.ObjectMeta)
 
 	switch required.Type {
 	case corev1.SecretTypeServiceAccountToken:
@@ -426,6 +448,12 @@ func ApplySecretImproved(ctx context.Context, client coreclientv1.SecretsGetter,
 	 * https://github.com/kubernetes/kubernetes/blob/98e65951dccfd40d3b4f31949c2ab8df5912d93e/pkg/apis/core/validation/validation.go#L5048
 	 * We need to explicitly opt for delete+create in that case.
 	 */
+	if updateOnly {
+		actual, err = client.Secrets(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
+		reportUpdateEvent(recorder, existingCopy, err)
+		return actual, err == nil, err
+	}
+
 	if existingCopy.Type == existing.Type {
 		actual, err = client.Secrets(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
 		reportUpdateEvent(recorder, existingCopy, err)
@@ -457,7 +485,7 @@ func SyncConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGetter, re
 
 // SyncPartialConfigMap does what SyncConfigMap does but it only synchronizes a subset of keys given by `syncedKeys`.
 // SyncPartialConfigMap will delete the target if `syncedKeys` are set but the source does not contain any of these keys.
-func SyncPartialConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, syncedKeys sets.String, ownerRefs []metav1.OwnerReference) (*corev1.ConfigMap, bool, error) {
+func SyncPartialConfigMap(ctx context.Context, client coreclientv1.ConfigMapsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, syncedKeys sets.Set[string], ownerRefs []metav1.OwnerReference) (*corev1.ConfigMap, bool, error) {
 	source, err := client.ConfigMaps(sourceNamespace).Get(ctx, sourceName, metav1.GetOptions{})
 	switch {
 	case apierrors.IsNotFound(err):
@@ -518,7 +546,7 @@ func SyncSecret(ctx context.Context, client coreclientv1.SecretsGetter, recorder
 
 // SyncPartialSecret does what SyncSecret does but it only synchronizes a subset of keys given by `syncedKeys`.
 // SyncPartialSecret will delete the target if `syncedKeys` are set but the source does not contain any of these keys.
-func SyncPartialSecret(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, syncedKeys sets.String, ownerRefs []metav1.OwnerReference) (*corev1.Secret, bool, error) {
+func SyncPartialSecret(ctx context.Context, client coreclientv1.SecretsGetter, recorder events.Recorder, sourceNamespace, sourceName, targetNamespace, targetName string, syncedKeys sets.Set[string], ownerRefs []metav1.OwnerReference) (*corev1.Secret, bool, error) {
 	source, err := client.Secrets(sourceNamespace).Get(ctx, sourceName, metav1.GetOptions{})
 	switch {
 	case apierrors.IsNotFound(err):

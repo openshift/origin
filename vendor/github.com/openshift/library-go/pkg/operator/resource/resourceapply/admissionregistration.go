@@ -48,13 +48,13 @@ func ApplyMutatingWebhookConfigurationImproved(ctx context.Context, client admis
 	}
 
 	required := requiredOriginal.DeepCopy()
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	copyMutatingWebhookCABundle(existing, required)
 	webhooksEquivalent := equality.Semantic.DeepEqual(existingCopy.Webhooks, required.Webhooks)
-	if webhooksEquivalent && !*modified {
+	if webhooksEquivalent && !modified {
 		// need to store the original so that the early comparison of hashes is done based on the original, not a mutated copy
 		cache.UpdateCachedResourceMetadata(requiredOriginal, existingCopy)
 		return existingCopy, false, nil
@@ -123,13 +123,13 @@ func ApplyValidatingWebhookConfigurationImproved(ctx context.Context, client adm
 	}
 
 	required := requiredOriginal.DeepCopy()
-	modified := resourcemerge.BoolPtr(false)
+	modified := false
 	existingCopy := existing.DeepCopy()
 
-	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	resourcemerge.EnsureObjectMeta(&modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	copyValidatingWebhookCABundle(existing, required)
 	webhooksEquivalent := equality.Semantic.DeepEqual(existingCopy.Webhooks, required.Webhooks)
-	if webhooksEquivalent && !*modified {
+	if webhooksEquivalent && !modified {
 		// need to store the original so that the early comparison of hashes is done based on the original, not a mutated copy
 		cache.UpdateCachedResourceMetadata(requiredOriginal, existingCopy)
 		return existingCopy, false, nil

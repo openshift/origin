@@ -8,25 +8,22 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	promv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	v1 "k8s.io/api/core/v1"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	clientset "k8s.io/client-go/kubernetes"
-	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 )
@@ -95,124 +92,62 @@ func GetURLWithToken(url, bearerToken string) (string, error) {
 	return string(body), nil
 }
 
-func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountName string, timeout time.Duration) error {
-	w, err := c.CoreV1().ServiceAccounts(ns).Watch(context.Background(), metav1.SingleObject(metav1.ObjectMeta{Name: serviceAccountName}))
+const (
+	namespace      = "openshift-monitoring"
+	prometheusName = "prometheus-k8s"
+	thanosName     = "thanos-querier"
+	serviceAccount = prometheusName
+)
+
+// PrometheusServiceURL returns the url of the cluster prometheus service or an error if the service is not found.
+func PrometheusServiceURL(ctx context.Context, oc *exutil.CLI) (string, error) {
+	svc, err := oc.AdminKubeClient().CoreV1().Services(namespace).Get(ctx, prometheusName, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return "", fmt.Errorf("unable to get the %s service in the %s namespace: %w", prometheusName, namespace, err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	_, err = watchtools.UntilWithoutRetry(ctx, w, exutil.ServiceAccountHasSecrets)
-	return err
+	i := slices.IndexFunc(svc.Spec.Ports, func(port corev1.ServicePort) bool { return port.Name == "web" })
+	return fmt.Sprintf("https://%s.%s.svc:%d", svc.Name, svc.Namespace, svc.Spec.Ports[i].Port), nil
 }
 
-// LocatePrometheus uses an existing CLI to return information used to make http requests to Prometheus.
-func LocatePrometheus(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken string, ok bool) {
-	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
-	if kapierrs.IsNotFound(err) {
-		return "", "", "", false
-	}
-
-	bearerToken = GetPrometheusSABearerToken(oc)
-
-	return "https://thanos-querier.openshift-monitoring.svc:9091", "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
-}
-
-// LocatePrometheusUsingRoutes uses an existing CLI to return routes used to make http requests to Prometheus.
-func LocatePrometheusUsingRoutes(oc *exutil.CLI) (queryURL, prometheusURL, bearerToken string, ok bool) {
-	_, err := oc.AdminKubeClient().CoreV1().Services("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
-	if kapierrs.IsNotFound(err) {
-		return "", "", "", false
-	}
-
-	bearerToken = GetPrometheusSABearerToken(oc)
-
-	thanosRoute, err := oc.AsAdmin().RouteClient().RouteV1().Routes("openshift-monitoring").Get(context.Background(), "thanos-querier", metav1.GetOptions{})
+// ThanosQuerierServiceURL returns the url of the thanos querier service or an error if the service is not found.
+func ThanosQuerierServiceURL(ctx context.Context, oc *exutil.CLI) (string, error) {
+	svc, err := oc.AdminKubeClient().CoreV1().Services(namespace).Get(ctx, thanosName, metav1.GetOptions{})
 	if err != nil {
-		return "", "", "", false
+		return "", fmt.Errorf("unable to get the %s service in the %s namespace: %w", thanosName, namespace, err)
 	}
-	queryURL = "https://" + thanosRoute.Status.Ingress[0].Host
+	i := slices.IndexFunc(svc.Spec.Ports, func(port corev1.ServicePort) bool { return port.Name == "web" })
+	return fmt.Sprintf("https://%s.%s.svc:%d", svc.Name, svc.Namespace, svc.Spec.Ports[i].Port), nil
+}
 
-	prometheusRoute, err := oc.AsAdmin().RouteClient().RouteV1().Routes("openshift-monitoring").Get(context.Background(), "prometheus-k8s", metav1.GetOptions{})
+// PrometheusRouteURL returns the public url of the cluster prometheus service or an error if the route is not found.
+func PrometheusRouteURL(ctx context.Context, oc *exutil.CLI) (string, error) {
+	rte, err := oc.AsAdmin().RouteClient().RouteV1().Routes(namespace).Get(ctx, prometheusName, metav1.GetOptions{})
 	if err != nil {
-		return "", "", "", false
+		return "", fmt.Errorf("unable to get the %s route in the %s namespace: %w", prometheusName, namespace, err)
 	}
-	prometheusURL = "https://" + prometheusRoute.Status.Ingress[0].Host
-
-	return queryURL, prometheusURL, bearerToken, true
+	return "https://" + rte.Status.Ingress[0].Host, nil
 }
 
-func GetPrometheusSABearerToken(oc *exutil.CLI) string {
-	var bearerToken string
-	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "openshift-monitoring", "prometheus-k8s", 2*time.Minute)
-	for i := 0; i < 30; i++ {
-		secrets, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-monitoring").List(context.Background(), metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, secret := range secrets.Items {
-			if secret.Type != v1.SecretTypeServiceAccountToken {
-				continue
-			}
-			if !strings.HasPrefix(secret.Name, "prometheus-k8s-token") {
-				continue
-			}
-			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
-			break
-		}
-		if len(bearerToken) == 0 {
-			framework.Logf("Waiting for prometheus service account secret to show up")
-			time.Sleep(time.Second)
-			continue
-		}
+// ThanosQuerierRouteURL returns the public url of the thanos querier service or an error if the route is not found.
+func ThanosQuerierRouteURL(ctx context.Context, oc *exutil.CLI) (string, error) {
+	rte, err := oc.AsAdmin().RouteClient().RouteV1().Routes(namespace).Get(ctx, thanosName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("unable to get the %s route in the %s namespace: %w", thanosName, namespace, err)
 	}
-	o.Expect(bearerToken).ToNot(o.BeEmpty())
-	return bearerToken
+	return "https://" + rte.Status.Ingress[0].Host, nil
 }
 
-type MetricCondition struct {
-	// TODO: Remove in favor of explicit fields
-	Selector map[string]string
-
-	AlertName      string
-	AlertNamespace string
-	AlertLevel     string
-
-	// Text is the description of why this alert condition matched.
-	Text string
-
-	Matches func(sample *model.Sample) bool
-}
-
-type MetricConditions []MetricCondition
-
-func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
-	for i, condition := range c {
-		matches := true
-		for name, value := range condition.Selector {
-			if sample.Metric[model.LabelName(name)] != model.LabelValue(value) {
-				matches = false
-				break
-			}
-		}
-		if matches && (condition.Matches == nil || condition.Matches(sample)) {
-			return &c[i]
-		}
+// RequestPrometheusServiceAccountAPIToken returns a time-bound (24hr) API token for the prometheus service account.
+func RequestPrometheusServiceAccountAPIToken(ctx context.Context, oc *exutil.CLI) (string, error) {
+	expirationSeconds := int64(24 * time.Hour / time.Second)
+	req, err := oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace).CreateToken(ctx, serviceAccount,
+		&authenticationv1.TokenRequest{
+			Spec: authenticationv1.TokenRequestSpec{ExpirationSeconds: &expirationSeconds},
+		}, metav1.CreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf("unable to get an API token for the %s service account in the %s namespace: %w", serviceAccount, namespace, err)
 	}
-	return nil
-}
-
-func (c MetricConditions) MatchesInterval(alertInterval monitorapi.Interval) *MetricCondition {
-
-	// TODO: Source check for SourceAlert would be a good idea here.
-
-	checkAlertName := alertInterval.Locator.Keys[monitorapi.LocatorAlertKey]
-	checkAlertNamespace := alertInterval.Locator.Keys[monitorapi.LocatorNamespaceKey]
-
-	for _, condition := range c {
-		if checkAlertName == condition.AlertName && checkAlertNamespace == condition.AlertNamespace {
-			return &condition
-		}
-	}
-	return nil
+	return req.Status.Token, nil
 }
 
 func RunQuery(ctx context.Context, prometheusClient prometheusv1.API, query string) (*PrometheusResponse, error) {
@@ -381,7 +316,7 @@ func ExpectPrometheusEndpoint(url string) {
 // FetchAlertingRules fetchs all alerting rules from the Prometheus at
 // the given URL using the given bearer token.  The results are returned
 // as a map of group names to lists of alerting rules.
-func FetchAlertingRules(promURL, bearerToken string) (map[string][]promv1.AlertingRule, error) {
+func FetchAlertingRules(promURL, bearerToken string) (map[string][]prometheusv1.AlertingRule, error) {
 	url := fmt.Sprintf("%s/api/v1/rules", promURL)
 	contents, err := GetURLWithToken(url, bearerToken)
 	if err != nil {
@@ -389,21 +324,21 @@ func FetchAlertingRules(promURL, bearerToken string) (map[string][]promv1.Alerti
 	}
 
 	var result struct {
-		Status string             `json:"status"`
-		Data   promv1.RulesResult `json:"data"`
+		Status string                   `json:"status"`
+		Data   prometheusv1.RulesResult `json:"data"`
 	}
 	if err := json.Unmarshal([]byte(contents), &result); err != nil {
 		return nil, fmt.Errorf("unable to parse response %q from %s: %v", contents, url, err)
 	}
 
-	alertingRules := make(map[string][]promv1.AlertingRule)
+	alertingRules := make(map[string][]prometheusv1.AlertingRule)
 
 	for _, rg := range result.Data.Groups {
 		for _, r := range rg.Rules {
 			switch v := r.(type) {
-			case promv1.RecordingRule:
+			case prometheusv1.RecordingRule:
 				continue
-			case promv1.AlertingRule:
+			case prometheusv1.AlertingRule:
 				alertingRules[rg.Name] = append(alertingRules[rg.Name], v)
 			default:
 				return nil, fmt.Errorf("unexpected rule of type %T", r)
@@ -463,7 +398,7 @@ func QueryURL(rawURL string, timeout time.Duration) error {
 // function.  The function takes the alerting rule, and returns a set of
 // violations, which maye be empty or nil.  If after all rules are
 // checked, there are any violations, an error is returned.
-func ForEachAlertingRule(rules map[string][]promv1.AlertingRule, f func(a promv1.AlertingRule) sets.String) error {
+func ForEachAlertingRule(rules map[string][]prometheusv1.AlertingRule, f func(a prometheusv1.AlertingRule) sets.String) error {
 	allViolations := sets.NewString()
 
 	for group, alerts := range rules {

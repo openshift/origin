@@ -6,7 +6,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	utilpointer "k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 // EnsureCustomResourceDefinitionV1Beta1 ensures that the existing matches the required.
@@ -63,6 +63,6 @@ func crd_SetDefaults_CustomResourceDefinitionSpec(obj *apiextensionsv1.CustomRes
 
 func crd_SetDefaults_ServiceReference(obj *apiextensionsv1.ServiceReference) {
 	if obj.Port == nil {
-		obj.Port = utilpointer.Int32Ptr(443)
+		obj.Port = ptr.To[int32](443)
 	}
 }

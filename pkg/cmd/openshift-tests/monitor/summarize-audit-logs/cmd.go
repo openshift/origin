@@ -55,7 +55,7 @@ func (o auditLogSummaryOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	auditLogSummary, err := auditloganalyzer2.GetKubeAuditLogSummary(ctx, kubeClient)
+	auditLogSummary, err := auditloganalyzer2.GetKubeAuditLogSummary(ctx, kubeClient, nil, nil)
 	if err != nil {
 		return err
 	}

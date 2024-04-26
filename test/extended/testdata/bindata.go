@@ -91,6 +91,8 @@
 // test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile
 // test/extended/testdata/builds/docker-add/docker-add-env/foo
 // test/extended/testdata/builds/incremental-auth-build.json
+// test/extended/testdata/builds/jenkins-pipeline/jenkins-ephemeral.json
+// test/extended/testdata/builds/jenkins-pipeline/jenkins-rhel.yaml
 // test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml
 // test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml
 // test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
@@ -18511,6 +18513,492 @@ func testExtendedTestdataBuildsIncrementalAuthBuildJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsJenkinsPipelineJenkinsEphemeralJson = []byte(`{
+  "kind": "Template",
+  "apiVersion": "template.openshift.io/v1",
+  "metadata": {
+    "name": "jenkins-ephemeral",
+    "annotations": {
+      "openshift.io/display-name": "Jenkins (Ephemeral)",
+      "description": "Jenkins service, without persistent storage.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
+      "iconClass": "icon-jenkins",
+      "tags": "instant-app,jenkins",
+      "openshift.io/long-description": "This template deploys a Jenkins server capable of managing OpenShift Pipeline builds and supporting OpenShift-based oauth login.  The Jenkins configuration is stored in non-persistent storage, so this configuration should be used for experimental purposes only.",
+      "openshift.io/provider-display-name": "Red Hat, Inc.",
+      "openshift.io/documentation-url": "https://docs.okd.io/latest/using_images/other_images/jenkins.html",
+      "openshift.io/support-url": "https://access.redhat.com"
+    }
+  },
+  "message": "A Jenkins service has been created in your project.  Log into Jenkins with your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md contains more information about using this template.",
+  "labels": {
+    "app": "jenkins-ephemeral",
+    "template": "jenkins-ephemeral-template"
+  },
+  "objects": [
+    {
+      "kind": "Route",
+      "apiVersion": "route.openshift.io/v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}",
+          "haproxy.router.openshift.io/timeout": "4m"
+        }
+      },
+      "spec": {
+        "to": {
+          "kind": "Service",
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "tls": {
+          "termination": "edge",
+          "insecureEdgeTerminationPolicy": "Redirect"
+        }
+      }
+    },
+    {
+      "kind": "ConfigMap",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}-trusted-ca-bundle",
+        "labels": {
+          "config.openshift.io/inject-trusted-cabundle": "true"
+        }
+      }
+    },
+    {
+      "kind": "DeploymentConfig",
+      "apiVersion": "apps.openshift.io/v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
+      },
+      "spec": {
+        "strategy": {
+          "type": "Recreate"
+        },
+        "triggers": [
+          {
+            "type": "ImageChange",
+            "imageChangeParams": {
+              "automatic": true,
+              "containerNames": [
+                "jenkins"
+              ],
+              "from": {
+                "kind": "ImageStreamTag",
+                "name": "${JENKINS_IMAGE_STREAM_TAG}",
+                "namespace": "${NAMESPACE}"
+              },
+              "lastTriggeredImage": ""
+            }
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "replicas": 1,
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "name": "${JENKINS_SERVICE_NAME}"
+            }
+          },
+          "spec": {
+            "serviceAccountName": "${JENKINS_SERVICE_NAME}",
+            "containers": [
+              {
+                "name": "jenkins",
+                "image": " ",
+                "readinessProbe": {
+                  "timeoutSeconds": 240,
+                  "initialDelaySeconds": 3,
+                  "httpGet": {
+                    "path": "/login",
+                    "port": 8080
+                  }
+                },
+                "livenessProbe": {
+                  "timeoutSeconds": 240,
+                  "periodSeconds": 360,
+                  "initialDelaySeconds": 420,
+                  "failureThreshold": 2,
+                  "httpGet": {
+                    "path": "/login",
+                    "port": 8080
+                  }
+                },
+                "env": [
+                  {
+                    "name": "OPENSHIFT_ENABLE_OAUTH",
+                    "value": "${ENABLE_OAUTH}"
+                  },
+                  {
+                    "name": "OPENSHIFT_ENABLE_REDIRECT_PROMPT",
+                    "value": "true"
+                  },
+                  {
+                    "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+                    "value": "${DISABLE_ADMINISTRATIVE_MONITORS}"
+                  },
+                  {
+                    "name": "KUBERNETES_MASTER",
+                    "value": "https://kubernetes.default:443"
+                  },
+                  {
+                    "name": "KUBERNETES_TRUST_CERTIFICATES",
+                    "value": "true"
+                  },
+                  {
+                    "name": "JENKINS_SERVICE_NAME",
+                    "value": "${JENKINS_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "JNLP_SERVICE_NAME",
+                    "value": "${JNLP_SERVICE_NAME}"
+                  },
+                  {
+                    "name": "JENKINS_UC_INSECURE",
+                    "value": "${JENKINS_UC_INSECURE}"
+                  },
+                  {
+                    "name": "CASC_JENKINS_CONFIG",
+                    "value": "/var/lib/jenkins/proxy.yaml"
+                  },
+                  {
+                    "name": "JAVA_FIPS_OPTIONS",
+                    "value": "${JAVA_FIPS_OPTIONS}"
+                  }
+                ],
+                "resources": {
+                  "limits": {
+                    "memory": "${MEMORY_LIMIT}"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "${JENKINS_SERVICE_NAME}-data",
+                    "mountPath": "/var/lib/jenkins"
+                  },
+                  {
+                    "name": "${JENKINS_SERVICE_NAME}-trusted-ca-bundle",
+                    "mountPath": "/etc/pki/ca-trust/source/anchors"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "imagePullPolicy": "IfNotPresent",
+                "capabilities": {},
+                "securityContext": {
+                  "capabilities": {},
+                  "privileged": false
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "${JENKINS_SERVICE_NAME}-data",
+                "emptyDir": {
+                  "medium": ""
+                }
+              },
+              {
+                "name": "${JENKINS_SERVICE_NAME}-trusted-ca-bundle",
+                "configMap": {
+                  "name": "${JENKINS_SERVICE_NAME}-trusted-ca-bundle",
+                  "optional": true
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "dnsPolicy": "ClusterFirst"
+          }
+        }
+      }
+    },
+    {
+      "kind": "ServiceAccount",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "annotations": {
+          "serviceaccounts.openshift.io/oauth-redirectreference.jenkins": "{\"kind\":\"OAuthRedirectReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"Route\",\"name\":\"${JENKINS_SERVICE_NAME}\"}}"
+        }
+      }
+    },
+    {
+      "kind": "RoleBinding",
+      "apiVersion": "authorization.openshift.io/v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}_edit"
+      },
+      "groupNames": null,
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "${JENKINS_SERVICE_NAME}"
+        }
+      ],
+      "roleRef": {
+        "name": "edit"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JNLP_SERVICE_NAME}"
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "agent",
+            "protocol": "TCP",
+            "port": 50000,
+            "targetPort": 50000,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      }
+    },
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${JENKINS_SERVICE_NAME}",
+        "annotations": {
+          "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
+          "service.openshift.io/infrastructure": "true"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "web",
+            "protocol": "TCP",
+            "port": 80,
+            "targetPort": 8080,
+            "nodePort": 0
+          }
+        ],
+        "selector": {
+          "name": "${JENKINS_SERVICE_NAME}"
+        },
+        "type": "ClusterIP",
+        "sessionAffinity": "None"
+      }
+    }
+  ],
+  "parameters": [
+    {
+      "name": "JENKINS_SERVICE_NAME",
+      "displayName": "Jenkins Service Name",
+      "description": "The name of the OpenShift Service exposed for the Jenkins container.",
+      "value": "jenkins"
+    },
+    {
+      "name": "JNLP_SERVICE_NAME",
+      "displayName": "Jenkins JNLP Service Name",
+      "description": "The name of the service used for master/slave communication.",
+      "value": "jenkins-jnlp"
+    },
+    {
+      "name": "ENABLE_OAUTH",
+      "displayName": "Enable OAuth in Jenkins",
+      "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
+      "value": "true"
+    },
+    {
+      "name": "MEMORY_LIMIT",
+      "displayName": "Memory Limit",
+      "description": "Maximum amount of memory the container can use.",
+      "value": "1Gi"
+    },
+    {
+      "name": "NAMESPACE",
+      "displayName": "Jenkins ImageStream Namespace",
+      "description": "The OpenShift Namespace where the Jenkins ImageStream resides.",
+      "value": "openshift"
+    },
+    {
+      "name": "DISABLE_ADMINISTRATIVE_MONITORS",
+      "displayName": "Disable memory intensive administrative monitors",
+      "description": "Whether to perform memory intensive, possibly slow, synchronization with the Jenkins Update Center on start.  If true, the Jenkins core update monitor and site warnings monitor are disabled.",
+      "value": "false"
+    },
+    {
+      "name": "JAVA_FIPS_OPTIONS",
+      "displayName": "Allows control over how the JVM interacts with FIPS on startup.",
+      "description": "See https://access.redhat.com/documentation/en-us/openjdk/11/html-single/configuring_openjdk_11_on_rhel_with_fips/index#config-fips-in-openjdk for the available command line properties to facilitate the JVM running on FIPS nodes.",
+      "value": "-Dcom.redhat.fips=false"
+    },
+    {
+      "name": "JENKINS_IMAGE_STREAM_TAG",
+      "displayName": "Jenkins ImageStreamTag",
+      "description": "Name of the ImageStreamTag to be used for the Jenkins image.",
+      "value": "jenkins:2"
+    },
+    {
+      "name": "JENKINS_UC_INSECURE",
+      "displayName": "Allows use of Jenkins Update Center repository with invalid SSL certificate",
+      "description": "Whether to allow use of a Jenkins Update Center that uses invalid certificate (self-signed, unknown CA). If any value other than 'false', certificate check is bypassed. By default, certificate check is enforced.",
+      "value": "false"
+    },
+    {
+      "name": "AGENT_BASE_IMAGE",
+      "displayName": "Image used for the 'jnlp' container of the sample 'java-sidecar' and 'nodejs-sidecar' PodTemplates",
+      "description": "Setting this value overrides the image used for the 'jnlp' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'jenkins-agent-base:latest' ImageStreamTag in the 'openshift' namespace is used.",
+      "value": "image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-base:latest"
+    },
+    {
+      "name": "JAVA_BUILDER_IMAGE",
+      "displayName": "Image used for the 'java' container of the sample 'java-builder' PodTemplate",
+      "description": "Setting this value overrides the image used for the 'java-builder' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'java:latest' ImageStreamTag in the 'openshift' namespace is used.",
+      "value": "image-registry.openshift-image-registry.svc:5000/openshift/java:latest"
+    },
+    {
+      "name": "NODEJS_BUILDER_IMAGE",
+      "displayName": "Image used for the 'nodejs' container of the sample 'nodejs-builder' PodTemplate",
+      "description": "Setting this value overrides the image used for the 'nodejs-builder' container in the sample kubernetes plug-in PodTemplates provided with this image.  Otherwise, the image from the 'nodejs:latest' ImageStreamTag in the 'openshift' namespace is used.",
+      "value": "image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest"
+    }
+  ]
+}
+`)
+
+func testExtendedTestdataBuildsJenkinsPipelineJenkinsEphemeralJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsJenkinsPipelineJenkinsEphemeralJson, nil
+}
+
+func testExtendedTestdataBuildsJenkinsPipelineJenkinsEphemeralJson() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsJenkinsPipelineJenkinsEphemeralJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/jenkins-pipeline/jenkins-ephemeral.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsJenkinsPipelineJenkinsRhelYaml = []byte(`kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: jenkins
+  annotations:
+    openshift.io/display-name: Jenkins
+spec:
+  tags:
+    - name: latest
+      annotations:
+        openshift.io/display-name: Jenkins (Latest)
+        openshift.io/provider-display-name: Red Hat, Inc.
+        description: |-
+          Provides a Jenkins server from registry.redhat.io. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.
+
+          WARNING: By selecting this tag, your application will automatically update to use the latest version of Jenkins available on OpenShift, including major versions updates.
+        iconClass: icon-jenkins
+        tags: jenkins
+      from:
+        kind: ImageStreamTag
+        name: "2"
+      referencePolicy:
+        type: Local
+    - name: ocp-upgrade-redeploy
+      annotations:
+        openshift.io/display-name: Jenkins (Latest)
+        openshift.io/provider-display-name: Red Hat, Inc.
+        description:
+          Provides a Jenkins 2.X server from registry.redhat.io. For more information about
+          using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.
+          This tag will will redeploy the Jenkins DeploymentConfig on an upgrade in OCP versions if the Jenkins image reference has changed.
+        iconClass: icon-jenkins
+        tags: jenkins
+      from:
+        kind: ImageStreamTag
+        name: "2"
+      referencePolicy:
+        type: Local
+    - name: "2"
+      annotations:
+        openshift.io/display-name: Jenkins 2.X
+        openshift.io/provider-display-name: Red Hat, Inc.
+        description:
+          Provides a Jenkins 2.X server from registry.redhat.io. For more information about
+          using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.
+          This tag will will redeploy the Jenkins DeploymentConfig on an upgrade in OCP versions if the Jenkins image reference has changed.
+        iconClass: icon-jenkins
+        tags: jenkins
+        version: 2.x
+      from:
+        kind: DockerImage
+        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0-1686682222
+      referencePolicy:
+        type: Local
+    - name: "user-maintained-upgrade-redeploy"
+      annotations:
+        openshift.io/display-name: Jenkins 2.X
+        openshift.io/provider-display-name: Red Hat, Inc.
+        description:
+          Provides a Jenkins 2.X server from registry.redhat.io. For more information about
+          using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.
+          This tag will will redeploy the Jenkins DeploymentConfig on an upgrade in OCP versions if the Jenkins image reference has changed.
+          A user must invoke 'oc import-image jenkins:user-maintained-upgrade-redeploy -n openshift' in order for the ImageStream controller
+          to pull the latest digest for the image tag, and if a new digest exists, any running Jenkins DeploymentConfig will redeploy.
+        iconClass: icon-jenkins
+        tags: jenkins
+        version: 2.x
+      from:
+        kind: DockerImage
+        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0
+      referencePolicy:
+        type: Local
+    - name: "scheduled-upgrade-redeploy"
+      annotations:
+        openshift.io/display-name: Jenkins 2.X
+        openshift.io/provider-display-name: Red Hat, Inc.
+        description:
+          Provides a Jenkins 2.X server from registry.redhat.io. For more information about
+          using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.
+          This tag will will redeploy the Jenkins DeploymentConfig on an upgrade in OCP versions if the Jenkins image reference has changed.
+          OpenShift will periodically check to ensure that the latest digest for this image tag is imported. If an update occurs, any running
+          Jenkins DeploymentConfig will redeploy.
+        iconClass: icon-jenkins
+        tags: jenkins
+        version: 2.x
+      from:
+        kind: DockerImage
+        name: registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.13.0
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Local
+`)
+
+func testExtendedTestdataBuildsJenkinsPipelineJenkinsRhelYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsJenkinsPipelineJenkinsRhelYaml, nil
+}
+
+func testExtendedTestdataBuildsJenkinsPipelineJenkinsRhelYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsJenkinsPipelineJenkinsRhelYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/jenkins-pipeline/jenkins-rhel.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml = []byte(`kind: BuildConfig
 apiVersion: build.openshift.io/v1
 metadata:
@@ -33502,7 +33990,6 @@ os::cmd::expect_failure 'oc get imageStreams nodejs'
 os::cmd::expect_failure 'oc get imageStreams postgresql'
 os::cmd::expect_failure 'oc get imageStreams mongodb'
 os::cmd::expect_failure 'oc get imageStreams wildfly'
-os::cmd::try_until_success 'oc get imagestreamTags mariadb:10.3'
 os::cmd::try_until_success 'oc get imagestreamTags mariadb:10.5'
 os::cmd::expect_success_and_text "oc get imagestreams mysql --template='{{ index .metadata.annotations \"openshift.io/image.dockerRepositoryCheck\"}}'" '[0-9]{4}\-[0-9]{2}\-[0-9]{2}' # expect a date like YYYY-MM-DD
 os::cmd::expect_success 'oc describe istag/mysql:latest'
@@ -33528,7 +34015,7 @@ echo "imageStreams: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/import-image"
-# should follow the latest reference to 10.3 and update that, and leave latest unchanged
+# should follow the latest reference to 10.5 and update that, and leave latest unchanged
 os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 1).from.kind}}'" 'DockerImage'
 os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
 os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.tags 2).from.name}}'" '10.5'
@@ -33541,7 +34028,7 @@ os::cmd::expect_success_and_text "oc get is/mariadb --template='{{(index .spec.t
 os::cmd::expect_failure_and_text 'oc import-image mariadb --from=quay.io/openshifttest/hello-openshift:openshift' "use the 'tag' command if you want to change the source"
 os::cmd::expect_success 'oc describe is/mariadb'
 # import existing tag (explicit)
-os::cmd::expect_success_and_text 'oc import-image mariadb:10.3' "sha256:"
+os::cmd::expect_success_and_text 'oc import-image mariadb:10.5' "sha256:"
 os::cmd::expect_success_and_text 'oc import-image mariadb:latest' "sha256:"
 # import existing image stream creating new tag
 os::cmd::expect_success_and_text 'oc import-image mariadb:external --from=quay.io/openshifttest/hello-openshift:openshift' "sha256:"
@@ -33603,23 +34090,23 @@ os::cmd::expect_success_and_text "oc get istag/mariadb:labeled -o jsonpath='{.me
 # test copying tags
 os::cmd::expect_success 'oc tag quay.io/openshift/origin-cli:4.6 newrepo:latest'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'DockerImage'
-os::cmd::try_until_success 'oc get istag/mariadb:10.3'
+os::cmd::try_until_success 'oc get istag/mariadb:10.5'
 # default behavior is to copy the current image, but since this is an external image we preserve the dockerImageReference
-os::cmd::expect_success 'oc tag mariadb:10.3 newrepo:latest'
+os::cmd::expect_success 'oc tag mariadb:10.5 newrepo:latest'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^quay.io/centos7/mariadb-103-centos7@sha256:'
+os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^quay.io/centos7/mariadb-105-centos7@sha256:'
 # when copying a tag that points to the internal registry, update the container image reference
 #os::cmd::expect_success "oc tag test:new newrepo:direct"
 #os::cmd::expect_success_and_text 'oc get istag/newrepo:direct -o jsonpath={.image.dockerImageReference}' "/$project/newrepo@sha256:"
 # test references
-os::cmd::expect_success 'oc tag mariadb:10.3 reference:latest --reference'
+os::cmd::expect_success 'oc tag mariadb:10.5 reference:latest --reference'
 os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
 os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).reference}}'" 'true'
 # create a second project to test tagging across projects
 os::cmd::expect_success 'oc new-project test-cmd-images-2'
-os::cmd::expect_success "oc tag $project/mariadb:10.3 newrepo:latest"
+os::cmd::expect_success "oc tag $project/mariadb:10.5 newrepo:latest"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'quay.io/centos7/mariadb-103-centos7@sha256:'
+os::cmd::expect_success_and_text 'oc get istag/newrepo:latest -o jsonpath={.image.dockerImageReference}' 'quay.io/centos7/mariadb-105-centos7@sha256:'
 # tag across projects without specifying the source's project
 os::cmd::expect_success_and_text "oc tag newrepo:latest '${project}/mariadb:tag1'" "mariadb:tag1 set to"
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).name}}'" "latest"
@@ -35934,7 +36421,7 @@ var _testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson = []byte(`
     "containers": [
       {
         "name": "hello-openshift",
-        "image": "registry.k8s.io/e2e-test-images/agnhost:2.45",
+        "image": "registry.k8s.io/e2e-test-images/agnhost:2.47",
         "args": ["netexec"],
         "ports": [
           {
@@ -40092,7 +40579,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.45
+                image: registry.k8s.io/e2e-test-images/agnhost:2.47
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -44340,7 +44827,7 @@ items:
           replicationcontroller: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.45
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.47
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675" ]
           ports:
@@ -44406,7 +44893,7 @@ items:
           deploymentconfig: idling-echo
       spec:
         containers:
-        - image: registry.k8s.io/e2e-test-images/agnhost:2.45
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.47
           name: idling-echo-server
           args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
           ports:
@@ -49715,7 +50202,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.45
+      image: registry.k8s.io/e2e-test-images/agnhost:2.47
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49733,7 +50220,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.45
+      image: registry.k8s.io/e2e-test-images/agnhost:2.47
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -49972,7 +50459,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.45
+      image: registry.k8s.io/e2e-test-images/agnhost:2.47
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50148,7 +50635,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.45
+      image: registry.k8s.io/e2e-test-images/agnhost:2.47
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -50166,7 +50653,7 @@ items:
     terminationGracePeriodSeconds: 1
     containers:
     - name: test
-      image: registry.k8s.io/e2e-test-images/agnhost:2.45
+      image: registry.k8s.io/e2e-test-images/agnhost:2.47
       args: ["netexec"]
       ports:
       - containerPort: 8080
@@ -51690,7 +52177,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.45
+                image: registry.k8s.io/e2e-test-images/agnhost:2.47
 `)
 
 func testExtendedTestdataTemplatesTemplateinstance_badobjectYamlBytes() ([]byte, error) {
@@ -51750,7 +52237,7 @@ items:
             spec:
               containers:
               - name: hello-openshift
-                image: registry.k8s.io/e2e-test-images/agnhost:2.45
+                image: registry.k8s.io/e2e-test-images/agnhost:2.47
       - kind: Route
         apiVersion: route.openshift.io/v1
         metadata:
@@ -54436,6 +54923,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/docker-add/docker-add-env/Dockerfile":                                     testExtendedTestdataBuildsDockerAddDockerAddEnvDockerfile,
 	"test/extended/testdata/builds/docker-add/docker-add-env/foo":                                            testExtendedTestdataBuildsDockerAddDockerAddEnvFoo,
 	"test/extended/testdata/builds/incremental-auth-build.json":                                              testExtendedTestdataBuildsIncrementalAuthBuildJson,
+	"test/extended/testdata/builds/jenkins-pipeline/jenkins-ephemeral.json":                                  testExtendedTestdataBuildsJenkinsPipelineJenkinsEphemeralJson,
+	"test/extended/testdata/builds/jenkins-pipeline/jenkins-rhel.yaml":                                       testExtendedTestdataBuildsJenkinsPipelineJenkinsRhelYaml,
 	"test/extended/testdata/builds/pullsecret/linked-nodejs-bc.yaml":                                         testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml,
 	"test/extended/testdata/builds/pullsecret/pullsecret-nodejs-bc.yaml":                                     testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml,
 	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment":                               testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
@@ -55025,6 +55514,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						}},
 					}},
 					"incremental-auth-build.json": {testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
+					"jenkins-pipeline": {nil, map[string]*bintree{
+						"jenkins-ephemeral.json": {testExtendedTestdataBuildsJenkinsPipelineJenkinsEphemeralJson, map[string]*bintree{}},
+						"jenkins-rhel.yaml":      {testExtendedTestdataBuildsJenkinsPipelineJenkinsRhelYaml, map[string]*bintree{}},
+					}},
 					"pullsecret": {nil, map[string]*bintree{
 						"linked-nodejs-bc.yaml":     {testExtendedTestdataBuildsPullsecretLinkedNodejsBcYaml, map[string]*bintree{}},
 						"pullsecret-nodejs-bc.yaml": {testExtendedTestdataBuildsPullsecretPullsecretNodejsBcYaml, map[string]*bintree{}},
