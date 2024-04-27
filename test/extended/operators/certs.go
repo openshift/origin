@@ -62,7 +62,7 @@ var (
 	podYaml []byte
 
 	actualPKIContent   *certgraphapi.PKIList
-	expectedPKIContent *certgraphapi.PKIRegistryInfo
+	expectedPKIContent *certs.PKIRegistryInfo
 	nodeList           *corev1.NodeList
 	jobType            *platformidentification.JobType
 )
@@ -161,29 +161,91 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		violationsPKIContent, err := certs.GetPKIInfoFromEmbeddedOwnership(ownership.PKIViolations)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		newTLSRegistry := &certgraphapi.PKIRegistryInfo{}
+		newTLSRegistry := &certs.PKIRegistryInfo{}
 
 		for _, currCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
 			currLocation := currCertKeyPair.SecretLocation
-			if _, err := certgraphutils.LocateCertKeyPair(currLocation, violationsPKIContent.CertKeyPairs); err == nil {
+			if _, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, violationsPKIContent.CertKeyPairs); err == nil {
 				continue
 			}
 
-			_, err := certgraphutils.LocateCertKeyPair(currLocation, expectedPKIContent.CertKeyPairs)
+			_, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, expectedPKIContent.CertKeyPairs)
 			if err != nil {
-				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, currCertKeyPair)
+				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{InClusterLocation: &currCertKeyPair})
+			}
+
+		}
+
+		for _, currCertKeyPair := range actualPKIContent.CertKeyPairs.Items {
+			if len(currCertKeyPair.Spec.SecretLocations) != 0 || len(currCertKeyPair.Spec.OnDiskLocations) == 0 {
+				continue
+			}
+			for _, currLocation := range currCertKeyPair.Spec.OnDiskLocations {
+				if len(currLocation.Cert.Path) > 0 {
+					if _, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Cert, violationsPKIContent.CertKeyPairs); err == nil {
+						continue
+					}
+
+					certInfo, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Cert, expectedPKIContent.CertKeyPairs)
+					if err != nil {
+						certInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
+							OnDiskLocation: certgraphapi.OnDiskLocation{
+								Path: currLocation.Cert.Path,
+							},
+						}
+					}
+					newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: certInfo})
+				}
+
+				if len(currLocation.Key.Path) > 0 && currLocation.Key.Path != currLocation.Cert.Path {
+
+					if _, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Key, violationsPKIContent.CertKeyPairs); err == nil {
+						continue
+					}
+
+					keyInfo, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Key, expectedPKIContent.CertKeyPairs)
+					if err != nil {
+						keyInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
+							OnDiskLocation: certgraphapi.OnDiskLocation{
+								Path: currLocation.Key.Path,
+							},
+						}
+					}
+					newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: keyInfo})
+				}
 			}
 		}
 
 		for _, currCABundle := range actualPKIContent.InClusterResourceData.CertificateAuthorityBundles {
 			currLocation := currCABundle.ConfigMapLocation
-			if _, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, violationsPKIContent.CertificateAuthorityBundles); err == nil {
+			if _, err := certgraphutils.LocateCABundleByConfigMapLocation(currLocation, violationsPKIContent.CertificateAuthorityBundles); err == nil {
 				continue
 			}
 
-			_, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, expectedPKIContent.CertificateAuthorityBundles)
+			_, err := certgraphutils.LocateCABundleByConfigMapLocation(currLocation, expectedPKIContent.CertificateAuthorityBundles)
 			if err != nil {
-				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, currCABundle)
+				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{InClusterLocation: &currCABundle})
+			}
+		}
+
+		for _, currCABundle := range actualPKIContent.CertificateAuthorityBundles.Items {
+			if len(currCABundle.Spec.ConfigMapLocations) != 0 || len(currCABundle.Spec.OnDiskLocations) == 0 {
+				continue
+			}
+			for _, currLocation := range currCABundle.Spec.OnDiskLocations {
+				if _, err := certgraphutils.LocateCABundleByOnDiskLocation(currLocation, violationsPKIContent.CertificateAuthorityBundles); err == nil {
+					continue
+				}
+
+				caBundleInfo, err := certgraphutils.LocateCABundleByOnDiskLocation(currLocation, expectedPKIContent.CertificateAuthorityBundles)
+				if err != nil {
+					caBundleInfo = &certgraphapi.PKIRegistryOnDiskCABundle{
+						OnDiskLocation: certgraphapi.OnDiskLocation{
+							Path: currLocation.Path,
+						},
+					}
+				}
+				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{OnDiskLocation: caBundleInfo})
 			}
 		}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
+	"github.com/openshift/origin/pkg/certs"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -63,16 +64,20 @@ func (o annotationRequirement) InspectRequirement(rawData []*certgraphapi.PKILis
 		violationJSONBytes)
 }
 
-func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.PKIRegistryInfo) ([]byte, error) {
-	compliantCertsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
-	violatingCertsByOwner := map[string][]certgraphapi.PKIRegistryInClusterCertKeyPair{}
-	compliantCABundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
-	violatingCABundlesByOwner := map[string][]certgraphapi.PKIRegistryInClusterCABundle{}
+func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
+	compliantCertsByOwner := map[string][]certgraphapi.PKIRegistryCertKeyPair{}
+	violatingCertsByOwner := map[string][]certgraphapi.PKIRegistryCertKeyPair{}
+	compliantCABundlesByOwner := map[string][]certgraphapi.PKIRegistryCABundle{}
+	violatingCABundlesByOwner := map[string][]certgraphapi.PKIRegistryCABundle{}
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		owner := curr.CertKeyInfo.OwningJiraComponent
-		regenerates, _ := AnnotationValue(curr.CertKeyInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
+		if curr.InClusterLocation == nil {
+			continue
+		}
+		// TODO[vrutkovs]: fetch ondisk metadata here
+		owner := curr.InClusterLocation.CertKeyInfo.OwningJiraComponent
+		regenerates, _ := AnnotationValue(curr.InClusterLocation.CertKeyInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
 		if len(regenerates) == 0 {
 			violatingCertsByOwner[owner] = append(violatingCertsByOwner[owner], curr)
 			continue
@@ -82,8 +87,11 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		owner := curr.CABundleInfo.OwningJiraComponent
-		regenerates, _ := AnnotationValue(curr.CABundleInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
+		if curr.InClusterLocation == nil {
+			continue
+		}
+		owner := curr.InClusterLocation.CABundleInfo.OwningJiraComponent
+		regenerates, _ := AnnotationValue(curr.InClusterLocation.CABundleInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
 		if len(regenerates) == 0 {
 			violatingCABundlesByOwner[owner] = append(violatingCABundlesByOwner[owner], curr)
 			continue
@@ -113,10 +121,15 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 				md.Title(4, fmt.Sprintf("Certificates (%d)", len(certs)))
 				md.OrderedListStart()
 				for _, curr := range certs {
+					if curr.InClusterLocation == nil {
+						continue
+					}
 					md.NewOrderedListItem()
-					md.Textf("ns/%v secret/%v\n", curr.SecretLocation.Namespace, curr.SecretLocation.Name)
-					md.Textf("**Description:** %v", curr.CertKeyInfo.Description)
+					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
 					md.Text("\n")
+
+					//TODO[vrutkovs]: on disk case
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -127,10 +140,15 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 				md.Title(4, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 				md.OrderedListStart()
 				for _, curr := range caBundles {
+					if curr.InClusterLocation == nil {
+						continue
+					}
 					md.NewOrderedListItem()
-					md.Textf("ns/%v configmap/%v\n", curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
-					md.Textf("**Description:** %v", curr.CABundleInfo.Description)
+					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
 					md.Text("\n")
+
+					//TODO[vrutkovs]: on disk case
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -156,10 +174,12 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 			md.OrderedListStart()
 			for _, curr := range certs {
 				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.SecretLocation.Namespace, curr.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.CertKeyInfo.Description)
+				md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+				md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
 				md.Text("\n")
 			}
+			//TODO[vrutkovs]: on disk case
+
 			md.OrderedListEnd()
 			md.Text("\n")
 		}
@@ -169,11 +189,17 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 			md.Title(4, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 			md.OrderedListStart()
 			for _, curr := range caBundles {
+				if curr.InClusterLocation == nil {
+					continue
+				}
+
 				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.ConfigMapLocation.Namespace, curr.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.CABundleInfo.Description)
+				md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
+				md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
 				md.Text("\n")
 			}
+			//TODO[vrutkovs]: on disk case
+
 			md.OrderedListEnd()
 			md.Text("\n")
 		}
@@ -182,22 +208,24 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certgraphapi.
 	return md.Bytes(), nil
 }
 
-func generateViolationJSONForAnnotationRequirement(annotationName string, pkiInfo *certgraphapi.PKIRegistryInfo) *certgraphapi.PKIRegistryInfo {
-	ret := &certgraphapi.PKIRegistryInfo{}
+func generateViolationJSONForAnnotationRequirement(annotationName string, pkiInfo *certs.PKIRegistryInfo) *certs.PKIRegistryInfo {
+	ret := &certs.PKIRegistryInfo{}
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		regenerates, _ := AnnotationValue(curr.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
+		regenerates, _ := AnnotationValue(curr.InClusterLocation.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
 		if len(regenerates) == 0 {
 			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
 		}
+		//TODO[vrutkovs]: on disk case
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		regenerates, _ := AnnotationValue(curr.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
+		regenerates, _ := AnnotationValue(curr.InClusterLocation.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
 		if len(regenerates) == 0 {
 			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
 		}
+		//TODO[vrutkovs]: on disk case
 	}
 
 	return ret
