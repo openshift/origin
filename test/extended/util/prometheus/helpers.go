@@ -15,7 +15,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -149,53 +148,6 @@ func RequestPrometheusServiceAccountAPIToken(ctx context.Context, oc *exutil.CLI
 		return "", fmt.Errorf("unable to get an API token for the %s service account in the %s namespace: %w", serviceAccount, namespace, err)
 	}
 	return req.Status.Token, nil
-}
-
-type MetricCondition struct {
-	// TODO: Remove in favor of explicit fields
-	Selector map[string]string
-
-	AlertName      string
-	AlertNamespace string
-	AlertLevel     string
-
-	// Text is the description of why this alert condition matched.
-	Text string
-
-	Matches func(sample *model.Sample) bool
-}
-
-type MetricConditions []MetricCondition
-
-func (c MetricConditions) Matches(sample *model.Sample) *MetricCondition {
-	for i, condition := range c {
-		matches := true
-		for name, value := range condition.Selector {
-			if sample.Metric[model.LabelName(name)] != model.LabelValue(value) {
-				matches = false
-				break
-			}
-		}
-		if matches && (condition.Matches == nil || condition.Matches(sample)) {
-			return &c[i]
-		}
-	}
-	return nil
-}
-
-func (c MetricConditions) MatchesInterval(alertInterval monitorapi.Interval) *MetricCondition {
-
-	// TODO: Source check for SourceAlert would be a good idea here.
-
-	checkAlertName := alertInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
-	checkAlertNamespace := alertInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
-
-	for _, condition := range c {
-		if checkAlertName == condition.AlertName && checkAlertNamespace == condition.AlertNamespace {
-			return &condition
-		}
-	}
-	return nil
 }
 
 func RunQuery(ctx context.Context, prometheusClient prometheusv1.API, query string) (*PrometheusResponse, error) {
