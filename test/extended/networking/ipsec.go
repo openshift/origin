@@ -10,9 +10,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"golang.org/x/sync/errgroup"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -42,6 +40,8 @@ const (
 	rightNodeIPsecPolicyName     = "right-node-ipsec-policy"
 	leftNodeIPsecConfigYaml      = "ipsec-left-node.yaml"
 	rightNodeIPsecConfigYaml     = "ipsec-right-node.yaml"
+	ovnNamespace                 = "openshift-ovn-kubernetes"
+	ovnIPsecDsName               = "ovn-ipsec-host"
 )
 
 // TODO: consider bringing in the NNCP api.
@@ -136,13 +136,16 @@ func getIPsecMode(oc *exutil.CLI) (v1.IPsecMode, error) {
 // is completely ready on the cluster and cluster operators are coming back into ready state
 // once ipsec rollout is complete.
 func ensureIPsecEnabled(oc *exutil.CLI) error {
-	err := ensureIPsecMachineConfigRolloutComplete(oc)
-	if err != nil {
-		return err
-	}
 	return wait.PollUntilContextTimeout(context.Background(), ipsecRolloutWaitInterval,
 		ipsecRolloutWaitDuration, true, func(ctx context.Context) (bool, error) {
-			done, err := isIPsecDaemonSetRunning(oc)
+			done, err := areMachineConfigPoolsReadyWithIPsec(oc)
+			if err != nil && !isConnResetErr(err) {
+				return false, err
+			}
+			if !done {
+				return false, nil
+			}
+			done, err = isDaemonSetRunning(oc, ovnNamespace, ovnIPsecDsName)
 			if err != nil && !isConnResetErr(err) {
 				return false, err
 			}
@@ -182,11 +185,17 @@ func ensureIPsecMachineConfigRolloutComplete(oc *exutil.CLI) error {
 func ensureIPsecDisabled(oc *exutil.CLI) error {
 	return wait.PollUntilContextTimeout(context.Background(), ipsecRolloutWaitInterval,
 		ipsecRolloutWaitDuration, true, func(ctx context.Context) (bool, error) {
-			ds, err := getIPsecDaemonSet(oc)
+			done, err := areMachineConfigPoolsReadyWithoutIPsec(oc)
 			if err != nil && !isConnResetErr(err) {
 				return false, err
 			}
-			var done bool
+			if !done {
+				return false, nil
+			}
+			ds, err := getDaemonSet(oc, ovnNamespace, ovnIPsecDsName)
+			if err != nil && !isConnResetErr(err) {
+				return false, err
+			}
 			if ds == nil && err == nil {
 				done, err = areClusterOperatorsReady((oc))
 				if err != nil && !isConnResetErr(err) {
@@ -195,24 +204,6 @@ func ensureIPsecDisabled(oc *exutil.CLI) error {
 			}
 			return done, nil
 		})
-}
-
-func isIPsecDaemonSetRunning(oc *exutil.CLI) (bool, error) {
-	ipsecDS, err := getIPsecDaemonSet(oc)
-	if ipsecDS == nil {
-		return false, err
-	}
-	// Be sure that it has ovn-ipsec-host pod running in each node.
-	ready := ipsecDS.Status.DesiredNumberScheduled == ipsecDS.Status.NumberReady
-	return ready, nil
-}
-
-func getIPsecDaemonSet(oc *exutil.CLI) (*appsv1.DaemonSet, error) {
-	ds, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-ovn-kubernetes").Get(context.Background(), "ovn-ipsec-host", metav1.GetOptions{})
-	if err != nil && apierrors.IsNotFound(err) {
-		return nil, nil
-	}
-	return ds, err
 }
 
 var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
@@ -325,10 +316,11 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				if err != nil {
 					return err
 				}
-				config.srcNodeConfig.pingPod = e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "ipsec-test-srcpod-", func(p *corev1.Pod) {
+				srcPingPod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "ipsec-test-srcpod-", func(p *corev1.Pod) {
 					p.Spec.NodeName = config.srcNodeConfig.nodeName
 					p.Spec.HostNetwork = isHostNetwork
 				})
+				config.srcNodeConfig.pingPod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), srcPingPod.Name, metav1.GetOptions{})
 				return err
 			})
 			createSync.Go(func() error {
@@ -337,10 +329,11 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 				if err != nil {
 					return err
 				}
-				config.dstNodeConfig.pingPod = e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "ipsec-test-dstpod-", func(p *corev1.Pod) {
+				dstPingPod := e2epod.CreateExecPodOrFail(context.TODO(), f.ClientSet, f.Namespace.Name, "ipsec-test-dstpod-", func(p *corev1.Pod) {
 					p.Spec.NodeName = config.dstNodeConfig.nodeName
 					p.Spec.HostNetwork = isHostNetwork
 				})
+				config.dstNodeConfig.pingPod, err = f.ClientSet.CoreV1().Pods(f.Namespace.Name).Get(context.TODO(), dstPingPod.Name, metav1.GetOptions{})
 				return err
 			})
 			return createSync.Wait()
@@ -465,32 +458,29 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		})
 
 		g.AfterEach(func() {
-			// Restore the cluster back into original state after running all the tests.
-			g.By("restoring ipsec config into original state")
-			err := configureIPsecMode(oc, config.ipsecMode)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			waitForIPsecConfigToComplete(oc, config.ipsecMode)
-
-			g.By("remove right node ipsec configuration")
-			err = oc.AsAdmin().Run("delete").Args("-f", rightNodeIPsecConfigYaml).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("remove left node ipsec configuration")
-			err = oc.AsAdmin().Run("delete").Args("-f", leftNodeIPsecConfigYaml).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("undeploy nmstate handler")
-			err = undeployNmstateHandler(oc)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
 			g.By("removing IPsec certs from worker nodes")
-			err = deleteNSCertMachineConfig(oc)
+			err := deleteNSCertMachineConfig(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Eventually(func() bool {
-				ready, err := areWorkerMachineConfigPoolsReady(oc, nsCertMachineConfigName, false)
+				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				return ready
+				return areMachineConfigPoolsReadyWithoutMachineConfig(pools, nsCertMachineConfigName)
 			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
+
+			g.By("remove right node ipsec configuration")
+			oc.AsAdmin().Run("delete").Args("-f", rightNodeIPsecConfigYaml).Execute()
+
+			g.By("remove left node ipsec configuration")
+			oc.AsAdmin().Run("delete").Args("-f", leftNodeIPsecConfigYaml).Execute()
+
+			g.By("undeploy nmstate handler")
+			undeployNmstateHandler(oc)
+
+			// Restore the cluster back into original state after running all the tests.
+			g.By("restoring ipsec config into original state")
+			err = configureIPsecMode(oc, config.ipsecMode)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			waitForIPsecConfigToComplete(oc, config.ipsecMode)
 		})
 
 		g.DescribeTable("check traffic for east west IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func(mode v1.IPsecMode) {
@@ -540,9 +530,9 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(nsCertMachineConfig).NotTo(o.BeNil())
 			o.Eventually(func() bool {
-				exists, err := areWorkerMachineConfigPoolsReady(oc, nsCertMachineConfigName, true)
+				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				return exists
+				return areMachineConfigPoolsReadyWithMachineConfig(pools, nsCertMachineConfigName)
 			}, ipsecRolloutWaitDuration, ipsecRolloutWaitInterval).Should(o.BeTrue())
 
 			// Deploy nmstate handler which is used for rolling out IPsec config

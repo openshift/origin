@@ -21,11 +21,13 @@ import (
 	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	"github.com/openshift/library-go/pkg/network/networkutils"
 	exutil "github.com/openshift/origin/test/extended/util"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -73,6 +75,13 @@ const (
 	IPv6      IPFamily = "ipv6"
 	DualStack IPFamily = "dual"
 	Unknown   IPFamily = "unknown"
+
+	nmstateNamespace = "openshift-nmstate"
+)
+
+var (
+	masterRoleMachineConfigLabel = map[string]string{"machineconfiguration.openshift.io/role": "master"}
+	workerRoleMachineConfigLabel = map[string]string{"machineconfiguration.openshift.io/role": "worker"}
 )
 
 // IsIPv6 returns true if a group of ips are ipv6.
@@ -699,24 +708,24 @@ func GetIPAddressFamily(oc *exutil.CLI) (bool, bool, error) {
 }
 
 func deployNmstateHandler(oc *exutil.CLI) error {
-	err := waitForDeploymentComplete(oc, "openshift-nmstate", "nmstate-operator")
+	err := waitForDeploymentComplete(oc, nmstateNamespace, "nmstate-operator")
 	if err != nil {
 		return fmt.Errorf("nmstate operator is not running: %v", err)
 	}
 	nmStateConfigYaml := exutil.FixturePath("testdata", "ipsec", nmstateConfigureManifestFile)
-	err = oc.AsAdmin().Run("create").Args("-f", nmStateConfigYaml, "--namespace=openshift-nmstate").Execute()
+	err = oc.AsAdmin().Run("create").Args("-f", nmStateConfigYaml, fmt.Sprintf("--namespace=%s", nmstateNamespace)).Execute()
 	if err != nil {
 		return fmt.Errorf("error configuring nmstate: %v", err)
 	}
 	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
 			// Ensure nmstate handler is running.
-			return isDaemonSetRunning(oc, "openshift-nmstate", "nmstate-handler")
+			return isDaemonSetRunning(oc, nmstateNamespace, "nmstate-handler")
 		})
 	if err != nil {
 		return fmt.Errorf("failed to get nmstate handler running: %v", err)
 	}
-	err = waitForDeploymentComplete(oc, "openshift-nmstate", "nmstate-webhook")
+	err = waitForDeploymentComplete(oc, nmstateNamespace, "nmstate-webhook")
 	if err != nil {
 		return fmt.Errorf("nmstate webhook is not running: %v", err)
 	}
@@ -725,13 +734,13 @@ func deployNmstateHandler(oc *exutil.CLI) error {
 
 func undeployNmstateHandler(oc *exutil.CLI) error {
 	nmStateConfigYaml := exutil.FixturePath("testdata", "ipsec", nmstateConfigureManifestFile)
-	err := oc.AsAdmin().Run("delete").Args("-f", nmStateConfigYaml, "--namespace=openshift-nmstate").Execute()
+	err := oc.AsAdmin().Run("delete").Args("-f", nmStateConfigYaml, fmt.Sprintf("--namespace=%s", nmstateNamespace)).Execute()
 	if err != nil {
 		return fmt.Errorf("error deleting nmstate configuration: %v", err)
 	}
 	err = wait.PollUntilContextTimeout(context.Background(), poll, 2*time.Minute, true,
 		func(ctx context.Context) (bool, error) {
-			_, err := oc.AdminKubeClient().AppsV1().DaemonSets("openshift-nmstate").Get(context.Background(), "nmstate-handler", metav1.GetOptions{})
+			_, err := oc.AdminKubeClient().AppsV1().DaemonSets(nmstateNamespace).Get(context.Background(), "nmstate-handler", metav1.GetOptions{})
 			if err != nil && apierrors.IsNotFound(err) {
 				return true, nil
 			}
@@ -748,19 +757,28 @@ func waitForDeploymentComplete(oc *exutil.CLI, namespace, name string) error {
 	if err != nil {
 		return err
 	}
-	return e2edeployment.WaitForDeploymentComplete(oc.KubeClient(), deployment)
+	return e2edeployment.WaitForDeploymentComplete(oc.AdminKubeClient(), deployment)
 }
 
 func isDaemonSetRunning(oc *exutil.CLI, namespace, name string) (bool, error) {
-	ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil && apierrors.IsNotFound(err) {
-		return false, nil
-	} else if err != nil {
+	ds, err := getDaemonSet(oc, namespace, name)
+	if err != nil {
 		return false, err
+	}
+	if ds == nil {
+		return false, nil
 	}
 	// Be sure that it has ds pod running in each node.
 	desired, scheduled, ready := ds.Status.DesiredNumberScheduled, ds.Status.CurrentNumberScheduled, ds.Status.NumberReady
 	return desired == scheduled && desired == ready, nil
+}
+
+func getDaemonSet(oc *exutil.CLI, namespace, name string) (*appsv1.DaemonSet, error) {
+	ds, err := oc.AdminKubeClient().AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+	return ds, err
 }
 
 func createIPsecCertsMachineConfig(oc *exutil.CLI) (*mcfgv1.MachineConfig, error) {
@@ -852,59 +870,38 @@ func isConnResetErr(err error) bool {
 // This checks master and worker role machine config pools status are set with ipsec
 // extension which confirms extension is successfully rolled out on all nodes.
 func areMachineConfigPoolsReadyWithIPsec(oc *exutil.CLI) (bool, error) {
-	masterWithIPsec, err := areMasterMachineConfigPoolsWithIPsec(oc)
+	pools, err := getMachineConfigPoolByLabel(oc, masterRoleMachineConfigLabel)
 	if err != nil {
 		return false, err
 	}
-	workerWithIPsec, err := areWorkerMachineConfigPoolsReadyWithIPsec(oc)
+	masterWithIPsec := areMachineConfigPoolsReadyWithMachineConfig(pools, masterIPsecMachineConfigName)
+	pools, err = getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
 	if err != nil {
 		return false, err
 	}
+	workerWithIPsec := areMachineConfigPoolsReadyWithMachineConfig(pools, workerIPSecMachineConfigName)
+
 	return masterWithIPsec && workerWithIPsec, nil
 }
 
-func areMasterMachineConfigPoolsWithIPsec(oc *exutil.CLI) (bool, error) {
-	return areMachineConfigPoolsReady(oc, "machineconfiguration.openshift.io/role=master", masterIPsecMachineConfigName, true)
-}
-
-func areWorkerMachineConfigPoolsReadyWithIPsec(oc *exutil.CLI) (bool, error) {
-	return areWorkerMachineConfigPoolsReady(oc, workerIPSecMachineConfigName, true)
-}
-
-func areWorkerMachineConfigPoolsReady(oc *exutil.CLI, machineConfigName string, mustExist bool) (bool, error) {
-	return areMachineConfigPoolsReady(oc, "machineconfiguration.openshift.io/role=worker", machineConfigName, mustExist)
-}
-
-func areMachineConfigPoolsReady(oc *exutil.CLI, mcpSelectorLabel string, machineConfigName string, mustExist bool) (bool, error) {
-	poolList, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().List(context.Background(),
-		metav1.ListOptions{})
+// This checks master and worker role machine config pools status are set without ipsec
+// extension which confirms extension is successfully removed from all nodes.
+func areMachineConfigPoolsReadyWithoutIPsec(oc *exutil.CLI) (bool, error) {
+	pools, err := getMachineConfigPoolByLabel(oc, masterRoleMachineConfigLabel)
 	if err != nil {
-		return false, fmt.Errorf("failed to get ipsec machine config pools: %v", err)
+		return false, err
 	}
-	if len(poolList.Items) == 0 {
-		return false, fmt.Errorf("no machine config pools found")
+	masterWithoutIPsec := areMachineConfigPoolsReadyWithoutMachineConfig(pools, masterIPsecMachineConfigName)
+	pools, err = getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
+	if err != nil {
+		return false, err
 	}
-	var pools []mcfgv1.MachineConfigPool
-	for _, pool := range poolList.Items {
-		if pool.Spec.MachineConfigSelector == nil {
-			continue
-		}
-		for lKey, lValue := range pool.Spec.MachineConfigSelector.MatchLabels {
-			if mcpSelectorLabel == fmt.Sprintf("%s=%s", lKey, lValue) {
-				pools = append(pools, pool)
-			}
-		}
-	}
-	if len(pools) == 0 {
-		return false, fmt.Errorf("empty machine config pools found for the selector")
-	}
-	if mustExist {
-		return isMachineConfigReadyInPools(pools, machineConfigName), nil
-	}
-	return areMachineConfigPoolReadyWithoutMachineConfig(pools, machineConfigName), nil
+	workerWithoutIPsec := areMachineConfigPoolsReadyWithoutMachineConfig(pools, workerIPSecMachineConfigName)
+
+	return masterWithoutIPsec && workerWithoutIPsec, nil
 }
 
-func isMachineConfigReadyInPools(pools []mcfgv1.MachineConfigPool, machineConfigName string) bool {
+func areMachineConfigPoolsReadyWithMachineConfig(pools []mcfgv1.MachineConfigPool, machineConfigName string) bool {
 	mcExistsInPool := func(status mcfgv1.MachineConfigPoolStatus, name string) bool {
 		return status.MachineCount == status.UpdatedMachineCount &&
 			hasSourceInMachineConfigStatus(status, name)
@@ -917,7 +914,7 @@ func isMachineConfigReadyInPools(pools []mcfgv1.MachineConfigPool, machineConfig
 	return true
 }
 
-func areMachineConfigPoolReadyWithoutMachineConfig(pools []mcfgv1.MachineConfigPool, machineConfigName string) bool {
+func areMachineConfigPoolsReadyWithoutMachineConfig(pools []mcfgv1.MachineConfigPool, machineConfigName string) bool {
 	mcNotExistsInPool := func(status mcfgv1.MachineConfigPoolStatus, name string) bool {
 		return status.MachineCount == status.UpdatedMachineCount &&
 			!hasSourceInMachineConfigStatus(status, name)
@@ -965,4 +962,26 @@ func areClusterOperatorsReady(oc *exutil.CLI) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func getMachineConfigPoolByLabel(oc *exutil.CLI, mcSelectorLabel labels.Set) ([]mcfgv1.MachineConfigPool, error) {
+	poolList, err := oc.MachineConfigurationClient().MachineconfigurationV1().MachineConfigPools().List(context.Background(),
+		metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var pools []mcfgv1.MachineConfigPool
+	for _, pool := range poolList.Items {
+		mcSelector, err := metav1.LabelSelectorAsSelector(pool.Spec.MachineConfigSelector)
+		if err != nil {
+			return nil, fmt.Errorf("invalid machine config label selector in %s pool", pool.Name)
+		}
+		if mcSelector.Matches(mcSelectorLabel) {
+			pools = append(pools, pool)
+		}
+	}
+	if len(pools) == 0 {
+		return nil, fmt.Errorf("empty machine config pools found for the selector")
+	}
+	return pools, nil
 }
