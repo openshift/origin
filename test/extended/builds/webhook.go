@@ -43,6 +43,7 @@ var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 		g.BeforeEach(func() {
 			clusterAdminBuildClient = oc.AdminBuildClient().BuildV1()
 			adminHTTPClient = clusterAdminBuildClient.RESTClient().(*rest.RESTClient).Client
+			o.Expect(adminHTTPClient).NotTo(o.BeNil(), "check authenticated HTTP client")
 
 			// create buildconfig
 			buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
