@@ -1069,6 +1069,14 @@ var Annotations = map[string]string{
 
 	"[sig-etcd] etcd record the start revision of the etcd-operator [Early]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/recovery] etcd can manually rotate metrics signer certificates [Timeout:30m]": "",
+
+	"[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/recovery] etcd can manually rotate signer certificates [Timeout:30m]": "",
+
+	"[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/recovery] etcd can recreate dynamic certificates [Timeout:15m]": "",
+
+	"[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/recovery] etcd can recreate trust bundle [Timeout:15m]": "",
+
 	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:2h] [Feature:EtcdRecovery][Disruptive] Recover with snapshot with two unhealthy nodes and lost quorum": " [Serial]",
 
 	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:30m] [Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node": " [Serial]",
