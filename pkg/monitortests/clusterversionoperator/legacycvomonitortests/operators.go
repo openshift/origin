@@ -125,11 +125,8 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				}
 				if knownSingleReplicaOperator && isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute {
 					return fmt.Sprintf("%s has only single replica, Available=False is for < 10 minutes and within an upgrade window ", operator), nil
-				} else {
-
-					// For all other operators, if Available=False, fail the test.
-					return "", nil
 				}
+				// If it's not one of the know single replica operators, we fall through and go through the exceptions below.
 			}
 		}
 
@@ -172,10 +169,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "operator-lifecycle-manager-packageserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
-			}
-		case "image-registry":
-			if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
-				return "image-registry has only single replica", nil
 			}
 		}
 
