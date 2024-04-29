@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -20,6 +19,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -31,8 +31,76 @@ var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 		oc = exutil.NewCLIWithPodSecurityLevel("build-webhooks", admissionapi.LevelBaseline)
 	)
 
+	// Refactored to take advantage of ginkgo v2 table-driven specs.
+	// Incorporates BZ#1752581 fix - only one URL per test case.
+	g.Context("TestWebhook", func() {
+
+		var (
+			clusterAdminBuildClient buildv1client.BuildV1Interface
+			adminHTTPClient         *http.Client
+		)
+
+		g.BeforeEach(func() {
+			clusterAdminBuildClient = oc.AdminBuildClient().BuildV1()
+			adminHTTPClient = clusterAdminBuildClient.RESTClient().(*rest.RESTClient).Client
+
+			// create buildconfig
+			buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
+			_, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(context.Background(), buildConfig, metav1.CreateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred(), "creating BuildConfig")
+		})
+
+		g.DescribeTable("[apigroup:build.openshift.io][apigroup:image.openshift.io]",
+			func(payload string, headerFunc func(*http.Header), url string, client *http.Client, expectedStatus int) {
+				// trigger build event sending push notification
+				clusterAdminClientConfig := oc.AdminConfig()
+
+				g.By("executing the webhook to get the build object")
+				body := postFile(client, headerFunc, payload, clusterAdminClientConfig.Host+url, expectedStatus, g.GinkgoT(), oc)
+				o.Expect(body).NotTo(o.BeEmpty())
+				// If expected HTTP status is not 200 OK, return as we will not receive a Build object in the response body.
+				if expectedStatus != http.StatusOK {
+					return
+				}
+				returnedBuild := &buildv1.Build{}
+				err := json.Unmarshal(body, returnedBuild)
+				o.Expect(err).NotTo(o.HaveOccurred(), "extracting Build JSON")
+
+				actual, err := clusterAdminBuildClient.Builds(oc.Namespace()).Get(context.Background(), returnedBuild.Name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred(), "checking build was created")
+
+				// There should only be one trigger on these builds.
+				o.Expect(actual.Spec.TriggeredBy[0].Message).To(o.Equal(returnedBuild.Spec.TriggeredBy[0].Message), "message that triggered build")
+
+			},
+			g.Entry("generic", "generic/testdata/push-generic.json", genericHeaderFunc,
+				"/apis/build.openshift.io/v1/namespaces/"+oc.Namespace()+"/buildconfigs/pushbuild/webhooks/secret200/generic",
+				adminHTTPClient, http.StatusOK),
+			g.Entry("github", "github/testdata/pushevent.json", githubHeaderFunc,
+				"/apis/build.openshift.io/v1/namespaces/"+oc.Namespace()+"/buildconfigs/pushbuild/webhooks/secret100/github",
+				adminHTTPClient, http.StatusOK),
+			g.Entry("gitlab", "gitlab/testdata/pushevent.json", gitlabHeaderFunc,
+				"/apis/build.openshift.io/v1/namespaces/"+oc.Namespace()+"/buildconfigs/pushbuild/webhooks/secret300/gitlab",
+				adminHTTPClient, http.StatusOK),
+			g.Entry("bitbucket", "bitbucket/testdata/pushevent.json", bitbucketHeaderFunc,
+				"/apis/build.openshift.io/v1/namespaces/"+oc.Namespace()+"/buildconfigs/pushbuild/webhooks/secret400/bitbucket",
+				adminHTTPClient, http.StatusOK),
+			// API-509: Webhooks do not allow unauthenticated requests by default.
+			// Test will verify that an unauthenticated request fails with 403 Forbidden.
+			g.Entry("unauthenticated forbidden", "generic/testdata/push-generic.json", genericHeaderFunc,
+				"/apis/build.openshift.io/v1/namespaces/"+oc.Namespace()+"/buildconfigs/pushbuild/webhooks/secret200/generic",
+				// Need client to skip TLS verification - CI clusters have self-signed certificates.
+				&http.Client{
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{
+							InsecureSkipVerify: true,
+						},
+					},
+				}, http.StatusForbidden),
+		)
+	})
+
 	g.It("TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
-		TestWebhook(g.GinkgoT(), oc)
 	})
 	g.It("TestWebhookGitHubPushWithImage [apigroup:image.openshift.io][apigroup:build.openshift.io]", func() {
 		TestWebhookGitHubPushWithImage(g.GinkgoT(), oc)
@@ -44,117 +112,6 @@ var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 		TestWebhookGitHubPing(g.GinkgoT(), oc)
 	})
 })
-
-func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
-	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
-	adminHTTPClient := clusterAdminBuildClient.RESTClient().(*rest.RESTClient).Client
-
-	// create buildconfig
-	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
-	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(context.Background(), buildConfig, metav1.CreateOptions{}); err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	// Bug #1752581: reduce number of URLs per test case
-	// OCP 4.2 tests on GCP had high flake levels because namespaces took too long to tear down
-	tests := []struct {
-		Name           string
-		Payload        string
-		HeaderFunc     func(*http.Header)
-		URLs           []string
-		client         *http.Client
-		expectedStatus int
-	}{
-		{
-			Name:       "generic",
-			Payload:    "generic/testdata/push-generic.json",
-			HeaderFunc: genericHeaderFunc,
-			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
-			},
-			client:         adminHTTPClient,
-			expectedStatus: http.StatusOK,
-		},
-		{
-			Name:       "github",
-			Payload:    "github/testdata/pushevent.json",
-			HeaderFunc: githubHeaderFunc,
-			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
-			},
-			client:         adminHTTPClient,
-			expectedStatus: http.StatusOK,
-		},
-		{
-			Name:       "gitlab",
-			Payload:    "gitlab/testdata/pushevent.json",
-			HeaderFunc: gitlabHeaderFunc,
-			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret300/gitlab",
-			},
-			client:         adminHTTPClient,
-			expectedStatus: http.StatusOK,
-		},
-		{
-			Name:       "bitbucket",
-			Payload:    "bitbucket/testdata/pushevent.json",
-			HeaderFunc: bitbucketHeaderFunc,
-			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret400/bitbucket",
-			},
-			client:         adminHTTPClient,
-			expectedStatus: http.StatusOK,
-		},
-		{
-			// API-509: Webhooks do not allow unauthenticated requests by default.
-			// Test will verify that an unauthenticated request fails with 403 Forbidden.
-			Name:       "unauthenticated forbidden",
-			Payload:    "generic/testdata/push-generic.json",
-			HeaderFunc: genericHeaderFunc,
-			URLs: []string{
-				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
-			},
-			// Need client to skip TLS verification - CI clusters have self-signed certificates.
-			client: &http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true,
-					},
-				},
-			},
-			expectedStatus: http.StatusForbidden,
-		},
-	}
-
-	for _, test := range tests {
-		g.By(fmt.Sprintf("testing %s webhooks", test.Name))
-		for _, s := range test.URLs {
-			// trigger build event sending push notification
-			clusterAdminClientConfig := oc.AdminConfig()
-
-			g.By("executing the webhook to get the build object")
-			body := postFile(test.client, test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, test.expectedStatus, t, oc)
-			o.Expect(body).NotTo(o.BeEmpty())
-			// If expected HTTP status is not 200 OK, continue as we will not receive a Build object in the response body.
-			if test.expectedStatus != http.StatusOK {
-				continue
-			}
-
-			g.By("Unmarshalling the build object")
-			returnedBuild := &buildv1.Build{}
-			err := json.Unmarshal(body, returnedBuild)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("checking that the build exists")
-			actual, err := clusterAdminBuildClient.Builds(oc.Namespace()).Get(context.Background(), returnedBuild.Name, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("checking that we found the correct build")
-			// There should only be one trigger on these builds.
-			o.Expect(actual.Spec.TriggeredBy[0].Message).To(o.Equal(returnedBuild.Spec.TriggeredBy[0].Message))
-		}
-	}
-}
 
 func TestWebhookGitHubPushWithImage(t g.GinkgoTInterface, oc *exutil.CLI) {
 	const registryHostname = "registry:3000"

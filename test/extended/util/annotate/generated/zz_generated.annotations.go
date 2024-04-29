@@ -641,6 +641,16 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io] bitbucket": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io] generic": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io] github": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io] gitlab": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io] unauthenticated forbidden": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][webhook] TestWebhookGitHubPing [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
