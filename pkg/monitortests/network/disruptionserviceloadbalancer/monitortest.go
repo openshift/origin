@@ -275,17 +275,21 @@ func (w *availability) WriteContentToStorage(ctx context.Context, storageDir, ti
 }
 
 func (w *availability) namespaceDeleted(ctx context.Context) (bool, error) {
-	_, err := w.kubeClient.CoreV1().Namespaces().Get(ctx, w.namespaceName, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		return true, nil
-	}
+	var lastError error
+	for retry := 0; retry < 6; retry++ {
+		_, err := w.kubeClient.CoreV1().Namespaces().Get(ctx, w.namespaceName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
 
-	if err != nil {
+		if err == nil {
+			return false, nil
+		}
 		logrus.Errorf("Error checking for deleted namespace: %s, %s", w.namespaceName, err.Error())
-		return false, err
+		lastError = err
+		time.Sleep(5 * time.Second)
 	}
-
-	return false, nil
+	return false, lastError
 }
 
 func (w *availability) Cleanup(ctx context.Context) error {
@@ -299,9 +303,9 @@ func (w *availability) Cleanup(ctx context.Context) error {
 
 		startTime := time.Now()
 		log.Info("waiting for namespace deletion to complete")
-		err := wait.PollUntilContextTimeout(ctx, 15*time.Second, 20*time.Minute, true, w.namespaceDeleted)
+		err := wait.PollUntilContextTimeout(ctx, 30*time.Second, 20*time.Minute, true, w.namespaceDeleted)
 		if err != nil {
-			log.WithError(err).Error("error waiting for namespace to delete")
+			log.Errorf("Encountered error while waiting for deleted namespace: %s, %s", w.namespaceName, err)
 			return err
 		}
 		log.Infof("namespace deleted in %.2f seconds", time.Now().Sub(startTime).Seconds())
