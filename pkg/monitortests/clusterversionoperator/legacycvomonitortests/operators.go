@@ -107,29 +107,6 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			return "We are not worried about Degraded=True blips for update tests yet.", nil
 		}
 
-		if condition.Status == configv1.ConditionFalse {
-			if condition.Type == configv1.OperatorAvailable {
-
-				// Available=False is expected for single replica operators during an upgrade window.
-				// Only image-registry and storage are known to be single replica operators.
-				var knownSingleReplicaOperator = false
-				switch operator {
-				case "image-registry":
-					if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
-						knownSingleReplicaOperator = true
-					}
-				case "storage":
-					if replicaCount, _ := checkReplicas("openshift-cluster-storage-operator", "cluster-storage-operator", clientConfig); replicaCount == 1 {
-						knownSingleReplicaOperator = true
-					}
-				}
-				if knownSingleReplicaOperator && isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute {
-					return fmt.Sprintf("%s has only single replica, Available=False is for < 10 minutes and within an upgrade window ", operator), nil
-				}
-				// If it's not one of the know single replica operators, we fall through and go through the exceptions below.
-			}
-		}
-
 		switch operator {
 		case "authentication":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
@@ -169,6 +146,18 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		case "operator-lifecycle-manager-packageserver":
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
+			}
+		case "image-registry", "storage":
+			var namespace, operator string
+			if operator == "image-registry" {
+				namespace = "openshift-image-registry"
+			} else if operator == "storage" {
+				namespace = "openshift-cluster-storage-operator"
+				operator = "cluster-storage-operator"
+			}
+			replicaCount, _ := checkReplicas(namespace, operator, clientConfig)
+			if replicaCount == 1 && isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute {
+				return fmt.Sprintf("%s has only single replica, but Available=False is within an upgrade window and is for less than 10 minutes", operator), nil
 			}
 		}
 
