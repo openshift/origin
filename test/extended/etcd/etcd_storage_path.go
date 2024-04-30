@@ -287,6 +287,16 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 			// Added etcd data.
 			// TODO: When rebase has started, add etcd storage data has been added to
 			//       k8s.io/kubernetes/test/integration/etcd/data.go in the 1.30 release.
+			gvr("admissionregistration.k8s.io", "v1", "validatingadmissionpolicies"): {
+				Stub:             `{"metadata":{"name":"vap1","creationTimestamp":null},"spec":{"paramKind":{"apiVersion":"test.example.com/v1","kind":"Example"},"matchConstraints":{"resourceRules": [{"resourceNames": ["fakeName"], "apiGroups":["apps"],"apiVersions":["v1"],"operations":["CREATE", "UPDATE"], "resources":["deployments"]}]},"validations":[{"expression":"object.spec.replicas <= params.maxReplicas","message":"Too many replicas"}]}}`,
+				ExpectedEtcdPath: "/registry/validatingadmissionpolicies/vap1",
+				ExpectedGVK:      gvkP("admissionregistration.k8s.io", "v1beta1", "ValidatingAdmissionPolicy"),
+			},
+			gvr("admissionregistration.k8s.io", "v1", "validatingadmissionpolicybindings"): {
+				Stub:             `{"metadata":{"name":"pb1","creationTimestamp":null},"spec":{"policyName":"replicalimit-policy.example.com","paramRef":{"name":"replica-limit-test.example.com"},"validationActions":["Deny"]}}`,
+				ExpectedEtcdPath: "/registry/validatingadmissionpolicybindings/pb1",
+				ExpectedGVK:      gvkP("admissionregistration.k8s.io", "v1beta1", "ValidatingAdmissionPolicyBinding"),
+			},
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
@@ -297,7 +307,26 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 		// Modified etcd data.
 		// TODO: When rebase has started, fixup etcd storage data that has been modified
 		//       in k8s.io/kubernetes/test/integration/etcd/data.go in the 1.30 release.
-
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "flowschemas")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "fs-3"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+			ExpectedEtcdPath: "/registry/flowschemas/fs-3",
+			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1", "FlowSchema"),
+		}
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1beta3", "prioritylevelconfigurations")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "conf5"}, "spec": {"type": "Limited", "limited": {"nominalConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf5",
+			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1", "PriorityLevelConfiguration"),
+		}
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1", "flowschemas")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "fs-3"}, "spec": {"priorityLevelConfiguration": {"name": "name1"}}}`,
+			ExpectedEtcdPath: "/registry/flowschemas/fs-3",
+			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1", "FlowSchema"),
+		}
+		etcdStorageData[gvr("flowcontrol.apiserver.k8s.io", "v1", "prioritylevelconfigurations")] = etcddata.StorageData{
+			Stub:             `{"metadata": {"name": "conf5"}, "spec": {"type": "Limited", "limited": {"nominalConcurrencyShares":3, "limitResponse": {"type": "Reject"}}}}`,
+			ExpectedEtcdPath: "/registry/prioritylevelconfigurations/conf5",
+			ExpectedGVK:      gvkP("flowcontrol.apiserver.k8s.io", "v1", "PriorityLevelConfiguration"),
+		}
 		// Removed etcd data.
 		// TODO: When rebase has started, remove etcd storage data that has been removed
 		//       from k8s.io/kubernetes/test/integration/etcd/data.go in the 1.29 release.
