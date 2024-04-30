@@ -1,11 +1,16 @@
 package certgraphapi
 
-// PKIRegistryInfo holds information about TLS artifacts stored in etcd. This includes object location and metadata based on object annotations
-type PKIRegistryInfo struct {
-	// +mapType:=atomic
-	CertificateAuthorityBundles []PKIRegistryInClusterCABundle `json:"certificateAuthorityBundles"`
-	// +mapType:=atomic
-	CertKeyPairs []PKIRegistryInClusterCertKeyPair `json:"certKeyPairs"`
+type PKIRegistryCertKeyPair struct {
+	InClusterLocation *PKIRegistryInClusterCertKeyPair
+	OnDiskLocation    *PKIRegistryOnDiskCertKeyPair
+}
+
+// PKIRegistryOnDiskCertKeyPair identifies certificate key pair on disk and stores its metadata
+type PKIRegistryOnDiskCertKeyPair struct {
+	// OnDiskLocation points to the certkeypair location on disk
+	OnDiskLocation OnDiskLocation `json:"onDiskLocation"`
+	// CertKeyInfo stores metadata for certificate key pair
+	CertKeyInfo PKIRegistryCertKeyPairInfo `json:"certKeyInfo"`
 }
 
 // PKIRegistryInClusterCertKeyPair identifies certificate key pair and stores its metadata
@@ -36,6 +41,19 @@ type PKIRegistryCertKeyPairInfo struct {
 type PKIRegistryInClusterCABundle struct {
 	// ConfigMapLocation points to the configmap location
 	ConfigMapLocation InClusterConfigMapLocation `json:"configMapLocation"`
+	// CABundleInfo stores metadata for the certificate authority bundle
+	CABundleInfo PKIRegistryCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo"`
+}
+
+type PKIRegistryCABundle struct {
+	InClusterLocation *PKIRegistryInClusterCABundle
+	OnDiskLocation    *PKIRegistryOnDiskCABundle
+}
+
+// PKIRegistryOnDiskCABundle identifies certificate key pair on disk and stores its metadata
+type PKIRegistryOnDiskCABundle struct {
+	// OnDiskLocation points to the ca bundle location on disk
+	OnDiskLocation OnDiskLocation `json:"onDiskLocation"`
 	// CABundleInfo stores metadata for the certificate authority bundle
 	CABundleInfo PKIRegistryCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo"`
 }

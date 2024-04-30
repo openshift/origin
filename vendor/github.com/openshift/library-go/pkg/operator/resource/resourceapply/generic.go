@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -192,6 +193,18 @@ func ApplyDirectly(ctx context.Context, clients *ClientHolder, recorder events.R
 				result.Error = fmt.Errorf("missing kubeClient")
 			} else {
 				result.Result, result.Changed, result.Error = ApplyMutatingWebhookConfigurationImproved(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t, cache)
+			}
+		case *admissionregistrationv1beta1.ValidatingAdmissionPolicy:
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			} else {
+				result.Result, result.Changed, result.Error = ApplyValidatingAdmissionPolicyV1beta1(ctx, clients.kubeClient.AdmissionregistrationV1beta1(), recorder, t, cache)
+			}
+		case *admissionregistrationv1beta1.ValidatingAdmissionPolicyBinding:
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			} else {
+				result.Result, result.Changed, result.Error = ApplyValidatingAdmissionPolicyBindingV1beta1(ctx, clients.kubeClient.AdmissionregistrationV1beta1(), recorder, t, cache)
 			}
 		case *storagev1.CSIDriver:
 			if clients.kubeClient == nil {

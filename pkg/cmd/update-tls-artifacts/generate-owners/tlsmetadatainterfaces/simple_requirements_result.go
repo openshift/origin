@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphapi"
 	"github.com/openshift/library-go/pkg/certs/cert-inspection/certgraphutils"
+	"github.com/openshift/origin/pkg/certs"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -93,7 +93,7 @@ func (s SimpleRequirementsResult) DiffExistingContent(tlsDir string) (string, bo
 }
 
 func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.FS) ([]string, bool, error) {
-	resultingViolations := &certgraphapi.PKIRegistryInfo{}
+	resultingViolations := &certs.PKIRegistryInfo{}
 	if err := json.Unmarshal(s.violationJSON, resultingViolations); err != nil {
 		return nil, false, fmt.Errorf("error decoding violation content for %v: %w", s.GetName(), err)
 	}
@@ -102,32 +102,38 @@ func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.
 	if err != nil {
 		return nil, false, fmt.Errorf("error reading existing content for %v: %w", s.GetName(), err)
 	}
-	existingViolations := &certgraphapi.PKIRegistryInfo{}
+	existingViolations := &certs.PKIRegistryInfo{}
 	if err := json.Unmarshal(existingViolationJSONBytes, existingViolations); err != nil {
 		return nil, false, fmt.Errorf("error decoding existing content for %v: %w", s.GetName(), err)
 	}
 
 	regressions := []string{}
 	for _, currCertKeyPair := range resultingViolations.CertKeyPairs {
-		currLocation := currCertKeyPair.SecretLocation
-		_, err := certgraphutils.LocateCertKeyPair(currLocation, existingViolations.CertKeyPairs)
-		if err != nil {
-			// this means it wasn't found
-			regressions = append(regressions,
-				fmt.Sprintf("requirment/%v: --namespace=%v secret/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
-			)
+		if currCertKeyPair.InClusterLocation != nil {
+			currLocation := currCertKeyPair.InClusterLocation.SecretLocation
+			_, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, existingViolations.CertKeyPairs)
+			if err != nil {
+				// this means it wasn't found
+				regressions = append(regressions,
+					fmt.Sprintf("requirment/%v: --namespace=%v secret/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+				)
+			}
 		}
+		// TODO[vrutkovs]: add currCertKeyPair.OnDiskLocation
 	}
 
 	for _, currCABundle := range resultingViolations.CertificateAuthorityBundles {
-		currLocation := currCABundle.ConfigMapLocation
-		_, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, existingViolations.CertificateAuthorityBundles)
-		if err != nil {
-			// this means it wasn't found
-			regressions = append(regressions,
-				fmt.Sprintf("requirment/%v: --namespace=%v configmap/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
-			)
+		if currCABundle.InClusterLocation != nil {
+			currLocation := currCABundle.InClusterLocation.ConfigMapLocation
+			_, err := certgraphutils.LocateCABundleByConfigMapLocation(currLocation, existingViolations.CertificateAuthorityBundles)
+			if err != nil {
+				// this means it wasn't found
+				regressions = append(regressions,
+					fmt.Sprintf("requirment/%v: --namespace=%v configmap/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+				)
+			}
 		}
+		// TODO[vrutkovs]: add currCABundle.OnDiskLocation
 	}
 
 	if len(regressions) > 0 {

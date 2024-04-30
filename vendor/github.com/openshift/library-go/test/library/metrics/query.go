@@ -7,19 +7,16 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	prometheusapi "github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	corev1 "k8s.io/api/core/v1"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/transport"
 )
-
-const prometheusServiceAccountName = "prometheus-k8s"
 
 // NewPrometheusClient returns Prometheus API or error
 // Note: with thanos-querier you must pass an entire Alert as a query. Partial queries return an error, so have to pass the entire alert.
@@ -38,26 +35,15 @@ func NewPrometheusClient(ctx context.Context, kclient kubernetes.Interface, rc r
 		return nil, fmt.Errorf("failed to get thanos-querier route: %w", err)
 	}
 	host := route.Status.Ingress[0].Host
-
-	var bearerToken string
-	secrets, err := kclient.CoreV1().Secrets("openshift-monitoring").List(ctx, metav1.ListOptions{})
+	expirationSeconds := int64(24 * time.Hour / time.Second)
+	req, err := kclient.CoreV1().ServiceAccounts("openshift-monitoring").CreateToken(ctx, "prometheus-k8s",
+		&authenticationv1.TokenRequest{
+			Spec: authenticationv1.TokenRequestSpec{ExpirationSeconds: &expirationSeconds},
+		}, metav1.CreateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to list secrets in the openshift-monitoring namespace: %w", err)
+		return nil, fmt.Errorf("error requesting token for service account prometheus-k8s: %v", err)
 	}
-
-	for _, s := range secrets.Items {
-		if s.Type != corev1.SecretTypeServiceAccountToken ||
-			!strings.HasPrefix(s.Name, prometheusServiceAccountName) {
-			continue
-		}
-		bearerToken = string(s.Data[corev1.ServiceAccountTokenKey])
-		break
-	}
-	if len(bearerToken) == 0 {
-		return nil, fmt.Errorf("%q service account not found", prometheusServiceAccountName)
-	}
-
-	return createClient(ctx, kclient, host, bearerToken)
+	return createClient(ctx, kclient, host, req.Status.Token)
 }
 
 func createClient(ctx context.Context, kclient kubernetes.Interface, host, bearerToken string) (prometheusv1.API, error) {
