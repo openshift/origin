@@ -234,14 +234,23 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			notBefore := time.Now().Add(-24 * time.Hour)
 			notAfter := time.Now().Add(24 * time.Hour)
 
-			// Generate crt/key for routes that need them.
-			_, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair(notBefore, notAfter)
+			// Generate crts/keys for routes that need them.
+			_, tlsCrt1Data, tlsPrivateKey1, err := certgen.GenerateKeyPair(notBefore, notAfter)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			derKey, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey)
+			_, tlsCrt2Data, tlsPrivateKey2, err := certgen.GenerateKeyPair(notBefore, notAfter)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			pemCrt, err := certgen.MarshalCertToPEMString(tlsCrtData)
+			derKey1, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey1)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			derKey2, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey2)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			pemCrt1, err := certgen.MarshalCertToPEMString(tlsCrt1Data)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			pemCrt2, err := certgen.MarshalCertToPEMString(tlsCrt2Data)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			shardFQDN := oc.Namespace() + "." + defaultDomain
@@ -319,8 +328,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						TLS: &routev1.TLSConfig{
 							Termination:                   routev1.TLSTerminationEdge,
 							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-							Key:                           derKey,
-							Certificate:                   pemCrt,
+							Key:                           derKey1,
+							Certificate:                   pemCrt1,
 						},
 						To: routev1.RouteTargetReference{
 							Kind:   "Service",
@@ -345,8 +354,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						TLS: &routev1.TLSConfig{
 							Termination:                   routev1.TLSTerminationReencrypt,
 							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-							Key:                           derKey,
-							Certificate:                   pemCrt,
+							Key:                           derKey2,
+							Certificate:                   pemCrt2,
 						},
 						To: routev1.RouteTargetReference{
 							Kind:   "Service",
