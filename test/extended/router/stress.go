@@ -245,6 +245,157 @@ var _ = g.Describe("[sig-network][Feature:Router][apigroup:route.openshift.io]",
 			o.Expect(writes).To(o.BeNumerically(">=", 1))
 			o.Expect(writes).To(o.BeNumerically("<=", 5))
 		})
+
+		g.It("converges when multiple routers are writing conflicting upgrade validation status", func() {
+			g.By("deploying a scaled out namespace scoped router that adds the UnservableInFutureVersions condition")
+
+			routerName := "conflicting"
+			numOfRoutes := 20
+			rsAdd, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
+				context.Background(),
+				scaledRouter(
+					"router-add-condition",
+					routerImage,
+					[]string{
+						"-v=5",
+						fmt.Sprintf("--namespace=%s", ns),
+						// Make resync interval high to avoid contention flushes.
+						"--resync-interval=24h",
+						fmt.Sprintf("--name=%s", routerName),
+						"--debug-upgrade-validation-force-add-condition",
+					},
+				),
+				metav1.CreateOptions{},
+			)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = waitForReadyReplicaSet(oc.KubeClient(), ns, rsAdd.Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("creating multiple routes")
+			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
+			err = createTestRoutes(client, numOfRoutes)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for sufficient routes to have a UnservableInFutureVersions and Admitted status condition")
+			err = wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 10*time.Minute, false, func(ctx context.Context) (bool, error) {
+				routes, err := client.List(ctx, metav1.ListOptions{})
+				if err != nil {
+					e2e.Logf("failed to list routes: %v", err)
+					return false, nil
+				}
+				o.Expect(routes.Items).To(o.HaveLen(numOfRoutes))
+				unservableCondition := 0
+				admittedCondition := 0
+				for _, route := range routes.Items {
+					ingress := findIngress(&route, routerName)
+					if ingress == nil {
+						continue
+					}
+					// Find UnservableInFutureVersions condition.
+					if cond := findIngressCondition(ingress, routev1.RouteUnservableInFutureVersions); cond != nil {
+						unservableCondition++
+						o.Expect(ingress.Host).NotTo(o.BeEmpty())
+						o.Expect(ingress.Conditions).NotTo(o.BeEmpty())
+						o.Expect(cond.LastTransitionTime).NotTo(o.BeNil())
+						o.Expect(cond.Status).To(o.Equal(corev1.ConditionTrue))
+					}
+					// Find Admitted condition.
+					if cond := findIngressCondition(ingress, routev1.RouteAdmitted); cond != nil {
+						admittedCondition++
+						o.Expect(ingress.Host).NotTo(o.BeEmpty())
+						o.Expect(ingress.Conditions).NotTo(o.BeEmpty())
+						o.Expect(cond.LastTransitionTime).NotTo(o.BeNil())
+						o.Expect(cond.Status).To(o.Equal(corev1.ConditionTrue))
+					}
+				}
+				// Wait for both conditions to be on all routes.
+				if unservableCondition != numOfRoutes || admittedCondition != numOfRoutes {
+					e2e.Logf("waiting for %d conditions for %q, got UnservableInFutureVersions=%d and Admitted=%d", numOfRoutes, routerName, unservableCondition, admittedCondition)
+					return false, nil
+				}
+				outputIngress(routes.Items...)
+				return true, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Start recording updates BEFORE the second router that removes the conditions gets created,
+			// so we capture all the updates.
+			err, stopRecordingRouteUpdates, updateCountCh := startRecordingRouteStatusUpdates(client, routerName, "")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("deploying a scaled out namespace scoped router that removes the UnservableInFutureVersions condition")
+			rsRemove, err := oc.KubeClient().AppsV1().ReplicaSets(ns).Create(
+				context.Background(),
+				scaledRouter(
+					"router-remove-condition",
+					routerImage,
+					[]string{
+						"-v=5",
+						fmt.Sprintf("--namespace=%s", ns),
+						// Make resync interval high to avoid contention flushes.
+						"--resync-interval=24h",
+						fmt.Sprintf("--name=%s", routerName),
+						"--debug-upgrade-validation-force-remove-condition",
+					},
+				),
+				metav1.CreateOptions{},
+			)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = waitForReadyReplicaSet(oc.KubeClient(), ns, rsRemove.Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that we stop writing conflicts rapidly")
+			err, writes := waitForRouteStatusUpdates(stopRecordingRouteUpdates, updateCountCh, 30*time.Second)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Ideally, we expect at least 20 writes for 20 routes, as the router-add-condition routers already consider
+			// all routes a candidate for contention. When router-remove-condition begins to remove these conditions,
+			// the router-add-condition routers should immediately consider each route as contended and won't attempt to
+			// add the condition back. However, a few additional conflicting writes might occur if the contention
+			// tracker is late in detecting route writes. Therefore, we generously allow for up to 50 writes to
+			// accommodate these discrepancies.
+			o.Expect(writes).To(o.BeNumerically(">=", numOfRoutes))
+			o.Expect(writes).To(o.BeNumerically("<=", 50))
+
+			g.By("toggling a single route's status condition")
+
+			// Start recording updates BEFORE the route gets modified, so we capture all the updates.
+			err, stopRecordingRouteUpdates, updateCountCh = startRecordingRouteStatusUpdates(client, routerName, "9")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// Though it is highly likely that the router-remove-conditions won the conflict and the condition is
+			// removed, we will be safe and not make that assumption. We will add or remove the condition based on its
+			// presence.
+			route9, err := client.Get(context.Background(), "9", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			route9Ingress := findIngress(route9, routerName)
+			if cond := findIngressCondition(route9Ingress, routev1.RouteUnservableInFutureVersions); cond != nil {
+				e2e.Logf("removing %q condition from route %q", routev1.RouteUnservableInFutureVersions, route9.Name)
+				removeIngressCondition(route9Ingress, routev1.RouteUnservableInFutureVersions)
+			} else {
+				e2e.Logf("adding %q condition to route %q", routev1.RouteUnservableInFutureVersions, route9.Name)
+				cond := routev1.RouteIngressCondition{
+					Type:    routev1.RouteUnservableInFutureVersions,
+					Status:  corev1.ConditionFalse,
+					Message: "foo",
+					Reason:  "foo",
+				}
+				route9Ingress.Conditions = append(route9Ingress.Conditions, cond)
+			}
+
+			route9, err = client.UpdateStatus(context.Background(), route9, metav1.UpdateOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying that only get a few updates")
+			err, writes = waitForRouteStatusUpdates(stopRecordingRouteUpdates, updateCountCh, 15*time.Second)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			// Ideally, this should be 1 write. If we are adding the status condition, then the router-remove-condition
+			// routers should now consider the route contended. If we are removing the status condition, then the
+			// router-add-conditions should already consider the route contended and/or have reach max contentions.
+			// Though its very unlikely, we allow up to 5 writes for discrepancies in slow contention tracking.
+			o.Expect(writes).To(o.BeNumerically(">=", 1))
+			o.Expect(writes).To(o.BeNumerically("<=", 5))
+		})
 	})
 })
 
@@ -360,6 +511,26 @@ func findIngress(route *routev1.Route, name string) *routev1.RouteIngress {
 	return nil
 }
 
+// findIngressCondition locates the first condition that corresponds to the requested type.
+func findIngressCondition(ingress *routev1.RouteIngress, t routev1.RouteIngressConditionType) (_ *routev1.RouteIngressCondition) {
+	for i := range ingress.Conditions {
+		if ingress.Conditions[i].Type == t {
+			return &ingress.Conditions[i]
+		}
+	}
+	return nil
+}
+
+// removeIngressCondition removes a condition of type t from the ingress conditions
+func removeIngressCondition(ingress *routev1.RouteIngress, t routev1.RouteIngressConditionType) {
+	for i, v := range ingress.Conditions {
+		if v.Type == t {
+			ingress.Conditions = append(ingress.Conditions[:i], ingress.Conditions[i+1:]...)
+			return
+		}
+	}
+}
+
 func scaledRouter(name, image string, args []string) *appsv1.ReplicaSet {
 	one := int64(1)
 	scale := int32(3)
@@ -397,14 +568,29 @@ func scaledRouter(name, image string, args []string) *appsv1.ReplicaSet {
 func outputIngress(routes ...routev1.Route) {
 	b := &bytes.Buffer{}
 	w := tabwriter.NewWriter(b, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "NAME\tROUTER\tHOST\tLAST TRANSITION\n")
+	fmt.Fprintf(w, "NAME\tROUTER\tHOST\tCONDITIONS\tLAST TRANSITION\n")
 	for _, route := range routes {
 		for _, ingress := range route.Status.Ingress {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", route.Name, ingress.RouterName, ingress.Host, ingress.Conditions[0].LastTransitionTime)
+			conditions := ""
+			for _, condition := range ingress.Conditions {
+				conditions += fmt.Sprintf("%s=%s ", condition.Type, condition.Status)
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", route.Name, ingress.RouterName, ingress.Host, conditions, findMostRecentConditionTime(ingress.Conditions))
 		}
 	}
 	w.Flush()
 	e2e.Logf("Routes:\n%s", b.String())
+}
+
+// findMostRecentConditionTime returns the time of the most recent condition.
+func findMostRecentConditionTime(conditions []routev1.RouteIngressCondition) time.Time {
+	var recent time.Time
+	for j := range conditions {
+		if conditions[j].LastTransitionTime != nil && conditions[j].LastTransitionTime.Time.After(recent) {
+			recent = conditions[j].LastTransitionTime.Time
+		}
+	}
+	return recent
 }
 
 func verifyCommandEquivalent(c clientset.Interface, rs *appsv1.ReplicaSet, cmd string) {
