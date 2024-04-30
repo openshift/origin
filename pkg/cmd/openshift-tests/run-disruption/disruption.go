@@ -135,7 +135,7 @@ func (opt *RunAPIDisruptionMonitorOptions) Run() error {
 	if len(opt.ExtraMessage) > 0 {
 		fmt.Fprintf(opt.Out, "\nAppending %s to recorded event message\n", opt.ExtraMessage)
 		for i, event := range intervals {
-			intervals[i].StructuredMessage.HumanMessage = fmt.Sprintf("%s user-provided-message=%s", event.StructuredMessage.HumanMessage, opt.ExtraMessage)
+			intervals[i].Message.HumanMessage = fmt.Sprintf("%s user-provided-message=%s", event.Message.HumanMessage, opt.ExtraMessage)
 		}
 	}
 

@@ -193,7 +193,7 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 
 	for _, event := range events {
 
-		times := GetTimesAnEventHappened(event.StructuredMessage)
+		times := GetTimesAnEventHappened(event.Message)
 		if times > DuplicateEventThreshold {
 
 			// Check if we have an allowance for this event. This code used to just check if it had an interesting flag,
@@ -206,13 +206,13 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 
 			// key used in a map to identify the common interval that is repeating and we may
 			// encounter multiple times.
-			eventDisplayMessage := fmt.Sprintf("%s - reason/%s %s", event.StructuredLocator.OldLocator(),
-				event.StructuredMessage.Reason, event.StructuredMessage.HumanMessage)
+			eventDisplayMessage := fmt.Sprintf("%s - reason/%s %s", event.Locator.OldLocator(),
+				event.Message.Reason, event.Message.HumanMessage)
 
 			if _, ok := displayToCount[eventDisplayMessage]; !ok {
 				displayToCount[eventDisplayMessage] = event
 			}
-			if times > GetTimesAnEventHappened(displayToCount[eventDisplayMessage].StructuredMessage) {
+			if times > GetTimesAnEventHappened(displayToCount[eventDisplayMessage].Message) {
 				// Update to the latest interval we saw with the higher count, so from/to are more accurate
 				displayToCount[eventDisplayMessage] = event
 			}
@@ -221,10 +221,10 @@ func (d *duplicateEventsEvaluator) testDuplicatedEvents(testName string, flakeOn
 
 	nsResults := map[string]*eventResult{}
 	for intervalDisplayMsg, interval := range displayToCount {
-		namespace := interval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+		namespace := interval.Locator.Keys[monitorapi.LocatorNamespaceKey]
 		intervalMsgWithTime := intervalDisplayMsg + " (" + interval.From.Format("15:04:05Z") + ")"
 		msg := fmt.Sprintf("event happened %d times, something is wrong: %v",
-			GetTimesAnEventHappened(interval.StructuredMessage), intervalMsgWithTime)
+			GetTimesAnEventHappened(interval.Message), intervalMsgWithTime)
 
 		// We only create junit for known namespaces
 		if !platformidentification.KnownNamespaces.Has(namespace) {

@@ -2,10 +2,8 @@
     "items": [
         {
             "level": "Info",
-            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
-            "message": "constructed/pod-lifecycle-constructor reason/Created",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "e2e-kubectl-3271",
@@ -13,7 +11,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Created",
                 "cause": "",
                 "humanMessage": "",
@@ -27,10 +25,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
-            "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "without-label",
@@ -39,7 +35,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerWait",
                 "cause": "",
                 "humanMessage": "missed real \"ContainerWait\"",
@@ -53,10 +49,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73",
-            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-141-9.us-west-2.compute.internal reason/Scheduled",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "e2e-kubectl-3271",
@@ -64,7 +58,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Scheduled",
                 "cause": "",
                 "humanMessage": "",
@@ -79,10 +73,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "without-label",
@@ -91,7 +83,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "missed real \"NotReady\"",
@@ -105,10 +97,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
-            "message": "constructed/pod-lifecycle-constructor duration/6.00s reason/ContainerStart",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "without-label",
@@ -117,7 +107,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerStart",
                 "cause": "",
                 "humanMessage": "",
@@ -132,10 +122,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/e2e-kubectl-3271 pod/without-label uid/e185b70c-ea3e-4600-850a-b2370a729a73 container/without-label",
-            "message": "constructed/pod-lifecycle-constructor reason/Ready",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "without-label",
@@ -144,7 +132,7 @@
                     "uid": "e185b70c-ea3e-4600-850a-b2370a729a73"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Ready",
                 "cause": "",
                 "humanMessage": "",

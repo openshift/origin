@@ -10,7 +10,7 @@ import (
 )
 
 func TestMonitor_Newlines(t *testing.T) {
-	evt := &monitorapi.Interval{Condition: monitorapi.Condition{StructuredMessage: monitorapi.Message{HumanMessage: "a\nb\n"}}}
+	evt := &monitorapi.Interval{Condition: monitorapi.Condition{Message: monitorapi.Message{HumanMessage: "a\nb\n"}}}
 	// this originally expected preservation of the trailing newline, that gets trimmed somewhere in the new intervals,
 	// which seems ok as far as I can tell
 	expected := "Jan 01 00:00:00.000 I  a\\nb"

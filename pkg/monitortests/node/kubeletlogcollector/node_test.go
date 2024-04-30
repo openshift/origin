@@ -26,7 +26,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
 						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-monitoring",
@@ -35,7 +35,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 							"container": "",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "HttpClientConnectionLost",
 						HumanMessage: "Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/namespaces/openshift-monitoring/pods/prometheus-k8s-0\": http2: client connection lost",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -55,7 +55,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
 						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-monitoring",
@@ -63,7 +63,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 							"container": "",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "HttpClientConnectionLost",
 						HumanMessage: "unable to decode an event from the watch stream: http2: client connection lost",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -83,13 +83,13 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeNode,
 						Keys: map[monitorapi.LocatorKey]string{
 							"node": "testName",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "HttpClientConnectionLost",
 						HumanMessage: "error getting node \"ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s\": Get \"https://api-int.ci-op-747jjqn3-b3af3.ci2.azure.devcluster.openshift.com:6443/api/v1/nodes/ci-op-747jjqn3-b3af3-f45pk-worker-centralus2-bdp5s?timeout=10s\": http2: client connection lost",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -109,13 +109,13 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeNode,
 						Keys: map[monitorapi.LocatorKey]string{
 							"node": "testName",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "FailedToUpdateLease",
 						HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -134,13 +134,13 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeNode,
 						Keys: map[monitorapi.LocatorKey]string{
 							"node": "testName",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "FailedToUpdateLease",
 						HumanMessage: "https://api-int.ci-op-cyqgzj4w-ed5cd.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-cyqgzj4w-ed5cd-ll5md-master-0?timeout=10s - http2: client connection lost",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -159,7 +159,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
 						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-authentication",
@@ -168,7 +168,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 							"container": "oauth-openshift",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "ReadinessFailed",
 						HumanMessage: "Get \"https://10.129.0.12:6443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -188,7 +188,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
 						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-marketplace",
@@ -197,7 +197,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 							"container": "registry-server",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "ReadinessErrored",
 						HumanMessage: "rpc error: code = NotFound desc = container is not created or running: checking if PID of 645437acbb2ca429c04d5a2628924e2e10d44c681c824dddc7c82ffa30a936be is running failed: container process not found",
 						Annotations: map[monitorapi.AnnotationKey]string{
@@ -217,7 +217,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Info,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeContainer,
 						Keys: map[monitorapi.LocatorKey]string{
 							"namespace": "openshift-e2e-loki",
@@ -226,7 +226,7 @@ func TestMonitorApiIntervals(t *testing.T) {
 							"container": "oauth-proxy",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "ErrImagePull",
 						Cause:        "UnrecognizedSignatureFormat",
 						HumanMessage: "",
@@ -248,13 +248,13 @@ func TestMonitorApiIntervals(t *testing.T) {
 			want: monitorapi.Interval{
 				Condition: monitorapi.Condition{
 					Level: monitorapi.Warning,
-					StructuredLocator: monitorapi.Locator{
+					Locator: monitorapi.Locator{
 						Type: monitorapi.LocatorTypeNode,
 						Keys: map[monitorapi.LocatorKey]string{
 							"node": "testName",
 						},
 					},
-					StructuredMessage: monitorapi.Message{
+					Message: monitorapi.Message{
 						Reason:       "",
 						Cause:        "",
 						HumanMessage: "NetworkManager[1155]: <info> [1681300187.8326] platform-linux: netlink[rtnl]: read: too many netlink events. Need to resynchronize platform cache",
@@ -278,8 +278,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 
 			//assert.Equalf(t, intervals[i], testcase[i].want, "Interval compare for %s = %v, want %v", testcase[i].name, intervals[i], testcase[i])
 
-			assert.Equal(t, tc.want.StructuredLocator, intervals[0].StructuredLocator)
-			assert.Equal(t, tc.want.StructuredMessage, intervals[0].StructuredMessage)
+			assert.Equal(t, tc.want.Locator, intervals[0].Locator)
+			assert.Equal(t, tc.want.Message, intervals[0].Message)
 			assert.Equal(t, tc.want.Level, intervals[0].Level)
 			assert.Equal(t, tc.want.From, intervals[0].From)
 			assert.Equal(t, tc.want.To, intervals[0].To)
@@ -499,7 +499,7 @@ func Test_readinessFailure(t *testing.T) {
 				{
 					Condition: monitorapi.Condition{
 						Level: monitorapi.Info,
-						StructuredLocator: monitorapi.Locator{
+						Locator: monitorapi.Locator{
 							Type: monitorapi.LocatorTypeContainer,
 							Keys: map[monitorapi.LocatorKey]string{
 								"namespace": "openshift-authentication",
@@ -508,7 +508,7 @@ func Test_readinessFailure(t *testing.T) {
 								"container": "oauth-openshift",
 							},
 						},
-						StructuredMessage: monitorapi.Message{
+						Message: monitorapi.Message{
 							Reason:       "ReadinessFailed",
 							Cause:        "",
 							HumanMessage: "Get \"https://10.129.0.12:6443/healthz\": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)",
@@ -531,8 +531,8 @@ func Test_readinessFailure(t *testing.T) {
 			// TODO: we can't deep test because now we're building things from maps of annotations with a
 			// non-predictable order, on the legacy Message and Locator. Once we eliminate these we could, in meantime
 			// we'll have to selectively test the other fields that we can compare.
-			assert.Equal(t, tt.want[0].StructuredLocator, got[0].StructuredLocator)
-			assert.Equal(t, tt.want[0].StructuredMessage, got[0].StructuredMessage)
+			assert.Equal(t, tt.want[0].Locator, got[0].Locator)
+			assert.Equal(t, tt.want[0].Message, got[0].Message)
 			assert.Equal(t, tt.want[0].Level, got[0].Level)
 			assert.Equal(t, tt.want[0].From, got[0].From)
 			assert.Equal(t, tt.want[0].To, got[0].To)

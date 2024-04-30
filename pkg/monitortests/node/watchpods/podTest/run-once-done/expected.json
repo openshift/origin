@@ -2,10 +2,8 @@
     "items": [
         {
             "level": "Info",
-            "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
-            "message": "constructed/pod-lifecycle-constructor reason/Created",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-kube-scheduler",
@@ -13,7 +11,7 @@
                     "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Created",
                 "cause": "",
                 "humanMessage": "",
@@ -27,10 +25,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
-            "message": "constructed/pod-lifecycle-constructor node/ip-10-0-136-132.us-west-2.compute.internal reason/Scheduled",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-kube-scheduler",
@@ -38,7 +34,7 @@
                     "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Scheduled",
                 "cause": "",
                 "humanMessage": "",
@@ -53,10 +49,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9 container/installer",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "installer",
@@ -65,7 +59,7 @@
                     "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "",

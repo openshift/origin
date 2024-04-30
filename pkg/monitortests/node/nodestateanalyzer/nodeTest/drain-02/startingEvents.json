@@ -2,17 +2,15 @@
   "items": [
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm hmsg/94b2a62d8a",
-      "message": "reason/Cordon roles/worker Cordoned node to apply update",
-      "tempSource": "KubeEvent",
-      "tempStructuredLocator": {
+      "source": "KubeEvent",
+      "locator": {
         "type": "Node",
         "keys": {
           "hmsg": "94b2a62d8a",
           "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Cordon",
         "cause": "",
         "humanMessage": "Cordoned node to apply update",
@@ -26,17 +24,15 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
-      "message": "reason/Drain roles/worker Draining node to update config.",
-      "tempSource": "KubeEvent",
-      "tempStructuredLocator": {
+      "source": "KubeEvent",
+      "locator": {
         "type": "Node",
         "keys": {
           "hmsg": "502676ccb6",
           "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Drain",
         "cause": "",
         "humanMessage": "Draining node to update config.",
@@ -51,17 +47,15 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
-      "message": "reason/InClusterUpgrade roles/worker Updating from oscontainer registry.build04.ci.openshift.org/ci-op-wh7nq7n4/stable@sha256:42fef51c3f19f40f5573f1ba6a393c3e8fbe53b78eb977aea957f60b85b1458a",
-      "tempSource": "KubeEvent",
-      "tempStructuredLocator": {
+      "source": "KubeEvent",
+      "locator": {
         "type": "Node",
         "keys": {
           "hmsg": "0294347a34",
           "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "InClusterUpgrade",
         "cause": "",
         "humanMessage": "Updating from oscontainer registry.build04.ci.openshift.org/ci-op-wh7nq7n4/stable@sha256:42fef51c3f19f40f5573f1ba6a393c3e8fbe53b78eb977aea957f60b85b1458a",
@@ -76,17 +70,15 @@
     },
     {
       "level": "Info",
-      "locator": "ns/openshift-machine-config-operator node/ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm",
-      "message": "reason/OSUpdateStarted roles/worker Upgrading OS",
-      "tempSource": "KubeEvent",
-      "tempStructuredLocator": {
+      "source": "KubeEvent",
+      "locator": {
         "type": "Node",
         "keys": {
           "hmsg": "873e8ad5d9",
           "node": "ci-op-wh7nq7n4-206af-q9jvw-worker-a-rdxtm"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "OSUpdateStarted",
         "cause": "",
         "humanMessage": "Upgrading OS",

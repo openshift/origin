@@ -24,8 +24,8 @@ func (c MetricConditions) MatchesInterval(alertInterval monitorapi.Interval) *Me
 		return nil
 	}
 
-	checkAlertName := alertInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
-	checkAlertNamespace := alertInterval.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+	checkAlertName := alertInterval.Locator.Keys[monitorapi.LocatorAlertKey]
+	checkAlertNamespace := alertInterval.Locator.Keys[monitorapi.LocatorNamespaceKey]
 
 	for _, condition := range c {
 		matches := true

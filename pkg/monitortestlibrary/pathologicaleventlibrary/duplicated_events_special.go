@@ -25,8 +25,8 @@ func (s *singleEventThresholdCheck) Test(events monitorapi.Intervals) []*junitap
 	var failureOutput, flakeOutput []string
 	for _, e := range events {
 		if s.matcher.Allows(e, "") {
-			msg := fmt.Sprintf("%s - %s", e.StructuredLocator.OldLocator(), e.StructuredMessage.HumanMessage)
-			times := GetTimesAnEventHappened(e.StructuredMessage)
+			msg := fmt.Sprintf("%s - %s", e.Locator.OldLocator(), e.Message.HumanMessage)
+			times := GetTimesAnEventHappened(e.Message)
 			switch {
 			case s.failThreshold > 0 && times > s.failThreshold:
 				failureOutput = append(failureOutput, fmt.Sprintf("event [%s] happened %d times", msg, times))
@@ -67,7 +67,7 @@ func (s *singleEventThresholdCheck) getNamespacedFailuresAndFlakes(events monito
 	nsResults := map[string]*eventResult{}
 
 	for _, e := range events {
-		namespace := e.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey]
+		namespace := e.Locator.Keys[monitorapi.LocatorNamespaceKey]
 
 		// We only create junit for known namespaces
 		if !platformidentification.KnownNamespaces.Has(namespace) {
@@ -76,8 +76,8 @@ func (s *singleEventThresholdCheck) getNamespacedFailuresAndFlakes(events monito
 
 		var failPresent, flakePresent bool
 		if s.matcher.Allows(e, "") {
-			msg := fmt.Sprintf("%s - %s", e.StructuredLocator.OldLocator(), e.StructuredMessage.HumanMessage)
-			times := GetTimesAnEventHappened(e.StructuredMessage)
+			msg := fmt.Sprintf("%s - %s", e.Locator.OldLocator(), e.Message.HumanMessage)
+			times := GetTimesAnEventHappened(e.Message)
 
 			failPresent = false
 			flakePresent = false
@@ -135,7 +135,7 @@ func eventMatchThresholdTest(testName, operatorName string, events monitorapi.In
 	for _, event := range events {
 		// Layer in an additional namespace check, our matcher may work against multiple namespaces/operators, but we
 		// want to limit to a specific one specific tests against a namespace/operator:
-		if operatorName != "" && event.StructuredLocator.Keys[monitorapi.LocatorNamespaceKey] != operatorName {
+		if operatorName != "" && event.Locator.Keys[monitorapi.LocatorNamespaceKey] != operatorName {
 			continue
 		}
 
@@ -144,7 +144,7 @@ func eventMatchThresholdTest(testName, operatorName string, events monitorapi.In
 			// (in artifacts) when viewing the Test failure output.
 			failureOutput := fmt.Sprintf("%s %s\n", event.From.UTC().Format("15:04:05"), event.String())
 
-			times := GetTimesAnEventHappened(event.StructuredMessage)
+			times := GetTimesAnEventHappened(event.Message)
 
 			// find the largest grouping of these events
 			if times > maxTimes {

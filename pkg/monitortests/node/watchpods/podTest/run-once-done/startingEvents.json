@@ -2,9 +2,7 @@
   "items": [
     {
       "level": "Info",
-      "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
-      "message": "reason/Created ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "installer-3-ip-10-0-136-132.us-west-2.compute.internal",
@@ -13,7 +11,7 @@
           "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
@@ -26,9 +24,7 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9",
-      "message": "reason/Scheduled node/ip-10-0-136-132.us-west-2.compute.internal",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "installer-3-ip-10-0-136-132.us-west-2.compute.internal",
@@ -37,7 +33,7 @@
           "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Scheduled",
         "cause": "",
         "humanMessage": "",
@@ -51,9 +47,7 @@
     },
     {
       "level": "Warning",
-      "locator": "namespace/openshift-kube-scheduler pod/installer-3-ip-10-0-136-132.us-west-2.compute.internal node/ip-10-0-136-132.us-west-2.compute.internal uid/b7d89367-600a-49a3-95e1-a3ef2c91ecb9 container/installer",
-      "message": "reason/NotReady ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Container",
         "keys": {
           "pod": "installer-3-ip-10-0-136-132.us-west-2.compute.internal",
@@ -63,7 +57,7 @@
           "uid": "b7d89367-600a-49a3-95e1-a3ef2c91ecb9"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "NotReady",
         "cause": "",
         "humanMessage": "",

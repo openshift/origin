@@ -193,8 +193,8 @@ func recordAddOrUpdateEvent(
 	// We don't yet have a full interval, create one for the purpose of matching the simple matchers.
 	tmpInterval := monitorapi.Interval{
 		Condition: monitorapi.Condition{
-			StructuredLocator: locator,
-			StructuredMessage: message.Build(),
+			Locator: locator,
+			Message: message.Build(),
 		},
 	}
 	isInteresting, _ := registry.MatchesAny(tmpInterval)

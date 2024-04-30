@@ -2,10 +2,8 @@
     "items": [
         {
             "level": "Info",
-            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
-            "message": "constructed/pod-lifecycle-constructor reason/Created",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-apiserver-operator",
@@ -13,7 +11,7 @@
                     "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Created",
                 "cause": "",
                 "humanMessage": "",
@@ -27,10 +25,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady missed real \"NotReady\"",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "openshift-apiserver-operator",
@@ -39,7 +35,7 @@
                     "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "missed real \"NotReady\"",
@@ -53,10 +49,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
-            "message": "constructed/pod-lifecycle-constructor reason/ContainerWait missed real \"ContainerWait\"",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "openshift-apiserver-operator",
@@ -65,7 +59,7 @@
                     "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "ContainerWait",
                 "cause": "",
                 "humanMessage": "missed real \"ContainerWait\"",
@@ -79,10 +73,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
-            "message": "constructed/pod-lifecycle-constructor node/ci-op-ckiwry67-db044-lzjpd-master-0 reason/Scheduled",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-apiserver-operator",
@@ -90,7 +82,7 @@
                     "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Scheduled",
                 "cause": "",
                 "humanMessage": "",
@@ -105,10 +97,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
-            "message": "constructed/pod-lifecycle-constructor reason/Ready",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "openshift-apiserver-operator",
@@ -117,7 +107,7 @@
                     "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "Ready",
                 "cause": "",
                 "humanMessage": "",
@@ -131,10 +121,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973 container/openshift-apiserver-operator",
-            "message": "constructed/pod-lifecycle-constructor reason/NotReady",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Container",
                 "keys": {
                     "container": "openshift-apiserver-operator",
@@ -143,7 +131,7 @@
                     "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NotReady",
                 "cause": "",
                 "humanMessage": "",
@@ -157,10 +145,8 @@
         },
         {
             "level": "Info",
-            "locator": "namespace/openshift-apiserver-operator pod/openshift-apiserver-operator-845779f5d-975gr uid/d9a5b0ba-6958-44aa-bc32-03d62944f973",
-            "message": "constructed/pod-lifecycle-constructor duration/30s reason/GracefulDelete",
-            "tempSource": "PodState",
-            "tempStructuredLocator": {
+            "source": "PodState",
+            "locator": {
                 "type": "Pod",
                 "keys": {
                     "namespace": "openshift-apiserver-operator",
@@ -168,7 +154,7 @@
                     "uid": "d9a5b0ba-6958-44aa-bc32-03d62944f973"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "GracefulDelete",
                 "cause": "",
                 "humanMessage": "",

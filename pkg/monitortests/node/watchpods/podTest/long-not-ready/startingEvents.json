@@ -2,9 +2,7 @@
   "items": [
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c",
-      "message": "reason/Created ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "apiserver-5b9785f765-qk9hl",
@@ -13,7 +11,7 @@
           "uid": "d5f66519-ca7a-4808-94a0-b889552d411c"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
@@ -26,9 +24,7 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c",
-      "message": "reason/Scheduled node/ip-10-0-142-23.us-east-2.compute.internal",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "apiserver-5b9785f765-qk9hl",
@@ -37,7 +33,7 @@
           "uid": "d5f66519-ca7a-4808-94a0-b889552d411c"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Scheduled",
         "cause": "",
         "humanMessage": "",
@@ -51,9 +47,7 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/fix-audit-permissions",
-      "message": "reason/Ready ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Container",
         "keys": {
           "container": "fix-audit-permissions",
@@ -63,7 +57,7 @@
           "uid": "d5f66519-ca7a-4808-94a0-b889552d411c"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",
@@ -76,9 +70,7 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver",
-      "message": "reason/Ready ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Container",
         "keys": {
           "container": "openshift-apiserver",
@@ -88,7 +80,7 @@
           "uid": "d5f66519-ca7a-4808-94a0-b889552d411c"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",
@@ -101,9 +93,7 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-apiserver pod/apiserver-5b9785f765-qk9hl node/ip-10-0-142-23.us-east-2.compute.internal uid/d5f66519-ca7a-4808-94a0-b889552d411c container/openshift-apiserver-check-endpoints",
-      "message": "reason/Ready ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Container",
         "keys": {
           "container": "openshift-apiserver-check-endpoints",
@@ -113,7 +103,7 @@
           "uid": "d5f66519-ca7a-4808-94a0-b889552d411c"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",

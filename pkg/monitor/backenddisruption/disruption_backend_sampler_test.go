@@ -192,13 +192,13 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				if duration := eventIntervals[0].To.Sub(eventIntervals[0].From); duration != 2*time.Second {
 					t.Error(eventIntervals[0])
 				}
-				if !strings.Contains(eventIntervals[0].StructuredMessage.HumanMessage, "started responding") {
+				if !strings.Contains(eventIntervals[0].Message.HumanMessage, "started responding") {
 					t.Error(eventIntervals[0])
 				}
 				if duration := eventIntervals[1].To.Sub(eventIntervals[1].From); duration != 2*time.Second {
 					t.Error(eventIntervals[0])
 				}
-				if !strings.Contains(eventIntervals[1].StructuredMessage.HumanMessage, "now fail") {
+				if !strings.Contains(eventIntervals[1].Message.HumanMessage, "now fail") {
 					t.Error(eventIntervals[1])
 				}
 				return nil
@@ -237,13 +237,13 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				if duration := eventIntervals[0].To.Sub(eventIntervals[0].From); duration != 2*time.Second {
 					t.Error(eventIntervals[0])
 				}
-				if !strings.Contains(eventIntervals[0].StructuredMessage.HumanMessage, "started responding") {
+				if !strings.Contains(eventIntervals[0].Message.HumanMessage, "started responding") {
 					t.Error(eventIntervals[0])
 				}
 				if duration := eventIntervals[1].To.Sub(eventIntervals[1].From); duration != 2*time.Second {
 					t.Error(eventIntervals[0])
 				}
-				if !strings.Contains(eventIntervals[1].StructuredMessage.HumanMessage, "now fail") {
+				if !strings.Contains(eventIntervals[1].Message.HumanMessage, "now fail") {
 					t.Error(eventIntervals[1])
 				}
 				return nil
@@ -282,13 +282,13 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				if duration := eventIntervals[0].To.Sub(eventIntervals[0].From); duration != 2*time.Second {
 					t.Error(eventIntervals[0])
 				}
-				if !strings.Contains(eventIntervals[0].StructuredMessage.HumanMessage, "early") {
+				if !strings.Contains(eventIntervals[0].Message.HumanMessage, "early") {
 					t.Error(eventIntervals[0])
 				}
 				if duration := eventIntervals[1].To.Sub(eventIntervals[1].From); duration != 2*time.Second {
 					t.Error(eventIntervals[0])
 				}
-				if !strings.Contains(eventIntervals[1].StructuredMessage.HumanMessage, "late") {
+				if !strings.Contains(eventIntervals[1].Message.HumanMessage, "late") {
 					t.Error(eventIntervals[1])
 				}
 				return nil
@@ -326,8 +326,8 @@ func Test_disruptionSampler_consumeSamples(t *testing.T) {
 				assert.Equal(t, 1*time.Second, eventIntervals[1].To.Sub(eventIntervals[1].From))
 				assert.Equal(t, monitorapi.Warning, eventIntervals[1].Level,
 					"DNS lookup i/o timeout should be warning level, not error")
-				assert.Contains(t, eventIntervals[1].StructuredMessage.HumanMessage, "DNS lookup timeouts began")
-				assert.Contains(t, eventIntervals[1].StructuredMessage.HumanMessage, "i/o timeout") // make sure the orig message is also preserved
+				assert.Contains(t, eventIntervals[1].Message.HumanMessage, "DNS lookup timeouts began")
+				assert.Contains(t, eventIntervals[1].Message.HumanMessage, "i/o timeout") // make sure the orig message is also preserved
 				return nil
 			},
 		},

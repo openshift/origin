@@ -179,9 +179,9 @@ func (c *SimultaneousPodIPController) sync(ctx context.Context, key string) erro
 		if len(podNames) > 1 {
 			// the .Record function adds a timestamp of now to the condition so we track time.
 			c.recorder.Record(monitorapi.Condition{
-				Level:             monitorapi.Error,
-				StructuredLocator: podLocator,
-				StructuredMessage: monitorapi.NewMessage().Reason(monitorapi.PodIPReused).
+				Level:   monitorapi.Error,
+				Locator: podLocator,
+				Message: monitorapi.NewMessage().Reason(monitorapi.PodIPReused).
 					HumanMessagef("podIP %v is currently assigned to multiple pods: %v", currPodIP, strings.Join(podNames.List(), ";")).Build(),
 			})
 		}

@@ -39,11 +39,9 @@ func (b *IntervalBuilder) Display() *IntervalBuilder {
 // directly.
 func (b *IntervalBuilder) BuildCondition() Condition {
 	ret := Condition{
-		Level:             b.level,
-		Locator:           b.structuredLocator.OldLocator(),
-		StructuredLocator: b.structuredLocator,
-		Message:           b.structuredMessage.OldMessage(),
-		StructuredMessage: b.structuredMessage,
+		Level:   b.level,
+		Locator: b.structuredLocator,
+		Message: b.structuredMessage,
 	}
 
 	return ret
@@ -472,12 +470,12 @@ func (m *MessageBuilder) HumanMessagef(messageFormat string, args ...interface{}
 	return m.HumanMessage(fmt.Sprintf(messageFormat, args...))
 }
 
-// Build creates the final StructuredMessage with all data assembled by this builder.
+// Build creates the final Message with all data assembled by this builder.
 func (m *MessageBuilder) Build() Message {
 	ret := Message{
 		Annotations: map[AnnotationKey]string{},
 	}
-	// TODO: what do we gain from a mStructuredMessage with fixed keys, vs fields on the StructuredMessage?
+	// TODO: what do we gain from a mStructuredMessage with fixed keys, vs fields on the Message?
 	// They're not really fixed, some WithAnnotation calls are floating around, but could those also be functions here?
 	for k, v := range m.annotations {
 		ret.Annotations[k] = v

@@ -21,7 +21,7 @@ func TestMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitap
 	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
 	logrus.Infof("filtered %d intervals down to %d disruption intervals", len(events), len(allDisruptionEventsIntervals))
 	for _, eventInterval := range allDisruptionEventsIntervals {
-		backend := eventInterval.StructuredLocator.Keys[monitorapi.LocatorBackendDisruptionNameKey]
+		backend := eventInterval.Locator.Keys[monitorapi.LocatorBackendDisruptionNameKey]
 		switch {
 		case strings.HasPrefix(backend, "ingress-"):
 			allServers.Insert(backend)
@@ -127,11 +127,11 @@ func testDNSOverlapDisruption(events monitorapi.Intervals) []*junitapi.JUnitTest
 	disruptionIntervals := []monitorapi.Interval{}
 	for _, event := range events {
 		// DNS outage
-		if event.StructuredMessage.Reason == "DisruptionSamplerOutageBegan" {
+		if event.Message.Reason == "DisruptionSamplerOutageBegan" {
 			dnsIntervals = append(dnsIntervals, event)
 		}
 		// real disruption
-		if event.StructuredMessage.Reason == "DisruptionBegan" {
+		if event.Message.Reason == "DisruptionBegan" {
 			disruptionIntervals = append(disruptionIntervals, event)
 		}
 	}

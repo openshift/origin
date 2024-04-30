@@ -2,18 +2,16 @@
     "items": [
         {
             "level": "Info",
-            "locator": "node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7 row/NodeUpdatePhases",
-            "message": "constructed/node-lifecycle-constructor phase/Drain reason/NodeUpdate roles/worker drained node",
-            "tempSource": "NodeState",
+            "source": "NodeState",
             "display": true,
-            "tempStructuredLocator": {
+            "locator": {
                 "type": "Node",
                 "keys": {
                     "node": "ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
                     "row": "NodeUpdatePhases"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NodeUpdate",
                 "cause": "",
                 "humanMessage": "drained node",
@@ -29,18 +27,16 @@
         },
         {
             "level": "Warning",
-            "locator": "node/ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7 row/NodeUpdatePhases",
-            "message": "constructed/node-lifecycle-constructor reason/NodeUpdate roles/worker state/OperatingSystemUpdate never completed",
-            "tempSource": "NodeState",
+            "source": "NodeState",
             "display": true,
-            "tempStructuredLocator": {
+            "locator": {
                 "type": "Node",
                 "keys": {
                     "node": "ci-op-3zwth0s8-03fd1-bcssj-worker-a-2lcx7",
                     "row": "NodeUpdatePhases"
                 }
             },
-            "tempStructuredMessage": {
+            "message": {
                 "reason": "NodeUpdate",
                 "cause": "",
                 "humanMessage": "never completed",

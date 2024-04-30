@@ -2,9 +2,7 @@
   "items": [
     {
       "level": "Info",
-      "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb node/ip-10-0-231-18.us-east-2.compute.internal uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
-      "message": "reason/Created ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "machine-config-operator-7d5bf78cff-bbbwb",
@@ -13,7 +11,7 @@
           "uid": "27e57fd1-c8f9-4528-8a04-0054dad5d38f"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Created",
         "cause": "",
         "humanMessage": "",
@@ -26,9 +24,7 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb node/ip-10-0-231-18.us-east-2.compute.internal uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f",
-      "message": "reason/Scheduled node/ip-10-0-231-18.us-east-2.compute.internal",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Pod",
         "keys": {
           "pod": "machine-config-operator-7d5bf78cff-bbbwb",
@@ -37,7 +33,7 @@
           "uid": "27e57fd1-c8f9-4528-8a04-0054dad5d38f"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Scheduled",
         "cause": "",
         "humanMessage": "",
@@ -51,9 +47,7 @@
     },
     {
       "level": "Info",
-      "locator": "namespace/openshift-machine-config-operator pod/machine-config-operator-7d5bf78cff-bbbwb node/ip-10-0-231-18.us-east-2.compute.internal uid/27e57fd1-c8f9-4528-8a04-0054dad5d38f container/machine-config-operator",
-      "message": "reason/Ready ",
-      "tempStructuredLocator": {
+      "locator": {
         "type": "Container",
         "keys": {
           "container": "machine-config-operator",
@@ -63,7 +57,7 @@
           "uid": "27e57fd1-c8f9-4528-8a04-0054dad5d38f"
         }
       },
-      "tempStructuredMessage": {
+      "message": {
         "reason": "Ready",
         "cause": "",
         "humanMessage": "",

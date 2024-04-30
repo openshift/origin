@@ -11,15 +11,15 @@ func intervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 	testNameToLastStart := map[string]time.Time{}
 
 	for _, event := range events {
-		testName, ok := monitorapi.E2ETestFromLocator(event.StructuredLocator)
+		testName, ok := monitorapi.E2ETestFromLocator(event.Locator)
 		if !ok {
 			continue
 		}
-		if event.StructuredMessage.Reason == monitorapi.E2ETestStarted {
+		if event.Message.Reason == monitorapi.E2ETestStarted {
 			testNameToLastStart[testName] = event.From
 			continue
 		}
-		testStatus, ok := event.StructuredMessage.Annotations[monitorapi.AnnotationStatus]
+		testStatus, ok := event.Message.Annotations[monitorapi.AnnotationStatus]
 		if !ok {
 			continue
 		}
@@ -45,7 +45,7 @@ func intervalsFromEvents_E2ETests(events monitorapi.Intervals, _ monitorapi.Reso
 		}
 
 		delete(testNameToLastStart, testName)
-		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceE2ETest, level).Locator(event.StructuredLocator).
+		ret = append(ret, monitorapi.NewInterval(monitorapi.SourceE2ETest, level).Locator(event.Locator).
 			Message(monitorapi.NewMessage().
 				HumanMessagef("e2e test finished As %q", testStatus).
 				WithAnnotation(monitorapi.AnnotationStatus, testStatus)).

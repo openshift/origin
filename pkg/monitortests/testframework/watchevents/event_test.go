@@ -149,8 +149,8 @@ func Test_recordAddOrUpdateEvent(t *testing.T) {
 			intervals := tt.args.m.Intervals(now.Add(-10*time.Minute), now.Add(10*time.Minute))
 			assert.Equal(t, 1, len(intervals))
 			interval := intervals[0]
-			assert.Equal(t, tt.expectedLocator, interval.StructuredLocator)
-			assert.Equal(t, tt.expectedMessage, interval.StructuredMessage)
+			assert.Equal(t, tt.expectedLocator, interval.Locator)
+			assert.Equal(t, tt.expectedMessage, interval.Message)
 		})
 	}
 }

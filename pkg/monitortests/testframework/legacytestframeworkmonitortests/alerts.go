@@ -171,12 +171,12 @@ func runBackstopTest(
 
 	// New version for alert testing against intervals instead of directly from prometheus:
 	for _, firing := range firingIntervals {
-		fan := firing.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
+		fan := firing.Locator.Keys[monitorapi.LocatorAlertKey]
 		if isSkippedAlert(fan) {
 			continue
 		}
 		seconds := firing.To.Sub(firing.From)
-		violation := fmt.Sprintf("V2 alert %s fired for %s seconds with labels: %s", fan, seconds, firing.StructuredMessage.OldMessage())
+		violation := fmt.Sprintf("V2 alert %s fired for %s seconds with labels: %s", fan, seconds, firing.Message.OldMessage())
 		if cause := allowedFiringAlerts.MatchesInterval(firing); cause != nil {
 			// TODO: this seems to never be happening? no search.ci results show allowed
 			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))
@@ -190,12 +190,12 @@ func runBackstopTest(
 	}
 	// New version for alert testing against intervals instead of directly from prometheus:
 	for _, pending := range pendingIntervals {
-		fan := pending.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
+		fan := pending.Locator.Keys[monitorapi.LocatorAlertKey]
 		if isSkippedAlert(fan) {
 			continue
 		}
 		seconds := pending.To.Sub(pending.From)
-		violation := fmt.Sprintf("V2 alert %s pending for %s seconds with labels: %s", fan, seconds, pending.StructuredMessage.OldMessage())
+		violation := fmt.Sprintf("V2 alert %s pending for %s seconds with labels: %s", fan, seconds, pending.Message.OldMessage())
 		if cause := allowedPendingAlerts.MatchesInterval(pending); cause != nil {
 			// TODO: this seems to never be happening? no search.ci results show allowed
 			debug.Insert(fmt.Sprintf("%s result=allow (%s)", violation, cause.Text))
@@ -262,7 +262,7 @@ func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
 	newAlertsFiring := []string{}
 
 	for _, interval := range firingIntervals {
-		alertName := interval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
+		alertName := interval.Locator.Keys[monitorapi.LocatorAlertKey]
 
 		if isSkippedAlert(alertName) {
 			continue
@@ -271,7 +271,7 @@ func runNoNewAlertsFiringTest(historicalData *historicaldata.AlertBestMatcher,
 		// Skip alerts with severity info, I don't totally understand the semantics here but it appears some components
 		// use this for informational alerts. (saw two examples from Insights)
 		// We're only interested in warning+critical for the purposes of this test.
-		if interval.StructuredMessage.Annotations[monitorapi.AnnotationSeverity] == "info" {
+		if interval.Message.Annotations[monitorapi.AnnotationSeverity] == "info" {
 			continue
 		}
 

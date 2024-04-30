@@ -14,8 +14,8 @@ func testEtcdShouldNotLogSlowFdataSyncs(events monitorapi.Intervals) []*junitapi
 
 	var failures []string
 	for _, event := range events {
-		if strings.Contains(event.StructuredMessage.HumanMessage, "slow fdatasync") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
+		if strings.Contains(event.Message.HumanMessage, "slow fdatasync") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
 		}
 	}
 
@@ -41,8 +41,8 @@ func testEtcdShouldNotLogDroppedRaftMessages(events monitorapi.Intervals) []*jun
 
 	var failures []string
 	for _, event := range events {
-		if strings.Contains(event.StructuredMessage.HumanMessage, "dropped internal Raft message since sending buffer is full") {
-			failures = append(failures, fmt.Sprintf("%v - %v", event.StructuredLocator.OldLocator(), event.StructuredMessage.OldMessage()))
+		if strings.Contains(event.Message.HumanMessage, "dropped internal Raft message since sending buffer is full") {
+			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
 		}
 	}
 
@@ -76,7 +76,7 @@ func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals)
 	counter := 0
 	for _, event := range events {
 		if event.Source == monitorapi.SourceEtcdLog &&
-			strings.Contains(event.StructuredMessage.HumanMessage, "took too long") {
+			strings.Contains(event.Message.HumanMessage, "took too long") {
 			counter++
 		}
 	}

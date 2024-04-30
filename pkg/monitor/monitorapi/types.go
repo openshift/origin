@@ -88,11 +88,8 @@ func ConditionLevelFromString(s string) (IntervalLevel, error) {
 type Condition struct {
 	Level IntervalLevel
 
-	// TODO: Goal here is to drop Locator/Message, and rename the structured variants to Locator/Message
-	Locator           string
-	StructuredLocator Locator
-	Message           string
-	StructuredMessage Message
+	Locator Locator
+	Message Message
 }
 
 type LocatorType string
@@ -311,8 +308,8 @@ func (i Interval) String() string {
 			i.From.Format("Jan 02 15:04:05"),
 			i.From.Nanosecond()/int(time.Millisecond),
 			i.Level.String()[:1],
-			i.StructuredLocator.OldLocator(),
-			strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
+			i.Locator.OldLocator(),
+			strings.Replace(i.Message.OldMessage(), "\n", "\\n", -1))
 	}
 	duration := i.To.Sub(i.From)
 	if duration < time.Second {
@@ -321,15 +318,15 @@ func (i Interval) String() string {
 			i.From.Nanosecond()/int(time.Millisecond),
 			strconv.Itoa(int(duration/time.Millisecond))+"ms",
 			i.Level.String()[:1],
-			i.StructuredLocator.OldLocator(),
-			strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
+			i.Locator.OldLocator(),
+			strings.Replace(i.Message.OldMessage(), "\n", "\\n", -1))
 	}
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s",
 		i.From.Format("Jan 02 15:04:05"),
 		i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s",
 		i.Level.String()[:1],
-		i.StructuredLocator.OldLocator(),
-		strings.Replace(i.StructuredMessage.OldMessage(), "\n", "\\n", -1))
+		i.Locator.OldLocator(),
+		strings.Replace(i.Message.OldMessage(), "\n", "\\n", -1))
 }
 
 func (i Message) OldMessage() string {
@@ -466,16 +463,16 @@ func (intervals Intervals) Less(i, j int) bool {
 	case d > 0:
 		return false
 	}
-	if intervals[i].StructuredMessage.Reason != intervals[j].StructuredMessage.Reason {
-		return intervals[i].StructuredMessage.Reason < intervals[j].StructuredMessage.Reason
+	if intervals[i].Message.Reason != intervals[j].Message.Reason {
+		return intervals[i].Message.Reason < intervals[j].Message.Reason
 	}
-	if intervals[i].StructuredMessage.HumanMessage != intervals[j].StructuredMessage.HumanMessage {
-		return intervals[i].StructuredMessage.HumanMessage < intervals[j].StructuredMessage.HumanMessage
+	if intervals[i].Message.HumanMessage != intervals[j].Message.HumanMessage {
+		return intervals[i].Message.HumanMessage < intervals[j].Message.HumanMessage
 	}
 
 	// TODO: this could be a bit slow, but leaving it simple if we can get away with it. Sorting structured locators
 	// that use keys is trickier than the old flat string method.
-	return intervals[i].StructuredLocator.OldLocator() < intervals[j].StructuredLocator.OldLocator()
+	return intervals[i].Locator.OldLocator() < intervals[j].Locator.OldLocator()
 }
 func (intervals Intervals) Len() int { return len(intervals) }
 func (intervals Intervals) Swap(i, j int) {
@@ -537,12 +534,12 @@ func IsInfoEvent(eventInterval Interval) bool {
 
 // IsInE2ENamespace returns true if the eventInterval is in an e2e namespace
 func IsInE2ENamespace(eventInterval Interval) bool {
-	return strings.HasPrefix(NamespaceFromLocator(eventInterval.StructuredLocator), "e2e-")
+	return strings.HasPrefix(NamespaceFromLocator(eventInterval.Locator), "e2e-")
 }
 
 func IsForDisruptionBackend(backend string) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		if eventInterval.StructuredLocator.Keys[LocatorBackendDisruptionNameKey] == backend {
+		if eventInterval.Locator.Keys[LocatorBackendDisruptionNameKey] == backend {
 			return true
 		}
 		return false
@@ -552,7 +549,7 @@ func IsForDisruptionBackend(backend string) EventIntervalMatchesFunc {
 func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
 		// For new, structured locators:
-		if ns, ok := eventInterval.StructuredLocator.Keys[LocatorNamespaceKey]; ok {
+		if ns, ok := eventInterval.Locator.Keys[LocatorNamespaceKey]; ok {
 			return namespaces.Has(ns)
 		}
 		return false
@@ -562,7 +559,7 @@ func IsInNamespaces(namespaces sets.String) EventIntervalMatchesFunc {
 // ContainsAllParts ensures that all listed key match at least one of the values.
 func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		actualParts := eventInterval.StructuredLocator.Keys
+		actualParts := eventInterval.Locator.Keys
 		for key, possibleValues := range matchers {
 			actualValue := actualParts[LocatorKey(key)]
 
@@ -585,7 +582,7 @@ func ContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatches
 // NotContainsAllParts returns a function that returns false if any key matches.
 func NotContainsAllParts(matchers map[string][]*regexp.Regexp) EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		actualParts := eventInterval.StructuredLocator.Keys
+		actualParts := eventInterval.Locator.Keys
 		for key, possibleValues := range matchers {
 			actualValue := actualParts[LocatorKey(key)]
 
@@ -640,19 +637,19 @@ func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
 }
 
 func NodeUpdate(eventInterval Interval) bool {
-	reason := eventInterval.StructuredMessage.Reason
+	reason := eventInterval.Message.Reason
 	return NodeUpdateReason == reason
 }
 
 func AlertFiring() EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		return eventInterval.StructuredMessage.Annotations[AnnotationAlertState] == "firing"
+		return eventInterval.Message.Annotations[AnnotationAlertState] == "firing"
 	}
 }
 
 func AlertPending() EventIntervalMatchesFunc {
 	return func(eventInterval Interval) bool {
-		return eventInterval.StructuredMessage.Annotations[AnnotationAlertState] == "pending"
+		return eventInterval.Message.Annotations[AnnotationAlertState] == "pending"
 	}
 }
 

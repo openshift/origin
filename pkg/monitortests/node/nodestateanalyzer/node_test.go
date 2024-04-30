@@ -15,32 +15,32 @@ import (
 
 func TestIntervalsFromEvents_NodeChanges(t *testing.T) {
 	// regenerate this file if schema changes by getting an updated e2e-events file, finding a worker node, and running:
-	// cat e2e-events_20240308-085144.json | jq '.items |= map(select(.tempStructuredLocator.keys.node == "ci-op-0774jw7y-f9945-k9278-worker-a-c2l9q") | select(.tempStructuredMessage.reason? | match("RegisteredNode|Starting|Cordon|Drain|NodeNotSchedulable|OSUpdateStarted|InClusterUpgrade|OSUpdateStaged|PendingConfig|Reboot|DiskPressure|MemoryPressure|PIDPressure|Ready|NodeNotReady|NotReady")))' > pkg/monitortests/node/nodestateanalyzer/testdata/node.json
+	// cat e2e-events_20240308-085144.json | jq '.items |= map(select(.locator.keys.node == "ci-op-0774jw7y-f9945-k9278-worker-a-c2l9q") | select(.message.reason? | match("RegisteredNode|Starting|Cordon|Drain|NodeNotSchedulable|OSUpdateStarted|InClusterUpgrade|OSUpdateStaged|PendingConfig|Reboot|DiskPressure|MemoryPressure|PIDPressure|Ready|NodeNotReady|NotReady")))' > pkg/monitortests/node/nodestateanalyzer/testdata/node.json
 	intervals, err := monitorserialization.EventsFromFile("testdata/node.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	changes := intervalsFromEvents_NodeChanges(intervals, nil, time.Time{}, time.Now())
 	for _, c := range changes {
-		t.Logf("%s - %s", c.From.UTC().Format(time.RFC3339), c.StructuredMessage.OldMessage())
-		assert.Equal(t, "node-lifecycle-constructor", c.StructuredMessage.Annotations[monitorapi.AnnotationConstructed])
+		t.Logf("%s - %s", c.From.UTC().Format(time.RFC3339), c.Message.OldMessage())
+		assert.Equal(t, "node-lifecycle-constructor", c.Message.Annotations[monitorapi.AnnotationConstructed])
 	}
 
 	require.Equal(t, 4, len(changes))
-	assert.Equal(t, "NodeUpdate", string(changes[0].StructuredMessage.Reason))
-	assert.Equal(t, "Drain", changes[0].StructuredMessage.Annotations[monitorapi.AnnotationPhase])
-	assert.Contains(t, "drained node", changes[0].StructuredMessage.HumanMessage)
+	assert.Equal(t, "NodeUpdate", string(changes[0].Message.Reason))
+	assert.Equal(t, "Drain", changes[0].Message.Annotations[monitorapi.AnnotationPhase])
+	assert.Contains(t, "drained node", changes[0].Message.HumanMessage)
 
-	assert.Equal(t, "NodeUpdate", string(changes[1].StructuredMessage.Reason))
-	assert.Equal(t, "OperatingSystemUpdate", changes[1].StructuredMessage.Annotations[monitorapi.AnnotationPhase])
-	assert.Contains(t, "updated operating system", changes[1].StructuredMessage.HumanMessage)
+	assert.Equal(t, "NodeUpdate", string(changes[1].Message.Reason))
+	assert.Equal(t, "OperatingSystemUpdate", changes[1].Message.Annotations[monitorapi.AnnotationPhase])
+	assert.Contains(t, "updated operating system", changes[1].Message.HumanMessage)
 
-	assert.Equal(t, "NodeUpdate", string(changes[2].StructuredMessage.Reason))
-	assert.Equal(t, "Reboot", changes[2].StructuredMessage.Annotations[monitorapi.AnnotationPhase])
-	assert.Contains(t, "rebooted and kubelet started", changes[2].StructuredMessage.HumanMessage)
+	assert.Equal(t, "NodeUpdate", string(changes[2].Message.Reason))
+	assert.Equal(t, "Reboot", changes[2].Message.Annotations[monitorapi.AnnotationPhase])
+	assert.Contains(t, "rebooted and kubelet started", changes[2].Message.HumanMessage)
 
-	assert.Equal(t, "NotReady", string(changes[3].StructuredMessage.Reason))
-	assert.Contains(t, "node is not ready", changes[3].StructuredMessage.HumanMessage)
+	assert.Equal(t, "NotReady", string(changes[3].Message.Reason))
+	assert.Contains(t, "node is not ready", changes[3].Message.HumanMessage)
 }
 
 func TestNodeUpdateCreation(t *testing.T) {

@@ -270,7 +270,7 @@ func kubePodNotReadyDueToImagePullBackoff(trackedEventResources monitorapi.Insta
 func kubePodNotReadyDueToRegExMatch(trackedEventResources monitorapi.InstanceMap, firingIntervals monitorapi.Intervals, regexp *regexp.Regexp) bool {
 	// Run the check for all firing intervals.
 	for _, firingInterval := range firingIntervals {
-		relatedPodRef := monitorapi.PodFrom(firingInterval.StructuredLocator)
+		relatedPodRef := monitorapi.PodFrom(firingInterval.Locator)
 
 		// Find an event
 		foundRegexMatchEvent := false
@@ -427,12 +427,12 @@ func AlertFiringInNamespace(alertName, namespace string) monitorapi.EventInterva
 	return func(eventInterval monitorapi.Interval) bool {
 		return monitorapi.And(
 			func(eventInterval monitorapi.Interval) bool {
-				eventAlertName := eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
+				eventAlertName := eventInterval.Locator.Keys[monitorapi.LocatorAlertKey]
 				if eventAlertName != alertName {
 					return false
 				}
 
-				return eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationAlertState] == "firing"
+				return eventInterval.Message.Annotations[monitorapi.AnnotationAlertState] == "firing"
 			},
 			InNamespace(namespace),
 		)(eventInterval)
@@ -443,11 +443,11 @@ func AlertPendingInNamespace(alertName, namespace string) monitorapi.EventInterv
 	return func(eventInterval monitorapi.Interval) bool {
 		return monitorapi.And(
 			func(eventInterval monitorapi.Interval) bool {
-				eventAlertName := eventInterval.StructuredLocator.Keys[monitorapi.LocatorAlertKey]
+				eventAlertName := eventInterval.Locator.Keys[monitorapi.LocatorAlertKey]
 				if eventAlertName != alertName {
 					return false
 				}
-				return eventInterval.StructuredMessage.Annotations[monitorapi.AnnotationAlertState] == "pending"
+				return eventInterval.Message.Annotations[monitorapi.AnnotationAlertState] == "pending"
 			},
 			InNamespace(namespace),
 		)(eventInterval)
@@ -462,10 +462,10 @@ func InNamespace(namespace string) func(event monitorapi.Interval) bool {
 			return true
 
 		case namespace == platformidentification.NamespaceOther:
-			eventNamespace := monitorapi.NamespaceFromLocator(event.StructuredLocator)
+			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
 			return !platformidentification.KnownNamespaces.Has(eventNamespace)
 		default:
-			eventNamespace := monitorapi.NamespaceFromLocator(event.StructuredLocator)
+			eventNamespace := monitorapi.NamespaceFromLocator(event.Locator)
 			return eventNamespace == namespace
 		}
 	}
