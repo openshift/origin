@@ -30,6 +30,7 @@ func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.C
 		suggestedPayloadImage = clusterVersion.Status.History[0].Image
 	}
 
+	fmt.Printf("payload image: %v\n", suggestedPayloadImage)
 	// runImageExtract extracts src from specified image to dst
 	cmd := exec.Command("oc", "adm", "release", "info", suggestedPayloadImage, "--image-for=tests")
 	out := &bytes.Buffer{}
