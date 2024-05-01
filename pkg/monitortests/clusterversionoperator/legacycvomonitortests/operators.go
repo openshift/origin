@@ -61,11 +61,11 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 
 	// Scan through the event list to define all upgrade windows.
 	for _, event := range eventList {
-		if event.Source != monitorapi.SourceKubeEvent || event.StructuredLocator.Keys[monitorapi.LocatorClusterVersionKey] != "cluster" {
+		if event.Source != monitorapi.SourceKubeEvent || event.Locator.Keys[monitorapi.LocatorClusterVersionKey] != "cluster" {
 			continue
 		}
 
-		reason := string(event.StructuredMessage.Reason)
+		reason := string(event.Message.Reason)
 		if reason == "UpgradeStarted" || reason == "UpgradeRollback" {
 			currentWindow = &upgradeWindow{startInterval: &event}
 			upgradeWindows = append(upgradeWindows, *currentWindow)
@@ -105,6 +105,15 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 
 		if condition.Type == configv1.OperatorDegraded {
 			return "We are not worried about Degraded=True blips for update tests yet.", nil
+		}
+
+		var availableEqualsFalseAllowed bool
+		if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+			availableEqualsFalseAllowed = isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute
+		}
+
+		if !availableEqualsFalseAllowed {
+			return "", nil
 		}
 
 		switch operator {
@@ -156,7 +165,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				operator = "cluster-storage-operator"
 			}
 			replicaCount, _ := checkReplicas(namespace, operator, clientConfig)
-			if replicaCount == 1 && isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute {
+			if replicaCount == 1 {
 				return fmt.Sprintf("%s has only single replica, but Available=False is within an upgrade window and is for less than 10 minutes", operator), nil
 			}
 		}
