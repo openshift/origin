@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	exutil "github.com/openshift/origin/test/extended/util"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -38,8 +39,14 @@ func GetOpenshiftTestsImagePullSpec(ctx context.Context, adminRESTConfig *rest.C
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("unable to determine openshift-tests image: %v: %v", err, errOut.String())
+		var oc = exutil.NewCLI("default").AsAdmin()
+		out, err := oc.WithoutNamespace().Run("adm").Args("release", "info", suggestedPayloadImage, "--image-for=tests").Output()
+		if err != nil {
+			return "", fmt.Errorf("still unable to determine openshift-tests image: %v: %v", err, errOut.String())
+		}
+		fmt.Printf("-----admin release info is %v\n", out)
 	}
+
 	openshiftTestsImagePullSpec := strings.TrimSpace(out.String())
 	fmt.Printf("openshift-tests image pull spec is %v\n", openshiftTestsImagePullSpec)
 
