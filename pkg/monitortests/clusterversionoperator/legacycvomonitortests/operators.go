@@ -51,13 +51,13 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 // If we don't find any upgrade starting point, we assume the eventInterval is not in an upgrade window.
 // If we don't find any upgrade ending point, we assume the ending point is at the end of the test.
 func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.Interval) bool {
-	type upgradeWindow struct {
+	type upgradeWindowHolder struct {
 		startInterval *monitorapi.Interval
 		endInterval   *monitorapi.Interval
 	}
 
-	var upgradeWindows []upgradeWindow
-	var currentWindow *upgradeWindow
+	var upgradeWindows []*upgradeWindowHolder
+	var currentWindow *upgradeWindowHolder
 
 	// Scan through the event list to define all upgrade windows.
 	for _, event := range eventList {
@@ -67,12 +67,44 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 
 		reason := string(event.Message.Reason)
 		if reason == "UpgradeStarted" || reason == "UpgradeRollback" {
-			currentWindow = &upgradeWindow{startInterval: &event}
-			upgradeWindows = append(upgradeWindows, *currentWindow)
-		} else if reason == "UpgradeCompleted" {
+
+			// We assume a rollback ends an upgrade window and starts a new one.
+			if reason == "UpgradeRollback" {
+				if currentWindow != nil && currentWindow.startInterval.Message.Reason == "UpgradeStarted" {
+					currentWindow.endInterval = &monitorapi.Interval{
+						Condition: monitorapi.Condition{
+							Message: monitorapi.Message{
+								Reason: event.Message.Reason,
+							},
+						},
+						From: event.From,
+						To:   event.To,
+					}
+				}
+			}
+			currentWindow = &upgradeWindowHolder{
+				startInterval: &monitorapi.Interval{
+					Condition: monitorapi.Condition{
+						Message: monitorapi.Message{
+							Reason: event.Message.Reason,
+						},
+					},
+					From: event.From,
+					To:   event.To,
+				},
+			}
+			upgradeWindows = append(upgradeWindows, currentWindow)
+		} else if reason == "UpgradeComplete" {
 			if currentWindow != nil && currentWindow.endInterval == nil {
-				// Close the current window with an end time
-				currentWindow.endInterval = &event
+				currentWindow.endInterval = &monitorapi.Interval{
+					Condition: monitorapi.Condition{
+						Message: monitorapi.Message{
+							Reason: event.Message.Reason,
+						},
+					},
+					From: event.From,
+					To:   event.To,
+				}
 			}
 		}
 	}
@@ -80,8 +112,6 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 	// Check if eventInterval.From falls within any of the defined upgrade windows.
 	for _, upgradeWindow := range upgradeWindows {
 		if eventInterval.From.After(upgradeWindow.startInterval.From) {
-
-			// upgrade windows without an end time are assumed to have no end.
 			if upgradeWindow.endInterval == nil || eventInterval.From.Before(upgradeWindow.endInterval.From) {
 				return true
 			}
