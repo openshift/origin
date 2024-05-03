@@ -3,11 +3,13 @@ package disruptionexternalazurecloudservicemonitoring
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
 
 	"k8s.io/client-go/rest"
@@ -15,6 +17,8 @@ import (
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -47,7 +51,22 @@ func NewRecordCloudAvailabilityOnly() monitortestframework.MonitorTest {
 }
 
 func (w *cloudAvailability) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
-
+	{
+		kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
+		if err != nil {
+			return err
+		}
+		isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+		if err != nil {
+			return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+		}
+		if isMicroShift {
+			w.notSupportedReason = &monitortestframework.NotSupportedError{
+				Reason: "platform MicroShift not supported",
+			}
+			return w.notSupportedReason
+		}
+	}
 	// Proxy jobs may require a whitelist we don't want to deal with:
 	clusterState, err := clusterdiscovery.DiscoverClusterState(adminRESTConfig)
 	if err != nil {
