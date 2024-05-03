@@ -1,12 +1,71 @@
 package legacycvomonitortests
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/stretchr/testify/assert"
 )
+
+// make_standard_upgrade_event_list creates a list of standard upgrade events using
+// output from parsing the e2e-events.file
+//
+//	cat e2e-events_20240502-205107.json | jq '.items[] | \
+//	   select(.source == "KubeEvent" and .locator.keys.clusterversion? == "cluster")| \
+//	   "\(.from) \(.to) \(.message.reason)"'
+func make_standard_upgrade_event_list(events []string) monitorapi.Intervals {
+	var intervals monitorapi.Intervals
+	for _, event := range events {
+		parts := strings.Split(event, " ")
+		if len(parts) < 3 {
+			panic(fmt.Sprintf("Invalid event format: %s", event))
+		}
+		timeFrom, err := time.Parse(time.RFC3339, parts[0])
+		if err != nil {
+			panic(fmt.Sprintf("Error parsing From time: %v", err))
+		}
+		timeTo, err := time.Parse(time.RFC3339, parts[1])
+		if err != nil {
+			panic(fmt.Sprintf("Error parsing To time: %v", err))
+		}
+		reasonString := parts[2]
+		// If reason is not within the list of expected reasons, panic
+		if reasonString != "UpgradeStarted" && reasonString != "UpgradeRollback" && reasonString != "UpgradeVersion" && reasonString != "UpgradeComplete" {
+			panic(fmt.Sprintf("Unknown reason: %s\n", reasonString))
+		}
+		var reason monitorapi.IntervalReason
+		switch reasonString {
+		case "UpgradeStarted":
+			reason = monitorapi.UpgradeStartedReason
+		case "UpgradeRollback":
+			reason = monitorapi.UpgradeRollbackReason
+		case "UpgradeVersion":
+			reason = monitorapi.UpgradeVersionReason
+		case "UpgradeComplete":
+			reason = monitorapi.UpgradeCompleteReason
+		}
+		interval := monitorapi.Interval{
+			Condition: monitorapi.Condition{
+				Locator: monitorapi.Locator{
+					Keys: map[monitorapi.LocatorKey]string{
+						monitorapi.LocatorClusterVersionKey: "cluster",
+					},
+				},
+				Message: monitorapi.Message{
+					Reason: reason,
+				},
+			},
+			Source: monitorapi.SourceKubeEvent,
+			From:   timeFrom,
+			To:     timeTo,
+		}
+		intervals = append(intervals, interval)
+	}
+	return intervals
+}
 
 func Test_isInUpgradeWindow(t *testing.T) {
 	type args struct {
@@ -28,123 +87,19 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		To:   time.Date(2024, 5, 1, 14, 0, 0, 0, time.UTC),
 	}
 
-	standardEventList := monitorapi.Intervals{
-		monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Locator: monitorapi.Locator{
-					Keys: map[monitorapi.LocatorKey]string{
-						monitorapi.LocatorClusterVersionKey: "cluster",
-					},
-				},
-				Message: monitorapi.Message{
-					Reason: "UpgradeStarted",
-				},
-			},
-			Source: monitorapi.SourceKubeEvent,
-			From:   time.Date(2024, 5, 1, 12, 51, 9, 0, time.UTC),
-			To:     time.Date(2024, 5, 1, 12, 51, 9, 0, time.UTC),
-		},
-		monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Locator: monitorapi.Locator{
-					Keys: map[monitorapi.LocatorKey]string{
-						monitorapi.LocatorClusterVersionKey: "cluster",
-					},
-				},
-				Message: monitorapi.Message{
-					Reason: "UpgradeVersion",
-				},
-			},
-			Source: monitorapi.SourceKubeEvent,
-			From:   time.Date(2024, 5, 1, 13, 46, 44, 0, time.UTC),
-			To:     time.Date(2024, 5, 1, 13, 46, 44, 0, time.UTC),
-		},
-		monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Locator: monitorapi.Locator{
-					Keys: map[monitorapi.LocatorKey]string{
-						monitorapi.LocatorClusterVersionKey: "cluster",
-					},
-				},
-				Message: monitorapi.Message{
-					Reason: "UpgradeComplete",
-				},
-			},
-			Source: monitorapi.SourceKubeEvent,
-			From:   time.Date(2024, 5, 1, 13, 46, 44, 0, time.UTC),
-			To:     time.Date(2024, 5, 1, 13, 46, 44, 0, time.UTC),
-		},
-	}
+	standardEventList := make_standard_upgrade_event_list([]string{
+		"2024-05-01T12:51:09Z 2024-05-01T12:51:09Z UpgradeStarted",
+		"2024-05-01T13:46:44Z 2024-05-01T13:46:44Z UpgradeVersion",
+		"2024-05-01T13:46:44Z 2024-05-01T13:46:44Z UpgradeComplete",
+	})
 
-	eventListWithRollback := monitorapi.Intervals{
-		monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Locator: monitorapi.Locator{
-					Keys: map[monitorapi.LocatorKey]string{
-						monitorapi.LocatorClusterVersionKey: "cluster",
-					},
-				},
-				Message: monitorapi.Message{
-					Reason: "UpgradeStarted",
-				},
-			},
-			Source: monitorapi.SourceKubeEvent,
-			From:   time.Date(2024, 5, 1, 22, 21, 42, 0, time.UTC),
-			To:     time.Date(2024, 5, 1, 22, 21, 42, 0, time.UTC),
-		},
-		monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Locator: monitorapi.Locator{
-					Keys: map[monitorapi.LocatorKey]string{
-						monitorapi.LocatorClusterVersionKey: "cluster",
-					},
-				},
-				Message: monitorapi.Message{
-					Reason: "UpgradeRollback",
-					Annotations: map[monitorapi.AnnotationKey]string{
-						"reason": "UpgradeRollback",
-					},
-				},
-			},
-			Source: monitorapi.SourceKubeEvent,
-			From:   time.Date(2024, 5, 1, 23, 15, 8, 0, time.UTC),
-			To:     time.Date(2024, 5, 1, 23, 15, 8, 0, time.UTC),
-		},
-		monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Locator: monitorapi.Locator{
-					Keys: map[monitorapi.LocatorKey]string{
-						monitorapi.LocatorClusterVersionKey: "cluster",
-					},
-				},
-				Message: monitorapi.Message{
-					Reason: "UpgradeVersion",
-					Annotations: map[monitorapi.AnnotationKey]string{
-						"reason": "UpgradeVersion",
-					},
-				},
-			},
-			Source: monitorapi.SourceKubeEvent,
-			From:   time.Date(2024, 5, 2, 0, 11, 18, 0, time.UTC),
-			To:     time.Date(2024, 5, 2, 0, 11, 18, 0, time.UTC),
-		},
-		monitorapi.Interval{
-			Condition: monitorapi.Condition{
-				Locator: monitorapi.Locator{
-					Keys: map[monitorapi.LocatorKey]string{
-						monitorapi.LocatorClusterVersionKey: "cluster",
-					},
-				},
-				Message: monitorapi.Message{
-					Reason: "UpgradeComplete",
-				},
-			},
-			Source:  monitorapi.SourceKubeEvent,
-			Display: true,
-			From:    time.Date(2024, 5, 2, 0, 11, 18, 0, time.UTC),
-			To:      time.Date(2024, 5, 2, 0, 11, 18, 0, time.UTC),
-		},
-	}
+	eventListWithRollback := make_standard_upgrade_event_list([]string{
+		"2024-05-01T22:21:42Z 2024-05-01T22:21:42Z UpgradeStarted",
+		"2024-05-01T23:15:08Z 2024-05-01T23:15:08Z UpgradeRollback",
+		"2024-05-02T00:11:18Z 2024-05-02T00:11:18Z UpgradeVersion",
+		"2024-05-02T00:11:18Z 2024-05-02T00:11:18Z UpgradeComplete",
+	})
+
 	test2_outside_first := monitorapi.Interval{
 		From: time.Date(2024, 5, 1, 22, 10, 0, 0, time.UTC),
 		To:   time.Date(2024, 5, 1, 22, 10, 0, 0, time.UTC),
