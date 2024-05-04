@@ -1377,6 +1377,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing conflicting status": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing conflicting upgrade validation status": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router converges when multiple routers are writing status": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:Router][apigroup:route.openshift.io] The HAProxy router reports the expected host names in admitted routes' statuses": " [Suite:openshift/conformance/parallel]",
