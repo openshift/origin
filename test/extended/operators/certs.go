@@ -114,7 +114,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient, masters)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		openshiftTestImagePullSpec, err := disruptionpodnetwork.GetOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig(), "")
+		openshiftTestImagePullSpec, err := disruptionpodnetwork.GetOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig(), "", oc)
 		// Skip metal jobs if test image pullspec cannot be determined
 		if jobType.Platform != "metal" || err == nil {
 			o.Expect(err).NotTo(o.HaveOccurred())
