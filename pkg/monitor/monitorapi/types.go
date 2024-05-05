@@ -201,10 +201,10 @@ const (
 	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
 	FailedContactingAPIReason             IntervalReason = "FailedContactingAPI"
 
-	UpgradeStartedReason                  IntervalReason = "UpgradeStarted"
-	UpgradeVersionReason                  IntervalReason = "UpgradeVersion"
-	UpgradeRollbackReason                 IntervalReason = "UpgradeRollback"
-	UpgradeCompleteReason                 IntervalReason = "UpgradeComplete"
+	UpgradeStartedReason  IntervalReason = "UpgradeStarted"
+	UpgradeVersionReason  IntervalReason = "UpgradeVersion"
+	UpgradeRollbackReason IntervalReason = "UpgradeRollback"
+	UpgradeCompleteReason IntervalReason = "UpgradeComplete"
 )
 
 type AnnotationKey string
