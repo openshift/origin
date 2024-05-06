@@ -222,6 +222,11 @@ func waitForOAuthServerPodReady(oc *exutil.CLI) error {
 }
 
 func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
+	routerSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-config-managed").Get(context.Background(), "router-certs", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
 	route, err := oc.AdminRouteClient().RouteV1().Routes(oc.Namespace()).Get(context.Background(), RouteName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -232,7 +237,9 @@ func waitForOAuthServerRouteReady(oc *exutil.CLI) error {
 	}
 	return wait.PollImmediate(time.Second, time.Minute, func() (done bool, err error) {
 		e2e.Logf("Waiting for the OAuth server route to be ready")
-		transport, err := restclient.TransportFor(restclient.AnonymousClientConfig(oc.AdminConfig()))
+		config := restclient.CopyConfig(restclient.AnonymousClientConfig(oc.AdminConfig()))
+		config.TLSClientConfig.CAData = routerSecret.Data["tls.crt"]
+		transport, err := restclient.TransportFor(config)
 		if err != nil {
 			e2e.Logf("Error getting transport: %v", err)
 			return false, err
