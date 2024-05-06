@@ -3,19 +3,16 @@ package networking
 import (
 	"context"
 	"net"
-	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	utilnet "k8s.io/utils/net"
@@ -194,35 +191,18 @@ func getClientForServiceAccount(adminClient kubernetes.Interface, clientConfig *
 		return nil, nil, err
 	}
 
-	sa, err := adminClient.CoreV1().ServiceAccounts(namespace).Create(context.Background(), &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: name}}, metav1.CreateOptions{})
-	if errors.IsAlreadyExists(err) {
-		sa, err = adminClient.CoreV1().ServiceAccounts(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	}
-	if err != nil {
+	_, err = adminClient.CoreV1().ServiceAccounts(namespace).Create(context.Background(), &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: name}}, metav1.CreateOptions{})
+	if err != nil && !errors.IsAlreadyExists(err) {
 		return nil, nil, err
 	}
 
-	token := ""
-	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-		selector := fields.OneTermEqualSelector("type", string(corev1.SecretTypeServiceAccountToken))
-		secrets, err := adminClient.CoreV1().Secrets(namespace).List(context.Background(), metav1.ListOptions{FieldSelector: selector.String()})
-		if err != nil {
-			return false, err
-		}
-		for _, secret := range secrets.Items {
-			if serviceaccount.IsServiceAccountToken(&secret, sa) {
-				token = string(secret.Data[corev1.ServiceAccountTokenKey])
-				return true, nil
-			}
-		}
-		return false, nil
-	})
+	tokenRequest, err := adminClient.CoreV1().ServiceAccounts(namespace).CreateToken(context.Background(), name, &authenticationv1.TokenRequest{}, metav1.CreateOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	saClientConfig := rest.AnonymousClientConfig(clientConfig)
-	saClientConfig.BearerToken = token
+	saClientConfig.BearerToken = tokenRequest.Status.Token
 
 	kubeClientset, err := kubernetes.NewForConfig(saClientConfig)
 	if err != nil {
