@@ -180,6 +180,32 @@ func NewCLIWithoutNamespace(project string) *CLI {
 	return cli
 }
 
+// NewCLIForMonitorTest initializes the CLI and Kube framework helpers
+// without a namespace. Should be called outside of a Ginkgo .It()
+// function.
+func NewCLIForMonitorTest(project string) *CLI {
+	cli := &CLI{
+		kubeFramework: &framework.Framework{
+			SkipNamespaceCreation: true,
+			BaseName:              project,
+			Options: framework.Options{
+				ClientQPS:   20,
+				ClientBurst: 50,
+			},
+			Timeouts: framework.NewTimeoutContext(),
+		},
+		username:                "admin",
+		execPath:                "oc",
+		adminConfigPath:         KubeConfigPath(),
+		staticConfigManifestDir: StaticConfigManifestDir(),
+		withoutNamespace:        true,
+	}
+
+	// Called only once (assumed the objects will never get modified)
+	cli.setupStaticConfigsFromManifests()
+	return cli
+}
+
 // NewHypershiftManagementCLI returns a CLI that interacts with the Hypershift management cluster.
 // Contrary to a normal CLI it does not perform any cleanup, and it must not be used for any mutating
 // operations. Also, contrary to a normal CLI it must be constructed inside an `It` block. This is
@@ -813,6 +839,22 @@ func (c *CLI) Run(commands ...string) *CLI {
 	}
 	if !c.withoutNamespace {
 		nc.globalArgs = append([]string{fmt.Sprintf("--namespace=%s", c.Namespace())}, nc.globalArgs...)
+	}
+	nc.stdin, nc.stdout, nc.stderr = in, out, errout
+	return nc.setOutput(c.stdout)
+}
+
+// Executes with the kubeconfig specified from the environment
+func (c *CLI) RunInMonitorTest(commands ...string) *CLI {
+	in, out, errout := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
+	nc := &CLI{
+		execPath:        c.execPath,
+		verb:            commands[0],
+		kubeFramework:   c.KubeFramework(),
+		adminConfigPath: c.adminConfigPath,
+		configPath:      c.configPath,
+		username:        c.username,
+		globalArgs:      commands,
 	}
 	nc.stdin, nc.stdout, nc.stderr = in, out, errout
 	return nc.setOutput(c.stdout)
