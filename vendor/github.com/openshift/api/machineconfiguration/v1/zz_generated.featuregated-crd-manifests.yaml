@@ -1,0 +1,168 @@
+containerruntimeconfigs.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1453
+  CRDName: containerruntimeconfigs.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: ContainerRuntimeConfig
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: containerruntimeconfigs
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames:
+  - ctrcfg
+  TopLevelFeatureGates: []
+  Version: v1
+
+controllerconfigs.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1453
+  CRDName: controllerconfigs.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - BareMetalLoadBalancer
+  - GCPClusterHostedDNS
+  - GCPLabelsTags
+  - VSphereControlPlaneMachineSet
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: ControllerConfig
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: controllerconfigs
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+kubeletconfigs.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1453
+  CRDName: kubeletconfigs.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: KubeletConfig
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: kubeletconfigs
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+machineconfigs.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1453
+  CRDName: machineconfigs.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: false
+  KindName: MachineConfig
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: machineconfigs
+  PrinterColumns:
+  - description: Version of the controller that generated the machineconfig. This
+      will be empty if the machineconfig is not managed by a controller.
+    jsonPath: .metadata.annotations.machineconfiguration\.openshift\.io/generated-by-controller-version
+    name: GeneratedByController
+    type: string
+  - description: Version of the Ignition Config defined in the machineconfig.
+    jsonPath: .spec.config.ignition.version
+    name: IgnitionVersion
+    type: string
+  - jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  Scope: Cluster
+  ShortNames:
+  - mc
+  TopLevelFeatureGates: []
+  Version: v1
+
+machineconfigpools.machineconfiguration.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1453
+  CRDName: machineconfigpools.machineconfiguration.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - PinnedImages
+  FilenameOperatorName: machine-config
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_80"
+  GroupName: machineconfiguration.openshift.io
+  HasStatus: true
+  KindName: MachineConfigPool
+  Labels:
+    openshift.io/operator-managed: ""
+  PluralName: machineconfigpools
+  PrinterColumns:
+  - jsonPath: .status.configuration.name
+    name: Config
+    type: string
+  - description: When all the machines in the pool are updated to the correct machine
+      config.
+    jsonPath: .status.conditions[?(@.type=="Updated")].status
+    name: Updated
+    type: string
+  - description: When at least one of machine is not either not updated or is in the
+      process of updating to the desired machine config.
+    jsonPath: .status.conditions[?(@.type=="Updating")].status
+    name: Updating
+    type: string
+  - description: When progress is blocked on updating one or more nodes or the pool
+      configuration is failing.
+    jsonPath: .status.conditions[?(@.type=="Degraded")].status
+    name: Degraded
+    type: string
+  - description: Total number of machines in the machine config pool
+    jsonPath: .status.machineCount
+    name: MachineCount
+    type: number
+  - description: Total number of ready machines targeted by the pool
+    jsonPath: .status.readyMachineCount
+    name: ReadyMachineCount
+    type: number
+  - description: Total number of machines targeted by the pool that have the CurrentMachineConfig
+      as their config
+    jsonPath: .status.updatedMachineCount
+    name: UpdatedMachineCount
+    type: number
+  - description: Total number of machines marked degraded (or unreconcilable)
+    jsonPath: .status.degradedMachineCount
+    name: DegradedMachineCount
+    type: number
+  - jsonPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  Scope: Cluster
+  ShortNames:
+  - mcp
+  TopLevelFeatureGates: []
+  Version: v1
+

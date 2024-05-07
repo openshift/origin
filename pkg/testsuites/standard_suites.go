@@ -240,6 +240,20 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 	},
 	{
+		Name: "openshift/network/ipsec",
+		Description: templates.LongDesc(`
+		This test suite performs IPsec e2e tests covering control plane and data plane for east west and north south traffic scenarios.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/network/ipsec")
+		},
+		Parallelism: 1,
+		TestTimeout: 60 * time.Minute,
+	},
+	{
 		Name: "openshift/network/stress",
 		Description: templates.LongDesc(`
 		This test suite repeatedly verifies the networking function of the cluster in parallel to find flakes.
