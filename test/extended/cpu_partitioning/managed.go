@@ -132,6 +132,73 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 
 		})
 	})
+
+	g.Context("with limits", func() {
+
+		var (
+			managedOC = exutil.NewCLI("cpu-partitioning").SetManagedNamespace().AsAdmin()
+		)
+
+		g.AfterEach(func() {
+			o.Expect(cleanup(managedOC, managedOC.Namespace())).To(o.Succeed())
+		})
+
+		g.It("should have resources modified if CPUPartitioningMode = AllNodes", func() {
+
+			requests := corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("20m"),
+				corev1.ResourceMemory: resource.MustParse("100Mi"),
+			}
+			limits := corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("30m"),
+				corev1.ResourceMemory: resource.MustParse("100Mi"),
+			}
+			deployment, err := createManagedDeployment(managedOC, requests, limits)
+			o.Expect(err).ToNot(o.HaveOccurred(), "error creating deployment with cpu limits")
+
+			_, err = exutil.WaitForPods(
+				managedOC.KubeClient().CoreV1().Pods(managedOC.AsAdmin().Namespace()),
+				labels.SelectorFromSet(deployment.Spec.Selector.MatchLabels),
+				exutil.CheckPodIsRunning, 1, time.Minute*3,
+			)
+			o.Expect(err).ToNot(o.HaveOccurred(), "error waiting for pod")
+
+			pods, err := managedOC.KubeClient().CoreV1().Pods(managedOC.Namespace()).List(ctx, metav1.ListOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			matcher := o.And(
+				o.HaveKey(workloadAnnotations),
+				o.HaveKey(o.MatchRegexp(workloadAnnotationsRegex)),
+			)
+
+			matcher, messageFormat := adjustMatcherAndMessageForCluster(isClusterCPUPartitioned, matcher)
+
+			for _, pod := range pods.Items {
+
+				o.Expect(pod.Annotations).To(
+					matcher, "pod (%s/%s) %s annotations", pod.Namespace, pod.Name, messageFormat)
+
+				containerAnnotationResources, err := getWorkloadAnnotationResource(pod.Annotations)
+				o.Expect(err).ToNot(o.HaveOccurred())
+
+				for _, container := range pod.Spec.Containers {
+
+					resource, found := containerAnnotationResources[container.Name]
+					o.Expect(found).To(o.Equal(isClusterCPUPartitioned))
+					if isClusterCPUPartitioned {
+						o.Expect(resource.CPULimit).To(o.Equal(limits.Cpu().MilliValue()), "container %s is missing a cpulimit", container.Name)
+					}
+
+					_, ok := container.Resources.Limits[resourceLabel]
+					o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
+						"limits resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
+					_, ok = container.Resources.Requests[resourceLabel]
+					o.Expect(ok).To(o.Equal(isClusterCPUPartitioned),
+						"requests resources %s be present for container %s in pod %s/%s", messageFormat, container.Name, pod.Name, pod.Namespace)
+				}
+			}
+		})
+	})
 })
 
 func cleanup(oc *exutil.CLI, namespace string) error {
