@@ -65,12 +65,12 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 			continue
 		}
 
-		reason := string(event.Message.Reason)
-		if reason == "UpgradeStarted" || reason == "UpgradeRollback" {
+		reason := event.Message.Reason
+		if reason == monitorapi.UpgradeStartedReason || reason == monitorapi.UpgradeRollbackReason {
 
 			// We assume a rollback ends an upgrade window and starts a new one.
-			if reason == "UpgradeRollback" {
-				if currentWindow != nil && currentWindow.startInterval.Message.Reason == "UpgradeStarted" {
+			if reason == monitorapi.UpgradeRollbackReason {
+				if currentWindow != nil && currentWindow.startInterval.Message.Reason == monitorapi.UpgradeStartedReason {
 					currentWindow.endInterval = &monitorapi.Interval{
 						Condition: monitorapi.Condition{
 							Message: monitorapi.Message{
@@ -94,7 +94,7 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 				},
 			}
 			upgradeWindows = append(upgradeWindows, currentWindow)
-		} else if reason == "UpgradeComplete" {
+		} else if reason == monitorapi.UpgradeCompleteReason {
 			if currentWindow != nil && currentWindow.endInterval == nil {
 				currentWindow.endInterval = &monitorapi.Interval{
 					Condition: monitorapi.Condition{

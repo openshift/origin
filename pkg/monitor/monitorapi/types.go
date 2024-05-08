@@ -204,6 +204,7 @@ const (
 	UpgradeStartedReason  IntervalReason = "UpgradeStarted"
 	UpgradeVersionReason  IntervalReason = "UpgradeVersion"
 	UpgradeRollbackReason IntervalReason = "UpgradeRollback"
+	UpgradeFailedReason   IntervalReason = "UpgradeFailed"
 	UpgradeCompleteReason IntervalReason = "UpgradeComplete"
 )
 
@@ -305,6 +306,10 @@ type Interval struct {
 
 	From time.Time
 	To   time.Time
+}
+
+func (r IntervalReason) String() string {
+	return string(r)
 }
 
 func (i Interval) String() string {
