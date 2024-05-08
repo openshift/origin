@@ -32,11 +32,9 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -45,7 +43,10 @@ import (
 	"github.com/coreos/go-oidc"
 
 	"k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/apis/apiserver"
+	apiservervalidation "k8s.io/apiserver/pkg/apis/apiserver/validation"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	certutil "k8s.io/client-go/util/cert"
@@ -59,49 +60,16 @@ var (
 )
 
 type Options struct {
-	// IssuerURL is the URL the provider signs ID Tokens as. This will be the "iss"
-	// field of all tokens produced by the provider and is used for configuration
-	// discovery.
-	//
-	// The URL is usually the provider's URL without a path, for example
-	// "https://accounts.google.com" or "https://login.salesforce.com".
-	//
-	// The provider must implement configuration discovery.
-	// See: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
-	IssuerURL string
-
+	// JWTAuthenticator is the authenticator that will be used to verify the JWT.
+	JWTAuthenticator apiserver.JWTAuthenticator
 	// Optional KeySet to allow for synchronous initialization instead of fetching from the remote issuer.
 	KeySet oidc.KeySet
-
-	// ClientID the JWT must be issued for, the "sub" field. This plugin only trusts a single
-	// client to ensure the plugin can be used with public providers.
-	//
-	// The plugin supports the "authorized party" OpenID Connect claim, which allows
-	// specialized providers to issue tokens to a client for a different client.
-	// See: https://openid.net/specs/openid-connect-core-1_0.html#IDToken
-	ClientID string
 
 	// PEM encoded root certificate contents of the provider.  Mutually exclusive with Client.
 	CAContentProvider CAContentProvider
 
 	// Optional http.Client used to make all requests to the remote issuer.  Mutually exclusive with CAContentProvider.
 	Client *http.Client
-
-	// UsernameClaim is the JWT field to use as the user's username.
-	UsernameClaim string
-
-	// UsernamePrefix, if specified, causes claims mapping to username to be prefix with
-	// the provided value. A value "oidc:" would result in usernames like "oidc:john".
-	UsernamePrefix string
-
-	// GroupsClaim, if specified, causes the OIDCAuthenticator to try to populate the user's
-	// groups with an ID Token field. If the GroupsClaim field is present in an ID Token the value
-	// must be a string or list of strings.
-	GroupsClaim string
-
-	// GroupsPrefix, if specified, causes claims mapping to group names to be prefixed with the
-	// value. A value "oidc:" would result in groups like "oidc:engineering" and "oidc:marketing".
-	GroupsPrefix string
 
 	// SupportedSigningAlgs sets the accepted set of JOSE signing algorithms that
 	// can be used by the provider to sign tokens.
@@ -114,10 +82,6 @@ type Options struct {
 	// https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
 	SupportedSigningAlgs []string
 
-	// RequiredClaims, if specified, causes the OIDCAuthenticator to verify that all the
-	// required claims key value pairs are present in the ID Token.
-	RequiredClaims map[string]string
-
 	// now is used for testing. It defaults to time.Now.
 	now func() time.Time
 }
@@ -129,12 +93,12 @@ type CAContentProvider interface {
 
 // initVerifier creates a new ID token verifier for the given configuration and issuer URL.  On success, calls setVerifier with the
 // resulting verifier.
-func initVerifier(ctx context.Context, config *oidc.Config, iss string) (*oidc.IDTokenVerifier, error) {
+func initVerifier(ctx context.Context, config *oidc.Config, iss string, audiences []string) (*idTokenVerifier, error) {
 	provider, err := oidc.NewProvider(ctx, iss)
 	if err != nil {
 		return nil, fmt.Errorf("init verifier failed: %v", err)
 	}
-	return provider.Verifier(config), nil
+	return &idTokenVerifier{provider.Verifier(config), audiences}, nil
 }
 
 // asyncIDTokenVerifier is an ID token verifier that allows async initialization
@@ -145,13 +109,13 @@ type asyncIDTokenVerifier struct {
 	// v is the ID token verifier initialized asynchronously.  It remains nil
 	// up until it is eventually initialized.
 	// Guarded by m
-	v *oidc.IDTokenVerifier
+	v *idTokenVerifier
 }
 
 // newAsyncIDTokenVerifier creates a new asynchronous token verifier.  The
 // verifier is available immediately, but may remain uninitialized for some time
 // after creation.
-func newAsyncIDTokenVerifier(ctx context.Context, c *oidc.Config, iss string) *asyncIDTokenVerifier {
+func newAsyncIDTokenVerifier(ctx context.Context, c *oidc.Config, iss string, audiences []string) *asyncIDTokenVerifier {
 	t := &asyncIDTokenVerifier{}
 
 	sync := make(chan struct{})
@@ -159,7 +123,7 @@ func newAsyncIDTokenVerifier(ctx context.Context, c *oidc.Config, iss string) *a
 	// verifier, or until context canceled.
 	initFn := func() (done bool, err error) {
 		klog.V(4).Infof("oidc authenticator: attempting init: iss=%v", iss)
-		v, err := initVerifier(ctx, c, iss)
+		v, err := initVerifier(ctx, c, iss, audiences)
 		if err != nil {
 			klog.Errorf("oidc authenticator: async token verifier for issuer: %q: %v", iss, err)
 			return false, nil
@@ -185,20 +149,14 @@ func newAsyncIDTokenVerifier(ctx context.Context, c *oidc.Config, iss string) *a
 }
 
 // verifier returns the underlying ID token verifier, or nil if one is not yet initialized.
-func (a *asyncIDTokenVerifier) verifier() *oidc.IDTokenVerifier {
+func (a *asyncIDTokenVerifier) verifier() *idTokenVerifier {
 	a.m.Lock()
 	defer a.m.Unlock()
 	return a.v
 }
 
 type Authenticator struct {
-	issuerURL string
-
-	usernameClaim  string
-	usernamePrefix string
-	groupsClaim    string
-	groupsPrefix   string
-	requiredClaims map[string]string
+	jwtAuthenticator apiserver.JWTAuthenticator
 
 	// Contains an *oidc.IDTokenVerifier. Do not access directly use the
 	// idTokenVerifier method.
@@ -210,13 +168,20 @@ type Authenticator struct {
 	resolver *claimResolver
 }
 
-func (a *Authenticator) setVerifier(v *oidc.IDTokenVerifier) {
+// idTokenVerifier is a wrapper around oidc.IDTokenVerifier. It uses the oidc.IDTokenVerifier
+// to verify the raw ID token and then performs audience validation locally.
+type idTokenVerifier struct {
+	verifier  *oidc.IDTokenVerifier
+	audiences []string
+}
+
+func (a *Authenticator) setVerifier(v *idTokenVerifier) {
 	a.verifier.Store(v)
 }
 
-func (a *Authenticator) idTokenVerifier() (*oidc.IDTokenVerifier, bool) {
+func (a *Authenticator) idTokenVerifier() (*idTokenVerifier, bool) {
 	if v := a.verifier.Load(); v != nil {
-		return v.(*oidc.IDTokenVerifier), true
+		return v.(*idTokenVerifier), true
 	}
 	return nil, false
 }
@@ -240,17 +205,8 @@ var allowedSigningAlgs = map[string]bool{
 }
 
 func New(opts Options) (*Authenticator, error) {
-	url, err := url.Parse(opts.IssuerURL)
-	if err != nil {
+	if err := apiservervalidation.ValidateJWTAuthenticator(opts.JWTAuthenticator).ToAggregate(); err != nil {
 		return nil, err
-	}
-
-	if url.Scheme != "https" {
-		return nil, fmt.Errorf("'oidc-issuer-url' (%q) has invalid scheme (%q), require 'https'", opts.IssuerURL, url.Scheme)
-	}
-
-	if opts.UsernameClaim == "" {
-		return nil, errors.New("no username claim provided")
 	}
 
 	supportedSigningAlgs := opts.SupportedSigningAlgs
@@ -273,6 +229,7 @@ func New(opts Options) (*Authenticator, error) {
 
 	if client == nil {
 		var roots *x509.CertPool
+		var err error
 		if opts.CAContentProvider != nil {
 			// TODO(enj): make this reload CA data dynamically
 			roots, err = certutil.NewPoolFromBytes(opts.CAContentProvider.CurrentCABundleContent())
@@ -301,43 +258,52 @@ func New(opts Options) (*Authenticator, error) {
 		now = time.Now
 	}
 
+	audiences := opts.JWTAuthenticator.Issuer.Audiences
 	verifierConfig := &oidc.Config{
-		ClientID:             opts.ClientID,
+		ClientID:             audiences[0],
 		SupportedSigningAlgs: supportedSigningAlgs,
 		Now:                  now,
 	}
+	if len(audiences) > 1 {
+		verifierConfig.ClientID = ""
+		// SkipClientIDCheck is set to true because we want to support multiple audiences
+		// in the authentication configuration.
+		// The go oidc library does not support validating
+		// multiple audiences, so we have to skip the client ID check and do it ourselves.
+		// xref: https://github.com/coreos/go-oidc/issues/397
+		verifierConfig.SkipClientIDCheck = true
+	}
 
 	var resolver *claimResolver
-	if opts.GroupsClaim != "" {
-		resolver = newClaimResolver(opts.GroupsClaim, client, verifierConfig)
+	groupsClaim := opts.JWTAuthenticator.ClaimMappings.Groups.Claim
+	if groupsClaim != "" {
+		resolver = newClaimResolver(groupsClaim, client, verifierConfig, audiences)
 	}
 
 	authenticator := &Authenticator{
-		issuerURL:      opts.IssuerURL,
-		usernameClaim:  opts.UsernameClaim,
-		usernamePrefix: opts.UsernamePrefix,
-		groupsClaim:    opts.GroupsClaim,
-		groupsPrefix:   opts.GroupsPrefix,
-		requiredClaims: opts.RequiredClaims,
-		cancel:         cancel,
-		resolver:       resolver,
+		jwtAuthenticator: opts.JWTAuthenticator,
+		cancel:           cancel,
+		resolver:         resolver,
 	}
 
 	if opts.KeySet != nil {
 		// We already have a key set, synchronously initialize the verifier.
-		authenticator.setVerifier(oidc.NewVerifier(opts.IssuerURL, opts.KeySet, verifierConfig))
+		authenticator.setVerifier(&idTokenVerifier{
+			oidc.NewVerifier(opts.JWTAuthenticator.Issuer.URL, opts.KeySet, verifierConfig),
+			audiences,
+		})
 	} else {
 		// Asynchronously attempt to initialize the authenticator. This enables
 		// self-hosted providers, providers that run on top of Kubernetes itself.
 		go wait.PollImmediateUntil(10*time.Second, func() (done bool, err error) {
-			provider, err := oidc.NewProvider(ctx, opts.IssuerURL)
+			provider, err := oidc.NewProvider(ctx, opts.JWTAuthenticator.Issuer.URL)
 			if err != nil {
 				klog.Errorf("oidc authenticator: initializing plugin: %v", err)
 				return false, nil
 			}
 
 			verifier := provider.Verifier(verifierConfig)
-			authenticator.setVerifier(verifier)
+			authenticator.setVerifier(&idTokenVerifier{verifier, audiences})
 			return true, nil
 		}, ctx.Done())
 	}
@@ -405,6 +371,10 @@ type claimResolver struct {
 	// claim is the distributed claim that may be resolved.
 	claim string
 
+	// audiences is the set of acceptable audiences the JWT must be issued to.
+	// At least one of the entries must match the "aud" claim in presented JWTs.
+	audiences []string
+
 	// client is the to use for resolving distributed claims
 	client *http.Client
 
@@ -421,19 +391,25 @@ type claimResolver struct {
 }
 
 // newClaimResolver creates a new resolver for distributed claims.
-func newClaimResolver(claim string, client *http.Client, config *oidc.Config) *claimResolver {
-	return &claimResolver{claim: claim, client: client, config: config, verifierPerIssuer: map[string]*asyncIDTokenVerifier{}}
+func newClaimResolver(claim string, client *http.Client, config *oidc.Config, audiences []string) *claimResolver {
+	return &claimResolver{
+		claim:             claim,
+		audiences:         audiences,
+		client:            client,
+		config:            config,
+		verifierPerIssuer: map[string]*asyncIDTokenVerifier{},
+	}
 }
 
 // Verifier returns either the verifier for the specified issuer, or error.
-func (r *claimResolver) Verifier(iss string) (*oidc.IDTokenVerifier, error) {
+func (r *claimResolver) Verifier(iss string) (*idTokenVerifier, error) {
 	r.m.Lock()
 	av := r.verifierPerIssuer[iss]
 	if av == nil {
 		// This lazy init should normally be very quick.
 		// TODO: Make this context cancelable.
 		ctx := oidc.ClientContext(context.Background(), r.client)
-		av = newAsyncIDTokenVerifier(ctx, r.config, iss)
+		av = newAsyncIDTokenVerifier(ctx, r.config, iss, r.audiences)
 		r.verifierPerIssuer[iss] = av
 	}
 	r.m.Unlock()
@@ -551,8 +527,42 @@ func (r *claimResolver) resolve(ctx context.Context, endpoint endpoint, allClaim
 	return nil
 }
 
+func (v *idTokenVerifier) Verify(ctx context.Context, rawIDToken string) (*oidc.IDToken, error) {
+	t, err := v.verifier.Verify(ctx, rawIDToken)
+	if err != nil {
+		return nil, err
+	}
+	if err := v.verifyAudience(t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+// verifyAudience verifies the audience field in the ID token matches the expected audience.
+// This is added based on https://github.com/coreos/go-oidc/blob/b203e58c24394ddf5e816706a7645f01280245c7/oidc/verify.go#L275-L281
+// with the difference that we allow multiple audiences.
+//
+// AuthenticationConfiguration has a audienceMatchPolicy field, but the only supported value now is "MatchAny".
+// So, The default match behavior is to match at least one of the audiences in the ID token.
+func (v *idTokenVerifier) verifyAudience(t *oidc.IDToken) error {
+	// We validate audience field is not empty in the authentication configuration.
+	// This check ensures callers of "Verify" using idTokenVerifier are not passing
+	// an empty audience.
+	if len(v.audiences) == 0 {
+		return fmt.Errorf("oidc: invalid configuration, audiences cannot be empty")
+	}
+	tokenAudiences := sets.NewString(t.Audience...)
+	for _, aud := range v.audiences {
+		if tokenAudiences.Has(aud) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("oidc: expected audience %q got %q", v.audiences, t.Audience)
+}
+
 func (a *Authenticator) AuthenticateToken(ctx context.Context, token string) (*authenticator.Response, bool, error) {
-	if !hasCorrectIssuer(a.issuerURL, token) {
+	if !hasCorrectIssuer(a.jwtAuthenticator.Issuer.URL, token) {
 		return nil, false, nil
 	}
 
@@ -577,11 +587,12 @@ func (a *Authenticator) AuthenticateToken(ctx context.Context, token string) (*a
 	}
 
 	var username string
-	if err := c.unmarshalClaim(a.usernameClaim, &username); err != nil {
-		return nil, false, fmt.Errorf("oidc: parse username claims %q: %v", a.usernameClaim, err)
+	usernameClaim := a.jwtAuthenticator.ClaimMappings.Username.Claim
+	if err := c.unmarshalClaim(usernameClaim, &username); err != nil {
+		return nil, false, fmt.Errorf("oidc: parse username claims %q: %v", usernameClaim, err)
 	}
 
-	if a.usernameClaim == "email" {
+	if usernameClaim == "email" {
 		// If the email_verified claim is present, ensure the email is valid.
 		// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
 		if hasEmailVerified := c.hasClaim("email_verified"); hasEmailVerified {
@@ -597,33 +608,39 @@ func (a *Authenticator) AuthenticateToken(ctx context.Context, token string) (*a
 		}
 	}
 
-	if a.usernamePrefix != "" {
-		username = a.usernamePrefix + username
+	userNamePrefix := a.jwtAuthenticator.ClaimMappings.Username.Prefix
+	if userNamePrefix != nil && *userNamePrefix != "" {
+		username = *userNamePrefix + username
 	}
 
 	info := &user.DefaultInfo{Name: username}
-	if a.groupsClaim != "" {
-		if _, ok := c[a.groupsClaim]; ok {
+	groupsClaim := a.jwtAuthenticator.ClaimMappings.Groups.Claim
+	if groupsClaim != "" {
+		if _, ok := c[groupsClaim]; ok {
 			// Some admins want to use string claims like "role" as the group value.
 			// Allow the group claim to be a single string instead of an array.
 			//
 			// See: https://github.com/kubernetes/kubernetes/issues/33290
 			var groups stringOrArray
-			if err := c.unmarshalClaim(a.groupsClaim, &groups); err != nil {
-				return nil, false, fmt.Errorf("oidc: parse groups claim %q: %v", a.groupsClaim, err)
+			if err := c.unmarshalClaim(groupsClaim, &groups); err != nil {
+				return nil, false, fmt.Errorf("oidc: parse groups claim %q: %v", groupsClaim, err)
 			}
 			info.Groups = []string(groups)
 		}
 	}
 
-	if a.groupsPrefix != "" {
+	groupsPrefix := a.jwtAuthenticator.ClaimMappings.Groups.Prefix
+	if groupsPrefix != nil && *groupsPrefix != "" {
 		for i, group := range info.Groups {
-			info.Groups[i] = a.groupsPrefix + group
+			info.Groups[i] = *groupsPrefix + group
 		}
 	}
 
 	// check to ensure all required claims are present in the ID token and have matching values.
-	for claim, value := range a.requiredClaims {
+	for _, claimValidationRule := range a.jwtAuthenticator.ClaimValidationRules {
+		claim := claimValidationRule.Claim
+		value := claimValidationRule.RequiredValue
+
 		if !c.hasClaim(claim) {
 			return nil, false, fmt.Errorf("oidc: required claim %s not present in ID token", claim)
 		}

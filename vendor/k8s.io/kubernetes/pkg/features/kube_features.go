@@ -250,7 +250,6 @@ const (
 	// owner: @harche
 	// kep: http://kep.k8s.io/3386
 	// alpha: v1.25
-	// beta: v1.27
 	//
 	// Allows using event-driven PLEG (pod lifecycle event generator) through kubelet
 	// which avoids frequent relisting of containers which helps optimize performance.
@@ -1005,7 +1004,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	DynamicResourceAllocation: {Default: false, PreRelease: featuregate.Alpha},
 
-	EventedPLEG: {Default: false, PreRelease: featuregate.Beta}, // off by default, requires CRI Runtime support
+	EventedPLEG: {Default: false, PreRelease: featuregate.Alpha},
 
 	ExecProbeTimeout: {Default: true, PreRelease: featuregate.GA}, // lock to default and remove after v1.22 based on KEP #1972 update
 
@@ -1137,7 +1136,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	ElasticIndexedJob: {Default: true, PreRelease: featuregate.Beta},
 
-	SchedulerQueueingHints: {Default: true, PreRelease: featuregate.Beta},
+	SchedulerQueueingHints: {Default: false, PreRelease: featuregate.Beta},
 
 	SeccompDefault: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.29
 
@@ -1206,9 +1205,17 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	genericfeatures.OpenAPIV3: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.29
 
+	genericfeatures.SeparateCacheWatchRPC: {Default: true, PreRelease: featuregate.Beta},
+
 	genericfeatures.ServerSideApply: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.29
 
 	genericfeatures.ServerSideFieldValidation: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.29
+
+	genericfeatures.StructuredAuthenticationConfiguration: {Default: false, PreRelease: featuregate.Alpha},
+
+	genericfeatures.UnauthenticatedHTTP2DOSMitigation: {Default: true, PreRelease: featuregate.Beta},
+
+	genericfeatures.WatchFromStorageWithoutResourceVersion: {Default: false, PreRelease: featuregate.Beta},
 
 	// inherited features from apiextensions-apiserver, relisted here to get a conflict if it is changed
 	// unintentionally on either side:
