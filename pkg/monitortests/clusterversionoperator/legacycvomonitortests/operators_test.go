@@ -56,20 +56,6 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		eventInterval monitorapi.Interval
 	}
 
-	test1_outside := monitorapi.Interval{
-		From: time.Date(2024, 5, 1, 12, 49, 28, 0, time.UTC),
-		To:   time.Date(2024, 5, 1, 12, 49, 28, 0, time.UTC),
-	}
-	test1_inside := monitorapi.Interval{
-		From: time.Date(2024, 5, 1, 13, 44, 28, 0, time.UTC),
-		To:   time.Date(2024, 5, 1, 13, 44, 28, 0, time.UTC),
-	}
-
-	test1_no_end := monitorapi.Interval{
-		From: time.Date(2024, 5, 1, 14, 0, 0, 0, time.UTC),
-		To:   time.Date(2024, 5, 1, 14, 0, 0, 0, time.UTC),
-	}
-
 	standardEventList := makeUpgradeEventList([]upgradeEvent{
 		{
 			from:   time.Date(2024, 5, 1, 12, 51, 9, 0, time.UTC),
@@ -111,90 +97,96 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		},
 	})
 
-	test2_outside_first := monitorapi.Interval{
-		From: time.Date(2024, 5, 1, 22, 10, 0, 0, time.UTC),
-		To:   time.Date(2024, 5, 1, 22, 10, 0, 0, time.UTC),
-	}
-
-	test2_inside_first := monitorapi.Interval{
-		From: time.Date(2024, 5, 1, 22, 25, 0, 0, time.UTC),
-		To:   time.Date(2024, 5, 1, 22, 25, 0, 0, time.UTC),
-	}
-	test2_inside_rollback := monitorapi.Interval{
-		From: time.Date(2024, 5, 1, 23, 18, 0, 0, time.UTC),
-		To:   time.Date(2024, 5, 1, 23, 18, 0, 0, time.UTC),
-	}
-	test2_past_end_of_rollback := monitorapi.Interval{
-		From: time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC),
-		To:   time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC),
-	}
-
 	tests := []struct {
 		name string
 		args args
 		want bool
 	}{
 		{
-			name: "Test 1a: single upgrade window, interval not within",
+			name: "single upgrade window, interval not within",
 			args: args{
-				eventList:     standardEventList,
-				eventInterval: test1_outside,
+				eventList: standardEventList,
+				eventInterval: monitorapi.Interval{
+					From: time.Date(2024, 5, 1, 12, 49, 28, 0, time.UTC),
+					To:   time.Date(2024, 5, 1, 12, 49, 28, 0, time.UTC),
+				},
 			},
 			want: false,
 		},
 		{
-			name: "Test 1b: single upgrade window, interval within",
+			name: "single upgrade window, interval within",
 			args: args{
-				eventList:     standardEventList,
-				eventInterval: test1_inside,
+				eventList: standardEventList,
+				eventInterval: monitorapi.Interval{
+					From: time.Date(2024, 5, 1, 13, 44, 28, 0, time.UTC),
+					To:   time.Date(2024, 5, 1, 13, 44, 28, 0, time.UTC),
+				},
 			},
 			want: true,
 		},
 		{
-			name: "Test 1c: single upgrade window, with no end",
+			name: "single upgrade window, with no end",
 			args: args{
-				eventList:     standardEventList[0:2],
-				eventInterval: test1_no_end,
+				eventList: standardEventList[0:2],
+				eventInterval: monitorapi.Interval{
+					From: time.Date(2024, 5, 1, 14, 0, 0, 0, time.UTC),
+					To:   time.Date(2024, 5, 1, 14, 0, 0, 0, time.UTC),
+				},
 			},
 			want: true,
 		},
 		{
-			name: "Test 2a: upgrade with rollback, interval before first upgrade",
+			name: "upgrade with rollback, interval before first upgrade",
 			args: args{
 				eventList:     eventListWithRollback,
-				eventInterval: test2_outside_first,
+				eventInterval: monitorapi.Interval{
+						From: time.Date(2024, 5, 1, 22, 10, 0, 0, time.UTC),
+						To:   time.Date(2024, 5, 1, 22, 10, 0, 0, time.UTC),
+				},
 			},
 			want: false,
 		},
 		{
-			name: "Test 2b: upgrade with rollback, interval inside first upgrade",
+			name: "upgrade with rollback, interval inside first upgrade",
 			args: args{
 				eventList:     eventListWithRollback,
-				eventInterval: test2_inside_first,
+				eventInterval: monitorapi.Interval{
+						From: time.Date(2024, 5, 1, 22, 25, 0, 0, time.UTC),
+						To:   time.Date(2024, 5, 1, 22, 25, 0, 0, time.UTC),
+				},
 			},
 			want: true,
 		},
 		{
-			name: "Test 2c: upgrade with rollback, interval inside rollback",
+			name: "upgrade with rollback, interval inside rollback",
 			args: args{
 				eventList:     eventListWithRollback,
-				eventInterval: test2_inside_rollback,
+				eventInterval: monitorapi.Interval{
+						From: time.Date(2024, 5, 1, 23, 18, 0, 0, time.UTC),
+						To:   time.Date(2024, 5, 1, 23, 18, 0, 0, time.UTC),
+				},
 			},
 			want: true,
 		},
 		{
-			name: "Test 2d: upgrade with rollback, interval past end of rollback",
+			name: "upgrade with rollback, interval past end of rollback",
 			args: args{
 				eventList:     eventListWithRollback,
-				eventInterval: test2_past_end_of_rollback,
+				eventInterval: monitorapi.Interval{
+					From: time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC),
+					To:   time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC),
+				},
 			},
 			want: false,
 		},
 		{
-			name: "Test 2e: upgrade with rollback, interval past end of rollback with no end",
+			name: "upgrade with rollback, interval past end of rollback with no end",
 			args: args{
 				eventList:     eventListWithRollback[0:3],
-				eventInterval: test2_past_end_of_rollback,
+				eventInterval: monitorapi.Interval{
+						From: time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC),
+						To:   time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC),
+				},
 			},
 			want: true,
 		},
