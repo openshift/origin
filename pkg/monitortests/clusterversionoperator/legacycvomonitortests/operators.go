@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
+	"github.com/sirupsen/logrus"
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -48,7 +49,9 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 }
 
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
-// If we don't find any upgrade starting point, we assume the eventInterval is not in an upgrade window.
+// UpgradeStart and UpgradeRollback events start upgrade windows and can end and already started upgrade window.
+// UpgradeComplete and UpgradeFailed events end upgrade windows; if there was not an already started upgrade window,
+// we ignore the event.
 // If we don't find any upgrade ending point, we assume the ending point is at the end of the test.
 func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.Interval) bool {
 	type upgradeWindowHolder struct {
@@ -59,29 +62,27 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 	var upgradeWindows []*upgradeWindowHolder
 	var currentWindow *upgradeWindowHolder
 
-	// Scan through the event list to define all upgrade windows.
 	for _, event := range eventList {
 		if event.Source != monitorapi.SourceKubeEvent || event.Locator.Keys[monitorapi.LocatorClusterVersionKey] != "cluster" {
 			continue
 		}
 
-		reason := event.Message.Reason
-		if reason == monitorapi.UpgradeStartedReason || reason == monitorapi.UpgradeRollbackReason {
-
-			// We assume a rollback ends an upgrade window and starts a new one.
-			if reason == monitorapi.UpgradeRollbackReason {
-				if currentWindow != nil && currentWindow.startInterval.Message.Reason == monitorapi.UpgradeStartedReason {
-					currentWindow.endInterval = &monitorapi.Interval{
-						Condition: monitorapi.Condition{
-							Message: monitorapi.Message{
-								Reason: event.Message.Reason,
-							},
+		switch event.Message.Reason {
+		case monitorapi.UpgradeStartedReason, monitorapi.UpgradeRollbackReason:
+			if currentWindow != nil {
+				// Close current window since there's already an upgrade window started
+				currentWindow.endInterval = &monitorapi.Interval{
+					Condition: monitorapi.Condition{
+						Message: monitorapi.Message{
+							Reason: event.Message.Reason,
 						},
-						From: event.From,
-						To:   event.To,
-					}
+					},
+					From: event.From,
+					To:   event.To,
 				}
 			}
+
+			// Start new window
 			currentWindow = &upgradeWindowHolder{
 				startInterval: &monitorapi.Interval{
 					Condition: monitorapi.Condition{
@@ -94,25 +95,32 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 				},
 			}
 			upgradeWindows = append(upgradeWindows, currentWindow)
-		} else if reason == monitorapi.UpgradeCompleteReason {
-			if currentWindow != nil && currentWindow.endInterval == nil {
-				currentWindow.endInterval = &monitorapi.Interval{
-					Condition: monitorapi.Condition{
-						Message: monitorapi.Message{
-							Reason: event.Message.Reason,
+		case monitorapi.UpgradeCompleteReason, monitorapi.UpgradeFailedReason:
+			if currentWindow != nil {
+				if currentWindow.endInterval == nil {
+					// End current window
+					currentWindow.endInterval = &monitorapi.Interval{
+						Condition: monitorapi.Condition{
+							Message: monitorapi.Message{
+								Reason: event.Message.Reason,
+							},
 						},
-					},
-					From: event.From,
-					To:   event.To,
+						From: event.From,
+						To:   event.To,
+					}
 				}
+			} else {
+				// We have no current window which means that the events indicate we completed
+				// or failed an upgrade without starting one.  This is stange situation that
+				// we should not see; in this case, there is no upgrade window to check against.
+				logrus.Warnf("Found upgrade completion or failed event without a start or rollback event: %v", event)
 			}
 		}
 	}
 
-	// Check if eventInterval.From falls within any of the defined upgrade windows.
 	for _, upgradeWindow := range upgradeWindows {
 		if eventInterval.From.After(upgradeWindow.startInterval.From) {
-			if upgradeWindow.endInterval == nil || eventInterval.From.Before(upgradeWindow.endInterval.From) {
+			if upgradeWindow.endInterval == nil || eventInterval.To.Before(upgradeWindow.endInterval.To) {
 				return true
 			}
 		}
@@ -187,7 +195,7 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
 			}
 		case "image-registry":
-			if replicaCount, _ := checkReplicas("openshift-image-registry", "image-registry", clientConfig); replicaCount == 1 {
+			if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
 				return "https://issues.redhat.com/browse/OCPBUGS-22382", nil
 			}
 		}

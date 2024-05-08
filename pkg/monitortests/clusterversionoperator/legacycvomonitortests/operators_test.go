@@ -76,15 +76,53 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		{eventTime: time.Date(2024, 5, 2, 0, 11, 18, 0, time.UTC), reason: monitorapi.UpgradeCompleteReason},
 	})
 
+	rollbackHappenedBeforeStartList := makeUpgradeEventList([]upgradeEvent{
+		{eventTime: time.Date(2024, 5, 1, 13, 46, 44, 0, time.UTC), reason: monitorapi.UpgradeCompleteReason},
+	})
+
+	rollbackAfterErroneousCompletionList := makeUpgradeEventList([]upgradeEvent{
+		{eventTime: time.Date(2024, 5, 2, 11, 0, 0, 0, time.UTC), reason: monitorapi.UpgradeCompleteReason},
+		{eventTime: time.Date(2024, 5, 2, 11, 45, 0, 0, time.UTC), reason: monitorapi.UpgradeRollbackReason},
+	})
+
+	rollbackAfterCompletionList := makeUpgradeEventList([]upgradeEvent{
+		{eventTime: time.Date(2024, 5, 2, 11, 0, 0, 0, time.UTC), reason: monitorapi.UpgradeStartedReason},
+		{eventTime: time.Date(2024, 5, 2, 11, 30, 0, 0, time.UTC), reason: monitorapi.UpgradeCompleteReason},
+		{eventTime: time.Date(2024, 5, 2, 11, 45, 0, 0, time.UTC), reason: monitorapi.UpgradeRollbackReason},
+	})
 	tests := []struct {
 		name string
 		args args
 		want bool
 	}{
 		{
+			name: "A rollback followed an upgrade completion",
+			args: args{
+				eventList:     rollbackAfterCompletionList,
+				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 2, 11, 35, 0, 0, time.UTC)),
+			},
+			want: true,
+		},
+		{
+			name: "A rollback followed an erroneous upgrade completion (error condition)",
+			args: args{
+				eventList:     rollbackAfterErroneousCompletionList,
+				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 2, 11, 30, 0, 0, time.UTC)),
+			},
+			want: false,
+		},
+		{
+			name: "An upgrade completion happened before an upgrade start or rollback (error condition)",
+			args: args{
+				eventList:     rollbackHappenedBeforeStartList,
+				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC)),
+			},
+			want: false,
+		},
+		{
 			name: "single upgrade window, interval not within",
 			args: args{
-				eventList: standardEventList,
+				eventList:     standardEventList,
 				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 1, 12, 49, 28, 0, time.UTC)),
 			},
 			want: false,
@@ -92,7 +130,7 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		{
 			name: "single upgrade window, interval within",
 			args: args{
-				eventList: standardEventList,
+				eventList:     standardEventList,
 				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 1, 13, 44, 28, 0, time.UTC)),
 			},
 			want: true,
@@ -100,7 +138,7 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		{
 			name: "single upgrade window, with no end",
 			args: args{
-				eventList: standardEventList[0:2],
+				eventList:     standardEventList[0:2],
 				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 1, 14, 0, 0, 0, time.UTC)),
 			},
 			want: true,
@@ -108,7 +146,7 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		{
 			name: "upgrade with rollback, interval before first upgrade",
 			args: args{
-				eventList: eventListWithRollback,
+				eventList:     eventListWithRollback,
 				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 1, 22, 10, 0, 0, time.UTC)),
 			},
 			want: false,
@@ -116,7 +154,7 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		{
 			name: "upgrade with rollback, interval inside first upgrade",
 			args: args{
-				eventList: eventListWithRollback,
+				eventList:     eventListWithRollback,
 				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 1, 22, 25, 0, 0, time.UTC)),
 			},
 			want: true,
@@ -124,7 +162,7 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		{
 			name: "upgrade with rollback, interval inside rollback",
 			args: args{
-				eventList: eventListWithRollback,
+				eventList:     eventListWithRollback,
 				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 1, 23, 18, 0, 0, time.UTC)),
 			},
 			want: true,
@@ -132,7 +170,7 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		{
 			name: "upgrade with rollback, interval past end of rollback",
 			args: args{
-				eventList: eventListWithRollback,
+				eventList:     eventListWithRollback,
 				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC)),
 			},
 			want: false,
@@ -140,7 +178,7 @@ func Test_isInUpgradeWindow(t *testing.T) {
 		{
 			name: "upgrade with rollback, interval past end of rollback with no end",
 			args: args{
-				eventList: eventListWithRollback[0:3],
+				eventList:     eventListWithRollback[0:3],
 				eventInterval: intervalWithSingleTime(time.Date(2024, 5, 2, 11, 20, 0, 0, time.UTC)),
 			},
 			want: true,
