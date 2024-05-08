@@ -20,8 +20,10 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 
+	"github.com/openshift/origin/pkg/clusterversion"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -47,12 +49,15 @@ var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 })
 
 func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
+	ctx := context.Background()
 	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
+	clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "get cluster version")
 	adminHTTPClient := clusterAdminBuildClient.RESTClient().(*rest.RESTClient).Client
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
-	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(context.Background(), buildConfig, metav1.CreateOptions{}); err != nil {
+	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(ctx, buildConfig, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
@@ -125,7 +130,7 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 					},
 				},
 			},
-			expectedStatus: http.StatusForbidden,
+			expectedStatus: expectedUnauthWebhookStatus(clusterVersion),
 		},
 	}
 
@@ -157,6 +162,19 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 			o.Expect(actual.Spec.TriggeredBy[0].Message).To(o.Equal(returnedBuild.Spec.TriggeredBy[0].Message))
 		}
 	}
+}
+
+// expectedUnauthWebhookStatus returns the exepcted HTTPS status code for unauthenticated webhook
+// requests sent to a stock/unmodified OpenShift cluster.
+//
+// For clusters upgraded from or through 4.15, unauthenticated webhooks are allowed and should
+// return code 200 (OK). Starting in OCP 4.16, unauthenticated webhooks should return code 403
+// (Forbidden).
+func expectedUnauthWebhookStatus(cv *configv1.ClusterVersion) int {
+	if clusterversion.IsUpgradedFromMinorVersion("4.15", cv) {
+		return http.StatusOK
+	}
+	return http.StatusForbidden
 }
 
 func TestWebhookGitHubPushWithImage(t g.GinkgoTInterface, oc *exutil.CLI) {
