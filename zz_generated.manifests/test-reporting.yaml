@@ -9,6 +9,10 @@ spec:
     tests:
     - testName: '[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test
         when enabled'
+  - featureGate: HardwareSpeed
+    tests:
+    - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
+        update the hardware speed [Timeout:30m][apigroup:machine.openshift.io]'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
