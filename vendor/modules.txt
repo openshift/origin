@@ -874,7 +874,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20240405120947-c67c8325cdd8
+# github.com/openshift/client-go v0.0.0-20240408153607-64bd6feb83ae
 ## explicit; go 1.21
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal

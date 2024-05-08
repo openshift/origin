@@ -13,6 +13,8 @@ import (
 type MachineconfigurationV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	MachineConfigNodesGetter
+	MachineOSBuildsGetter
+	MachineOSConfigsGetter
 	PinnedImageSetsGetter
 }
 
@@ -23,6 +25,14 @@ type MachineconfigurationV1alpha1Client struct {
 
 func (c *MachineconfigurationV1alpha1Client) MachineConfigNodes() MachineConfigNodeInterface {
 	return newMachineConfigNodes(c)
+}
+
+func (c *MachineconfigurationV1alpha1Client) MachineOSBuilds() MachineOSBuildInterface {
+	return newMachineOSBuilds(c)
+}
+
+func (c *MachineconfigurationV1alpha1Client) MachineOSConfigs() MachineOSConfigInterface {
+	return newMachineOSConfigs(c)
 }
 
 func (c *MachineconfigurationV1alpha1Client) PinnedImageSets() PinnedImageSetInterface {

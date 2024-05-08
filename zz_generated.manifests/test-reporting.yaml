@@ -9,6 +9,20 @@ spec:
     tests:
     - testName: '[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test
         when enabled'
+  - featureGate: NetworkDiagnosticsConfig
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
+        be enabled by default'
+    - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
+        function without any target pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
+        move the source diagnostics pods based on the new selector and tolerations'
+    - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
+        move the target diagnostics pods based on the new selector and tolerations'
+    - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
+        remove all network diagnostics pods when disabled'
+    - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
+        set the condition to false if there are no nodes able to host the source pods'
   - featureGate: ValidatingAdmissionPolicy
     tests:
     - testName: '[sig-api-machinery] ValidatingAdmissionPolicy [Privileged:ClusterAdmin]
