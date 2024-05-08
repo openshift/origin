@@ -186,17 +186,9 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
 			}
-		case "image-registry", "storage":
-			var namespace, operator string
-			if operator == "image-registry" {
-				namespace = "openshift-image-registry"
-			} else if operator == "storage" {
-				namespace = "openshift-cluster-storage-operator"
-				operator = "cluster-storage-operator"
-			}
-			replicaCount, _ := checkReplicas(namespace, operator, clientConfig)
-			if replicaCount == 1 {
-				return fmt.Sprintf("%s has only single replica, but Available=False is within an upgrade window and is for less than 10 minutes", operator), nil
+		case "image-registry":
+			if replicaCount, _ := checkReplicas("openshift-image-registry", "image-registry", clientConfig); replicaCount == 1 {
+				return "https://issues.redhat.com/browse/OCPBUGS-22382", nil
 			}
 		}
 
