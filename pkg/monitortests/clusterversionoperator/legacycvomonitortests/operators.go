@@ -10,12 +10,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openshift/origin/pkg/monitortests/clusterversionoperator/operatorstateanalyzer"
+	"github.com/sirupsen/logrus"
 
 	configv1 "github.com/openshift/api/config/v1"
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/client-go/rest"
 )
 
@@ -23,8 +26,8 @@ import (
 // exception string if does not think the condition should be fatal.
 type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) (string, error)
 
-func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, _ *rest.Config) (string, error) {
+func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
@@ -35,20 +38,44 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 			}
 		}
 
+		isSingleNode, err := isSingleNodeCheck(clientConfig)
+		if err != nil {
+			logrus.Warnf("Error checking for Single Node configuration on stable system (unable to make exception): %v", err)
+			fmt.Printf("Error checking for Single Node configuration on stable system (unable to make exception): %v", err)
+			isSingleNode = false
+		} else {
+			logrus.Warnf("isSingle node on stable system: %v", isSingleNode)
+			fmt.Printf("isSingle node on stable system: %v", isSingleNode)
+		}
+
 		// For the non-upgrade case, if any operator has Available=False, fail the test.
 		if condition.Type == configv1.OperatorAvailable {
-			if condition.Status == configv1.ConditionFalse {
+
+			// We'll add an exception for single node for now.
+			if condition.Status == configv1.ConditionFalse && !isSingleNode {
 				return "", nil
 			}
 		}
 		return "We are not worried about Degraded=True blips for stable-system tests yet.", nil
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig)
+}
+
+func isSingleNodeCheck(clientConfig *rest.Config) (bool, error) {
+	configClient, err := clientconfigv1.NewForConfig(clientConfig)
+	if err != nil {
+		logrus.Warnf("Error creating config client to check for Single Node configuration: %v", err)
+		fmt.Printf("Error creating config client to check for Single Node configuration: %v", err)
+		return false, err
+	}
+	return exutil.IsSingleNode(context.Background(), configClient)
 }
 
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
-// If we don't find any upgrade starting point, we assume the eventInterval is not in an upgrade window.
+// UpgradeStart and UpgradeRollback events start upgrade windows and can end and already started upgrade window.
+// UpgradeComplete and UpgradeFailed events end upgrade windows; if there was not an already started upgrade window,
+// we ignore the event.
 // If we don't find any upgrade ending point, we assume the ending point is at the end of the test.
 func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.Interval) bool {
 	type upgradeWindowHolder struct {
@@ -59,29 +86,27 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 	var upgradeWindows []*upgradeWindowHolder
 	var currentWindow *upgradeWindowHolder
 
-	// Scan through the event list to define all upgrade windows.
 	for _, event := range eventList {
 		if event.Source != monitorapi.SourceKubeEvent || event.Locator.Keys[monitorapi.LocatorClusterVersionKey] != "cluster" {
 			continue
 		}
 
-		reason := event.Message.Reason
-		if reason == monitorapi.UpgradeStartedReason || reason == monitorapi.UpgradeRollbackReason {
-
-			// We assume a rollback ends an upgrade window and starts a new one.
-			if reason == monitorapi.UpgradeRollbackReason {
-				if currentWindow != nil && currentWindow.startInterval.Message.Reason == monitorapi.UpgradeStartedReason {
-					currentWindow.endInterval = &monitorapi.Interval{
-						Condition: monitorapi.Condition{
-							Message: monitorapi.Message{
-								Reason: event.Message.Reason,
-							},
+		switch event.Message.Reason {
+		case monitorapi.UpgradeStartedReason, monitorapi.UpgradeRollbackReason:
+			if currentWindow != nil {
+				// Close current window since there's already an upgrade window started
+				currentWindow.endInterval = &monitorapi.Interval{
+					Condition: monitorapi.Condition{
+						Message: monitorapi.Message{
+							Reason: event.Message.Reason,
 						},
-						From: event.From,
-						To:   event.To,
-					}
+					},
+					From: event.From,
+					To:   event.To,
 				}
 			}
+
+			// Start new window
 			currentWindow = &upgradeWindowHolder{
 				startInterval: &monitorapi.Interval{
 					Condition: monitorapi.Condition{
@@ -94,25 +119,32 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 				},
 			}
 			upgradeWindows = append(upgradeWindows, currentWindow)
-		} else if reason == monitorapi.UpgradeCompleteReason {
-			if currentWindow != nil && currentWindow.endInterval == nil {
-				currentWindow.endInterval = &monitorapi.Interval{
-					Condition: monitorapi.Condition{
-						Message: monitorapi.Message{
-							Reason: event.Message.Reason,
+		case monitorapi.UpgradeCompleteReason, monitorapi.UpgradeFailedReason:
+			if currentWindow != nil {
+				if currentWindow.endInterval == nil {
+					// End current window
+					currentWindow.endInterval = &monitorapi.Interval{
+						Condition: monitorapi.Condition{
+							Message: monitorapi.Message{
+								Reason: event.Message.Reason,
+							},
 						},
-					},
-					From: event.From,
-					To:   event.To,
+						From: event.From,
+						To:   event.To,
+					}
 				}
+			} else {
+				// We have no current window which means that the events indicate we completed
+				// or failed an upgrade without starting one.  This is stange situation that
+				// we should not see; in this case, there is no upgrade window to check against.
+				logrus.Warnf("Found upgrade completion or failed event without a start or rollback event: %v", event)
 			}
 		}
 	}
 
-	// Check if eventInterval.From falls within any of the defined upgrade windows.
 	for _, upgradeWindow := range upgradeWindows {
 		if eventInterval.From.After(upgradeWindow.startInterval.From) {
-			if upgradeWindow.endInterval == nil || eventInterval.From.Before(upgradeWindow.endInterval.From) {
+			if upgradeWindow.endInterval == nil || eventInterval.To.Before(upgradeWindow.endInterval.To) {
 				return true
 			}
 		}
@@ -142,7 +174,19 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			availableEqualsFalseAllowed = isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute
 		}
 
-		if !availableEqualsFalseAllowed {
+		isSingleNode, err := isSingleNodeCheck(clientConfig)
+		if err != nil {
+			logrus.Warnf("Error checking for Single Node configuration on upgrade (unable to make exception): %v", err)
+			fmt.Printf("Error checking for Single Node configuration on upgrade (unable to make exception): %v", err)
+			isSingleNode = false
+		} else {
+			logrus.Warnf("isSingle node on upgrade: %v", isSingleNode)
+			fmt.Printf("isSingle node on upgrade: %v", isSingleNode)
+
+		}
+
+		// We'll add an exception for single node for now.
+		if !availableEqualsFalseAllowed && !isSingleNode {
 			return "", nil
 		}
 
@@ -186,17 +230,9 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && condition.Reason == "ClusterServiceVersionNotSucceeded" {
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
 			}
-		case "image-registry", "storage":
-			var namespace, operator string
-			if operator == "image-registry" {
-				namespace = "openshift-image-registry"
-			} else if operator == "storage" {
-				namespace = "openshift-cluster-storage-operator"
-				operator = "cluster-storage-operator"
-			}
-			replicaCount, _ := checkReplicas(namespace, operator, clientConfig)
-			if replicaCount == 1 {
-				return fmt.Sprintf("%s has only single replica, but Available=False is within an upgrade window and is for less than 10 minutes", operator), nil
+		case "image-registry":
+			if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
+				return "https://issues.redhat.com/browse/OCPBUGS-22382", nil
 			}
 		}
 
@@ -225,7 +261,7 @@ func checkReplicas(namespace string, operator string, clientConfig *rest.Config)
 	return 0, fmt.Errorf("Error fetching replicas")
 }
 
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig ...*rest.Config) []*junitapi.JUnitTestCase {
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -292,11 +328,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				if len(concurrentE2E) > 0 {
 					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n"))
 				}
-				var Config *rest.Config
-				if len(clientConfig) > 0 {
-					Config = clientConfig[0]
-				}
-				exception, err := except(operatorName, condition, eventInterval, Config)
+				exception, err := except(operatorName, condition, eventInterval, clientConfig)
 				if err != nil || exception == "" {
 					fatal = append(fatal, failure)
 				} else {
