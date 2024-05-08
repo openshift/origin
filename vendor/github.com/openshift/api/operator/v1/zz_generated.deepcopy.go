@@ -5011,6 +5011,21 @@ func (in *VSphereCSIDriverConfigSpec) DeepCopyInto(out *VSphereCSIDriverConfigSp
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.GlobalMaxSnapshotsPerBlockVolume != nil {
+		in, out := &in.GlobalMaxSnapshotsPerBlockVolume, &out.GlobalMaxSnapshotsPerBlockVolume
+		*out = new(uint32)
+		**out = **in
+	}
+	if in.GranularMaxSnapshotsPerBlockVolumeInVSAN != nil {
+		in, out := &in.GranularMaxSnapshotsPerBlockVolumeInVSAN, &out.GranularMaxSnapshotsPerBlockVolumeInVSAN
+		*out = new(uint32)
+		**out = **in
+	}
+	if in.GranularMaxSnapshotsPerBlockVolumeInVVOL != nil {
+		in, out := &in.GranularMaxSnapshotsPerBlockVolumeInVVOL, &out.GranularMaxSnapshotsPerBlockVolumeInVVOL
+		*out = new(uint32)
+		**out = **in
+	}
 	return
 }
 

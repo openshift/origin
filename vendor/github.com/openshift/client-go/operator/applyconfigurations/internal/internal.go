@@ -1711,6 +1711,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: clientTimeout
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Duration
+    - name: connectTimeout
+      type:
+        namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Duration
     - name: headerBufferBytes
       type:
         scalar: numeric
@@ -3596,6 +3599,15 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.operator.v1.VSphereCSIDriverConfigSpec
   map:
     fields:
+    - name: globalMaxSnapshotsPerBlockVolume
+      type:
+        scalar: numeric
+    - name: granularMaxSnapshotsPerBlockVolumeInVSAN
+      type:
+        scalar: numeric
+    - name: granularMaxSnapshotsPerBlockVolumeInVVOL
+      type:
+        scalar: numeric
     - name: topologyCategories
       type:
         list:

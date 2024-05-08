@@ -1,0 +1,44 @@
+alertrelabelconfigs.monitoring.openshift.io:
+  Annotations:
+    description: OpenShift Monitoring alert relabel configurations
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1406
+  CRDName: alertrelabelconfigs.monitoring.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: monitoring
+  FilenameOperatorOrdering: "02"
+  FilenameRunLevel: "0000_50"
+  GroupName: monitoring.openshift.io
+  HasStatus: true
+  KindName: AlertRelabelConfig
+  Labels: {}
+  PluralName: alertrelabelconfigs
+  PrinterColumns: []
+  Scope: Namespaced
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+
+alertingrules.monitoring.openshift.io:
+  Annotations:
+    description: OpenShift Monitoring alerting rules
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1406
+  CRDName: alertingrules.monitoring.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates: []
+  FilenameOperatorName: monitoring
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_50"
+  GroupName: monitoring.openshift.io
+  HasStatus: true
+  KindName: AlertingRule
+  Labels: {}
+  PluralName: alertingrules
+  PrinterColumns: []
+  Scope: Namespaced
+  ShortNames: null
+  TopLevelFeatureGates: []
+  Version: v1
+

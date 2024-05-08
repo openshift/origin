@@ -10,13 +10,12 @@ var (
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {
 			`\[Feature:StorageVersionAPI\]`,
-			`\[Feature:UserNamespacesSupport\]`,
 			`\[Feature:InPlacePodVerticalScaling\]`,
 			`\[Feature:RecoverVolumeExpansionFailure\]`,
 			`\[Feature:WatchList\]`,
 			`\[Feature:ServiceCIDRs\]`,
-			`\[Feature:PodLifecycleSleepAction\]`,
 			`\[Feature:ClusterTrustBundle\]`,
+			`\[Feature:SELinuxMount\]`,
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
