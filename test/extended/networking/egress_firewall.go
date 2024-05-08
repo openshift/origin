@@ -148,7 +148,7 @@ func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string, nodeSelec
 					break
 				}
 			}
-			e2e.ExpectNotEqual(len(nodeIP), 0)
+			o.Expect(len(nodeIP)).NotTo(o.BeEmpty())
 			hostPort := net.JoinHostPort(nodeIP, "6443")
 			url := fmt.Sprintf("https://%s", hostPort)
 			_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "-k", url).Output()
