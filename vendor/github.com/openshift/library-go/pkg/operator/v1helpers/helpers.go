@@ -9,6 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
+	"github.com/google/go-cmp/cmp"
+	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,11 +21,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-
-	"github.com/ghodss/yaml"
-
-	configv1 "github.com/openshift/api/config/v1"
-	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // SetOperandVersion sets the new version and returns the previous value.
@@ -160,11 +159,31 @@ type UpdateStatusFunc func(status *operatorv1.OperatorStatus) error
 func UpdateStatus(ctx context.Context, client OperatorClient, updateFuncs ...UpdateStatusFunc) (*operatorv1.OperatorStatus, bool, error) {
 	updated := false
 	var updatedOperatorStatus *operatorv1.OperatorStatus
+	numberOfAttempts := 0
+	previousResourceVersion := ""
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		_, oldStatus, resourceVersion, err := client.GetOperatorState()
+		defer func() {
+			numberOfAttempts++
+		}()
+		var oldStatus *operatorv1.OperatorStatus
+		var resourceVersion string
+		var err error
+
+		// prefer lister if we haven't already failed.
+		_, oldStatus, resourceVersion, err = client.GetOperatorState()
 		if err != nil {
 			return err
 		}
+		if resourceVersion == previousResourceVersion {
+			listerResourceVersion := resourceVersion
+			// this indicates that we've had a conflict and the lister has not caught up, so do a live GET
+			_, oldStatus, resourceVersion, err = client.GetOperatorStateWithQuorum(ctx)
+			if err != nil {
+				return err
+			}
+			klog.V(2).Infof("lister was stale at resourceVersion=%v, live get showed resourceVersion=%v", listerResourceVersion, resourceVersion)
+		}
+		previousResourceVersion = resourceVersion
 
 		newStatus := oldStatus.DeepCopy()
 		for _, update := range updateFuncs {
@@ -178,6 +197,9 @@ func UpdateStatus(ctx context.Context, client OperatorClient, updateFuncs ...Upd
 			updatedOperatorStatus = newStatus
 			return nil
 		}
+		if klog.V(4).Enabled() {
+			klog.Infof("Operator status changed: %v", operatorStatusJSONPatchNoError(oldStatus, newStatus))
+		}
 
 		updatedOperatorStatus, err = client.UpdateOperatorStatus(ctx, resourceVersion, newStatus)
 		updated = err == nil
@@ -185,6 +207,17 @@ func UpdateStatus(ctx context.Context, client OperatorClient, updateFuncs ...Upd
 	})
 
 	return updatedOperatorStatus, updated, err
+}
+
+func operatorStatusJSONPatchNoError(original, modified *operatorv1.OperatorStatus) string {
+	if original == nil {
+		return "original object is nil"
+	}
+	if modified == nil {
+		return "modified object is nil"
+	}
+
+	return cmp.Diff(original, modified)
 }
 
 // UpdateConditionFn returns a func to update a condition.
@@ -202,12 +235,32 @@ type UpdateStaticPodStatusFunc func(status *operatorv1.StaticPodOperatorStatus) 
 func UpdateStaticPodStatus(ctx context.Context, client StaticPodOperatorClient, updateFuncs ...UpdateStaticPodStatusFunc) (*operatorv1.StaticPodOperatorStatus, bool, error) {
 	updated := false
 	var updatedOperatorStatus *operatorv1.StaticPodOperatorStatus
+	numberOfAttempts := 0
+	previousResourceVersion := ""
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		_, oldStatus, resourceVersion, err := client.GetStaticPodOperatorState()
+		defer func() {
+			numberOfAttempts++
+		}()
+		var oldStatus *operatorv1.StaticPodOperatorStatus
+		var resourceVersion string
+		var err error
+
+		// prefer lister if we haven't already failed.
+		_, oldStatus, resourceVersion, err = client.GetStaticPodOperatorState()
 		if err != nil {
 			return err
 		}
-		klog.V(2).Infof("status.LatestAvailableRevision: %v, resourceVersion: %v", oldStatus.LatestAvailableRevision, resourceVersion)
+		if resourceVersion == previousResourceVersion {
+			listerResourceVersion := resourceVersion
+			// this indicates that we've had a conflict and the lister has not caught up, so do a live GET
+			_, oldStatus, resourceVersion, err = client.GetStaticPodOperatorStateWithQuorum(ctx)
+			if err != nil {
+				return err
+			}
+			klog.V(2).Infof("lister was stale at resourceVersion=%v, live get showed resourceVersion=%v", listerResourceVersion, resourceVersion)
+		}
+		previousResourceVersion = resourceVersion
+
 		newStatus := oldStatus.DeepCopy()
 		for _, update := range updateFuncs {
 			if err := update(newStatus); err != nil {
@@ -220,6 +273,9 @@ func UpdateStaticPodStatus(ctx context.Context, client StaticPodOperatorClient, 
 			updatedOperatorStatus = newStatus
 			return nil
 		}
+		if klog.V(4).Enabled() {
+			klog.Infof("Operator status changed: %v", staticPodOperatorStatusJSONPatchNoError(oldStatus, newStatus))
+		}
 
 		updatedOperatorStatus, err = client.UpdateStaticPodOperatorStatus(ctx, resourceVersion, newStatus)
 		updated = err == nil
@@ -227,6 +283,16 @@ func UpdateStaticPodStatus(ctx context.Context, client StaticPodOperatorClient, 
 	})
 
 	return updatedOperatorStatus, updated, err
+}
+
+func staticPodOperatorStatusJSONPatchNoError(original, modified *operatorv1.StaticPodOperatorStatus) string {
+	if original == nil {
+		return "original object is nil"
+	}
+	if modified == nil {
+		return "modified object is nil"
+	}
+	return cmp.Diff(original, modified)
 }
 
 // UpdateStaticPodConditionFn returns a func to update a condition.

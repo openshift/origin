@@ -29,7 +29,7 @@ require (
 	github.com/openshift/build-machinery-go v0.0.0-20220913142420-e25cf57ea46d
 	github.com/openshift/client-go v0.0.0-20230926161409-848405da69e1
 	github.com/openshift/cluster-network-operator v0.0.0-20240112173225-45bc1ab8881c
-	github.com/openshift/library-go v0.0.0-20231130204458-653f82d961a1
+	github.com/openshift/library-go v0.0.0-20240502143225-f71afde059ac
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
