@@ -141,10 +141,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-controller-manager"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-controller-manager",
@@ -171,10 +167,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -191,10 +183,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -211,10 +199,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -241,10 +225,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-controller-manager"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-controller-manager",
@@ -439,10 +419,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -617,10 +593,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -637,10 +609,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -657,10 +625,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -677,10 +641,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -697,10 +657,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -717,10 +673,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -737,10 +689,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -757,10 +705,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -777,10 +721,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -813,10 +753,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -833,10 +769,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-controller-manager"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-controller-manager",
@@ -869,10 +801,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-controller-manager"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-controller-manager",
@@ -889,10 +817,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-controller-manager"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-controller-manager",
@@ -925,10 +849,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -945,10 +865,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -985,10 +901,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-controller-manager"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-controller-manager",
@@ -1021,10 +933,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-scheduler"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-scheduler",
@@ -1088,20 +996,10 @@
           "selectedCertMetadataAnnotations": [
             {
               "key": "openshift.io/owning-component",
-              "value": "Networking / cluster-network-operator"
+              "value": "Monitoring"
             }
           ],
-          "owningJiraComponent": "Networking / cluster-network-operator",
-          "description": ""
-        }
-      },
-      {
-        "configMapLocation": {
-          "Namespace": "openshift-monitoring",
-          "Name": "alertmanager-trusted-ca-bundle-2ua4n9ob5qr8o"
-        },
-        "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "",
+          "owningJiraComponent": "Monitoring",
           "description": ""
         }
       },
@@ -1111,7 +1009,13 @@
           "Name": "kubelet-serving-ca-bundle"
         },
         "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "Monitoring"
+            }
+          ],
+          "owningJiraComponent": "Monitoring",
           "description": ""
         }
       },
@@ -1124,20 +1028,10 @@
           "selectedCertMetadataAnnotations": [
             {
               "key": "openshift.io/owning-component",
-              "value": "Networking / cluster-network-operator"
+              "value": "Monitoring"
             }
           ],
-          "owningJiraComponent": "Networking / cluster-network-operator",
-          "description": ""
-        }
-      },
-      {
-        "configMapLocation": {
-          "Namespace": "openshift-monitoring",
-          "Name": "prometheus-trusted-ca-bundle-2ua4n9ob5qr8o"
-        },
-        "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "",
+          "owningJiraComponent": "Monitoring",
           "description": ""
         }
       },
@@ -1150,20 +1044,10 @@
           "selectedCertMetadataAnnotations": [
             {
               "key": "openshift.io/owning-component",
-              "value": "Networking / cluster-network-operator"
+              "value": "Monitoring"
             }
           ],
-          "owningJiraComponent": "Networking / cluster-network-operator",
-          "description": ""
-        }
-      },
-      {
-        "configMapLocation": {
-          "Namespace": "openshift-monitoring",
-          "Name": "telemeter-trusted-ca-bundle-2ua4n9ob5qr8o"
-        },
-        "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "",
+          "owningJiraComponent": "Monitoring",
           "description": ""
         }
       },
@@ -1176,20 +1060,10 @@
           "selectedCertMetadataAnnotations": [
             {
               "key": "openshift.io/owning-component",
-              "value": "Networking / cluster-network-operator"
+              "value": "Monitoring"
             }
           ],
-          "owningJiraComponent": "Networking / cluster-network-operator",
-          "description": ""
-        }
-      },
-      {
-        "configMapLocation": {
-          "Namespace": "openshift-monitoring",
-          "Name": "thanos-querier-trusted-ca-bundle-2ua4n9ob5qr8o"
-        },
-        "certificateAuthorityBundleInfo": {
-          "owningJiraComponent": "",
+          "owningJiraComponent": "Monitoring",
           "description": ""
         }
       },
@@ -1229,10 +1103,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -1355,6 +1225,26 @@
           ],
           "owningJiraComponent": "service-ca",
           "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/oauth-openshift with hostname oauth-openshift.openshift-authentication.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: v4-0-config-system-serving-cert'. The certificate is valid for 2 years."
+        }
+      },
+      {
+        "secretLocation": {
+          "Namespace": "openshift-cloud-controller-manager-operator",
+          "Name": "cloud-controller-manager-operator-tls"
+        },
+        "certKeyInfo": {
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "service-ca"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cloud-controller-manager-operator with hostname cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cloud-controller-manager-operator-tls'. The certificate is valid for 2 years."
+            }
+          ],
+          "owningJiraComponent": "service-ca",
+          "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/cloud-controller-manager-operator with hostname cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: cloud-controller-manager-operator-tls'. The certificate is valid for 2 years."
         }
       },
       {
@@ -1547,10 +1437,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -1567,10 +1453,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -1799,26 +1681,6 @@
           ],
           "owningJiraComponent": "service-ca",
           "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/dns-default with hostname dns-default.openshift-dns.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: dns-default-metrics-tls'. The certificate is valid for 2 years."
-        }
-      },
-      {
-        "secretLocation": {
-          "Namespace": "openshift-e2e-loki",
-          "Name": "proxy-tls"
-        },
-        "certKeyInfo": {
-          "selectedCertMetadataAnnotations": [
-            {
-              "key": "openshift.io/owning-component",
-              "value": "service-ca"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/promtail with hostname promtail.openshift-e2e-loki.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years."
-            }
-          ],
-          "owningJiraComponent": "service-ca",
-          "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/promtail with hostname promtail.openshift-e2e-loki.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: proxy-tls'. The certificate is valid for 2 years."
         }
       },
       {
@@ -2267,10 +2129,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2303,10 +2161,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2323,10 +2177,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2359,10 +2209,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2379,10 +2225,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2399,10 +2241,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2435,10 +2273,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2455,10 +2289,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2475,10 +2305,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2495,10 +2321,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2515,10 +2337,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2535,10 +2353,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2555,10 +2369,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-controller-manager"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-controller-manager",
@@ -2611,10 +2421,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-controller-manager"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-controller-manager",
@@ -2631,10 +2437,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -2691,10 +2493,6 @@
             {
               "key": "openshift.io/owning-component",
               "value": "kube-apiserver"
-            },
-            {
-              "key": "openshift.io/description",
-              "value": ""
             }
           ],
           "owningJiraComponent": "kube-apiserver",
@@ -3073,7 +2871,17 @@
           "Name": "federate-client-certs"
         },
         "certKeyInfo": {
-          "owningJiraComponent": "",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "Monitoring"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": ""
+            }
+          ],
+          "owningJiraComponent": "Monitoring",
           "description": ""
         }
       },
@@ -3103,7 +2911,17 @@
           "Name": "metrics-client-certs"
         },
         "certKeyInfo": {
-          "owningJiraComponent": "",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "Monitoring"
+            },
+            {
+              "key": "openshift.io/description",
+              "value": ""
+            }
+          ],
+          "owningJiraComponent": "Monitoring",
           "description": ""
         }
       },
@@ -3165,16 +2983,6 @@
           ],
           "owningJiraComponent": "service-ca",
           "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/openshift-state-metrics with hostname openshift-state-metrics.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-state-metrics-tls'. The certificate is valid for 2 years."
-        }
-      },
-      {
-        "secretLocation": {
-          "Namespace": "openshift-monitoring",
-          "Name": "prometheus-adapter-bo9ukpiqhr327"
-        },
-        "certKeyInfo": {
-          "owningJiraComponent": "",
-          "description": ""
         }
       },
       {
@@ -3519,7 +3327,13 @@
           "Name": "packageserver-service-cert"
         },
         "certKeyInfo": {
-          "owningJiraComponent": "",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "Operator Framework / operator-lifecycle-manager"
+            }
+          ],
+          "owningJiraComponent": "Operator Framework / operator-lifecycle-manager",
           "description": ""
         }
       },
@@ -3529,7 +3343,13 @@
           "Name": "pprof-cert"
         },
         "certKeyInfo": {
-          "owningJiraComponent": "",
+          "selectedCertMetadataAnnotations": [
+            {
+              "key": "openshift.io/owning-component",
+              "value": "Operator Framework / operator-lifecycle-manager"
+            }
+          ],
+          "owningJiraComponent": "Operator Framework / operator-lifecycle-manager",
           "description": ""
         }
       },
@@ -3721,15 +3541,7 @@
             },
             {
               "Namespace": "openshift-monitoring",
-              "Name": "alertmanager-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            {
-              "Namespace": "openshift-monitoring",
               "Name": "prometheus-trusted-ca-bundle"
-            },
-            {
-              "Namespace": "openshift-monitoring",
-              "Name": "prometheus-trusted-ca-bundle-2ua4n9ob5qr8o"
             },
             {
               "Namespace": "openshift-monitoring",
@@ -3737,15 +3549,7 @@
             },
             {
               "Namespace": "openshift-monitoring",
-              "Name": "telemeter-trusted-ca-bundle-2ua4n9ob5qr8o"
-            },
-            {
-              "Namespace": "openshift-monitoring",
               "Name": "thanos-querier-trusted-ca-bundle"
-            },
-            {
-              "Namespace": "openshift-monitoring",
-              "Name": "thanos-querier-trusted-ca-bundle-2ua4n9ob5qr8o"
             }
           ],
           "OnDiskLocations": null,
@@ -3817,7 +3621,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "etcd-signer",
-                "SerialNumber": "2632415200428327060",
+                "SerialNumber": "1256786832005512940",
                 "Issuer": {
                   "CommonName": "etcd-signer",
                   "SerialNumber": "",
@@ -3844,7 +3648,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-csr-signer_@1701523735|kubelet-signer",
+        "Name": "kube-csr-signer_@1717075305|kubelet-signer",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -3876,8 +3680,8 @@
           "CertificateMetadata": [
             {
               "CertIdentifier": {
-                "CommonName": "kube-csr-signer_@1701523735",
-                "SerialNumber": "4366428473239730426",
+                "CommonName": "kube-csr-signer_@1717075305",
+                "SerialNumber": "4321959595759668296",
                 "Issuer": {
                   "CommonName": "kubelet-signer",
                   "SerialNumber": "",
@@ -3898,7 +3702,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kubelet-signer",
-                "SerialNumber": "7664220529564734090",
+                "SerialNumber": "1093173286530769889",
                 "Issuer": {
                   "CommonName": "kubelet-signer",
                   "SerialNumber": "",
@@ -3925,7 +3729,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.apps.cluster16.ocpci.eng.rdu2.redhat.com|ingress-operator@1701523762",
+        "Name": "*.apps.cluster14.ocpci.eng.rdu2.redhat.com|ingress-operator@1717075364",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -3949,10 +3753,10 @@
           "CertificateMetadata": [
             {
               "CertIdentifier": {
-                "CommonName": "*.apps.cluster16.ocpci.eng.rdu2.redhat.com",
-                "SerialNumber": "5848478767823239056",
+                "CommonName": "*.apps.cluster14.ocpci.eng.rdu2.redhat.com",
+                "SerialNumber": "8612519782181801058",
                 "Issuer": {
-                  "CommonName": "ingress-operator@1701523762",
+                  "CommonName": "ingress-operator@1717075364",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -3971,10 +3775,10 @@
             },
             {
               "CertIdentifier": {
-                "CommonName": "ingress-operator@1701523762",
+                "CommonName": "ingress-operator@1717075364",
                 "SerialNumber": "1",
                 "Issuer": {
-                  "CommonName": "ingress-operator@1701523762",
+                  "CommonName": "ingress-operator@1717075364",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -4020,7 +3824,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "aggregator-signer",
-                "SerialNumber": "6401613549102049460",
+                "SerialNumber": "1477253149531462523",
                 "Issuer": {
                   "CommonName": "aggregator-signer",
                   "SerialNumber": "",
@@ -4047,7 +3851,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "admin-kubeconfig-signer|kube-csr-signer_@1701523735|kubelet-signer|kube-apiserver-to-kubelet-signer|kube-control-plane-signer|kubelet-bootstrap-kubeconfig-signer|openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
+        "Name": "admin-kubeconfig-signer|kube-csr-signer_@1717075305|kubelet-signer|kube-apiserver-to-kubelet-signer|kube-control-plane-signer|kubelet-bootstrap-kubeconfig-signer|openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -4076,7 +3880,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "admin-kubeconfig-signer",
-                "SerialNumber": "7759048563957101465",
+                "SerialNumber": "5788548272146354807",
                 "Issuer": {
                   "CommonName": "admin-kubeconfig-signer",
                   "SerialNumber": "",
@@ -4096,8 +3900,8 @@
             },
             {
               "CertIdentifier": {
-                "CommonName": "kube-csr-signer_@1701523735",
-                "SerialNumber": "4366428473239730426",
+                "CommonName": "kube-csr-signer_@1717075305",
+                "SerialNumber": "4321959595759668296",
                 "Issuer": {
                   "CommonName": "kubelet-signer",
                   "SerialNumber": "",
@@ -4118,7 +3922,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kubelet-signer",
-                "SerialNumber": "7664220529564734090",
+                "SerialNumber": "1093173286530769889",
                 "Issuer": {
                   "CommonName": "kubelet-signer",
                   "SerialNumber": "",
@@ -4139,7 +3943,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-to-kubelet-signer",
-                "SerialNumber": "5529539462005312725",
+                "SerialNumber": "2687860536599350932",
                 "Issuer": {
                   "CommonName": "kube-apiserver-to-kubelet-signer",
                   "SerialNumber": "",
@@ -4160,7 +3964,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-control-plane-signer",
-                "SerialNumber": "6493444172374213805",
+                "SerialNumber": "505411186822611205",
                 "Issuer": {
                   "CommonName": "kube-control-plane-signer",
                   "SerialNumber": "",
@@ -4181,7 +3985,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kubelet-bootstrap-kubeconfig-signer",
-                "SerialNumber": "2478339930904858319",
+                "SerialNumber": "5197855211930727411",
                 "Issuer": {
                   "CommonName": "kubelet-bootstrap-kubeconfig-signer",
                   "SerialNumber": "",
@@ -4201,10 +4005,10 @@
             },
             {
               "CertIdentifier": {
-                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
-                "SerialNumber": "8297980972003224649",
+                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
+                "SerialNumber": "1541514532685437711",
                 "Issuer": {
-                  "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
+                  "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -4229,7 +4033,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
+        "Name": "kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -4246,7 +4050,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-lb-signer",
-                "SerialNumber": "2790099462841698647",
+                "SerialNumber": "7879353606248190830",
                 "Issuer": {
                   "CommonName": "kube-apiserver-lb-signer",
                   "SerialNumber": "",
@@ -4267,7 +4071,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-localhost-signer",
-                "SerialNumber": "4919806299558496371",
+                "SerialNumber": "5770699977525351510",
                 "Issuer": {
                   "CommonName": "kube-apiserver-localhost-signer",
                   "SerialNumber": "",
@@ -4288,7 +4092,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-service-network-signer",
-                "SerialNumber": "8152366793646847509",
+                "SerialNumber": "7820272007592741170",
                 "Issuer": {
                   "CommonName": "kube-apiserver-service-network-signer",
                   "SerialNumber": "",
@@ -4308,10 +4112,10 @@
             },
             {
               "CertIdentifier": {
-                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
-                "SerialNumber": "1997614041663464966",
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
+                "SerialNumber": "2304388330151962084",
                 "Issuer": {
-                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
+                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -4349,7 +4153,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kubelet-bootstrap-kubeconfig-signer",
-                "SerialNumber": "2478339930904858319",
+                "SerialNumber": "5197855211930727411",
                 "Issuer": {
                   "CommonName": "kubelet-bootstrap-kubeconfig-signer",
                   "SerialNumber": "",
@@ -4376,7 +4180,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "openshift-service-serving-signer@1701523729",
+        "Name": "openshift-service-serving-signer@1717075302",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -4396,10 +4200,10 @@
           "CertificateMetadata": [
             {
               "CertIdentifier": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
-                "SerialNumber": "3270101755808761656",
+                "CommonName": "openshift-service-serving-signer@1717075302",
+                "SerialNumber": "50354538907274890",
                 "Issuer": {
-                  "CommonName": "openshift-service-serving-signer@1701523729",
+                  "CommonName": "openshift-service-serving-signer@1717075302",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -4437,7 +4241,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "admin-kubeconfig-signer",
-                "SerialNumber": "7759048563957101465",
+                "SerialNumber": "5788548272146354807",
                 "Issuer": {
                   "CommonName": "admin-kubeconfig-signer",
                   "SerialNumber": "",
@@ -4489,7 +4293,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "etcd-metric-signer",
-                "SerialNumber": "9121822585377541160",
+                "SerialNumber": "1049292225776830129",
                 "Issuer": {
                   "CommonName": "etcd-metric-signer",
                   "SerialNumber": "",
@@ -4529,7 +4333,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "admin-kubeconfig-signer",
-                "SerialNumber": "7759048563957101465",
+                "SerialNumber": "5788548272146354807",
                 "Issuer": {
                   "CommonName": "admin-kubeconfig-signer",
                   "SerialNumber": "",
@@ -4550,7 +4354,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kubelet-signer",
-                "SerialNumber": "7664220529564734090",
+                "SerialNumber": "1093173286530769889",
                 "Issuer": {
                   "CommonName": "kubelet-signer",
                   "SerialNumber": "",
@@ -4571,7 +4375,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-control-plane-signer",
-                "SerialNumber": "6493444172374213805",
+                "SerialNumber": "505411186822611205",
                 "Issuer": {
                   "CommonName": "kube-control-plane-signer",
                   "SerialNumber": "",
@@ -4592,7 +4396,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-to-kubelet-signer",
-                "SerialNumber": "5529539462005312725",
+                "SerialNumber": "2687860536599350932",
                 "Issuer": {
                   "CommonName": "kube-apiserver-to-kubelet-signer",
                   "SerialNumber": "",
@@ -4613,7 +4417,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kubelet-bootstrap-kubeconfig-signer",
-                "SerialNumber": "2478339930904858319",
+                "SerialNumber": "5197855211930727411",
                 "Issuer": {
                   "CommonName": "kubelet-bootstrap-kubeconfig-signer",
                   "SerialNumber": "",
@@ -4653,7 +4457,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "ocpci.eng.rdu2.redhat.com",
-                "SerialNumber": "505074756205203632771767778284523127596391517891",
+                "SerialNumber": "136811677144365659084456185340839577034406484621",
                 "Issuer": {
                   "CommonName": "ocpci.eng.rdu2.redhat.com",
                   "SerialNumber": "",
@@ -4689,7 +4493,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-to-kubelet-signer",
-                "SerialNumber": "5529539462005312725",
+                "SerialNumber": "2687860536599350932",
                 "Issuer": {
                   "CommonName": "kube-apiserver-to-kubelet-signer",
                   "SerialNumber": "",
@@ -4729,7 +4533,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-control-plane-signer",
-                "SerialNumber": "6493444172374213805",
+                "SerialNumber": "505411186822611205",
                 "Issuer": {
                   "CommonName": "kube-control-plane-signer",
                   "SerialNumber": "",
@@ -4769,7 +4573,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-lb-signer",
-                "SerialNumber": "2790099462841698647",
+                "SerialNumber": "7879353606248190830",
                 "Issuer": {
                   "CommonName": "kube-apiserver-lb-signer",
                   "SerialNumber": "",
@@ -4796,7 +4600,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
+        "Name": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -4808,10 +4612,10 @@
           "CertificateMetadata": [
             {
               "CertIdentifier": {
-                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
-                "SerialNumber": "1997614041663464966",
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
+                "SerialNumber": "2304388330151962084",
                 "Issuer": {
-                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
+                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -4849,7 +4653,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-localhost-signer",
-                "SerialNumber": "4919806299558496371",
+                "SerialNumber": "5770699977525351510",
                 "Issuer": {
                   "CommonName": "kube-apiserver-localhost-signer",
                   "SerialNumber": "",
@@ -4876,7 +4680,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
+        "Name": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -4888,10 +4692,10 @@
           "CertificateMetadata": [
             {
               "CertIdentifier": {
-                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
-                "SerialNumber": "8297980972003224649",
+                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
+                "SerialNumber": "1541514532685437711",
                 "Issuer": {
-                  "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
+                  "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -4929,7 +4733,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-service-network-signer",
-                "SerialNumber": "8152366793646847509",
+                "SerialNumber": "7820272007592741170",
                 "Issuer": {
                   "CommonName": "kube-apiserver-service-network-signer",
                   "SerialNumber": "",
@@ -4969,7 +4773,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kubelet-signer",
-                "SerialNumber": "7664220529564734090",
+                "SerialNumber": "1093173286530769889",
                 "Issuer": {
                   "CommonName": "kubelet-signer",
                   "SerialNumber": "",
@@ -4996,7 +4800,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731|*.apps.cluster16.ocpci.eng.rdu2.redhat.com|ingress-operator@1701523762",
+        "Name": "kube-apiserver-lb-signer|kube-apiserver-localhost-signer|kube-apiserver-service-network-signer|openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303|*.apps.cluster14.ocpci.eng.rdu2.redhat.com|ingress-operator@1717075364",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -5013,7 +4817,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-lb-signer",
-                "SerialNumber": "2790099462841698647",
+                "SerialNumber": "7879353606248190830",
                 "Issuer": {
                   "CommonName": "kube-apiserver-lb-signer",
                   "SerialNumber": "",
@@ -5034,7 +4838,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-localhost-signer",
-                "SerialNumber": "4919806299558496371",
+                "SerialNumber": "5770699977525351510",
                 "Issuer": {
                   "CommonName": "kube-apiserver-localhost-signer",
                   "SerialNumber": "",
@@ -5055,7 +4859,7 @@
             {
               "CertIdentifier": {
                 "CommonName": "kube-apiserver-service-network-signer",
-                "SerialNumber": "8152366793646847509",
+                "SerialNumber": "7820272007592741170",
                 "Issuer": {
                   "CommonName": "kube-apiserver-service-network-signer",
                   "SerialNumber": "",
@@ -5075,10 +4879,10 @@
             },
             {
               "CertIdentifier": {
-                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
-                "SerialNumber": "1997614041663464966",
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
+                "SerialNumber": "2304388330151962084",
                 "Issuer": {
-                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
+                  "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -5096,10 +4900,10 @@
             },
             {
               "CertIdentifier": {
-                "CommonName": "*.apps.cluster16.ocpci.eng.rdu2.redhat.com",
-                "SerialNumber": "5848478767823239056",
+                "CommonName": "*.apps.cluster14.ocpci.eng.rdu2.redhat.com",
+                "SerialNumber": "8612519782181801058",
                 "Issuer": {
-                  "CommonName": "ingress-operator@1701523762",
+                  "CommonName": "ingress-operator@1717075364",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -5118,10 +4922,10 @@
             },
             {
               "CertIdentifier": {
-                "CommonName": "ingress-operator@1701523762",
+                "CommonName": "ingress-operator@1717075364",
                 "SerialNumber": "1",
                 "Issuer": {
-                  "CommonName": "ingress-operator@1701523762",
+                  "CommonName": "ingress-operator@1717075364",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -5146,7 +4950,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "openshift-network-node-identity_network-node-identity-ca@1701523655",
+        "Name": "openshift-network-node-identity_network-node-identity-ca@1717075272",
         "Spec": {
           "ConfigMapLocations": [
             {
@@ -5158,10 +4962,10 @@
           "CertificateMetadata": [
             {
               "CertIdentifier": {
-                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1701523655",
-                "SerialNumber": "8541346071551845224",
+                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1717075272",
+                "SerialNumber": "3268818185710429242",
                 "Issuer": {
-                  "CommonName": "openshift-network-node-identity_network-node-identity-ca@1701523655",
+                  "CommonName": "openshift-network-node-identity_network-node-identity-ca@1717075272",
                   "SerialNumber": "",
                   "Issuer": null
                 }
@@ -5190,7 +4994,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-apiserver-operator.svc::1213181955250147297",
+        "Name": "metrics.openshift-apiserver-operator.svc::6455418661183678417",
         "Spec": {
           "SecretLocations": [
             {
@@ -5202,9 +5006,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-apiserver-operator.svc",
-              "SerialNumber": "1213181955250147297",
+              "SerialNumber": "6455418661183678417",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5241,7 +5045,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "etcd::5682012967659722459",
+        "Name": "etcd::1208033377249311232",
         "Spec": {
           "SecretLocations": [
             {
@@ -5273,7 +5077,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "etcd",
-              "SerialNumber": "5682012967659722459",
+              "SerialNumber": "1208033377249311232",
               "Issuer": {
                 "CommonName": "etcd-signer",
                 "SerialNumber": "",
@@ -5310,7 +5114,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "api.openshift-apiserver.svc::8952851236839571750",
+        "Name": "api.openshift-apiserver.svc::6350481216783099408",
         "Spec": {
           "SecretLocations": [
             {
@@ -5322,9 +5126,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "api.openshift-apiserver.svc",
-              "SerialNumber": "8952851236839571750",
+              "SerialNumber": "6350481216783099408",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5361,7 +5165,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-authentication-operator.svc::7764395099988209723",
+        "Name": "metrics.openshift-authentication-operator.svc::7739699366532069103",
         "Spec": {
           "SecretLocations": [
             {
@@ -5373,9 +5177,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-authentication-operator.svc",
-              "SerialNumber": "7764395099988209723",
+              "SerialNumber": "7739699366532069103",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5412,7 +5216,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "oauth-openshift.openshift-authentication.svc::3389127119507312834",
+        "Name": "oauth-openshift.openshift-authentication.svc::4336366918855084518",
         "Spec": {
           "SecretLocations": [
             {
@@ -5424,9 +5228,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "oauth-openshift.openshift-authentication.svc",
-              "SerialNumber": "3389127119507312834",
+              "SerialNumber": "4336366918855084518",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5463,7 +5267,60 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "cco-metrics.openshift-cloud-credential-operator.svc::1512050058196373176",
+        "Name": "*.cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc::4454717186095115507",
+        "Spec": {
+          "SecretLocations": [
+            {
+              "Namespace": "openshift-cloud-controller-manager-operator",
+              "Name": "cloud-controller-manager-operator-tls"
+            }
+          ],
+          "OnDiskLocations": null,
+          "CertMetadata": {
+            "CertIdentifier": {
+              "CommonName": "*.cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc",
+              "SerialNumber": "4454717186095115507",
+              "Issuer": {
+                "CommonName": "openshift-service-serving-signer@1717075302",
+                "SerialNumber": "",
+                "Issuer": null
+              }
+            },
+            "SignatureAlgorithm": "SHA256-RSA",
+            "PublicKeyAlgorithm": "RSA",
+            "PublicKeyBitSize": "2048 bit",
+            "ValidityDuration": "2y",
+            "Usages": [
+              "KeyUsageDigitalSignature",
+              "KeyUsageKeyEncipherment"
+            ],
+            "ExtendedUsages": [
+              "ExtKeyUsageServerAuth"
+            ]
+          },
+          "Details": {
+            "CertType": "ServingCertDetails",
+            "SignerDetails": null,
+            "ServingCertDetails": {
+              "DNSNames": [
+                "*.cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc",
+                "*.cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc.cluster.local",
+                "cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc",
+                "cloud-controller-manager-operator.openshift-cloud-controller-manager-operator.svc.cluster.local"
+              ],
+              "IPAddresses": null
+            },
+            "ClientCertDetails": null
+          }
+        },
+        "Status": {
+          "Errors": null
+        }
+      },
+      {
+        "LogicalName": "",
+        "Description": "",
+        "Name": "cco-metrics.openshift-cloud-credential-operator.svc::7382135098483919952",
         "Spec": {
           "SecretLocations": [
             {
@@ -5475,9 +5332,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "cco-metrics.openshift-cloud-credential-operator.svc",
-              "SerialNumber": "1512050058196373176",
+              "SerialNumber": "7382135098483919952",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5514,7 +5371,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.machine-approver.openshift-cluster-machine-approver.svc::3308389022954852857",
+        "Name": "*.machine-approver.openshift-cluster-machine-approver.svc::3774423590687473957",
         "Spec": {
           "SecretLocations": [
             {
@@ -5526,9 +5383,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.machine-approver.openshift-cluster-machine-approver.svc",
-              "SerialNumber": "3308389022954852857",
+              "SerialNumber": "3774423590687473957",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5567,7 +5424,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.node-tuning-operator.openshift-cluster-node-tuning-operator.svc::6874267196079623593",
+        "Name": "*.node-tuning-operator.openshift-cluster-node-tuning-operator.svc::4446590497138507178",
         "Spec": {
           "SecretLocations": [
             {
@@ -5579,9 +5436,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.node-tuning-operator.openshift-cluster-node-tuning-operator.svc",
-              "SerialNumber": "6874267196079623593",
+              "SerialNumber": "4446590497138507178",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5620,7 +5477,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "performance-addon-operator-service.openshift-cluster-node-tuning-operator.svc::8277317846500958321",
+        "Name": "performance-addon-operator-service.openshift-cluster-node-tuning-operator.svc::6079928641899106800",
         "Spec": {
           "SecretLocations": [
             {
@@ -5632,9 +5489,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "performance-addon-operator-service.openshift-cluster-node-tuning-operator.svc",
-              "SerialNumber": "8277317846500958321",
+              "SerialNumber": "6079928641899106800",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5671,7 +5528,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.metrics.openshift-cluster-samples-operator.svc::1907025239460793801",
+        "Name": "*.metrics.openshift-cluster-samples-operator.svc::3808562959375297457",
         "Spec": {
           "SecretLocations": [
             {
@@ -5683,9 +5540,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.metrics.openshift-cluster-samples-operator.svc",
-              "SerialNumber": "1907025239460793801",
+              "SerialNumber": "3808562959375297457",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5724,7 +5581,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "cluster-storage-operator-metrics.openshift-cluster-storage-operator.svc::8577190626914169887",
+        "Name": "cluster-storage-operator-metrics.openshift-cluster-storage-operator.svc::4915074134765980567",
         "Spec": {
           "SecretLocations": [
             {
@@ -5736,9 +5593,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "cluster-storage-operator-metrics.openshift-cluster-storage-operator.svc",
-              "SerialNumber": "8577190626914169887",
+              "SerialNumber": "4915074134765980567",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5775,7 +5632,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "csi-snapshot-webhook.openshift-cluster-storage-operator.svc::8009590823659287295",
+        "Name": "csi-snapshot-webhook.openshift-cluster-storage-operator.svc::3762244158885126424",
         "Spec": {
           "SecretLocations": [
             {
@@ -5787,9 +5644,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "csi-snapshot-webhook.openshift-cluster-storage-operator.svc",
-              "SerialNumber": "8009590823659287295",
+              "SerialNumber": "3762244158885126424",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5826,7 +5683,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "csi-snapshot-controller-operator-metrics.openshift-cluster-storage-operator.svc::9045327035887788605",
+        "Name": "csi-snapshot-controller-operator-metrics.openshift-cluster-storage-operator.svc::2389969774750551903",
         "Spec": {
           "SecretLocations": [
             {
@@ -5838,9 +5695,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "csi-snapshot-controller-operator-metrics.openshift-cluster-storage-operator.svc",
-              "SerialNumber": "9045327035887788605",
+              "SerialNumber": "2389969774750551903",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5877,7 +5734,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "cluster-version-operator.openshift-cluster-version.svc::4253181554810598968",
+        "Name": "cluster-version-operator.openshift-cluster-version.svc::7701077075492745900",
         "Spec": {
           "SecretLocations": [
             {
@@ -5889,9 +5746,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "cluster-version-operator.openshift-cluster-version.svc",
-              "SerialNumber": "4253181554810598968",
+              "SerialNumber": "7701077075492745900",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -5928,7 +5785,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:kube-controller-manager::6214015873299823752",
+        "Name": "system:kube-controller-manager::5030850565248586202",
         "Spec": {
           "SecretLocations": [
             {
@@ -5944,7 +5801,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:kube-controller-manager",
-              "SerialNumber": "6214015873299823752",
+              "SerialNumber": "5030850565248586202",
               "Issuer": {
                 "CommonName": "kube-control-plane-signer",
                 "SerialNumber": "",
@@ -5954,7 +5811,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -5979,7 +5836,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:kube-scheduler::5612336832944501204",
+        "Name": "system:kube-scheduler::2361445862329985725",
         "Spec": {
           "SecretLocations": [
             {
@@ -5995,7 +5852,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:kube-scheduler",
-              "SerialNumber": "5612336832944501204",
+              "SerialNumber": "2361445862329985725",
               "Issuer": {
                 "CommonName": "kube-control-plane-signer",
                 "SerialNumber": "",
@@ -6005,7 +5862,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -6030,7 +5887,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-config-operator.svc::1851411117570844564",
+        "Name": "metrics.openshift-config-operator.svc::3073690589055134036",
         "Spec": {
           "SecretLocations": [
             {
@@ -6042,9 +5899,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-config-operator.svc",
-              "SerialNumber": "1851411117570844564",
+              "SerialNumber": "3073690589055134036",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6081,7 +5938,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "etcd-metric::8027570284563611406",
+        "Name": "etcd-metric::3440514968826669068",
         "Spec": {
           "SecretLocations": [
             {
@@ -6097,7 +5954,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "etcd-metric",
-              "SerialNumber": "8027570284563611406",
+              "SerialNumber": "3440514968826669068",
               "Issuer": {
                 "CommonName": "etcd-metric-signer",
                 "SerialNumber": "",
@@ -6134,7 +5991,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "etcd-metric-signer::9121822585377541160",
+        "Name": "etcd-metric-signer::1049292225776830129",
         "Spec": {
           "SecretLocations": [
             {
@@ -6146,7 +6003,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "etcd-metric-signer",
-              "SerialNumber": "9121822585377541160",
+              "SerialNumber": "1049292225776830129",
               "Issuer": {
                 "CommonName": "etcd-metric-signer",
                 "SerialNumber": "",
@@ -6178,7 +6035,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "etcd-signer::2632415200428327060",
+        "Name": "etcd-signer::1256786832005512940",
         "Spec": {
           "SecretLocations": [
             {
@@ -6190,7 +6047,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "etcd-signer",
-              "SerialNumber": "2632415200428327060",
+              "SerialNumber": "1256786832005512940",
               "Issuer": {
                 "CommonName": "etcd-signer",
                 "SerialNumber": "",
@@ -6222,7 +6079,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-console-operator.svc::2768876298595911944",
+        "Name": "metrics.openshift-console-operator.svc::3033849378979921315",
         "Spec": {
           "SecretLocations": [
             {
@@ -6234,9 +6091,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-console-operator.svc",
-              "SerialNumber": "2768876298595911944",
+              "SerialNumber": "3033849378979921315",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6273,7 +6130,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "webhook.openshift-console-operator.svc::4007038635198273402",
+        "Name": "webhook.openshift-console-operator.svc::2841469685135113677",
         "Spec": {
           "SecretLocations": [
             {
@@ -6285,9 +6142,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "webhook.openshift-console-operator.svc",
-              "SerialNumber": "4007038635198273402",
+              "SerialNumber": "2841469685135113677",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6324,7 +6181,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "console.openshift-console.svc::388145011672644387",
+        "Name": "console.openshift-console.svc::8417000612764157606",
         "Spec": {
           "SecretLocations": [
             {
@@ -6336,9 +6193,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "console.openshift-console.svc",
-              "SerialNumber": "388145011672644387",
+              "SerialNumber": "8417000612764157606",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6375,7 +6232,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-controller-manager-operator.svc::585877096783549170",
+        "Name": "metrics.openshift-controller-manager-operator.svc::4830185618537366555",
         "Spec": {
           "SecretLocations": [
             {
@@ -6387,9 +6244,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-controller-manager-operator.svc",
-              "SerialNumber": "585877096783549170",
+              "SerialNumber": "4830185618537366555",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6426,7 +6283,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "controller-manager.openshift-controller-manager.svc::2039235089143274957",
+        "Name": "controller-manager.openshift-controller-manager.svc::4879504674585507032",
         "Spec": {
           "SecretLocations": [
             {
@@ -6438,9 +6295,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "controller-manager.openshift-controller-manager.svc",
-              "SerialNumber": "2039235089143274957",
+              "SerialNumber": "4879504674585507032",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6477,7 +6334,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-dns-operator.svc::1743961796494192810",
+        "Name": "metrics.openshift-dns-operator.svc::3119318531856233823",
         "Spec": {
           "SecretLocations": [
             {
@@ -6489,9 +6346,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-dns-operator.svc",
-              "SerialNumber": "1743961796494192810",
+              "SerialNumber": "3119318531856233823",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6528,7 +6385,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "dns-default.openshift-dns.svc::9023167710632002573",
+        "Name": "dns-default.openshift-dns.svc::7697621013516171805",
         "Spec": {
           "SecretLocations": [
             {
@@ -6540,9 +6397,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "dns-default.openshift-dns.svc",
-              "SerialNumber": "9023167710632002573",
+              "SerialNumber": "7697621013516171805",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6579,58 +6436,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "promtail.openshift-e2e-loki.svc::7043275396717110375",
-        "Spec": {
-          "SecretLocations": [
-            {
-              "Namespace": "openshift-e2e-loki",
-              "Name": "proxy-tls"
-            }
-          ],
-          "OnDiskLocations": null,
-          "CertMetadata": {
-            "CertIdentifier": {
-              "CommonName": "promtail.openshift-e2e-loki.svc",
-              "SerialNumber": "7043275396717110375",
-              "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
-                "SerialNumber": "",
-                "Issuer": null
-              }
-            },
-            "SignatureAlgorithm": "SHA256-RSA",
-            "PublicKeyAlgorithm": "RSA",
-            "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "2y",
-            "Usages": [
-              "KeyUsageDigitalSignature",
-              "KeyUsageKeyEncipherment"
-            ],
-            "ExtendedUsages": [
-              "ExtKeyUsageServerAuth"
-            ]
-          },
-          "Details": {
-            "CertType": "ServingCertDetails",
-            "SignerDetails": null,
-            "ServingCertDetails": {
-              "DNSNames": [
-                "promtail.openshift-e2e-loki.svc",
-                "promtail.openshift-e2e-loki.svc.cluster.local"
-              ],
-              "IPAddresses": null
-            },
-            "ClientCertDetails": null
-          }
-        },
-        "Status": {
-          "Errors": null
-        }
-      },
-      {
-        "LogicalName": "",
-        "Description": "",
-        "Name": "metrics.openshift-etcd-operator.svc::4105910627193441608",
+        "Name": "metrics.openshift-etcd-operator.svc::3011065373158283682",
         "Spec": {
           "SecretLocations": [
             {
@@ -6642,9 +6448,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-etcd-operator.svc",
-              "SerialNumber": "4105910627193441608",
+              "SerialNumber": "3011065373158283682",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -6681,7 +6487,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-peer:etcd-client::530047235433412523",
+        "Name": "system:etcd-peer:etcd-client::8496084441496811859",
         "Spec": {
           "SecretLocations": [
             {
@@ -6693,7 +6499,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-peer:etcd-client",
-              "SerialNumber": "530047235433412523",
+              "SerialNumber": "8496084441496811859",
               "Issuer": {
                 "CommonName": "etcd-signer",
                 "SerialNumber": "",
@@ -6719,10 +6525,10 @@
             "ServingCertDetails": {
               "DNSNames": [
                 "localhost",
-                "10.10.129.131"
+                "10.10.129.115"
               ],
               "IPAddresses": [
-                "10.10.129.131"
+                "10.10.129.115"
               ]
             },
             "ClientCertDetails": {
@@ -6741,7 +6547,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-peer:etcd-client::2330340694455217945",
+        "Name": "system:etcd-peer:etcd-client::7970196511737240323",
         "Spec": {
           "SecretLocations": [
             {
@@ -6753,7 +6559,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-peer:etcd-client",
-              "SerialNumber": "2330340694455217945",
+              "SerialNumber": "7970196511737240323",
               "Issuer": {
                 "CommonName": "etcd-signer",
                 "SerialNumber": "",
@@ -6779,10 +6585,10 @@
             "ServingCertDetails": {
               "DNSNames": [
                 "localhost",
-                "10.10.129.132"
+                "10.10.129.116"
               ],
               "IPAddresses": [
-                "10.10.129.132"
+                "10.10.129.116"
               ]
             },
             "ClientCertDetails": {
@@ -6801,7 +6607,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-peer:etcd-client::8278295470698300251",
+        "Name": "system:etcd-peer:etcd-client::6710486756884522092",
         "Spec": {
           "SecretLocations": [
             {
@@ -6813,7 +6619,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-peer:etcd-client",
-              "SerialNumber": "8278295470698300251",
+              "SerialNumber": "6710486756884522092",
               "Issuer": {
                 "CommonName": "etcd-signer",
                 "SerialNumber": "",
@@ -6839,10 +6645,10 @@
             "ServingCertDetails": {
               "DNSNames": [
                 "localhost",
-                "10.10.129.133"
+                "10.10.129.117"
               ],
               "IPAddresses": [
-                "10.10.129.133"
+                "10.10.129.117"
               ]
             },
             "ClientCertDetails": {
@@ -6861,7 +6667,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-server:etcd-client::8638098521736152936",
+        "Name": "system:etcd-server:etcd-client::3368504383487345489",
         "Spec": {
           "SecretLocations": [
             {
@@ -6873,7 +6679,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-server:etcd-client",
-              "SerialNumber": "8638098521736152936",
+              "SerialNumber": "3368504383487345489",
               "Issuer": {
                 "CommonName": "etcd-signer",
                 "SerialNumber": "",
@@ -6904,13 +6710,13 @@
                 "etcd.openshift-etcd.svc.cluster.local",
                 "localhost",
                 "::1",
-                "10.10.129.131",
+                "10.10.129.115",
                 "127.0.0.1",
                 "::1"
               ],
               "IPAddresses": [
                 "::1",
-                "10.10.129.131",
+                "10.10.129.115",
                 "127.0.0.1",
                 "::1"
               ]
@@ -6931,7 +6737,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-server:etcd-client::6625806988098184839",
+        "Name": "system:etcd-server:etcd-client::4990003194046594714",
         "Spec": {
           "SecretLocations": [
             {
@@ -6943,7 +6749,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-server:etcd-client",
-              "SerialNumber": "6625806988098184839",
+              "SerialNumber": "4990003194046594714",
               "Issuer": {
                 "CommonName": "etcd-signer",
                 "SerialNumber": "",
@@ -6974,13 +6780,13 @@
                 "etcd.openshift-etcd.svc.cluster.local",
                 "localhost",
                 "::1",
-                "10.10.129.132",
+                "10.10.129.116",
                 "127.0.0.1",
                 "::1"
               ],
               "IPAddresses": [
                 "::1",
-                "10.10.129.132",
+                "10.10.129.116",
                 "127.0.0.1",
                 "::1"
               ]
@@ -7001,7 +6807,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-server:etcd-client::4285004856139453073",
+        "Name": "system:etcd-server:etcd-client::7200649152194161053",
         "Spec": {
           "SecretLocations": [
             {
@@ -7013,7 +6819,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-server:etcd-client",
-              "SerialNumber": "4285004856139453073",
+              "SerialNumber": "7200649152194161053",
               "Issuer": {
                 "CommonName": "etcd-signer",
                 "SerialNumber": "",
@@ -7044,13 +6850,13 @@
                 "etcd.openshift-etcd.svc.cluster.local",
                 "localhost",
                 "::1",
-                "10.10.129.133",
+                "10.10.129.117",
                 "127.0.0.1",
                 "::1"
               ],
               "IPAddresses": [
                 "::1",
-                "10.10.129.133",
+                "10.10.129.117",
                 "127.0.0.1",
                 "::1"
               ]
@@ -7071,7 +6877,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-metric:etcd-client::2358850999136567001",
+        "Name": "system:etcd-metric:etcd-client::8505469400634226486",
         "Spec": {
           "SecretLocations": [
             {
@@ -7083,7 +6889,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-metric:etcd-client",
-              "SerialNumber": "2358850999136567001",
+              "SerialNumber": "8505469400634226486",
               "Issuer": {
                 "CommonName": "etcd-metric-signer",
                 "SerialNumber": "",
@@ -7114,13 +6920,13 @@
                 "etcd.openshift-etcd.svc.cluster.local",
                 "localhost",
                 "::1",
-                "10.10.129.131",
+                "10.10.129.115",
                 "127.0.0.1",
                 "::1"
               ],
               "IPAddresses": [
                 "::1",
-                "10.10.129.131",
+                "10.10.129.115",
                 "127.0.0.1",
                 "::1"
               ]
@@ -7141,7 +6947,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-metric:etcd-client::6177874210600593128",
+        "Name": "system:etcd-metric:etcd-client::8209749453107222290",
         "Spec": {
           "SecretLocations": [
             {
@@ -7153,7 +6959,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-metric:etcd-client",
-              "SerialNumber": "6177874210600593128",
+              "SerialNumber": "8209749453107222290",
               "Issuer": {
                 "CommonName": "etcd-metric-signer",
                 "SerialNumber": "",
@@ -7184,13 +6990,13 @@
                 "etcd.openshift-etcd.svc.cluster.local",
                 "localhost",
                 "::1",
-                "10.10.129.132",
+                "10.10.129.116",
                 "127.0.0.1",
                 "::1"
               ],
               "IPAddresses": [
                 "::1",
-                "10.10.129.132",
+                "10.10.129.116",
                 "127.0.0.1",
                 "::1"
               ]
@@ -7211,7 +7017,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:etcd-metric:etcd-client::7869729295543202206",
+        "Name": "system:etcd-metric:etcd-client::8293580204004076705",
         "Spec": {
           "SecretLocations": [
             {
@@ -7223,7 +7029,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:etcd-metric:etcd-client",
-              "SerialNumber": "7869729295543202206",
+              "SerialNumber": "8293580204004076705",
               "Issuer": {
                 "CommonName": "etcd-metric-signer",
                 "SerialNumber": "",
@@ -7254,13 +7060,13 @@
                 "etcd.openshift-etcd.svc.cluster.local",
                 "localhost",
                 "::1",
-                "10.10.129.133",
+                "10.10.129.117",
                 "127.0.0.1",
                 "::1"
               ],
               "IPAddresses": [
                 "::1",
-                "10.10.129.133",
+                "10.10.129.117",
                 "127.0.0.1",
                 "::1"
               ]
@@ -7281,7 +7087,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "etcd.openshift-etcd.svc::6679200716687281054",
+        "Name": "etcd.openshift-etcd.svc::2274387673694623223",
         "Spec": {
           "SecretLocations": [
             {
@@ -7293,9 +7099,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "etcd.openshift-etcd.svc",
-              "SerialNumber": "6679200716687281054",
+              "SerialNumber": "2274387673694623223",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7332,7 +7138,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.image-registry-operator.openshift-image-registry.svc::3614636380315021405",
+        "Name": "*.image-registry-operator.openshift-image-registry.svc::5736159940103495018",
         "Spec": {
           "SecretLocations": [
             {
@@ -7344,9 +7150,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.image-registry-operator.openshift-image-registry.svc",
-              "SerialNumber": "3614636380315021405",
+              "SerialNumber": "5736159940103495018",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7385,7 +7191,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "image-registry.openshift-image-registry.svc::4706794388427766459",
+        "Name": "image-registry.openshift-image-registry.svc::4376295713908741329",
         "Spec": {
           "SecretLocations": [
             {
@@ -7397,9 +7203,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "image-registry.openshift-image-registry.svc",
-              "SerialNumber": "4706794388427766459",
+              "SerialNumber": "4376295713908741329",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7436,7 +7242,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-ingress-operator.svc::7101074610580664655",
+        "Name": "metrics.openshift-ingress-operator.svc::247070763301148899",
         "Spec": {
           "SecretLocations": [
             {
@@ -7448,9 +7254,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-ingress-operator.svc",
-              "SerialNumber": "7101074610580664655",
+              "SerialNumber": "247070763301148899",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7487,7 +7293,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "ingress-operator@1701523762::1",
+        "Name": "ingress-operator@1717075364::1",
         "Spec": {
           "SecretLocations": [
             {
@@ -7498,10 +7304,10 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "ingress-operator@1701523762",
+              "CommonName": "ingress-operator@1717075364",
               "SerialNumber": "1",
               "Issuer": {
-                "CommonName": "ingress-operator@1701523762",
+                "CommonName": "ingress-operator@1717075364",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7531,7 +7337,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.apps.cluster16.ocpci.eng.rdu2.redhat.com::5848478767823239056",
+        "Name": "*.apps.cluster14.ocpci.eng.rdu2.redhat.com::8612519782181801058",
         "Spec": {
           "SecretLocations": [
             {
@@ -7542,10 +7348,10 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "*.apps.cluster16.ocpci.eng.rdu2.redhat.com",
-              "SerialNumber": "5848478767823239056",
+              "CommonName": "*.apps.cluster14.ocpci.eng.rdu2.redhat.com",
+              "SerialNumber": "8612519782181801058",
               "Issuer": {
-                "CommonName": "ingress-operator@1701523762",
+                "CommonName": "ingress-operator@1717075364",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7567,7 +7373,7 @@
             "SignerDetails": null,
             "ServingCertDetails": {
               "DNSNames": [
-                "*.apps.cluster16.ocpci.eng.rdu2.redhat.com"
+                "*.apps.cluster14.ocpci.eng.rdu2.redhat.com"
               ],
               "IPAddresses": null
             },
@@ -7581,7 +7387,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "router-internal-default.openshift-ingress.svc::2423957408873032583",
+        "Name": "router-internal-default.openshift-ingress.svc::8728385137532611822",
         "Spec": {
           "SecretLocations": [
             {
@@ -7593,9 +7399,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "router-internal-default.openshift-ingress.svc",
-              "SerialNumber": "2423957408873032583",
+              "SerialNumber": "8728385137532611822",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7632,7 +7438,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-insights.svc::685545927640116813",
+        "Name": "metrics.openshift-insights.svc::225733546444023100",
         "Spec": {
           "SecretLocations": [
             {
@@ -7644,9 +7450,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-insights.svc",
-              "SerialNumber": "685545927640116813",
+              "SerialNumber": "225733546444023100",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7683,7 +7489,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "aggregator-signer::6401613549102049460",
+        "Name": "aggregator-signer::1477253149531462523",
         "Spec": {
           "SecretLocations": [
             {
@@ -7695,7 +7501,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "aggregator-signer",
-              "SerialNumber": "6401613549102049460",
+              "SerialNumber": "1477253149531462523",
               "Issuer": {
                 "CommonName": "aggregator-signer",
                 "SerialNumber": "",
@@ -7727,7 +7533,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-kube-apiserver-operator.svc::3112134168605299893",
+        "Name": "metrics.openshift-kube-apiserver-operator.svc::3973055608483928794",
         "Spec": {
           "SecretLocations": [
             {
@@ -7739,9 +7545,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-kube-apiserver-operator.svc",
-              "SerialNumber": "3112134168605299893",
+              "SerialNumber": "3973055608483928794",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7778,7 +7584,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-apiserver-to-kubelet-signer::5529539462005312725",
+        "Name": "kube-apiserver-to-kubelet-signer::2687860536599350932",
         "Spec": {
           "SecretLocations": [
             {
@@ -7790,7 +7596,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "kube-apiserver-to-kubelet-signer",
-              "SerialNumber": "5529539462005312725",
+              "SerialNumber": "2687860536599350932",
               "Issuer": {
                 "CommonName": "kube-apiserver-to-kubelet-signer",
                 "SerialNumber": "",
@@ -7822,7 +7628,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-control-plane-signer::6493444172374213805",
+        "Name": "kube-control-plane-signer::505411186822611205",
         "Spec": {
           "SecretLocations": [
             {
@@ -7834,7 +7640,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "kube-control-plane-signer",
-              "SerialNumber": "6493444172374213805",
+              "SerialNumber": "505411186822611205",
               "Issuer": {
                 "CommonName": "kube-control-plane-signer",
                 "SerialNumber": "",
@@ -7866,7 +7672,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-apiserver-lb-signer::2790099462841698647",
+        "Name": "kube-apiserver-lb-signer::7879353606248190830",
         "Spec": {
           "SecretLocations": [
             {
@@ -7878,7 +7684,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "kube-apiserver-lb-signer",
-              "SerialNumber": "2790099462841698647",
+              "SerialNumber": "7879353606248190830",
               "Issuer": {
                 "CommonName": "kube-apiserver-lb-signer",
                 "SerialNumber": "",
@@ -7910,7 +7716,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731::1997614041663464966",
+        "Name": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303::2304388330151962084",
         "Spec": {
           "SecretLocations": [
             {
@@ -7921,10 +7727,10 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
-              "SerialNumber": "1997614041663464966",
+              "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
+              "SerialNumber": "2304388330151962084",
               "Issuer": {
-                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -7954,7 +7760,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-apiserver-localhost-signer::4919806299558496371",
+        "Name": "kube-apiserver-localhost-signer::5770699977525351510",
         "Spec": {
           "SecretLocations": [
             {
@@ -7966,7 +7772,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "kube-apiserver-localhost-signer",
-              "SerialNumber": "4919806299558496371",
+              "SerialNumber": "5770699977525351510",
               "Issuer": {
                 "CommonName": "kube-apiserver-localhost-signer",
                 "SerialNumber": "",
@@ -7998,7 +7804,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:admin::5564205621377400898",
+        "Name": "system:admin::4622766040045554518",
         "Spec": {
           "SecretLocations": [
             {
@@ -8010,9 +7816,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:admin",
-              "SerialNumber": "5564205621377400898",
+              "SerialNumber": "4622766040045554518",
               "Issuer": {
-                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
+                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8047,7 +7853,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731::8297980972003224649",
+        "Name": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301::1541514532685437711",
         "Spec": {
           "SecretLocations": [
             {
@@ -8058,10 +7864,10 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
-              "SerialNumber": "8297980972003224649",
+              "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
+              "SerialNumber": "1541514532685437711",
               "Issuer": {
-                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1701523731",
+                "CommonName": "openshift-kube-apiserver-operator_node-system-admin-signer@1717075301",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8091,7 +7897,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-apiserver-service-network-signer::8152366793646847509",
+        "Name": "kube-apiserver-service-network-signer::7820272007592741170",
         "Spec": {
           "SecretLocations": [
             {
@@ -8103,7 +7909,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "kube-apiserver-service-network-signer",
-              "SerialNumber": "8152366793646847509",
+              "SerialNumber": "7820272007592741170",
               "Issuer": {
                 "CommonName": "kube-apiserver-service-network-signer",
                 "SerialNumber": "",
@@ -8135,7 +7941,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:openshift-aggregator::4529493986443237081",
+        "Name": "system:openshift-aggregator::1914821601988342782",
         "Spec": {
           "SecretLocations": [
             {
@@ -8147,7 +7953,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:openshift-aggregator",
-              "SerialNumber": "4529493986443237081",
+              "SerialNumber": "1914821601988342782",
               "Issuer": {
                 "CommonName": "aggregator-signer",
                 "SerialNumber": "",
@@ -8157,7 +7963,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "23h",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -8182,7 +7988,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:serviceaccount:openshift-kube-apiserver:check-endpoints::1628331951764622382",
+        "Name": "system:serviceaccount:openshift-kube-apiserver:check-endpoints::8936087094985113327",
         "Spec": {
           "SecretLocations": [
             {
@@ -8194,7 +8000,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:serviceaccount:openshift-kube-apiserver:check-endpoints",
-              "SerialNumber": "1628331951764622382",
+              "SerialNumber": "8936087094985113327",
               "Issuer": {
                 "CommonName": "kube-control-plane-signer",
                 "SerialNumber": "",
@@ -8204,7 +8010,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -8229,7 +8035,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:control-plane-node-admin::4109559083779247412",
+        "Name": "system:control-plane-node-admin::843754086701519746",
         "Spec": {
           "SecretLocations": [
             {
@@ -8241,7 +8047,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:control-plane-node-admin",
-              "SerialNumber": "4109559083779247412",
+              "SerialNumber": "843754086701519746",
               "Issuer": {
                 "CommonName": "kube-control-plane-signer",
                 "SerialNumber": "",
@@ -8251,7 +8057,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -8278,7 +8084,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "api.cluster16.ocpci.eng.rdu2.redhat.com::7496650943997655040",
+        "Name": "api.cluster14.ocpci.eng.rdu2.redhat.com::6361065305169881456",
         "Spec": {
           "SecretLocations": [
             {
@@ -8289,8 +8095,8 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "api.cluster16.ocpci.eng.rdu2.redhat.com",
-              "SerialNumber": "7496650943997655040",
+              "CommonName": "api.cluster14.ocpci.eng.rdu2.redhat.com",
+              "SerialNumber": "6361065305169881456",
               "Issuer": {
                 "CommonName": "kube-apiserver-lb-signer",
                 "SerialNumber": "",
@@ -8300,7 +8106,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -8314,7 +8120,7 @@
             "SignerDetails": null,
             "ServingCertDetails": {
               "DNSNames": [
-                "api.cluster16.ocpci.eng.rdu2.redhat.com"
+                "api.cluster14.ocpci.eng.rdu2.redhat.com"
               ],
               "IPAddresses": null
             },
@@ -8328,7 +8134,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "api-int.cluster16.ocpci.eng.rdu2.redhat.com::3630756432286976007",
+        "Name": "api-int.cluster14.ocpci.eng.rdu2.redhat.com::5773620496842818074",
         "Spec": {
           "SecretLocations": [
             {
@@ -8339,8 +8145,8 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "api-int.cluster16.ocpci.eng.rdu2.redhat.com",
-              "SerialNumber": "3630756432286976007",
+              "CommonName": "api-int.cluster14.ocpci.eng.rdu2.redhat.com",
+              "SerialNumber": "5773620496842818074",
               "Issuer": {
                 "CommonName": "kube-apiserver-lb-signer",
                 "SerialNumber": "",
@@ -8350,7 +8156,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -8364,7 +8170,7 @@
             "SignerDetails": null,
             "ServingCertDetails": {
               "DNSNames": [
-                "api-int.cluster16.ocpci.eng.rdu2.redhat.com"
+                "api-int.cluster14.ocpci.eng.rdu2.redhat.com"
               ],
               "IPAddresses": null
             },
@@ -8378,7 +8184,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:kube-apiserver::7900616492485540469",
+        "Name": "system:kube-apiserver::4780740736623715345",
         "Spec": {
           "SecretLocations": [
             {
@@ -8390,7 +8196,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:kube-apiserver",
-              "SerialNumber": "7900616492485540469",
+              "SerialNumber": "4780740736623715345",
               "Issuer": {
                 "CommonName": "kube-apiserver-to-kubelet-signer",
                 "SerialNumber": "",
@@ -8400,7 +8206,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -8427,7 +8233,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "localhost-recovery::5456692127951152159",
+        "Name": "localhost-recovery::7058707385761867949",
         "Spec": {
           "SecretLocations": [
             {
@@ -8439,9 +8245,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "localhost-recovery",
-              "SerialNumber": "5456692127951152159",
+              "SerialNumber": "7058707385761867949",
               "Issuer": {
-                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1701523731",
+                "CommonName": "openshift-kube-apiserver-operator_localhost-recovery-serving-signer@1717075303",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8477,7 +8283,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "127.0.0.1::4578039729974331611",
+        "Name": "127.0.0.1::2967045877619371695",
         "Spec": {
           "SecretLocations": [
             {
@@ -8489,7 +8295,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "127.0.0.1",
-              "SerialNumber": "4578039729974331611",
+              "SerialNumber": "2967045877619371695",
               "Issuer": {
                 "CommonName": "kube-apiserver-localhost-signer",
                 "SerialNumber": "",
@@ -8499,7 +8305,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -8530,7 +8336,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "172.30.0.1::8057586585725555827",
+        "Name": "172.30.0.1::8143495965331260082",
         "Spec": {
           "SecretLocations": [
             {
@@ -8542,7 +8348,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "172.30.0.1",
-              "SerialNumber": "8057586585725555827",
+              "SerialNumber": "8143495965331260082",
               "Issuer": {
                 "CommonName": "kube-apiserver-service-network-signer",
                 "SerialNumber": "",
@@ -8552,7 +8358,7 @@
             "SignatureAlgorithm": "SHA256-RSA",
             "PublicKeyAlgorithm": "RSA",
             "PublicKeyBitSize": "2048 bit",
-            "ValidityDuration": "12h",
+            "ValidityDuration": "30d",
             "Usages": [
               "KeyUsageDigitalSignature",
               "KeyUsageKeyEncipherment"
@@ -8590,7 +8396,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-csr-signer_@1701523735::4366428473239730426",
+        "Name": "kube-csr-signer_@1717075305::4321959595759668296",
         "Spec": {
           "SecretLocations": [
             {
@@ -8605,8 +8411,8 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "kube-csr-signer_@1701523735",
-              "SerialNumber": "4366428473239730426",
+              "CommonName": "kube-csr-signer_@1717075305",
+              "SerialNumber": "4321959595759668296",
               "Issuer": {
                 "CommonName": "kubelet-signer",
                 "SerialNumber": "",
@@ -8638,7 +8444,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kubelet-signer::7664220529564734090",
+        "Name": "kubelet-signer::1093173286530769889",
         "Spec": {
           "SecretLocations": [
             {
@@ -8650,7 +8456,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "kubelet-signer",
-              "SerialNumber": "7664220529564734090",
+              "SerialNumber": "1093173286530769889",
               "Issuer": {
                 "CommonName": "kubelet-signer",
                 "SerialNumber": "",
@@ -8682,7 +8488,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-kube-controller-manager-operator.svc::9106765947551086588",
+        "Name": "metrics.openshift-kube-controller-manager-operator.svc::325878503215389457",
         "Spec": {
           "SecretLocations": [
             {
@@ -8694,9 +8500,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-kube-controller-manager-operator.svc",
-              "SerialNumber": "9106765947551086588",
+              "SerialNumber": "325878503215389457",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8733,7 +8539,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "kube-controller-manager.openshift-kube-controller-manager.svc::7366501065496309665",
+        "Name": "kube-controller-manager.openshift-kube-controller-manager.svc::2290106904926036090",
         "Spec": {
           "SecretLocations": [
             {
@@ -8745,9 +8551,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "kube-controller-manager.openshift-kube-controller-manager.svc",
-              "SerialNumber": "7366501065496309665",
+              "SerialNumber": "2290106904926036090",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8784,7 +8590,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-kube-scheduler-operator.svc::8209911815768350999",
+        "Name": "metrics.openshift-kube-scheduler-operator.svc::132382984364949471",
         "Spec": {
           "SecretLocations": [
             {
@@ -8796,9 +8602,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-kube-scheduler-operator.svc",
-              "SerialNumber": "8209911815768350999",
+              "SerialNumber": "132382984364949471",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8835,7 +8641,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "scheduler.openshift-kube-scheduler.svc::3731774602739868083",
+        "Name": "scheduler.openshift-kube-scheduler.svc::4890843321633967382",
         "Spec": {
           "SecretLocations": [
             {
@@ -8847,9 +8653,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "scheduler.openshift-kube-scheduler.svc",
-              "SerialNumber": "3731774602739868083",
+              "SerialNumber": "4890843321633967382",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8886,7 +8692,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-kube-storage-version-migrator-operator.svc::5713621392953372842",
+        "Name": "metrics.openshift-kube-storage-version-migrator-operator.svc::9201233153617424893",
         "Spec": {
           "SecretLocations": [
             {
@@ -8898,9 +8704,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-kube-storage-version-migrator-operator.svc",
-              "SerialNumber": "5713621392953372842",
+              "SerialNumber": "9201233153617424893",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8937,7 +8743,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "baremetal-operator-webhook-service.openshift-machine-api.svc::4312674381498614617",
+        "Name": "baremetal-operator-webhook-service.openshift-machine-api.svc::6560187766928893136",
         "Spec": {
           "SecretLocations": [
             {
@@ -8949,9 +8755,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "baremetal-operator-webhook-service.openshift-machine-api.svc",
-              "SerialNumber": "4312674381498614617",
+              "SerialNumber": "6560187766928893136",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -8988,7 +8794,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "cluster-autoscaler-operator.openshift-machine-api.svc::4101350994998779006",
+        "Name": "cluster-autoscaler-operator.openshift-machine-api.svc::5855628615540074922",
         "Spec": {
           "SecretLocations": [
             {
@@ -9000,9 +8806,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "cluster-autoscaler-operator.openshift-machine-api.svc",
-              "SerialNumber": "4101350994998779006",
+              "SerialNumber": "5855628615540074922",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9039,7 +8845,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "cluster-baremetal-operator-service.openshift-machine-api.svc::1945850406728792131",
+        "Name": "cluster-baremetal-operator-service.openshift-machine-api.svc::8362660675338061160",
         "Spec": {
           "SecretLocations": [
             {
@@ -9051,9 +8857,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "cluster-baremetal-operator-service.openshift-machine-api.svc",
-              "SerialNumber": "1945850406728792131",
+              "SerialNumber": "8362660675338061160",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9090,7 +8896,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "cluster-baremetal-webhook-service.openshift-machine-api.svc::4871953874159493692",
+        "Name": "cluster-baremetal-webhook-service.openshift-machine-api.svc::5003596656581516307",
         "Spec": {
           "SecretLocations": [
             {
@@ -9102,9 +8908,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "cluster-baremetal-webhook-service.openshift-machine-api.svc",
-              "SerialNumber": "4871953874159493692",
+              "SerialNumber": "5003596656581516307",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9141,7 +8947,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "control-plane-machine-set-operator.openshift-machine-api.svc::851840770169840344",
+        "Name": "control-plane-machine-set-operator.openshift-machine-api.svc::5344568825254096834",
         "Spec": {
           "SecretLocations": [
             {
@@ -9153,9 +8959,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "control-plane-machine-set-operator.openshift-machine-api.svc",
-              "SerialNumber": "851840770169840344",
+              "SerialNumber": "5344568825254096834",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9192,7 +8998,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "machine-api-controllers.openshift-machine-api.svc::7834486387746867526",
+        "Name": "machine-api-controllers.openshift-machine-api.svc::1548966433839930514",
         "Spec": {
           "SecretLocations": [
             {
@@ -9204,9 +9010,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "machine-api-controllers.openshift-machine-api.svc",
-              "SerialNumber": "7834486387746867526",
+              "SerialNumber": "1548966433839930514",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9243,7 +9049,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "machine-api-operator-machine-webhook.openshift-machine-api.svc::957518412929672594",
+        "Name": "machine-api-operator-machine-webhook.openshift-machine-api.svc::6090936230005381624",
         "Spec": {
           "SecretLocations": [
             {
@@ -9255,9 +9061,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "machine-api-operator-machine-webhook.openshift-machine-api.svc",
-              "SerialNumber": "957518412929672594",
+              "SerialNumber": "6090936230005381624",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9294,7 +9100,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "machine-api-operator.openshift-machine-api.svc::9196755506078791913",
+        "Name": "machine-api-operator.openshift-machine-api.svc::766761874083115045",
         "Spec": {
           "SecretLocations": [
             {
@@ -9306,9 +9112,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "machine-api-operator.openshift-machine-api.svc",
-              "SerialNumber": "9196755506078791913",
+              "SerialNumber": "766761874083115045",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9345,7 +9151,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "machine-api-operator-webhook.openshift-machine-api.svc::6889014616842999113",
+        "Name": "machine-api-operator-webhook.openshift-machine-api.svc::3224910042452673150",
         "Spec": {
           "SecretLocations": [
             {
@@ -9357,9 +9163,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "machine-api-operator-webhook.openshift-machine-api.svc",
-              "SerialNumber": "6889014616842999113",
+              "SerialNumber": "3224910042452673150",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9396,7 +9202,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "172.22.0.3::2974466980233392149",
+        "Name": "172.22.0.3::6087618413146797301",
         "Spec": {
           "SecretLocations": [
             {
@@ -9408,7 +9214,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "172.22.0.3",
-              "SerialNumber": "2974466980233392149",
+              "SerialNumber": "6087618413146797301",
               "Issuer": {
                 "CommonName": "metal3-ironic",
                 "SerialNumber": "",
@@ -9448,7 +9254,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:machine-config-server::2803977930914666325",
+        "Name": "system:machine-config-server::2762640187570504145",
         "Spec": {
           "SecretLocations": [
             {
@@ -9460,7 +9266,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:machine-config-server",
-              "SerialNumber": "2803977930914666325",
+              "SerialNumber": "2762640187570504145",
               "Issuer": {
                 "CommonName": "root-ca",
                 "SerialNumber": "",
@@ -9481,11 +9287,11 @@
             "SignerDetails": null,
             "ServingCertDetails": {
               "DNSNames": [
-                "api-int.cluster16.ocpci.eng.rdu2.redhat.com",
-                "10.10.129.136"
+                "api-int.cluster14.ocpci.eng.rdu2.redhat.com",
+                "10.10.129.120"
               ],
               "IPAddresses": [
-                "10.10.129.136"
+                "10.10.129.120"
               ]
             },
             "ClientCertDetails": null
@@ -9498,7 +9304,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "machine-config-controller.openshift-machine-config-operator.svc::7732245545874055768",
+        "Name": "machine-config-controller.openshift-machine-config-operator.svc::6559156007250668022",
         "Spec": {
           "SecretLocations": [
             {
@@ -9510,9 +9316,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "machine-config-controller.openshift-machine-config-operator.svc",
-              "SerialNumber": "7732245545874055768",
+              "SerialNumber": "6559156007250668022",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9549,7 +9355,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "machine-config-operator.openshift-machine-config-operator.svc::5158146274766644372",
+        "Name": "machine-config-operator.openshift-machine-config-operator.svc::3381784004216194489",
         "Spec": {
           "SecretLocations": [
             {
@@ -9561,9 +9367,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "machine-config-operator.openshift-machine-config-operator.svc",
-              "SerialNumber": "5158146274766644372",
+              "SerialNumber": "3381784004216194489",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9600,7 +9406,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "machine-config-daemon.openshift-machine-config-operator.svc::8158948819540179645",
+        "Name": "machine-config-daemon.openshift-machine-config-operator.svc::7568764263923576857",
         "Spec": {
           "SecretLocations": [
             {
@@ -9612,9 +9418,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "machine-config-daemon.openshift-machine-config-operator.svc",
-              "SerialNumber": "8158948819540179645",
+              "SerialNumber": "7568764263923576857",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9651,7 +9457,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "marketplace-operator-metrics.openshift-marketplace.svc::8741910615948113178",
+        "Name": "marketplace-operator-metrics.openshift-marketplace.svc::5226688937555443062",
         "Spec": {
           "SecretLocations": [
             {
@@ -9663,9 +9469,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "marketplace-operator-metrics.openshift-marketplace.svc",
-              "SerialNumber": "8741910615948113178",
+              "SerialNumber": "5226688937555443062",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9702,7 +9508,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "alertmanager-main.openshift-monitoring.svc::598697974130357504",
+        "Name": "alertmanager-main.openshift-monitoring.svc::1574112343433143511",
         "Spec": {
           "SecretLocations": [
             {
@@ -9714,9 +9520,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "alertmanager-main.openshift-monitoring.svc",
-              "SerialNumber": "598697974130357504",
+              "SerialNumber": "1574112343433143511",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9753,7 +9559,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.cluster-monitoring-operator.openshift-monitoring.svc::7093623857199218827",
+        "Name": "*.cluster-monitoring-operator.openshift-monitoring.svc::862326731806045519",
         "Spec": {
           "SecretLocations": [
             {
@@ -9765,9 +9571,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.cluster-monitoring-operator.openshift-monitoring.svc",
-              "SerialNumber": "7093623857199218827",
+              "SerialNumber": "862326731806045519",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9806,7 +9612,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:serviceaccount:openshift-monitoring:prometheus-k8s::278427127019517968514624313984843716890",
+        "Name": "system:serviceaccount:openshift-monitoring:prometheus-k8s::102796451997573496652524409701772210039",
         "Spec": {
           "SecretLocations": [
             {
@@ -9818,7 +9624,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:serviceaccount:openshift-monitoring:prometheus-k8s",
-              "SerialNumber": "278427127019517968514624313984843716890",
+              "SerialNumber": "102796451997573496652524409701772210039",
               "Issuer": {
                 "CommonName": "kubelet-signer",
                 "SerialNumber": "",
@@ -9853,7 +9659,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.kube-state-metrics.openshift-monitoring.svc::3760634286646283062",
+        "Name": "*.kube-state-metrics.openshift-monitoring.svc::1306728766827338118",
         "Spec": {
           "SecretLocations": [
             {
@@ -9865,9 +9671,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.kube-state-metrics.openshift-monitoring.svc",
-              "SerialNumber": "3760634286646283062",
+              "SerialNumber": "1306728766827338118",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -9906,7 +9712,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:serviceaccount:openshift-monitoring:prometheus-k8s::80662314144967648823914375060251202113",
+        "Name": "system:serviceaccount:openshift-monitoring:prometheus-k8s::124316620942097497816166171328926269718",
         "Spec": {
           "SecretLocations": [
             {
@@ -9918,7 +9724,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:serviceaccount:openshift-monitoring:prometheus-k8s",
-              "SerialNumber": "80662314144967648823914375060251202113",
+              "SerialNumber": "124316620942097497816166171328926269718",
               "Issuer": {
                 "CommonName": "kubelet-signer",
                 "SerialNumber": "",
@@ -9953,7 +9759,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "monitoring-plugin.openshift-monitoring.svc::4617949479434483076",
+        "Name": "monitoring-plugin.openshift-monitoring.svc::7647419824055876993",
         "Spec": {
           "SecretLocations": [
             {
@@ -9965,9 +9771,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "monitoring-plugin.openshift-monitoring.svc",
-              "SerialNumber": "4617949479434483076",
+              "SerialNumber": "7647419824055876993",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10004,7 +9810,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.node-exporter.openshift-monitoring.svc::6978602508606457641",
+        "Name": "*.node-exporter.openshift-monitoring.svc::294557055283236746",
         "Spec": {
           "SecretLocations": [
             {
@@ -10016,9 +9822,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.node-exporter.openshift-monitoring.svc",
-              "SerialNumber": "6978602508606457641",
+              "SerialNumber": "294557055283236746",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10057,7 +9863,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.openshift-state-metrics.openshift-monitoring.svc::3858865102335878776",
+        "Name": "*.openshift-state-metrics.openshift-monitoring.svc::1135568730661947709",
         "Spec": {
           "SecretLocations": [
             {
@@ -10069,9 +9875,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.openshift-state-metrics.openshift-monitoring.svc",
-              "SerialNumber": "3858865102335878776",
+              "SerialNumber": "1135568730661947709",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10110,13 +9916,9 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "prometheus-adapter.openshift-monitoring.svc::5041471836106253156",
+        "Name": "prometheus-adapter.openshift-monitoring.svc::518994699367270524",
         "Spec": {
           "SecretLocations": [
-            {
-              "Namespace": "openshift-monitoring",
-              "Name": "prometheus-adapter-bo9ukpiqhr327"
-            },
             {
               "Namespace": "openshift-monitoring",
               "Name": "prometheus-adapter-tls"
@@ -10126,9 +9928,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "prometheus-adapter.openshift-monitoring.svc",
-              "SerialNumber": "5041471836106253156",
+              "SerialNumber": "518994699367270524",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10165,7 +9967,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.prometheus-k8s-thanos-sidecar.openshift-monitoring.svc::3837353137946850835",
+        "Name": "*.prometheus-k8s-thanos-sidecar.openshift-monitoring.svc::7320546683730930239",
         "Spec": {
           "SecretLocations": [
             {
@@ -10177,9 +9979,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.prometheus-k8s-thanos-sidecar.openshift-monitoring.svc",
-              "SerialNumber": "3837353137946850835",
+              "SerialNumber": "7320546683730930239",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10218,7 +10020,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "prometheus-k8s.openshift-monitoring.svc::1386449564205825327",
+        "Name": "prometheus-k8s.openshift-monitoring.svc::4396887563413652479",
         "Spec": {
           "SecretLocations": [
             {
@@ -10230,9 +10032,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "prometheus-k8s.openshift-monitoring.svc",
-              "SerialNumber": "1386449564205825327",
+              "SerialNumber": "4396887563413652479",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10269,7 +10071,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "prometheus-operator-admission-webhook.openshift-monitoring.svc::8834142471679322141",
+        "Name": "prometheus-operator-admission-webhook.openshift-monitoring.svc::3717550491990774566",
         "Spec": {
           "SecretLocations": [
             {
@@ -10281,9 +10083,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "prometheus-operator-admission-webhook.openshift-monitoring.svc",
-              "SerialNumber": "8834142471679322141",
+              "SerialNumber": "3717550491990774566",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10320,7 +10122,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.prometheus-operator.openshift-monitoring.svc::6046417684182068758",
+        "Name": "*.prometheus-operator.openshift-monitoring.svc::8208873258381649472",
         "Spec": {
           "SecretLocations": [
             {
@@ -10332,9 +10134,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.prometheus-operator.openshift-monitoring.svc",
-              "SerialNumber": "6046417684182068758",
+              "SerialNumber": "8208873258381649472",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10373,7 +10175,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.telemeter-client.openshift-monitoring.svc::9056732884457544334",
+        "Name": "*.telemeter-client.openshift-monitoring.svc::9107848157106059654",
         "Spec": {
           "SecretLocations": [
             {
@@ -10385,9 +10187,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.telemeter-client.openshift-monitoring.svc",
-              "SerialNumber": "9056732884457544334",
+              "SerialNumber": "9107848157106059654",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10426,7 +10228,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "thanos-querier.openshift-monitoring.svc::3677488956714513058",
+        "Name": "thanos-querier.openshift-monitoring.svc::7992665434430749982",
         "Spec": {
           "SecretLocations": [
             {
@@ -10438,9 +10240,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "thanos-querier.openshift-monitoring.svc",
-              "SerialNumber": "3677488956714513058",
+              "SerialNumber": "7992665434430749982",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10477,7 +10279,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.network-metrics-service.openshift-multus.svc::118052937880639393",
+        "Name": "*.network-metrics-service.openshift-multus.svc::7377660199835660653",
         "Spec": {
           "SecretLocations": [
             {
@@ -10489,9 +10291,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.network-metrics-service.openshift-multus.svc",
-              "SerialNumber": "118052937880639393",
+              "SerialNumber": "7377660199835660653",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10530,7 +10332,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "multus-admission-controller.openshift-multus.svc::692415893928774217",
+        "Name": "multus-admission-controller.openshift-multus.svc::2894577207925400548",
         "Spec": {
           "SecretLocations": [
             {
@@ -10542,9 +10344,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "multus-admission-controller.openshift-multus.svc",
-              "SerialNumber": "692415893928774217",
+              "SerialNumber": "2894577207925400548",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10581,7 +10383,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "openshift-network-node-identity_network-node-identity-ca@1701523655::8541346071551845224",
+        "Name": "openshift-network-node-identity_network-node-identity-ca@1717075272::3268818185710429242",
         "Spec": {
           "SecretLocations": [
             {
@@ -10592,10 +10394,10 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "openshift-network-node-identity_network-node-identity-ca@1701523655",
-              "SerialNumber": "8541346071551845224",
+              "CommonName": "openshift-network-node-identity_network-node-identity-ca@1717075272",
+              "SerialNumber": "3268818185710429242",
               "Issuer": {
-                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1701523655",
+                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1717075272",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10625,7 +10427,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "127.0.0.1::5993134954011137170",
+        "Name": "127.0.0.1::3734346960190260154",
         "Spec": {
           "SecretLocations": [
             {
@@ -10637,9 +10439,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "127.0.0.1",
-              "SerialNumber": "5993134954011137170",
+              "SerialNumber": "3734346960190260154",
               "Issuer": {
-                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1701523655",
+                "CommonName": "openshift-network-node-identity_network-node-identity-ca@1717075272",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10682,7 +10484,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.metrics.openshift-network-operator.svc::4924922786541455315",
+        "Name": "*.metrics.openshift-network-operator.svc::554980180240640623",
         "Spec": {
           "SecretLocations": [
             {
@@ -10694,9 +10496,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.metrics.openshift-network-operator.svc",
-              "SerialNumber": "4924922786541455315",
+              "SerialNumber": "554980180240640623",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10735,7 +10537,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "system:serviceaccount:openshift-oauth-apiserver:openshift-authenticator::136270191283865114373930292840976400805",
+        "Name": "system:serviceaccount:openshift-oauth-apiserver:openshift-authenticator::44354782046841977054241125827605880480",
         "Spec": {
           "SecretLocations": [
             {
@@ -10747,7 +10549,7 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "system:serviceaccount:openshift-oauth-apiserver:openshift-authenticator",
-              "SerialNumber": "136270191283865114373930292840976400805",
+              "SerialNumber": "44354782046841977054241125827605880480",
               "Issuer": {
                 "CommonName": "kubelet-signer",
                 "SerialNumber": "",
@@ -10782,7 +10584,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "api.openshift-oauth-apiserver.svc::5479644347294632216",
+        "Name": "api.openshift-oauth-apiserver.svc::7608702610471571545",
         "Spec": {
           "SecretLocations": [
             {
@@ -10794,9 +10596,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "api.openshift-oauth-apiserver.svc",
-              "SerialNumber": "5479644347294632216",
+              "SerialNumber": "7608702610471571545",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10833,7 +10635,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "catalog-operator-metrics.openshift-operator-lifecycle-manager.svc::7241407898223348764",
+        "Name": "catalog-operator-metrics.openshift-operator-lifecycle-manager.svc::7753690685194178785",
         "Spec": {
           "SecretLocations": [
             {
@@ -10845,9 +10647,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "catalog-operator-metrics.openshift-operator-lifecycle-manager.svc",
-              "SerialNumber": "7241407898223348764",
+              "SerialNumber": "7753690685194178785",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10884,7 +10686,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "olm-operator-metrics.openshift-operator-lifecycle-manager.svc::6792140418383983313",
+        "Name": "olm-operator-metrics.openshift-operator-lifecycle-manager.svc::2948086174708787805",
         "Spec": {
           "SecretLocations": [
             {
@@ -10896,9 +10698,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "olm-operator-metrics.openshift-operator-lifecycle-manager.svc",
-              "SerialNumber": "6792140418383983313",
+              "SerialNumber": "2948086174708787805",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10935,7 +10737,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "package-server-manager-metrics.openshift-operator-lifecycle-manager.svc::404070606548891715",
+        "Name": "package-server-manager-metrics.openshift-operator-lifecycle-manager.svc::531418283395032915",
         "Spec": {
           "SecretLocations": [
             {
@@ -10947,9 +10749,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "package-server-manager-metrics.openshift-operator-lifecycle-manager.svc",
-              "SerialNumber": "404070606548891715",
+              "SerialNumber": "531418283395032915",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -10986,7 +10788,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "packageserver-service.openshift-operator-lifecycle-manager::1230261038616071242",
+        "Name": "packageserver-service.openshift-operator-lifecycle-manager::3671407093383074108",
         "Spec": {
           "SecretLocations": [
             {
@@ -10998,9 +10800,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "packageserver-service.openshift-operator-lifecycle-manager",
-              "SerialNumber": "1230261038616071242",
+              "SerialNumber": "3671407093383074108",
               "Issuer": {
-                "CommonName": "olm-selfsigned-7aa5487792e4db28",
+                "CommonName": "olm-selfsigned-4f93c314d038984e",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -11082,7 +10884,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "route-controller-manager.openshift-route-controller-manager.svc::6426634943914683272",
+        "Name": "route-controller-manager.openshift-route-controller-manager.svc::5935773282409302573",
         "Spec": {
           "SecretLocations": [
             {
@@ -11094,9 +10896,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "route-controller-manager.openshift-route-controller-manager.svc",
-              "SerialNumber": "6426634943914683272",
+              "SerialNumber": "5935773282409302573",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -11133,7 +10935,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.sdn-controller.openshift-sdn.svc::7753739691269375715",
+        "Name": "*.sdn-controller.openshift-sdn.svc::7771467318929547169",
         "Spec": {
           "SecretLocations": [
             {
@@ -11145,9 +10947,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.sdn-controller.openshift-sdn.svc",
-              "SerialNumber": "7753739691269375715",
+              "SerialNumber": "7771467318929547169",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -11186,7 +10988,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "*.sdn.openshift-sdn.svc::7050200710155887546",
+        "Name": "*.sdn.openshift-sdn.svc::8001393094011366018",
         "Spec": {
           "SecretLocations": [
             {
@@ -11198,9 +11000,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "*.sdn.openshift-sdn.svc",
-              "SerialNumber": "7050200710155887546",
+              "SerialNumber": "8001393094011366018",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -11239,7 +11041,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "metrics.openshift-service-ca-operator.svc::4553291295476912661",
+        "Name": "metrics.openshift-service-ca-operator.svc::5507978418495643444",
         "Spec": {
           "SecretLocations": [
             {
@@ -11251,9 +11053,9 @@
           "CertMetadata": {
             "CertIdentifier": {
               "CommonName": "metrics.openshift-service-ca-operator.svc",
-              "SerialNumber": "4553291295476912661",
+              "SerialNumber": "5507978418495643444",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
@@ -11290,7 +11092,7 @@
       {
         "LogicalName": "",
         "Description": "",
-        "Name": "openshift-service-serving-signer@1701523729::3270101755808761656",
+        "Name": "openshift-service-serving-signer@1717075302::50354538907274890",
         "Spec": {
           "SecretLocations": [
             {
@@ -11301,10 +11103,10 @@
           "OnDiskLocations": null,
           "CertMetadata": {
             "CertIdentifier": {
-              "CommonName": "openshift-service-serving-signer@1701523729",
-              "SerialNumber": "3270101755808761656",
+              "CommonName": "openshift-service-serving-signer@1717075302",
+              "SerialNumber": "50354538907274890",
               "Issuer": {
-                "CommonName": "openshift-service-serving-signer@1701523729",
+                "CommonName": "openshift-service-serving-signer@1717075302",
                 "SerialNumber": "",
                 "Issuer": null
               }
