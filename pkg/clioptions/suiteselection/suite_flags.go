@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"io/ioutil"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"k8s.io/client-go/discovery"
 
@@ -148,7 +149,9 @@ func (f *TestSuiteSelectionFlags) SelectSuite(
 		featureGateFilter, err := newFeatureGateFilter(context.TODO(), configClient)
 		switch {
 		case apierrors.IsNotFound(err):
-		// do nothing and we'll select all featuregated tests. this is the safest for something like microshift
+			// In case we are unable to determine if there is support for feature gates, exclude all featuregated tests
+			// as the test target doesnt comply with preconditions.
+			suite.AddRequiredMatchFunc(includeNonFeatureGateTest)
 		case err != nil:
 			return nil, fmt.Errorf("unable to build FeatureGate filter: %w", err)
 		default:
