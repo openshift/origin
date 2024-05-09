@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -50,6 +51,18 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	if err != nil {
 		return err
 	}
+
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: "platform MicroShift not supported",
+		}
+		return w.notSupportedReason
+	}
+
 	var deployment *appsv1.Deployment
 	deployment, err = kubeClient.AppsV1().Deployments(monitoringNamespace).Get(ctx, metricsServerDeploymentName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
