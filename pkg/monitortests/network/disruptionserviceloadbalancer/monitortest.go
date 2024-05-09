@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/sirupsen/logrus"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
