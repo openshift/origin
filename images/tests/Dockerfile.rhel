@@ -6,6 +6,13 @@ RUN make; \
     cp /go/src/github.com/openshift/origin/openshift-tests /tmp/build/openshift-tests
 
 FROM registry.ci.openshift.org/ocp/4.16:tools
+RUN if [ $HOSTTYPE = x86_64 ] || [ $HOSTTYPE = ppc64le ] && grep -q '^ID="centos"' /etc/os-release; then \
+    curl -o /etc/yum.repos.d/delorean.repo https://trunk.rdoproject.org/centos9-master/puppet-passed-ci/delorean.repo && \
+    curl -o /etc/yum.repos.d/delorean-deps.repo https://trunk.rdoproject.org/centos9-master/delorean-deps.repo; \
+    fi && \
+    if [ $HOSTTYPE =  x86_64 ] && grep -q '^ID="centos"' /etc/os-release; then \
+    dnf -y install dnf-plugins-core && dnf config-manager --set-enabled rt; \
+    fi
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
 RUN PACKAGES="git gzip util-linux" && \
     if [ $HOSTTYPE = x86_64 ] || [ $HOSTTYPE = ppc64le ]; then PACKAGES="$PACKAGES python3-cinderclient"; fi && \
