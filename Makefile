@@ -48,6 +48,7 @@ openshift-tests: build
 verify-origin:
 	hack/verify-jsonformat.sh
 	hack/verify-generated.sh
+	hack/verify-tls-ownership.sh
 .PHONY: verify-origin
 verify: verify-origin
 
