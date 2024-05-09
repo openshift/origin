@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -16,8 +17,19 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+var (
+	unfixedVersions = sets.NewString()
+)
+
+func init() {
+	for i := 0; i < 16; i++ {
+		unfixedVersions.Insert(fmt.Sprintf("4.%d", i))
+	}
+}
+
 type terminationMessagePolicyChecker struct {
-	kubeClient kubernetes.Interface
+	kubeClient    kubernetes.Interface
+	hasOldVersion bool
 }
 
 func NewAnalyzer() monitortestframework.MonitorTest {
@@ -30,6 +42,27 @@ func (w *terminationMessagePolicyChecker) StartCollection(ctx context.Context, a
 	if err != nil {
 		return err
 	}
+	configClient, err := configclient.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, history := range clusterVersion.Status.History {
+		for _, unfixedVersion := range unfixedVersions.List() {
+			if strings.Contains(history.Version, unfixedVersion) {
+				w.hasOldVersion = true
+				break
+			}
+		}
+		if w.hasOldVersion {
+			break
+		}
+	}
+
 	return nil
 }
 
@@ -37,6 +70,7 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 	if w.kubeClient == nil {
 		return nil, nil, nil
 	}
+
 	allPods, err := w.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, nil, err
@@ -79,7 +113,36 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 
 	// existingViolations is the list of violations already present, don't add to it once we start enforcing
 	existingViolations := map[string]sets.String{
-		"namespace": sets.NewString("pods/<name> <containerType>[<containerName>]"),
+		"namespace": sets.NewString("<containerType>[<containerName>]"),
+		"openshift-catalogd": sets.NewString(
+			"pods/catalogd-controller-manager",
+		),
+		"openshift-cluster-api": sets.NewString(
+			"pods/capa-controller-manager",
+			"pods/capi-controller-manager",
+		),
+		"openshift-cluster-csi-drivers": sets.NewString(
+			"containers[openstack-cinder-csi-driver-operator]",
+			"containers[azure-file-csi-driver-operator]",
+			"containers[shared-resource-csi-driver-operator]",
+			"containers[vmware-vsphere-csi-driver-operator]",
+			"containers[vsphere-webhook]",
+			"pods/kubevirt-csi-node",
+			"pods/nutanix-csi-controller",
+			"pods/nutanix-csi-node",
+			"pods/ibm-vpc-block-csi-controller",
+			"pods/ibm-vpc-block-csi-node",
+			"pods/powervs-block-csi-driver-operator",
+		),
+		"openshift-cloud-controller-manager": sets.NewString(
+			"pods/aws-cloud-controller-manager",
+		),
+		"openshift-machine-api": sets.NewString(
+			"containers[machine-ipam-controller]",
+		),
+		"openshift-multus": sets.NewString(
+			"containers[multus-networkpolicy]",
+		),
 	}
 
 	junits := []*junitapi.JUnitTestCase{}
@@ -95,26 +158,57 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			continue
 		}
 
-		if existingViolationForNamespace, ok := existingViolations[namespace]; ok {
-			newViolatingContainers := failingContainers.Difference(existingViolationForNamespace)
-			if len(newViolatingContainers) == 0 {
-				junits = append(junits, &junitapi.JUnitTestCase{
-					Name:      testName,
-					SystemOut: "",
-					SystemErr: "",
-				})
-				continue
+		flakyContainers := sets.NewString()
+		existingViolationForNamespace := existingViolations[namespace]
+		for _, failingContainer := range failingContainers.List() {
+			found := false
+			for _, existingViolatingContainer := range existingViolationForNamespace.List() {
+				if strings.Contains(failingContainer, existingViolatingContainer) {
+					found = true
+				}
 			}
-			failingContainers = newViolatingContainers
+			if found || w.hasOldVersion {
+				// if we have an existing violation or an older (unfixed) level of openshift was installed
+				// we need to skip the offending container and only flake (not fail) on it.
+				flakyContainers.Insert(failingContainer)
+				failingContainers.Delete(failingContainer)
+			}
 		}
 
+		// if we have flakes, add flakes as a junit failure.
+		if len(flakyContainers) > 0 {
+			failureMessages := []string{}
+			for _, container := range flakyContainers.List() {
+				failureMessages = append(failureMessages,
+					fmt.Sprintf("%v should have terminationMessagePolicy=%q",
+						container, corev1.TerminationMessageFallbackToLogsOnError))
+			}
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:      testName,
+				SystemOut: strings.Join(failureMessages, "\n"),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: strings.Join(failureMessages, "\n"),
+				},
+			})
+		}
+
+		// if we had no failures (only flakes or zero flakes), add a successful test (either succeeds or flakes) and return
+		if len(failingContainers) == 0 {
+			junits = append(junits, &junitapi.JUnitTestCase{
+				Name:      testName,
+				SystemOut: "",
+				SystemErr: "",
+			})
+			continue
+		}
+
+		// add failures as a failing junit
 		failureMessages := []string{}
 		for _, container := range failingContainers.List() {
 			failureMessages = append(failureMessages,
 				fmt.Sprintf("%v must have terminationMessagePolicy=%q",
 					container, corev1.TerminationMessageFallbackToLogsOnError))
 		}
-
 		junits = append(junits,
 			&junitapi.JUnitTestCase{
 				Name:      testName,
@@ -122,12 +216,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 				FailureOutput: &junitapi.FailureOutput{
 					Output: strings.Join(failureMessages, "\n"),
 				},
-			},
-			// start as flake to build whitelist
-			&junitapi.JUnitTestCase{
-				Name:      testName,
-				SystemOut: "",
-				SystemErr: "",
 			},
 		)
 
