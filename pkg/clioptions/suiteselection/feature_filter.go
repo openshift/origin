@@ -3,10 +3,11 @@ package suiteselection
 import (
 	"context"
 	"fmt"
+	"regexp"
+
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"regexp"
 )
 
 type featureGateFilter struct {
@@ -70,6 +71,10 @@ func (f *featureGateFilter) includeTest(name string) bool {
 	}
 
 	return f.enabled.HasAll(featureGates...)
+}
+
+func includeNonFeatureGateTest(name string) bool {
+	return featureGateRegex.FindAllStringSubmatch(name, -1) == nil
 }
 
 var (
