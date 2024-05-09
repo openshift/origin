@@ -122,17 +122,9 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			"pods/capi-controller-manager",
 		),
 		"openshift-cluster-csi-drivers": sets.NewString(
-			"containers[openstack-cinder-csi-driver-operator]",
-			"containers[azure-file-csi-driver-operator]",
-			"containers[shared-resource-csi-driver-operator]",
-			"containers[vmware-vsphere-csi-driver-operator]",
-			"containers[vsphere-webhook]",
 			"pods/kubevirt-csi-node",
 			"pods/nutanix-csi-controller",
 			"pods/nutanix-csi-node",
-			"pods/ibm-vpc-block-csi-controller",
-			"pods/ibm-vpc-block-csi-node",
-			"pods/powervs-block-csi-driver-operator",
 		),
 		"openshift-cloud-controller-manager": sets.NewString(
 			"pods/aws-cloud-controller-manager",
