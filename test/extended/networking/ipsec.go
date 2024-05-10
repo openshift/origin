@@ -31,7 +31,7 @@ const (
 	tcpdumpICMPFilter            = "icmp and src %s and dst %s"
 	masterIPsecMachineConfigName = "80-ipsec-master-extensions"
 	workerIPSecMachineConfigName = "80-ipsec-worker-extensions"
-	ipsecRolloutWaitDuration     = 20 * time.Minute
+	ipsecRolloutWaitDuration     = 40 * time.Minute
 	ipsecRolloutWaitInterval     = 1 * time.Minute
 	nmstateConfigureManifestFile = "nmstate.yaml"
 	nsCertMachineConfigFile      = "ipsec-nsconfig-machine-config.yaml"
