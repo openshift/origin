@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
@@ -42,12 +43,15 @@ func (w *terminationMessagePolicyChecker) StartCollection(ctx context.Context, a
 	if err != nil {
 		return err
 	}
+
 	configClient, err := configclient.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
 	}
 	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-	if err != nil {
+	// If clusterversion is not found this monitor is only unable to check whether an older version should
+	// skip the test. Since there is no knowledge about past upgrades, assume there were none.
+	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 
