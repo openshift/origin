@@ -3,10 +3,12 @@ package builds
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -18,14 +20,19 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 
+	"github.com/openshift/origin/pkg/clusterversion"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithPodSecurityLevel("build-webhooks", admissionapi.LevelBaseline)
+
+	var (
+		oc = exutil.NewCLIWithPodSecurityLevel("build-webhooks", admissionapi.LevelBaseline)
+	)
 
 	g.It("TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]", func() {
 		TestWebhook(g.GinkgoT(), oc)
@@ -42,21 +49,27 @@ var _ = g.Describe("[sig-builds][Feature:Builds][webhook]", func() {
 })
 
 func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
+	ctx := context.Background()
 	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
+	clusterVersion, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(), "get cluster version")
+	adminHTTPClient := clusterAdminBuildClient.RESTClient().(*rest.RESTClient).Client
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
-	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(context.Background(), buildConfig, metav1.CreateOptions{}); err != nil {
+	if _, err := clusterAdminBuildClient.BuildConfigs(oc.Namespace()).Create(ctx, buildConfig, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
 	// Bug #1752581: reduce number of URLs per test case
 	// OCP 4.2 tests on GCP had high flake levels because namespaces took too long to tear down
 	tests := []struct {
-		Name       string
-		Payload    string
-		HeaderFunc func(*http.Header)
-		URLs       []string
+		Name           string
+		Payload        string
+		HeaderFunc     func(*http.Header)
+		URLs           []string
+		client         *http.Client
+		expectedStatus int
 	}{
 		{
 			Name:       "generic",
@@ -65,6 +78,8 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 			URLs: []string{
 				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
 			},
+			client:         adminHTTPClient,
+			expectedStatus: http.StatusOK,
 		},
 		{
 			Name:       "github",
@@ -73,6 +88,8 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 			URLs: []string{
 				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
 			},
+			client:         adminHTTPClient,
+			expectedStatus: http.StatusOK,
 		},
 		{
 			Name:       "gitlab",
@@ -81,6 +98,8 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 			URLs: []string{
 				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret300/gitlab",
 			},
+			client:         adminHTTPClient,
+			expectedStatus: http.StatusOK,
 		},
 		{
 			Name:       "bitbucket",
@@ -89,6 +108,29 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 			URLs: []string{
 				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret400/bitbucket",
 			},
+			client:         adminHTTPClient,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			// AUTH-509: Webhooks do not allow unauthenticated requests by default.
+			// Test will verify that an unauthenticated request fails with 403 Forbidden.
+			Name:       "unauthenticated forbidden",
+			Payload:    "generic/testdata/push-generic.json",
+			HeaderFunc: genericHeaderFunc,
+			URLs: []string{
+				"/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
+			},
+			// Need client to skip TLS verification - CI clusters have self-signed certificates.
+			// Transport also needs to accept proxy information from *_PROXY environment variables.
+			client: &http.Client{
+				Transport: &http.Transport{
+					Proxy: http.ProxyFromEnvironment,
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
+			},
+			expectedStatus: expectedUnauthWebhookStatus(clusterVersion),
 		},
 	}
 
@@ -99,8 +141,12 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 			clusterAdminClientConfig := oc.AdminConfig()
 
 			g.By("executing the webhook to get the build object")
-			body := postFile(clusterAdminBuildClient.RESTClient(), test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+			body := postFile(test.client, test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, test.expectedStatus, t, oc)
 			o.Expect(body).NotTo(o.BeEmpty())
+			// If expected HTTP status is not 200 OK, continue as we will not receive a Build object in the response body.
+			if test.expectedStatus != http.StatusOK {
+				continue
+			}
 
 			g.By("Unmarshalling the build object")
 			returnedBuild := &buildv1.Build{}
@@ -118,12 +164,26 @@ func TestWebhook(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 }
 
+// expectedUnauthWebhookStatus returns the exepcted HTTPS status code for unauthenticated webhook
+// requests sent to a stock/unmodified OpenShift cluster.
+//
+// For clusters upgraded from or through 4.15, unauthenticated webhooks are allowed and should
+// return code 200 (OK). Starting in OCP 4.16, unauthenticated webhooks should return code 403
+// (Forbidden).
+func expectedUnauthWebhookStatus(cv *configv1.ClusterVersion) int {
+	if clusterversion.IsUpgradedFromMinorVersion("4.15", cv) {
+		return http.StatusOK
+	}
+	return http.StatusForbidden
+}
+
 func TestWebhookGitHubPushWithImage(t g.GinkgoTInterface, oc *exutil.CLI) {
 	const registryHostname = "registry:3000"
 
 	clusterAdminClientConfig := oc.AdminConfig()
 	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
 	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
+	adminHTTPClient := clusterAdminBuildClient.RESTClient().(*rest.RESTClient).Client
 
 	// create imagerepo
 	imageStream := &imagev1.ImageStream{
@@ -173,7 +233,7 @@ func TestWebhookGitHubPushWithImage(t g.GinkgoTInterface, oc *exutil.CLI) {
 	} {
 
 		// trigger build event sending push notification
-		body := postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+		body := postFile(adminHTTPClient, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 		if len(body) == 0 {
 			t.Errorf("Webhook did not return Build in body")
 		}
@@ -201,7 +261,6 @@ func TestWebhookGitHubPushWithImage(t g.GinkgoTInterface, oc *exutil.CLI) {
 		if actual.Spec.Strategy.DockerStrategy.From.Name != "originalimage" {
 			t.Errorf("Expected %s, got %s", "originalimage", actual.Spec.Strategy.DockerStrategy.From.Name)
 		}
-
 		if actual.Name != returnedBuild.Name {
 			t.Errorf("Build returned in response body does not match created Build. Expected %s, got %s", actual.Name, returnedBuild.Name)
 		}
@@ -214,6 +273,7 @@ func TestWebhookGitHubPushWithImageStream(t g.GinkgoTInterface, oc *exutil.CLI) 
 	clusterAdminClientConfig := oc.AdminConfig()
 	clusterAdminImageClient := oc.AdminImageClient().ImageV1()
 	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
+	adminHTTPClient := clusterAdminBuildClient.RESTClient().(*rest.RESTClient).Client
 
 	// create imagerepo
 	imageStream := &imagev1.ImageStream{
@@ -265,7 +325,7 @@ func TestWebhookGitHubPushWithImageStream(t g.GinkgoTInterface, oc *exutil.CLI) 
 	s := "/apis/build.openshift.io/v1/namespaces/" + oc.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
 
 	// trigger build event sending push notification
-	postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+	postFile(adminHTTPClient, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 
 	var build *buildv1.Build
 
@@ -291,6 +351,7 @@ Loop:
 
 func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
 	clusterAdminBuildClient := oc.AdminBuildClient().BuildV1()
+	adminHTTPClient := clusterAdminBuildClient.RESTClient().(*rest.RESTClient).Client
 
 	// create buildconfig
 	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
@@ -312,7 +373,7 @@ func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
 		// trigger build event sending push notification
 		clusterAdminClientConfig := oc.AdminConfig()
 
-		postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
+		postFile(adminHTTPClient, githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t, oc)
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second * 5)
@@ -326,9 +387,9 @@ func TestWebhookGitHubPing(t g.GinkgoTInterface, oc *exutil.CLI) {
 	}
 }
 
-func postFile(client rest.Interface, headerFunc func(*http.Header), filename, url string, expStatusCode int, t g.GinkgoTInterface, oc *exutil.CLI) []byte {
+func postFile(client *http.Client, headerFunc func(*http.Header), filename, url string, expStatusCode int, t g.GinkgoTInterface, oc *exutil.CLI) []byte {
 	path := exutil.FixturePath("testdata", "builds", "webhook", filename)
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
 	}
@@ -337,11 +398,11 @@ func postFile(client rest.Interface, headerFunc func(*http.Header), filename, ur
 		t.Fatalf("Error creating POST request: %v", err)
 	}
 	headerFunc(&req.Header)
-	resp, err := client.(*rest.RESTClient).Client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed posting webhook: %v", err)
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != expStatusCode {
 		t.Errorf("Wrong response code, expecting %d, got %d: %s!", expStatusCode, resp.StatusCode, string(body))
 	}
