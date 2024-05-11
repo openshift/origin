@@ -67,7 +67,9 @@ type openAPISpecInfo struct {
 
 	// The downloader is used only for non-local apiservices to
 	// re-update the spec every so often.
-	downloader cached.Data[*spec.Swagger]
+	// Calling Get() is not thread safe and should only be called by a single
+	// thread via the openapi controller.
+	downloader CacheableDownloader
 }
 
 type specAggregator struct {
@@ -93,8 +95,7 @@ func buildAndRegisterSpecAggregatorForLocalServices(downloader *Downloader, aggr
 	for i, handler := range delegationHandlers {
 		name := fmt.Sprintf(localDelegateChainNamePattern, i+1)
 
-		spec := NewCacheableDownloader(downloader, handler)
-		spec = decorateError(name, spec)
+		spec := NewCacheableDownloader(name, downloader, handler)
 		s.addLocalSpec(name, spec)
 	}
 
@@ -196,7 +197,10 @@ func (s *specAggregator) updateServiceLocked(name string) error {
 		if result.Err != nil {
 			return result
 		}
-		return cached.NewResultOK(aggregator.FilterSpecByPathsWithoutSideEffects(result.Data, []string{"/apis/"}), result.Etag)
+		group := specInfo.apiService.Spec.Group
+		version := specInfo.apiService.Spec.Version
+
+		return cached.NewResultOK(aggregator.FilterSpecByPathsWithoutSideEffects(result.Data, []string{"/apis/" + group + "/" + version + "/"}), result.Etag)
 	}, result)
 	specInfo.spec.Replace(filteredResult)
 	return result.Err
@@ -218,16 +222,21 @@ func (s *specAggregator) AddUpdateAPIService(apiService *v1.APIService, handler 
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	_, exists := s.specsByAPIServiceName[apiService.Name]
+	existingSpec, exists := s.specsByAPIServiceName[apiService.Name]
 	if !exists {
-		s.specsByAPIServiceName[apiService.Name] = &openAPISpecInfo{
+		specInfo := &openAPISpecInfo{
 			apiService: *apiService,
-			downloader: decorateError(apiService.Name, NewCacheableDownloader(s.downloader, handler)),
+			downloader: NewCacheableDownloader(apiService.Name, s.downloader, handler),
 		}
+		specInfo.spec.Replace(cached.Result[*spec.Swagger]{Err: fmt.Errorf("spec for apiservice %s is not yet available", apiService.Name)})
+		s.specsByAPIServiceName[apiService.Name] = specInfo
 		s.openAPIVersionedService.UpdateSpecLazy(s.buildMergeSpecLocked())
+	} else {
+		existingSpec.apiService = *apiService
+		existingSpec.downloader.UpdateHandler(handler)
 	}
 
-	return s.updateServiceLocked(apiService.Name)
+	return nil
 }
 
 // RemoveAPIService removes an api service from OpenAPI aggregation. If it does not exist, no error is returned.
@@ -242,15 +251,4 @@ func (s *specAggregator) RemoveAPIService(apiServiceName string) {
 	delete(s.specsByAPIServiceName, apiServiceName)
 	// Re-create the mergeSpec for the new list of apiservices
 	s.openAPIVersionedService.UpdateSpecLazy(s.buildMergeSpecLocked())
-}
-
-// decorateError creates a new cache that wraps a downloader
-// cache the name of the apiservice to help with debugging.
-func decorateError(name string, cache cached.Data[*spec.Swagger]) cached.Data[*spec.Swagger] {
-	return cached.NewTransformer(func(result cached.Result[*spec.Swagger]) cached.Result[*spec.Swagger] {
-		if result.Err != nil {
-			return cached.NewResultErr[*spec.Swagger](fmt.Errorf("failed to download %v: %v", name, result.Err))
-		}
-		return result
-	}, cache)
 }

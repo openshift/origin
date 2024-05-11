@@ -46,7 +46,9 @@ func (c *csiPlugin) NodeExpand(resizeOptions volume.NodeResizeOptions) (bool, er
 
 	csClient, err := newCsiDriverClient(csiDriverName(csiSource.Driver))
 	if err != nil {
-		return false, err
+		// Treat the absence of the CSI driver as a transient error
+		// See https://github.com/kubernetes/kubernetes/issues/120268
+		return false, volumetypes.NewTransientOperationFailure(err.Error())
 	}
 	fsVolume, err := util.CheckVolumeModeFilesystem(resizeOptions.VolumeSpec)
 	if err != nil {
@@ -72,7 +74,7 @@ func (c *csiPlugin) nodeExpandWithClient(
 	}
 
 	if !nodeExpandSet {
-		return false, fmt.Errorf("Expander.NodeExpand found CSI plugin %s/%s to not support node expansion", c.GetPluginName(), driverName)
+		return false, volumetypes.NewOperationNotSupportedError(fmt.Sprintf("NodeExpand is not supported by the CSI driver %s", driverName))
 	}
 
 	pv := resizeOptions.VolumeSpec.PersistentVolume
