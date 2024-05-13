@@ -117,10 +117,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 		"openshift-catalogd": sets.NewString(
 			"pods/catalogd-controller-manager",
 		),
-		"openshift-cluster-api": sets.NewString(
-			"pods/capa-controller-manager",
-			"pods/capi-controller-manager",
-		),
 		"openshift-cluster-csi-drivers": sets.NewString(
 			"containers[openstack-cinder-csi-driver-operator]",
 			"containers[azure-file-csi-driver-operator]",
@@ -133,12 +129,6 @@ func (w *terminationMessagePolicyChecker) CollectData(ctx context.Context, stora
 			"pods/ibm-vpc-block-csi-controller",
 			"pods/ibm-vpc-block-csi-node",
 			"pods/powervs-block-csi-driver-operator",
-		),
-		"openshift-cloud-controller-manager": sets.NewString(
-			"pods/aws-cloud-controller-manager",
-		),
-		"openshift-machine-api": sets.NewString(
-			"containers[machine-ipam-controller]",
 		),
 		"openshift-multus": sets.NewString(
 			"containers[multus-networkpolicy]",
