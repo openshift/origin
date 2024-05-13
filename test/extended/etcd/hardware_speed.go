@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = g.Describe("[sig-etcd][Feature:HardwareSpeed][Serial] etcd", func() {
+var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-hardware-speed").AsAdmin()
 
