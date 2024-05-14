@@ -13,10 +13,12 @@ import (
 	"github.com/sirupsen/logrus"
 
 	configv1 "github.com/openshift/api/config/v1"
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/client-go/rest"
 )
 
@@ -24,8 +26,8 @@ import (
 // exception string if does not think the condition should be fatal.
 type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) (string, error)
 
-func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, _ *rest.Config) (string, error) {
+func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
@@ -36,16 +38,33 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals) []*ju
 			}
 		}
 
+		isSingleNode, err := isSingleNodeCheck(clientConfig)
+		if err != nil {
+			logrus.Warnf("Error checking for Single Node configuration on stable system (unable to make exception): %v", err)
+			isSingleNode = false
+		}
+
 		// For the non-upgrade case, if any operator has Available=False, fail the test.
 		if condition.Type == configv1.OperatorAvailable {
-			if condition.Status == configv1.ConditionFalse {
+
+			// We'll add an exception for single node for now.
+			if condition.Status == configv1.ConditionFalse && !isSingleNode {
 				return "", nil
 			}
 		}
 		return "We are not worried about Degraded=True blips for stable-system tests yet.", nil
 	}
 
-	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except)
+	return testOperatorStateTransitions(events, []configv1.ClusterStatusConditionType{configv1.OperatorAvailable, configv1.OperatorDegraded}, except, clientConfig)
+}
+
+func isSingleNodeCheck(clientConfig *rest.Config) (bool, error) {
+	configClient, err := clientconfigv1.NewForConfig(clientConfig)
+	if err != nil {
+		logrus.Warnf("Error creating config client to check for Single Node configuration: %v", err)
+		return false, err
+	}
+	return exutil.IsSingleNode(context.Background(), configClient)
 }
 
 // isInUpgradeWindow determines if the given eventInterval falls within an upgrade window.
@@ -150,7 +169,14 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			availableEqualsFalseAllowed = isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute
 		}
 
-		if !availableEqualsFalseAllowed {
+		isSingleNode, err := isSingleNodeCheck(clientConfig)
+		if err != nil {
+			logrus.Warnf("Error checking for Single Node configuration on upgrade (unable to make exception): %v", err)
+			isSingleNode = false
+		}
+
+		// We'll add an exception for single node for now.
+		if !availableEqualsFalseAllowed && !isSingleNode {
 			return "", nil
 		}
 
@@ -225,7 +251,7 @@ func checkReplicas(namespace string, operator string, clientConfig *rest.Config)
 	return 0, fmt.Errorf("Error fetching replicas")
 }
 
-func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig ...*rest.Config) []*junitapi.JUnitTestCase {
+func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
 	var start, stop time.Time
@@ -292,11 +318,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				if len(concurrentE2E) > 0 {
 					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n"))
 				}
-				var Config *rest.Config
-				if len(clientConfig) > 0 {
-					Config = clientConfig[0]
-				}
-				exception, err := except(operatorName, condition, eventInterval, Config)
+				exception, err := except(operatorName, condition, eventInterval, clientConfig)
 				if err != nil || exception == "" {
 					fatal = append(fatal, failure)
 				} else {
