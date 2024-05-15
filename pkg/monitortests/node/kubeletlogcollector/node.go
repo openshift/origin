@@ -283,7 +283,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 }
 
 // startupProbeError extracts locator information from kubelet logs of the form:
-// "Probe failed" probeType="Startup" pod="<some_ns>/<some_pod" podUID=<some_pod_uid> containerName="<some_container_name>" .* output="<some_output>"
+// "Probe failed" probeType="Startup" pod="<some_ns>/<some_pod" podUID="<some_pod_uid>" containerName="<some_container_name>" .* output="<some_output>"
 // and returns an Interval (which will show up in the junit/events...json file and the intervals chart).
 func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 	if !strings.Contains(logLine, `Probe failed`) {
@@ -327,9 +327,9 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 	}
 }
 
-var imagePullContainerRefRegex = regexp.MustCompile(`err=.*for \\"(?P<CONTAINER>[a-z0-9.-]+)\\".*pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID=(?P<PODUID>[a-z0-9.-]+)`)
+var imagePullContainerRefRegex = regexp.MustCompile(`err=.*for \\"(?P<CONTAINER>[a-z0-9.-]+)\\".*pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID="(?P<PODUID>[a-z0-9.-]+)"`)
 
-var containerRefRegex = regexp.MustCompile(`pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID=(?P<PODUID>[a-z0-9.-]+) containerName="(?P<CONTAINER>[a-z0-9.-]+)"`)
+var containerRefRegex = regexp.MustCompile(`pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)" podUID="(?P<PODUID>[a-z0-9.-]+)" containerName="(?P<CONTAINER>[a-z0-9.-]+)"`)
 var readinessFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Readiness".*output="(?P<OUTPUT>.+)"`)
 var readinessErrorOutputRegex = regexp.MustCompile(`"Probe errored" err="(?P<OUTPUT>.+)" probeType="Readiness"`)
 var startupFailureOutputRegex = regexp.MustCompile(`"Probe failed" probeType="Startup".*output="(?P<OUTPUT>.+)"`)
@@ -394,7 +394,7 @@ func reflectorHttpClientConnectionLostError(nodeName, logLine string) monitorapi
 	})
 }
 
-var statusRefRegex = regexp.MustCompile(`podUID=(?P<PODUID>[a-z0-9.-]+) pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)"`)
+var statusRefRegex = regexp.MustCompile(`podUID="(?P<PODUID>[a-z0-9.-]+)" pod="(?P<NS>[a-z0-9.-]+)\/(?P<POD>[a-z0-9.-]+)"`)
 var statusOutputRegex = regexp.MustCompile(`err="(?P<OUTPUT>.+)"`)
 
 func statusHttpClientConnectionLostError(nodeName, logLine string) monitorapi.Intervals {
