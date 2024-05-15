@@ -58,17 +58,18 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 	// - Remove TechPreview check when feature is GA.
 	// - Merge oVNKManifest & oVNKWCManifest contents.
 	// - Update doEgressFwTest and sendEgressFwTraffic functions.
-	wcEgFwOc := exutil.NewCLIWithPodSecurityLevel(wcEgressFWE2E, admissionapi.LevelPrivileged)
-	wcEgFwF := wcEgFwOc.KubeFramework()
-	if exutil.IsTechPreviewNoUpgrade(egFwoc) {
-		InOVNKubernetesContext(
-			func() {
-				g.It("should ensure egressfirewall with wildcard dns rules is created", func() {
-					doEgressFwTest(wcEgFwF, wcEgFwOc, oVNKWCManifest, true, true)
-				})
-			},
-		)
-	}
+	InOVNKubernetesContext(
+		func() {
+			wcEgFwOc := exutil.NewCLIWithPodSecurityLevel(wcEgressFWE2E, admissionapi.LevelPrivileged)
+			wcEgFwF := wcEgFwOc.KubeFramework()
+			g.It("should ensure egressfirewall with wildcard dns rules is created", func() {
+				if !exutil.IsTechPreviewNoUpgrade(egFwoc) {
+					g.Skip("the test is not expected to work within Tech Preview disabled clusters")
+				}
+				doEgressFwTest(wcEgFwF, wcEgFwOc, oVNKWCManifest, true, true)
+			})
+		},
+	)
 
 	noegFwoc := exutil.NewCLIWithPodSecurityLevel(noEgressFWE2E, admissionapi.LevelBaseline)
 	noegFwf := noegFwoc.KubeFramework()
