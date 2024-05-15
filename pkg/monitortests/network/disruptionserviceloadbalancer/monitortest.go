@@ -207,7 +207,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	// the host from the cluster's context
 	if infra.Spec.PlatformSpec.Type == configv1.PowerVSPlatformType || infra.Spec.PlatformSpec.Type == configv1.IBMCloudPlatformType {
 		nodeTgt := "node/" + nodeList.Items[0].ObjectMeta.Name
-		if err := checkHostnameReady(ctx, tcpService, nodeTgt); err != nil {
+		if err := checkHostnameReady(ctx, tcpService, nodeTgt, w.namespaceName); err != nil {
 			return err
 		}
 	}
@@ -328,7 +328,7 @@ func httpGetNoConnectionPoolTimeout(url string, timeout time.Duration) (*http.Re
 }
 
 // Uses the first node in the cluster to verify the LoadBalancer host is active before returning
-func checkHostnameReady(ctx context.Context, tcpService *corev1.Service, nodeTgt string) error {
+func checkHostnameReady(ctx context.Context, tcpService *corev1.Service, nodeTgt string, namespace string) error {
 	oc := exutil.NewCLIForMonitorTest(tcpService.GetObjectMeta().GetNamespace())
 
 	var (
@@ -338,7 +338,7 @@ func checkHostnameReady(ctx context.Context, tcpService *corev1.Service, nodeTgt
 
 	wait.PollUntilContextTimeout(ctx, 15*time.Second, 60*time.Minute, true, func(ctx context.Context) (bool, error) {
 		logrus.Debug("Checking load balancer host is active \n")
-		stdOut, _, err = oc.AsAdmin().WithoutNamespace().RunInMonitorTest("debug").Args(nodeTgt, "--", "dig", "+short", "+notcp", tcpService.Status.LoadBalancer.Ingress[0].Hostname).Outputs()
+		stdOut, _, err = oc.AsAdmin().WithoutNamespace().RunInMonitorTest("debug").Args(nodeTgt, "--to-namespace"+namespace, "--", "dig", "+short", "+notcp", tcpService.Status.LoadBalancer.Ingress[0].Hostname).Outputs()
 		if err != nil {
 			return false, nil
 		}
