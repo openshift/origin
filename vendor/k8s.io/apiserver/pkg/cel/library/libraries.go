@@ -30,6 +30,8 @@ var k8sExtensionLibs = []cel.EnvOption{
 	Regex(),
 	Lists(),
 	Authz(),
+	IP(),
+	CIDR(),
 }
 
 var ExtensionLibRegexOptimizations = []*interpreter.RegexOptimization{FindRegexOptimization, FindAllRegexOptimization}
