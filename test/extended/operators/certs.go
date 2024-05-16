@@ -164,15 +164,16 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 		newTLSRegistry := &certs.PKIRegistryInfo{}
 
-		for _, currCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
-			currLocation := currCertKeyPair.SecretLocation
+		for i, inClusterCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
+			currLocation := inClusterCertKeyPair.SecretLocation
 			if _, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, violationsPKIContent.CertKeyPairs); err == nil {
 				continue
 			}
 
 			_, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, expectedPKIContent.CertKeyPairs)
 			if err != nil {
-				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{InClusterLocation: &currCertKeyPair})
+
+				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{InClusterLocation: &actualPKIContent.InClusterResourceData.CertKeyPairs[i]})
 			}
 
 		}
@@ -189,10 +190,12 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 					certInfo, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Cert, expectedPKIContent.CertKeyPairs)
 					if err != nil {
-						certInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
-							OnDiskLocation: certgraphapi.OnDiskLocation{
-								Path: currLocation.Cert.Path,
-							},
+						if certInfo == nil {
+							certInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
+								OnDiskLocation: certgraphapi.OnDiskLocation{
+									Path: currLocation.Cert.Path,
+								},
+							}
 						}
 						newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: certInfo})
 					}
@@ -219,15 +222,15 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 			}
 		}
 
-		for _, currCABundle := range actualPKIContent.InClusterResourceData.CertificateAuthorityBundles {
-			currLocation := currCABundle.ConfigMapLocation
+		for i, inClusterCABundle := range actualPKIContent.InClusterResourceData.CertificateAuthorityBundles {
+			currLocation := inClusterCABundle.ConfigMapLocation
 			if _, err := certgraphutils.LocateCABundleByConfigMapLocation(currLocation, violationsPKIContent.CertificateAuthorityBundles); err == nil {
 				continue
 			}
 
 			_, err := certgraphutils.LocateCABundleByConfigMapLocation(currLocation, expectedPKIContent.CertificateAuthorityBundles)
 			if err != nil {
-				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{InClusterLocation: &currCABundle})
+				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{InClusterLocation: &actualPKIContent.InClusterResourceData.CertificateAuthorityBundles[i]})
 			}
 		}
 
