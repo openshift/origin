@@ -1681,6 +1681,78 @@
                 }
             },
             "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/kubernetes/ca.crt"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/pki/tls/cert.pem"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/pki/tls/certs/ca-bundle.crt"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
         }
     ],
     "certKeyPairs": [
@@ -4970,6 +5042,42 @@
                 }
             },
             "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/cni/multus/certs/multus-client-\u003ctimestamp\u003e.pem"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\u003ctimestamp\u003e.pem"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "Unknown",
+                    "description": ""
+                }
+            }
         }
     ]
 }
