@@ -194,8 +194,8 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 								Path: currLocation.Cert.Path,
 							},
 						}
+						newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: certInfo})
 					}
-					newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: certInfo})
 				}
 
 				if len(currLocation.Key.Path) > 0 && currLocation.Key.Path != currLocation.Cert.Path {
@@ -206,13 +206,15 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 					keyInfo, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Key, expectedPKIContent.CertKeyPairs)
 					if err != nil {
-						keyInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
-							OnDiskLocation: certgraphapi.OnDiskLocation{
-								Path: currLocation.Key.Path,
-							},
+						if keyInfo == nil {
+							keyInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
+								OnDiskLocation: certgraphapi.OnDiskLocation{
+									Path: currLocation.Key.Path,
+								},
+							}
 						}
+						newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: keyInfo})
 					}
-					newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: keyInfo})
 				}
 			}
 		}
@@ -240,13 +242,15 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 				caBundleInfo, err := certgraphutils.LocateCABundleByOnDiskLocation(currLocation, expectedPKIContent.CertificateAuthorityBundles)
 				if err != nil {
-					caBundleInfo = &certgraphapi.PKIRegistryOnDiskCABundle{
-						OnDiskLocation: certgraphapi.OnDiskLocation{
-							Path: currLocation.Path,
-						},
+					if caBundleInfo == nil {
+						caBundleInfo = &certgraphapi.PKIRegistryOnDiskCABundle{
+							OnDiskLocation: certgraphapi.OnDiskLocation{
+								Path: currLocation.Path,
+							},
+						}
 					}
+					newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{OnDiskLocation: caBundleInfo})
 				}
-				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{OnDiskLocation: caBundleInfo})
 			}
 		}
 
