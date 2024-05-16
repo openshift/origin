@@ -105,7 +105,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 		newTLSRegistry := &certgraphapi.PKIRegistryInfo{}
 
-		for _, currCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
+		for i, currCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
 			currLocation := currCertKeyPair.SecretLocation
 			if _, err := certgraphutils.LocateCertKeyPair(currLocation, violationsPKIContent.CertKeyPairs); err == nil {
 				continue
@@ -113,19 +113,19 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 			_, err := certgraphutils.LocateCertKeyPair(currLocation, expectedPKIContent.CertKeyPairs)
 			if err != nil {
-				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, currCertKeyPair)
+				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, actualPKIContent.InClusterResourceData.CertKeyPairs[i])
 			}
 		}
 
-		for _, currCABundle := range actualPKIContent.InClusterResourceData.CertificateAuthorityBundles {
-			currLocation := currCABundle.ConfigMapLocation
+		for i, inClusterCABundle := range actualPKIContent.InClusterResourceData.CertificateAuthorityBundles {
+			currLocation := inClusterCABundle.ConfigMapLocation
 			if _, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, violationsPKIContent.CertificateAuthorityBundles); err == nil {
 				continue
 			}
 
 			_, err := certgraphutils.LocateCertificateAuthorityBundle(currLocation, expectedPKIContent.CertificateAuthorityBundles)
 			if err != nil {
-				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, currCABundle)
+				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, actualPKIContent.InClusterResourceData.CertificateAuthorityBundles[i])
 			}
 		}
 
