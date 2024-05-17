@@ -5,6 +5,11 @@ metadata:
   name: cluster
 spec:
   testsForFeatureGates:
+  - featureGate: DNSNameResolver
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall]
+        when using openshift ovn-kubernetes should ensure egressfirewall with wildcard
+        dns rules is created'
   - featureGate: Example
     tests:
     - testName: '[sig-arch][OCPFeatureGate:Example] should only run FeatureGated test
