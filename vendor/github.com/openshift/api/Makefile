@@ -51,6 +51,7 @@ verify-scripts:
 	bash -x hack/verify-prerelease-lifecycle-gen.sh
 	hack/verify-payload-crds.sh
 	hack/verify-payload-featuregates.sh
+	hack/verify-promoted-features-pass-tests.sh
 
 .PHONY: verify
 verify: verify-scripts verify-crd-schema verify-codegen-crds

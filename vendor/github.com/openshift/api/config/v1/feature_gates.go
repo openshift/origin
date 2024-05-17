@@ -595,4 +595,11 @@ var (
 						productScope(ocpSpecific).
 						enableIn(TechPreviewNoUpgrade).
 						mustRegister()
+
+	FeatureGateVSphereDriverConfiguration = newFeatureGate("VSphereDriverConfiguration").
+						reportProblemsToJiraComponent("Storage / Kubernetes External Components").
+						contactPerson("rbednar").
+						productScope(ocpSpecific).
+						enableIn(TechPreviewNoUpgrade).
+						mustRegister()
 )

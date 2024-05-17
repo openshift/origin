@@ -38,6 +38,7 @@
 | SigstoreImageVerification| | | <span style="background-color: #519450">Enabled</span> | <span style="background-color: #519450">Enabled</span>  |
 | TranslateStreamCloseWebsocketRequests| | | <span style="background-color: #519450">Enabled</span> | <span style="background-color: #519450">Enabled</span>  |
 | UpgradeStatus| | | <span style="background-color: #519450">Enabled</span> | <span style="background-color: #519450">Enabled</span>  |
+| VSphereDriverConfiguration| | | <span style="background-color: #519450">Enabled</span> | <span style="background-color: #519450">Enabled</span>  |
 | ValidatingAdmissionPolicy| | | <span style="background-color: #519450">Enabled</span> | <span style="background-color: #519450">Enabled</span>  |
 | VolumeGroupSnapshot| | | <span style="background-color: #519450">Enabled</span> | <span style="background-color: #519450">Enabled</span>  |
 | ExternalOIDC| <span style="background-color: #519450">Enabled</span> | | <span style="background-color: #519450">Enabled</span> | <span style="background-color: #519450">Enabled</span>  |
