@@ -51,7 +51,6 @@ import (
 	podresourcesapi "k8s.io/kubelet/pkg/apis/podresources/v1"
 	kubefeatures "k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
-	"k8s.io/kubernetes/pkg/kubelet/cm/containermap"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpumanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/devicemanager"
 	"k8s.io/kubernetes/pkg/kubelet/cm/dra"
@@ -566,8 +565,9 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 	localStorageCapacityIsolation bool) error {
 	ctx := context.Background()
 
+	containerMap, containerRunningSet := buildContainerMapAndRunningSetFromRuntime(ctx, runtimeService)
+
 	// Initialize CPU manager
-	containerMap := buildContainerMapFromRuntime(ctx, runtimeService)
 	err := cm.cpuManager.Start(cpumanager.ActivePodsFunc(activePods), sourcesReady, podStatusProvider, runtimeService, containerMap)
 	if err != nil {
 		return fmt.Errorf("start cpu manager error: %v", err)
@@ -575,7 +575,7 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 
 	// Initialize memory manager
 	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.MemoryManager) {
-		containerMap := buildContainerMapFromRuntime(ctx, runtimeService)
+		containerMap, _ := buildContainerMapAndRunningSetFromRuntime(ctx, runtimeService)
 		err := cm.memoryManager.Start(memorymanager.ActivePodsFunc(activePods), sourcesReady, podStatusProvider, runtimeService, containerMap)
 		if err != nil {
 			return fmt.Errorf("start memory manager error: %v", err)
@@ -639,7 +639,7 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 	}
 
 	// Starts device manager.
-	if err := cm.deviceManager.Start(devicemanager.ActivePodsFunc(activePods), sourcesReady); err != nil {
+	if err := cm.deviceManager.Start(devicemanager.ActivePodsFunc(activePods), sourcesReady, containerMap, containerRunningSet); err != nil {
 		return err
 	}
 
@@ -700,26 +700,6 @@ func (cm *containerManagerImpl) SystemCgroupsLimit() v1.ResourceList {
 			cpuLimit,
 			resource.DecimalSI),
 	}
-}
-
-func buildContainerMapFromRuntime(ctx context.Context, runtimeService internalapi.RuntimeService) containermap.ContainerMap {
-	podSandboxMap := make(map[string]string)
-	podSandboxList, _ := runtimeService.ListPodSandbox(ctx, nil)
-	for _, p := range podSandboxList {
-		podSandboxMap[p.Id] = p.Metadata.Uid
-	}
-
-	containerMap := containermap.NewContainerMap()
-	containerList, _ := runtimeService.ListContainers(ctx, nil)
-	for _, c := range containerList {
-		if _, exists := podSandboxMap[c.PodSandboxId]; !exists {
-			klog.InfoS("No PodSandBox found for the container", "podSandboxId", c.PodSandboxId, "containerName", c.Metadata.Name, "containerId", c.Id)
-			continue
-		}
-		containerMap.Add(podSandboxMap[c.PodSandboxId], c.Metadata.Name, c.Id)
-	}
-
-	return containerMap
 }
 
 func isProcessRunningInHost(pid int) (bool, error) {
