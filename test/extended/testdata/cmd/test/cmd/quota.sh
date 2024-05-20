@@ -22,11 +22,13 @@ os::test::junit::declare_suite_start "cmd/quota/clusterquota"
 os::cmd::expect_success 'oc new-project quota-foo --as=deads --as-group=system:authenticated --as-group=system:authenticated:oauth'
 os::cmd::expect_success 'oc label namespace/quota-foo owner=deads'
 # before k8s 1.24 this will return 9, starting from 1.24 it'll return 6
-os::cmd::try_until_text 'oc get secrets -o name -n quota-foo | wc -l' '6|9'
+# OCP 4.16+ no longer creates legacy API tokens so it will only return 3
+os::cmd::try_until_text 'oc get secrets -o name -n quota-foo | wc -l' '3|6|9'
 os::cmd::expect_success 'oc create clusterquota for-deads --project-label-selector=owner=deads --hard=secrets=10'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-foo --as deads -o name' "for-deads"
 # before k8s 1.24 this will return 9, starting from 1.24 it'll return 6
-os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads -n quota-foo --as deads -o jsonpath=used={.status.total.used.secrets}' "used=6|used=9"
+# OCP 4.16+ no longer creates legacy API tokens so it will only return 3
+os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads -n quota-foo --as deads -o jsonpath=used={.status.total.used.secrets}' "used=3|used=6|used=9"
 
 os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector="openshift.#$%/requester=deads"' "prefix part a (DNS-1123|lowercase RFC 1123) subdomain must consist of lower case alphanumeric characters"
 os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector=openshift.io/requester=deads,openshift.io/novalue' "Malformed annotation selector"
@@ -42,7 +44,8 @@ os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-asmail --as
 # the create_dockercfg controller can issue multiple creates if the token controller doesn't fill them in, but the creates are duplicates
 # since an annotation tracks the intended secrets to be created.  That results in multi-counting quota until reconciliation runs
 # do not go past 26.  If you get to 27, you might be selecting an extra namespace.
-os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads-by-annotation -n quota-bar --as deads -o jsonpath=used={.status.total.used.secrets}' "used=(1[0-9]|20|21|22|23|24|25|26)"
+# OCP 4.16+ no longer creates legacy API tokens so we expect much fewer secrets (6)
+os::cmd::try_until_text 'oc get secrets --all-namespaces; oc get appliedclusterresourcequota/for-deads-by-annotation -n quota-bar --as deads -o jsonpath=used={.status.total.used.secrets}' "used=([6-9]|1[0-9]|20|21|22|23|24|25|26)"
 os::cmd::expect_success 'oc delete project quota-foo'
 os::cmd::try_until_not_text 'oc get clusterresourcequota/for-deads-by-annotation -o jsonpath="{.status.namespaces[*].namespace}"' 'quota-foo'
 os::cmd::expect_success 'oc delete project quota-bar'
