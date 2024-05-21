@@ -95,7 +95,7 @@ var _ = g.Describe("[sig-apimachinery]", func() {
 			ctx := context.Background()
 			isSelfManagedHA, err := exutil.IsSelfManagedHA(ctx, oc.AdminConfigClient())
 			o.Expect(err).NotTo(o.HaveOccurred())
-			isSingleNode, err := exutil.IsSelfManagedHA(ctx, oc.AdminConfigClient())
+			isSingleNode, err := exutil.IsSingleNode(ctx, oc.AdminConfigClient())
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if !isSelfManagedHA && !isSingleNode {
 				g.Skip("only SelfManagedHA and SingleNode have mutable FeatureGates")
