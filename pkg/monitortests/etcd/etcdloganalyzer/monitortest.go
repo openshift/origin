@@ -194,6 +194,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 					monitorapi.NewMessage().
 						HumanMessage(parsedLine.Msg),
 				).
+				Display().
 				Build(parsedLine.Timestamp, parsedLine.Timestamp.Add(1*time.Second)))
 	}
 
@@ -268,6 +269,7 @@ func (g etcdRecorder) HandleLogLine(logLine podaccess.LogLineContent) {
 			monitorapi.NewInterval(etcdSource, monitorapi.Warning).
 				Locator(logLine.Locator).
 				Message(message).
+				Display().
 				Build(logLine.Instant, logLine.Instant.Add(time.Second)),
 		)
 	}

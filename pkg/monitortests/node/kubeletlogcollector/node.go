@@ -221,6 +221,7 @@ func readinessFailure(nodeName, logLine string) monitorapi.Intervals {
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
 			Locator(containerRef).
 			Message(monitorapi.NewMessage().Reason(monitorapi.ContainerReasonReadinessFailed).Node(nodeName).HumanMessage(message)).
+			Display().
 			Build(failureTime, failureTime),
 	}
 }
@@ -252,6 +253,7 @@ func readinessError(nodeName, logLine string) monitorapi.Intervals {
 					Node(nodeName).
 					HumanMessage(message),
 			).
+			Display().
 			Build(failureTime, failureTime),
 	}
 }
@@ -278,6 +280,7 @@ func errParsingSignature(nodeName, logLine string) monitorapi.Intervals {
 					Cause(monitorapi.ContainerUnrecognizedSignatureFormat).
 					Node(nodeName),
 			).
+			Display().
 			Build(failureTime, failureTime),
 	}
 }
@@ -323,6 +326,7 @@ func startupProbeError(nodeName, logLine string) monitorapi.Intervals {
 					Node(nodeName).
 					HumanMessage(message),
 			).
+			Display().
 			Build(failureTime, failureTime),
 	}
 }
@@ -423,6 +427,7 @@ func failedToDeleteCGroupsPath(nodeLocator monitorapi.Locator, logLine string) m
 		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Error).
 			Locator(nodeLocator).
 			Message(monitorapi.NewMessage().Reason(monitorapi.FailedToDeleteCGroupsPath).HumanMessage(logLine)).
+			Display().
 			Build(failureTime, failureTime.Add(1*time.Second)),
 	}
 }
@@ -439,6 +444,7 @@ func anonymousCertConnectionError(nodeLocator monitorapi.Locator, logLine string
 			Locator(nodeLocator).
 			Message(monitorapi.NewMessage().Reason(monitorapi.FailedToAuthenticateWithOpenShiftUser).
 				HumanMessage(logLine)).
+			Display().
 			Build(failureTime, failureTime.Add(1*time.Second)),
 	}
 }
@@ -491,6 +497,7 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 			Message(
 				monitorapi.NewMessage().Reason(monitorapi.NodeFailedLease).HumanMessage(fmt.Sprintf("%s - %s", url, msg)),
 			).
+			Display().
 			Build(failureTime, failureTime.Add(1*time.Second)),
 	}
 }
@@ -533,6 +540,7 @@ func commonErrorInterval(nodeName, logLine string, messageExp *regexp.Regexp, re
 			Message(
 				monitorapi.NewMessage().Reason(reason).Node(nodeName).HumanMessage(message),
 			).
+			Display().
 			Build(failureTime, failureTime),
 	}
 }
