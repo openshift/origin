@@ -26,10 +26,6 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", func
 		if isSingleNode {
 			g.Skip("the test is for etcd peer communication which is not valid for single node")
 		}
-		//TODO remove this check once https://github.com/openshift/api/pull/1844 has merged
-		if !exutil.IsTechPreviewNoUpgrade(oc) {
-			g.Skip("the test is not expected to work within Tech Preview disabled clusters")
-		}
 	})
 
 	g.AfterEach(func() {
