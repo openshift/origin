@@ -749,7 +749,7 @@ github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/api v0.0.0-20231205121914-b5716b30456a
+# github.com/openshift/api v0.0.0-20240522145529-93d6bda14341
 ## explicit; go 1.20
 github.com/openshift/api
 github.com/openshift/api/annotations

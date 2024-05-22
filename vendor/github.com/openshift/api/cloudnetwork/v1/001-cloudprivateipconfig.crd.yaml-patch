@@ -7,4 +7,4 @@
         type: string
         anyOf:
         - format: ipv4
-        - format: ipv6
+        - pattern: '^[0-9a-f]{4}(\.[0-9a-f]{4}){7}$'
