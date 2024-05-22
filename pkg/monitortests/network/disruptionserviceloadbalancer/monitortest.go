@@ -338,7 +338,7 @@ func checkHostnameReady(ctx context.Context, tcpService *corev1.Service, nodeTgt
 
 	wait.PollUntilContextTimeout(ctx, 15*time.Second, 60*time.Minute, true, func(ctx context.Context) (bool, error) {
 		logrus.Debug("Checking load balancer host is active \n")
-		stdOut, _, err = oc.AsAdmin().WithoutNamespace().RunInMonitorTest("debug").Args(nodeTgt, "--to-namespace"+namespace, "--", "dig", "+short", "+notcp", tcpService.Status.LoadBalancer.Ingress[0].Hostname).Outputs()
+		stdOut, _, err = oc.AsAdmin().WithoutNamespace().RunInMonitorTest("debug").Args(nodeTgt, "--to-namespace="+namespace, "--", "dig", "+short", "+notcp", tcpService.Status.LoadBalancer.Ingress[0].Hostname).Outputs()
 		if err != nil {
 			return false, nil
 		}
