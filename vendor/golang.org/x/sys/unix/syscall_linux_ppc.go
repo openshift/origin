@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build linux && ppc
+// +build linux,ppc
 
 package unix
 

@@ -46,9 +46,7 @@ func (c *csiPlugin) NodeExpand(resizeOptions volume.NodeResizeOptions) (bool, er
 
 	csClient, err := newCsiDriverClient(csiDriverName(csiSource.Driver))
 	if err != nil {
-		// Treat the absence of the CSI driver as a transient error
-		// See https://github.com/kubernetes/kubernetes/issues/120268
-		return false, volumetypes.NewTransientOperationFailure(err.Error())
+		return false, err
 	}
 	fsVolume, err := util.CheckVolumeModeFilesystem(resizeOptions.VolumeSpec)
 	if err != nil {

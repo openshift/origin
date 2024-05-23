@@ -469,10 +469,6 @@ var Annotations = map[string]string{
 
 	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform canary updates and phased rolling updates of template modifications [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
-	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform canary updates and phased rolling updates of template modifications for partiton1 and delete pod-0 with failing container": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
-	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform canary updates and phased rolling updates of template modifications for partiton1 and delete pod-0 without failing container": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
-
 	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications [Conformance]": " [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]",
 
 	"[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should perform rolling updates and roll backs of template modifications with PVCs": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
@@ -2049,9 +2045,9 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] read-write-once-pod[MinimumKubeletVersion:1.27] should block a second pod from using an in-use ReadWriteOncePod volume on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] read-write-once-pod should block a second pod from using an in-use ReadWriteOncePod volume on the same node": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] read-write-once-pod[MinimumKubeletVersion:1.27] should preempt lower priority pods using ReadWriteOncePod volumes": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] read-write-once-pod should preempt lower priority pods using ReadWriteOncePod volumes": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Suite:openshift/conformance/parallel] [Suite:k8s]",
 
@@ -2607,9 +2603,9 @@ var Annotations = map[string]string{
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] provisioning should provision storage with snapshot data source [Feature:VolumeSnapshotDataSource]": " [Skipped:NoOptionalCapabilities] [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] read-write-once-pod[MinimumKubeletVersion:1.27] should block a second pod from using an in-use ReadWriteOncePod volume on the same node": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] read-write-once-pod should block a second pod from using an in-use ReadWriteOncePod volume on the same node": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
-	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] read-write-once-pod[MinimumKubeletVersion:1.27] should preempt lower priority pods using ReadWriteOncePod volumes": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
+	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] read-write-once-pod should preempt lower priority pods using ReadWriteOncePod volumes": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io][Serial] [Testpattern: Dynamic PV (default fs)] subPath should be able to unmount after the subpath directory is deleted [LinuxOnly]": " [Skipped:gce] [Suite:openshift/conformance/serial] [Suite:k8s]",
 

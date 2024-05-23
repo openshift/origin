@@ -823,6 +823,11 @@ func (proxier *Proxier) syncProxyRules() {
 	}()
 
 	tryPartialSync := !proxier.needFullSync && utilfeature.DefaultFeatureGate.Enabled(features.MinimizeIPTablesRestore)
+	var serviceChanged, endpointsChanged sets.String
+	if tryPartialSync {
+		serviceChanged = proxier.serviceChanges.PendingChanges()
+		endpointsChanged = proxier.endpointsChanges.PendingChanges()
+	}
 	serviceUpdateResult := proxier.svcPortMap.Update(proxier.serviceChanges)
 	endpointUpdateResult := proxier.endpointsMap.Update(proxier.endpointsChanges)
 
@@ -1242,7 +1247,7 @@ func (proxier *Proxier) syncProxyRules() {
 		// If the SVC/SVL/EXT/FW/SEP chains have not changed since the last sync
 		// then we can omit them from the restore input. (We have already marked
 		// them in activeNATChains, so they won't get deleted.)
-		if tryPartialSync && !serviceUpdateResult.UpdatedServices.Has(svcName.NamespacedName) && !endpointUpdateResult.UpdatedServices.Has(svcName.NamespacedName) {
+		if tryPartialSync && !serviceChanged.Has(svcName.NamespacedName.String()) && !endpointsChanged.Has(svcName.NamespacedName.String()) {
 			continue
 		}
 

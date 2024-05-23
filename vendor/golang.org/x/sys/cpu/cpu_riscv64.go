@@ -3,9 +3,10 @@
 // license that can be found in the LICENSE file.
 
 //go:build riscv64
+// +build riscv64
 
 package cpu
 
-const cacheLineSize = 64
+const cacheLineSize = 32
 
 func initOptions() {}

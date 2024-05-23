@@ -1,7 +1,6 @@
 package libcontainer
 
 import (
-	"io/fs"
 	"strconv"
 
 	"golang.org/x/sys/unix"
@@ -81,21 +80,4 @@ func unmount(target string, flags int) error {
 		}
 	}
 	return nil
-}
-
-// syscallMode returns the syscall-specific mode bits from Go's portable mode bits.
-// Copy from https://cs.opensource.google/go/go/+/refs/tags/go1.20.7:src/os/file_posix.go;l=61-75
-func syscallMode(i fs.FileMode) (o uint32) {
-	o |= uint32(i.Perm())
-	if i&fs.ModeSetuid != 0 {
-		o |= unix.S_ISUID
-	}
-	if i&fs.ModeSetgid != 0 {
-		o |= unix.S_ISGID
-	}
-	if i&fs.ModeSticky != 0 {
-		o |= unix.S_ISVTX
-	}
-	// No mapping for Go's ModeTemporary (plan9 only).
-	return
 }

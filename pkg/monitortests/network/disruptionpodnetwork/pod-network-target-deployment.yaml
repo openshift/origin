@@ -27,7 +27,7 @@ spec:
             - --http-port=8080
             - --delay-shutdown=30
           # overridden when created
-          image: registry.k8s.io/e2e-test-images/agnhost:2.47
+          image: registry.k8s.io/e2e-test-images/agnhost:2.43
           imagePullPolicy: IfNotPresent
           name: pod-disruption-server
           ports:

@@ -13,14 +13,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"time"
 
 	"cloud.google.com/go/compute/metadata"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/authhandler"
 )
-
-const adcSetupURL = "https://cloud.google.com/docs/authentication/external/set-up-adc"
 
 // Credentials holds Google credentials, including "Application Default Credentials".
 // For more details, see:
@@ -57,26 +54,11 @@ type CredentialsParams struct {
 	// Optional.
 	Subject string
 
-	// AuthHandler is the AuthorizationHandler used for 3-legged OAuth flow. Required for 3LO flow.
+	// AuthHandler is the AuthorizationHandler used for 3-legged OAuth flow. Optional.
 	AuthHandler authhandler.AuthorizationHandler
 
-	// State is a unique string used with AuthHandler. Required for 3LO flow.
+	// State is a unique string used with AuthHandler. Optional.
 	State string
-
-	// PKCE is used to support PKCE flow. Optional for 3LO flow.
-	PKCE *authhandler.PKCEParams
-
-	// The OAuth2 TokenURL default override. This value overrides the default TokenURL,
-	// unless explicitly specified by the credentials config file. Optional.
-	TokenURL string
-
-	// EarlyTokenRefresh is the amount of time before a token expires that a new
-	// token will be preemptively fetched. If unset the default value is 10
-	// seconds.
-	//
-	// Note: This option is currently only respected when using credentials
-	// fetched from the GCE metadata server.
-	EarlyTokenRefresh time.Duration
 }
 
 func (params CredentialsParams) deepCopy() CredentialsParams {
@@ -152,7 +134,7 @@ func FindDefaultCredentialsWithParams(ctx context.Context, params CredentialsPar
 	// use those credentials. App Engine standard second generation runtimes (>= Go 1.11)
 	// and App Engine flexible use ComputeTokenSource and the metadata server.
 	if appengineTokenFunc != nil {
-		return &Credentials{
+		return &DefaultCredentials{
 			ProjectID:   appengineAppIDFunc(ctx),
 			TokenSource: AppEngineTokenSource(ctx, params.Scopes...),
 		}, nil
@@ -162,14 +144,15 @@ func FindDefaultCredentialsWithParams(ctx context.Context, params CredentialsPar
 	// or App Engine flexible, use the metadata server.
 	if metadata.OnGCE() {
 		id, _ := metadata.ProjectID()
-		return &Credentials{
+		return &DefaultCredentials{
 			ProjectID:   id,
-			TokenSource: computeTokenSource("", params.EarlyTokenRefresh, params.Scopes...),
+			TokenSource: ComputeTokenSource("", params.Scopes...),
 		}, nil
 	}
 
 	// None are found; return helpful error.
-	return nil, fmt.Errorf("google: could not find default credentials. See %v for more information", adcSetupURL)
+	const url = "https://developers.google.com/accounts/docs/application-default-credentials"
+	return nil, fmt.Errorf("google: could not find default credentials. See %v for more information.", url)
 }
 
 // FindDefaultCredentials invokes FindDefaultCredentialsWithParams with the specified scopes.
@@ -193,7 +176,7 @@ func CredentialsFromJSONWithParams(ctx context.Context, jsonData []byte, params 
 	if config != nil {
 		return &Credentials{
 			ProjectID:   "",
-			TokenSource: authhandler.TokenSourceWithPKCE(ctx, config, params.State, params.AuthHandler, params.PKCE),
+			TokenSource: authhandler.TokenSource(ctx, config, params.State, params.AuthHandler),
 			JSON:        jsonData,
 		}, nil
 	}
@@ -207,8 +190,7 @@ func CredentialsFromJSONWithParams(ctx context.Context, jsonData []byte, params 
 	if err != nil {
 		return nil, err
 	}
-	ts = newErrWrappingTokenSource(ts)
-	return &Credentials{
+	return &DefaultCredentials{
 		ProjectID:   f.ProjectID,
 		TokenSource: ts,
 		JSON:        jsonData,
@@ -230,7 +212,7 @@ func wellKnownFile() string {
 	return filepath.Join(guessUnixHomeDir(), ".config", "gcloud", f)
 }
 
-func readCredentialsFile(ctx context.Context, filename string, params CredentialsParams) (*Credentials, error) {
+func readCredentialsFile(ctx context.Context, filename string, params CredentialsParams) (*DefaultCredentials, error) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err

@@ -133,10 +133,9 @@ func (c *AggregationController) processNextWorkItem() bool {
 }
 
 func (c *AggregationController) sync(key string) (syncAction, error) {
-	if err := c.openAPIAggregationManager.UpdateAPIServiceSpec(key); err != nil {
-		if err == aggregator.ErrAPIServiceNotFound {
-			return syncNothing, nil
-		}
+	err := c.openAPIAggregationManager.UpdateAPIServiceSpec(key)
+	switch {
+	case err != nil:
 		return syncRequeueRateLimited, err
 	}
 	return syncRequeue, nil

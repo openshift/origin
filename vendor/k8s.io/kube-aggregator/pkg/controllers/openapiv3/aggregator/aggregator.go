@@ -19,7 +19,6 @@ package aggregator
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -42,12 +41,9 @@ import (
 	v2aggregator "k8s.io/kube-aggregator/pkg/controllers/openapi/aggregator"
 )
 
-var ErrAPIServiceNotFound = errors.New("resource not found")
-
 // SpecProxier proxies OpenAPI V3 requests to their respective APIService
 type SpecProxier interface {
 	AddUpdateAPIService(handler http.Handler, apiService *v1.APIService)
-	// UpdateAPIServiceSpec updates the APIService. It returns ErrAPIServiceNotFound if the APIService doesn't exist.
 	UpdateAPIServiceSpec(apiServiceName string) error
 	RemoveAPIServiceSpec(apiServiceName string)
 	GetAPIServiceNames() []string
@@ -165,7 +161,7 @@ func (s *specProxier) UpdateAPIServiceSpec(apiServiceName string) error {
 func (s *specProxier) updateAPIServiceSpecLocked(apiServiceName string) error {
 	apiService, exists := s.apiServiceInfo[apiServiceName]
 	if !exists {
-		return ErrAPIServiceNotFound
+		return fmt.Errorf("APIService %s does not exist for update", apiServiceName)
 	}
 
 	if !apiService.isLegacyAPIService {
@@ -229,7 +225,6 @@ func (s *specProxier) RemoveAPIServiceSpec(apiServiceName string) {
 	defer s.rwMutex.Unlock()
 	if apiServiceInfo, ok := s.apiServiceInfo[apiServiceName]; ok {
 		s.openAPIV2ConverterHandler.DeleteGroupVersion(getGroupVersionStringFromAPIService(apiServiceInfo.apiService))
-		_ = s.updateAPIServiceSpecLocked(openAPIV2Converter)
 		delete(s.apiServiceInfo, apiServiceName)
 	}
 }

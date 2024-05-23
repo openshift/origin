@@ -609,7 +609,7 @@ func (s *APIAggregator) RemoveAPIService(apiServiceName string) {
 		s.openAPIAggregationController.RemoveAPIService(apiServiceName)
 	}
 	if s.openAPIV3AggregationController != nil {
-		s.openAPIV3AggregationController.RemoveAPIService(apiServiceName)
+		s.openAPIAggregationController.RemoveAPIService(apiServiceName)
 	}
 	delete(s.proxyHandlers, apiServiceName)
 

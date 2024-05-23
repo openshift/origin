@@ -124,7 +124,6 @@ type Server struct {
 	// IdleTimeout specifies how long until idle clients should be
 	// closed with a GOAWAY frame. PING frames are not considered
 	// activity for the purposes of IdleTimeout.
-	// If zero or negative, there is no timeout.
 	IdleTimeout time.Duration
 
 	// MaxUploadBufferPerConnection is the size of the initial flow
@@ -435,14 +434,14 @@ func (s *Server) ServeConn(c net.Conn, opts *ServeConnOpts) {
 	// passes the connection off to us with the deadline already set.
 	// Write deadlines are set per stream in serverConn.newStream.
 	// Disarm the net.Conn write deadline here.
-	if sc.hs.WriteTimeout > 0 {
+	if sc.hs.WriteTimeout != 0 {
 		sc.conn.SetWriteDeadline(time.Time{})
 	}
 
 	if s.NewWriteScheduler != nil {
 		sc.writeSched = s.NewWriteScheduler()
 	} else {
-		sc.writeSched = newRoundRobinWriteScheduler()
+		sc.writeSched = NewPriorityWriteScheduler(nil)
 	}
 
 	// These start at the RFC-specified defaults. If there is a higher
@@ -582,11 +581,9 @@ type serverConn struct {
 	advMaxStreams               uint32 // our SETTINGS_MAX_CONCURRENT_STREAMS advertised the client
 	curClientStreams            uint32 // number of open streams initiated by the client
 	curPushedStreams            uint32 // number of open streams initiated by server push
-	curHandlers                 uint32 // number of running handler goroutines
 	maxClientStreamID           uint32 // max ever seen from client (odd), or 0 if there have been no client requests
 	maxPushPromiseID            uint32 // ID of the last push promise (even), or 0 if there have been no pushes
 	streams                     map[uint32]*stream
-	unstartedHandlers           []unstartedHandler
 	initialStreamSendWindowSize int32
 	maxFrameSize                int32
 	peerMaxHeaderListSize       uint32            // zero means unknown (default)
@@ -925,7 +922,7 @@ func (sc *serverConn) serve() {
 	sc.setConnState(http.StateActive)
 	sc.setConnState(http.StateIdle)
 
-	if sc.srv.IdleTimeout > 0 {
+	if sc.srv.IdleTimeout != 0 {
 		sc.idleTimer = time.AfterFunc(sc.srv.IdleTimeout, sc.onIdleTimer)
 		defer sc.idleTimer.Stop()
 	}
@@ -984,8 +981,6 @@ func (sc *serverConn) serve() {
 					return
 				case gracefulShutdownMsg:
 					sc.startGracefulShutdownInternal()
-				case handlerDoneMsg:
-					sc.handlerDone()
 				default:
 					panic("unknown timer")
 				}
@@ -1017,6 +1012,14 @@ func (sc *serverConn) serve() {
 	}
 }
 
+func (sc *serverConn) awaitGracefulShutdown(sharedCh <-chan struct{}, privateCh chan struct{}) {
+	select {
+	case <-sc.doneServing:
+	case <-sharedCh:
+		close(privateCh)
+	}
+}
+
 type serverMessage int
 
 // Message values sent to serveMsgCh.
@@ -1025,7 +1028,6 @@ var (
 	idleTimerMsg        = new(serverMessage)
 	shutdownTimerMsg    = new(serverMessage)
 	gracefulShutdownMsg = new(serverMessage)
-	handlerDoneMsg      = new(serverMessage)
 )
 
 func (sc *serverConn) onSettingsTimer() { sc.sendServeMsg(settingsTimerMsg) }
@@ -1638,7 +1640,7 @@ func (sc *serverConn) closeStream(st *stream, err error) {
 	delete(sc.streams, st.id)
 	if len(sc.streams) == 0 {
 		sc.setConnState(http.StateIdle)
-		if sc.srv.IdleTimeout > 0 {
+		if sc.srv.IdleTimeout != 0 {
 			sc.idleTimer.Reset(sc.srv.IdleTimeout)
 		}
 		if h1ServerKeepAlivesDisabled(sc.hs) {
@@ -1898,11 +1900,9 @@ func (st *stream) copyTrailersToHandlerRequest() {
 // onReadTimeout is run on its own goroutine (from time.AfterFunc)
 // when the stream's ReadTimeout has fired.
 func (st *stream) onReadTimeout() {
-	if st.body != nil {
-		// Wrap the ErrDeadlineExceeded to avoid callers depending on us
-		// returning the bare error.
-		st.body.CloseWithError(fmt.Errorf("%w", os.ErrDeadlineExceeded))
-	}
+	// Wrap the ErrDeadlineExceeded to avoid callers depending on us
+	// returning the bare error.
+	st.body.CloseWithError(fmt.Errorf("%w", os.ErrDeadlineExceeded))
 }
 
 // onWriteTimeout is run on its own goroutine (from time.AfterFunc)
@@ -2018,12 +2018,15 @@ func (sc *serverConn) processHeaders(f *MetaHeadersFrame) error {
 	// similar to how the http1 server works. Here it's
 	// technically more like the http1 Server's ReadHeaderTimeout
 	// (in Go 1.8), though. That's a more sane option anyway.
-	if sc.hs.ReadTimeout > 0 {
+	if sc.hs.ReadTimeout != 0 {
 		sc.conn.SetReadDeadline(time.Time{})
-		st.readDeadline = time.AfterFunc(sc.hs.ReadTimeout, st.onReadTimeout)
+		if st.body != nil {
+			st.readDeadline = time.AfterFunc(sc.hs.ReadTimeout, st.onReadTimeout)
+		}
 	}
 
-	return sc.scheduleHandler(id, rw, req, handler)
+	go sc.runHandler(rw, req, handler)
+	return nil
 }
 
 func (sc *serverConn) upgradeRequest(req *http.Request) {
@@ -2039,14 +2042,10 @@ func (sc *serverConn) upgradeRequest(req *http.Request) {
 
 	// Disable any read deadline set by the net/http package
 	// prior to the upgrade.
-	if sc.hs.ReadTimeout > 0 {
+	if sc.hs.ReadTimeout != 0 {
 		sc.conn.SetReadDeadline(time.Time{})
 	}
 
-	// This is the first request on the connection,
-	// so start the handler directly rather than going
-	// through scheduleHandler.
-	sc.curHandlers++
 	go sc.runHandler(rw, req, sc.handler.ServeHTTP)
 }
 
@@ -2117,7 +2116,7 @@ func (sc *serverConn) newStream(id, pusherID uint32, state streamState) *stream 
 	st.flow.conn = &sc.flow // link to conn-level counter
 	st.flow.add(sc.initialStreamSendWindowSize)
 	st.inflow.init(sc.srv.initialStreamRecvWindowSize())
-	if sc.hs.WriteTimeout > 0 {
+	if sc.hs.WriteTimeout != 0 {
 		st.writeDeadline = time.AfterFunc(sc.hs.WriteTimeout, st.onWriteTimeout)
 	}
 
@@ -2287,62 +2286,8 @@ func (sc *serverConn) newResponseWriter(st *stream, req *http.Request) *response
 	return &responseWriter{rws: rws}
 }
 
-type unstartedHandler struct {
-	streamID uint32
-	rw       *responseWriter
-	req      *http.Request
-	handler  func(http.ResponseWriter, *http.Request)
-}
-
-// scheduleHandler starts a handler goroutine,
-// or schedules one to start as soon as an existing handler finishes.
-func (sc *serverConn) scheduleHandler(streamID uint32, rw *responseWriter, req *http.Request, handler func(http.ResponseWriter, *http.Request)) error {
-	sc.serveG.check()
-	maxHandlers := sc.advMaxStreams
-	if sc.curHandlers < maxHandlers {
-		sc.curHandlers++
-		go sc.runHandler(rw, req, handler)
-		return nil
-	}
-	if len(sc.unstartedHandlers) > int(4*sc.advMaxStreams) {
-		return sc.countError("too_many_early_resets", ConnectionError(ErrCodeEnhanceYourCalm))
-	}
-	sc.unstartedHandlers = append(sc.unstartedHandlers, unstartedHandler{
-		streamID: streamID,
-		rw:       rw,
-		req:      req,
-		handler:  handler,
-	})
-	return nil
-}
-
-func (sc *serverConn) handlerDone() {
-	sc.serveG.check()
-	sc.curHandlers--
-	i := 0
-	maxHandlers := sc.advMaxStreams
-	for ; i < len(sc.unstartedHandlers); i++ {
-		u := sc.unstartedHandlers[i]
-		if sc.streams[u.streamID] == nil {
-			// This stream was reset before its goroutine had a chance to start.
-			continue
-		}
-		if sc.curHandlers >= maxHandlers {
-			break
-		}
-		sc.curHandlers++
-		go sc.runHandler(u.rw, u.req, u.handler)
-		sc.unstartedHandlers[i] = unstartedHandler{} // don't retain references
-	}
-	sc.unstartedHandlers = sc.unstartedHandlers[i:]
-	if len(sc.unstartedHandlers) == 0 {
-		sc.unstartedHandlers = nil
-	}
-}
-
 // Run on its own goroutine.
 func (sc *serverConn) runHandler(rw *responseWriter, req *http.Request, handler func(http.ResponseWriter, *http.Request)) {
-	defer sc.sendServeMsg(handlerDoneMsg)
 	didPanic := true
 	defer func() {
 		rw.rws.stream.cancelCtx()
@@ -2484,7 +2429,7 @@ type requestBody struct {
 	conn          *serverConn
 	closeOnce     sync.Once // for use by Close only
 	sawEOF        bool      // for use by Read only
-	pipe          *pipe     // non-nil if we have an HTTP entity message body
+	pipe          *pipe     // non-nil if we have a HTTP entity message body
 	needsContinue bool      // need to send a 100-continue
 }
 
@@ -2550,6 +2495,7 @@ type responseWriterState struct {
 	wroteHeader   bool        // WriteHeader called (explicitly or implicitly). Not necessarily sent to user yet.
 	sentHeader    bool        // have we sent the header frame?
 	handlerDone   bool        // handler has finished
+	dirty         bool        // a Write failed; don't reuse this responseWriterState
 
 	sentContentLen int64 // non-zero if handler set a Content-Length header
 	wroteBytes     int64
@@ -2623,8 +2569,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 				clen = ""
 			}
 		}
-		_, hasContentLength := rws.snapHeader["Content-Length"]
-		if !hasContentLength && clen == "" && rws.handlerDone && bodyAllowedForStatus(rws.status) && (len(p) > 0 || !isHeadResp) {
+		if clen == "" && rws.handlerDone && bodyAllowedForStatus(rws.status) && (len(p) > 0 || !isHeadResp) {
 			clen = strconv.Itoa(len(p))
 		}
 		_, hasContentType := rws.snapHeader["Content-Type"]
@@ -2669,6 +2614,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 			date:          date,
 		})
 		if err != nil {
+			rws.dirty = true
 			return 0, err
 		}
 		if endStream {
@@ -2689,6 +2635,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 	if len(p) > 0 || endStream {
 		// only send a 0 byte DATA frame if we're ending the stream.
 		if err := rws.conn.writeDataFromHandler(rws.stream, p, endStream); err != nil {
+			rws.dirty = true
 			return 0, err
 		}
 	}
@@ -2700,6 +2647,9 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 			trailers:  rws.trailers,
 			endStream: true,
 		})
+		if err != nil {
+			rws.dirty = true
+		}
 		return len(p), err
 	}
 	return len(p), nil
@@ -2824,7 +2774,7 @@ func (w *responseWriter) FlushError() error {
 		err = rws.bw.Flush()
 	} else {
 		// The bufio.Writer won't call chunkWriter.Write
-		// (writeChunk with zero bytes), so we have to do it
+		// (writeChunk with zero bytes, so we have to do it
 		// ourselves to force the HTTP response header and/or
 		// final DATA frame (with END_STREAM) to be sent.
 		_, err = chunkWriter{rws}.Write(nil)
@@ -2915,12 +2865,14 @@ func (rws *responseWriterState) writeHeader(code int) {
 			h.Del("Transfer-Encoding")
 		}
 
-		rws.conn.writeHeaders(rws.stream, &writeResHeaders{
+		if rws.conn.writeHeaders(rws.stream, &writeResHeaders{
 			streamID:    rws.stream.id,
 			httpResCode: code,
 			h:           h,
 			endStream:   rws.handlerDone && !rws.hasTrailers(),
-		})
+		}) != nil {
+			rws.dirty = true
+		}
 
 		return
 	}
@@ -2985,10 +2937,19 @@ func (w *responseWriter) write(lenData int, dataB []byte, dataS string) (n int, 
 
 func (w *responseWriter) handlerDone() {
 	rws := w.rws
+	dirty := rws.dirty
 	rws.handlerDone = true
 	w.Flush()
 	w.rws = nil
-	responseWriterStatePool.Put(rws)
+	if !dirty {
+		// Only recycle the pool if all prior Write calls to
+		// the serverConn goroutine completed successfully. If
+		// they returned earlier due to resets from the peer
+		// there might still be write goroutines outstanding
+		// from the serverConn referencing the rws memory. See
+		// issue 20704.
+		responseWriterStatePool.Put(rws)
+	}
 }
 
 // Push errors.
@@ -3171,7 +3132,6 @@ func (sc *serverConn) startPush(msg *startPushRequest) {
 			panic(fmt.Sprintf("newWriterAndRequestNoBody(%+v): %v", msg.url, err))
 		}
 
-		sc.curHandlers++
 		go sc.runHandler(rw, req, sc.handler.ServeHTTP)
 		return promisedID, nil
 	}

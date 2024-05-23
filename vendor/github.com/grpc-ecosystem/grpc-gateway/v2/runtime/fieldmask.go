@@ -53,7 +53,7 @@ func FieldMaskFromRequestBody(r io.Reader, msg proto.Message) (*field_mask.Field
 				}
 
 				if isDynamicProtoMessage(fd.Message()) {
-					for _, p := range buildPathsBlindly(string(fd.FullName().Name()), v) {
+					for _, p := range buildPathsBlindly(k, v) {
 						newPath := p
 						if item.path != "" {
 							newPath = item.path + "." + newPath

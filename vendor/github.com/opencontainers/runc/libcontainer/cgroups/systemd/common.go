@@ -177,7 +177,7 @@ func allowAllDevices() []systemdDbus.Property {
 
 // generateDeviceProperties takes the configured device rules and generates a
 // corresponding set of systemd properties to configure the devices correctly.
-func generateDeviceProperties(r *configs.Resources, sdVer int) ([]systemdDbus.Property, error) {
+func generateDeviceProperties(r *configs.Resources) ([]systemdDbus.Property, error) {
 	if r.SkipDevices {
 		return nil, nil
 	}
@@ -238,10 +238,9 @@ func generateDeviceProperties(r *configs.Resources, sdVer int) ([]systemdDbus.Pr
 		// trickery to convert things:
 		//
 		//  * Concrete rules with non-wildcard major/minor numbers have to use
-		//    /dev/{block,char}/MAJOR:minor paths. Before v240, systemd uses
-		//    stat(2) on such paths to look up device properties, meaning we
-		//    cannot add whitelist rules for devices that don't exist. Since v240,
-		//    device properties are parsed from the path string.
+		//    /dev/{block,char} paths. This is slightly odd because it means
+		//    that we cannot add whitelist rules for devices that don't exist,
+		//    but there's not too much we can do about that.
 		//
 		//    However, path globbing is not support for path-based rules so we
 		//    need to handle wildcards in some other manner.
@@ -289,14 +288,21 @@ func generateDeviceProperties(r *configs.Resources, sdVer int) ([]systemdDbus.Pr
 			case devices.CharDevice:
 				entry.Path = fmt.Sprintf("/dev/char/%d:%d", rule.Major, rule.Minor)
 			}
-			if sdVer < 240 {
-				// Old systemd versions use stat(2) on path to find out device major:minor
-				// numbers and type. If the path doesn't exist, it will not add the rule,
-				// emitting a warning instead.
-				// Since all of this logic is best-effort anyway (we manually set these
-				// rules separately to systemd) we can safely skip entries that don't
-				// have a corresponding path.
-				if _, err := os.Stat(entry.Path); err != nil {
+			// systemd will issue a warning if the path we give here doesn't exist.
+			// Since all of this logic is best-effort anyway (we manually set these
+			// rules separately to systemd) we can safely skip entries that don't
+			// have a corresponding path.
+			if _, err := os.Stat(entry.Path); err != nil {
+				// Also check /sys/dev so that we don't depend on /dev/{block,char}
+				// being populated. (/dev/{block,char} is populated by udev, which
+				// isn't strictly required for systemd). Ironically, this happens most
+				// easily when starting containerd within a runc created container
+				// itself.
+
+				// We don't bother with securejoin here because we create entry.Path
+				// right above here, so we know it's safe.
+				if _, err := os.Stat("/sys" + entry.Path); err != nil {
+					logrus.Warnf("skipping device %s for systemd: %s", entry.Path, err)
 					continue
 				}
 			}
@@ -370,10 +376,7 @@ retry:
 			// In case a unit with the same name exists, this may
 			// be a leftover failed unit. Reset it, so systemd can
 			// remove it, and retry once.
-			err = resetFailedUnit(cm, unitName)
-			if err != nil {
-				logrus.Warnf("unable to reset failed unit: %v", err)
-			}
+			resetFailedUnit(cm, unitName)
 			retry = false
 			goto retry
 		}
@@ -388,11 +391,11 @@ retry:
 		close(statusChan)
 		// Please refer to https://pkg.go.dev/github.com/coreos/go-systemd/v22/dbus#Conn.StartUnit
 		if s != "done" {
-			_ = resetFailedUnit(cm, unitName)
+			resetFailedUnit(cm, unitName)
 			return fmt.Errorf("error creating systemd unit `%s`: got `%s`", unitName, s)
 		}
 	case <-timeout.C:
-		_ = resetFailedUnit(cm, unitName)
+		resetFailedUnit(cm, unitName)
 		return errors.New("Timeout waiting for systemd to create " + unitName)
 	}
 
@@ -420,17 +423,16 @@ func stopUnit(cm *dbusConnManager, unitName string) error {
 			return errors.New("Timed out while waiting for systemd to remove " + unitName)
 		}
 	}
-
-	// In case of a failed unit, let systemd remove it.
-	_ = resetFailedUnit(cm, unitName)
-
 	return nil
 }
 
-func resetFailedUnit(cm *dbusConnManager, name string) error {
-	return cm.retryOnDisconnect(func(c *systemdDbus.Conn) error {
+func resetFailedUnit(cm *dbusConnManager, name string) {
+	err := cm.retryOnDisconnect(func(c *systemdDbus.Conn) error {
 		return c.ResetFailedUnitContext(context.TODO(), name)
 	})
+	if err != nil {
+		logrus.Warnf("unable to reset failed unit: %v", err)
+	}
 }
 
 func getUnitTypeProperty(cm *dbusConnManager, unitName string, unitType string, propertyName string) (*systemdDbus.Property, error) {

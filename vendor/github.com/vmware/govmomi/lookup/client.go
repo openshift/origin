@@ -125,9 +125,7 @@ func EndpointURL(ctx context.Context, c *vim25.Client, path string, filter *type
 			path = endpoint.Url
 
 			if u, err := url.Parse(path); err == nil {
-				// Set thumbprint only for endpoints on hosts outside this vCenter.
-				// Platform Services may live on multiple hosts.
-				if c.URL().Host != u.Host && c.Thumbprint(u.Host) == "" {
+				if c.Thumbprint(u.Host) == "" {
 					c.SetThumbprint(u.Host, endpointThumbprint(endpoint))
 				}
 			}

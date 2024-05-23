@@ -23,7 +23,6 @@ limitations under the License.
 package cm
 
 import (
-	"context"
 	"fmt"
 
 	"k8s.io/klog/v2"
@@ -87,11 +86,8 @@ func (cm *containerManagerImpl) Start(node *v1.Node,
 		}
 	}
 
-	ctx := context.Background()
-	containerMap, containerRunningSet := buildContainerMapAndRunningSetFromRuntime(ctx, runtimeService)
-
 	// Starts device manager.
-	if err := cm.deviceManager.Start(devicemanager.ActivePodsFunc(activePods), sourcesReady, containerMap, containerRunningSet); err != nil {
+	if err := cm.deviceManager.Start(devicemanager.ActivePodsFunc(activePods), sourcesReady); err != nil {
 		return err
 	}
 

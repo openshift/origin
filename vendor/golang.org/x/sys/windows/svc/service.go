@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build windows
+// +build windows
 
 // Package svc provides everything required to build Windows service.
 package svc
@@ -12,6 +13,7 @@ import (
 	"sync"
 	"unsafe"
 
+	"golang.org/x/sys/internal/unsafeheader"
 	"golang.org/x/sys/windows"
 )
 
@@ -220,7 +222,11 @@ func serviceMain(argc uint32, argv **uint16) uintptr {
 	defer func() {
 		theService.h = 0
 	}()
-	args16 := unsafe.Slice(argv, int(argc))
+	var args16 []*uint16
+	hdr := (*unsafeheader.Slice)(unsafe.Pointer(&args16))
+	hdr.Data = unsafe.Pointer(argv)
+	hdr.Len = int(argc)
+	hdr.Cap = int(argc)
 
 	args := make([]string, len(args16))
 	for i, a := range args16 {

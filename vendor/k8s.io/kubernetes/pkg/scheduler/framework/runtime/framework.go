@@ -37,7 +37,6 @@ import (
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 	"k8s.io/kubernetes/pkg/scheduler/framework/parallelize"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
-	"k8s.io/kubernetes/pkg/util/slice"
 )
 
 const (
@@ -314,13 +313,6 @@ func NewFramework(r Registry, profile *config.KubeSchedulerProfile, stopCh <-cha
 		// Update ClusterEventMap in place.
 		fillEventToPluginMap(p, options.clusterEventMap)
 	}
-	if len(f.extenders) > 0 {
-		// Extender doesn't support any kind of requeueing feature like EnqueueExtensions in the scheduling framework.
-		// We register a defaultEnqueueExtension to framework.ExtenderName here.
-		// And, in the scheduling cycle, when Extenders reject some Nodes and the pod ends up being unschedulable,
-		// we put framework.ExtenderName to pInfo.UnschedulablePlugins.
-		registerClusterEvents(framework.ExtenderName, options.clusterEventMap, allClusterEvents)
-	}
 
 	// initialize plugins per individual extension points
 	for _, e := range f.getExtensionPoints(profile.Plugins) {
@@ -519,7 +511,7 @@ func (f *frameworkImpl) expandMultiPointPlugins(profile *config.KubeSchedulerPro
 		// - part 3: other plugins (excluded by part 1 & 2) in regular extension point.
 		newPlugins := reflect.New(reflect.TypeOf(e.slicePtr).Elem()).Elem()
 		// part 1
-		for _, name := range slice.CopyStrings(enabledSet.list) {
+		for _, name := range enabledSet.list {
 			if overridePlugins.has(name) {
 				newPlugins = reflect.Append(newPlugins, reflect.ValueOf(pluginsMap[name]))
 				enabledSet.delete(name)
@@ -624,13 +616,12 @@ func (f *frameworkImpl) QueueSortFunc() framework.LessFunc {
 // If a non-success status is returned, then the scheduling cycle is aborted.
 func (f *frameworkImpl) RunPreFilterPlugins(ctx context.Context, state *framework.CycleState, pod *v1.Pod) (_ *framework.PreFilterResult, status *framework.Status) {
 	startTime := time.Now()
-	skipPlugins := sets.New[string]()
 	defer func() {
-		state.SkipFilterPlugins = skipPlugins
 		metrics.FrameworkExtensionPointDuration.WithLabelValues(metrics.PreFilter, status.Code().String(), f.profileName).Observe(metrics.SinceInSeconds(startTime))
 	}()
 	var result *framework.PreFilterResult
 	var pluginsWithNodes []string
+	skipPlugins := sets.New[string]()
 	for _, pl := range f.preFilterPlugins {
 		r, s := f.runPreFilterPlugin(ctx, pl, state, pod)
 		if s.IsSkip() {
@@ -656,6 +647,7 @@ func (f *frameworkImpl) RunPreFilterPlugins(ctx context.Context, state *framewor
 			return nil, framework.NewStatus(framework.Unschedulable, msg)
 		}
 	}
+	state.SkipFilterPlugins = skipPlugins
 	return result, nil
 }
 
@@ -954,7 +946,7 @@ func (f *frameworkImpl) RunScorePlugins(ctx context.Context, state *framework.Cy
 		metrics.FrameworkExtensionPointDuration.WithLabelValues(metrics.Score, status.Code().String(), f.profileName).Observe(metrics.SinceInSeconds(startTime))
 	}()
 	allNodePluginScores := make([]framework.NodePluginScores, len(nodes))
-	numPlugins := len(f.scorePlugins)
+	numPlugins := len(f.scorePlugins) - state.SkipScorePlugins.Len()
 	plugins := make([]framework.ScorePlugin, 0, numPlugins)
 	pluginToNodeScores := make(map[string]framework.NodeScoreList, numPlugins)
 	for _, pl := range f.scorePlugins {

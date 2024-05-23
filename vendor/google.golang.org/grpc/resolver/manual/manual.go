@@ -21,8 +21,6 @@
 package manual
 
 import (
-	"sync"
-
 	"google.golang.org/grpc/resolver"
 )
 
@@ -52,7 +50,6 @@ type Resolver struct {
 	scheme        string
 
 	// Fields actually belong to the resolver.
-	mu             sync.Mutex // Guards access to CC.
 	CC             resolver.ClientConn
 	bootstrapState *resolver.State
 }
@@ -65,10 +62,8 @@ func (r *Resolver) InitialState(s resolver.State) {
 
 // Build returns itself for Resolver, because it's both a builder and a resolver.
 func (r *Resolver) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	r.mu.Lock()
-	r.CC = cc
-	r.mu.Unlock()
 	r.BuildCallback(target, cc, opts)
+	r.CC = cc
 	if r.bootstrapState != nil {
 		r.UpdateState(*r.bootstrapState)
 	}
@@ -92,14 +87,10 @@ func (r *Resolver) Close() {
 
 // UpdateState calls CC.UpdateState.
 func (r *Resolver) UpdateState(s resolver.State) {
-	r.mu.Lock()
 	r.CC.UpdateState(s)
-	r.mu.Unlock()
 }
 
 // ReportError calls CC.ReportError.
 func (r *Resolver) ReportError(err error) {
-	r.mu.Lock()
 	r.CC.ReportError(err)
-	r.mu.Unlock()
 }

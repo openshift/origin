@@ -40,7 +40,6 @@ import (
 	"k8s.io/apiserver/pkg/endpoints"
 	"k8s.io/apiserver/pkg/endpoints/openapi"
 	utilopenapi "k8s.io/apiserver/pkg/util/openapi"
-	"k8s.io/client-go/kubernetes/scheme"
 	openapibuilder "k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/builder3"
 	"k8s.io/kube-openapi/pkg/common"
@@ -469,7 +468,7 @@ func withDescription(s spec.Schema, desc string) spec.Schema {
 }
 
 func generateBuildDefinitionsFunc() {
-	namer = openapi.NewDefinitionNamer(scheme.Scheme)
+	namer = openapi.NewDefinitionNamer(runtime.NewScheme())
 	definitionsV3 = utilopenapi.GetOpenAPIDefinitionsWithoutDisabledFeatures(generatedopenapi.GetOpenAPIDefinitions)(func(name string) spec.Ref {
 		defName, _ := namer.GetDefinitionName(name)
 		prefix := v3DefinitionPrefix

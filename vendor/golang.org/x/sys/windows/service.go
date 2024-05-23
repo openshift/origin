@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build windows
+// +build windows
 
 package windows
 
@@ -215,10 +216,6 @@ type SERVICE_FAILURE_ACTIONS struct {
 	Command      *uint16
 	ActionsCount uint32
 	Actions      *SC_ACTION
-}
-
-type SERVICE_FAILURE_ACTIONS_FLAG struct {
-	FailureActionsOnNonCrashFailures int32
 }
 
 type SC_ACTION struct {

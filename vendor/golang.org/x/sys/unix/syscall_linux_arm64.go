@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build arm64 && linux
+// +build arm64,linux
 
 package unix
 
@@ -32,7 +33,7 @@ func Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, err
 	if timeout != nil {
 		ts = &Timespec{Sec: timeout.Sec, Nsec: timeout.Usec * 1000}
 	}
-	return pselect6(nfd, r, w, e, ts, nil)
+	return Pselect(nfd, r, w, e, ts, nil)
 }
 
 //sys	sendfile(outfd int, infd int, offset *int64, count int) (written int, err error)

@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
+// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
 
 package unix
 
@@ -144,14 +145,6 @@ func (m *mmapper) Munmap(data []byte) (err error) {
 	}
 	delete(m.active, p)
 	return nil
-}
-
-func Mmap(fd int, offset int64, length int, prot int, flags int) (data []byte, err error) {
-	return mapper.Mmap(fd, offset, length, prot, flags)
-}
-
-func Munmap(b []byte) (err error) {
-	return mapper.Munmap(b)
 }
 
 func Read(fd int, p []byte) (n int, err error) {
@@ -547,9 +540,6 @@ func SetNonblock(fd int, nonblocking bool) (err error) {
 	flag, err := fcntl(fd, F_GETFL, 0)
 	if err != nil {
 		return err
-	}
-	if (flag&O_NONBLOCK != 0) == nonblocking {
-		return nil
 	}
 	if nonblocking {
 		flag |= O_NONBLOCK

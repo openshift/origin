@@ -499,23 +499,11 @@ func (c *coster) functionCost(function, overloadID string, target *AstNode, args
 
 	if est := c.estimator.EstimateCallCost(function, overloadID, target, args); est != nil {
 		callEst := *est
-		return CallEstimate{CostEstimate: callEst.Add(argCostSum()), ResultSize: est.ResultSize}
+		return CallEstimate{CostEstimate: callEst.Add(argCostSum())}
 	}
 	switch overloadID {
 	// O(n) functions
-	case overloads.StringToBytes:
-		if len(args) == 1 {
-			sz := c.sizeEstimate(args[0])
-			// ResultSize max is when each char converts to 4 bytes.
-			return CallEstimate{CostEstimate: sz.MultiplyByCostFactor(common.StringTraversalCostFactor).Add(argCostSum()), ResultSize: &SizeEstimate{Min: sz.Min, Max: sz.Max * 4}}
-		}
-	case overloads.BytesToString:
-		if len(args) == 1 {
-			sz := c.sizeEstimate(args[0])
-			// ResultSize min is when 4 bytes convert to 1 char.
-			return CallEstimate{CostEstimate: sz.MultiplyByCostFactor(common.StringTraversalCostFactor).Add(argCostSum()), ResultSize: &SizeEstimate{Min: sz.Min / 4, Max: sz.Max}}
-		}
-	case overloads.StartsWithString, overloads.EndsWithString:
+	case overloads.StartsWithString, overloads.EndsWithString, overloads.StringToBytes, overloads.BytesToString:
 		if len(args) == 1 {
 			return CallEstimate{CostEstimate: c.sizeEstimate(args[0]).MultiplyByCostFactor(common.StringTraversalCostFactor).Add(argCostSum())}
 		}

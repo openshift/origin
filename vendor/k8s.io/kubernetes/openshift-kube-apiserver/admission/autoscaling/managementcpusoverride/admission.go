@@ -217,13 +217,6 @@ func (a *managementCPUsOverride) Admit(ctx context.Context, attr admission.Attri
 		return err
 	}
 
-	if _, found := ns.Annotations[namespaceAllowedAnnotation]; !found && len(workloadType) > 0 {
-		pod.Annotations[workloadAdmissionWarning] = fmt.Sprintf(
-			"skipping pod CPUs requests modifications because the %s namespace is not annotated with %s to allow workload partitioning",
-			ns.GetName(), namespaceAllowedAnnotation)
-		return nil
-	}
-
 	if !doesNamespaceAllowWorkloadType(ns.Annotations, workloadType) {
 		return admission.NewForbidden(attr, fmt.Errorf("%s the pod namespace %q does not allow the workload type %s", PluginName, ns.Name, workloadType))
 	}
@@ -456,13 +449,10 @@ func podHasBothCPULimitAndRequest(containers []coreapi.Container) bool {
 	return false
 }
 
-// doesNamespaceAllowWorkloadType will return false when a workload type does not match any present ones.
 func doesNamespaceAllowWorkloadType(annotations map[string]string, workloadType string) bool {
 	v, found := annotations[namespaceAllowedAnnotation]
-	// When a namespace contains no annotation for workloads we infer that to mean all workload types are allowed.
-	// The mutation hook will strip all workload annotation from pods that contain them in that circumstance.
 	if !found {
-		return true
+		return false
 	}
 
 	for _, t := range strings.Split(v, ",") {

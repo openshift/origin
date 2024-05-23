@@ -506,13 +506,9 @@ func (og *operationGenerator) GenerateDetachVolumeFunc(
 		migrated := getMigratedStatusBySpec(volumeToDetach.VolumeSpec)
 
 		if err != nil {
-			// On failure, mark the volume as uncertain. Attach() must succeed before adding the volume back
-			// to node status as attached.
-			uncertainError := actualStateOfWorld.MarkVolumeAsUncertain(
-				logger, volumeToDetach.VolumeName, volumeToDetach.VolumeSpec, volumeToDetach.NodeName)
-			if uncertainError != nil {
-				klog.Errorf("DetachVolume.MarkVolumeAsUncertain failed to add the volume %q to actual state after detach error: %s", volumeToDetach.VolumeName, uncertainError)
-			}
+			// On failure, add volume back to ReportAsAttached list
+			actualStateOfWorld.AddVolumeToReportAsAttached(
+				logger, volumeToDetach.VolumeName, volumeToDetach.NodeName)
 			eventErr, detailedErr := volumeToDetach.GenerateError("DetachVolume.Detach failed", err)
 			return volumetypes.NewOperationContext(eventErr, detailedErr, migrated)
 		}
@@ -781,12 +777,6 @@ func (og *operationGenerator) checkForFailedMount(volumeToMount VolumeToMount, m
 func (og *operationGenerator) markDeviceErrorState(volumeToMount VolumeToMount, devicePath, deviceMountPath string, mountError error, actualStateOfWorld ActualStateOfWorldMounterUpdater) {
 	if volumetypes.IsOperationFinishedError(mountError) &&
 		actualStateOfWorld.GetDeviceMountState(volumeToMount.VolumeName) == DeviceMountUncertain {
-
-		if actualStateOfWorld.IsVolumeDeviceReconstructed(volumeToMount.VolumeName) {
-			klog.V(2).InfoS("MountVolume.markDeviceErrorState leaving volume uncertain", "volumeName", volumeToMount.VolumeName)
-			return
-		}
-
 		// Only devices which were uncertain can be marked as unmounted
 		markDeviceUnmountError := actualStateOfWorld.MarkDeviceAsUnmounted(volumeToMount.VolumeName)
 		if markDeviceUnmountError != nil {

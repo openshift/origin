@@ -111,8 +111,6 @@ func convertAPIGroup(g apidiscovery.APIGroupDiscovery) (
 	return group, gvResources, failedGVs
 }
 
-var emptyKind = metav1.GroupVersionKind{}
-
 // convertAPIResource tranforms a APIResourceDiscovery to an APIResource. We are
 // resilient to missing GVK, since this resource might be the parent resource
 // for a subresource. If the parent is missing a GVK, it is not returned in
@@ -127,7 +125,7 @@ func convertAPIResource(in apidiscovery.APIResourceDiscovery) (metav1.APIResourc
 		Categories:   in.Categories,
 	}
 	var err error
-	if in.ResponseKind != nil && (*in.ResponseKind) != emptyKind {
+	if in.ResponseKind != nil {
 		result.Group = in.ResponseKind.Group
 		result.Version = in.ResponseKind.Version
 		result.Kind = in.ResponseKind.Kind
@@ -142,7 +140,7 @@ func convertAPIResource(in apidiscovery.APIResourceDiscovery) (metav1.APIResourc
 // convertAPISubresource tranforms a APISubresourceDiscovery to an APIResource.
 func convertAPISubresource(parent metav1.APIResource, in apidiscovery.APISubresourceDiscovery) (metav1.APIResource, error) {
 	result := metav1.APIResource{}
-	if in.ResponseKind == nil || (*in.ResponseKind) == emptyKind {
+	if in.ResponseKind == nil {
 		return result, fmt.Errorf("subresource %s/%s missing GVK", parent.Name, in.Subresource)
 	}
 	result.Name = fmt.Sprintf("%s/%s", parent.Name, in.Subresource)
