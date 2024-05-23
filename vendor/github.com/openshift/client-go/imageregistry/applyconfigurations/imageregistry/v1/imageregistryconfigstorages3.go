@@ -8,6 +8,7 @@ type ImageRegistryConfigStorageS3ApplyConfiguration struct {
 	Bucket             *string                                                   `json:"bucket,omitempty"`
 	Region             *string                                                   `json:"region,omitempty"`
 	RegionEndpoint     *string                                                   `json:"regionEndpoint,omitempty"`
+	ChunkSizeMiB       *int32                                                    `json:"chunkSizeMiB,omitempty"`
 	Encrypt            *bool                                                     `json:"encrypt,omitempty"`
 	KeyID              *string                                                   `json:"keyID,omitempty"`
 	CloudFront         *ImageRegistryConfigStorageS3CloudFrontApplyConfiguration `json:"cloudFront,omitempty"`
@@ -42,6 +43,14 @@ func (b *ImageRegistryConfigStorageS3ApplyConfiguration) WithRegion(value string
 // If called multiple times, the RegionEndpoint field is set to the value of the last call.
 func (b *ImageRegistryConfigStorageS3ApplyConfiguration) WithRegionEndpoint(value string) *ImageRegistryConfigStorageS3ApplyConfiguration {
 	b.RegionEndpoint = &value
+	return b
+}
+
+// WithChunkSizeMiB sets the ChunkSizeMiB field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the ChunkSizeMiB field is set to the value of the last call.
+func (b *ImageRegistryConfigStorageS3ApplyConfiguration) WithChunkSizeMiB(value int32) *ImageRegistryConfigStorageS3ApplyConfiguration {
+	b.ChunkSizeMiB = &value
 	return b
 }
 

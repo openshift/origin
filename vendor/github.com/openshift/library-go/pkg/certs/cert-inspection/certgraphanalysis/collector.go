@@ -257,3 +257,50 @@ func MergePKILists(ctx context.Context, first, second *certgraphapi.PKIList) *ce
 		OnDiskResourceData:          onDiskResourceData,
 	}
 }
+
+// GetBootstrapIPAndHostname finds bootstrap IP and hostname in openshift-etcd namespace
+// configmaps and secrets
+// Either IP or hostname may be empty
+func GetBootstrapIPAndHostname(ctx context.Context, kubeClient kubernetes.Interface) (string, string, error) {
+	bootstrapIP := ""
+	etcdConfigMaps, err := kubeClient.CoreV1().ConfigMaps("openshift-etcd").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return "", "", err
+	}
+	for _, cm := range etcdConfigMaps.Items {
+		annotation, ok := cm.Annotations["alpha.installer.openshift.io/etcd-bootstrap"]
+		if ok {
+			bootstrapIP = annotation
+			break
+		}
+	}
+	// Return empty hostname if bootstrap IP is not found
+	if len(bootstrapIP) == 0 {
+		return "", "", nil
+	}
+
+	bootstrapHostname := ""
+	secretList, err := kubeClient.CoreV1().Secrets("openshift-etcd").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return bootstrapIP, "", err
+	}
+	for _, secret := range secretList.Items {
+		certHostNames, ok := secret.Annotations["auth.openshift.io/certificate-hostnames"]
+		if !ok || !strings.Contains(certHostNames, bootstrapIP) {
+			continue
+		}
+		// Node name is stored as last word in the secret description
+		description, ok := secret.Annotations[annotations.OpenShiftDescription]
+		if !ok {
+			continue
+		}
+		descriptionWords := strings.Split(description, " ")
+		if len(descriptionWords) < 1 {
+			continue
+		}
+		bootstrapHostname = descriptionWords[len(descriptionWords)-1]
+		break
+	}
+
+	return bootstrapIP, bootstrapHostname, nil
+}

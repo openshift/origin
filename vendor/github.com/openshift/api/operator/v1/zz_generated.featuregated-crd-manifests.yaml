@@ -154,6 +154,7 @@ etcds.operator.openshift.io:
   Capability: ""
   Category: coreoperators
   FeatureGates:
+  - EtcdBackendQuota
   - HardwareSpeed
   FilenameOperatorName: etcd
   FilenameOperatorOrdering: "01"
