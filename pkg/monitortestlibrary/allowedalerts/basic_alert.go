@@ -458,6 +458,10 @@ func AlertPendingInNamespace(alertName, namespace string) monitorapi.EventInterv
 func InNamespace(namespace string) func(event monitorapi.Interval) bool {
 	return func(event monitorapi.Interval) bool {
 		switch {
+		case namespace == "openshift-e2e-loki":
+			// We do not want to run alert tests on openshift-e2e-loki which should not be able to fail jobs:
+			return false
+
 		case len(namespace) == 0:
 			return true
 
