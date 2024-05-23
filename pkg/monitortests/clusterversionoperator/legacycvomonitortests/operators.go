@@ -45,12 +45,11 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 		}
 
 		// For the non-upgrade case, if any operator has Available=False, fail the test.
-		if condition.Type == configv1.OperatorAvailable {
-
-			// We'll add an exception for single node for now.
-			if condition.Status == configv1.ConditionFalse && !isSingleNode {
-				return "", nil
+		if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+			if isSingleNode {
+				return "Operators are allowed to go degraded on single-node for now", nil
 			}
+			return "", nil
 		}
 		return "We are not worried about Degraded=True blips for stable-system tests yet.", nil
 	}
@@ -61,7 +60,7 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 func isSingleNodeCheck(clientConfig *rest.Config) (bool, error) {
 	configClient, err := clientconfigv1.NewForConfig(clientConfig)
 	if err != nil {
-		logrus.Warnf("Error creating config client to check for Single Node configuration: %v", err)
+		logrus.WithError(err).Error("Error creating config client to check for Single Node configuration")
 		return false, err
 	}
 	return exutil.IsSingleNode(context.Background(), configClient)
