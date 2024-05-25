@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	"k8s.io/legacy-cloud-providers/azure"
+	"sigs.k8s.io/cloud-provider-azure/pkg/provider"
 	"sigs.k8s.io/yaml"
 )
 
@@ -62,7 +62,7 @@ func ExportAzureCredentials() error {
 	return err
 }
 
-func cloudProviderConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*azure.Config, error) {
+func cloudProviderConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*provider.Config, error) {
 	cm, err := client.ConfigMaps("openshift-config").Get(context.Background(), "cloud-provider-config", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func cloudProviderConfigFromCluster(client clientcorev1.ConfigMapsGetter) (*azur
 	if !ok {
 		return nil, errors.New("No cloud provider config was set in openshift-config/cloud-provider-config")
 	}
-	config := &azure.Config{}
+	config := &provider.Config{}
 	if err := yaml.Unmarshal([]byte(data), config); err != nil {
 		return nil, err
 	}
