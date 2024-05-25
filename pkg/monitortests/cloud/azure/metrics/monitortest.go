@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
-	"k8s.io/legacy-cloud-providers/azure"
+	"sigs.k8s.io/cloud-provider-azure/pkg/provider"
 	"sigs.k8s.io/yaml"
 )
 
@@ -179,7 +179,7 @@ func (w *azureMetricsCollector) CollectData(ctx context.Context, storageDir stri
 	if !ok {
 		return nil, nil, fmt.Errorf("No cloud provider config was set in openshift-config/cloud-provider-config")
 	}
-	config := &azure.Config{}
+	config := &provider.Config{}
 	if err := yaml.Unmarshal([]byte(data), config); err != nil {
 		return nil, nil, err
 	}
