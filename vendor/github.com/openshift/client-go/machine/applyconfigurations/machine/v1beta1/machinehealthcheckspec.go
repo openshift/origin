@@ -4,17 +4,18 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // MachineHealthCheckSpecApplyConfiguration represents an declarative configuration of the MachineHealthCheckSpec type for use
 // with apply.
 type MachineHealthCheckSpecApplyConfiguration struct {
-	Selector            *v1.LabelSelector                      `json:"selector,omitempty"`
+	Selector            *v1.LabelSelectorApplyConfiguration    `json:"selector,omitempty"`
 	UnhealthyConditions []UnhealthyConditionApplyConfiguration `json:"unhealthyConditions,omitempty"`
 	MaxUnhealthy        *intstr.IntOrString                    `json:"maxUnhealthy,omitempty"`
-	NodeStartupTimeout  *v1.Duration                           `json:"nodeStartupTimeout,omitempty"`
+	NodeStartupTimeout  *metav1.Duration                       `json:"nodeStartupTimeout,omitempty"`
 	RemediationTemplate *corev1.ObjectReference                `json:"remediationTemplate,omitempty"`
 }
 
@@ -27,8 +28,8 @@ func MachineHealthCheckSpec() *MachineHealthCheckSpecApplyConfiguration {
 // WithSelector sets the Selector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Selector field is set to the value of the last call.
-func (b *MachineHealthCheckSpecApplyConfiguration) WithSelector(value v1.LabelSelector) *MachineHealthCheckSpecApplyConfiguration {
-	b.Selector = &value
+func (b *MachineHealthCheckSpecApplyConfiguration) WithSelector(value *v1.LabelSelectorApplyConfiguration) *MachineHealthCheckSpecApplyConfiguration {
+	b.Selector = value
 	return b
 }
 
@@ -56,7 +57,7 @@ func (b *MachineHealthCheckSpecApplyConfiguration) WithMaxUnhealthy(value intstr
 // WithNodeStartupTimeout sets the NodeStartupTimeout field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the NodeStartupTimeout field is set to the value of the last call.
-func (b *MachineHealthCheckSpecApplyConfiguration) WithNodeStartupTimeout(value v1.Duration) *MachineHealthCheckSpecApplyConfiguration {
+func (b *MachineHealthCheckSpecApplyConfiguration) WithNodeStartupTimeout(value metav1.Duration) *MachineHealthCheckSpecApplyConfiguration {
 	b.NodeStartupTimeout = &value
 	return b
 }
