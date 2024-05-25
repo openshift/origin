@@ -14,9 +14,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 type availability struct {
@@ -155,26 +157,38 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 	if err != nil {
 		return err
 	}
+	configv1Client, err := clientconfigv1.NewForConfig(adminRESTConfig)
+	if err != nil {
+		return err
+	}
 
 	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-apiserver", metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		w.notSupportedReason = &monitortestframework.NotSupportedError{
-			Reason: "namespace openshift-apiserver not present",
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			w.notSupportedReason = &monitortestframework.NotSupportedError{
+				Reason: "namespace openshift-apiserver not present",
+			}
+			return w.notSupportedReason
 		}
-		return w.notSupportedReason
+		return err
 	}
+
+	isHyperShift, err := exutil.IsHypershift(ctx, configv1Client)
 	if err != nil {
 		return err
 	}
-	_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-oauth-apiserver", metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		w.notSupportedReason = &monitortestframework.NotSupportedError{
-			Reason: "namespace openshift-oauth-apiserver not present",
+	// only collect from the openshift-oauth-apiserver namespace on non-hypershift clusters
+	if !isHyperShift {
+		_, err = kubeClient.CoreV1().Namespaces().Get(context.Background(), "openshift-oauth-apiserver", metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				w.notSupportedReason = &monitortestframework.NotSupportedError{
+					Reason: "namespace openshift-oauth-apiserver not present",
+				}
+				return w.notSupportedReason
+			}
+			return err
 		}
-		return w.notSupportedReason
-	}
-	if err != nil {
-		return err
 	}
 
 	var curr *disruptionlibrary.Availability
