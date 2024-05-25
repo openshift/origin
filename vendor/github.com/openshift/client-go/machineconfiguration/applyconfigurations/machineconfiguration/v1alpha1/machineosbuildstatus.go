@@ -3,17 +3,18 @@
 package v1alpha1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // MachineOSBuildStatusApplyConfiguration represents an declarative configuration of the MachineOSBuildStatus type for use
 // with apply.
 type MachineOSBuildStatusApplyConfiguration struct {
-	Conditions         []v1.Condition                               `json:"conditions,omitempty"`
+	Conditions         []v1.ConditionApplyConfiguration             `json:"conditions,omitempty"`
 	BuilderReference   *MachineOSBuilderReferenceApplyConfiguration `json:"builderReference,omitempty"`
 	RelatedObjects     []ObjectReferenceApplyConfiguration          `json:"relatedObjects,omitempty"`
-	BuildStart         *v1.Time                                     `json:"buildStart,omitempty"`
-	BuildEnd           *v1.Time                                     `json:"buildEnd,omitempty"`
+	BuildStart         *metav1.Time                                 `json:"buildStart,omitempty"`
+	BuildEnd           *metav1.Time                                 `json:"buildEnd,omitempty"`
 	FinalImagePushspec *string                                      `json:"finalImagePullspec,omitempty"`
 }
 
@@ -26,9 +27,12 @@ func MachineOSBuildStatus() *MachineOSBuildStatusApplyConfiguration {
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *MachineOSBuildStatusApplyConfiguration) WithConditions(values ...v1.Condition) *MachineOSBuildStatusApplyConfiguration {
+func (b *MachineOSBuildStatusApplyConfiguration) WithConditions(values ...*v1.ConditionApplyConfiguration) *MachineOSBuildStatusApplyConfiguration {
 	for i := range values {
-		b.Conditions = append(b.Conditions, values[i])
+		if values[i] == nil {
+			panic("nil value passed to WithConditions")
+		}
+		b.Conditions = append(b.Conditions, *values[i])
 	}
 	return b
 }
@@ -57,7 +61,7 @@ func (b *MachineOSBuildStatusApplyConfiguration) WithRelatedObjects(values ...*O
 // WithBuildStart sets the BuildStart field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the BuildStart field is set to the value of the last call.
-func (b *MachineOSBuildStatusApplyConfiguration) WithBuildStart(value v1.Time) *MachineOSBuildStatusApplyConfiguration {
+func (b *MachineOSBuildStatusApplyConfiguration) WithBuildStart(value metav1.Time) *MachineOSBuildStatusApplyConfiguration {
 	b.BuildStart = &value
 	return b
 }
@@ -65,7 +69,7 @@ func (b *MachineOSBuildStatusApplyConfiguration) WithBuildStart(value v1.Time) *
 // WithBuildEnd sets the BuildEnd field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the BuildEnd field is set to the value of the last call.
-func (b *MachineOSBuildStatusApplyConfiguration) WithBuildEnd(value v1.Time) *MachineOSBuildStatusApplyConfiguration {
+func (b *MachineOSBuildStatusApplyConfiguration) WithBuildEnd(value metav1.Time) *MachineOSBuildStatusApplyConfiguration {
 	b.BuildEnd = &value
 	return b
 }

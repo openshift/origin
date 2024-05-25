@@ -247,14 +247,17 @@ type FailureDomains struct {
 	Platform configv1.PlatformType `json:"platform"`
 
 	// AWS configures failure domain information for the AWS platform.
+	// +listType=atomic
 	// +optional
 	AWS *[]AWSFailureDomain `json:"aws,omitempty"`
 
 	// Azure configures failure domain information for the Azure platform.
+	// +listType=atomic
 	// +optional
 	Azure *[]AzureFailureDomain `json:"azure,omitempty"`
 
 	// GCP configures failure domain information for the GCP platform.
+	// +listType=atomic
 	// +optional
 	GCP *[]GCPFailureDomain `json:"gcp,omitempty"`
 
@@ -272,6 +275,7 @@ type FailureDomains struct {
 	// + Some OpenStack deployments may not have availability zones or root volumes.
 	// + Therefore we'll check the length of the list to determine if it's empty instead
 	// + of nil if it would be a pointer.
+	// +listType=atomic
 	// +optional
 	OpenStack []OpenStackFailureDomain `json:"openstack,omitempty"`
 

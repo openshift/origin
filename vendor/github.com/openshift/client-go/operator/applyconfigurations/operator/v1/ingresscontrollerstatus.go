@@ -4,7 +4,7 @@ package v1
 
 import (
 	configv1 "github.com/openshift/api/config/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // IngressControllerStatusApplyConfiguration represents an declarative configuration of the IngressControllerStatus type for use
@@ -17,8 +17,8 @@ type IngressControllerStatusApplyConfiguration struct {
 	Conditions                 []OperatorConditionApplyConfiguration         `json:"conditions,omitempty"`
 	TLSProfile                 *configv1.TLSProfileSpec                      `json:"tlsProfile,omitempty"`
 	ObservedGeneration         *int64                                        `json:"observedGeneration,omitempty"`
-	NamespaceSelector          *metav1.LabelSelector                         `json:"namespaceSelector,omitempty"`
-	RouteSelector              *metav1.LabelSelector                         `json:"routeSelector,omitempty"`
+	NamespaceSelector          *metav1.LabelSelectorApplyConfiguration       `json:"namespaceSelector,omitempty"`
+	RouteSelector              *metav1.LabelSelectorApplyConfiguration       `json:"routeSelector,omitempty"`
 }
 
 // IngressControllerStatusApplyConfiguration constructs an declarative configuration of the IngressControllerStatus type for use with
@@ -91,15 +91,15 @@ func (b *IngressControllerStatusApplyConfiguration) WithObservedGeneration(value
 // WithNamespaceSelector sets the NamespaceSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the NamespaceSelector field is set to the value of the last call.
-func (b *IngressControllerStatusApplyConfiguration) WithNamespaceSelector(value metav1.LabelSelector) *IngressControllerStatusApplyConfiguration {
-	b.NamespaceSelector = &value
+func (b *IngressControllerStatusApplyConfiguration) WithNamespaceSelector(value *metav1.LabelSelectorApplyConfiguration) *IngressControllerStatusApplyConfiguration {
+	b.NamespaceSelector = value
 	return b
 }
 
 // WithRouteSelector sets the RouteSelector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the RouteSelector field is set to the value of the last call.
-func (b *IngressControllerStatusApplyConfiguration) WithRouteSelector(value metav1.LabelSelector) *IngressControllerStatusApplyConfiguration {
-	b.RouteSelector = &value
+func (b *IngressControllerStatusApplyConfiguration) WithRouteSelector(value *metav1.LabelSelectorApplyConfiguration) *IngressControllerStatusApplyConfiguration {
+	b.RouteSelector = value
 	return b
 }

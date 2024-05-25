@@ -144,5 +144,7 @@ type MachineHealthCheckStatus struct {
 
 	// Conditions defines the current state of the MachineHealthCheck
 	// +optional
-	Conditions Conditions `json:"conditions,omitempty"`
+	// +listType=map
+	// +listMapKey=type
+	Conditions []Condition `json:"conditions,omitempty"`
 }

@@ -5,7 +5,10 @@ package v1
 // VSphereCSIDriverConfigSpecApplyConfiguration represents an declarative configuration of the VSphereCSIDriverConfigSpec type for use
 // with apply.
 type VSphereCSIDriverConfigSpecApplyConfiguration struct {
-	TopologyCategories []string `json:"topologyCategories,omitempty"`
+	TopologyCategories                       []string `json:"topologyCategories,omitempty"`
+	GlobalMaxSnapshotsPerBlockVolume         *uint32  `json:"globalMaxSnapshotsPerBlockVolume,omitempty"`
+	GranularMaxSnapshotsPerBlockVolumeInVSAN *uint32  `json:"granularMaxSnapshotsPerBlockVolumeInVSAN,omitempty"`
+	GranularMaxSnapshotsPerBlockVolumeInVVOL *uint32  `json:"granularMaxSnapshotsPerBlockVolumeInVVOL,omitempty"`
 }
 
 // VSphereCSIDriverConfigSpecApplyConfiguration constructs an declarative configuration of the VSphereCSIDriverConfigSpec type for use with
@@ -21,5 +24,29 @@ func (b *VSphereCSIDriverConfigSpecApplyConfiguration) WithTopologyCategories(va
 	for i := range values {
 		b.TopologyCategories = append(b.TopologyCategories, values[i])
 	}
+	return b
+}
+
+// WithGlobalMaxSnapshotsPerBlockVolume sets the GlobalMaxSnapshotsPerBlockVolume field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the GlobalMaxSnapshotsPerBlockVolume field is set to the value of the last call.
+func (b *VSphereCSIDriverConfigSpecApplyConfiguration) WithGlobalMaxSnapshotsPerBlockVolume(value uint32) *VSphereCSIDriverConfigSpecApplyConfiguration {
+	b.GlobalMaxSnapshotsPerBlockVolume = &value
+	return b
+}
+
+// WithGranularMaxSnapshotsPerBlockVolumeInVSAN sets the GranularMaxSnapshotsPerBlockVolumeInVSAN field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the GranularMaxSnapshotsPerBlockVolumeInVSAN field is set to the value of the last call.
+func (b *VSphereCSIDriverConfigSpecApplyConfiguration) WithGranularMaxSnapshotsPerBlockVolumeInVSAN(value uint32) *VSphereCSIDriverConfigSpecApplyConfiguration {
+	b.GranularMaxSnapshotsPerBlockVolumeInVSAN = &value
+	return b
+}
+
+// WithGranularMaxSnapshotsPerBlockVolumeInVVOL sets the GranularMaxSnapshotsPerBlockVolumeInVVOL field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the GranularMaxSnapshotsPerBlockVolumeInVVOL field is set to the value of the last call.
+func (b *VSphereCSIDriverConfigSpecApplyConfiguration) WithGranularMaxSnapshotsPerBlockVolumeInVVOL(value uint32) *VSphereCSIDriverConfigSpecApplyConfiguration {
+	b.GranularMaxSnapshotsPerBlockVolumeInVVOL = &value
 	return b
 }

@@ -2,17 +2,13 @@
 
 package v1beta1
 
-import (
-	v1beta1 "github.com/openshift/api/machine/v1beta1"
-)
-
 // MachineHealthCheckStatusApplyConfiguration represents an declarative configuration of the MachineHealthCheckStatus type for use
 // with apply.
 type MachineHealthCheckStatusApplyConfiguration struct {
-	ExpectedMachines    *int                `json:"expectedMachines,omitempty"`
-	CurrentHealthy      *int                `json:"currentHealthy,omitempty"`
-	RemediationsAllowed *int32              `json:"remediationsAllowed,omitempty"`
-	Conditions          *v1beta1.Conditions `json:"conditions,omitempty"`
+	ExpectedMachines    *int                          `json:"expectedMachines,omitempty"`
+	CurrentHealthy      *int                          `json:"currentHealthy,omitempty"`
+	RemediationsAllowed *int32                        `json:"remediationsAllowed,omitempty"`
+	Conditions          []ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
 // MachineHealthCheckStatusApplyConfiguration constructs an declarative configuration of the MachineHealthCheckStatus type for use with
@@ -45,10 +41,15 @@ func (b *MachineHealthCheckStatusApplyConfiguration) WithRemediationsAllowed(val
 	return b
 }
 
-// WithConditions sets the Conditions field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Conditions field is set to the value of the last call.
-func (b *MachineHealthCheckStatusApplyConfiguration) WithConditions(value v1beta1.Conditions) *MachineHealthCheckStatusApplyConfiguration {
-	b.Conditions = &value
+// WithConditions adds the given value to the Conditions field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Conditions field.
+func (b *MachineHealthCheckStatusApplyConfiguration) WithConditions(values ...*ConditionApplyConfiguration) *MachineHealthCheckStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithConditions")
+		}
+		b.Conditions = append(b.Conditions, *values[i])
+	}
 	return b
 }

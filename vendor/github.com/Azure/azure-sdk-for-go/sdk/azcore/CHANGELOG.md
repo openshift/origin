@@ -1,5 +1,89 @@
 # Release History
 
+## 1.11.1 (2024-04-02)
+
+### Bugs Fixed
+
+* Pollers that use the `Location` header won't consider `http.StatusRequestTimeout` a terminal failure.
+* `runtime.Poller[T].Result` won't consider non-terminal error responses as terminal.
+
+## 1.11.0 (2024-04-01)
+
+### Features Added
+
+* Added `StatusCodes` to `arm/policy.RegistrationOptions` to allow supporting non-standard HTTP status codes during registration.
+* Added field `InsecureAllowCredentialWithHTTP` to `azcore.ClientOptions` and dependent authentication pipeline policies.
+* Added type `MultipartContent` to the `streaming` package to support multipart/form payloads with custom Content-Type and file name.
+
+### Bugs Fixed
+
+* `runtime.SetMultipartFormData` won't try to stringify `[]byte` values.
+* Pollers that use the `Location` header won't consider `http.StatusTooManyRequests` a terminal failure.
+
+### Other Changes
+
+* Update dependencies.
+
+## 1.10.0 (2024-02-29)
+
+### Features Added
+
+* Added logging event `log.EventResponseError` that will contain the contents of `ResponseError.Error()` whenever an `azcore.ResponseError` is created.
+* Added `runtime.NewResponseErrorWithErrorCode` for creating an `azcore.ResponseError` with a caller-supplied error code.
+* Added type `MatchConditions` for use in conditional requests.
+
+### Bugs Fixed
+
+* Fixed a potential race condition between `NullValue` and `IsNullValue`.
+* `runtime.EncodeQueryParams` will escape semicolons before calling `url.ParseQuery`.
+
+### Other Changes
+
+* Update dependencies.
+
+## 1.9.2 (2024-02-06)
+
+### Bugs Fixed
+
+* `runtime.MarshalAsByteArray` and `runtime.MarshalAsJSON` will preserve the preexisting value of the `Content-Type` header.
+
+### Other Changes
+
+* Update to latest version of `internal`.
+
+## 1.9.1 (2023-12-11)
+
+### Bugs Fixed
+
+* The `retry-after-ms` and `x-ms-retry-after-ms` headers weren't being checked during retries.
+
+### Other Changes
+
+* Update dependencies.
+
+## 1.9.0 (2023-11-06)
+
+### Breaking Changes
+> These changes affect only code written against previous beta versions of `v1.7.0` and `v1.8.0`
+* The function `NewTokenCredential` has been removed from the `fake` package. Use a literal `&fake.TokenCredential{}` instead.
+* The field `TracingNamespace` in `runtime.PipelineOptions` has been replaced by `TracingOptions`.
+
+### Bugs Fixed
+
+* Fixed an issue that could cause some allowed HTTP header values to not show up in logs.
+* Include error text instead of error type in traces when the transport returns an error.
+* Fixed an issue that could cause an HTTP/2 request to hang when the TCP connection becomes unresponsive.
+* Block key and SAS authentication for non TLS protected endpoints.
+* Passing a `nil` credential value will no longer cause a panic. Instead, the authentication is skipped.
+* Calling `Error` on a zero-value `azcore.ResponseError` will no longer panic.
+* Fixed an issue in `fake.PagerResponder[T]` that would cause a trailing error to be omitted when iterating over pages.
+* Context values created by `azcore` will no longer flow across disjoint HTTP requests.
+
+### Other Changes
+
+* Skip generating trace info for no-op tracers.
+* The `clientName` paramater in client constructors has been renamed to `moduleName`.
+
 ## 1.9.0-beta.1 (2023-10-05)
 
 ### Other Changes

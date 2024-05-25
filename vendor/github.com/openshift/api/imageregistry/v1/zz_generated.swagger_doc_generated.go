@@ -191,6 +191,7 @@ var map_ImageRegistryConfigStorageS3 = map[string]string{
 	"bucket":             "bucket is the bucket name in which you want to store the registry's data. Optional, will be generated if not provided.",
 	"region":             "region is the AWS region in which your bucket exists. Optional, will be set based on the installed AWS Region.",
 	"regionEndpoint":     "regionEndpoint is the endpoint for S3 compatible storage services. It should be a valid URL with scheme, e.g. https://s3.example.com. Optional, defaults based on the Region that is provided.",
+	"chunkSizeMiB":       "chunkSizeMiB defines the size of the multipart upload chunks of the S3 API. The S3 API requires multipart upload chunks to be at least 5MiB. When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time. The current default value is 10 MiB. The value is an integer number of MiB. The minimum value is 5 and the maximum value is 5120 (5 GiB).",
 	"encrypt":            "encrypt specifies whether the registry stores the image in encrypted format or not. Optional, defaults to false.",
 	"keyID":              "keyID is the KMS key ID to use for encryption. Optional, Encrypt must be true, or this parameter is ignored.",
 	"cloudFront":         "cloudFront configures Amazon Cloudfront as the storage middleware in a registry.",

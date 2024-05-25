@@ -43,7 +43,7 @@ $(call verify-golang-version-reference,$(1),$(shell grep "AS builder" "$(1)" | s
 endef
 
 define verify-go-mod-golang-version
-$(call verify-golang-version-reference,go.mod,$(shell grep -e 'go [[:digit:]]*\.[[:digit:]]*' go.mod 2>/dev/null | sed 's/go //'))
+$(call verify-golang-version-reference,go.mod,$(shell grep -e 'go [[:digit:]]*\.[[:digit:]]*' go.mod 2>/dev/null | sed 's/go \([[:digit:]][[:digit:]]*.[[:digit:]][[:digit:]]*\).*/\1/'))
 endef
 
 define verify-buildroot-golang-version

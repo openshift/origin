@@ -12,15 +12,17 @@ import (
 // MachineStatusApplyConfiguration represents an declarative configuration of the MachineStatus type for use
 // with apply.
 type MachineStatusApplyConfiguration struct {
-	NodeRef        *v1.ObjectReference              `json:"nodeRef,omitempty"`
-	LastUpdated    *metav1.Time                     `json:"lastUpdated,omitempty"`
-	ErrorReason    *v1beta1.MachineStatusError      `json:"errorReason,omitempty"`
-	ErrorMessage   *string                          `json:"errorMessage,omitempty"`
-	ProviderStatus *runtime.RawExtension            `json:"providerStatus,omitempty"`
-	Addresses      []v1.NodeAddress                 `json:"addresses,omitempty"`
-	LastOperation  *LastOperationApplyConfiguration `json:"lastOperation,omitempty"`
-	Phase          *string                          `json:"phase,omitempty"`
-	Conditions     *v1beta1.Conditions              `json:"conditions,omitempty"`
+	NodeRef                *v1.ObjectReference              `json:"nodeRef,omitempty"`
+	LastUpdated            *metav1.Time                     `json:"lastUpdated,omitempty"`
+	ErrorReason            *v1beta1.MachineStatusError      `json:"errorReason,omitempty"`
+	ErrorMessage           *string                          `json:"errorMessage,omitempty"`
+	ProviderStatus         *runtime.RawExtension            `json:"providerStatus,omitempty"`
+	Addresses              []v1.NodeAddress                 `json:"addresses,omitempty"`
+	LastOperation          *LastOperationApplyConfiguration `json:"lastOperation,omitempty"`
+	Phase                  *string                          `json:"phase,omitempty"`
+	Conditions             []ConditionApplyConfiguration    `json:"conditions,omitempty"`
+	AuthoritativeAPI       *v1beta1.MachineAuthority        `json:"authoritativeAPI,omitempty"`
+	SynchronizedGeneration *int64                           `json:"synchronizedGeneration,omitempty"`
 }
 
 // MachineStatusApplyConfiguration constructs an declarative configuration of the MachineStatus type for use with
@@ -95,10 +97,31 @@ func (b *MachineStatusApplyConfiguration) WithPhase(value string) *MachineStatus
 	return b
 }
 
-// WithConditions sets the Conditions field in the declarative configuration to the given value
+// WithConditions adds the given value to the Conditions field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Conditions field.
+func (b *MachineStatusApplyConfiguration) WithConditions(values ...*ConditionApplyConfiguration) *MachineStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithConditions")
+		}
+		b.Conditions = append(b.Conditions, *values[i])
+	}
+	return b
+}
+
+// WithAuthoritativeAPI sets the AuthoritativeAPI field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the Conditions field is set to the value of the last call.
-func (b *MachineStatusApplyConfiguration) WithConditions(value v1beta1.Conditions) *MachineStatusApplyConfiguration {
-	b.Conditions = &value
+// If called multiple times, the AuthoritativeAPI field is set to the value of the last call.
+func (b *MachineStatusApplyConfiguration) WithAuthoritativeAPI(value v1beta1.MachineAuthority) *MachineStatusApplyConfiguration {
+	b.AuthoritativeAPI = &value
+	return b
+}
+
+// WithSynchronizedGeneration sets the SynchronizedGeneration field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SynchronizedGeneration field is set to the value of the last call.
+func (b *MachineStatusApplyConfiguration) WithSynchronizedGeneration(value int64) *MachineStatusApplyConfiguration {
+	b.SynchronizedGeneration = &value
 	return b
 }

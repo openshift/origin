@@ -101,6 +101,8 @@ type ObjectMeta struct {
 	// +optional
 	// +patchMergeKey=uid
 	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=uid
 	OwnerReferences []metav1.OwnerReference `json:"ownerReferences,omitempty" patchStrategy:"merge" patchMergeKey:"uid"`
 }
 
@@ -195,6 +197,7 @@ type Condition struct {
 	// Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
 	// can be useful (see .node.status.conditions), the ability to deconflict is important.
 	// +required
+	// +kubebuilder:validation:Required
 	Type ConditionType `json:"type"`
 
 	// Status of the condition, one of True, False, Unknown.
@@ -224,6 +227,3 @@ type Condition struct {
 	// +optional
 	Message string `json:"message,omitempty"`
 }
-
-// Conditions provide observations of the operational state of a Machine API resource.
-type Conditions []Condition

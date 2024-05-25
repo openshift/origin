@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/exported"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/shared"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/internal/errorinfo"
 	"github.com/Azure/azure-sdk-for-go/sdk/internal/temporal"
 )
 
@@ -23,6 +24,7 @@ type BearerTokenPolicy struct {
 	authzHandler policy.AuthorizationHandler
 	cred         exported.TokenCredential
 	scopes       []string
+	allowHTTP    bool
 }
 
 type acquiringResourceState struct {
@@ -34,7 +36,7 @@ type acquiringResourceState struct {
 // acquire acquires or updates the resource; only one
 // thread/goroutine at a time ever calls this function
 func acquire(state acquiringResourceState) (newResource exported.AccessToken, newExpiration time.Time, err error) {
-	tk, err := state.p.cred.GetToken(state.req.Raw().Context(), state.tro)
+	tk, err := state.p.cred.GetToken(&shared.ContextWithDeniedValues{Context: state.req.Raw().Context()}, state.tro)
 	if err != nil {
 		return exported.AccessToken{}, time.Time{}, err
 	}
@@ -54,6 +56,7 @@ func NewBearerTokenPolicy(cred exported.TokenCredential, scopes []string, opts *
 		cred:         cred,
 		scopes:       scopes,
 		mainResource: temporal.NewResource(acquire),
+		allowHTTP:    opts.InsecureAllowCredentialWithHTTP,
 	}
 }
 
@@ -72,9 +75,17 @@ func (b *BearerTokenPolicy) authenticateAndAuthorize(req *policy.Request) func(p
 
 // Do authorizes a request with a bearer token
 func (b *BearerTokenPolicy) Do(req *policy.Request) (*http.Response, error) {
-	if strings.ToLower(req.Raw().URL.Scheme) != "https" {
-		return nil, shared.NonRetriableError(errors.New("bearer token authentication is not permitted for non TLS protected (https) endpoints"))
+	// skip adding the authorization header if no TokenCredential was provided.
+	// this prevents a panic that might be hard to diagnose and allows testing
+	// against http endpoints that don't require authentication.
+	if b.cred == nil {
+		return req.Next()
 	}
+
+	if err := checkHTTPSForAuth(req, b.allowHTTP); err != nil {
+		return nil, err
+	}
+
 	var err error
 	if b.authzHandler.OnRequest != nil {
 		err = b.authzHandler.OnRequest(req, b.authenticateAndAuthorize(req))
@@ -82,7 +93,7 @@ func (b *BearerTokenPolicy) Do(req *policy.Request) (*http.Response, error) {
 		err = b.authenticateAndAuthorize(req)(policy.TokenRequestOptions{Scopes: b.scopes})
 	}
 	if err != nil {
-		return nil, shared.NonRetriableError(err)
+		return nil, errorinfo.NonRetriableError(err)
 	}
 
 	res, err := req.Next()
@@ -99,7 +110,14 @@ func (b *BearerTokenPolicy) Do(req *policy.Request) (*http.Response, error) {
 		}
 	}
 	if err != nil {
-		err = shared.NonRetriableError(err)
+		err = errorinfo.NonRetriableError(err)
 	}
 	return res, err
+}
+
+func checkHTTPSForAuth(req *policy.Request, allowHTTP bool) error {
+	if strings.ToLower(req.Raw().URL.Scheme) != "https" && !allowHTTP {
+		return errorinfo.NonRetriableError(errors.New("authenticated requests are not permitted for non TLS protected (https) endpoints"))
+	}
+	return nil
 }

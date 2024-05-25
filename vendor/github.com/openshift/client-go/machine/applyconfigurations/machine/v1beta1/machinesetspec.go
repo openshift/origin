@@ -3,17 +3,19 @@
 package v1beta1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // MachineSetSpecApplyConfiguration represents an declarative configuration of the MachineSetSpec type for use
 // with apply.
 type MachineSetSpecApplyConfiguration struct {
-	Replicas        *int32                                 `json:"replicas,omitempty"`
-	MinReadySeconds *int32                                 `json:"minReadySeconds,omitempty"`
-	DeletePolicy    *string                                `json:"deletePolicy,omitempty"`
-	Selector        *v1.LabelSelector                      `json:"selector,omitempty"`
-	Template        *MachineTemplateSpecApplyConfiguration `json:"template,omitempty"`
+	Replicas         *int32                                 `json:"replicas,omitempty"`
+	MinReadySeconds  *int32                                 `json:"minReadySeconds,omitempty"`
+	DeletePolicy     *string                                `json:"deletePolicy,omitempty"`
+	Selector         *v1.LabelSelectorApplyConfiguration    `json:"selector,omitempty"`
+	Template         *MachineTemplateSpecApplyConfiguration `json:"template,omitempty"`
+	AuthoritativeAPI *machinev1beta1.MachineAuthority       `json:"authoritativeAPI,omitempty"`
 }
 
 // MachineSetSpecApplyConfiguration constructs an declarative configuration of the MachineSetSpec type for use with
@@ -49,8 +51,8 @@ func (b *MachineSetSpecApplyConfiguration) WithDeletePolicy(value string) *Machi
 // WithSelector sets the Selector field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Selector field is set to the value of the last call.
-func (b *MachineSetSpecApplyConfiguration) WithSelector(value v1.LabelSelector) *MachineSetSpecApplyConfiguration {
-	b.Selector = &value
+func (b *MachineSetSpecApplyConfiguration) WithSelector(value *v1.LabelSelectorApplyConfiguration) *MachineSetSpecApplyConfiguration {
+	b.Selector = value
 	return b
 }
 
@@ -59,5 +61,13 @@ func (b *MachineSetSpecApplyConfiguration) WithSelector(value v1.LabelSelector) 
 // If called multiple times, the Template field is set to the value of the last call.
 func (b *MachineSetSpecApplyConfiguration) WithTemplate(value *MachineTemplateSpecApplyConfiguration) *MachineSetSpecApplyConfiguration {
 	b.Template = value
+	return b
+}
+
+// WithAuthoritativeAPI sets the AuthoritativeAPI field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the AuthoritativeAPI field is set to the value of the last call.
+func (b *MachineSetSpecApplyConfiguration) WithAuthoritativeAPI(value machinev1beta1.MachineAuthority) *MachineSetSpecApplyConfiguration {
+	b.AuthoritativeAPI = &value
 	return b
 }
