@@ -255,7 +255,7 @@ func gatherPostMortem(oc *exutil.CLI) {
 		Deployments(oauthServerNamespace).
 		Get(context.Background(), deploymentName, metav1.GetOptions{})
 	if err != nil {
-		e2e.Logf("get deployment from %s in %s: %w", deploymentName, oauthServerNamespace, err)
+		e2e.Logf("get deployment from %s in %s: %v", deploymentName, oauthServerNamespace, err)
 	}
 	e2e.Logf("deployment for %s in %s: %s", deploymentName, oauthServerNamespace, deployment)
 
@@ -265,7 +265,7 @@ func gatherPostMortem(oc *exutil.CLI) {
 		ConfigMaps(oauthServerNamespace).
 		Get(context.Background(), configmapName, metav1.GetOptions{})
 	if err != nil {
-		e2e.Logf("get configmap from %s in %s: %w", configmapName, oauthServerNamespace, err)
+		e2e.Logf("get configmap from %s in %s: %v", configmapName, oauthServerNamespace, err)
 	}
 	e2e.Logf("configmap for %s in %s: %s", configmapName, oauthServerNamespace, configmap)
 
@@ -274,12 +274,12 @@ func gatherPostMortem(oc *exutil.CLI) {
 		Pods(oauthServerNamespace).
 		List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		e2e.Logf("get pods from %s: %w", oauthServerNamespace, err)
+		e2e.Logf("get pods from %s: %v", oauthServerNamespace, err)
 	}
 	for _, pod := range pods.Items {
 		logs, err := oc.AsAdmin().Run("logs").Args(pod.Name, "-n", oauthServerNamespace).Output()
 		if err != nil {
-			e2e.Logf("get logs from %s in %s: %w", pod.Name, oauthServerNamespace, err)
+			e2e.Logf("get logs from %s in %s: %v", pod.Name, oauthServerNamespace, err)
 		}
 		e2e.Logf("log from %s in %s: %s", pod.Name, oauthServerNamespace, logs)
 	}

@@ -591,7 +591,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		types := bts
 		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", groupName, groupName), func() {
 			for _, bt := range types {
-				e2e.Logf("Checking %s...", bt)
+				e2e.Logf("Checking %v...", bt)
 				o.Expect(verifySpecStatusExplain(oc, nil, bt.gvr, bt.fieldTypeNameOverride)).NotTo(o.HaveOccurred())
 			}
 		})

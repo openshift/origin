@@ -316,7 +316,7 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 					switch condition.Type {
 					case corev1.NodeReady:
 						if condition.Status != corev1.ConditionTrue {
-							e2e.Logf("node/%s had unexpected condition %q == %v: %#v", node.Name, condition.Reason, condition.Status)
+							e2e.Logf("node/%s had unexpected condition %s: %#v", node.Name, condition.Reason, condition.Status)
 							return false
 						}
 					case corev1.NodeMemoryPressure,
@@ -324,16 +324,16 @@ var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Serial] Managed cl
 						corev1.NodePIDPressure,
 						corev1.NodeNetworkUnavailable:
 						if condition.Status != corev1.ConditionFalse {
-							e2e.Logf("node/%s had unexpected condition %q == %v: %#v", node.Name, condition.Reason, condition.Status)
+							e2e.Logf("node/%s had unexpected condition %s: %#v", node.Name, condition.Reason, condition.Status)
 							return false
 						}
 
 					default:
-						e2e.Logf("node/%s had unhandled condition %q == %v: %#v", node.Name, condition.Reason, condition.Status)
+						e2e.Logf("node/%s had unhandled condition %s: %#v", node.Name, condition.Reason, condition.Status)
 
 					}
 				}
-				e2e.Logf("node/%s conditions seem ok")
+				e2e.Logf("node/%s conditions seem ok", node.Name)
 			}
 
 			return true

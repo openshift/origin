@@ -149,7 +149,7 @@ func getDirDataAndKeyPathMap(dir string) (map[string]string, []corev1.KeyToPath)
 
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if os.IsPermission(err) {
-			e2e.Logf("no permissions to access '%s', skipping: %v", err)
+			e2e.Logf("no permissions to access '%s', skipping: %v", info.Name(), err)
 		}
 
 		// skip reading dirs

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	kappsv1 "k8s.io/api/apps/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +42,7 @@ func (t *UpgradeTest) Setup(ctx context.Context, f *framework.Framework) {
 	ginkgo.By("Creating a DaemonSet to verify DNS availability")
 	appName = fmt.Sprintf("dns-test-%s", string(uuid.NewUUID()))
 	ds := t.createDNSTestDaemonSet(f, dnsServiceIP)
-	framework.ExpectNotEqual(ds, nil, "DaemonSet should not be nil")
+	gomega.Expect(ds).NotTo(gomega.BeNil(), "DaemonSet should not be nil")
 
 	ginkgo.By("Waiting for DaemonSet pods to become ready")
 	err := wait.Poll(framework.Poll, framework.PodStartTimeout, func() (bool, error) {
