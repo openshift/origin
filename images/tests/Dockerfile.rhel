@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.21-openshift-4.16 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.22-openshift-4.17 AS builder
 WORKDIR /go/src/github.com/openshift/origin
 COPY . .
 RUN make; \
@@ -22,5 +22,5 @@ RUN PACKAGES="git gzip util-linux" && \
 LABEL io.k8s.display-name="OpenShift End-to-End Tests" \
       io.openshift.release.operator=true \
       io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
-      io.openshift.build.versions="kubernetes-tests=1.29.0" \
+      io.openshift.build.versions="kubernetes-tests=1.30.0" \
       io.openshift.tags="openshift,tests,e2e"
