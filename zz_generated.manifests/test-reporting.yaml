@@ -5,6 +5,32 @@ metadata:
   name: cluster
 spec:
   testsForFeatureGates:
+  - featureGate: CRDValidationRatcheting
+    tests:
+    - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
+        [FeatureGate:CRDValidationRatcheting] [Beta] MUST NOT fail to update a resource
+        due to CRD Validation Rule errors on unchanged correlatable fields'
+    - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
+        [FeatureGate:CRDValidationRatcheting] [Beta] MUST NOT fail to update a resource
+        due to JSONSchema errors on unchanged correlatable fields'
+    - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
+        [FeatureGate:CRDValidationRatcheting] [Beta] MUST NOT ratchet errors raised
+        by transition rules'
+    - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
+        [FeatureGate:CRDValidationRatcheting] [Beta] MUST evaluate a CRD Validation
+        Rule with oldSelf = nil for new values when optionalOldSelf is true'
+    - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
+        [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
+        due to CRD Validation Rule errors on changed fields'
+    - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
+        [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
+        due to CRD Validation Rule errors on unchanged uncorrelatable fields'
+    - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
+        [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
+        due to JSONSchema errors on changed fields'
+    - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
+        [FeatureGate:CRDValidationRatcheting] [Beta] MUST fail to update a resource
+        due to JSONSchema errors on unchanged uncorrelatable fields'
   - featureGate: DNSNameResolver
     tests:
     - testName: '[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall]
@@ -32,6 +58,92 @@ spec:
         remove all network diagnostics pods when disabled'
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
         set the condition to false if there are no nodes able to host the source pods'
+  - featureGate: SELinuxMount
+    tests:
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not unstage RWO volume when starting a second pod
+        with the same SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
+        [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount
+        enabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxMount]
+        [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should unstage RWO volume when starting a second pod with
+        different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
+        [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
+        different context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
+        different context on RWX volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two Pods with
+        the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
+  - featureGate: SELinuxMountReadWriteOncePod
+    tests:
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should add SELinux mount option to existing mount options
+        [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not pass SELinux mount option for CSI driver that
+        does not support SELinux mount [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not pass SELinux mount option for Pod without SELinux
+        context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not pass SELinux mount option for RWO volume with
+        SELinuxMount disabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not unstage RWO volume when starting a second pod
+        with the same SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
+        [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should not unstage RWOP volume when starting a second pod
+        with the same SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should pass SELinux mount option for RWO volume with SELinuxMount
+        enabled [FeatureGate:SELinuxMountReadWriteOncePod] [Beta] [FeatureGate:SELinuxMount]
+        [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should pass SELinux mount option for RWOP volume and Pod
+        with SELinux context set [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should unstage RWO volume when starting a second pod with
+        different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]
+        [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
+        [Feature:SELinux] should unstage RWOP volume when starting a second pod with
+        different SELinux context [FeatureGate:SELinuxMountReadWriteOncePod] [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
+        different context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
+        different context on RWOP volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a
+        different context on RWX volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] error is not bumped on two Pods with
+        the same context on RWO volume and SELinuxMount enabled [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [FeatureGate:SELinuxMount] [Alpha]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] warning is bumped on two Pods with
+        a different context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
+    - testName: '[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics
+        [LinuxOnly] [Feature:SELinux] [Serial] warning is not bumped on two Pods with
+        the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
+        [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
   - featureGate: VSphereDriverConfiguration
     tests:
     - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
@@ -49,16 +161,4 @@ spec:
     - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
         vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
         use default when unset'
-  - featureGate: ValidatingAdmissionPolicy
-    tests:
-    - testName: '[sig-api-machinery] ValidatingAdmissionPolicy [Privileged:ClusterAdmin]
-        [FeatureGate:ValidatingAdmissionPolicy] [Beta] should allow expressions to
-        refer variables.'
-    - testName: '[sig-api-machinery] ValidatingAdmissionPolicy [Privileged:ClusterAdmin]
-        [FeatureGate:ValidatingAdmissionPolicy] [Beta] should type check a CRD'
-    - testName: '[sig-api-machinery] ValidatingAdmissionPolicy [Privileged:ClusterAdmin]
-        [FeatureGate:ValidatingAdmissionPolicy] [Beta] should type check validation
-        expressions'
-    - testName: '[sig-api-machinery] ValidatingAdmissionPolicy [Privileged:ClusterAdmin]
-        [FeatureGate:ValidatingAdmissionPolicy] [Beta] should validate against a Deployment'
 status: {}
