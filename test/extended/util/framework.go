@@ -1931,7 +1931,7 @@ func WaitForUserBeAuthorized(oc *CLI, user string, attributes *authorizationapi.
 		},
 	}
 	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		e2e.Logf("Waiting for user '%q' to be authorized for %v", user, attributes, oc.Namespace())
+		e2e.Logf("Waiting for user '%s' to be authorized for %v in ns '%s'", user, attributes, oc.Namespace())
 		resp, err := oc.AdminKubeClient().AuthorizationV1().SubjectAccessReviews().Create(context.Background(), sar, metav1.CreateOptions{})
 		if err == nil && resp != nil && resp.Status.Allowed {
 			return true, nil

@@ -20,6 +20,9 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+// Some pods can take much longer to get ready due to volume attach/detach latency.
+const slowPodStartTimeout = 15 * time.Minute
+
 func skipArch(oc *exutil.CLI, arches []string) bool {
 	allWorkerNodes, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
 		LabelSelector: nodeLabelSelectorWorker,
@@ -60,7 +63,7 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the pod to be running")
-			err = e2epod.WaitForPodSuccessInNamespaceSlow(context.TODO(), oc.KubeClient(), pod.Name, oc.Namespace())
+			err = e2epod.WaitForPodSuccessInNamespaceTimeout(context.TODO(), oc.KubeClient(), pod.Name, oc.Namespace(), slowPodStartTimeout)
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {
@@ -113,7 +116,7 @@ func defineTest(name string, t tc, oc *exutil.CLI) {
 			_, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(context.Background(), pod, metav1.CreateOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = e2epod.WaitForPodSuccessInNamespaceSlow(context.TODO(), oc.KubeClient(), pod.Name, oc.Namespace())
+			err = e2epod.WaitForPodSuccessInNamespaceTimeout(context.TODO(), oc.KubeClient(), pod.Name, oc.Namespace(), slowPodStartTimeout)
 			if err != nil {
 				p, e := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(context.Background(), pod.Name, metav1.GetOptions{})
 				if e != nil {

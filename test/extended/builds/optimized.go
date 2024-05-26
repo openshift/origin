@@ -88,7 +88,7 @@ USER 1001
 			o.Expect(s).To(o.ContainSubstring("Installed Packages"))
 			o.Expect(s).To(o.ContainSubstring(fmt.Sprintf("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace())))
 			o.Expect(s).To(o.ContainSubstring("Build complete, no image push requested"))
-			e2e.Logf("Build logs:\n%s", result)
+			e2e.Logf("Build logs:\n%v", result)
 		})
 	})
 })

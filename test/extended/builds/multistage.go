@@ -95,7 +95,7 @@ COPY --from=%[2]s /bin/wget /test/
 		o.Expect(s).To(o.MatchRegexp("(\\[1/2\\] STEP 1/3|STEP 1/2|STEP 1): FROM %s AS test", regexp.QuoteMeta(image.LimitedShellImage())))
 		o.Expect(s).To(o.ContainSubstring("COPY --from"))
 		o.Expect(s).To(o.ContainSubstring("\"OPENSHIFT_BUILD_NAMESPACE\"=\"%s\"", oc.Namespace()))
-		e2e.Logf("Build logs:\n%s", result)
+		e2e.Logf("Build logs:\n%v", result)
 
 		c := e2epod.PodClientNS(oc.KubeFramework(), oc.Namespace())
 		pod = c.Create(context.TODO(), &corev1.Pod{

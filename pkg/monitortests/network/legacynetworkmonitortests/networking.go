@@ -247,9 +247,7 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	}
 
 	// add our successes
-	ret = append(ret, successes...)
-
-	return append(ret)
+	return append(ret, successes...)
 }
 
 // categorizeBySubset returns a map keyed by category for failures and flakes.  If a category is present in both failures and flakes, all are listed under failures.
