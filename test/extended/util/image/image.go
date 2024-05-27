@@ -214,9 +214,10 @@ func OriginalImages() map[string]k8simage.ImageID {
 // Exceptions is a list of images we don't mirror temporarily due to various
 // problems. This list should ideally be empty.
 var Exceptions = sets.NewString(
+	// this image has 2 windows/amd64 manifests, where layers are not compressed,
+	// ie. application/vnd.docker.image.rootfs.diff.tar which are not accepted
+	// by quay.io, this has to be manually mirrored with --filter-by-os=linux.*
 	"registry.k8s.io/pause:3.9",
-	// this image was removed
-	"registry.k8s.io/e2e-test-images/volume/rbd",
 )
 
 // GetMappedImages returns the images if they were mapped to the provided
