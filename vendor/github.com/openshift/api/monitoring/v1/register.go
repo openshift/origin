@@ -1,4 +1,4 @@
-package v1alpha1
+package v1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -9,7 +9,7 @@ import (
 
 var (
 	GroupName     = "monitoring.openshift.io"
-	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
+	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, corev1.AddToScheme)
 	// Install is a function which adds this version to a scheme
 	Install = schemeBuilder.AddToScheme

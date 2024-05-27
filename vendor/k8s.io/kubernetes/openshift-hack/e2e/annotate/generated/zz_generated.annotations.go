@@ -1933,6 +1933,8 @@ var Annotations = map[string]string{
 
 	"[sig-scheduling] SchedulerPredicates [Serial] validates that there is no conflict between pods with same hostPort but different hostIP and protocol": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
+	"[sig-scheduling] SchedulerPredicates [Serial] when PVC has node-affinity to non-existent/illegal nodes, the pod should be scheduled normally if suitable nodes exist": " [Suite:openshift/conformance/serial] [Suite:k8s]",
+
 	"[sig-scheduling] SchedulerPreemption [Serial] PodTopologySpread Preemption validates proper pods are preempted": " [Suite:openshift/conformance/serial] [Suite:k8s]",
 
 	"[sig-scheduling] SchedulerPreemption [Serial] PreemptionExecutionPath runs ReplicaSets to verify preemption running path [Conformance]": " [Suite:openshift/conformance/serial/minimal] [Suite:k8s]",

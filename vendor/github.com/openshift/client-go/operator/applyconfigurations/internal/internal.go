@@ -1097,6 +1097,10 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.operator.v1.EtcdSpec
   map:
     fields:
+    - name: backendQuotaGiB
+      type:
+        scalar: numeric
+      default: 8
     - name: controlPlaneHardwareSpeed
       type:
         scalar: string
@@ -2317,44 +2321,17 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         list:
           elementType:
-            namedType: com.github.openshift.api.operator.v1.OperatorCondition
+            namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Condition
           elementRelationship: associative
           keys:
           - type
-    - name: generations
-      type:
-        list:
-          elementType:
-            namedType: com.github.openshift.api.operator.v1.GenerationStatus
-          elementRelationship: atomic
-    - name: latestAvailableRevision
-      type:
-        scalar: numeric
-    - name: latestAvailableRevisionReason
-      type:
-        scalar: string
     - name: nodeDisruptionPolicyStatus
       type:
         namedType: com.github.openshift.api.operator.v1.NodeDisruptionPolicyStatus
       default: {}
-    - name: nodeStatuses
-      type:
-        list:
-          elementType:
-            namedType: com.github.openshift.api.operator.v1.NodeStatus
-          elementRelationship: associative
-          keys:
-          - nodeName
     - name: observedGeneration
       type:
         scalar: numeric
-    - name: readyReplicas
-      type:
-        scalar: numeric
-      default: 0
-    - name: version
-      type:
-        scalar: string
 - name: com.github.openshift.api.operator.v1.MachineManager
   map:
     fields:
@@ -3599,6 +3576,15 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.operator.v1.VSphereCSIDriverConfigSpec
   map:
     fields:
+    - name: globalMaxSnapshotsPerBlockVolume
+      type:
+        scalar: numeric
+    - name: granularMaxSnapshotsPerBlockVolumeInVSAN
+      type:
+        scalar: numeric
+    - name: granularMaxSnapshotsPerBlockVolumeInVVOL
+      type:
+        scalar: numeric
     - name: topologyCategories
       type:
         list:

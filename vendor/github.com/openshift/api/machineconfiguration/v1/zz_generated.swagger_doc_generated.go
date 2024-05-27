@@ -297,6 +297,7 @@ var map_MachineConfigPoolStatus = map[string]string{
 	"degradedMachineCount":    "degradedMachineCount represents the total number of machines marked degraded (or unreconcilable). A node is marked degraded if applying a configuration failed..",
 	"conditions":              "conditions represents the latest available observations of current state.",
 	"certExpirys":             "certExpirys keeps track of important certificate expiration data",
+	"poolSynchronizersStatus": "poolSynchronizersStatus is the status of the machines managed by the pool synchronizers.",
 }
 
 func (MachineConfigPoolStatus) SwaggerDoc() map[string]string {
@@ -342,6 +343,20 @@ var map_PinnedImageSetRef = map[string]string{
 
 func (PinnedImageSetRef) SwaggerDoc() map[string]string {
 	return map_PinnedImageSetRef
+}
+
+var map_PoolSynchronizerStatus = map[string]string{
+	"poolSynchronizerType":    "poolSynchronizerType describes the type of the pool synchronizer.",
+	"machineCount":            "machineCount is the number of machines that are managed by the node synchronizer.",
+	"updatedMachineCount":     "updatedMachineCount is the number of machines that have been updated by the node synchronizer.",
+	"readyMachineCount":       "readyMachineCount is the number of machines managed by the node synchronizer that are in a ready state.",
+	"availableMachineCount":   "availableMachineCount is the number of machines managed by the node synchronizer which are available.",
+	"unavailableMachineCount": "unavailableMachineCount is the number of machines managed by the node synchronizer but are unavailable.",
+	"observedGeneration":      "observedGeneration is the last generation change that has been applied.",
+}
+
+func (PoolSynchronizerStatus) SwaggerDoc() map[string]string {
+	return map_PoolSynchronizerStatus
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE
