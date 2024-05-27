@@ -615,6 +615,11 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 		// compare https://github.com/kubernetes/kubernetes/pull/123405
 		// which changed the healthz handler name
 		`[sig-api-machinery] health handlers should contain necessary checks`,
+		`PersistentVolumes GCEPD`,
+		`Multi-AZ Cluster Volumes should schedule pods in the same zones as statically provisioned PVs`,
+		`[Driver: azure-disk] [Testpattern: Pre-provisioned PV`,
+		`[sig-api-machinery] ValidatingAdmissionPolicy [Privileged:ClusterAdmin] should type check a CRD`,
+		`[sig-node] [Feature:PodLifecycleSleepAction] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
 	}
 
 	matches := make([]*testCase, 0, len(tests))
