@@ -4,3 +4,5 @@ linters:
     - nosprintfhostport
   presets: []
   fast: true
+run:
+  timeout: 5m
