@@ -282,7 +282,7 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 	// Apply output of git diff origin/release-1.XY origin/release-1.X(Y+1) test/integration/etcd/data.go. This is needed
 	// to apply the right data depending on the kube version of the running server. Replace this with the next current
 	// and rebase version next time. Don't pile them up.
-	if strings.HasPrefix(version.Minor, "30") {
+	if strings.HasPrefix(version.Minor, "31") {
 		for k, a := range map[schema.GroupVersionResource]etcddata.StorageData{
 			// Added etcd data.
 			// TODO: When rebase has started, add etcd storage data has been added to
