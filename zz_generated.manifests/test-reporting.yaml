@@ -12,7 +12,11 @@ spec:
   - featureGate: HardwareSpeed
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
-        update the hardware speed [Timeout:30m][apigroup:machine.openshift.io]'
+        set the hardware speed to "" [Timeout:30m][apigroup:machine.openshift.io]'
+    - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
+        set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]'
+    - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
+        set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
