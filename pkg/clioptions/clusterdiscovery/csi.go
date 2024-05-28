@@ -42,14 +42,17 @@ func initCSITests(dryRun bool) error {
 	if upstreamManifestList != "" {
 		manifests := strings.Split(upstreamManifestList, ",")
 		for _, manifest := range manifests {
-			if err := external.AddDriverDefinition(manifest); err != nil {
-				return fmt.Errorf("failed to load manifest from %q: %s", manifest, err)
-			}
+			// hack, do not merge!
 			csiDriver, err := parseDriverName(manifest)
 			if err != nil {
 				return fmt.Errorf("failed to parse CSI driver name from manifest %q: %s", manifest, err)
 			}
+			addOCPTestsForDriver(csiDriver)
 			upstreamDrivers.Insert(csiDriver)
+
+			if err := external.AddDriverDefinition(manifest); err != nil {
+				return fmt.Errorf("failed to load manifest from %q: %s", manifest, err)
+			}
 
 			// Register the base dir of the manifest file as a file source.
 			// With this we can reference the CSI driver's storageClass
@@ -90,4 +93,21 @@ func parseDriverName(filename string) (string, error) {
 	}
 	return manifest.DriverInfo.Name, nil
 
+}
+
+func addOCPTestsForDriver(driver string) {
+	ocpDriverConfig := &csi.OpenShiftCSIDriverConfig{
+		Driver: driver,
+		LUNStressTest: &csi.LUNStressTestConfig{
+			PodsTotal: 260,
+		},
+	}
+
+	yaml, err := yaml.Marshal(ocpDriverConfig)
+	if err != nil {
+		panic(err)
+	}
+	filename := fmt.Sprintf("/tmp/%s.yaml", driver)
+	os.WriteFile(filename, yaml, 0644)
+	csi.AddOpenShiftCSITests(filename)
 }
