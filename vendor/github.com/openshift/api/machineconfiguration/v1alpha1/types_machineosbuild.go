@@ -16,9 +16,8 @@ import (
 // +kubebuilder:metadata:labels=openshift.io/operator-managed=
 // +kubebuilder:printcolumn:name="Prepared",type="string",JSONPath=.status.conditions[?(@.type=="Prepared")].status
 // +kubebuilder:printcolumn:name="Building",type="string",JSONPath=.status.conditions[?(@.type=="Building")].status
-// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=.status.conditions[?(@.type=="Ready")].status
+// +kubebuilder:printcolumn:name="Succeeded",type="string",JSONPath=.status.conditions[?(@.type=="Succeeded")].status
 // +kubebuilder:printcolumn:name="Interrupted",type="string",JSONPath=.status.conditions[?(@.type=="Interrupted")].status
-// +kubebuilder:printcolumn:name="Restarted",type="string",JSONPath=.status.conditions[?(@.type=="Restarted")].status
 // +kubebuilder:printcolumn:name="Failed",type="string",JSONPath=.status.conditions[?(@.type=="Failed")].status
 
 // MachineOSBuild describes a build process managed and deployed by the MCO

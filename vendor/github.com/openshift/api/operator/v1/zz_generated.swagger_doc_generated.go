@@ -1346,7 +1346,7 @@ func (NodeDisruptionPolicyConfig) SwaggerDoc() map[string]string {
 }
 
 var map_NodeDisruptionPolicySpecAction = map[string]string{
-	"type":    "type represents the commands that will be carried out if this NodeDisruptionPolicySpecActionType is executed Valid value are Reboot, Drain, Reload, Restart, DaemonReload, None and Special reload/restart requires a corresponding service target specified in the reload/restart field. Other values require no further configuration",
+	"type":    "type represents the commands that will be carried out if this NodeDisruptionPolicySpecActionType is executed Valid values are Reboot, Drain, Reload, Restart, DaemonReload and None. reload/restart requires a corresponding service target specified in the reload/restart field. Other values require no further configuration",
 	"reload":  "reload specifies the service to reload, only valid if type is reload",
 	"restart": "restart specifies the service to restart, only valid if type is restart",
 }
@@ -1393,7 +1393,7 @@ func (NodeDisruptionPolicyStatus) SwaggerDoc() map[string]string {
 }
 
 var map_NodeDisruptionPolicyStatusAction = map[string]string{
-	"type":    "type represents the commands that will be carried out if this NodeDisruptionPolicyStatusActionType is executed Valid value are Reboot, Drain, Reload, Restart, DaemonReload, None and Special reload/restart requires a corresponding service target specified in the reload/restart field. Other values require no further configuration",
+	"type":    "type represents the commands that will be carried out if this NodeDisruptionPolicyStatusActionType is executed Valid values are Reboot, Drain, Reload, Restart, DaemonReload, None and Special. reload/restart requires a corresponding service target specified in the reload/restart field. Other values require no further configuration",
 	"reload":  "reload specifies the service to reload, only valid if type is reload",
 	"restart": "restart specifies the service to restart, only valid if type is restart",
 }

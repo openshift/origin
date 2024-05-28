@@ -33,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/certs"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	testresult "github.com/openshift/origin/pkg/test/ginkgo/result"
-	"github.com/openshift/origin/test/extended/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 	ownership "github.com/openshift/origin/tls"
@@ -67,7 +66,7 @@ var (
 	jobType            *platformidentification.JobType
 )
 
-func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, masters []*corev1.Node) (*certgraphapi.PKIList, error) {
+func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernetes.Interface, masters []*corev1.Node, bootstrapHostname string) (*certgraphapi.PKIList, error) {
 	annotationsToCollect := []string{annotations.OpenShiftComponent}
 	for _, currRequirement := range tlsmetadatadefaults.GetDefaultTLSRequirements() {
 		annotationRequirement, ok := currRequirement.(tlsmetadatainterfaces.AnnotationRequirement)
@@ -80,7 +79,7 @@ func gatherCertsFromPlatformNamespaces(ctx context.Context, kubeClient kubernete
 		certgraphanalysis.SkipRevisioned,
 		certgraphanalysis.SkipHashed,
 		certgraphanalysis.ElideProxyCADetails,
-		certgraphanalysis.RewriteNodeIPs(masters),
+		certgraphanalysis.RewriteNodeNames(masters, bootstrapHostname),
 		certgraphanalysis.CollectAnnotations(annotationsToCollect...),
 	)
 }
@@ -111,7 +110,9 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 			masters = append(masters, &nodeList.Items[i])
 		}
 
-		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient, masters)
+		_, bootstrapHostname, err := certgraphanalysis.GetBootstrapIPAndHostname(ctx, kubeClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient, masters, bootstrapHostname)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		openshiftTestImagePullSpec, err := disruptionpodnetwork.GetOpenshiftTestsImagePullSpec(ctx, oc.AdminConfig(), "", oc)
@@ -163,15 +164,16 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 		newTLSRegistry := &certs.PKIRegistryInfo{}
 
-		for _, currCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
-			currLocation := currCertKeyPair.SecretLocation
+		for i, inClusterCertKeyPair := range actualPKIContent.InClusterResourceData.CertKeyPairs {
+			currLocation := inClusterCertKeyPair.SecretLocation
 			if _, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, violationsPKIContent.CertKeyPairs); err == nil {
 				continue
 			}
 
 			_, err := certgraphutils.LocateCertKeyPairBySecretLocation(currLocation, expectedPKIContent.CertKeyPairs)
 			if err != nil {
-				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{InClusterLocation: &currCertKeyPair})
+
+				newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{InClusterLocation: &actualPKIContent.InClusterResourceData.CertKeyPairs[i]})
 			}
 
 		}
@@ -188,13 +190,15 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 					certInfo, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Cert, expectedPKIContent.CertKeyPairs)
 					if err != nil {
-						certInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
-							OnDiskLocation: certgraphapi.OnDiskLocation{
-								Path: currLocation.Cert.Path,
-							},
+						if certInfo == nil {
+							certInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
+								OnDiskLocation: certgraphapi.OnDiskLocation{
+									Path: currLocation.Cert.Path,
+								},
+							}
 						}
+						newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: certInfo})
 					}
-					newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: certInfo})
 				}
 
 				if len(currLocation.Key.Path) > 0 && currLocation.Key.Path != currLocation.Cert.Path {
@@ -205,26 +209,28 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 					keyInfo, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation.Key, expectedPKIContent.CertKeyPairs)
 					if err != nil {
-						keyInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
-							OnDiskLocation: certgraphapi.OnDiskLocation{
-								Path: currLocation.Key.Path,
-							},
+						if keyInfo == nil {
+							keyInfo = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
+								OnDiskLocation: certgraphapi.OnDiskLocation{
+									Path: currLocation.Key.Path,
+								},
+							}
 						}
+						newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: keyInfo})
 					}
-					newTLSRegistry.CertKeyPairs = append(newTLSRegistry.CertKeyPairs, certgraphapi.PKIRegistryCertKeyPair{OnDiskLocation: keyInfo})
 				}
 			}
 		}
 
-		for _, currCABundle := range actualPKIContent.InClusterResourceData.CertificateAuthorityBundles {
-			currLocation := currCABundle.ConfigMapLocation
+		for i, inClusterCABundle := range actualPKIContent.InClusterResourceData.CertificateAuthorityBundles {
+			currLocation := inClusterCABundle.ConfigMapLocation
 			if _, err := certgraphutils.LocateCABundleByConfigMapLocation(currLocation, violationsPKIContent.CertificateAuthorityBundles); err == nil {
 				continue
 			}
 
 			_, err := certgraphutils.LocateCABundleByConfigMapLocation(currLocation, expectedPKIContent.CertificateAuthorityBundles)
 			if err != nil {
-				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{InClusterLocation: &currCABundle})
+				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{InClusterLocation: &actualPKIContent.InClusterResourceData.CertificateAuthorityBundles[i]})
 			}
 		}
 
@@ -239,13 +245,15 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 				caBundleInfo, err := certgraphutils.LocateCABundleByOnDiskLocation(currLocation, expectedPKIContent.CertificateAuthorityBundles)
 				if err != nil {
-					caBundleInfo = &certgraphapi.PKIRegistryOnDiskCABundle{
-						OnDiskLocation: certgraphapi.OnDiskLocation{
-							Path: currLocation.Path,
-						},
+					if caBundleInfo == nil {
+						caBundleInfo = &certgraphapi.PKIRegistryOnDiskCABundle{
+							OnDiskLocation: certgraphapi.OnDiskLocation{
+								Path: currLocation.Path,
+							},
+						}
 					}
+					newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{OnDiskLocation: caBundleInfo})
 				}
-				newTLSRegistry.CertificateAuthorityBundles = append(newTLSRegistry.CertificateAuthorityBundles, certgraphapi.PKIRegistryCABundle{OnDiskLocation: caBundleInfo})
 			}
 		}
 
@@ -340,8 +348,8 @@ func createRBACBindings(ctx context.Context, kubeClient kubernetes.Interface, na
 	privilegedRoleBindingObj := resourceread.ReadRoleBindingV1OrDie(roleBindingPrivilegedYaml)
 	privilegedRoleBindingObj.Namespace = namespace
 
-	client := kubeClient.RbacV1().RoleBindings(namespace)
-	_, err := client.Create(ctx, privilegedRoleBindingObj, metav1.CreateOptions{})
+	namespaceRBClient := kubeClient.RbacV1().RoleBindings(namespace)
+	_, err := namespaceRBClient.Create(ctx, privilegedRoleBindingObj, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return "", fmt.Errorf("error creating hostaccess SCC CRB: %v", err)
 	}
@@ -398,7 +406,7 @@ func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace 
 	return podOnNode, nil
 }
 
-func fetchNodePKIList(ctx context.Context, kubeClient kubernetes.Interface, podRESTConfig *rest.Config, podOnNode podToNodeMap, node *corev1.Node) (*certgraphapi.PKIList, error) {
+func fetchNodePKIList(_ context.Context, kubeClient kubernetes.Interface, podRESTConfig *rest.Config, podOnNode podToNodeMap, node *corev1.Node) (*certgraphapi.PKIList, error) {
 	pkiList := &certgraphapi.PKIList{}
 
 	pod, ok := podOnNode[node.Name]
@@ -406,7 +414,7 @@ func fetchNodePKIList(ctx context.Context, kubeClient kubernetes.Interface, podR
 		return pkiList, fmt.Errorf("failed to find node %s in pod map %v", node.Name, podOnNode)
 	}
 
-	output, err := util.ExecInPodWithResult(kubeClient.CoreV1(), podRESTConfig, pod.Namespace, pod.Name, "pause", []string{"/bin/cat", certInspectResultFile})
+	output, err := exutil.ExecInPodWithResult(kubeClient.CoreV1(), podRESTConfig, pod.Namespace, pod.Name, "pause", []string{"/bin/cat", certInspectResultFile})
 	if err != nil {
 		return pkiList, fmt.Errorf("failed to fetch file %s from pod %s/%s node %s: %v", certInspectResultFile, pod.Namespace, pod.Name, node.Name, err)
 	}

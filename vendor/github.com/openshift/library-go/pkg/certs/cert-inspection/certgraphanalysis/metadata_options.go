@@ -161,34 +161,43 @@ func skipRevisionedInOnDiskLocation(location certgraphapi.OnDiskLocation) bool {
 	return false
 }
 
-func RewriteNodeIPs(nodeList []*corev1.Node) *metadataOptions {
-	nodes := map[string]int{}
+func rewriteSecretDetails(secret *corev1.Secret, original, replacement string) {
+	name := strings.ReplaceAll(secret.Name, original, replacement)
+	if secret.Name != name {
+		secret.Name = name
+		if len(secret.Annotations) == 0 {
+			secret.Annotations = map[string]string{}
+		}
+		for key, value := range secret.Annotations {
+			// Replace key values too
+			key := strings.ReplaceAll(key, original, replacement)
+			// Replace node name from annotation value
+			newValue := strings.ReplaceAll(value, original, replacement)
+			if value != newValue {
+				secret.Annotations[key] = newValue
+			}
+		}
+		secret.Annotations[rewritePrefix+"RewriteNodeNames"] = original
+	}
+}
+
+func RewriteNodeNames(nodeList []*corev1.Node, bootstrapHostname string) *metadataOptions {
+	nodes := map[string]string{}
 	for i, node := range nodeList {
-		nodes[node.Name] = i
+		nodes[node.Name] = fmt.Sprintf("<master-%d>", i)
+	}
+	if len(bootstrapHostname) != 0 {
+		nodes[bootstrapHostname] = "<bootstrap>"
 	}
 	return &metadataOptions{
 		rewriteSecretFn: func(secret *corev1.Secret) {
-			for nodeName, masterID := range nodes {
-				name := strings.ReplaceAll(secret.Name, nodeName, fmt.Sprintf("<master-%d>", masterID))
-				if secret.Name != name {
-					secret.Name = name
-					if len(secret.Annotations) == 0 {
-						secret.Annotations = map[string]string{}
-					}
-					// Replace node name from annotation value
-					for key, value := range secret.Annotations {
-						newValue := strings.ReplaceAll(value, nodeName, fmt.Sprintf("<master-%d>", masterID))
-						if value != newValue {
-							secret.Annotations[key] = newValue
-						}
-					}
-					secret.Annotations[rewritePrefix+"RewriteNodeIPs"] = nodeName
-				}
+			for nodeName, replacement := range nodes {
+				rewriteSecretDetails(secret, nodeName, replacement)
 			}
 		},
 		rewritePathFn: func(path string) string {
-			for nodeName, masterID := range nodes {
-				newPath := strings.ReplaceAll(path, nodeName, fmt.Sprintf("<master-%d>", masterID))
+			for nodeName, replacement := range nodes {
+				newPath := strings.ReplaceAll(path, nodeName, replacement)
 				if newPath != path {
 					fmt.Fprintf(os.Stdout, "Rewrote %s as %s\n", path, newPath)
 					return newPath

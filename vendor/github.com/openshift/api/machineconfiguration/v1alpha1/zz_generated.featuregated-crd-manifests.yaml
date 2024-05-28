@@ -92,14 +92,11 @@ machineosbuilds.machineconfiguration.openshift.io:
   - jsonPath: .status.conditions[?(@.type=="Building")].status
     name: Building
     type: string
-  - jsonPath: .status.conditions[?(@.type=="Ready")].status
-    name: Ready
+  - jsonPath: .status.conditions[?(@.type=="Succeeded")].status
+    name: Succeeded
     type: string
   - jsonPath: .status.conditions[?(@.type=="Interrupted")].status
     name: Interrupted
-    type: string
-  - jsonPath: .status.conditions[?(@.type=="Restarted")].status
-    name: Restarted
     type: string
   - jsonPath: .status.conditions[?(@.type=="Failed")].status
     name: Failed

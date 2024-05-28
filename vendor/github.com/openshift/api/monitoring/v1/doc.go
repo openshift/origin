@@ -3,4 +3,4 @@
 // +k8s:openapi-gen=true
 
 // +groupName=monitoring.openshift.io
-package v1alpha1
+package v1

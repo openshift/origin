@@ -213,19 +213,33 @@ func generateViolationJSONForAnnotationRequirement(annotationName string, pkiInf
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		regenerates, _ := AnnotationValue(curr.InClusterLocation.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
-		if len(regenerates) == 0 {
-			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
+		if curr.InClusterLocation != nil {
+			regenerates, _ := AnnotationValue(curr.InClusterLocation.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
+			if len(regenerates) == 0 {
+				ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
+			}
 		}
-		//TODO[vrutkovs]: on disk case
+		if curr.OnDiskLocation != nil {
+			regenerates, _ := AnnotationValue(curr.OnDiskLocation.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
+			if len(regenerates) == 0 {
+				ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
+			}
+		}
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		regenerates, _ := AnnotationValue(curr.InClusterLocation.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
-		if len(regenerates) == 0 {
-			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
+		if curr.InClusterLocation != nil {
+			regenerates, _ := AnnotationValue(curr.InClusterLocation.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
+			if len(regenerates) == 0 {
+				ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
+			}
 		}
-		//TODO[vrutkovs]: on disk case
+		if curr.OnDiskLocation != nil {
+			regenerates, _ := AnnotationValue(curr.OnDiskLocation.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
+			if len(regenerates) == 0 {
+				ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
+			}
+		}
 	}
 
 	return ret

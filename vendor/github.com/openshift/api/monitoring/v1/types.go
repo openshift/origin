@@ -1,4 +1,4 @@
-package v1alpha1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,26 +26,25 @@ import (
 //
 // https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 // +genclient
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=alertingrules,scope=Namespaced
 // +kubebuilder:subresource:status
-// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1179
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1406
 // +openshift:file-pattern=cvoRunLevel=0000_50,operatorName=monitoring,operatorOrdering=01
-// +openshift:enable:FeatureGate=AlertingRules
 // +kubebuilder:metadata:annotations="description=OpenShift Monitoring alerting rules"
 type AlertingRule struct {
 	metav1.TypeMeta `json:",inline"`
-
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec describes the desired state of this AlertingRule object.
+	// +kubebuilder:validation:Required
 	Spec AlertingRuleSpec `json:"spec"`
 
 	// status describes the current state of this AlertOverrides object.
@@ -58,17 +57,17 @@ type AlertingRule struct {
 
 // AlertingRuleList is a list of AlertingRule objects.
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 // +k8s:openapi-gen=true
 type AlertingRuleList struct {
 	metav1.TypeMeta `json:",inline"`
-
-	// metadata is the standard list's metadata.
+	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	// items is a list of AlertingRule objects.
+	// +kubebuilder:validation:Required
 	Items []AlertingRule `json:"items"`
 }
 
@@ -94,8 +93,16 @@ type AlertingRuleSpec struct {
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MinItems:=1
+	// +kubebuilder:validation:Required
 	Groups []RuleGroup `json:"groups"`
 }
+
+// Duration is a valid prometheus time duration.
+// Supported units: y, w, d, h, m, s, ms
+// Examples: `30s`, `1m`, `1h20m15s`, `15d`
+// +kubebuilder:validation:Pattern:="^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$"
+// +kubebuilder:validation:MaxLength=2048
+type Duration string
 
 // RuleGroup is a list of sequentially evaluated alerting rules.
 //
@@ -104,6 +111,8 @@ type RuleGroup struct {
 	// name is the name of the group.
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
 	Name string `json:"name"`
 
 	// interval is how often rules in the group are evaluated.  If not specified,
@@ -111,25 +120,17 @@ type RuleGroup struct {
 	// which itself defaults to 30 seconds.  You can check if this value has been
 	// modified from the default on your cluster by inspecting the platform
 	// Prometheus configuration:
-	//
-	// $ oc -n openshift-monitoring describe prometheus k8s
-	//
 	// The relevant field in that resource is: spec.evaluationInterval
 	//
-	// This is represented as a Prometheus duration, e.g. 1d, 1h30m, 5m, 10s.  You
-	// can find the upstream documentation here:
-	//
-	// https://prometheus.io/docs/prometheus/latest/configuration/configuration/#duration
-	//
-	// +kubebuilder:validation:Pattern:="^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?$"
 	// +optional
-	Interval string `json:"interval,omitempty"`
+	Interval Duration `json:"interval,omitempty"`
 
 	// rules is a list of sequentially evaluated alerting rules.  Prometheus may
 	// process rule groups in parallel, but rules within a single group are always
 	// processed sequentially, and all rules are processed.
 	//
 	// +kubebuilder:validation:MinItems:=1
+	// +kubebuilder:validation:Required
 	Rules []Rule `json:"rules"`
 }
 
@@ -139,37 +140,32 @@ type RuleGroup struct {
 //
 // +k8s:openapi-gen=true
 type Rule struct {
-	// alert is the name of the alert. Must be a valid label value, i.e. only
-	// contain ASCII letters, numbers, and underscores.
+	// alert is the name of the alert. Must be a valid label value, i.e. may
+	// contain any Unicode character.
 	//
-	// +kubebuilder:validation:Pattern:="^[a-zA-Z_][a-zA-Z0-9_]*$"
-	// +required
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
 	Alert string `json:"alert"`
 
 	// expr is the PromQL expression to evaluate. Every evaluation cycle this is
 	// evaluated at the current time, and all resultant time series become pending
 	// or firing alerts.  This is most often a string representing a PromQL
-	// expression, e.g.:
-	//
-	//   mapi_current_pending_csr > mapi_max_pending_csr
-	//
+	// expression, e.g.: mapi_current_pending_csr > mapi_max_pending_csr
 	// In rare cases this could be a simple integer, e.g. a simple "1" if the
 	// intent is to create an alert that is always firing.  This is sometimes used
 	// to create an always-firing "Watchdog" alert in order to ensure the alerting
 	// pipeline is functional.
 	//
-	// +required
+	// +kubebuilder:validation:Required
 	Expr intstr.IntOrString `json:"expr"`
 
 	// for is the time period after which alerts are considered firing after first
 	// returning results.  Alerts which have not yet fired for long enough are
-	// considered pending. This is represented as a Prometheus duration, for
-	// details on the format see:
-	// - https://prometheus.io/docs/prometheus/latest/configuration/configuration/#duration
+	// considered pending.
 	//
-	// +kubebuilder:validation:Pattern:="^(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?$"
 	// +optional
-	For string `json:"for,omitempty"`
+	For Duration `json:"for,omitempty"`
 
 	// labels to add or overwrite for each alert.  The results of the PromQL
 	// expression for the alert will result in an existing set of labels for the
@@ -177,24 +173,14 @@ type Rule struct {
 	// the same name as a label in that set, the label here wins and overwrites
 	// the previous value.  These should typically be short identifying values
 	// that may be useful to query against.  A common example is the alert
-	// severity:
-	//
-	//   labels:
-	//     severity: warning
+	// severity, where one sets `severity: warning` under the `labels` key:
 	//
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to add to each alert.  These are values that can be used to
 	// store longer additional information that you won't query on, such as alert
-	// descriptions or runbook links, e.g.:
-	//
-	//   annotations:
-	//     summary: HAProxy reload failure
-	//     description: |
-	//       This alert fires when HAProxy fails to reload its
-	//       configuration, which will result in the router not picking up
-	//       recently created or modified routes.
+	// descriptions or runbook links.
 	//
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -224,6 +210,9 @@ type PrometheusRuleRef struct {
 	// the reference should we ever need to.
 
 	// name of the referenced PrometheusRule.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2048
 	Name string `json:"name"`
 }
 
@@ -233,24 +222,23 @@ type PrometheusRuleRef struct {
 
 // AlertRelabelConfig defines a set of relabel configs for alerts.
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 // +k8s:openapi-gen=true
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=alertrelabelconfigs,scope=Namespaced
 // +kubebuilder:subresource:status
-// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1179
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1406
 // +openshift:file-pattern=cvoRunLevel=0000_50,operatorName=monitoring,operatorOrdering=02
-// +openshift:enable:FeatureGate=AlertingRules
 // +kubebuilder:metadata:annotations="description=OpenShift Monitoring alert relabel configurations"
 type AlertRelabelConfig struct {
 	metav1.TypeMeta `json:",inline"`
-
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec describes the desired state of this AlertRelabelConfig object.
+	// +kubebuilder:validation:Required
 	Spec AlertRelabelConfigSpec `json:"spec"`
 
 	// status describes the current state of this AlertRelabelConfig object.
@@ -266,6 +254,7 @@ type AlertRelabelConfigSpec struct {
 	// configs is a list of sequentially evaluated alert relabel configs.
 	//
 	// +kubebuilder:validation:MinItems:=1
+	// +kubebuilder:validation:Required
 	Configs []RelabelConfig `json:"configs"`
 }
 
@@ -285,18 +274,19 @@ const (
 
 // AlertRelabelConfigList is a list of AlertRelabelConfigs.
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AlertRelabelConfigList struct {
 	metav1.TypeMeta `json:",inline"`
-
-	// metadata is the standard list's metadata.
+	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	// items is a list of AlertRelabelConfigs.
+	// +kubebuilder:validation:MinItems:=1
+	// +kubebuilder:validation:Required
 	Items []*AlertRelabelConfig `json:"items"`
 }
 
@@ -304,6 +294,7 @@ type AlertRelabelConfigList struct {
 // letters, numbers, and underscores.
 //
 // +kubebuilder:validation:Pattern:="^[a-zA-Z_][a-zA-Z0-9_]*$"
+// +kubebuilder:validation:MaxLength=2048
 type LabelName string
 
 // RelabelConfig allows dynamic rewriting of label sets for alerts.
@@ -311,11 +302,22 @@ type LabelName string
 // - https://prometheus.io/docs/prometheus/latest/configuration/configuration/#alert_relabel_configs
 // - https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config
 //
+// +kubebuilder:validation:XValidation:rule="self.action != 'HashMod' || self.modulus != 0",message="relabel action hashmod requires non-zero modulus"
+// +kubebuilder:validation:XValidation:rule="(self.action != 'Replace' && self.action != 'HashMod') || has(self.targetLabel)",message="targetLabel is required when action is Replace or HashMod"
+// +kubebuilder:validation:XValidation:rule="(self.action != 'LabelDrop' && self.action != 'LabelKeep') || !has(self.sourceLabels)",message="LabelKeep and LabelDrop actions require only 'regex', and no other fields (found sourceLabels)"
+// +kubebuilder:validation:XValidation:rule="(self.action != 'LabelDrop' && self.action != 'LabelKeep') || !has(self.targetLabel)",message="LabelKeep and LabelDrop actions require only 'regex', and no other fields (found targetLabel)"
+// +kubebuilder:validation:XValidation:rule="(self.action != 'LabelDrop' && self.action != 'LabelKeep') || !has(self.modulus)",message="LabelKeep and LabelDrop actions require only 'regex', and no other fields (found modulus)"
+// +kubebuilder:validation:XValidation:rule="(self.action != 'LabelDrop' && self.action != 'LabelKeep') || !has(self.separator)",message="LabelKeep and LabelDrop actions require only 'regex', and no other fields (found separator)"
+// +kubebuilder:validation:XValidation:rule="(self.action != 'LabelDrop' && self.action != 'LabelKeep') || !has(self.replacement)",message="LabelKeep and LabelDrop actions require only 'regex', and no other fields (found replacement)"
+// +kubebuilder:validation:XValidation:rule="!has(self.modulus) || (has(self.modulus) && size(self.sourceLabels) > 0)",message="modulus requires sourceLabels to be present"
+// +kubebuilder:validation:XValidation:rule="(self.action == 'LabelDrop' || self.action == 'LabelKeep') || has(self.sourceLabels)",message="sourceLabels is required for actions Replace, Keep, Drop, HashMod and LabelMap"
+// +kubebuilder:validation:XValidation:rule="(self.action != 'Replace' && self.action != 'LabelMap') || has(self.replacement)",message="replacement is required for actions Replace and LabelMap"
 // +k8s:openapi-gen=true
 type RelabelConfig struct {
 	// sourceLabels select values from existing labels. Their content is
 	// concatenated using the configured separator and matched against the
-	// configured regular expression for the Replace, Keep, and Drop actions.
+	// configured regular expression for the 'Replace', 'Keep', and 'Drop' actions.
+	// Not allowed for actions 'LabelKeep' and 'LabelDrop'.
 	//
 	// +optional
 	SourceLabels []LabelName `json:"sourceLabels,omitempty"`
@@ -324,36 +326,45 @@ type RelabelConfig struct {
 	// Prometheus will use its default value of ';'.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=2048
 	Separator string `json:"separator,omitempty"`
 
 	// targetLabel to which the resulting value is written in a 'Replace' action.
-	// It is mandatory for 'Replace' and 'HashMod' actions. Regex capture groups
+	// It is required for 'Replace' and 'HashMod' actions and forbidden for
+	// actions 'LabelKeep' and 'LabelDrop'. Regex capture groups
 	// are available.
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=2048
 	TargetLabel string `json:"targetLabel,omitempty"`
 
 	// regex against which the extracted value is matched. Default is: '(.*)'
+	// regex is required for all actions except 'HashMod'
 	//
 	// +optional
+	// +kubebuilder:default=(.*)
+	// +kubebuilder:validation:MaxLength=2048
 	Regex string `json:"regex,omitempty"`
 
 	// modulus to take of the hash of the source label values.  This can be
 	// combined with the 'HashMod' action to set 'target_label' to the 'modulus'
-	// of a hash of the concatenated 'source_labels'.
+	// of a hash of the concatenated 'source_labels'. This is only valid if
+	// sourceLabels is not empty and action is not 'LabelKeep' or 'LabelDrop'.
 	//
 	// +optional
 	Modulus uint64 `json:"modulus,omitempty"`
 
 	// replacement value against which a regex replace is performed if the regular
 	// expression matches. This is required if the action is 'Replace' or
-	// 'LabelMap'. Regex capture groups are available. Default is: '$1'
+	// 'LabelMap' and forbidden for actions 'LabelKeep' and 'LabelDrop'.
+	// Regex capture groups are available. Default is: '$1'
 	//
 	// +optional
+	// +kubebuilder:validation:MaxLength=2048
 	Replacement string `json:"replacement,omitempty"`
 
-	// action to perform based on regex matching. Must be one of: Replace, Keep,
-	// Drop, HashMod, LabelMap, LabelDrop, or LabelKeep.  Default is: 'Replace'
+	// action to perform based on regex matching. Must be one of: 'Replace', 'Keep',
+	// 'Drop', 'HashMod', 'LabelMap', 'LabelDrop', or 'LabelKeep'. Default is: 'Replace'
 	//
 	// +kubebuilder:validation:Enum=Replace;Keep;Drop;HashMod;LabelMap;LabelDrop;LabelKeep
 	// +kubebuilder:default=Replace
