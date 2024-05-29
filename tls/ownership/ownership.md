@@ -1,34 +1,35 @@
 # Certificate Ownership
 
 ## Table of Contents
-  - [Missing Owners (20)](#Missing-Owners-20)
-    - [Certificates (9)](#Certificates-9)
-    - [Certificate Authority Bundles (11)](#Certificate-Authority-Bundles-11)
+  - [Missing Owners (7)](#Missing-Owners-7)
+    - [Certificates (4)](#Certificates-4)
+    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
   - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [End User (1)](#End-User-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-  - [Etcd (28)](#Etcd-28)
-    - [Certificates (19)](#Certificates-19)
-    - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
   - [Machine Config Operator (2)](#Machine-Config-Operator-2)
     - [Certificates (1)](#Certificates-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-  - [Monitoring (7)](#Monitoring-7)
+  - [Monitoring (6)](#Monitoring-6)
     - [Certificates (2)](#Certificates-2)
-    - [Certificate Authority Bundles (5)](#Certificate-Authority-Bundles-5)
-  - [Networking / cluster-network-operator (25)](#Networking-/-cluster-network-operator-25)
-    - [Certificate Authority Bundles (25)](#Certificate-Authority-Bundles-25)
+    - [Certificate Authority Bundles (4)](#Certificate-Authority-Bundles-4)
+  - [Networking / cluster-network-operator (34)](#Networking-/-cluster-network-operator-34)
+    - [Certificates (6)](#Certificates-6)
+    - [Certificate Authority Bundles (28)](#Certificate-Authority-Bundles-28)
   - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
     - [Certificates (2)](#Certificates-2)
   - [apiserver-auth (3)](#apiserver-auth-3)
     - [Certificates (1)](#Certificates-1)
     - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
-  - [kube-apiserver (39)](#kube-apiserver-39)
+  - [etcd (38)](#etcd-38)
+    - [Certificates (24)](#Certificates-24)
+    - [Certificate Authority Bundles (14)](#Certificate-Authority-Bundles-14)
+  - [kube-apiserver (40)](#kube-apiserver-40)
     - [Certificates (22)](#Certificates-22)
-    - [Certificate Authority Bundles (17)](#Certificate-Authority-Bundles-17)
-  - [kube-controller-manager (10)](#kube-controller-manager-10)
-    - [Certificates (3)](#Certificates-3)
+    - [Certificate Authority Bundles (18)](#Certificate-Authority-Bundles-18)
+  - [kube-controller-manager (9)](#kube-controller-manager-9)
+    - [Certificates (2)](#Certificates-2)
     - [Certificate Authority Bundles (7)](#Certificate-Authority-Bundles-7)
   - [kube-scheduler (1)](#kube-scheduler-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
@@ -37,8 +38,8 @@
     - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
 
 
-## Missing Owners (20)
-### Certificates (9)
+## Missing Owners (7)
+### Certificates (4)
 1. ns/openshift-ingress secret/router-certs-default
 
       **Description:** 
@@ -49,95 +50,30 @@
       **Description:** 
       
 
-3. ns/openshift-machine-api secret/metal3-ironic-tls
+3. ns/openshift-kube-controller-manager-operator secret/csr-signer-signer
 
       **Description:** 
       
 
-4. ns/openshift-network-node-identity secret/network-node-identity-ca
-
-      **Description:** 
-      
-
-5. ns/openshift-network-node-identity secret/network-node-identity-cert
-
-      **Description:** 
-      
-
-6. ns/openshift-ovn-kubernetes secret/ovn-ca
-
-      **Description:** 
-      
-
-7. ns/openshift-ovn-kubernetes secret/ovn-cert
-
-      **Description:** 
-      
-
-8. ns/openshift-ovn-kubernetes secret/signer-ca
-
-      **Description:** 
-      
-
-9. ns/openshift-ovn-kubernetes secret/signer-cert
+4. ns/openshift-machine-api secret/metal3-ironic-tls
 
       **Description:** 
       
 
 
 
-### Certificate Authority Bundles (11)
-1. ns/openshift-config configmap/admin-kubeconfig-client-ca
+### Certificate Authority Bundles (3)
+1. ns/openshift-config-managed configmap/default-ingress-cert
 
       **Description:** 
       
 
-2. ns/openshift-config configmap/etcd-ca-bundle
+2. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
 
       **Description:** 
       
 
-3. ns/openshift-config-managed configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-4. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
-
-      **Description:** 
-      
-
-5. ns/openshift-console configmap/default-ingress-cert
-
-      **Description:** 
-      
-
-6. ns/openshift-etcd configmap/etcd-ca-bundle
-
-      **Description:** 
-      
-
-7. ns/openshift-etcd configmap/etcd-peer-client-ca
-
-      **Description:** 
-      
-
-8. ns/openshift-etcd-operator configmap/etcd-ca-bundle
-
-      **Description:** 
-      
-
-9. ns/openshift-network-node-identity configmap/network-node-identity-ca
-
-      **Description:** 
-      
-
-10. ns/openshift-ovn-kubernetes configmap/ovn-ca
-
-      **Description:** 
-      
-
-11. ns/openshift-ovn-kubernetes configmap/signer-ca
+3. ns/openshift-console configmap/default-ingress-cert
 
       **Description:** 
       
@@ -162,153 +98,6 @@
 
 
 
-## Etcd (28)
-### Certificates (19)
-1. ns/openshift-apiserver secret/etcd-client
-
-      **Description:** 
-      
-
-2. ns/openshift-config secret/etcd-client
-
-      **Description:** 
-      
-
-3. ns/openshift-config secret/etcd-metric-client
-
-      **Description:** 
-      
-
-4. ns/openshift-config secret/etcd-metric-signer
-
-      **Description:** 
-      
-
-5. ns/openshift-config secret/etcd-signer
-
-      **Description:** 
-      
-
-6. ns/openshift-etcd secret/etcd-client
-
-      **Description:** 
-      
-
-7. ns/openshift-etcd secret/etcd-peer-\<master-0>
-
-      **Description:** 
-      
-
-8. ns/openshift-etcd secret/etcd-peer-\<master-1>
-
-      **Description:** 
-      
-
-9. ns/openshift-etcd secret/etcd-peer-\<master-2>
-
-      **Description:** 
-      
-
-10. ns/openshift-etcd secret/etcd-serving-\<master-0>
-
-      **Description:** 
-      
-
-11. ns/openshift-etcd secret/etcd-serving-\<master-1>
-
-      **Description:** 
-      
-
-12. ns/openshift-etcd secret/etcd-serving-\<master-2>
-
-      **Description:** 
-      
-
-13. ns/openshift-etcd secret/etcd-serving-metrics-\<master-0>
-
-      **Description:** 
-      
-
-14. ns/openshift-etcd secret/etcd-serving-metrics-\<master-1>
-
-      **Description:** 
-      
-
-15. ns/openshift-etcd secret/etcd-serving-metrics-\<master-2>
-
-      **Description:** 
-      
-
-16. ns/openshift-etcd-operator secret/etcd-client
-
-      **Description:** 
-      
-
-17. ns/openshift-etcd-operator secret/etcd-metric-client
-
-      **Description:** 
-      
-
-18. ns/openshift-kube-apiserver secret/etcd-client
-
-      **Description:** 
-      
-
-19. ns/openshift-oauth-apiserver secret/etcd-client
-
-      **Description:** 
-      
-
-
-
-### Certificate Authority Bundles (9)
-1. ns/openshift-apiserver configmap/etcd-serving-ca
-
-      **Description:** 
-      
-
-2. ns/openshift-config configmap/etcd-metric-serving-ca
-
-      **Description:** 
-      
-
-3. ns/openshift-config configmap/etcd-serving-ca
-
-      **Description:** 
-      
-
-4. ns/openshift-etcd configmap/etcd-metrics-proxy-client-ca
-
-      **Description:** 
-      
-
-5. ns/openshift-etcd configmap/etcd-metrics-proxy-serving-ca
-
-      **Description:** 
-      
-
-6. ns/openshift-etcd configmap/etcd-serving-ca
-
-      **Description:** 
-      
-
-7. ns/openshift-etcd-operator configmap/etcd-metric-serving-ca
-
-      **Description:** 
-      
-
-8. ns/openshift-kube-apiserver configmap/etcd-serving-ca
-
-      **Description:** 
-      
-
-9. ns/openshift-oauth-apiserver configmap/etcd-serving-ca
-
-      **Description:** 
-      
-
-
-
 ## Machine Config Operator (2)
 ### Certificates (1)
 1. ns/openshift-machine-config-operator secret/machine-config-server-tls
@@ -326,7 +115,7 @@
 
 
 
-## Monitoring (7)
+## Monitoring (6)
 ### Certificates (2)
 1. ns/openshift-monitoring secret/federate-client-certs
 
@@ -340,7 +129,7 @@
 
 
 
-### Certificate Authority Bundles (5)
+### Certificate Authority Bundles (4)
 1. ns/openshift-monitoring configmap/alertmanager-trusted-ca-bundle
 
       **Description:** 
@@ -361,15 +150,43 @@
       **Description:** 
       
 
-5. ns/openshift-monitoring configmap/thanos-querier-trusted-ca-bundle
+
+
+## Networking / cluster-network-operator (34)
+### Certificates (6)
+1. ns/openshift-network-node-identity secret/network-node-identity-ca
+
+      **Description:** 
+      
+
+2. ns/openshift-network-node-identity secret/network-node-identity-cert
+
+      **Description:** 
+      
+
+3. ns/openshift-ovn-kubernetes secret/ovn-ca
+
+      **Description:** 
+      
+
+4. ns/openshift-ovn-kubernetes secret/ovn-cert
+
+      **Description:** 
+      
+
+5. ns/openshift-ovn-kubernetes secret/signer-ca
+
+      **Description:** 
+      
+
+6. ns/openshift-ovn-kubernetes secret/signer-cert
 
       **Description:** 
       
 
 
 
-## Networking / cluster-network-operator (25)
-### Certificate Authority Bundles (25)
+### Certificate Authority Bundles (28)
 1. ns/openshift-apiserver configmap/trusted-ca-bundle
 
       **Description:** 
@@ -495,6 +312,21 @@
       **Description:** 
       
 
+26. ns/openshift-network-node-identity configmap/network-node-identity-ca
+
+      **Description:** 
+      
+
+27. ns/openshift-ovn-kubernetes configmap/ovn-ca
+
+      **Description:** 
+      
+
+28. ns/openshift-ovn-kubernetes configmap/signer-ca
+
+      **Description:** 
+      
+
 
 
 ## Operator Framework / operator-lifecycle-manager (2)
@@ -533,7 +365,204 @@
 
 
 
-## kube-apiserver (39)
+## etcd (38)
+### Certificates (24)
+1. ns/openshift-apiserver secret/etcd-client
+
+      **Description:** etcd client certificate
+      
+
+2. ns/openshift-config secret/etcd-client
+
+      **Description:** etcd client certificate
+      
+
+3. ns/openshift-config secret/etcd-metric-signer
+
+      **Description:** etcd metrics signer certificate authorities
+      
+
+4. ns/openshift-config secret/etcd-signer
+
+      **Description:** etcd signer certificate authorities
+      
+
+5. ns/openshift-etcd secret/etcd-client
+
+      **Description:** etcd client certificate
+      
+
+6. ns/openshift-etcd secret/etcd-metric-client
+
+      **Description:** etcd metrics client certificate
+      
+
+7. ns/openshift-etcd secret/etcd-metric-signer
+
+      **Description:** etcd metrics signer certificate authorities
+      
+
+8. ns/openshift-etcd secret/etcd-peer-\<bootstrap>
+
+      **Description:** Peer Cert for node \<bootstrap>
+      
+
+9. ns/openshift-etcd secret/etcd-peer-\<master-0>
+
+      **Description:** Peer Cert for node \<master-0>
+      
+
+10. ns/openshift-etcd secret/etcd-peer-\<master-1>
+
+      **Description:** Peer Cert for node \<master-1>
+      
+
+11. ns/openshift-etcd secret/etcd-peer-\<master-2>
+
+      **Description:** Peer Cert for node \<master-2>
+      
+
+12. ns/openshift-etcd secret/etcd-serving-\<bootstrap>
+
+      **Description:** Serving Cert for node \<bootstrap>
+      
+
+13. ns/openshift-etcd secret/etcd-serving-\<master-0>
+
+      **Description:** Serving Cert for node \<master-0>
+      
+
+14. ns/openshift-etcd secret/etcd-serving-\<master-1>
+
+      **Description:** Serving Cert for node \<master-1>
+      
+
+15. ns/openshift-etcd secret/etcd-serving-\<master-2>
+
+      **Description:** Serving Cert for node \<master-2>
+      
+
+16. ns/openshift-etcd secret/etcd-serving-metrics-\<bootstrap>
+
+      **Description:** Metric Serving Cert for node \<bootstrap>
+      
+
+17. ns/openshift-etcd secret/etcd-serving-metrics-\<master-0>
+
+      **Description:** Metric Serving Cert for node \<master-0>
+      
+
+18. ns/openshift-etcd secret/etcd-serving-metrics-\<master-1>
+
+      **Description:** Metric Serving Cert for node \<master-1>
+      
+
+19. ns/openshift-etcd secret/etcd-serving-metrics-\<master-2>
+
+      **Description:** Metric Serving Cert for node \<master-2>
+      
+
+20. ns/openshift-etcd secret/etcd-signer
+
+      **Description:** etcd signer certificate authorities
+      
+
+21. ns/openshift-etcd-operator secret/etcd-client
+
+      **Description:** etcd client certificate
+      
+
+22. ns/openshift-etcd-operator secret/etcd-metric-client
+
+      **Description:** etcd metrics client certificate
+      
+
+23. ns/openshift-kube-apiserver secret/etcd-client
+
+      **Description:** etcd client certificate
+      
+
+24. ns/openshift-oauth-apiserver secret/etcd-client
+
+      **Description:** etcd client certificate
+      
+
+
+
+### Certificate Authority Bundles (14)
+1. ns/openshift-apiserver configmap/etcd-serving-ca
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+2. ns/openshift-config configmap/etcd-ca-bundle
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+3. ns/openshift-config configmap/etcd-metric-serving-ca
+
+      **Description:** bundle for etcd metrics signer certificate authorities
+      
+
+4. ns/openshift-config configmap/etcd-serving-ca
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+5. ns/openshift-etcd configmap/etcd-ca-bundle
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+6. ns/openshift-etcd configmap/etcd-metrics-ca-bundle
+
+      **Description:** bundle for etcd metrics signer certificate authorities
+      
+
+7. ns/openshift-etcd configmap/etcd-metrics-proxy-client-ca
+
+      **Description:** bundle for etcd metrics signer certificate authorities
+      
+
+8. ns/openshift-etcd configmap/etcd-metrics-proxy-serving-ca
+
+      **Description:** bundle for etcd metrics signer certificate authorities
+      
+
+9. ns/openshift-etcd configmap/etcd-peer-client-ca
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+10. ns/openshift-etcd configmap/etcd-serving-ca
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+11. ns/openshift-etcd-operator configmap/etcd-ca-bundle
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+12. ns/openshift-etcd-operator configmap/etcd-metric-serving-ca
+
+      **Description:** bundle for etcd metrics signer certificate authorities
+      
+
+13. ns/openshift-kube-apiserver configmap/etcd-serving-ca
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+14. ns/openshift-oauth-apiserver configmap/etcd-serving-ca
+
+      **Description:** bundle for etcd signer certificate authorities
+      
+
+
+
+## kube-apiserver (40)
 ### Certificates (22)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
@@ -647,107 +676,107 @@
 
 
 
-### Certificate Authority Bundles (17)
-1. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
+### Certificate Authority Bundles (18)
+1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
       **Description:** 
       
 
-2. ns/openshift-config-managed configmap/kube-apiserver-client-ca
+2. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
 
       **Description:** 
       
 
-3. ns/openshift-config-managed configmap/kube-apiserver-server-ca
+3. ns/openshift-config-managed configmap/kube-apiserver-client-ca
 
       **Description:** 
       
 
-4. ns/openshift-controller-manager configmap/client-ca
+4. ns/openshift-config-managed configmap/kube-apiserver-server-ca
 
       **Description:** 
       
 
-5. ns/openshift-kube-apiserver configmap/aggregator-client-ca
+5. ns/openshift-controller-manager configmap/client-ca
 
       **Description:** 
       
 
-6. ns/openshift-kube-apiserver configmap/client-ca
+6. ns/openshift-kube-apiserver configmap/aggregator-client-ca
 
       **Description:** 
       
 
-7. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
+7. ns/openshift-kube-apiserver configmap/client-ca
 
       **Description:** 
       
 
-8. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
+8. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
 
       **Description:** 
       
 
-9. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
+9. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
 
       **Description:** 
       
 
-10. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
+10. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
 
       **Description:** 
       
 
-11. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
+11. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
 
       **Description:** 
       
 
-12. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
+12. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
 
       **Description:** 
       
 
-13. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
+13. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
 
       **Description:** 
       
 
-14. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
+14. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
 
       **Description:** 
       
 
-15. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
+15. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
 
       **Description:** 
       
 
-16. ns/openshift-kube-controller-manager configmap/client-ca
+16. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
 
       **Description:** 
       
 
-17. ns/openshift-route-controller-manager configmap/client-ca
+17. ns/openshift-kube-controller-manager configmap/client-ca
+
+      **Description:** 
+      
+
+18. ns/openshift-route-controller-manager configmap/client-ca
 
       **Description:** 
       
 
 
 
-## kube-controller-manager (10)
-### Certificates (3)
+## kube-controller-manager (9)
+### Certificates (2)
 1. ns/openshift-kube-controller-manager secret/csr-signer
 
       **Description:** 
       
 
 2. ns/openshift-kube-controller-manager-operator secret/csr-signer
-
-      **Description:** 
-      
-
-3. ns/openshift-kube-controller-manager-operator secret/csr-signer-signer
 
       **Description:** 
       
@@ -1108,24 +1137,24 @@
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/kube-state-metrics with hostname kube-state-metrics.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-state-metrics-tls'. The certificate is valid for 2 years.
       
 
-62. ns/openshift-monitoring secret/monitoring-plugin-cert
+62. ns/openshift-monitoring secret/metrics-server-tls
+
+      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics-server with hostname metrics-server.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: metrics-server-tls'. The certificate is valid for 2 years.
+      
+
+63. ns/openshift-monitoring secret/monitoring-plugin-cert
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/monitoring-plugin with hostname monitoring-plugin.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: monitoring-plugin-cert'. The certificate is valid for 2 years.
       
 
-63. ns/openshift-monitoring secret/node-exporter-tls
+64. ns/openshift-monitoring secret/node-exporter-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/node-exporter with hostname node-exporter.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: node-exporter-tls'. The certificate is valid for 2 years.
       
 
-64. ns/openshift-monitoring secret/openshift-state-metrics-tls
+65. ns/openshift-monitoring secret/openshift-state-metrics-tls
 
       **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/openshift-state-metrics with hostname openshift-state-metrics.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: openshift-state-metrics-tls'. The certificate is valid for 2 years.
-      
-
-65. ns/openshift-monitoring secret/prometheus-adapter-tls
-
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/prometheus-adapter with hostname prometheus-adapter.openshift-monitoring.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: prometheus-adapter-tls'. The certificate is valid for 2 years.
       
 
 66. ns/openshift-monitoring secret/prometheus-k8s-thanos-sidecar-tls
