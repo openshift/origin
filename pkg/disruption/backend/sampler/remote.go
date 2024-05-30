@@ -83,6 +83,9 @@ func TearDownInClusterMonitors(config *rest.Config) error {
 	if len(errs) > 0 {
 		fmt.Fprintf(os.Stdout, "found errors fetching in-cluster data: %+v\n", errs)
 	}
+	if err = os.MkdirAll(os.Getenv("ARTIFACT_DIR"), 0755); err != nil {
+		return err
+	}
 	artifactPath := filepath.Join(os.Getenv("ARTIFACT_DIR"), inClusterEventsFile)
 	return monitorserialization.EventsToFile(artifactPath, events)
 }
