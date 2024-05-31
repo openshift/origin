@@ -200,12 +200,6 @@ const (
 	FailedToDeleteCGroupsPath             IntervalReason = "FailedToDeleteCGroupsPath"
 	FailedToAuthenticateWithOpenShiftUser IntervalReason = "FailedToAuthenticateWithOpenShiftUser"
 	FailedContactingAPIReason             IntervalReason = "FailedContactingAPI"
-
-	UpgradeStartedReason  IntervalReason = "UpgradeStarted"
-	UpgradeVersionReason  IntervalReason = "UpgradeVersion"
-	UpgradeRollbackReason IntervalReason = "UpgradeRollback"
-	UpgradeFailedReason   IntervalReason = "UpgradeFailed"
-	UpgradeCompleteReason IntervalReason = "UpgradeComplete"
 )
 
 type AnnotationKey string
@@ -306,10 +300,6 @@ type Interval struct {
 
 	From time.Time
 	To   time.Time
-}
-
-func (r IntervalReason) String() string {
-	return string(r)
 }
 
 func (i Interval) String() string {
