@@ -298,6 +298,18 @@ func testEtcd3StoragePath(t g.GinkgoTInterface, oc *exutil.CLI, etcdClient3Fn fu
 				ExpectedEtcdPath: "/registry/validatingadmissionpolicybindings/pb1",
 				ExpectedGVK:      gvkP("admissionregistration.k8s.io", "v1beta1", "ValidatingAdmissionPolicyBinding"),
 			},
+			gvr("resource.k8s.io", "v1alpha2", "resourceclaimparameters"): {
+				Stub:             `{"metadata": {"name": "claim1parameters"}}`,
+				ExpectedEtcdPath: "/registry/resourceclaimparameters/" + oc.Namespace() + "/claim1parameters",
+			},
+			gvr("resource.k8s.io", "v1alpha2", "resourceclassparameters"): {
+				Stub:             `{"metadata": {"name": "class1parameters"}}`,
+				ExpectedEtcdPath: "/registry/resourceclassparameters/" + oc.Namespace() + "/class1parameters",
+			},
+			gvr("resource.k8s.io", "v1alpha2", "resourceslices"): {
+				Stub:             `{"metadata": {"name": "node1slice"}, "nodeName": "worker1", "driverName": "dra.example.com", "namedResources": {}}`,
+				ExpectedEtcdPath: "/registry/resourceslices/node1slice",
+			},
 		} {
 			if _, preexisting := etcdStorageData[k]; preexisting {
 				t.Errorf("upstream etcd storage data already has data for %v. Update current and rebase version diff to next rebase version", k)
