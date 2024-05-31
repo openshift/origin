@@ -391,8 +391,8 @@ func testNodeUpgradeTransitions(events monitorapi.Intervals) []*junitapi.JUnitTe
 		for i, event := range events {
 			// treat multiple sequential upgrades as distinct test failures
 			if event.Locator.Keys[monitorapi.LocatorClusterVersionKey] == "cluster" &&
-				(event.Message.Reason == monitorapi.UpgradeStartedReason ||
-					event.Message.Reason == monitorapi.UpgradeRollbackReason) {
+				(string(event.Message.Reason) == "UpgradeStarted" ||
+					string(event.Message.Reason) == "UpgradeRollback") {
 
 				text = event.Message.HumanMessage
 				events = events[i+1:]
