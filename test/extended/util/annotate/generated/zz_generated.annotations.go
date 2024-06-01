@@ -1589,15 +1589,15 @@ var Annotations = map[string]string{
 
 	"[sig-storage][Feature:DisableStorageClass][Serial][apigroup:operator.openshift.io] should remove the StorageClass when StorageClassState is Removed": " [Suite:openshift/conformance/serial]",
 
-	"[sig-storage][Feature:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should allow all limits to be set at once": " [Suite:openshift/conformance/serial]",
+	"[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should allow all limits to be set at once": " [Suite:openshift/conformance/serial]",
 
-	"[sig-storage][Feature:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should allow setting VSAN limit": " [Suite:openshift/conformance/serial]",
+	"[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should allow setting VSAN limit": " [Suite:openshift/conformance/serial]",
 
-	"[sig-storage][Feature:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should allow setting VVOL limit": " [Suite:openshift/conformance/serial]",
+	"[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should allow setting VVOL limit": " [Suite:openshift/conformance/serial]",
 
-	"[sig-storage][Feature:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should allow setting global snapshot limit": " [Suite:openshift/conformance/serial]",
+	"[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should allow setting global snapshot limit": " [Suite:openshift/conformance/serial]",
 
-	"[sig-storage][Feature:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should use default when unset": " [Suite:openshift/conformance/serial]",
+	"[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should use default when unset": " [Suite:openshift/conformance/serial]",
 
 	"[sig-storage][Late] Metrics should report short attach times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
