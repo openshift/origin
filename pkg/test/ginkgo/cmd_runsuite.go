@@ -620,8 +620,7 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 		`[Driver: azure-disk] [Testpattern: Pre-provisioned PV`,
 		`[sig-api-machinery] ValidatingAdmissionPolicy [Privileged:ClusterAdmin] should type check a CRD`,
 		`[sig-node] [Feature:PodLifecycleSleepAction] when create a pod with lifecycle hook using sleep action valid prestop hook using sleep action`,
-		`[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] warning is bumped on two Pods with a different context`,
-		`[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics [LinuxOnly] [Feature:SELinux] [Serial] error is bumped on two Pods with a different context`,
+		`[sig-storage] CSI Mock selinux on mount metrics SELinuxMount metrics`,
 	}
 
 	matches := make([]*testCase, 0, len(tests))
