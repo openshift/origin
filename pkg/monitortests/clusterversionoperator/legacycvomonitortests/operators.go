@@ -26,8 +26,15 @@ import (
 // exception string if does not think the condition should be fatal.
 type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) (string, error)
 
+func checkAuthenticationExceptions(condition *configv1.ClusterOperatorStatusCondition) bool {
+	if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
+		return true
+	}
+	return false
+}
+
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
-	except := func(_ string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) (string, error) {
+	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
@@ -48,6 +55,11 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 		if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
 			if isSingleNode {
 				return "Operators are allowed to go degraded on single-node for now", nil
+			}
+			if operator == "authentication" {
+				if checkAuthenticationExceptions(condition) {
+					return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
+				}
 			}
 			return "", nil
 		}
@@ -175,13 +187,24 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 		}
 
 		// We'll add an exception for single node for now.
-		if !availableEqualsFalseAllowed && !isSingleNode {
-			return "", nil
+		if !availableEqualsFalseAllowed {
+
+			if isSingleNode {
+				// We'll honor exceptions for single node configuration.
+				logrus.Infof("Operator %s is in Available=False state, but we give single node clusters an exception", operator)
+
+			} else if operator == "authentication" {
+				// We'll honor exceptions for authentication operator because it is affected by etcd performance issues.
+				logrus.Info("Operator authentication is in Available=False state, but we give an exception")
+
+			} else {
+				return "", nil
+			}
 		}
 
 		switch operator {
 		case "authentication":
-			if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
+			if checkAuthenticationExceptions(condition) {
 				return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
 			}
 		case "console":
