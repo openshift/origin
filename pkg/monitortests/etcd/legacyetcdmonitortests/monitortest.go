@@ -2,9 +2,11 @@ package legacyetcdmonitortests
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -13,6 +15,7 @@ import (
 
 type legacyMonitorTests struct {
 	adminRESTConfig *rest.Config
+	jobType         *platformidentification.JobType
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -21,6 +24,11 @@ func NewLegacyTests() monitortestframework.MonitorTest {
 
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+	jobType, err := platformidentification.GetJobType(ctx, adminRESTConfig)
+	if err != nil {
+		return fmt.Errorf("unable to determine job type: %v", err)
+	}
+	w.jobType = jobType
 	return nil
 }
 
@@ -38,7 +46,10 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testEtcdShouldNotLogSlowFdataSyncs(finalIntervals)...)
 	junits = append(junits, testEtcdShouldNotLogDroppedRaftMessages(finalIntervals)...)
 	junits = append(junits, testOperatorStatusChanged(finalIntervals)...)
-	junits = append(junits, testEtcdDoesNotLogExcessiveTookTooLongMessages(finalIntervals)...)
+
+	// see TRT-1688 - for now, for vsphere, count this test failure as a flake
+	isVsphere := w.jobType.Platform == "vsphere"
+	junits = append(junits, testEtcdDoesNotLogExcessiveTookTooLongMessages(finalIntervals, isVsphere)...)
 
 	return junits, nil
 }
