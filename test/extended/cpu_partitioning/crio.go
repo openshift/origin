@@ -161,62 +161,65 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 		o.Expect(err).ToNot(o.HaveOccurred(), "error getting node CPUSets")
 
 		for _, node := range nodes.Items {
-			// Collect the container data from the node
-			crioData, err := collectContainerInfo(ctx, oc, node, isClusterCPUPartitioned)
-			o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("error getting crio container data from node %s", node.Name))
+			g.It(fmt.Sprintf("validating node %s for CPU affinity compliance", node.Name), func() {
+				// Collect the container data from the node
+				crioData, err := collectContainerInfo(ctx, oc, node, isClusterCPUPartitioned)
+				o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("error getting crio container data from node %s", node.Name))
 
-			// When the cluster is CPU Partitioned there should always be pods with workload annotations. However,
-			// we do not enforce this check on non partitioned clusters since we don't expect nodes beyond masters to have pods
-			// that contain workload annotations. In the event that they do, we allow the logic to continue to validate
-			// CPUSets.
-			if isClusterCPUPartitioned {
-				o.Expect(crioData).ToNot(o.BeEmpty(), "error getting crio container data, container data should not be empty")
-			}
-
-			// CPU Core counts are numbers 0-(n-1) we iterate and create a CPUSet to compare.
-			// Note: CPU Value should be whole core counts, if situations come up where that's not the case
-			// we will need to revisit this approach.
-			totalCoreCount := []int{}
-			for x := 0; x < int(node.Status.Capacity.Cpu().Value()); x++ {
-				totalCoreCount = append(totalCoreCount, x)
-			}
-			parsedFullNodeCPUSet := cpuset.New(totalCoreCount...)
-
-			expectedCPUSet := cpuset.CPUSet{}
-
-			if _, isMaster := node.Labels[nodeMasterLabel]; isMaster {
-				expectedCPUSet = nodeRoleCPUSet.Master
-			} else if _, isWorker := node.Labels[nodeWorkerLabel]; isWorker {
-				expectedCPUSet = nodeRoleCPUSet.Worker
-			}
-
-			for _, containerInfo := range crioData {
-				parsedContainer, err := cpuset.Parse(containerInfo.CPUSet)
-				o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("error parsing crio container cpuset %s", containerInfo.CPUSet))
-				parsedHost, err := cpuset.Parse(containerInfo.HostCPUSet)
-				o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("error parsing host cpuset %s", containerInfo.HostCPUSet))
-
-				o.Expect(parsedContainer.Equals(expectedCPUSet)).To(o.BeTrue(), "cpusets do not match between container and desired")
-
-				// Empty CPUSets mean wide open, so we check the processes are not being limited.
-				// If the expected CPUSet is not empty, we make sure the host is respecting it.
-				if expectedCPUSet.IsEmpty() {
-					o.Expect(parsedHost.Equals(parsedFullNodeCPUSet)).To(o.BeTrue(), fmt.Sprintf("expected host CPUSet: %s got: %s", parsedHost, parsedFullNodeCPUSet))
-				} else {
-					o.Expect(parsedContainer.Equals(parsedHost)).To(o.BeTrue(), fmt.Sprintf("expected: %s got: %s", parsedContainer, parsedHost))
-				}
-
-				// If we are in a CPU Partitioned cluster, containers MUST be annotated with the correct CPU Share at the CRIO level
-				// and the desired annotation cpu shares must equal the crio config cpu shares
+				// When the cluster is CPU Partitioned there should always be pods with workload annotations. However,
+				// we do not enforce this check on non partitioned clusters since we don't expect nodes beyond masters to have pods
+				// that contain workload annotations. In the event that they do, we allow the logic to continue to validate
+				// CPUSets.
 				if isClusterCPUPartitioned {
-					resource, err := containerInfo.getAnnotationCPUResources()
-					o.Expect(err).ToNot(o.HaveOccurred(), "failed to get container resource annotation json", err)
-					o.Expect(resource.CPUShares).To(o.Equal(containerInfo.CPUShares), "cpushares do not match between crio config and desired")
-
-					desiredCPUQuota := milliCPUToQuota(resource.CPULimit, containerInfo.CPUPeriod)
-					o.Expect(desiredCPUQuota).To(o.Equal(containerInfo.CPUQuota), "cpuquota do not match between crio config and desired")
+					o.Expect(crioData).ToNot(o.BeEmpty(), "error getting crio container data, container data should not be empty")
 				}
-			}
+
+				// CPU Core counts are numbers 0-(n-1) we iterate and create a CPUSet to compare.
+				// Note: CPU Value should be whole core counts, if situations come up where that's not the case
+				// we will need to revisit this approach.
+				totalCoreCount := []int{}
+				for x := 0; x < int(node.Status.Capacity.Cpu().Value()); x++ {
+					totalCoreCount = append(totalCoreCount, x)
+				}
+				parsedFullNodeCPUSet := cpuset.New(totalCoreCount...)
+
+				expectedCPUSet := cpuset.CPUSet{}
+
+				if _, isMaster := node.Labels[nodeMasterLabel]; isMaster {
+					expectedCPUSet = nodeRoleCPUSet.Master
+				} else if _, isWorker := node.Labels[nodeWorkerLabel]; isWorker {
+					expectedCPUSet = nodeRoleCPUSet.Worker
+				}
+
+				for _, containerInfo := range crioData {
+					failLocation := fmt.Sprintf("node: %s pod: %s/%s container: %s", node.Name, containerInfo.PodNamespace, containerInfo.PodName, containerInfo.Name)
+					parsedContainer, err := cpuset.Parse(containerInfo.CPUSet)
+					o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("%s | error parsing crio container cpuset %s", failLocation, containerInfo.CPUSet))
+					parsedHost, err := cpuset.Parse(containerInfo.HostCPUSet)
+					o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("%s | error parsing host cpuset %s", failLocation, containerInfo.HostCPUSet))
+
+					o.Expect(parsedContainer.Equals(expectedCPUSet)).To(o.BeTrue(), "cpusets do not match between container and desired")
+
+					// Empty CPUSets mean wide open, so we check the processes are not being limited.
+					// If the expected CPUSet is not empty, we make sure the host is respecting it.
+					if expectedCPUSet.IsEmpty() {
+						o.Expect(parsedHost.Equals(parsedFullNodeCPUSet)).To(o.BeTrue(), fmt.Sprintf("%s | expected container pid CPUset to be: %s but got: %s", failLocation, parsedFullNodeCPUSet, parsedHost))
+					} else {
+						o.Expect(parsedContainer.Equals(parsedHost)).To(o.BeTrue(), fmt.Sprintf("%s | expected container pid CPUset to be: %s got: %s", failLocation, parsedHost, parsedContainer))
+					}
+
+					// If we are in a CPU Partitioned cluster, containers MUST be annotated with the correct CPU Share at the CRIO level
+					// and the desired annotation cpu shares must equal the crio config cpu shares
+					if isClusterCPUPartitioned {
+						resource, err := containerInfo.getAnnotationCPUResources()
+						o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("%s | failed to get container resource annotation json", failLocation), err)
+						o.Expect(resource.CPUShares).To(o.Equal(containerInfo.CPUShares), fmt.Sprintf("%s | cpushares do not match between crio config and desired", failLocation))
+
+						desiredCPUQuota := milliCPUToQuota(resource.CPULimit, containerInfo.CPUPeriod)
+						o.Expect(desiredCPUQuota).To(o.Equal(containerInfo.CPUQuota), fmt.Sprintf("%s | cpuquota do not match between crio config and desired", failLocation))
+					}
+				}
+			})
 		}
 	})
 })
