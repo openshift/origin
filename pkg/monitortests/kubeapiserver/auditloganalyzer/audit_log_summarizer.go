@@ -19,6 +19,7 @@ var systemNode = "system:node"
 var openshiftServiceAccount = "system:serviceaccount:openshift-"
 var monitoredUsers = []string{"system:serviceaccount:kube-", openshiftServiceAccount, systemNode}
 var filteredUsers = map[string][]string{openshiftServiceAccount: {"must-gather"}}
+var mappedUsers = map[string]string{}
 
 // every audit log summarizer is not threadsafe. The idea is that you use one per thread and
 // later combine the summarizers together into an overall summary
@@ -473,7 +474,12 @@ func isMonitoredUser(user string) bool {
 
 func cleanupUser(user string) string {
 	if strings.HasPrefix(user, systemNode) {
-		return systemNode
+		if mappedUser, ok := mappedUsers[user]; ok {
+			return mappedUser
+		}
+		mappedUser := fmt.Sprintf("%s:%d", systemNode, len(mappedUsers))
+		mappedUsers[user] = mappedUser
+		return mappedUser
 	}
 	return user
 }
