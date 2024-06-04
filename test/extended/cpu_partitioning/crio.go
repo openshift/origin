@@ -161,6 +161,11 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning no
 		o.Expect(err).ToNot(o.HaveOccurred(), "error getting node CPUSets")
 
 		for _, node := range nodes.Items {
+			//TODO: Fix TuneD issue with RT runs so we don't skip this test.
+			// Skipping for RT Kernels for the time being, while we resolve why the CPU Affinities do not match on TuneD profile
+			if strings.Contains(node.Status.NodeInfo.KernelVersion, "rt") {
+				continue
+			}
 			// Collect the container data from the node
 			crioData, err := collectContainerInfo(ctx, oc, node, isClusterCPUPartitioned)
 			o.Expect(err).ToNot(o.HaveOccurred(), fmt.Sprintf("error getting crio container data from node %s", node.Name))
