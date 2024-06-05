@@ -477,7 +477,7 @@ func cleanupUser(user string) string {
 		if mappedUser, ok := mappedUsers[user]; ok {
 			return mappedUser
 		}
-		mappedUser := fmt.Sprintf("%s:%d", systemNode, len(mappedUsers))
+		mappedUser := fmt.Sprintf("%s-%d", systemNode, len(mappedUsers))
 		mappedUsers[user] = mappedUser
 		return mappedUser
 	}
