@@ -69,7 +69,7 @@ func testEtcdShouldNotLogDroppedRaftMessages(events monitorapi.Intervals) []*jun
 // regularly, what we're worried about are the runs showing 30-70k.
 const etcdRequestsTookTooLongLimit = 10000
 
-func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals, isFlaky bool) []*junitapi.JUnitTestCase {
 	const testName = "[sig-etcd] etcd should not log excessive took too long messages"
 	success := &junitapi.JUnitTestCase{Name: testName}
 
@@ -95,6 +95,10 @@ func testEtcdDoesNotLogExcessiveTookTooLongMessages(events monitorapi.Intervals)
 		FailureOutput: &junitapi.FailureOutput{
 			Output: msg,
 		},
+	}
+	// see TRT-1688 - conditionally count this as a flake instead of failure
+	if isFlaky {
+		return []*junitapi.JUnitTestCase{failure, success}
 	}
 	return []*junitapi.JUnitTestCase{failure}
 }
