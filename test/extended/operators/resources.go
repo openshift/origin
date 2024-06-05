@@ -61,6 +61,8 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			"v1/Pod/openshift-kube-scheduler/revision-pruner-<revision>-<node>/container/pruner/limit[memory]":          "smarterclayton: run-once pod with very well-known resource usage, does not vary based on workload or cluster size",
 
 			"apps/v1/Deployment/openshift-monitoring/thanos-querier/container/thanos-query/limit[memory]": "smarterclayton: granted a temporary exception (reasses in 4.10) until Thanos can properly control resource usage from arbitrary queries",
+
+			"apps/v1/DaemonSet/openshift-network-operator/iptables-alerter/container/iptables-alerter/limit[cpu]": "sdodson: supposed to be in the background, doesn't care if it gets throttled or delayed",
 		}
 
 		reNormalizeRunOnceNames := regexp.MustCompile(`^(installer-|revision-pruner-)[\d]+-`)
