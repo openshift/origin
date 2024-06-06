@@ -123,7 +123,7 @@ func (*etcdLogAnalyzer) ConstructComputedIntervals(ctx context.Context, starting
 						WithAnnotation(monitorapi.AnnotationEtcdLeader, newLeader).
 						WithAnnotation(monitorapi.AnnotationEtcdTerm, newTerm).
 						HumanMessage(""),
-				)
+				).Display()
 			startTime = currInterval.From
 
 		}
