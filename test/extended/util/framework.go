@@ -2286,3 +2286,40 @@ func IsCapabilityEnabled(oc *CLI, cap configv1.ClusterVersionCapability) (bool, 
 	}
 	return false, nil
 }
+
+// CheckPlatform check the cluster's platform
+func CheckPlatform(oc *CLI) string {
+	output, _ := oc.AsAdmin().WithoutNamespace().Run("get").Args("infrastructure", "cluster", "-o=jsonpath={.status.platformStatus.type}").Output()
+	return strings.ToLower(output)
+}
+
+// SkipTestIfSupportedPlatformNotMatched skip the test if supported platforms are not matched
+func SkipTestIfSupportedPlatformNotMatched(oc *CLI, supported ...string) {
+	var match bool
+	p := CheckPlatform(oc)
+	for _, sp := range supported {
+		if strings.EqualFold(sp, p) {
+			match = true
+			break
+		}
+	}
+	if !match {
+		g.Skip("Skip this test scenario because it is not supported on the " + p + " platform")
+	}
+}
+
+// GetClusterRegion get the cluster's region
+func GetClusterRegion(oc *CLI) string {
+	region, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("node", `-ojsonpath={.items[].metadata.labels.topology\.kubernetes\.io/region}`).Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return region
+}
+
+// GetGCPProjectID returns the gcp project id
+func GetGCPProjectID(oc *CLI) (string, error) {
+	projectID, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("infrastructure", "cluster", "-o", "jsonpath='{.status.platformStatus.gcp.projectID}'").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.Trim(projectID, "'"), err
+}
