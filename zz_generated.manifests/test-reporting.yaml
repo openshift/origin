@@ -48,6 +48,25 @@ spec:
         set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]'
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
         set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]'
+  - featureGate: MetricsCollectionProfiles
+    tests:
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set should apply default collection profile to
+        all managed monitors when enabled'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set should expose information about the applied
+        collection profile using meta-metrics'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set should have at-least one implementation for
+        each collection profile'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set should have no dedicated selectors initially'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set should have no default profile enforcements
+        when not enabled'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set should hide a default-only metric when minimal
+        collection profile is enabled'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
