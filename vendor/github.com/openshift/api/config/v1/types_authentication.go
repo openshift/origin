@@ -130,6 +130,8 @@ type AuthenticationList struct {
 	Items []Authentication `json:"items"`
 }
 
+// +openshift:validation:FeatureSetAwareEnum:featureSet=Default,enum="";None;IntegratedOAuth
+// +openshift:validation:FeatureSetAwareEnum:featureSet=CustomNoUpgrade;TechPreviewNoUpgrade,enum="";None;IntegratedOAuth;OIDC
 type AuthenticationType string
 
 const (
@@ -238,7 +240,8 @@ type TokenIssuer struct {
 	//
 	// +listType=set
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MaxItems=1
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=10
 	// +required
 	Audiences []TokenAudience `json:"audiences"`
 

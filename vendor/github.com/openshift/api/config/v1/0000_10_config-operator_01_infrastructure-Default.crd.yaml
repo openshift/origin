@@ -66,6 +66,7 @@ spec:
                                 type: string
                             type: object
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     azure:
                       description: Azure contains settings specific to the Azure infrastructure provider.
@@ -337,6 +338,7 @@ spec:
                                     maxItems: 1
                                     minItems: 1
                                     type: array
+                                    x-kubernetes-list-type: atomic
                                   resourcePool:
                                     description: resourcePool is the absolute path of the resource pool where virtual machines will be created. The absolute path is of the form /<datacenter>/host/<cluster>/Resources/<resourcepool>. The maximum length of the path is 2048 characters.
                                     maxLength: 2048
@@ -361,6 +363,9 @@ spec:
                               - zone
                             type: object
                           type: array
+                          x-kubernetes-list-map-keys:
+                            - name
+                          x-kubernetes-list-type: map
                         nodeNetworking:
                           description: nodeNetworking contains the definition of internal and external network constraints for assigning the node's networking. If this field is omitted, networking defaults to the legacy address selection behavior which is to only support a single address and return the first one found.
                           properties:
@@ -373,6 +378,7 @@ spec:
                                     format: cidr
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: atomic
                                 network:
                                   description: network VirtualMachine's VM Network names that will be used to when searching for status.addresses fields. Note that if internal.networkSubnetCIDR and external.networkSubnetCIDR are not set, then the vNIC associated to this network must only have a single IP address assigned to it. The available networks (port groups) can be listed using `govc ls 'network/*'`
                                   type: string
@@ -382,6 +388,7 @@ spec:
                                     format: cidr
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: set
                               type: object
                             internal:
                               description: internal represents the network configuration of the node that is routable only within the cluster.
@@ -392,6 +399,7 @@ spec:
                                     format: cidr
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: atomic
                                 network:
                                   description: network VirtualMachine's VM Network names that will be used to when searching for status.addresses fields. Note that if internal.networkSubnetCIDR and external.networkSubnetCIDR are not set, then the vNIC associated to this network must only have a single IP address assigned to it. The available networks (port groups) can be listed using `govc ls 'network/*'`
                                   type: string
@@ -401,6 +409,7 @@ spec:
                                     format: cidr
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: set
                               type: object
                           type: object
                         vcenters:
@@ -414,6 +423,7 @@ spec:
                                   type: string
                                 minItems: 1
                                 type: array
+                                x-kubernetes-list-type: set
                               port:
                                 description: port is the TCP port that will be used to communicate to the vCenter endpoint. When omitted, this means the user has no opinion and it is up to the platform to choose a sensible default, which is subject to change over time.
                                 format: int32
@@ -435,6 +445,7 @@ spec:
                           maxItems: 1
                           minItems: 0
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                   type: object
               type: object
@@ -566,6 +577,7 @@ spec:
                             type: object
                           maxItems: 25
                           type: array
+                          x-kubernetes-list-type: atomic
                         serviceEndpoints:
                           description: ServiceEndpoints list contains custom endpoints which will override default service endpoint of AWS Services. There must be only one ServiceEndpoint for a service.
                           items:
@@ -581,6 +593,7 @@ spec:
                                 type: string
                             type: object
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     azure:
                       description: Azure contains settings specific to the Azure infrastructure provider.
@@ -627,6 +640,7 @@ spec:
                             type: object
                           maxItems: 10
                           type: array
+                          x-kubernetes-list-type: atomic
                           x-kubernetes-validations:
                             - message: resourceTags are immutable and may only be configured during installation
                               rule: self.all(x, x in oldSelf) && oldSelf.all(x, x in self)
@@ -647,6 +661,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         ingressIP:
                           description: "ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names. \n Deprecated: Use IngressIPs instead."
                           type: string
@@ -657,6 +672,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         nodeDNSIP:
                           description: nodeDNSIP is the IP address for the internal DNS used by the nodes. Unlike the one managed by the DNS operator, `NodeDNSIP` provides name resolution for the nodes themselves. There is no DNS-as-a-service for BareMetal deployments. In order to minimize necessary changes to the datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames to the nodes in the cluster.
                           type: string
@@ -781,6 +797,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         ingressIP:
                           description: "ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names. \n Deprecated: Use IngressIPs instead."
                           type: string
@@ -791,6 +808,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                       type: object
                     openstack:
                       description: OpenStack contains settings specific to the OpenStack infrastructure provider.
@@ -805,6 +823,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         cloudName:
                           description: cloudName is the name of the desired OpenStack cloud in the client configuration file (`clouds.yaml`).
                           type: string
@@ -818,6 +837,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         loadBalancer:
                           default:
                             type: OpenShiftManagedDefault
@@ -851,6 +871,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         ingressIP:
                           description: "ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names. \n Deprecated: Use IngressIPs instead."
                           type: string
@@ -861,6 +882,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         nodeDNSIP:
                           description: 'deprecated: as of 4.6, this field is no longer set or honored.  It will be removed in a future release.'
                           type: string
@@ -904,6 +926,9 @@ spec:
                               - url
                             type: object
                           type: array
+                          x-kubernetes-list-map-keys:
+                            - name
+                          x-kubernetes-list-type: map
                         zone:
                           description: 'zone holds the default zone for the new Power VS resources created by the cluster. Note: Currently only single-zone OCP clusters are supported'
                           type: string
@@ -945,6 +970,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         ingressIP:
                           description: "ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names. \n Deprecated: Use IngressIPs instead."
                           type: string
@@ -955,6 +981,7 @@ spec:
                             type: string
                           maxItems: 2
                           type: array
+                          x-kubernetes-list-type: set
                         nodeDNSIP:
                           description: nodeDNSIP is the IP address for the internal DNS used by the nodes. Unlike the one managed by the DNS operator, `NodeDNSIP` provides name resolution for the nodes themselves. There is no DNS-as-a-service for vSphere deployments. In order to minimize necessary changes to the datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames to the nodes in the cluster.
                           type: string

@@ -159,7 +159,7 @@ type AWSCSIDriverConfigSpec struct {
 	// kmsKeyARN sets the cluster default storage class to encrypt volumes with a user-defined KMS key,
 	// rather than the default KMS key used by AWS.
 	// The value may be either the ARN or Alias ARN of a KMS key.
-	// +kubebuilder:validation:Pattern:=`^arn:(aws|aws-cn|aws-us-gov):kms:[a-z0-9-]+:[0-9]{12}:(key|alias)\/.*$`
+	// +kubebuilder:validation:Pattern:=`^arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b|aws-iso-e|aws-iso-f):kms:[a-z0-9-]+:[0-9]{12}:(key|alias)\/.*$`
 	// +optional
 	KMSKeyARN string `json:"kmsKeyARN,omitempty"`
 }
