@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 	oc := exutil.NewCLIWithoutNamespace("api-requests")
 
-	g.It("clients should not use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]", func() {
+	g.It("clients shouldn't use APIs that are removed in upcoming releases [apigroup:apiserver.openshift.io]", func() {
 		ctx := context.Background()
 		apirequestCountClient, err := apiserverclientv1.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
