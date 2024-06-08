@@ -52726,6 +52726,14 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return tt
     }
 
+
+    function segmentTooltipFunc(d) {
+        return '<span style="max-inline-size: min-content; display: inline-block;">'
+        + '<strong>' + d.labelVal + '</strong><br/>'
+        + '<strong>From: </strong>' + new Date(d.timeRange[0]).toUTCString() + '<br>'
+        + '<strong>To: </strong>' + new Date(d.timeRange[1]).toUTCString() + '</span>';
+    }
+
     function createTimelineData(timelineVal, timelineData, rawEventIntervals, preconditionFunc, regex) {
         const data = {}
         var now = new Date();
@@ -52850,6 +52858,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isInterestingOrPathological, regex)
 
         var segmentFunc = function (segment) {
+            // Copy label to clipboard
+            navigator.clipboard.writeText(segment.labelVal);
+
             // for (var i in data) {
             //     if (data[i].group == segment.group) {
             //         var groupdata = data[i].data
@@ -52905,7 +52916,8 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         maxHeight(10000).
         zColorScale(ordinalScale).
         zoomX([new Date(eventIntervals.items[0].from), new Date(eventIntervals.items[eventIntervals.items.length - 1].to)]).
-        onSegmentClick(segmentFunc)
+        onSegmentClick(segmentFunc).
+        segmentTooltipContent(segmentTooltipFunc)
         (el);
 
 
@@ -53534,6 +53546,13 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         return tt
     }
 
+    function segmentTooltipFunc(d) {
+        return '<span style="max-inline-size: min-content; display: inline-block;">'
+        + '<strong>' + d.labelVal + '</strong><br/>'
+        + '<strong>From: </strong>' + new Date(d.timeRange[0]).toUTCString() + '<br>'
+        + '<strong>To: </strong>' + new Date(d.timeRange[1]).toUTCString() + '</span>';
+    }
+
     function createTimelineData(timelineVal, timelineData, filteredEventIntervals, category) {
         const data = {}
         var now = new Date();
@@ -53751,6 +53770,8 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "interesting_events");
 
         var segmentFunc = function (segment) {
+            // Copy label to clipboard
+            navigator.clipboard.writeText(segment.labelVal);
             // for (var i in data) {
             //     if (data[i].group == segment.group) {
             //         var groupdata = data[i].data
@@ -53806,7 +53827,8 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         maxHeight(10000).
         zColorScale(ordinalScale).
         zoomX([new Date(eventIntervals.items[0].from), new Date(eventIntervals.items[eventIntervals.items.length - 1].to)]).
-        onSegmentClick(segmentFunc)
+        onSegmentClick(segmentFunc).
+        segmentTooltipContent(segmentTooltipFunc)
         (el);
 
 
