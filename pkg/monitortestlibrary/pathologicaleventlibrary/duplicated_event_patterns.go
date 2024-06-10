@@ -575,7 +575,6 @@ var AllowBackOffRestartingFailedContainer = &SimplePathologicalEventMatcher{
 var EtcdRequiredResourcesMissing = &SimplePathologicalEventMatcher{
 	name:               "EtcdRequiredResourcesMissing",
 	messageReasonRegex: regexp.MustCompile(`^RequiredInstallerResourcesMissing$`),
-	messageHumanRegex:  regexp.MustCompile(`secrets: etcd-all-certs-[0-9]+`),
 }
 
 // reason/OperatorStatusChanged Status for clusteroperator/etcd changed: Degraded message changed from "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: 2 of 3 members are available, ip-10-0-217-93.us-west-1.compute.internal is unhealthy" to "NodeControllerDegraded: All master nodes are ready\nEtcdMembersDegraded: No unhealthy members found"
