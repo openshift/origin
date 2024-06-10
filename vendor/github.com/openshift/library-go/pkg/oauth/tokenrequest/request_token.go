@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/RangelReale/osincli"
@@ -192,7 +193,7 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig(clientID string, redirectURL 
 		config.RedirectUrl = *redirectURL
 	}
 
-	if !o.TokenFlow && sets.New(metadata.CodeChallengeMethodsSupported...).Has(pkce_s256) {
+	if !o.TokenFlow && slices.Contains(metadata.CodeChallengeMethodsSupported, pkce_s256) {
 		if err := osincli.PopulatePKCE(config); err != nil {
 			return err
 		}
