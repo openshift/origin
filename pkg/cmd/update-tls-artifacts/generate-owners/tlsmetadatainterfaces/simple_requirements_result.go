@@ -115,11 +115,20 @@ func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.
 			if err != nil {
 				// this means it wasn't found
 				regressions = append(regressions,
-					fmt.Sprintf("requirment/%v: --namespace=%v secret/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+					fmt.Sprintf("requirement/%v: --namespace=%v secret/%v regressed and does not have value set", s.GetName(), currLocation.Namespace, currLocation.Name),
 				)
 			}
 		}
-		// TODO[vrutkovs]: add currCertKeyPair.OnDiskLocation
+		if currCertKeyPair.OnDiskLocation != nil {
+			currLocation := currCertKeyPair.OnDiskLocation.OnDiskLocation
+			_, err := certgraphutils.LocateCertKeyPairByOnDiskLocation(currLocation, existingViolations.CertKeyPairs)
+			if err != nil {
+				// this means it wasn't found
+				regressions = append(regressions,
+					fmt.Sprintf("requirement/%v: file %v regressed and does not have value set", s.GetName(), currLocation.Path),
+				)
+			}
+		}
 	}
 
 	for _, currCABundle := range resultingViolations.CertificateAuthorityBundles {
@@ -129,11 +138,20 @@ func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.
 			if err != nil {
 				// this means it wasn't found
 				regressions = append(regressions,
-					fmt.Sprintf("requirment/%v: --namespace=%v configmap/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+					fmt.Sprintf("requirement/%v: --namespace=%v configmap/%v regressed and does not have value set", s.GetName(), currLocation.Namespace, currLocation.Name),
 				)
 			}
 		}
-		// TODO[vrutkovs]: add currCABundle.OnDiskLocation
+		if currCABundle.OnDiskLocation != nil {
+			currLocation := currCABundle.OnDiskLocation.OnDiskLocation
+			_, err := certgraphutils.LocateCABundleByOnDiskLocation(currLocation, existingViolations.CertificateAuthorityBundles)
+			if err != nil {
+				// this means it wasn't found
+				regressions = append(regressions,
+					fmt.Sprintf("requirement/%v: file %v regressed and does not have value set", s.GetName(), currLocation.Path),
+				)
+			}
+		}
 	}
 
 	if len(regressions) > 0 {
