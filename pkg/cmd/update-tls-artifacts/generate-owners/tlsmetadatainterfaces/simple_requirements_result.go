@@ -115,7 +115,7 @@ func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.
 			if err != nil {
 				// this means it wasn't found
 				regressions = append(regressions,
-					fmt.Sprintf("requirment/%v: --namespace=%v secret/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+					fmt.Sprintf("requirement/%v: --namespace=%v secret/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
 				)
 			}
 		}
@@ -129,7 +129,7 @@ func (s SimpleRequirementsResult) HaveViolationsRegressed(allViolationsFS embed.
 			if err != nil {
 				// this means it wasn't found
 				regressions = append(regressions,
-					fmt.Sprintf("requirment/%v: --namespace=%v configmap/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
+					fmt.Sprintf("requirement/%v: --namespace=%v configmap/%v regressed and does not have an owner", s.GetName(), currLocation.Namespace, currLocation.Name),
 				)
 			}
 		}
