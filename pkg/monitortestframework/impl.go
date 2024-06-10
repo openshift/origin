@@ -178,7 +178,7 @@ func (r *monitorTestRegistry) CollectData(ctx context.Context, storageDir string
 							},
 						},
 					}
-					logrus.WithError(nsErr).Errorf("  Finished CollectData for %s with not-supported error", testName)
+					logrus.WithFields(logrus.Fields{"reason": nsErr.Reason}).Warningf("  Finished CollectData for %s with not supported warning", testName)
 					return
 				}
 				junitCh <- []*junitapi.JUnitTestCase{
