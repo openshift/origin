@@ -61,6 +61,9 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 					return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
 				}
 			}
+			if operator == "image-registry" {
+				return "Image-registry operator is allowed to have Available=False on a non-upgrade scenario for now", nil
+			}
 			return "", nil
 		}
 		return "We are not worried about Degraded=True blips for stable-system tests yet.", nil
@@ -197,6 +200,10 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				// We'll honor exceptions for authentication operator because it is affected by etcd performance issues.
 				logrus.Info("Operator authentication is in Available=False state, but we give an exception")
 
+			} else if operator == "image-registry" {
+				// For now, we'll honor exceptions for image-registry operator as it's affected by tests that
+				// cause replicas to go down (e.g., tests that taint two nodes).
+				logrus.Info("Operator image-registry is in Available=False state, but we give an exception")
 			} else {
 				return "", nil
 			}
