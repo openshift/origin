@@ -6,7 +6,8 @@ controlplanemachinesets.machine.openshift.io:
   CRDName: controlplanemachinesets.machine.openshift.io
   Capability: MachineAPI
   Category: ""
-  FeatureGates: []
+  FeatureGates:
+  - MachineAPIMigration
   FilenameOperatorName: control-plane-machine-set
   FilenameOperatorOrdering: "01"
   FilenameRunLevel: "0000_10"

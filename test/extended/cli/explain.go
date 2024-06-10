@@ -69,11 +69,16 @@ var (
 
 	// This list holds builtin apigroups whose resources are not similar for OpenShift and MicroShift.
 	// Hence test will be performed for individual resource level.
-	builtinExceptionTypes = map[string][]schema.GroupVersionResource{
+	builtinExceptionTypes = map[string][]explain{
 		"security.openshift.io": {
-			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyreviews"},
-			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyselfsubjectreviews"},
-			{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicysubjectreviews"},
+			{gvr: schema.GroupVersionResource{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyreviews"}},
+			{
+				gvr: schema.GroupVersionResource{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicyselfsubjectreviews"},
+				fieldTypeNameOverride: map[string]string{
+					"status": "PodSecurityPolicySubjectReviewStatus",
+				},
+			},
+			{gvr: schema.GroupVersionResource{Group: "security.openshift.io", Version: "v1", Resource: "podsecuritypolicysubjectreviews"}},
 		},
 	}
 
@@ -591,7 +596,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		types := bts
 		g.It(fmt.Sprintf("should contain spec+status for %s [apigroup:%s]", groupName, groupName), func() {
 			for _, bt := range types {
-				e2e.Logf("Checking %s...", bt)
+				e2e.Logf("Checking %v...", bt)
 				o.Expect(verifySpecStatusExplain(oc, nil, bt.gvr, bt.fieldTypeNameOverride)).NotTo(o.HaveOccurred())
 			}
 		})
@@ -601,7 +606,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 		groupName := group
 		types := bets
 		for _, bet := range types {
-			resourceName := bet.Resource
+			resourceName := bet.gvr.Resource
 			g.It(fmt.Sprintf("should contain spec+status for %s of %s, if the resource is present [apigroup:%s]", resourceName, groupName, groupName), func() {
 				e2e.Logf("Checking %s of %s...", resourceName, groupName)
 				exist, err := exutil.DoesApiResourceExist(oc.AdminConfig(), resourceName, groupName)
@@ -609,7 +614,7 @@ var _ = g.Describe("[sig-cli] oc explain", func() {
 				if !exist {
 					g.Skip(fmt.Sprintf("Resource %s of %s does not exist, skipping", resourceName, groupName))
 				}
-				o.Expect(verifySpecStatusExplain(oc, nil, bet, nil)).NotTo(o.HaveOccurred())
+				o.Expect(verifySpecStatusExplain(oc, nil, bet.gvr, bet.fieldTypeNameOverride)).NotTo(o.HaveOccurred())
 			})
 		}
 	}
@@ -730,7 +735,7 @@ func verifyExplain(oc *exutil.CLI, crdClient apiextensionsclientset.Interface, g
 						e2e.Logf("CRD yaml is:\n%s\n", runtime.EncodeOrDie(apiextensionsscheme.Codecs.LegacyCodec(apiextensionsscheme.Scheme.PrioritizedVersionsAllGroups()...), crd))
 					}
 				}
-				return fmt.Errorf("oc explain %q result {%s} doesn't match pattern {%s}", args, stdout, pattern)
+				return fmt.Errorf("oc explain %q result:\n%s\ndoesn't match pattern:\n%s", args, stdout, pattern)
 			}
 			return nil
 		})

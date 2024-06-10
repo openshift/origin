@@ -8,8 +8,10 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/exported"
@@ -44,7 +46,7 @@ type httpTracePolicy struct {
 // Do implements the pipeline.Policy interfaces for the httpTracePolicy type.
 func (h *httpTracePolicy) Do(req *policy.Request) (resp *http.Response, err error) {
 	rawTracer := req.Raw().Context().Value(shared.CtxWithTracingTracer{})
-	if tracer, ok := rawTracer.(tracing.Tracer); ok {
+	if tracer, ok := rawTracer.(tracing.Tracer); ok && tracer.Enabled() {
 		attributes := []tracing.Attribute{
 			{Key: attrHTTPMethod, Value: req.Raw().Method},
 			{Key: attrHTTPURL, Value: getSanitizedURL(*req.Raw().URL, h.allowedQP)},
@@ -74,9 +76,14 @@ func (h *httpTracePolicy) Do(req *policy.Request) (resp *http.Response, err erro
 					span.SetAttributes(tracing.Attribute{Key: attrAZServiceReqID, Value: reqID})
 				}
 			} else if err != nil {
-				// including the output from err.Error() might disclose URL query parameters.
-				// so instead of attempting to sanitize the output, we simply output the error type.
-				span.SetStatus(tracing.SpanStatusError, fmt.Sprintf("%T", err))
+				var urlErr *url.Error
+				if errors.As(err, &urlErr) {
+					// calling *url.Error.Error() will include the unsanitized URL
+					// which we don't want. in addition, we already have the HTTP verb
+					// and sanitized URL in the trace so we aren't losing any info
+					err = urlErr.Err
+				}
+				span.SetStatus(tracing.SpanStatusError, err.Error())
 			}
 			span.End()
 		}()
@@ -103,6 +110,10 @@ func StartSpan(ctx context.Context, name string, tracer tracing.Tracer, options 
 	if !tracer.Enabled() {
 		return ctx, func(err error) {}
 	}
+
+	// we MUST propagate the active tracer before returning so that the trace policy can access it
+	ctx = context.WithValue(ctx, shared.CtxWithTracingTracer{}, tracer)
+
 	const newSpanKind = tracing.SpanKindInternal
 	if activeSpan := ctx.Value(ctxActiveSpan{}); activeSpan != nil {
 		// per the design guidelines, if a SDK method Foo() calls SDK method Bar(),
@@ -118,7 +129,6 @@ func StartSpan(ctx context.Context, name string, tracer tracing.Tracer, options 
 	ctx, span := tracer.Start(ctx, name, &tracing.SpanOptions{
 		Kind: newSpanKind,
 	})
-	ctx = context.WithValue(ctx, shared.CtxWithTracingTracer{}, tracer)
 	ctx = context.WithValue(ctx, ctxActiveSpan{}, newSpanKind)
 	return ctx, func(err error) {
 		if err != nil {

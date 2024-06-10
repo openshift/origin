@@ -1,6 +1,7 @@
 package gomega
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -52,13 +53,29 @@ func BeNil() types.GomegaMatcher {
 }
 
 // BeTrue succeeds if actual is true
+//
+// In general, it's better to use `BeTrueBecause(reason)` to provide a more useful error message if a true check fails.
 func BeTrue() types.GomegaMatcher {
 	return &matchers.BeTrueMatcher{}
 }
 
 // BeFalse succeeds if actual is false
+//
+// In general, it's better to use `BeFalseBecause(reason)` to provide a more useful error message if a false check fails.
 func BeFalse() types.GomegaMatcher {
 	return &matchers.BeFalseMatcher{}
+}
+
+// BeTrueBecause succeeds if actual is true and displays the provided reason if it is false
+// fmt.Sprintf is used to render the reason
+func BeTrueBecause(format string, args ...any) types.GomegaMatcher {
+	return &matchers.BeTrueMatcher{Reason: fmt.Sprintf(format, args...)}
+}
+
+// BeFalseBecause succeeds if actual is false and displays the provided reason if it is true.
+// fmt.Sprintf is used to render the reason
+func BeFalseBecause(format string, args ...any) types.GomegaMatcher {
+	return &matchers.BeFalseMatcher{Reason: fmt.Sprintf(format, args...)}
 }
 
 // HaveOccurred succeeds if actual is a non-nil error
@@ -177,20 +194,21 @@ func BeClosed() types.GomegaMatcher {
 //
 // will repeatedly attempt to pull values out of `c` until a value matching "bar" is received.
 //
-// Finally, if you want to have a reference to the value *sent* to the channel you can pass the `Receive` matcher a pointer to a variable of the appropriate type:
+// Furthermore, if you want to have a reference to the value *sent* to the channel you can pass the `Receive` matcher a pointer to a variable of the appropriate type:
 //
 //	var myThing thing
 //	Eventually(thingChan).Should(Receive(&myThing))
 //	Expect(myThing.Sprocket).Should(Equal("foo"))
 //	Expect(myThing.IsValid()).Should(BeTrue())
+//
+// Finally, if you want to match the received object as well as get the actual received value into a variable, so you can reason further about the value received,
+// you can pass a pointer to a variable of the approriate type first, and second a matcher:
+//
+//	var myThing thing
+//	Eventually(thingChan).Should(Receive(&myThing, ContainSubstring("bar")))
 func Receive(args ...interface{}) types.GomegaMatcher {
-	var arg interface{}
-	if len(args) > 0 {
-		arg = args[0]
-	}
-
 	return &matchers.ReceiveMatcher{
-		Arg: arg,
+		Args: args,
 	}
 }
 
@@ -377,7 +395,7 @@ func ConsistOf(elements ...interface{}) types.GomegaMatcher {
 	}
 }
 
-// HaveExactElemets succeeds if actual contains elements that precisely match the elemets passed into the matcher. The ordering of the elements does matter.
+// HaveExactElements succeeds if actual contains elements that precisely match the elemets passed into the matcher. The ordering of the elements does matter.
 // By default HaveExactElements() uses Equal() to match the elements, however custom matchers can be passed in instead.  Here are some examples:
 //
 //	Expect([]string{"Foo", "FooBar"}).Should(HaveExactElements("Foo", "FooBar"))

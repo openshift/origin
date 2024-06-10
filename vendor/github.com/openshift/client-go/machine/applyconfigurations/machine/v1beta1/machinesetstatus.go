@@ -9,13 +9,15 @@ import (
 // MachineSetStatusApplyConfiguration represents an declarative configuration of the MachineSetStatus type for use
 // with apply.
 type MachineSetStatusApplyConfiguration struct {
-	Replicas             *int32                         `json:"replicas,omitempty"`
-	FullyLabeledReplicas *int32                         `json:"fullyLabeledReplicas,omitempty"`
-	ReadyReplicas        *int32                         `json:"readyReplicas,omitempty"`
-	AvailableReplicas    *int32                         `json:"availableReplicas,omitempty"`
-	ObservedGeneration   *int64                         `json:"observedGeneration,omitempty"`
-	ErrorReason          *v1beta1.MachineSetStatusError `json:"errorReason,omitempty"`
-	ErrorMessage         *string                        `json:"errorMessage,omitempty"`
+	Replicas               *int32                         `json:"replicas,omitempty"`
+	FullyLabeledReplicas   *int32                         `json:"fullyLabeledReplicas,omitempty"`
+	ReadyReplicas          *int32                         `json:"readyReplicas,omitempty"`
+	AvailableReplicas      *int32                         `json:"availableReplicas,omitempty"`
+	ObservedGeneration     *int64                         `json:"observedGeneration,omitempty"`
+	ErrorReason            *v1beta1.MachineSetStatusError `json:"errorReason,omitempty"`
+	ErrorMessage           *string                        `json:"errorMessage,omitempty"`
+	AuthoritativeAPI       *v1beta1.MachineAuthority      `json:"authoritativeAPI,omitempty"`
+	SynchronizedGeneration *int64                         `json:"synchronizedGeneration,omitempty"`
 }
 
 // MachineSetStatusApplyConfiguration constructs an declarative configuration of the MachineSetStatus type for use with
@@ -77,5 +79,21 @@ func (b *MachineSetStatusApplyConfiguration) WithErrorReason(value v1beta1.Machi
 // If called multiple times, the ErrorMessage field is set to the value of the last call.
 func (b *MachineSetStatusApplyConfiguration) WithErrorMessage(value string) *MachineSetStatusApplyConfiguration {
 	b.ErrorMessage = &value
+	return b
+}
+
+// WithAuthoritativeAPI sets the AuthoritativeAPI field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the AuthoritativeAPI field is set to the value of the last call.
+func (b *MachineSetStatusApplyConfiguration) WithAuthoritativeAPI(value v1beta1.MachineAuthority) *MachineSetStatusApplyConfiguration {
+	b.AuthoritativeAPI = &value
+	return b
+}
+
+// WithSynchronizedGeneration sets the SynchronizedGeneration field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the SynchronizedGeneration field is set to the value of the last call.
+func (b *MachineSetStatusApplyConfiguration) WithSynchronizedGeneration(value int64) *MachineSetStatusApplyConfiguration {
+	b.SynchronizedGeneration = &value
 	return b
 }

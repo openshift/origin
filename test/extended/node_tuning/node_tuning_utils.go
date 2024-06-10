@@ -206,7 +206,7 @@ func waitForUpdatedMCP(mcps dynamic.NamespaceableResourceInterface, mcpName stri
 			e2e.Logf("the status of mcp %v is updated state, not updating", mcpName)
 			return true, nil
 		}
-		e2e.Logf("the status of mcp %v is updating or degraded state, will check again")
+		e2e.Logf("the status of mcp %s is updating or degraded state, will check again", mcpName)
 		e2e.Logf("the status of mcp is updated - [%v] updating - [%v]", updated, updating)
 		return false, nil
 	})

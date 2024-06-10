@@ -3,18 +3,18 @@
 package v1
 
 import (
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 // ControlPlaneMachineSetStatusApplyConfiguration represents an declarative configuration of the ControlPlaneMachineSetStatus type for use
 // with apply.
 type ControlPlaneMachineSetStatusApplyConfiguration struct {
-	Conditions          []v1.Condition `json:"conditions,omitempty"`
-	ObservedGeneration  *int64         `json:"observedGeneration,omitempty"`
-	Replicas            *int32         `json:"replicas,omitempty"`
-	ReadyReplicas       *int32         `json:"readyReplicas,omitempty"`
-	UpdatedReplicas     *int32         `json:"updatedReplicas,omitempty"`
-	UnavailableReplicas *int32         `json:"unavailableReplicas,omitempty"`
+	Conditions          []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	ObservedGeneration  *int64                           `json:"observedGeneration,omitempty"`
+	Replicas            *int32                           `json:"replicas,omitempty"`
+	ReadyReplicas       *int32                           `json:"readyReplicas,omitempty"`
+	UpdatedReplicas     *int32                           `json:"updatedReplicas,omitempty"`
+	UnavailableReplicas *int32                           `json:"unavailableReplicas,omitempty"`
 }
 
 // ControlPlaneMachineSetStatusApplyConfiguration constructs an declarative configuration of the ControlPlaneMachineSetStatus type for use with
@@ -26,9 +26,12 @@ func ControlPlaneMachineSetStatus() *ControlPlaneMachineSetStatusApplyConfigurat
 // WithConditions adds the given value to the Conditions field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Conditions field.
-func (b *ControlPlaneMachineSetStatusApplyConfiguration) WithConditions(values ...v1.Condition) *ControlPlaneMachineSetStatusApplyConfiguration {
+func (b *ControlPlaneMachineSetStatusApplyConfiguration) WithConditions(values ...*v1.ConditionApplyConfiguration) *ControlPlaneMachineSetStatusApplyConfiguration {
 	for i := range values {
-		b.Conditions = append(b.Conditions, values[i])
+		if values[i] == nil {
+			panic("nil value passed to WithConditions")
+		}
+		b.Conditions = append(b.Conditions, *values[i])
 	}
 	return b
 }

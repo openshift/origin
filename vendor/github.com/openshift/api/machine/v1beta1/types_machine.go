@@ -171,6 +171,20 @@ const (
 	PhaseDeleting string = "Deleting"
 )
 
+type MachineAuthority string
+
+const (
+	// MachineAuthorityMachineAPI indicates that the Machine API resource should be the authoritative API.
+	MachineAuthorityMachineAPI MachineAuthority = "MachineAPI"
+
+	// MachineAuthorityClusterAPI indicates that the Cluster API resource should be the authoritative API.
+	MachineAuthorityClusterAPI MachineAuthority = "ClusterAPI"
+
+	// MachineAuthorityMigrating indicates that the authoritative API is currently migrating between states.
+	// Only applicable for status usages of the MachineAuthority.
+	MachineAuthorityMigrating MachineAuthority = "Migrating"
+)
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -225,6 +239,7 @@ type MachineSpec struct {
 	// the taint the machine controller will put it back) but not have the machine controller
 	// remove any taints
 	// +optional
+	// +listType=atomic
 	Taints []corev1.Taint `json:"taints,omitempty"`
 
 	// ProviderSpec details Provider-specific configuration to use during node creation.
@@ -243,6 +258,20 @@ type MachineSpec struct {
 	// be interfacing with cluster-api as generic provider.
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
+
+	// authoritativeAPI is the API that is authoritative for this resource.
+	// Valid values are MachineAPI and ClusterAPI.
+	// When set to MachineAPI, writes to the spec of the machine.openshift.io copy of this resource will be reflected into the cluster.x-k8s.io copy.
+	// When set to ClusterAPI, writes to the spec of the cluster.x-k8s.io copy of this resource will be reflected into the machine.openshift.io copy.
+	// Updates to the status will be reflected in both copies of the resource, based on the controller implementing the functionality of the API.
+	// Currently the authoritative API determines which controller will manage the resource, this will change in a future release.
+	// To ensure the change has been accepted, please verify that the `status.authoritativeAPI` field has been updated to the desired value and that the `Synchronized` condition is present and set to `True`.
+	// +kubebuilder:validation:Enum=MachineAPI;ClusterAPI
+	// +kubebuilder:validation:Default:=MachineAPI
+	// +default:=MachineAPI
+	// +openshift:enable:FeatureGate=MachineAPIMigration
+	// +optional
+	AuthoritativeAPI MachineAuthority `json:"authoritativeAPI,omitempty"`
 }
 
 // LifecycleHooks allow users to pause operations on the machine at
@@ -287,6 +316,7 @@ type LifecycleHook struct {
 }
 
 // MachineStatus defines the observed state of Machine
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=MachineAPIMigration,rule="!has(oldSelf.synchronizedGeneration) || (has(self.synchronizedGeneration) && self.synchronizedGeneration >= oldSelf.synchronizedGeneration) || (oldSelf.authoritativeAPI == 'Migrating' && self.authoritativeAPI != 'Migrating')",message="synchronizedGeneration must not decrease unless authoritativeAPI is transitioning from Migrating to another value"
 type MachineStatus struct {
 	// NodeRef will point to the corresponding Node if it exists.
 	// +optional
@@ -344,6 +374,7 @@ type MachineStatus struct {
 
 	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
 	// +optional
+	// +listType=atomic
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
 	// LastOperation describes the last-operation performed by the machine-controller.
@@ -359,7 +390,27 @@ type MachineStatus struct {
 	Phase *string `json:"phase,omitempty"`
 
 	// Conditions defines the current state of the Machine
-	Conditions Conditions `json:"conditions,omitempty"`
+	// +listType=map
+	// +listMapKey=type
+	Conditions []Condition `json:"conditions,omitempty"`
+
+	// authoritativeAPI is the API that is authoritative for this resource.
+	// Valid values are MachineAPI, ClusterAPI and Migrating.
+	// This value is updated by the migration controller to reflect the authoritative API.
+	// Machine API and Cluster API controllers use this value to determine whether or not to reconcile the resource.
+	// When set to Migrating, the migration controller is currently performing the handover of authority from one API to the other.
+	// +kubebuilder:validation:Enum=MachineAPI;ClusterAPI;Migrating
+	// +kubebuilder:validation:XValidation:rule="self == 'Migrating' || self == oldSelf || oldSelf == 'Migrating'",message="The authoritativeAPI field must not transition directly from MachineAPI to ClusterAPI or vice versa. It must transition through Migrating."
+	// +openshift:enable:FeatureGate=MachineAPIMigration
+	// +optional
+	AuthoritativeAPI MachineAuthority `json:"authoritativeAPI,omitempty"`
+
+	// synchronizedGeneration is the generation of the authoritative resource that the non-authoritative resource is synchronised with.
+	// This field is set when the authoritative resource is updated and the sync controller has updated the non-authoritative resource to match.
+	// +kubebuilder:validation:Minimum=0
+	// +openshift:enable:FeatureGate=MachineAPIMigration
+	// +optional
+	SynchronizedGeneration int64 `json:"synchronizedGeneration,omitempty"`
 }
 
 // LastOperation represents the detail of the last performed operation on the MachineObject.

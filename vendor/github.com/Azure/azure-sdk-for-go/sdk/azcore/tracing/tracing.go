@@ -31,12 +31,12 @@ type Provider struct {
 	newTracerFn func(name, version string) Tracer
 }
 
-// NewTracer creates a new Tracer for the specified name and version.
-//   - name - the name of the tracer object, typically the fully qualified name of the service client
-//   - version - the version of the module in which the service client resides
-func (p Provider) NewTracer(name, version string) (tracer Tracer) {
+// NewTracer creates a new Tracer for the specified module name and version.
+//   - module - the fully qualified name of the module
+//   - version - the version of the module
+func (p Provider) NewTracer(module, version string) (tracer Tracer) {
 	if p.newTracerFn != nil {
-		tracer = p.newTracerFn(name, version)
+		tracer = p.newTracerFn(module, version)
 	}
 	return
 }

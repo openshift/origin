@@ -264,7 +264,7 @@ func (j *JenkinsRef) ProcessJenkinsJobUsingVars(filename, namespace string, vars
 			e2e.Logf("problem diagnosing /tmp: %v", dbgerr)
 		} else {
 			for _, file := range files {
-				e2e.Logf("found file %s under temp isdir %q mode %s", file.Name(), file.IsDir(), file.Mode().String())
+				e2e.Logf("found file %s under temp isdir %t mode %s", file.Name(), file.IsDir(), file.Mode().String())
 			}
 		}
 	}
