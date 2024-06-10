@@ -2,7 +2,7 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (231)](#Items-Do-NOT-Meet-the-Requirement-231)
+  - [Items Do NOT Meet the Requirement (240)](#Items-Do-NOT-Meet-the-Requirement-240)
     - [ (6)](#-6)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
@@ -21,6 +21,9 @@
       - [Certificate Authority Bundles (28)](#Certificate-Authority-Bundles-28)
     - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
       - [Certificates (2)](#Certificates-2)
+    - [Unknown (9)](#Unknown-9)
+      - [Certificates (3)](#Certificates-3)
+      - [Certificate Authority Bundles (6)](#Certificate-Authority-Bundles-6)
     - [apiserver-auth (3)](#apiserver-auth-3)
       - [Certificates (1)](#Certificates-1)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -59,7 +62,7 @@ This assertion means that you have
       QE has required test every release that ensures the functionality works every release.
 If you have not done this, you should not merge the annotation.
 
-## Items Do NOT Meet the Requirement (231)
+## Items Do NOT Meet the Requirement (240)
 ###  (6)
 #### Certificates (3)
 1. ns/openshift-ingress secret/router-certs-default
@@ -359,6 +362,58 @@ If you have not done this, you should not merge the annotation.
       
 
 2. ns/openshift-operator-lifecycle-manager secret/pprof-cert
+
+      **Description:** 
+      
+
+
+
+### Unknown (9)
+#### Certificates (3)
+1. file /etc/cni/multus/certs/multus-client-\<timestamp>.pem
+
+      **Description:** 
+      
+
+2. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
+
+      **Description:** 
+      
+
+3. file /var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\<timestamp>.pem
+
+      **Description:** 
+      
+
+
+
+#### Certificate Authority Bundles (6)
+1. file /etc/kubernetes/ca.crt
+
+      **Description:** 
+      
+
+2. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Description:** 
+      
+
+3. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Description:** 
+      
+
+4. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
+
+      **Description:** 
+      
+
+5. file /etc/pki/tls/cert.pem
+
+      **Description:** 
+      
+
+6. file /etc/pki/tls/certs/ca-bundle.crt
 
       **Description:** 
       
