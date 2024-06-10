@@ -113,7 +113,6 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				continue
 			}
 			options.rewriteCABundle(configMap.ObjectMeta, details)
-
 			caBundles = append(caBundles, details)
 
 			inClusterResourceData.CertificateAuthorityBundles = append(inClusterResourceData.CertificateAuthorityBundles,
@@ -149,12 +148,14 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				errs = append(errs, err)
 				continue
 			}
-			if details == nil {
+			if len(details) == 0 {
 				continue
 			}
-			options.rewriteCertKeyPair(secret.ObjectMeta, details)
-			certs = append(certs, details)
+			for i := range details {
+				options.rewriteCertKeyPair(secret.ObjectMeta, details[i])
+			}
 
+			certs = append(certs, details...)
 			inClusterResourceData.CertKeyPairs = append(inClusterResourceData.CertKeyPairs,
 				certgraphapi.PKIRegistryInClusterCertKeyPair{
 					SecretLocation: certgraphapi.InClusterSecretLocation{
@@ -289,17 +290,11 @@ func GetBootstrapIPAndHostname(ctx context.Context, kubeClient kubernetes.Interf
 		if !ok || !strings.Contains(certHostNames, bootstrapIP) {
 			continue
 		}
-		// Node name is stored as last word in the secret description
-		description, ok := secret.Annotations[annotations.OpenShiftDescription]
-		if !ok {
-			continue
+		// Extract bootstrap name from etcd secret name
+		if result, found := strings.CutPrefix(secret.Name, "etcd-peer-"); found {
+			bootstrapHostname = result
+			break
 		}
-		descriptionWords := strings.Split(description, " ")
-		if len(descriptionWords) < 1 {
-			continue
-		}
-		bootstrapHostname = descriptionWords[len(descriptionWords)-1]
-		break
 	}
 
 	return bootstrapIP, bootstrapHostname, nil

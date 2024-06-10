@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 )
 
@@ -20,7 +21,7 @@ func ApplyPodDisruptionBudget(ctx context.Context, client policyclientv1.PodDisr
 		requiredCopy := required.DeepCopy()
 		actual, err := client.PodDisruptionBudgets(required.Namespace).Create(
 			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*policyv1.PodDisruptionBudget), metav1.CreateOptions{})
-		reportCreateEvent(recorder, required, err)
+		resourcehelper.ReportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -43,7 +44,7 @@ func ApplyPodDisruptionBudget(ctx context.Context, client policyclientv1.PodDisr
 	}
 
 	actual, err := client.PodDisruptionBudgets(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
-	reportUpdateEvent(recorder, required, err)
+	resourcehelper.ReportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
 
@@ -55,6 +56,6 @@ func DeletePodDisruptionBudget(ctx context.Context, client policyclientv1.PodDis
 	if err != nil {
 		return nil, false, err
 	}
-	reportDeleteEvent(recorder, required, err)
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
 	return nil, true, nil
 }
