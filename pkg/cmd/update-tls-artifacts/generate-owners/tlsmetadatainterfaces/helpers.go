@@ -14,17 +14,21 @@ const UnknownOwner = "Unknown"
 
 var (
 	onDiskCertKeyPairs = certs.CertKeyPairInfoByOnDiskLocation{
-		{Path: "/var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\u003ctimestamp\u003e.pem"}:                                         {OwningJiraComponent: "Unknown"},
-		{Path: "/etc/cni/multus/certs/multus-client-\u003ctimestamp\u003e.pem"}:                                                           {OwningJiraComponent: "Unknown"},
-		{Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key"}: {OwningJiraComponent: "Unknown"},
+		{Path: "/var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\u003ctimestamp\u003e.pem"}:                                         {OwningJiraComponent: "Networking / cluster-network-operator"},
+		{Path: "/etc/cni/multus/certs/multus-client-\u003ctimestamp\u003e.pem"}:                                                           {OwningJiraComponent: "Networking / cluster-network-operator"},
+		{Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key"}: {OwningJiraComponent: "kube-apiserver"},
+		{Path: "/var/lib/kubelet/pki/kubelet-client-\u003ctimestamp\u003e.pem"}:                                                           {OwningJiraComponent: "Node / Kubelet"},
+		{Path: "/var/lib/kubelet/pki/kubelet-server-\u003ctimestamp\u003e.pem"}:                                                           {OwningJiraComponent: "Node / Kubelet"},
+		{Path: "/etc/kubernetes/kubeconfig"}:                                                                                              {OwningJiraComponent: "kube-apiserver"},
 	}
 	onDiskCABundles = certs.CABundleInfoByOnDiskLocation{
-		{Path: "/etc/kubernetes/ca.crt"}: {OwningJiraComponent: "Unknown"},
-		{Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"}:          {OwningJiraComponent: "Unknown"},
-		{Path: "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"}: {OwningJiraComponent: "Unknown"},
-		{Path: "/etc/pki/tls/cert.pem"}:            {OwningJiraComponent: "Unknown"},
-		{Path: "/etc/pki/tls/certs/ca-bundle.crt"}: {OwningJiraComponent: "Unknown"},
-		{Path: "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt"}: {OwningJiraComponent: "Unknown"},
+		{Path: "/etc/kubernetes/ca.crt"}: {OwningJiraComponent: "Machine Config Operator"},
+		{Path: "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"}:          {OwningJiraComponent: "kube-apiserver"},
+		{Path: "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"}: {OwningJiraComponent: "kube-controller-manager"},
+		{Path: "/etc/pki/tls/cert.pem"}:            {OwningJiraComponent: "RHCOS"},
+		{Path: "/etc/pki/tls/certs/ca-bundle.crt"}: {OwningJiraComponent: "RHCOS"},
+		{Path: "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt"}: {OwningJiraComponent: "kube-controller-manager"},
+		{Path: "/etc/kubernetes/cni/net.d/whereabouts.d/whereabouts.kubeconfig"}:                                {OwningJiraComponent: "cluster-network-operator"},
 	}
 )
 

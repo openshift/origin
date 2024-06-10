@@ -1,9 +1,9 @@
 # Certificate Ownership
 
 ## Table of Contents
-  - [Missing Owners (6)](#Missing-Owners-6)
+  - [Missing Owners (10)](#Missing-Owners-10)
     - [Certificates (3)](#Certificates-3)
-    - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
+    - [Certificate Authority Bundles (7)](#Certificate-Authority-Bundles-7)
   - [Cloud Compute / Cloud Controller Manager (1)](#Cloud-Compute-/-Cloud-Controller-Manager-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [End User (1)](#End-User-1)
@@ -14,8 +14,8 @@
   - [Monitoring (7)](#Monitoring-7)
     - [Certificates (2)](#Certificates-2)
     - [Certificate Authority Bundles (5)](#Certificate-Authority-Bundles-5)
-  - [Networking / cluster-network-operator (34)](#Networking-/-cluster-network-operator-34)
-    - [Certificates (6)](#Certificates-6)
+  - [Networking / cluster-network-operator (36)](#Networking-/-cluster-network-operator-36)
+    - [Certificates (8)](#Certificates-8)
     - [Certificate Authority Bundles (28)](#Certificate-Authority-Bundles-28)
   - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
     - [Certificates (2)](#Certificates-2)
@@ -25,12 +25,12 @@
   - [etcd (36)](#etcd-36)
     - [Certificates (22)](#Certificates-22)
     - [Certificate Authority Bundles (14)](#Certificate-Authority-Bundles-14)
-  - [kube-apiserver (40)](#kube-apiserver-40)
-    - [Certificates (22)](#Certificates-22)
+  - [kube-apiserver (41)](#kube-apiserver-41)
+    - [Certificates (23)](#Certificates-23)
     - [Certificate Authority Bundles (18)](#Certificate-Authority-Bundles-18)
-  - [kube-controller-manager (10)](#kube-controller-manager-10)
+  - [kube-controller-manager (12)](#kube-controller-manager-12)
     - [Certificates (3)](#Certificates-3)
-    - [Certificate Authority Bundles (7)](#Certificate-Authority-Bundles-7)
+    - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
   - [kube-scheduler (1)](#kube-scheduler-1)
     - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
   - [service-ca (88)](#service-ca-88)
@@ -38,7 +38,7 @@
     - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
 
 
-## Missing Owners (6)
+## Missing Owners (10)
 ### Certificates (3)
 1. ns/openshift-ingress secret/router-certs-default
 
@@ -57,7 +57,7 @@
 
 
 
-### Certificate Authority Bundles (3)
+### Certificate Authority Bundles (7)
 1. ns/openshift-config-managed configmap/default-ingress-cert
 
       **Description:** 
@@ -69,6 +69,26 @@
       
 
 3. ns/openshift-console configmap/default-ingress-cert
+
+      **Description:** 
+      
+
+4. file /etc/kubernetes/ca.crt
+
+      **Description:** 
+      
+
+5. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Description:** 
+      
+
+6. file /etc/pki/tls/cert.pem
+
+      **Description:** 
+      
+
+7. file /etc/pki/tls/certs/ca-bundle.crt
 
       **Description:** 
       
@@ -104,6 +124,11 @@
 
 ### Certificate Authority Bundles (1)
 1. ns/openshift-config configmap/initial-kube-apiserver-server-ca
+
+      **Description:** 
+      
+
+2. file /etc/kubernetes/ca.crt
 
       **Description:** 
       
@@ -152,8 +177,8 @@
 
 
 
-## Networking / cluster-network-operator (34)
-### Certificates (6)
+## Networking / cluster-network-operator (36)
+### Certificates (8)
 1. ns/openshift-network-node-identity secret/network-node-identity-ca
 
       **Description:** 
@@ -180,6 +205,16 @@
       
 
 6. ns/openshift-ovn-kubernetes secret/signer-cert
+
+      **Description:** 
+      
+
+7. file /etc/cni/multus/certs/multus-client-\<timestamp>.pem
+
+      **Description:** 
+      
+
+8. file /var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\<timestamp>.pem
 
       **Description:** 
       
@@ -337,6 +372,20 @@
       
 
 2. ns/openshift-operator-lifecycle-manager secret/pprof-cert
+
+      **Description:** 
+      
+
+
+
+## RHCOS (2)
+### Certificate Authority Bundles (2)
+1. file /etc/pki/tls/cert.pem
+
+      **Description:** 
+      
+
+2. file /etc/pki/tls/certs/ca-bundle.crt
 
       **Description:** 
       
@@ -552,8 +601,8 @@
 
 
 
-## kube-apiserver (40)
-### Certificates (22)
+## kube-apiserver (41)
+### Certificates (23)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
       **Description:** 
@@ -664,6 +713,11 @@
       **Description:** 
       
 
+23. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
+
+      **Description:** 
+      
+
 
 
 ### Certificate Authority Bundles (18)
@@ -757,9 +811,14 @@
       **Description:** 
       
 
+20. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Description:** 
+      
 
 
-## kube-controller-manager (10)
+
+## kube-controller-manager (12)
 ### Certificates (3)
 1. ns/openshift-kube-controller-manager secret/csr-signer
 
@@ -778,7 +837,7 @@
 
 
 
-### Certificate Authority Bundles (7)
+### Certificate Authority Bundles (9)
 1. ns/openshift-config-managed configmap/csr-controller-ca
 
       **Description:** 
@@ -810,6 +869,16 @@
       
 
 7. ns/openshift-kube-controller-manager-operator configmap/csr-signer-ca
+
+      **Description:** 
+      
+
+8. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Description:** 
+      
+
+9. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
 
       **Description:** 
       

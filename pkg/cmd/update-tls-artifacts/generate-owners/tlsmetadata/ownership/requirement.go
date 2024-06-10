@@ -3,6 +3,7 @@ package ownership
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/openshift/library-go/pkg/markdown"
 
 	"github.com/openshift/origin/pkg/certs"
@@ -166,13 +167,18 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certs)))
 			md.OrderedListStart()
 			for _, curr := range certs {
-				if curr.InClusterLocation == nil {
-					continue
+				if curr.InClusterLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
+					md.Text("\n")
 				}
-				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-				md.Text("\n")
+				if curr.OnDiskLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+					md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
+					md.Text("\n")
+				}
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -183,13 +189,18 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 			md.Title(3, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 			md.OrderedListStart()
 			for _, curr := range caBundles {
-				if curr.InClusterLocation == nil {
-					continue
+				if curr.InClusterLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
+					md.Text("\n")
 				}
-				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-				md.Text("\n")
+				if curr.OnDiskLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+					md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
+					md.Text("\n")
+				}
 			}
 			md.OrderedListEnd()
 			md.Text("\n")

@@ -1322,7 +1322,7 @@
                     "Path": "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "kube-controller-manager",
                     "description": ""
                 }
             }
@@ -1334,7 +1334,7 @@
                     "Path": "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "kube-controller-manager",
                     "description": ""
                 }
             }
@@ -2198,7 +2198,7 @@
                     "Path": "/etc/cni/multus/certs/multus-client-\u003ctimestamp\u003e.pem"
                 },
                 "certKeyInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "Networking / cluster-network-operator",
                     "description": ""
                 }
             }
@@ -2210,7 +2210,7 @@
                     "Path": "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key"
                 },
                 "certKeyInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "kube-apiserver",
                     "description": ""
                 }
             }
@@ -2222,7 +2222,7 @@
                     "Path": "/var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\u003ctimestamp\u003e.pem"
                 },
                 "certKeyInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "Networking / cluster-network-operator",
                     "description": ""
                 }
             }
