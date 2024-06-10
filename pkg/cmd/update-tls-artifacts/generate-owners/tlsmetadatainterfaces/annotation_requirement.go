@@ -73,12 +73,12 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		if curr.InClusterLocation == nil {
+		certKeyInfo := GetCertKeyPairInfo(curr)
+		if certKeyInfo == nil {
 			continue
 		}
-		// TODO[vrutkovs]: fetch ondisk metadata here
-		owner := curr.InClusterLocation.CertKeyInfo.OwningJiraComponent
-		regenerates, _ := AnnotationValue(curr.InClusterLocation.CertKeyInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
+		owner := certKeyInfo.OwningJiraComponent
+		regenerates, _ := AnnotationValue(certKeyInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
 		if len(regenerates) == 0 {
 			violatingCertsByOwner[owner] = append(violatingCertsByOwner[owner], curr)
 			continue
@@ -88,11 +88,12 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		if curr.InClusterLocation == nil {
+		caBundleInfo := GetCABundleInfo(curr)
+		if caBundleInfo == nil {
 			continue
 		}
-		owner := curr.InClusterLocation.CABundleInfo.OwningJiraComponent
-		regenerates, _ := AnnotationValue(curr.InClusterLocation.CABundleInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
+		owner := caBundleInfo.OwningJiraComponent
+		regenerates, _ := AnnotationValue(caBundleInfo.SelectedCertMetadataAnnotations, o.GetAnnotationName())
 		if len(regenerates) == 0 {
 			violatingCABundlesByOwner[owner] = append(violatingCABundlesByOwner[owner], curr)
 			continue
@@ -122,15 +123,18 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 				md.Title(4, fmt.Sprintf("Certificates (%d)", len(certs)))
 				md.OrderedListStart()
 				for _, curr := range certs {
-					if curr.InClusterLocation == nil {
-						continue
+					if curr.InClusterLocation != nil {
+						md.NewOrderedListItem()
+						md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+						md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
+						md.Text("\n")
 					}
-					md.NewOrderedListItem()
-					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-					md.Text("\n")
-
-					//TODO[vrutkovs]: on disk case
+					if curr.OnDiskLocation != nil {
+						md.NewOrderedListItem()
+						md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+						md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
+						md.Text("\n")
+					}
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -141,15 +145,18 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 				md.Title(4, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 				md.OrderedListStart()
 				for _, curr := range caBundles {
-					if curr.InClusterLocation == nil {
-						continue
+					if curr.InClusterLocation != nil {
+						md.NewOrderedListItem()
+						md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
+						md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
+						md.Text("\n")
 					}
-					md.NewOrderedListItem()
-					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-					md.Text("\n")
-
-					//TODO[vrutkovs]: on disk case
+					if curr.OnDiskLocation != nil {
+						md.NewOrderedListItem()
+						md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+						md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
+						md.Text("\n")
+					}
 				}
 				md.OrderedListEnd()
 				md.Text("\n")
@@ -174,12 +181,19 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 			md.Title(4, fmt.Sprintf("Certificates (%d)", len(certs)))
 			md.OrderedListStart()
 			for _, curr := range certs {
-				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-				md.Text("\n")
+				if curr.InClusterLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
+					md.Text("\n")
+				}
+				if curr.OnDiskLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+					md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
+					md.Text("\n")
+				}
 			}
-			//TODO[vrutkovs]: on disk case
 
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -190,16 +204,19 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 			md.Title(4, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 			md.OrderedListStart()
 			for _, curr := range caBundles {
-				if curr.InClusterLocation == nil {
-					continue
+				if curr.InClusterLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
+					md.Text("\n")
 				}
-
-				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-				md.Text("\n")
+				if curr.OnDiskLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+					md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
+					md.Text("\n")
+				}
 			}
-			//TODO[vrutkovs]: on disk case
 
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -214,34 +231,49 @@ func generateViolationJSONForAnnotationRequirement(annotationName string, pkiInf
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		if curr.InClusterLocation != nil {
-			regenerates, _ := AnnotationValue(curr.InClusterLocation.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
-			if len(regenerates) == 0 {
-				ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
-			}
+		certKeyInfo := GetCertKeyPairInfo(curr)
+		if certKeyInfo == nil {
+			continue
 		}
-		if curr.OnDiskLocation != nil {
-			regenerates, _ := AnnotationValue(curr.OnDiskLocation.CertKeyInfo.SelectedCertMetadataAnnotations, annotationName)
-			if len(regenerates) == 0 {
-				ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
-			}
+
+		regenerates, _ := AnnotationValue(certKeyInfo.SelectedCertMetadataAnnotations, annotationName)
+		if len(regenerates) == 0 {
+			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
 		}
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		if curr.InClusterLocation != nil {
-			regenerates, _ := AnnotationValue(curr.InClusterLocation.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
-			if len(regenerates) == 0 {
-				ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
-			}
+		caBundleInfo := GetCABundleInfo(curr)
+		if caBundleInfo == nil {
+			continue
 		}
-		if curr.OnDiskLocation != nil {
-			regenerates, _ := AnnotationValue(curr.OnDiskLocation.CABundleInfo.SelectedCertMetadataAnnotations, annotationName)
-			if len(regenerates) == 0 {
-				ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
-			}
+		regenerates, _ := AnnotationValue(caBundleInfo.SelectedCertMetadataAnnotations, annotationName)
+		if len(regenerates) == 0 {
+			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
 		}
 	}
 
 	return ret
+}
+
+func GetCertKeyPairInfo(certKeyPair certgraphapi.PKIRegistryCertKeyPair) *certgraphapi.PKIRegistryCertKeyPairInfo {
+	var certKeyInfo *certgraphapi.PKIRegistryCertKeyPairInfo
+	if certKeyPair.InClusterLocation != nil {
+		certKeyInfo = &certKeyPair.InClusterLocation.CertKeyInfo
+	}
+	if certKeyPair.OnDiskLocation != nil {
+		certKeyInfo = &certKeyPair.OnDiskLocation.CertKeyInfo
+	}
+	return certKeyInfo
+}
+
+func GetCABundleInfo(caBundle certgraphapi.PKIRegistryCABundle) *certgraphapi.PKIRegistryCertificateAuthorityInfo {
+	var caBundleInfo *certgraphapi.PKIRegistryCertificateAuthorityInfo
+	if caBundle.InClusterLocation != nil {
+		caBundleInfo = &caBundle.InClusterLocation.CABundleInfo
+	}
+	if caBundle.OnDiskLocation != nil {
+		caBundleInfo = &caBundle.OnDiskLocation.CABundleInfo
+	}
+	return caBundleInfo
 }

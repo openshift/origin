@@ -2,7 +2,7 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (107)](#Items-Do-NOT-Meet-the-Requirement-107)
+  - [Items Do NOT Meet the Requirement (116)](#Items-Do-NOT-Meet-the-Requirement-116)
     - [ (6)](#-6)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
@@ -21,6 +21,9 @@
       - [Certificate Authority Bundles (28)](#Certificate-Authority-Bundles-28)
     - [Operator Framework / operator-lifecycle-manager (2)](#Operator-Framework-/-operator-lifecycle-manager-2)
       - [Certificates (2)](#Certificates-2)
+    - [Unknown (9)](#Unknown-9)
+      - [Certificates (3)](#Certificates-3)
+      - [Certificate Authority Bundles (6)](#Certificate-Authority-Bundles-6)
     - [apiserver-auth (3)](#apiserver-auth-3)
       - [Certificates (1)](#Certificates-1)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -52,7 +55,7 @@ These descriptions must be in the style of API documentation and must include
 
 To create a description, set the `openshift.io/description` annotation to the markdown formatted string describing your TLS artifact. 
 
-## Items Do NOT Meet the Requirement (107)
+## Items Do NOT Meet the Requirement (116)
 ###  (6)
 #### Certificates (3)
 1. ns/openshift-ingress secret/router-certs-default
@@ -352,6 +355,58 @@ To create a description, set the `openshift.io/description` annotation to the ma
       
 
 2. ns/openshift-operator-lifecycle-manager secret/pprof-cert
+
+      **Description:** 
+      
+
+
+
+### Unknown (9)
+#### Certificates (3)
+1. file /etc/cni/multus/certs/multus-client-\<timestamp>.pem
+
+      **Description:** 
+      
+
+2. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
+
+      **Description:** 
+      
+
+3. file /var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\<timestamp>.pem
+
+      **Description:** 
+      
+
+
+
+#### Certificate Authority Bundles (6)
+1. file /etc/kubernetes/ca.crt
+
+      **Description:** 
+      
+
+2. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Description:** 
+      
+
+3. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+
+      **Description:** 
+      
+
+4. file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt
+
+      **Description:** 
+      
+
+5. file /etc/pki/tls/cert.pem
+
+      **Description:** 
+      
+
+6. file /etc/pki/tls/certs/ca-bundle.crt
 
       **Description:** 
       
