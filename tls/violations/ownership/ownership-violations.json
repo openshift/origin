@@ -16,19 +16,6 @@
         {
             "InClusterLocation": {
                 "configMapLocation": {
-                    "Namespace": "openshift-config-managed",
-                    "Name": "kubelet-bootstrap-kubeconfig"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
                     "Namespace": "openshift-console",
                     "Name": "default-ingress-cert"
                 },
@@ -38,54 +25,6 @@
                 }
             },
             "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": null,
-            "OnDiskLocation": {
-                "onDiskLocation": {
-                    "Path": "/etc/kubernetes/ca.crt"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
-                    "description": ""
-                }
-            }
-        },
-        {
-            "InClusterLocation": null,
-            "OnDiskLocation": {
-                "onDiskLocation": {
-                    "Path": "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
-                    "description": ""
-                }
-            }
-        },
-        {
-            "InClusterLocation": null,
-            "OnDiskLocation": {
-                "onDiskLocation": {
-                    "Path": "/etc/pki/tls/cert.pem"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
-                    "description": ""
-                }
-            }
-        },
-        {
-            "InClusterLocation": null,
-            "OnDiskLocation": {
-                "onDiskLocation": {
-                    "Path": "/etc/pki/tls/certs/ca-bundle.crt"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
-                    "description": ""
-                }
-            }
         }
     ],
     "certKeyPairs": [
@@ -107,19 +46,6 @@
                 "secretLocation": {
                     "Namespace": "openshift-ingress-operator",
                     "Name": "router-ca"
-                },
-                "certKeyInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-machine-api",
-                    "Name": "metal3-ironic-tls"
                 },
                 "certKeyInfo": {
                     "owningJiraComponent": "",
