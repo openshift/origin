@@ -131,16 +131,39 @@ func checkReplicas(namespace string, operator string, clientConfig *rest.Config)
 func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []configv1.ClusterStatusConditionType, except exceptionCallback, clientConfig ...*rest.Config) []*junitapi.JUnitTestCase {
 	ret := []*junitapi.JUnitTestCase{}
 
-	var start, stop time.Time
+	var (
+		start, stop          time.Time
+		config               *rest.Config
+		isSingleControlPlane bool
+		upgradeInterval      = monitorapi.Interval{
+			Source: "UpgradeInterval",
+		}
+	)
 	for _, event := range events {
+		reason := string(event.Message.Reason)
 		if start.IsZero() || event.From.Before(start) {
 			start = event.From
 		}
 		if stop.IsZero() || event.To.After(stop) {
 			stop = event.To
 		}
+		if reason == "UpgradeStarted" || reason == "UpgradeRollback" {
+			upgradeInterval.From = event.From
+		}
+		if reason == "UpgradeComplete" {
+			upgradeInterval.To = event.To
+		}
 	}
 	duration := stop.Sub(start).Seconds()
+
+	if len(clientConfig) > 0 {
+		config = clientConfig[0]
+	}
+
+	if config != nil {
+		jobType, err := platformidentification2.GetJobType(context.Background(), config)
+		isSingleControlPlane = err == nil && jobType.Topology == "single"
+	}
 
 	eventsByOperator := getEventsByOperator(events)
 	e2eEventIntervals := operatorstateanalyzer.E2ETestEventIntervals(events)
@@ -179,7 +202,7 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				// if there was any switch, it was wrong/unexpected at some point
 				failure := fmt.Sprintf("%v", eventInterval)
 
-				overlappingE2EIntervals := operatorstateanalyzer.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.From)
+				overlappingE2EIntervals := operatorstateanalyzer.FindOverlap(e2eEventIntervals, eventInterval.From, eventInterval.To)
 				concurrentE2E := []string{}
 				for _, overlap := range overlappingE2EIntervals {
 					if overlap.Level == monitorapi.Info {
@@ -195,11 +218,13 @@ func testOperatorStateTransitions(events monitorapi.Intervals, conditionTypes []
 				if len(concurrentE2E) > 0 {
 					failure = fmt.Sprintf("%s\n%d tests failed during this blip (%v to %v): %v", failure, len(concurrentE2E), eventInterval.From, eventInterval.From, strings.Join(concurrentE2E, "\n"))
 				}
-				var Config *rest.Config
-				if len(clientConfig) > 0 {
-					Config = clientConfig[0]
+
+				if isSingleControlPlane && !upgradeInterval.From.IsZero() && eventInterval.From.After(upgradeInterval.From) && eventInterval.From.Before(upgradeInterval.To) {
+					excepted = append(excepted, fmt.Sprintf("%s (exception: %s)", failure, "operator running in single replica control plane, expected availability transition during upgrade"))
+					continue
 				}
-				exception, err := except(operatorName, condition, Config)
+
+				exception, err := except(operatorName, condition, config)
 				if err != nil || exception == "" {
 					fatal = append(fatal, failure)
 				} else {
