@@ -131,8 +131,10 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			// https://github.com/kubernetes/kubernetes/blob/70ca1dbb81d8b8c6a2ac88d62480008780d4db79/test/e2e/apimachinery/garbage_collector.go#L735
 			continue
 		}
-		if strings.Contains(event.Locator.Keys[monitorapi.LocatorNamespaceKey], "e2e-test-tuning-") &&
-			strings.Contains(event.Message.HumanMessage, "IFNAME") {
+		// namespace should also be checked, however not sure the backport.
+		if (strings.Contains(event.Locator, "ns/e2e-test-tuning-") ||
+			strings.Contains(event.Locator, "namespace/e2e-test-tuning-")) &&
+			strings.Contains(event.Message, "IFNAME") {
 			// These tests are trying to cause pod sandbox failures, so the errors are intended.
 			continue
 		}
