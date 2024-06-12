@@ -10,12 +10,15 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 type legacyMonitorTests struct {
-	adminRESTConfig *rest.Config
-	jobType         *platformidentification.JobType
+	adminRESTConfig    *rest.Config
+	jobType            *platformidentification.JobType
+	notSupportedReason error
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -24,6 +27,23 @@ func NewLegacyTests() monitortestframework.MonitorTest {
 
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+
+	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		w.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: "platform MicroShift not supported",
+		}
+		return w.notSupportedReason
+	}
+
 	jobType, err := platformidentification.GetJobType(ctx, adminRESTConfig)
 	if err != nil {
 		return fmt.Errorf("unable to determine job type: %v", err)
@@ -33,14 +53,17 @@ func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfi
 }
 
 func (w *legacyMonitorTests) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	return nil, nil, nil
+	return nil, nil, w.notSupportedReason
 }
 
-func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+func (w *legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	return nil, w.notSupportedReason
 }
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	if w.notSupportedReason != nil {
+		return nil, w.notSupportedReason
+	}
 	junits := []*junitapi.JUnitTestCase{}
 	junits = append(junits, testRequiredInstallerResourcesMissing(finalIntervals)...)
 	junits = append(junits, testEtcdShouldNotLogSlowFdataSyncs(finalIntervals)...)
