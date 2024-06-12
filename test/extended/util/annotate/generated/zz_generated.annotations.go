@@ -89,7 +89,7 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery][Feature:ServerSideApply] Server-Side Apply should work for user.openshift.io/v1, Resource=users [apigroup:user.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-apimachinery] server-side-apply should function properly should clear fields when they are no longer being applied in FeatureGates": " [Suite:openshift/conformance/parallel]",
+	"[sig-apimachinery] server-side-apply should function properly should clear fields when they are no longer being applied in FeatureGates [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-apimachinery] server-side-apply should function properly should clear fields when they are no longer being applied in built-in APIs": " [Suite:openshift/conformance/parallel]",
 
