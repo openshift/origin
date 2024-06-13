@@ -7,12 +7,11 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-	"golang.org/x/net/http2"
-
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,6 +58,7 @@ func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client 
 
 	transport := &http.Transport{
 		TLSClientConfig: &tlsConfig,
+		Proxy:           http.ProxyFromEnvironment,
 	}
 
 	c := &http.Client{
@@ -225,7 +225,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("Waiting for http2 pod to be running")
-			e2e.ExpectNoError(e2epod.WaitForPodRunningInNamespaceSlow(context.TODO(), oc.KubeClient(), "http2", oc.KubeFramework().Namespace.Name))
+			e2e.ExpectNoError(e2epod.WaitForPodRunningInNamespaceSlow(oc.KubeClient(), "http2", oc.KubeFramework().Namespace.Name))
 
 			// certificate start and end time are very
 			// lenient to avoid any clock drift between
@@ -234,23 +234,14 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 			notBefore := time.Now().Add(-24 * time.Hour)
 			notAfter := time.Now().Add(24 * time.Hour)
 
-			// Generate crts/keys for routes that need them.
-			_, tlsCrt1Data, tlsPrivateKey1, err := certgen.GenerateKeyPair(notBefore, notAfter)
+			// Generate crt/key for routes that need them.
+			_, tlsCrtData, tlsPrivateKey, err := certgen.GenerateKeyPair(notBefore, notAfter)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			_, tlsCrt2Data, tlsPrivateKey2, err := certgen.GenerateKeyPair(notBefore, notAfter)
+			derKey, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			derKey1, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey1)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			derKey2, err := certgen.MarshalPrivateKeyToDERFormat(tlsPrivateKey2)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			pemCrt1, err := certgen.MarshalCertToPEMString(tlsCrt1Data)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			pemCrt2, err := certgen.MarshalCertToPEMString(tlsCrt2Data)
+			pemCrt, err := certgen.MarshalCertToPEMString(tlsCrtData)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			shardFQDN := oc.Namespace() + "." + defaultDomain
@@ -328,8 +319,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						TLS: &routev1.TLSConfig{
 							Termination:                   routev1.TLSTerminationEdge,
 							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-							Key:                           derKey1,
-							Certificate:                   pemCrt1,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
 						},
 						To: routev1.RouteTargetReference{
 							Kind:   "Service",
@@ -354,8 +345,8 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 						TLS: &routev1.TLSConfig{
 							Termination:                   routev1.TLSTerminationReencrypt,
 							InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyRedirect,
-							Key:                           derKey2,
-							Certificate:                   pemCrt2,
+							Key:                           derKey,
+							Certificate:                   pemCrt,
 						},
 						To: routev1.RouteTargetReference{
 							Kind:   "Service",
@@ -416,6 +407,7 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				backendProto      string
 				statusCode        int
 				useHTTP2Transport bool
+				expectedGetError  string
 			}{{
 				route:             "http2-custom-cert-edge",
 				frontendProto:     "HTTP/2.0",
@@ -436,16 +428,12 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				useHTTP2Transport: true,
 			}, {
 				route:             "http2-default-cert-edge",
-				statusCode:        http.StatusOK,
-				frontendProto:     "HTTP/1.1",
-				backendProto:      "HTTP/1.1",
 				useHTTP2Transport: true,
+				expectedGetError:  `http2: unexpected ALPN protocol ""; want "h2"`,
 			}, {
 				route:             "http2-default-cert-reencrypt",
-				statusCode:        http.StatusOK,
-				frontendProto:     "HTTP/1.1",
-				backendProto:      "HTTP/2.0", // reencrypt always has backend ALPN enabled
 				useHTTP2Transport: true,
+				expectedGetError:  `http2: unexpected ALPN protocol ""; want "h2"`,
 			}, {
 				route:             "http2-custom-cert-edge",
 				frontendProto:     "HTTP/1.1",
@@ -493,19 +481,32 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 					host := tc.route + "." + shardFQDN
 					e2e.Logf("[test #%d/%d]: GET route: %s", i+1, len(testCases), host)
 					resp, err = client.Get("https://" + host)
+					if err != nil && len(tc.expectedGetError) != 0 {
+						errMatch := strings.Contains(err.Error(), tc.expectedGetError)
+						if !errMatch {
+							e2e.Logf("[test #%d/%d]: config: %s, GET error: %v", i+1, len(testCases), testConfig, err)
+						}
+						return errMatch, nil
+					}
 					if err != nil {
 						e2e.Logf("[test #%d/%d]: config: %s, GET error: %v", i+1, len(testCases), testConfig, err)
 						return false, nil // could be 503 if service not ready
 					}
+					if tc.statusCode == 0 {
+						resp.Body.Close()
+						return false, nil
+					}
 					if resp.StatusCode != tc.statusCode {
-						// Successful responses are checked and asserted
-						// in the o.Expect() checks below.
 						resp.Body.Close()
 						e2e.Logf("[test #%d/%d]: config: %s, expected status: %v, actual status: %v", i+1, len(testCases), testConfig, tc.statusCode, resp.StatusCode)
 						return false, nil
 					}
 					return true, nil
 				})).NotTo(o.HaveOccurred())
+
+				if tc.expectedGetError != "" {
+					continue
+				}
 
 				o.Expect(resp).ToNot(o.BeNil(), testConfig)
 				o.Expect(resp.StatusCode).To(o.Equal(tc.statusCode), testConfig)
