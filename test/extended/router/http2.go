@@ -59,6 +59,7 @@ func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client 
 
 	transport := &http.Transport{
 		TLSClientConfig: &tlsConfig,
+		Proxy:           http.ProxyFromEnvironment,
 	}
 
 	c := &http.Client{
