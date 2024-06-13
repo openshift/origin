@@ -15,7 +15,11 @@ import (
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 )
 
-var monitoredUsers = []string{"system:serviceaccount:kube-", "system:serviceaccount:openshift-", "system:node"}
+var systemNode = "system:node"
+var openshiftServiceAccount = "system:serviceaccount:openshift-"
+var monitoredUsers = []string{"system:serviceaccount:kube-", openshiftServiceAccount, systemNode}
+var filteredUsers = []string{"system:serviceaccount:openshift-must-gather"}
+var mappedUsers = map[string]string{}
 
 // every audit log summarizer is not threadsafe. The idea is that you use one per thread and
 // later combine the summarizers together into an overall summary
@@ -451,12 +455,30 @@ func URIToParts(uri string) (string, schema.GroupVersionResource, string, string
 }
 
 func isMonitoredUser(user string) bool {
+	for _, userPrefix := range filteredUsers {
+		if strings.HasPrefix(user, userPrefix) {
+			return false
+		}
+	}
+
 	for _, userPrefix := range monitoredUsers {
 		if strings.HasPrefix(user, userPrefix) {
 			return true
 		}
 	}
 	return false
+}
+
+func cleanupUser(user string) (string, string) {
+	if strings.HasPrefix(user, systemNode) {
+		if mappedUser, ok := mappedUsers[user]; ok {
+			return mappedUser, user
+		}
+		mappedUser := fmt.Sprintf("%s-%d", systemNode, len(mappedUsers))
+		mappedUsers[user] = mappedUser
+		return mappedUser, user
+	}
+	return user, ""
 }
 
 func writeAuditLogDL(artifactDir, timeSuffix string, auditLogSummary *AuditLogSummary) {
@@ -468,8 +490,14 @@ func writeAuditLogDL(artifactDir, timeSuffix string, auditLogSummary *AuditLogSu
 		for rk, rv := range uv.perResourceRequestCount {
 			for vk, vv := range rv.perVerbRequestCount {
 				for sk, sv := range vv.perHTTPStatusRequestCount {
-					rows = append(rows, map[string]string{"User": uv.user, "Resource": rk.Resource, "Verb": vk, "HttpStatus": strconv.FormatInt(int64(sk), 10), "RequestCount": strconv.FormatInt(int64(sv), 10)})
+					user, unmodifiedUser := cleanupUser(uv.user)
+					data := map[string]string{"User": user, "Resource": rk.Resource, "Verb": vk, "HttpStatus": strconv.FormatInt(int64(sk), 10), "RequestCount": strconv.FormatInt(int64(sv), 10)}
+					if len(unmodifiedUser) > 0 {
+						data["UserUnmodified"] = unmodifiedUser
+					}
+					rows = append(rows, data)
 				}
+
 			}
 		}
 	}
