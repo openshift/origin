@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 	)
 
 	g.BeforeEach(func() {
-		skipIfNotBaremetal(oc)
+		SkipIfNotBaremetal(oc)
 		helper = NewBaremetalTestHelper(oc.AdminDynamicClient())
 		helper.Setup()
 	})
@@ -148,15 +148,15 @@ var _ = g.Describe("[sig-installer][Feature:baremetal][Serial] Baremetal platfor
 
 func checkMetal3DeploymentHealthy(oc *exutil.CLI) {
 	dc := oc.AdminDynamicClient()
-	bmc := baremetalClient(dc)
+	bmc := BaremetalClient(dc)
 
 	hosts, err := bmc.List(context.Background(), v1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(hosts.Items).ToNot(o.BeEmpty())
 
 	for _, h := range hosts.Items {
-		expectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
-		expectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
-		expectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
+		ExpectStringField(h, "baremetalhost", "status.operationalStatus").To(o.BeEquivalentTo("OK"))
+		ExpectStringField(h, "baremetalhost", "status.provisioning.state").To(o.Or(o.BeEquivalentTo("provisioned"), o.BeEquivalentTo("externally provisioned")))
+		ExpectBoolField(h, "baremetalhost", "spec.online").To(o.BeTrue())
 	}
 }
