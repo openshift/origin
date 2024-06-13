@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
-	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-arch] Managed cluster", func() {
@@ -36,6 +37,70 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		// pods that have a bug opened, every entry here must have a bug associated
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
+
+			// Managed service pods that have limits but not requests
+			"apps/v1/DaemonSet/openshift-security/audit-exporter/container/audit-exporter/limit[cpu]":                                                                     "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/DaemonSet/openshift-security/audit-exporter/container/audit-exporter/limit[memory]":                                                                  "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/DaemonSet/openshift-security/splunkforwarder-ds/container/splunk-uf/limit[cpu]":                                                                      "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/DaemonSet/openshift-security/splunkforwarder-ds/container/splunk-uf/limit[memory]":                                                                   "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/DaemonSet/openshift-validation-webhook/validation-webhook/container/webhooks/limit[cpu]":                                                             "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/DaemonSet/openshift-validation-webhook/validation-webhook/container/webhooks/limit[memory]":                                                          "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-addon-operator/addon-operator-manager/container/manager/limit[cpu]":                                                             "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-addon-operator/addon-operator-manager/container/manager/limit[memory]":                                                          "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-addon-operator/addon-operator-webhooks/container/webhook/limit[cpu]":                                                            "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-addon-operator/addon-operator-webhooks/container/webhook/limit[memory]":                                                         "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-cloud-ingress-operator/cloud-ingress-operator/container/cloud-ingress-operator/limit[cpu]":                                      "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-cloud-ingress-operator/cloud-ingress-operator/container/cloud-ingress-operator/limit[memory]":                                   "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-custom-domains-operator/custom-domains-operator/container/custom-domains-operator/limit[cpu]":                                   "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-custom-domains-operator/custom-domains-operator/container/custom-domains-operator/limit[memory]":                                "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-deployment-validation-operator/deployment-validation-operator/container/deployment-validation-operator/limit[cpu]":              "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-deployment-validation-operator/deployment-validation-operator/container/deployment-validation-operator/limit[memory]":           "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-managed-node-metadata-operator/managed-node-metadata-operator/container/managed-node-metadata-operator/limit[cpu]":              "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-managed-node-metadata-operator/managed-node-metadata-operator/container/managed-node-metadata-operator/limit[memory]":           "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-managed-upgrade-operator/managed-upgrade-operator/container/managed-upgrade-operator/limit[cpu]":                                "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-managed-upgrade-operator/managed-upgrade-operator/container/managed-upgrade-operator/limit[memory]":                             "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[cpu]":                                "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[memory]":                             "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-observability-operator/obo-prometheus-operator-admission-webhook/container/prometheus-operator-admission-webhook/limit[cpu]":    "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-observability-operator/obo-prometheus-operator-admission-webhook/container/prometheus-operator-admission-webhook/limit[memory]": "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-observability-operator/obo-prometheus-operator/container/prometheus-operator/limit[cpu]":                                        "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-observability-operator/obo-prometheus-operator/container/prometheus-operator/limit[memory]":                                     "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-observability-operator/observability-operator/container/operator/limit[cpu]":                                                    "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-observability-operator/observability-operator/container/operator/limit[memory]":                                                 "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-ocm-agent-operator/ocm-agent-operator/container/ocm-agent-operator/limit[cpu]":                                                  "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-ocm-agent-operator/ocm-agent-operator/container/ocm-agent-operator/limit[memory]":                                               "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-ocm-agent-operator/ocm-agent/container/ocm-agent/limit[cpu]":                                                                    "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-ocm-agent-operator/ocm-agent/container/ocm-agent/limit[memory]":                                                                 "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-osd-metrics/osd-metrics-exporter/container/osd-metrics-exporter/limit[cpu]":                                                     "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-osd-metrics/osd-metrics-exporter/container/osd-metrics-exporter/limit[memory]":                                                  "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-package-operator/package-operator-manager/container/manager/limit[cpu]":                                                         "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-package-operator/package-operator-manager/container/manager/limit[memory]":                                                      "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-rbac-permissions/rbac-permissions-operator/container/rbac-permissions-operator/limit[cpu]":                                      "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-rbac-permissions/rbac-permissions-operator/container/rbac-permissions-operator/limit[memory]":                                   "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-route-monitor-operator/blackbox-exporter/container/blackbox-exporter/limit[cpu]":                                                "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-route-monitor-operator/blackbox-exporter/container/blackbox-exporter/limit[memory]":                                             "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-route-monitor-operator/route-monitor-operator-controller-manager/container/manager/limit[cpu]":                                  "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-route-monitor-operator/route-monitor-operator-controller-manager/container/manager/limit[memory]":                               "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-splunk-forwarder-operator/splunk-forwarder-operator/container/splunk-forwarder-operator/limit[cpu]":                             "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-splunk-forwarder-operator/splunk-forwarder-operator/container/splunk-forwarder-operator/limit[memory]":                          "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-velero/managed-velero-operator/container/managed-velero-operator/limit[cpu]":                                                    "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-velero/managed-velero-operator/container/managed-velero-operator/limit[memory]":                                                 "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-velero/velero/container/velero/limit[cpu]":                                                                                      "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-velero/velero/container/velero/limit[memory]":                                                                                   "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-backplane-srep/<batch_job>/container/osd-delete-ownerrefs-serviceaccounts/limit[cpu]":                                                 "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-backplane-srep/<batch_job>/container/osd-delete-ownerrefs-serviceaccounts/limit[memory]":                                              "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-backplane/<batch_job>/container/osd-delete-backplane-serviceaccounts/limit[cpu]":                                                      "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-backplane/<batch_job>/container/osd-delete-backplane-serviceaccounts/limit[memory]":                                                   "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-marketplace/<batch_job>/container/osd-patch-subscription-source/limit[cpu]":                                                           "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-marketplace/<batch_job>/container/osd-patch-subscription-source/limit[memory]":                                                        "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-cluster-ready/limit[cpu]":                                                                        "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-cluster-ready/limit[memory]":                                                                     "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/limit[cpu]":                                                                "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/limit[memory]":                                                             "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-sre-pruning/<batch_job>/container/builds-pruner/limit[cpu]":                                                                           "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-sre-pruning/<batch_job>/container/builds-pruner/limit[memory]":                                                                        "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-sre-pruning/<batch_job>/container/deployments-pruner/limit[cpu]":                                                                      "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-sre-pruning/<batch_job>/container/deployments-pruner/limit[memory]":                                                                   "https://issues.redhat.com/browse/OSD-21708",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
@@ -104,9 +169,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 						}
 					}
 				case "Job":
-					if pod.Namespace == "openshift-marketplace" {
-						ref.Name = "<batch_job>"
-					}
+					ref.Name = "<batch_job>"
 				case "Node":
 					continue
 				}
