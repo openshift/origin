@@ -28,7 +28,7 @@ const (
 )
 
 // This is [Serial] because it modifies ClusterCSIDriver.
-var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration", func() {
+var _ = g.Describe("[sig-storage][Feature:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration", func() {
 	defer g.GinkgoRecover()
 	var (
 		ctx                      = context.Background()
@@ -40,10 +40,6 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	g.BeforeEach(func() {
-		//TODO: remove when GA
-		if !exutil.IsTechPreviewNoUpgrade(oc) {
-			g.Skip("this test is only expected to work with TechPreviewNoUpgrade clusters")
-		}
 
 		if !framework.ProviderIs("vsphere") {
 			g.Skip("this test is only expected to work with vSphere clusters")
