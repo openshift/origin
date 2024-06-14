@@ -26,9 +26,20 @@ import (
 // exception string if does not think the condition should be fatal.
 type exceptionCallback func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) (string, error)
 
+type upgradeWindowHolder struct {
+	startInterval *monitorapi.Interval
+	endInterval   *monitorapi.Interval
+}
+
 func checkAuthenticationExceptions(condition *configv1.ClusterOperatorStatusCondition) bool {
-	if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse && (condition.Reason == "APIServices_Error" || condition.Reason == "APIServerDeployment_NoDeployment" || condition.Reason == "APIServerDeployment_NoPod" || condition.Reason == "APIServerDeployment_PreconditionNotFulfilled" || condition.Reason == "APIServices_PreconditionNotReady" || condition.Reason == "OAuthServerDeployment_NoDeployment" || condition.Reason == "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "OAuthServerServiceEndpointAccessibleController_EndpointUnavailable" || condition.Reason == "WellKnown_NotReady") {
-		return true
+	if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+		switch condition.Reason {
+		case "APIServices_Error", "APIServerDeployment_NoDeployment", "APIServerDeployment_NoPod",
+			"APIServerDeployment_PreconditionNotFulfilled", "APIServices_PreconditionNotReady",
+			"OAuthServerDeployment_NoDeployment", "OAuthServerRouteEndpointAccessibleController_EndpointUnavailable",
+			"OAuthServerServiceEndpointAccessibleController_EndpointUnavailable", "WellKnown_NotReady":
+			return true
+		}
 	}
 	return false
 }
@@ -45,17 +56,8 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			}
 		}
 
-		isSingleNode, err := isSingleNodeCheck(clientConfig)
-		if err != nil {
-			logrus.Warnf("Error checking for Single Node configuration on stable system (unable to make exception): %v", err)
-			isSingleNode = false
-		}
-
 		// For the non-upgrade case, if any operator has Available=False, fail the test.
 		if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
-			if isSingleNode {
-				return "Operators are allowed to go degraded on single-node for now", nil
-			}
 			if operator == "authentication" {
 				if checkAuthenticationExceptions(condition) {
 					return "https://issues.redhat.com/browse/OCPBUGS-20056", nil
@@ -86,11 +88,7 @@ func isSingleNodeCheck(clientConfig *rest.Config) (bool, error) {
 // UpgradeComplete and UpgradeFailed events end upgrade windows; if there was not an already started upgrade window,
 // we ignore the event.
 // If we don't find any upgrade ending point, we assume the ending point is at the end of the test.
-func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.Interval) bool {
-	type upgradeWindowHolder struct {
-		startInterval *monitorapi.Interval
-		endInterval   *monitorapi.Interval
-	}
+func getUpgradeWindows(eventList monitorapi.Intervals) []*upgradeWindowHolder {
 
 	var upgradeWindows []*upgradeWindowHolder
 	var currentWindow *upgradeWindowHolder
@@ -151,6 +149,10 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 		}
 	}
 
+	return upgradeWindows
+}
+
+func isInUpgradeWindow(upgradeWindows []*upgradeWindowHolder, eventInterval monitorapi.Interval) bool {
 	for _, upgradeWindow := range upgradeWindows {
 		if eventInterval.From.After(upgradeWindow.startInterval.From) {
 			if upgradeWindow.endInterval == nil || eventInterval.To.Before(upgradeWindow.endInterval.To) {
@@ -163,6 +165,13 @@ func isInUpgradeWindow(eventList monitorapi.Intervals, eventInterval monitorapi.
 }
 
 func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+	upgradeWindows := getUpgradeWindows(events)
+	isSingleNode, err := isSingleNodeCheck(clientConfig)
+	if err != nil {
+		logrus.Warnf("Error checking for Single Node configuration on upgrade (unable to make exception): %v", err)
+		isSingleNode = false
+	}
+
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, eventInterval monitorapi.Interval, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
@@ -178,34 +187,20 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			return "We are not worried about Degraded=True blips for update tests yet.", nil
 		}
 
-		var availableEqualsFalseAllowed bool
-		if condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
-			availableEqualsFalseAllowed = isInUpgradeWindow(events, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute
-		}
-
-		isSingleNode, err := isSingleNodeCheck(clientConfig)
-		if err != nil {
-			logrus.Warnf("Error checking for Single Node configuration on upgrade (unable to make exception): %v", err)
-			isSingleNode = false
-		}
-
-		// We'll add an exception for single node for now.
-		if !availableEqualsFalseAllowed {
-
-			if isSingleNode {
-				// We'll honor exceptions for single node configuration.
-				logrus.Infof("Operator %s is in Available=False state, but we give single node clusters an exception", operator)
-
-			} else if operator == "authentication" {
-				// We'll honor exceptions for authentication operator because it is affected by etcd performance issues.
-				logrus.Info("Operator authentication is in Available=False state, but we give an exception")
-
-			} else if operator == "image-registry" {
-				// For now, we'll honor exceptions for image-registry operator as it's affected by tests that
-				// cause replicas to go down (e.g., tests that taint two nodes).
-				logrus.Info("Operator image-registry is in Available=False state, but we give an exception")
-			} else {
+		// we know the Status is not true and the Type is not degraded at this point indicating we are available=false
+		withinUpgradeWindowBuffer := isInUpgradeWindow(upgradeWindows, eventInterval) && eventInterval.To.Sub(eventInterval.From) < 10*time.Minute
+		if !withinUpgradeWindowBuffer {
+			switch operator {
+			// there are some known cases for authentication and image-registry that occur outside of upgrade window, so we will pass through and check for exceptions
+			case "authentication", "image-registry":
+				logrus.Infof("Operator %s is in Available=False state outside of upgrade window, but we will check for exceptions", operator)
+			default:
 				return "", nil
+			}
+		} else {
+			// SingleNode is expected to go Available=False for most / all operators during upgrade
+			if isSingleNode {
+				return fmt.Sprintf("Operator %s is in Available=False state running in single replica control plane, expected availability transition during upgrade", operator), nil
 			}
 		}
 
@@ -250,6 +245,8 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 				return "https://issues.redhat.com/browse/OCPBUGS-23744", nil
 			}
 		case "image-registry":
+			// this won't handle the replicaCount==2 serial test where both pods are on nodes that get tainted.
+			// need to consider how we detect that or modify the job to set replicaCount==3
 			if replicaCount, _ := checkReplicas("openshift-image-registry", operator, clientConfig); replicaCount == 1 {
 				return "https://issues.redhat.com/browse/OCPBUGS-22382", nil
 			}
