@@ -5,7 +5,7 @@ RUN make; \
     mkdir -p /tmp/build; \
     cp /go/src/github.com/openshift/origin/openshift-tests /tmp/build/openshift-tests
 
-FROM registry.ci.openshift.org/ocp/4.16:tools
+FROM registry.ci.openshift.org/ocp/4.17:tools
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
 RUN mkdir -p /manifests
 COPY --from=builder /go/src/github.com/openshift/origin/zz_generated.manifests/* /manifests
