@@ -1,13 +1,17 @@
 apiVersion: v1
 kind: Pod
 metadata:
+  annotations:
+    openshift.io/required-scc: privileged
   generateName: list-boots-
 spec:
   restartPolicy: Never
   hostPID: true
   containers:
-    - command:
-        - exec chroot /host-root journalctl --list-boots
+    - command: ['/bin/bash', '-ec']
+      args:
+        - |
+          chroot /host-root journalctl --list-boots
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: list-boots
       terminationMessagePolicy: FallbackToLogsOnError
@@ -17,8 +21,10 @@ spec:
       volumeMounts:
         - mountPath: /host-root
           name: host-root
-    - command:
-        - exec chroot /host-root journalctl -t 'systemd-logind' -g "rebooting" -q
+    - command: ['/bin/bash', '-ec']
+      args:
+        - |
+          chroot /host-root journalctl -o short-iso -t 'systemd-logind' -g "rebooting" -q
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: reboots
       terminationMessagePolicy: FallbackToLogsOnError

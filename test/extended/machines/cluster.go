@@ -1,10 +1,13 @@
 package operators
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -21,7 +24,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	psapi "k8s.io/pod-security-admission/api"
-	"k8s.io/utils/strings/slices"
 )
 
 var _ = g.Describe("[sig-cluster-lifecycle][Feature:Machines][Early] Managed cluster should", func() {
@@ -120,83 +122,169 @@ var _ = g.Describe("[sig-node] Managed cluster", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(nodes.Items).NotTo(o.HaveLen(0))
 
-		expected := make(map[string]int)
-		actual := make(map[string]int)
+		bootTimelinesByNode := make(map[string][]bootTimelineEntry)
 		errs := make([]error, 0)
 
+		allNodeLogs := &bytes.Buffer{}
 		// List nodes, set actual and expected number of reboots
 		for _, node := range nodes.Items {
-			// Examine only the nodes which are available at the start of the test
-			if !slices.Contains(staticNodeNames, node.Name) {
-				continue
-			}
-			nodeBoots, nodeReboots, err := getNumberOfBootsForNode(oc.KubeClient(), oc.Namespace(), node.Name)
+			nodeBoots, nodeReboots, nodeLogs, err := getNumberOfBootsForNode(oc.KubeClient(), oc.Namespace(), node.Name)
+			allNodeLogs.WriteString(nodeLogs + "\n\n")
 			if err != nil {
 				errs = append(errs, err)
+				continue
 			}
-			// actual - number of boots
-			// expected - number of reboots recorded by systemd-login + 1 (first boot)
-			actual[node.Name] = nodeBoots
-			expected[node.Name] = nodeReboots + 1
+			allTimelineEvents := []bootTimelineEntry{}
+			allTimelineEvents = append(allTimelineEvents, nodeBoots...)
+			allTimelineEvents = append(allTimelineEvents, nodeReboots...)
+			sort.Sort(sort.Reverse(byTime(allTimelineEvents)))
+			bootTimelinesByNode[node.Name] = allTimelineEvents
+
+			e2e.Logf("timeline events for %q\n%v", node.Name, allTimelineEvents)
 		}
+		for nodeName, timelineEvents := range bootTimelinesByNode {
+			// every reboot (except maybe the first), should have a rebootRequest before it.
+			// we reversed the sort so we can step backwards in time like this
+			for i, timelineEvent := range timelineEvents {
+				// boots should be the events, reboots should be the odds
+				expectedReboot := (i % 2) == 1
+				expectedBoot := !expectedReboot
+				isActualBoot := timelineEvent.action == "Boot"
+				isActualReboot := timelineEvent.action == "RebootRequest"
+
+				switch {
+				case expectedBoot && !isActualBoot:
+					errs = append(errs, fmt.Errorf("expected boot for node/%v, got %v", nodeName, timelineEvents))
+				case expectedBoot && isActualBoot:
+				case !expectedBoot && !isActualBoot:
+				case !expectedBoot && isActualBoot:
+					errs = append(errs, fmt.Errorf("unexpected boot for node/%v, got %v", nodeName, timelineEvents))
+				}
+
+				switch {
+				case expectedReboot && !isActualReboot:
+					errs = append(errs, fmt.Errorf("expected reboot for node/%v, got %v", nodeName, timelineEvents))
+				case expectedReboot && isActualReboot:
+				case !expectedReboot && !isActualReboot:
+				case !expectedReboot && isActualReboot:
+					errs = append(errs, fmt.Errorf("unexpected reboot for node/%v, got %v", nodeName, timelineEvents))
+				}
+			}
+		}
+
 		// Use gomega's WithTransform to compare actual to expected - and check that errs is empty
-		var emptyErrors = func(a interface{}) (interface{}, error) {
-			if len(errs) > 0 {
-				return a, fmt.Errorf("errors found: %v", errs)
-			}
-			return a, nil
-		}
-		o.Expect(actual).To(o.WithTransform(emptyErrors, o.Equal(expected)))
+		o.Expect(utilerrors.NewAggregate(errs)).NotTo(o.HaveOccurred())
 	})
 })
 
-func getNumberOfBootsForNode(kubeClient kubernetes.Interface, namespaceName, nodeName string) (int, int, error) {
+func getNumberOfBootsForNode(kubeClient kubernetes.Interface, namespaceName, nodeName string) ([]bootTimelineEntry, []bootTimelineEntry, string, error) {
 	ctx := context.Background()
 
+	nodeLogs := &bytes.Buffer{}
 	desiredPod := displayRebootsPod.DeepCopy()
 	desiredPod.Namespace = namespaceName
 	desiredPod.Spec.NodeName = nodeName
 
-	errs := []error{}
-	for i := 0; i < 10; i++ {
-		// Run journalctl to collect a list of boots
-		actualPod, err := kubeClient.CoreV1().Pods(namespaceName).Create(context.Background(), desiredPod, metav1.CreateOptions{})
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to create pod: %w", err))
-			continue
-		}
+	fmt.Fprintf(nodeLogs, "checking node/%v\n", nodeName)
 
-		if err := pod.WaitForPodSuccessInNamespace(ctx, kubeClient, actualPod.Name, actualPod.Namespace); err != nil {
-			errs = append(errs, fmt.Errorf("failed waiting for pod to succeed: %w", err))
-			continue
-		}
-
-		// Fetch container logs with list of found boots
-		containerListBootsLogs, err := pod.GetPodLogs(ctx, kubeClient, actualPod.Namespace, actualPod.Name, "list-boots")
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed reading pod/logs for list-boots container: --namespace=%v pods/%v: %w", actualPod.Namespace, actualPod.Name, err))
-			continue
-		}
-		linesInListBootsContainerLogs := strings.Count(containerListBootsLogs, "\n") - 1
-		if linesInListBootsContainerLogs < 1 {
-			errs = append(errs, fmt.Errorf("failed to fetch boot list from --namespace=%v pods/%v pod logs: %v", actualPod.Namespace, actualPod.Name, containerListBootsLogs))
-			continue
-		}
-
-		// Fetch container logs with list of recorded reboots
-		containerRebootsLogs, err := pod.GetPodLogs(ctx, kubeClient, actualPod.Namespace, actualPod.Name, "reboots")
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed reading pod/logs for reboots container: --namespace=%v pods/%v: %w", actualPod.Namespace, actualPod.Name, err))
-			continue
-		}
-		linesInRebootsContainerLogs := strings.Count(containerRebootsLogs, "\n") - 1
-		if linesInListBootsContainerLogs < 1 {
-			errs = append(errs, fmt.Errorf("failed to fetch list of reboots from --namespace=%v pods/%v pod logs: %v", actualPod.Namespace, actualPod.Name, containerListBootsLogs))
-			continue
-		}
-		return linesInListBootsContainerLogs, linesInRebootsContainerLogs, nil
+	// Run journalctl to collect a list of boots
+	actualPod, err := kubeClient.CoreV1().Pods(namespaceName).Create(context.Background(), desiredPod, metav1.CreateOptions{})
+	if err != nil {
+		return nil, nil, nodeLogs.String(), fmt.Errorf("failed to create pod: %w", err)
 	}
 
-	// report all the failures we saw. If we got here, we couldn't start the pod, finish the call, read the logs.
-	return 0, 0, utilerrors.NewAggregate(errs)
+	if err := pod.WaitForPodSuccessInNamespace(ctx, kubeClient, actualPod.Name, actualPod.Namespace); err != nil {
+		return nil, nil, nodeLogs.String(), fmt.Errorf("failed waiting for pod to succeed: %w", err)
+	}
+
+	// Fetch container logs with list of found boots
+	containerListBootsLogs, err := pod.GetPodLogs(ctx, kubeClient, actualPod.Namespace, actualPod.Name, "list-boots")
+	if err != nil {
+		return nil, nil, nodeLogs.String(), fmt.Errorf("failed reading pod/logs for list-boots container: --namespace=%v pods/%v: %w", actualPod.Namespace, actualPod.Name, err)
+	}
+	e2e.Logf("node/%v list-boots %v", nodeName, containerListBootsLogs)
+
+	// Fetch container logs with list of recorded reboots
+	containerRebootsLogs, err := pod.GetPodLogs(ctx, kubeClient, actualPod.Namespace, actualPod.Name, "reboots")
+	if err != nil {
+		return nil, nil, nodeLogs.String(), fmt.Errorf("failed reading pod/logs for reboots container: --namespace=%v pods/%v: %w", actualPod.Namespace, actualPod.Name, err)
+	}
+	e2e.Logf("node/%v reboot-requests %v", nodeName, containerRebootsLogs)
+
+	bootInstances, err := parseBootInstances(containerListBootsLogs)
+	if err != nil {
+		return nil, nil, nodeLogs.String(), fmt.Errorf("failed to parse boots from --namespace=%v pods/%v err: %v pod logs: %v", actualPod.Namespace, actualPod.Name, err, containerListBootsLogs)
+	}
+	rebootInstances, err := parseRebootInstances(containerRebootsLogs)
+	if err != nil {
+		return nil, nil, nodeLogs.String(), fmt.Errorf("failed to parse reboots from --namespace=%v pods/%v err: %v pod logs: %v", actualPod.Namespace, actualPod.Name, err, containerListBootsLogs)
+	}
+
+	return bootInstances, rebootInstances, nodeLogs.String(), nil
+}
+
+type bootTimelineEntry struct {
+	action string
+	time   time.Time
+}
+
+type byTime []bootTimelineEntry
+
+func (a byTime) Len() int      { return len(a) }
+func (a byTime) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byTime) Less(i, j int) bool {
+	return a[i].time.Before(a[j].time)
+}
+
+func (e *bootTimelineEntry) String() string {
+	return fmt.Sprintf("%v - %v", e.time.String(), e.action)
+}
+
+func parseBootInstances(listBootsOutput string) ([]bootTimelineEntry, error) {
+	ret := []bootTimelineEntry{}
+
+	lines := strings.Split(listBootsOutput, "\n")
+	for i := 1; i < len(lines); i++ {
+		line := lines[i]
+		fields := strings.Fields(line)
+		if len(fields) < 6 {
+			continue
+		}
+		date := fields[3]
+		timeOfDay := fields[4]
+		timezone := fields[5]
+		bootTime, err := time.Parse("2006-01-02 15:04:05 MST", fmt.Sprintf("%s %s %s", date, timeOfDay, timezone))
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, bootTimelineEntry{
+			action: "Boot",
+			time:   bootTime,
+		})
+	}
+
+	return ret, nil
+}
+
+func parseRebootInstances(rebootsOutput string) ([]bootTimelineEntry, error) {
+	ret := []bootTimelineEntry{}
+
+	lines := strings.Split(rebootsOutput, "\n")
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) < 1 {
+			continue
+		}
+		date := fields[0]
+		bootTime, err := time.Parse("2006-01-02T15:04:05-0700", date)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, bootTimelineEntry{
+			action: "RebootRequest",
+			time:   bootTime,
+		})
+	}
+
+	return ret, nil
 }
