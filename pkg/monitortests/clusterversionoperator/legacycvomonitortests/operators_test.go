@@ -186,7 +186,8 @@ func Test_isInUpgradeWindow(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := isInUpgradeWindow(tt.args.eventList, tt.args.eventInterval)
+			upgradeWindows := getUpgradeWindows(tt.args.eventList)
+			got := isInUpgradeWindow(upgradeWindows, tt.args.eventInterval)
 			assert.Equal(t, tt.want, got)
 		})
 	}
