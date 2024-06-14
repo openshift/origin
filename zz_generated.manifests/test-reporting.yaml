@@ -162,21 +162,4 @@ spec:
         [LinuxOnly] [Feature:SELinux] [Serial] warning is not bumped on two Pods with
         the same context on RWO volume [FeatureGate:SELinuxMountReadWriteOncePod]
         [Beta] [Feature:SELinuxMountReadWriteOncePodOnly]'
-  - featureGate: VSphereDriverConfiguration
-    tests:
-    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
-        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
-        allow all limits to be set at once'
-    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
-        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
-        allow setting VSAN limit'
-    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
-        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
-        allow setting VVOL limit'
-    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
-        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
-        allow setting global snapshot limit'
-    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
-        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
-        use default when unset'
 status: {}
