@@ -1058,6 +1058,7 @@ github.com/openshift/library-go/pkg/image/imageutil
 github.com/openshift/library-go/pkg/image/internal/digest
 github.com/openshift/library-go/pkg/image/internal/reference
 github.com/openshift/library-go/pkg/image/reference
+github.com/openshift/library-go/pkg/markdown
 github.com/openshift/library-go/pkg/network
 github.com/openshift/library-go/pkg/network/networkutils
 github.com/openshift/library-go/pkg/oauth/oauthdiscovery

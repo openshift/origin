@@ -1,6 +1,9 @@
 package autoregenerate_after_expiry
 
-import "github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
+import (
+	"github.com/openshift/library-go/pkg/markdown"
+	"github.com/openshift/origin/pkg/cmd/update-tls-artifacts/generate-owners/tlsmetadatainterfaces"
+)
 
 const annotationName string = "certificates.openshift.io/auto-regenerate-after-offline-expiry"
 
@@ -8,7 +11,7 @@ type AutoRegenerateAfterOfflineExpiryRequirement struct{}
 
 func NewAutoRegenerateAfterOfflineExpiryRequirement() tlsmetadatainterfaces.Requirement {
 
-	md := tlsmetadatainterfaces.NewMarkdown("")
+	md := markdown.NewMarkdown("")
 	md.Text("Acknowledging that a cert/key pair or CA bundle can auto-regenerate after it expires offline means")
 	md.Text("that if the cluster is shut down until the certificate expires, when the machines are restarted")
 	md.Text("the cluster will automatically create new cert/key pairs or update CA bundles as required without human")
