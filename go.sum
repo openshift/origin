@@ -714,8 +714,6 @@ github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0
 github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20240606123447-44fc19fb7985/go.mod h1:jF2UfCrVeEWQ1IS0JOCvmMtEIJSQDOd2rgwbK7OOHBA=
 github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20240606123447-44fc19fb7985 h1:82K0mQLOh5K+xDZ4ebDgOsWnvaBN9sO2yqJJKMro1yk=
 github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20240606123447-44fc19fb7985/go.mod h1:fSQXzP6IN17btnXiZW0U1mijrodyagZGECe6WsnpWLg=
-github.com/openshift/library-go v0.0.0-20240528102242-9c194599a149 h1:7mdQKqnSJMoIl6gkxpu5LXwmRN9IWYWpzgusOn5pC6E=
-github.com/openshift/library-go v0.0.0-20240528102242-9c194599a149/go.mod h1:PdASVamWinll2BPxiUpXajTwZxV8A1pQbWEsCN1od7I=
 github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20240314173009-2cd07f4ca53d h1:GDn4rF5hmB+d0tnFcPQhPy1YTooJH6U+HeYYdyjktmI=
 github.com/openshift/onsi-ginkgo/v2 v2.6.1-0.20240314173009-2cd07f4ca53d/go.mod h1:HlxMHtYF57y6Dpf+mc5529KKmSq9h2FpCF+/ZkwUxKM=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
@@ -857,6 +855,8 @@ github.com/vishvananda/netlink v1.1.0/go.mod h1:cTgwzPIzzgDAYoQrMm0EdrjRUBkTqKYp
 github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df/go.mod h1:JP3t17pCcGlemwknint6hfoeCVQrEMVwxRLRjXpq+BU=
 github.com/vishvananda/netns v0.0.4 h1:Oeaw1EM2JMxD51g9uhtC0D7erkIjgmj8+JZc26m1YX8=
 github.com/vishvananda/netns v0.0.4/go.mod h1:SpkAiCQRtJ6TvvxPnOSyH3BMl6unz3xZlaprSwhNNJM=
+github.com/vrutkovs/library-go v0.0.0-20240619063830-a3672cc2f7ea h1:chJe+8qzDtKjJeR0qqf7OancmmJCFGji6ExE1rwHGMQ=
+github.com/vrutkovs/library-go v0.0.0-20240619063830-a3672cc2f7ea/go.mod h1:PdASVamWinll2BPxiUpXajTwZxV8A1pQbWEsCN1od7I=
 github.com/xanzy/ssh-agent v0.2.1 h1:TCbipTQL2JiiCprBWx9frJ2eJlCYT00NmctrHxVAr70=
 github.com/xanzy/ssh-agent v0.2.1/go.mod h1:mLlQY/MoOhWBj+gOGMQkOeiEvkx+8pJSI+0Bx9h2kr4=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f h1:J9EGpcZtP0E/raorCMxlFGSTBrsSlaDGf3jU/qvAE2c=

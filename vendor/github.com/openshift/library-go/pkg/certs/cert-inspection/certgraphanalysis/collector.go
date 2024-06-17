@@ -113,7 +113,6 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				continue
 			}
 			options.rewriteCABundle(configMap.ObjectMeta, details)
-
 			caBundles = append(caBundles, details)
 
 			inClusterResourceData.CertificateAuthorityBundles = append(inClusterResourceData.CertificateAuthorityBundles,
@@ -149,12 +148,14 @@ func gatherFilteredCerts(ctx context.Context, kubeClient kubernetes.Interface, a
 				errs = append(errs, err)
 				continue
 			}
-			if details == nil {
+			if len(details) == 0 {
 				continue
 			}
-			options.rewriteCertKeyPair(secret.ObjectMeta, details)
-			certs = append(certs, details)
+			for i := range details {
+				options.rewriteCertKeyPair(secret.ObjectMeta, details[i])
+			}
 
+			certs = append(certs, details...)
 			inClusterResourceData.CertKeyPairs = append(inClusterResourceData.CertKeyPairs,
 				certgraphapi.PKIRegistryInClusterCertKeyPair{
 					SecretLocation: certgraphapi.InClusterSecretLocation{
