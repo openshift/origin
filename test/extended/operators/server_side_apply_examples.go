@@ -90,7 +90,7 @@ var _ = g.Describe("[sig-apimachinery]", func() {
 			}
 		})
 
-		g.It("should clear fields when they are no longer being applied in FeatureGates", func() {
+		g.It("should clear fields when they are no longer being applied in FeatureGates [apigroup:config.openshift.io]", func() {
 			ctx := context.Background()
 			isSelfManagedHA, err := exutil.IsSelfManagedHA(ctx, oc.AdminConfigClient())
 			o.Expect(err).NotTo(o.HaveOccurred())
