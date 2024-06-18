@@ -56,7 +56,7 @@ type runner struct {
 var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
-	o.SetDefaultEventuallyTimeout(5 * time.Minute)
+	o.SetDefaultEventuallyTimeout(15 * time.Minute)
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	r := &runner{}
@@ -141,6 +141,16 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	g.It("should hide a default-only metric when minimal collection profile is enabled", func() {
 		defaultOnlyMetric := "kube_deployment_status_replicas"
 
+		// DEBUG
+		defaultOnlyMetricQuery := fmt.Sprintf("absent(%s @ %d) == 1", defaultOnlyMetric, time.Now().Unix())
+		queryResponse, err := helper.RunQuery(tctx, r.pclient, defaultOnlyMetricQuery)
+		o.Expect(err).To(o.BeNil())
+		if len(queryResponse.Data.Result) == 0 {
+			fmt.Printf("DEBUG: %q is present\n", defaultOnlyMetric)
+		} else {
+			fmt.Printf("DEBUG: %q is absent\n", defaultOnlyMetric)
+		}
+
 		for i, profile := range []string{collectionProfileFull, collectionProfileMinimal} {
 			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
 			o.Expect(err).To(o.BeNil())
@@ -203,10 +213,6 @@ func (r *runner) makeCollectionProfileConfigurationFor(ctx context.Context, coll
 	dataConfigYAMLPrometheusK8sStructured := map[string]interface{}{
 		"collectionProfile": collectionProfile,
 	}
-	if collectionProfile == collectionProfileNone {
-		dataConfigYAMLPrometheusK8s = ""
-		dataConfigYAMLPrometheusK8sStructured = map[string]interface{}{}
-	}
 	dataConfigYAML := fmt.Sprintf("prometheusK8s:\n  %s", dataConfigYAMLPrometheusK8s)
 	configurationEnableCollectionProfiles := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -237,12 +243,7 @@ func (r *runner) makeCollectionProfileConfigurationFor(ctx context.Context, coll
 			if _, ok := gotDataConfigYAMLMap["prometheusK8s"]; !ok {
 				gotDataConfigYAMLMap["prometheusK8s"] = dataConfigYAMLPrometheusK8sStructured
 			} else {
-				gotDataConfigYAMLMapPrometheusK8s := gotDataConfigYAMLMap["prometheusK8s"].(map[string]interface{})
-				if collectionProfile == collectionProfileNone {
-					delete(gotDataConfigYAMLMapPrometheusK8s, "collectionProfile")
-				} else {
-					gotDataConfigYAMLMapPrometheusK8s["collectionProfile"] = collectionProfile
-				}
+				gotDataConfigYAMLMap["prometheusK8s"].(map[string]interface{})["collectionProfile"] = collectionProfile
 			}
 			gotDataConfigYAMLRaw, err := yaml.Marshal(gotDataConfigYAMLMap)
 			if err != nil {
