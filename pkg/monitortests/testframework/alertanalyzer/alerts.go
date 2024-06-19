@@ -11,12 +11,12 @@ import (
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/openshift/library-go/test/library/metrics"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/prometheus"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheustypes "github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -41,32 +41,9 @@ func fetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 		return nil, err
 	}
 
-	// Ensure that all Thanos queriers are connected to all Prometheus sidecars
-	// before fetching the alerts. This avoids retrieving partial data
-	// (possibly with gaps) when after an upgrade, one of the Prometheus
-	// sidecars hasn't been reconnected yet to the Thanos queriers.
-	if err = wait.PollImmediateWithContext(ctx, 5*time.Second, 5*time.Minute, func(context.Context) (bool, error) {
-		v, warningsForQuery, err := prometheusClient.Query(ctx, `min(count by(pod) (thanos_store_nodes_grpc_connections{store_type="sidecar"})) == min(kube_statefulset_replicas{statefulset="prometheus-k8s"})`, time.Time{})
-		if err != nil {
-			return false, err
-		}
-
-		if len(warningsForQuery) > 0 {
-			fmt.Printf("#### warnings \n\t%v\n", strings.Join(warningsForQuery, "\n\t"))
-		}
-
-		if v.Type() != prometheustypes.ValVector {
-			return false, fmt.Errorf("expecting a vector type, got %q", v.Type().String())
-		}
-
-		if len(v.(prometheustypes.Vector)) == 0 {
-			fmt.Printf("#### at least one Prometheus sidecar isn't ready\n")
-			return false, nil
-		}
-
-		return true, nil
-	}); err != nil {
-		return nil, fmt.Errorf("Thanos queriers not connected to all Prometheus sidecars: %w", err)
+	intervals, err := prometheus.EnsureThanosQueriersConnectedToPromSidecars(ctx, prometheusClient)
+	if err != nil {
+		return intervals, err
 	}
 
 	timeRange := prometheusv1.Range{
