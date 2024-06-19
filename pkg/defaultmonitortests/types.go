@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/intervalserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/knownimagechecker"
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
+	"github.com/openshift/origin/pkg/monitortests/testframework/metricsendpointdown"
 	"github.com/openshift/origin/pkg/monitortests/testframework/pathologicaleventanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/trackedresourcesserializer"
@@ -111,6 +112,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("ingress-availability", "Networking / router", disruptioningress.NewAvailabilityInvariant())
 
 	monitorTestRegistry.AddMonitorTestOrDie("alert-summary-serializer", "Test Framework", alertanalyzer.NewAlertSummarySerializer())
+	monitorTestRegistry.AddMonitorTestOrDie("metrics-endpoints-down", "Test Framework", metricsendpointdown.NewMetricsEndpointDown())
 	monitorTestRegistry.AddMonitorTestOrDie("external-service-availability", "Test Framework", disruptionexternalservicemonitoring.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("external-gcp-cloud-service-availability", "Test Framework", disruptionexternalgcpcloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("external-aws-cloud-service-availability", "Test Framework", disruptionexternalawscloudservicemonitoring.NewCloudAvailabilityInvariant())
