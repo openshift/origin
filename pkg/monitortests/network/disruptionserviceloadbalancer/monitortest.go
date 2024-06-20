@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/sirupsen/logrus"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -194,6 +196,15 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return fmt.Errorf("error creating PDB: %w", err)
 	}
 
+	// On certain platforms hitting the hostname before it is ready leads to a blackhole, this code checks
+	// the host from the cluster's context
+	if infra.Spec.PlatformSpec.Type == configv1.PowerVSPlatformType || infra.Spec.PlatformSpec.Type == configv1.IBMCloudPlatformType {
+		nodeTgt := "node/" + nodeList.Items[0].ObjectMeta.Name
+		if err := checkHostnameReady(ctx, tcpService, nodeTgt, w.namespaceName); err != nil {
+			return err
+		}
+	}
+
 	// Hit it once before considering ourselves ready
 	fmt.Fprintf(os.Stderr, "hitting pods through the service's LoadBalancer\n")
 	timeout := 10 * time.Minute
@@ -307,4 +318,30 @@ func httpGetNoConnectionPoolTimeout(url string, timeout time.Duration) (*http.Re
 	}
 
 	return client.Get(url)
+}
+
+// Uses the first node in the cluster to verify the LoadBalancer host is active before returning
+func checkHostnameReady(ctx context.Context, tcpService *corev1.Service, nodeTgt string, namespace string) error {
+	oc := exutil.NewCLIForMonitorTest(tcpService.GetObjectMeta().GetNamespace())
+
+	var (
+		stdOut string
+		err    error
+	)
+
+	wait.PollUntilContextTimeout(ctx, 15*time.Second, 60*time.Minute, true, func(ctx context.Context) (bool, error) {
+		logrus.Debug("Checking load balancer host is active \n")
+		stdOut, _, err = oc.AsAdmin().WithoutNamespace().RunInMonitorTest("debug").Args(nodeTgt, "--to-namespace="+namespace, "--", "dig", "+short", "+notcp", tcpService.Status.LoadBalancer.Ingress[0].Hostname).Outputs()
+		if err != nil {
+			return false, nil
+		}
+		output := strings.TrimSpace(stdOut)
+		if output == "" {
+			logrus.Debug("Waiting for the load balancer to become active")
+			return false, nil
+		}
+		logrus.Debug("Load balancer active")
+		return true, nil
+	})
+	return err
 }
