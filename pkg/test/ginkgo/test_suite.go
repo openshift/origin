@@ -73,10 +73,10 @@ type testCase struct {
 	name string
 	// rawName is the name as reported by external binary
 	rawName string
-	// binaryName is the name of the external binary
-	binaryName string
-	spec       types.TestSpec
-	locations  []types.CodeLocation
+	// externalBinary is the external binary
+	externalBinary TestBinary
+	spec           types.TestSpec
+	locations      []types.CodeLocation
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string

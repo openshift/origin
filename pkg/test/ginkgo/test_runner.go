@@ -202,10 +202,10 @@ func (c *commandContext) commandString(test *testCase) string {
 	return buf.String()
 }
 
-func (c *commandContext) extractCommands(test *testCase) (string, string) {
-	testBinary := test.binaryName
-	if len(testBinary) == 0 {
-		testBinary = os.Args[0]
+func (c *commandContext) extractCommands(test *testCase) (TestBinary, string) {
+	testBinary := test.externalBinary
+	if testBinary == nil {
+		testBinary = GinkgoTestBinary(os.Args[0])
 	}
 	testName := test.rawName
 	if len(testName) == 0 {
@@ -304,51 +304,16 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 		return ret
 	}
 
-	ret.start = time.Now()
-	testBinary, testName := c.extractCommands(test)
-	command := exec.Command(testBinary, "run-test", testName)
-	command.Env = append(os.Environ(), updateEnvVars(c.env)...)
-
 	timeout := c.timeout
 	if test.testTimeout != 0 {
 		timeout = test.testTimeout
 	}
 
-	testOutputBytes, err := runWithTimeout(ctx, command, timeout)
+	ret.start = time.Now()
+	testBinary, testName := c.extractCommands(test)
+	ret.testState, ret.testOutputBytes = testBinary.RunTest(ctx, timeout, c.env, testName)
 	ret.end = time.Now()
 
-	ret.testOutputBytes = testOutputBytes
-	if err == nil {
-		ret.testState = TestSucceeded
-		return ret
-	}
-
-	if ctx.Err() != nil {
-		ret.testState = TestSkipped
-		return ret
-	}
-
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		switch exitErr.ProcessState.Sys().(syscall.WaitStatus).ExitStatus() {
-		case 1:
-			// failed
-			ret.testState = TestFailed
-		case 2:
-			// timeout (ABRT is an exit code 2)
-			ret.testState = TestFailedTimeout
-		case 3:
-			// skipped
-			ret.testState = TestSkipped
-		case 4:
-			// flaky, do not retry
-			ret.testState = TestFlaked
-		default:
-			ret.testState = TestUnknown
-		}
-		return ret
-	}
-
-	ret.testState = TestFailed
 	return ret
 }
 
