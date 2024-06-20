@@ -230,7 +230,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/httpd-24-centos7:latest"
+              "name": "quay.io/centos7/httpd-24-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -252,7 +252,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/httpd-24-centos7:latest"
+              "name": "quay.io/centos7/httpd-24-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -433,7 +433,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mariadb-105-centos7:latest"
+              "name": "quay.io/centos7/mariadb-105-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -473,7 +473,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mariadb-103-centos7:latest"
+              "name": "quay.io/centos7/mariadb-103-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -493,7 +493,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mariadb-103-centos7:latest"
+              "name": "quay.io/centos7/mariadb-103-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -573,7 +573,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mysql-80-centos7:latest"
+              "name": "quay.io/centos7/mysql-80-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -593,7 +593,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/mysql-80-centos7:latest"
+              "name": "quay.io/centos7/mysql-80-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1064,7 +1064,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/perl-530-centos7:latest"
+              "name": "quay.io/centos7/perl-530-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1086,7 +1086,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/perl-530-centos7:latest"
+              "name": "quay.io/centos7/perl-530-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1260,7 +1260,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/php-73-centos7:latest"
+              "name": "quay.io/centos7/php-73-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1320,7 +1320,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-13-centos7:latest"
+              "name": "quay.io/centos7/postgresql-13-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1360,7 +1360,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-13-centos7:latest"
+              "name": "quay.io/centos7/postgresql-13-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1380,7 +1380,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-12-centos7:latest"
+              "name": "quay.io/centos7/postgresql-12-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1400,7 +1400,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-12-centos7:latest"
+              "name": "quay.io/centos7/postgresql-12-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1440,7 +1440,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-10-centos7:latest"
+              "name": "quay.io/centos7/postgresql-10-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1460,7 +1460,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/postgresql-10-centos7:latest"
+              "name": "quay.io/centos7/postgresql-10-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1714,7 +1714,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/redis-5-centos7:latest"
+              "name": "quay.io/centos7/redis-5-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1734,7 +1734,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/redis-5-centos7:latest"
+              "name": "quay.io/centos7/redis-5-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
@@ -1907,7 +1907,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/ruby-27-centos7:latest"
+              "name": "quay.io/centos7/ruby-27-centos7:centos7"
             },
             "generation": null,
             "importPolicy": {},
