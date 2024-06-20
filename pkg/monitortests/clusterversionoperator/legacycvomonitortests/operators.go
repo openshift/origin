@@ -45,6 +45,12 @@ func checkAuthenticationExceptions(condition *configv1.ClusterOperatorStatusCond
 }
 
 func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clientConfig *rest.Config) []*junitapi.JUnitTestCase {
+	isSingleNode, err := isSingleNodeCheck(clientConfig)
+	if err != nil {
+		logrus.Warnf("Error checking for Single Node configuration on upgrade (unable to make exception): %v", err)
+		isSingleNode = false
+	}
+
 	except := func(operator string, condition *configv1.ClusterOperatorStatusCondition, _ monitorapi.Interval, clientConfig *rest.Config) (string, error) {
 		if condition.Status == configv1.ConditionTrue {
 			if condition.Type == configv1.OperatorAvailable {
@@ -53,6 +59,23 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 		} else if condition.Status == configv1.ConditionFalse {
 			if condition.Type == configv1.OperatorDegraded {
 				return fmt.Sprintf("%s=%s is the happy case", condition.Type, condition.Status), nil
+			}
+		}
+
+		if isSingleNode && condition.Type == configv1.OperatorAvailable && condition.Status == configv1.ConditionFalse {
+			switch operator {
+			case "dns":
+				if strings.Contains(condition.Message, `DNS "default" is unavailable.`) {
+					return "dns operator is allowed to have Available=False due to serial taint tests on single node", nil
+				}
+			case "openshift-apiserver":
+				if strings.Contains(condition.Message, `connect: connection refused`) {
+					return "openshift apiserver operator is allowed to have Available=False due kube-apiserver force rollout test on single node", nil
+				}
+			case "csi-snapshot-controller":
+				if strings.Contains(condition.Message, `Waiting for Deployment`) {
+					return "csi snapshot controller is allowed to have Available=False due to CSI webhook test on single node", nil
+				}
 			}
 		}
 
