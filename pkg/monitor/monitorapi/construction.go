@@ -167,6 +167,33 @@ func (b *LocatorBuilder) AlertFromPromSampleStream(alert *model.SampleStream) Lo
 	return b.Build()
 }
 
+func (b *LocatorBuilder) PrometheusTargetDownFromPromSampleStream(sample *model.SampleStream) Locator {
+	b.targetType = LocatorTypeMetricsEndpoint
+
+	node := string(sample.Metric["node"])
+	if len(node) > 0 {
+		b.annotations[LocatorNodeKey] = node
+	}
+	namespace := string(sample.Metric["namespace"])
+	if len(namespace) > 0 {
+		b.annotations[LocatorNamespaceKey] = namespace
+	}
+	instance := string(sample.Metric["instance"])
+	if len(instance) > 0 {
+		b.annotations[LocatorInstanceKey] = instance
+	}
+	metricsPath := string(sample.Metric["metrics_path"])
+	if len(metricsPath) > 0 {
+		b.annotations[LocatorMetricsPathKey] = metricsPath
+	}
+	service := string(sample.Metric["service"])
+	if len(service) > 0 {
+		b.annotations[LocatorServiceKey] = service
+	}
+
+	return b.Build()
+}
+
 func (b *LocatorBuilder) Disruption(backendDisruptionName, thisInstanceName, loadBalancer, protocol, target string, connectionType BackendConnectionType) Locator {
 	b = b.withDisruptionRequiredOnly(backendDisruptionName, thisInstanceName).withConnectionType(connectionType)
 
