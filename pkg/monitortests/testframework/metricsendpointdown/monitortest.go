@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const testName = "[sig-node] kubelet metrics endpoints should not be unreachable"
+const testName = "[sig-node] kubelet metrics endpoints should always be reachable"
 
 type metricsEndpointDown struct {
 	adminRESTConfig *rest.Config
