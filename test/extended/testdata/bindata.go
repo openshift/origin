@@ -302,7 +302,6 @@
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
-// test/extended/testdata/dns/dns_libraries_go.yaml
 // test/extended/testdata/dns/go-dns-resolver/Dockerfile
 // test/extended/testdata/dns/go-dns-resolver/dns_libraries_go
 // test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml
@@ -43484,89 +43483,15 @@ func testExtendedTestdataDeploymentsTestDeploymentTestYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataDnsDns_libraries_goYaml = []byte(`apiVersion: v1
-kind: List
-metadata: {}
-items:
-  - apiVersion: build.openshift.io/v1
-    kind: BuildConfig
-    metadata:
-      labels:
-        build: dns-libraries-go
-      name: dns-libraries-go
-    spec:
-      output:
-        to:
-          kind: ImageStreamTag
-          name: dns-libraries-go:latest
-      source:
-        binary: {}
-        type: Binary
-      strategy:
-        dockerStrategy: {}
-        type: Docker
-      triggers: []
-  - apiVersion: image.openshift.io/v1
-    kind: ImageStream
-    metadata:
-      labels:
-        build: dns-libraries-go
-      name: dns-libraries-go
-    spec: { }
-  - apiVersion: apps.openshift.io/v1
-    kind: DeploymentConfig
-    metadata:
-      labels:
-        app: dns-libraries-go
-      name: dns-libraries-go
-    spec:
-      replicas: 1
-      selector:
-        app: dns-libraries-go
-        deploymentconfig: dns-libraries-go
-      template:
-        metadata:
-          labels:
-            app: dns-libraries-go
-            deploymentconfig: dns-libraries-go
-        spec:
-          containers:
-            - image: dns-libraries-go
-              imagePullPolicy: Always
-              name: dns-libraries-go
-      triggers:
-        - imageChangeParams:
-            automatic: true
-            containerNames:
-              - dns-libraries-go
-            from:
-              kind: ImageStreamTag
-              name: dns-libraries-go:latest
-          type: ImageChange
-`)
-
-func testExtendedTestdataDnsDns_libraries_goYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataDnsDns_libraries_goYaml, nil
-}
-
-func testExtendedTestdataDnsDns_libraries_goYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataDnsDns_libraries_goYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/dns/dns_libraries_go.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataDnsGoDnsResolverDockerfile = []byte(`FROM golang:1.18
+var _testExtendedTestdataDnsGoDnsResolverDockerfile = []byte(`ARG GO_VERSION
+ARG GO_TOOLSET_IMAGE
+FROM ${GO_TOOLSET_IMAGE}:${GO_VERSION}
 
 ENV GOCACHE=/tmp/
 
 COPY dns_libraries_go /go/dns_libraries.go
 
-CMD ["/bin/sh", "-c", "sleep 9999999"]
+CMD ["/bin/sh", "-c", "sleep infinity"]
 `)
 
 func testExtendedTestdataDnsGoDnsResolverDockerfileBytes() ([]byte, error) {
@@ -55689,7 +55614,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/tag-images-deployment.yaml":                                          testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml":                                         testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml":                                           testExtendedTestdataDeploymentsTestDeploymentTestYaml,
-	"test/extended/testdata/dns/dns_libraries_go.yaml":                                                       testExtendedTestdataDnsDns_libraries_goYaml,
 	"test/extended/testdata/dns/go-dns-resolver/Dockerfile":                                                  testExtendedTestdataDnsGoDnsResolverDockerfile,
 	"test/extended/testdata/dns/go-dns-resolver/dns_libraries_go":                                            testExtendedTestdataDnsGoDnsResolverDns_libraries_go,
 	"test/extended/testdata/egress-firewall/ovnk-egressfirewall-test.yaml":                                   testExtendedTestdataEgressFirewallOvnkEgressfirewallTestYaml,
@@ -56375,7 +56299,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-deployment-test.yaml":           {testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
 				}},
 				"dns": {nil, map[string]*bintree{
-					"dns_libraries_go.yaml": {testExtendedTestdataDnsDns_libraries_goYaml, map[string]*bintree{}},
 					"go-dns-resolver": {nil, map[string]*bintree{
 						"Dockerfile":       {testExtendedTestdataDnsGoDnsResolverDockerfile, map[string]*bintree{}},
 						"dns_libraries_go": {testExtendedTestdataDnsGoDnsResolverDns_libraries_go, map[string]*bintree{}},
