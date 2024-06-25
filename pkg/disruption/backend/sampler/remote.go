@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestlibrary/nodeaccess"
+	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,7 +84,13 @@ func TearDownInClusterMonitors(config *rest.Config) error {
 	if len(errs) > 0 {
 		fmt.Fprintf(os.Stdout, "found errors fetching in-cluster data: %+v\n", errs)
 	}
-	artifactPath := filepath.Join(os.Getenv("ARTIFACT_DIR"), inClusterEventsFile)
+
+	// ensure that artifact path and junit directory exist
+	artifactPath := exutil.ArtifactPath(inClusterEventsFile)
+	if err = os.MkdirAll(filepath.Dir(artifactPath), 0755); err != nil {
+		return err
+	}
+
 	return monitorserialization.EventsToFile(artifactPath, events)
 }
 
