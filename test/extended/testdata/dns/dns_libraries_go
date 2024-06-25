@@ -1,0 +1,33 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"log"
+	"net"
+	"time"
+)
+
+func main() {
+	clusterIP := flag.String("cluster-ip", "", "clusterIP for CoreDNS service")
+	flag.Parse()
+	if *clusterIP == "" {
+		log.Fatal("cluster-ip must be set")
+	}
+
+	r := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: 10 * time.Second,
+			}
+			return d.DialContext(ctx, network, net.JoinHostPort(*clusterIP, "53"))
+		},
+	}
+	addrs, err := r.LookupHost(context.Background(), "www.redhat.com")
+	if err != nil {
+		log.Fatalf("Failed to look up host: %v", err)
+	}
+
+	log.Printf("Successfully resolved: %q", addrs)
+}
