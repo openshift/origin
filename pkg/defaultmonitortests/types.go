@@ -50,6 +50,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchevents"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchrequestcountscollector"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // ListAllMonitorTests is a helper that returns a simple list of
@@ -91,6 +92,11 @@ func NewMonitorTestsFor(info monitortestframework.MonitorTestInitializationInfo)
 	case len(info.DisableMonitorTests) > 0:
 		testsToInclude := startingRegistry.ListMonitorTests()
 		testsToInclude.Delete(info.DisableMonitorTests...)
+		for _, monitor := range info.DisableMonitorTests {
+			if monitor == "all" {
+				testsToInclude = sets.NewString()
+			}
+		}
 		return startingRegistry.GetRegistryFor(testsToInclude.List()...)
 	}
 

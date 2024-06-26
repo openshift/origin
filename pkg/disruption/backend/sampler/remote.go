@@ -57,6 +57,11 @@ var (
 )
 
 func TearDownInClusterMonitors(config *rest.Config) error {
+	if namespace == "" {
+		fmt.Fprintf(os.Stdout, "No in-cluster monitor daemonsets started, skipping teardown\n")
+		return nil
+	}
+
 	ctx := context.Background()
 
 	client, err := kubernetes.NewForConfig(config)
