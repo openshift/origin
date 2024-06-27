@@ -38,6 +38,9 @@ func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfi
 		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
 	}
 	if isMicroShift {
+		// All tests in this monitor relate to either the etcd operator or the etcd pods
+		// which MicroShift does not run. Etcd is embedded into MicroShift systemd unit
+		// and runs in a separate binary as a host process.
 		w.notSupportedReason = &monitortestframework.NotSupportedError{
 			Reason: "platform MicroShift not supported",
 		}
