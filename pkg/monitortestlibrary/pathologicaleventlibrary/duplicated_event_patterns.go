@@ -478,7 +478,9 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	registry.AddPathologicalEventMatcherOrDie(topologyAwareMatcher)
 
 	singleNodeConnectionRefusedMatcher := newSingleNodeConnectionRefusedEventMatcher(finalIntervals)
+	singleNodeKubeAPIServerProgressingMatcher := newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals)
 	registry.AddPathologicalEventMatcherOrDie(singleNodeConnectionRefusedMatcher)
+	registry.AddPathologicalEventMatcherOrDie(singleNodeKubeAPIServerProgressingMatcher)
 
 	return registry
 }
@@ -952,5 +954,36 @@ func newSingleNodeConnectionRefusedEventMatcher(finalIntervals monitorapi.Interv
 			topology:          &snoTopology,
 		},
 		allowIfWithinIntervals: ocpAPISeverTargetDownIntervals,
+	}
+}
+
+// We ignore pathological errors that happen during the kube-apiserver progressing interval on SNO. The primary errors
+// that occur during this time are the kube-apiserver-operator waiting for etcd/installer to stabilize and if we're unlucky
+// an operator might call out for leader and since the KAS is down, it'll trigger a restart since it can't get leader.
+func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Intervals) EventMatcher {
+	snoTopology := v1.SingleReplicaTopologyMode
+
+	ocpKubeAPIServerProgressingInterval := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+
+		isNodeInstaller := eventInterval.Message.Reason == monitorapi.NodeInstallerReason
+		isOperatorSource := eventInterval.Source == monitorapi.SourceOperatorState
+		isKubeAPI := eventInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "kube-apiserver"
+
+		isKubeAPIInstaller := isNodeInstaller && isOperatorSource && isKubeAPI
+		isKubeAPIInstallProgressing := isKubeAPIInstaller && eventInterval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing"
+
+		return isKubeAPIInstallProgressing
+	})
+
+	if len(ocpKubeAPIServerProgressingInterval) > 0 {
+		logrus.Infof("found %d OCP Kube APIServer Progressing intervals", len(ocpKubeAPIServerProgressingInterval))
+	}
+	return &OverlapOtherIntervalsPathologicalEventMatcher{
+		delegate: &SimplePathologicalEventMatcher{
+			name:              "KubeAPIServerProgressingDuringSingleNodeUpgrade",
+			messageHumanRegex: regexp.MustCompile(`^(clusteroperator/kube-apiserver version .* changed from |Back-off restarting failed container)`),
+			topology:          &snoTopology,
+		},
+		allowIfWithinIntervals: ocpKubeAPIServerProgressingInterval,
 	}
 }

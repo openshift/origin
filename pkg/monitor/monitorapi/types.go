@@ -210,6 +210,8 @@ const (
 	UpgradeRollbackReason IntervalReason = "UpgradeRollback"
 	UpgradeFailedReason   IntervalReason = "UpgradeFailed"
 	UpgradeCompleteReason IntervalReason = "UpgradeComplete"
+
+	NodeInstallerReason IntervalReason = "NodeInstaller"
 )
 
 type AnnotationKey string
