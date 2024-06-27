@@ -44,17 +44,21 @@ func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client 
 		InsecureSkipVerify: true,
 	}
 
-	c := &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tlsConfig,
-		},
+	transport := &http.Transport{
+		TLSClientConfig: &tlsConfig,
+		Proxy:           http.ProxyFromEnvironment,
 	}
 
+	c := &http.Client{
+		Timeout:   timeout,
+		Transport: transport,
+	}
+
+	// If HTTP/2 is to be used, configure it to allow falling back
+	// to HTTP/1.1
 	if useHTTP2Transport {
-		c.Transport = &http2.Transport{
-			TLSClientConfig: &tlsConfig,
-		}
+		// Explicitly allow HTTP/2.
+		http2.ConfigureTransport(transport)
 	}
 
 	return c
