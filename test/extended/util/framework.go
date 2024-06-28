@@ -238,10 +238,81 @@ func processScanError(log string) error {
 	return fmt.Errorf(log)
 }
 
+// getImageStreamObj returns the updated spec for imageStream object
+func getImageStreamObj(imageStreamName, imageRef string) *imagev1.ImageStream {
+	imageStream := &imagev1.ImageStream{
+		ObjectMeta: metav1.ObjectMeta{Name: imageStreamName},
+		Spec: imagev1.ImageStreamSpec{
+			LookupPolicy:          imagev1.ImageLookupPolicy{Local: true},
+			DockerImageRepository: imageRef,
+			Tags: []imagev1.TagReference{{
+				Name: "latest",
+				ImportPolicy: imagev1.TagImportPolicy{
+					ImportMode: imagev1.ImportModePreserveOriginal,
+				},
+			}},
+		},
+		Status: imagev1.ImageStreamStatus{
+			DockerImageRepository: imageRef,
+			Tags: []imagev1.NamedTagEventList{{
+				Tag: "latest",
+			}},
+		},
+	}
+	return imageStream
+}
+
+// WaitForImageStreamImport creates & waits for custom ruby imageStream to be available in current namespace
+// TODO: To eliminate the dependency on OpenShift Samples Operator in future,
+// WaitForImageStreamImport should be a replacement of WaitForOpenShiftNamespaceImageStreams func
+func WaitForImageStreamImport(oc *CLI) error {
+	ctx := context.Background()
+	var registryHostname string
+
+	// TODO: Reference an image from registry.redhat.io
+	images := map[string]string{
+		"ruby": "registry.access.redhat.com/ubi8/ruby-33",
+	}
+
+	// Check to see if we have ImageRegistry enabled
+	hasImageRegistry, err := IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityImageRegistry)
+	if err != nil {
+		return err
+	}
+	if hasImageRegistry {
+		registryHostname, err = WaitForInternalRegistryHostname(oc)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Create custom imageStream using `oc import-image`
+	e2e.Logf("waiting for imagestreams to be imported")
+	for imageStreamName, imageRef := range images {
+		err := CustomImageStream(oc, getImageStreamObj(imageStreamName, imageRef))
+		if err != nil {
+			e2e.Logf("failed while creating custom imageStream")
+			return err
+		}
+
+		// Wait for imageRegistry to be ready
+		pollErr := wait.PollUntilContextTimeout(ctx, 10*time.Second, 150*time.Second, false, func(context.Context) (bool, error) {
+			return checkNamespaceImageStreamImported(ctx, oc, imageStreamName, registryHostname, oc.Namespace())
+		})
+		// pollErr will be not nil if there was an immediate error, or we timed out.
+		if pollErr == nil {
+			return nil
+		}
+		DumpImageStream(oc, oc.Namespace(), imageStreamName)
+		return pollErr
+	}
+	return nil
+}
+
 // WaitForOpenShiftNamespaceImageStreams waits for the standard set of imagestreams to be imported
 func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	ctx := context.Background()
-	images := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "jenkins"}
+	images := []string{"nodejs", "perl", "php", "python", "mysql", "postgresql", "jenkins"}
 
 	hasSamplesOperator, err := IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityOpenShiftSamples)
 	if err != nil {
@@ -300,7 +371,7 @@ func WaitForSamplesImagestream(ctx context.Context, oc *CLI, imagestream string,
 				return false, nil
 			}
 		}
-		return checkOpenShiftNamespaceImageStreamImported(ctx, oc, imagestream, registryHostname)
+		return checkNamespaceImageStreamImported(ctx, oc, imagestream, registryHostname, "openshift")
 	})
 	// pollErr will be not nil if there was an immediate error, or we timed out.
 	if pollErr == nil {
@@ -318,6 +389,12 @@ func WaitForSamplesImagestream(ctx context.Context, oc *CLI, imagestream string,
 		e2e.Logf(strbuf.String())
 	}
 	return pollErr
+}
+
+// CustomImageStream uses the provided imageStreamObj reference to create an imagestream with the given name in the given namespace.
+func CustomImageStream(oc *CLI, imageStream *imagev1.ImageStream) error {
+	_, err := oc.ImageClient().ImageV1().ImageStreams(oc.Namespace()).Create(context.Background(), imageStream, metav1.CreateOptions{})
+	return err
 }
 
 // retrySamplesImagestreamImportIfNeeded immediately retries an import for the provided imagestream if:
@@ -386,11 +463,11 @@ func retrySamplesImagestreamImportIfNeeded(ctx context.Context, oc *CLI, imagest
 	return false, nil
 }
 
-// checkOpenShiftNamespaceImageStreamImported checks if the provided imagestream has been imported into the openshift namespace.
+// checkNamespaceImageStreamImported checks if the provided imagestream has been imported into the specified namespace.
 // Returns true if status has been reported on all tags for the imagestream.
-func checkOpenShiftNamespaceImageStreamImported(ctx context.Context, oc *CLI, imagestream string, registryHostname string) (bool, error) {
-	e2e.Logf("checking imagestream %s/%s", "openshift", imagestream)
-	is, err := oc.ImageClient().ImageV1().ImageStreams("openshift").Get(ctx, imagestream, metav1.GetOptions{})
+func checkNamespaceImageStreamImported(ctx context.Context, oc *CLI, imagestream, registryHostname, namespace string) (bool, error) {
+	e2e.Logf("checking imagestream %s/%s", namespace, imagestream)
+	is, err := oc.ImageClient().ImageV1().ImageStreams(namespace).Get(ctx, imagestream, metav1.GetOptions{})
 	if err != nil {
 		return false, processScanError(fmt.Sprintf("failed to get imagestream: %v", err))
 	}
@@ -399,9 +476,9 @@ func checkOpenShiftNamespaceImageStreamImported(ctx context.Context, oc *CLI, im
 		return false, nil
 	}
 	for _, tag := range is.Spec.Tags {
-		e2e.Logf("checking tag %s for imagestream %s/%s", tag.Name, "openshift", imagestream)
+		e2e.Logf("checking tag %s for imagestream %s/%s", tag.Name, namespace, imagestream)
 		if _, found := imageutil.StatusHasTag(is, tag.Name); !found {
-			e2e.Logf("no status for imagestreamtag %s/%s:%s", "openshift", imagestream, tag.Name)
+			e2e.Logf("no status for imagestreamtag %s/%s:%s", namespace, imagestream, tag.Name)
 			return false, nil
 		}
 	}

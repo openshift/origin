@@ -47,7 +47,9 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] builds with a context dir
 		g.Describe("s2i context directory build", func() {
 			g.It(fmt.Sprintf("should s2i build an application using a context directory [apigroup:build.openshift.io]"), func() {
 
+				exutil.WaitForImageStreamImport(oc)
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+
 				g.By(fmt.Sprintf("calling oc create -f %q", appFixture))
 				err := oc.Run("create").Args("-f", appFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
