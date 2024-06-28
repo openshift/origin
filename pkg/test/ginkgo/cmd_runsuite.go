@@ -611,9 +611,7 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
-	exclusions := []string{
-		"Horizontal pod autoscaling", // TODO: just a temporary PR test hack
-	}
+	exclusions := []string{}
 
 	matches := make([]*testCase, 0, len(tests))
 outerLoop:
