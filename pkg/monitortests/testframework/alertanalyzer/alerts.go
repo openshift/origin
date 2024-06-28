@@ -46,7 +46,7 @@ func fetchEventIntervalsForAllAlerts(ctx context.Context, restConfig *rest.Confi
 	// (possibly with gaps) when after an upgrade, one of the Prometheus
 	// sidecars hasn't been reconnected yet to the Thanos queriers.
 	if err = wait.PollImmediateWithContext(ctx, 5*time.Second, 5*time.Minute, func(context.Context) (bool, error) {
-		v, warningsForQuery, err := prometheusClient.Query(ctx, `min(count by(pod) (thanos_store_nodes_grpc_connections{store_type="sidecar"})) == min(kube_statefulset_replicas{statefulset="prometheus-k8s"})`, time.Time{})
+		v, warningsForQuery, err := prometheusClient.Query(ctx, `min(count by(pod) (thanos_store_nodes_grpc_connections{store_type="sidecar",external_labels=~".*prometheus=\"openshift-monitoring/k8s\".*"})) == min(kube_statefulset_replicas{statefulset="prometheus-k8s"})`, time.Time{})
 		if err != nil {
 			return false, err
 		}
