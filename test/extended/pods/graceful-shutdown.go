@@ -339,7 +339,7 @@ func createTestBed(ctx context.Context, oc *exutil.CLI) {
 	Expect(err).NotTo(HaveOccurred())
 	err = callRBAC(ctx, oc, true)
 	Expect(err).NotTo(HaveOccurred())
-	err = exutil.WaitForServiceAccountWithSecret(
+	err = exutil.WaitForServiceAccountWithSecret(oc,
 		oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace),
 		serviceAccountName)
 	Expect(err).NotTo(HaveOccurred())
