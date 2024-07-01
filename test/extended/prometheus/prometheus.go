@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -485,7 +486,7 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			g.By("checking the prometheus metrics path")
 			var metrics map[string]*dto.MetricFamily
 			o.Expect(wait.PollUntilContextTimeout(context.Background(), 10*time.Second, 2*time.Minute, true, func(context.Context) (bool, error) {
-				results, err := getBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
+				results, err := helper.GetBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/metrics", prometheusSvcURL), bearerToken)
 				if err != nil {
 					e2e.Logf("unable to get metrics: %v", err)
 					return false, nil
@@ -754,6 +755,32 @@ var _ = g.Describe("[sig-instrumentation] Prometheus [apigroup:image.openshift.i
 			err = helper.RunQueries(context.TODO(), oc.NewPrometheusClient(context.TODO()), queries, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
+		g.It("should expose metrics following Prometheus best practices", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+
+			execPod := exutil.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod")
+			defer func() {
+				oc.AdminKubeClient().CoreV1().Pods(ns).Delete(context.Background(), execPod.Name, *metav1.NewDeleteOptions(1))
+			}()
+
+			metadata, err := helper.GetBearerTokenURLViaPod(ns, execPod.Name, fmt.Sprintf("%s/api/v1/metadata", prometheusSvcURL), bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			families, err := helper.CreateMetricFamilies([]byte(metadata))
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			invalidLabels, err := helper.GetInvalidLabelsPerMetric(ns, execPod.Name, prometheusSvcURL, bearerToken)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			helper.SetMetricsLabels(families, invalidLabels)
+
+			g.By("linting metrics with promlint")
+			linter := helper.NewPromLinterWithMetricFamilies(families)
+			problems, err := linter.Lint()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(problems).To(o.BeEmpty())
+		})
 	})
 })
 
@@ -873,13 +900,16 @@ func findMetricLabels(f *dto.MetricFamily, labels map[string]string, match strin
 	return result
 }
 
-func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
+func expectBearerTokenURLStatusCodeExec(ns, execPodName, url, bearer string, statusCode int) error {
+	cmd := fmt.Sprintf("curl -k -s -H 'Authorization: Bearer %s' -o /dev/null -w '%%{http_code}' %q", bearer, url)
 	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
 	if err != nil {
-		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+		return fmt.Errorf("host command failed: %v\n%s", err, output)
 	}
-	return output, nil
+	if output != strconv.Itoa(statusCode) {
+		return fmt.Errorf("last response from server was not %d: %s", statusCode, output)
+	}
+	return nil
 }
 
 // telemetryIsEnabled returns (nil, nil) if Telemetry is enabled,
@@ -892,6 +922,15 @@ func telemetryIsEnabled(ctx context.Context, client clientset.Interface) (enable
 	}
 
 	return isTelemeterClientEnabled(ctx, client)
+}
+
+func getInsecureURLViaPod(ns, execPodName, url string) (string, error) {
+	cmd := fmt.Sprintf("curl -s -k %q", url)
+	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+	if err != nil {
+		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+	}
+	return output, nil
 }
 
 func hasPullSecret(ctx context.Context, client clientset.Interface, name string) (enabled error, err error) {
