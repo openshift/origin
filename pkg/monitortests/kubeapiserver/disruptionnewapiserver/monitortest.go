@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor/apiserveravailability"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -75,5 +76,8 @@ func (w *newAPIServerDisruptionChecker) Cleanup(ctx context.Context) error {
 		return w.notSupportedReason
 	}
 
+	if err := sampler.TearDownInClusterMonitors(w.adminRESTConfig); err != nil {
+		return err
+	}
 	return nil
 }

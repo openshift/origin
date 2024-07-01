@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: service-network-monitor
+  namespace: e2e-disruption-monitor
+spec:
+  selector:
+    matchLabels:
+      app: service-network-monitor
+  template:
+    metadata:
+      labels:
+        app: service-network-monitor
+    spec:
+      containers:
+      - name: service-network
+        command:
+        - bash
+        - -c
+        - |
+          trap 'kill "${child_pid}"; wait "${child_pid}"' SIGINT SIGTERM
+          CMD="sleep infinity"
+          LB="service-network"
+          if openshift-tests --help | grep "run-disruption"; then
+            CMD="openshift-tests run-disruption --artifact-dir /var/log/disruption-data --lb-type ${LB} --extra-message $(EXTRA_MESSAGE)"
+          fi
+          ${CMD}&
+          child_pid="$!"
+          wait "${child_pid}"
+        env:
+        - name: EXTRA_MESSAGE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
+        volumeMounts:
+        - mountPath: /var/log/disruption-data
+          name: artifacts
+        securityContext:
+          privileged: true
+      serviceAccountName: disruption-monitor-sa
+      securityContext:
+        privileged: true
+        runAsUser: 0
+      volumes:
+      - hostPath:
+          path: /var/log/disruption-data
+          type: DirectoryOrCreate
+        name: artifacts
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
