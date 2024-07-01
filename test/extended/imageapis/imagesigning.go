@@ -3,6 +3,7 @@ package imageapis
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"reflect"
@@ -296,10 +297,10 @@ func compareSignatures(t g.GinkgoTInterface, a, b imagev1.ImageSignature) {
 // joinImageSignatureName joins image name and custom signature name into one string with @ separator.
 func joinImageSignatureName(imageName, signatureName string) (string, error) {
 	if len(imageName) == 0 {
-		return "", fmt.Errorf("imageName may not be empty")
+		return "", errors.New("imageName may not be empty")
 	}
 	if len(signatureName) == 0 {
-		return "", fmt.Errorf("signatureName may not be empty")
+		return "", errors.New("signatureName may not be empty")
 	}
 	if strings.Count(imageName, "@") > 0 || strings.Count(signatureName, "@") > 0 {
 		return "", fmt.Errorf("neither imageName nor signatureName can contain '@'")
