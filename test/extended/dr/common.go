@@ -796,7 +796,7 @@ func waitForEtcdToStabilizeOnTheSameRevision(t library.LoggingT, oc *exutil.CLI)
 
 func waitForEtcdToStabilizeOnTheSameRevisionLonger(t library.LoggingT, oc *exutil.CLI) error {
 	podClient := oc.AdminKubeClient().CoreV1().Pods(openshiftEtcdNamespace)
-	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "app=etcd", 5, 1*time.Minute, 5*time.Second, 30*time.Minute)
+	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "app=etcd", 3, 1*time.Minute, 10*time.Second, 30*time.Minute)
 }
 
 func waitForApiServerToStabilizeOnTheSameRevision(t library.LoggingT, oc *exutil.CLI) error {
@@ -806,5 +806,5 @@ func waitForApiServerToStabilizeOnTheSameRevision(t library.LoggingT, oc *exutil
 
 func waitForApiServerToStabilizeOnTheSameRevisionLonger(t library.LoggingT, oc *exutil.CLI) error {
 	podClient := oc.AdminKubeClient().CoreV1().Pods("openshift-kube-apiserver")
-	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "apiserver=true", 5, 1*time.Minute, 5*time.Second, 30*time.Minute)
+	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "apiserver=true", 3, 1*time.Minute, 10*time.Second, 30*time.Minute)
 }
