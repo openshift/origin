@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -66,11 +67,14 @@ func (f *featureGateFilter) includeTest(name string) bool {
 		featureGates = append(featureGates, featureGate)
 	}
 
-	if f.disabled.HasAny(featureGates...) {
-		return false
+	shouldIncludeTest := !f.disabled.HasAny(featureGates...) && f.enabled.HasAll(featureGates...)
+	if shouldIncludeTest {
+		logrus.Infof("Including test: %q", name)
+	} else {
+		logrus.Infof("Excluding test: %q (requires feature-gates: %v)", name, featureGates)
 	}
 
-	return f.enabled.HasAll(featureGates...)
+	return shouldIncludeTest
 }
 
 func includeNonFeatureGateTest(name string) bool {
