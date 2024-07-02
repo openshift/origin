@@ -27,7 +27,7 @@ func TestBackendSampler_checkConnection(t *testing.T) {
 			w.WriteHeader(302)
 			w.Write([]byte("302-bad-response"))
 		case req.URL.Path == "/302": // the client-auto-follows
-			w.Header().Set("Location", "http://google.com")
+			w.Header().Set("Location", "/200")
 			w.WriteHeader(302)
 			w.Write([]byte("302"))
 		case req.URL.Path == "/503":
