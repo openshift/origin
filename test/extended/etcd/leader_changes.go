@@ -29,7 +29,11 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			oc = exutil.NewHypershiftManagementCLI("default").AsAdmin().WithoutNamespace()
+			// Because the hypershift management cluster can version skew vs openshift-tests
+			// and https://github.com/openshift/library-go/pull/1697 is needed for this to work
+			// on management clusters 4.16 and later, this test will fail for 4.15 and earlier when run on a 4.16+
+			// management cluster
+			g.Skip("Skipping etcd leader changes check on 4.16+ hypershift management cluster")
 		}
 
 		prometheus, err := client.NewE2EPrometheusRouterClient(oc)
@@ -40,9 +44,6 @@ var _ = g.Describe("[sig-etcd] etcd", func() {
 
 		g.By("Examining the number of etcd leadership changes over the run")
 		etcdNamespace := "openshift-etcd"
-		if *controlPlaneTopology == configv1.ExternalTopologyMode {
-			etcdNamespace = "clusters-.*"
-		}
 		result, _, err := prometheus.Query(context.Background(), fmt.Sprintf(`max(max by (pod,job) (increase(etcd_server_leader_changes_seen_total{namespace=~"%s"}[%s])))`, etcdNamespace, testDuration), time.Now())
 		o.Expect(err).ToNot(o.HaveOccurred())
 
