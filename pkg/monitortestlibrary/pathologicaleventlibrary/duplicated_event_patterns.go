@@ -464,6 +464,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	registry.AddPathologicalEventMatcherOrDie(FailedScheduling)
 	registry.AddPathologicalEventMatcherOrDie(ErrorUpdatingEndpointSlices)
 	registry.AddPathologicalEventMatcherOrDie(MarketplaceStartupProbeFailure)
+	registry.AddPathologicalEventMatcherOrDie(CertificateRotation)
 
 	// Inject the dynamic allowance for etcd readiness probe failures based on the number of
 	// etcd revisions the cluster went through.
@@ -685,6 +686,11 @@ var MarketplaceStartupProbeFailure = &SimplePathologicalEventMatcher{
 		monitorapi.LocatorPodKey:       regexp.MustCompile(`(community-operators|redhat-operators)-[a-z0-9-]+`),
 	},
 	messageHumanRegex: regexp.MustCompile(`Startup probe failed`),
+}
+
+var CertificateRotation = &SimplePathologicalEventMatcher{
+	name:               "CertificateRotation",
+	messageReasonRegex: regexp.MustCompile(`^(CABundleUpdateRequired|SignerUpdateRequired|TargetUpdateRequired|CertificateUpdated|CertificateRemoved|CertificateUpdateFailed)$`),
 }
 
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
