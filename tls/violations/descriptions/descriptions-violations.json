@@ -213,6 +213,25 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-cluster-csi-drivers",
+                    "Name": "shared-resource-csi-driver-operator-trusted-ca-bundle"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "Networking / cluster-network-operator"
+                        }
+                    ],
+                    "owningJiraComponent": "Networking / cluster-network-operator",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
+                    "Namespace": "openshift-cluster-csi-drivers",
                     "Name": "vmware-vsphere-csi-driver-trusted-ca-bundle"
                 },
                 "certificateAuthorityBundleInfo": {
@@ -385,10 +404,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -662,10 +677,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -761,10 +772,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -784,10 +791,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -864,10 +867,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -906,10 +905,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1187,25 +1182,6 @@
         {
             "InClusterLocation": {
                 "configMapLocation": {
-                    "Namespace": "openshift-monitoring",
-                    "Name": "thanos-querier-trusted-ca-bundle"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "Monitoring"
-                        }
-                    ],
-                    "owningJiraComponent": "Monitoring",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
                     "Namespace": "openshift-network-node-identity",
                     "Name": "network-node-identity-ca"
                 },
@@ -1298,7 +1274,7 @@
                     "Path": "/etc/kubernetes/ca.crt"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "Machine Config Operator",
                     "description": ""
                 }
             }
@@ -1310,7 +1286,7 @@
                     "Path": "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "kube-apiserver",
                     "description": ""
                 }
             }
@@ -1322,7 +1298,7 @@
                     "Path": "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "kube-controller-manager",
                     "description": ""
                 }
             }
@@ -1334,7 +1310,7 @@
                     "Path": "/etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/csr-signer/tls.crt"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "kube-controller-manager",
                     "description": ""
                 }
             }
@@ -1346,7 +1322,7 @@
                     "Path": "/etc/pki/tls/cert.pem"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "RHCOS",
                     "description": ""
                 }
             }
@@ -1358,7 +1334,7 @@
                     "Path": "/etc/pki/tls/certs/ca-bundle.crt"
                 },
                 "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "RHCOS",
                     "description": ""
                 }
             }
@@ -1376,10 +1352,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1399,10 +1371,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1448,10 +1416,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1471,10 +1435,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1494,10 +1454,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1517,10 +1473,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1540,10 +1492,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1563,10 +1511,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1605,10 +1549,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1628,10 +1568,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1765,10 +1701,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1788,10 +1720,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1849,10 +1777,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1887,13 +1811,7 @@
                     "Name": "csr-signer-signer"
                 },
                 "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-controller-manager"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-controller-manager",
+                    "owningJiraComponent": "",
                     "description": ""
                 }
             },
@@ -1910,10 +1828,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
-                        },
-                        {
-                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -2049,10 +1963,6 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "apiserver-auth"
-                        },
-                        {
-                            "key": "openshift.io/description",
-                            "value": ""
                         }
                     ],
                     "owningJiraComponent": "apiserver-auth",
@@ -2198,7 +2108,7 @@
                     "Path": "/etc/cni/multus/certs/multus-client-\u003ctimestamp\u003e.pem"
                 },
                 "certKeyInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "Networking / cluster-network-operator",
                     "description": ""
                 }
             }
@@ -2210,7 +2120,7 @@
                     "Path": "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key"
                 },
                 "certKeyInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "kube-apiserver",
                     "description": ""
                 }
             }
@@ -2222,7 +2132,7 @@
                     "Path": "/var/lib/ovn-ic/etc/ovnkube-node-certs/ovnkube-client-\u003ctimestamp\u003e.pem"
                 },
                 "certKeyInfo": {
-                    "owningJiraComponent": "Unknown",
+                    "owningJiraComponent": "Networking / cluster-network-operator",
                     "description": ""
                 }
             }
