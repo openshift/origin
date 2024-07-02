@@ -307,7 +307,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		}
 
 		setupTestPods := func(config *testConfig, isHostNetwork bool) error {
-			tcpdumpImage, err := exutil.DetermineImageFromRelease(oc, "network-tools")
+			tcpdumpImage, err := exutil.DetermineImageFromRelease(context.TODO(), oc, "network-tools")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			createSync := errgroup.Group{}
 			createSync.Go(func() error {
