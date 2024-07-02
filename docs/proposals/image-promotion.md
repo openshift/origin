@@ -201,7 +201,7 @@ Now we have our application deployed in the "stage" project and we can perform
 verification of this deployment, or notify the testers to do it.
 Once we are happy with this image, we want to promote it for production:
 
-First, we have to allow the the "prod" service account to pull the image from
+First, we have to allow the "prod" service account to pull the image from
 the "stage" repository in container image registry:
 
 ```console

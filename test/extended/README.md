@@ -206,7 +206,7 @@ g.By("starting a test build")
 buildName, err := oc.Run("start-build").Args("test").Output()
 ```
 
-To evaluate if the the command was successfully executed without any errors retrieved, use the Gomega’s `Expect` syntax to make expectations on the error.
+To evaluate if the command was successfully executed without any errors retrieved, use the Gomega’s `Expect` syntax to make expectations on the error.
 ```go
 err = oc.Run("create").Args("-f", stiEnvBuildFixture).Execute()
 o.Expect(err).NotTo(o.HaveOccurred())
