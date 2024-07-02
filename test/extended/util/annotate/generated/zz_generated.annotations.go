@@ -1249,6 +1249,10 @@ var Annotations = map[string]string{
 
 	"[sig-kubevirt] services when running openshift cluster on KubeVirt virtual machines should allow direct connections to pods from guest cluster pod in pod network across different guest nodes": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network-edge] DNS lookup using Go's DNS resolver": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge] DNS lookup using glibc's DNS resolver": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network-edge] DNS should answer A and AAAA queries for a dual-stack service [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network-edge] DNS should answer endpoint and wildcard queries for the cluster": " [Disabled:Broken]",
