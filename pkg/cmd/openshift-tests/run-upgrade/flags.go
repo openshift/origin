@@ -92,7 +92,6 @@ func (f *RunUpgradeSuiteFlags) ToOptions(args []string) (*RunUpgradeSuiteOptions
 		return nil, err
 	}
 
-	ginkgoOptions.FromRepository = f.FromRepository
 	o := &RunUpgradeSuiteOptions{
 		GinkgoRunSuiteOptions: ginkgoOptions,
 		Suite:                 suite,
