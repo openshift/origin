@@ -1,0 +1,24 @@
+[
+    {
+        "direction": "ingress",
+        "protocol": "TCP",
+        "port": "9050",
+        "namespace": "example-namespace",
+        "service": "example-service",
+        "pod": "example-pod",
+        "container": "example-container",
+        "nodeRole": "master",
+        "optional": false
+    },
+    {
+        "direction": "ingress",
+        "protocol": "UDP",
+        "port": "9051",
+        "namespace": "example-namespace2",
+        "service": "example-service2",
+        "pod": "example-pod2",
+        "container": "example-container2",
+        "nodeRole": "worker",
+        "optional": false
+    }
+]
