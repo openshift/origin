@@ -6,6 +6,7 @@ import (
 	"net"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/test/extended/kubevirt"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 
@@ -34,12 +35,14 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 
 	egFwoc := exutil.NewCLIWithPodSecurityLevel(egressFWE2E, admissionapi.LevelPrivileged)
 	egFwf := egFwoc.KubeFramework()
+	mgmtFw := e2e.NewDefaultFramework("mgmt-framework")
+	mgmtFw.SkipNamespaceCreation = true
 
 	// The OVNKubernetes subnet plugin supports EgressFirewall objects.
 	InOVNKubernetesContext(
 		func() {
 			g.It("should ensure egressfirewall is created", func() {
-				doEgressFwTest(egFwf, egFwoc, oVNKManifest, true, false)
+				doEgressFwTest(egFwf, mgmtFw, egFwoc, oVNKManifest, true, false)
 			})
 		},
 	)
@@ -47,7 +50,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 	InOpenShiftSDNContext(
 		func() {
 			g.It("should ensure egressnetworkpolicy is created [apigroup:network.openshift.io]", func() {
-				doEgressFwTest(egFwf, egFwoc, openShiftSDNManifest, false, false)
+				doEgressFwTest(egFwf, mgmtFw, egFwoc, openShiftSDNManifest, false, false)
 			})
 		},
 	)
@@ -68,7 +71,7 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 		infra, err := noegFwoc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 
-		if platformSupportICMP(infra.Status.PlatformStatus.Type) {
+		if platformSupportICMP(infra.Status.PlatformStatus.Type, mgmtFw) {
 			_, err := noegFwoc.Run("exec").Args(pod, "--", "ping", "-c", "1", "8.8.8.8").Output()
 			expectNoError(err)
 
@@ -93,16 +96,18 @@ var _ = g.Describe("[sig-network][OCPFeatureGate:DNSNameResolver][Feature:Egress
 	// - Update doEgressFwTest and sendEgressFwTraffic functions.
 	wcEgFwOc := exutil.NewCLIWithPodSecurityLevel(wcEgressFWE2E, admissionapi.LevelPrivileged)
 	wcEgFwF := wcEgFwOc.KubeFramework()
+	mgmtFramework := e2e.NewDefaultFramework("mgmt-framework")
+	mgmtFramework.SkipNamespaceCreation = true
 	InOVNKubernetesContext(
 		func() {
 			g.It("should ensure egressfirewall with wildcard dns rules is created", func() {
-				doEgressFwTest(wcEgFwF, wcEgFwOc, oVNKWCManifest, true, true)
+				doEgressFwTest(wcEgFwF, mgmtFramework, wcEgFwOc, oVNKWCManifest, true, true)
 			})
 		},
 	)
 })
 
-func doEgressFwTest(f *e2e.Framework, oc *exutil.CLI, manifest string, nodeSelectorSupport, checkWildcard bool) error {
+func doEgressFwTest(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI, manifest string, nodeSelectorSupport, checkWildcard bool) error {
 	g.By("creating test pod")
 	o.Expect(createTestEgressFw(f, egressFWTestPod)).To(o.Succeed())
 
@@ -119,18 +124,18 @@ func doEgressFwTest(f *e2e.Framework, oc *exutil.CLI, manifest string, nodeSelec
 	err := oc.AsAdmin().Run("create").Args("-f", egFwYaml).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred(), "created egress-firewall object")
 
-	o.Expect(sendEgressFwTraffic(f, oc, egressFWTestPod, nodeSelectorSupport, checkWildcard)).To(o.Succeed())
+	o.Expect(sendEgressFwTraffic(f, mgmtFw, oc, egressFWTestPod, nodeSelectorSupport, checkWildcard)).To(o.Succeed())
 
 	g.By("deleting test pod")
 	deleteTestEgressFw(f)
 	return err
 }
 
-func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string, nodeSelectorSupport, checkWildcard bool) error {
+func sendEgressFwTraffic(f *e2e.Framework, mgmtFw *e2e.Framework, oc *exutil.CLI, pod string, nodeSelectorSupport, checkWildcard bool) error {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(), "failed to get cluster-wide infrastructure")
 
-	if platformSupportICMP(infra.Status.PlatformStatus.Type) {
+	if platformSupportICMP(infra.Status.PlatformStatus.Type, mgmtFw) {
 		// Test ICMP / Ping to Google’s DNS IP (8.8.8.8) should pass
 		// because we have allow cidr rule for 8.8.8.8
 		g.By("sending traffic that matches allow cidr rule")
@@ -259,11 +264,16 @@ func waitForTestEgressFwPod(f *e2e.Framework, podName string) (string, error) {
 	return podIP, err
 }
 
-func platformSupportICMP(platformType configv1.PlatformType) bool {
+func platformSupportICMP(platformType configv1.PlatformType, framework *e2e.Framework) bool {
 	switch platformType {
-	// Azure has secuirty rules to prevent icmp response from outside the cluster by default
+	// Azure has security rules to prevent icmp response from outside the cluster by default
 	case configv1.AzurePlatformType:
 		return false
+	case configv1.KubevirtPlatformType:
+		kubevirt.SetMgmtFramework(framework)
+		isAzure, err := kubevirt.MgmtClusterIsType(framework, configv1.AzurePlatformType)
+		expectNoError(err)
+		return !isAzure
 	default:
 		return true
 	}

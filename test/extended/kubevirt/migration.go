@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -54,12 +55,12 @@ var _ = Describe("[sig-kubevirt] migration", func() {
 					WithPolling(5*time.Second).
 					Should(Equal(numberOfNodes), "nodes should have ready state before migration")
 
-				setMgmtFramework(mgmtFramework)
+				SetMgmtFramework(mgmtFramework)
 				expectNoError(migrateWorkers(mgmtFramework))
 			})
 			It("should maintain node readiness", func() {
 				By("Check node readiness is as expected")
-				isAWS, err := mgmtClusterIsAWS(mgmtFramework)
+				isAWS, err := MgmtClusterIsType(mgmtFramework, configv1.AWSPlatformType)
 				Expect(err).ToNot(HaveOccurred())
 
 				if isAWS {
