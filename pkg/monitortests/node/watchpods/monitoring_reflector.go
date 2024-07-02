@@ -94,10 +94,11 @@ func newMonitoringStore(
 
 	s.DeleteFunc = func(obj interface{}) error {
 		currentUID := uidOf(obj)
-		currentResourceVersion := resourceVersionAsInt(obj)
-		if s.processedResourceUIDs[currentUID] >= currentResourceVersion {
-			return nil
-		}
+		// currentResourceVersion := resourceVersionAsInt(obj)
+
+		// if s.processedResourceUIDs[currentUID] >= currentResourceVersion {
+		// 	return nil
+		// }
 
 		// clear values that have been deleted
 		defer func() {
