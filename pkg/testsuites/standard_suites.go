@@ -354,8 +354,24 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/etcd/recovery") || strings.Contains(name, "[Feature:EtcdRecovery]") || isStandardEarlyOrLateTest(name)
 		},
 		// etcd's restore test can take a while for apiserver rollouts to stabilize
+		Parallelism:                1,
 		TestTimeout:                120 * time.Minute,
 		ClusterStabilityDuringTest: ginkgo.Disruptive,
+	},
+	{
+		Name: "openshift/etcd/certrotation",
+		Description: templates.LongDesc(`
+		This test suite runs etcd cert rotation tests to exercise the the automatic and manual certificate rotation.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/etcd/certrotation") || strings.Contains(name, "[Feature:CertRotation]") || isStandardEarlyOrLateTest(name)
+		},
+		TestTimeout:                60 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Stable,
 	},
 	{
 		Name: "openshift/nodes/realtime",
