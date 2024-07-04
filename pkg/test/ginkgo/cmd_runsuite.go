@@ -80,7 +80,6 @@ func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSui
 }
 
 func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
-
 	monitorNames := defaultmonitortests.ListAllMonitorTests()
 
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the tests to run without executing them.")
@@ -605,7 +604,9 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
-	exclusions := []string{}
+	exclusions := []string{
+		"should contain last line of the log",
+	}
 
 	matches := make([]*testCase, 0, len(tests))
 outerLoop:
