@@ -605,7 +605,7 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
 	exclusions := []string{
-		"should contain last line of the log",
+		"Networking",
 	}
 
 	matches := make([]*testCase, 0, len(tests))
