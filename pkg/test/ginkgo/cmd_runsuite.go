@@ -21,7 +21,6 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
@@ -588,24 +587,25 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 }
 
 func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, tests []*testCase) ([]*testCase, error) {
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-	serverVersion, err := discoveryClient.ServerVersion()
-	if err != nil {
-		return nil, err
-	}
+	// discoveryClient, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// serverVersion, err := discoveryClient.ServerVersion()
+	// if err != nil {
+	// 	return nil, err
+	// }
 	// TODO: this version along with below exclusions lists needs to be updated
 	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "30") {
-		return tests, nil
-	}
+	// if !strings.HasPrefix(serverVersion.Minor, "30") {
+	// 	return tests, nil
+	// }
 
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
 	exclusions := []string{
 		"Networking",
+		"Netpol",
 	}
 
 	matches := make([]*testCase, 0, len(tests))
