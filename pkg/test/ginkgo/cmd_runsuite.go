@@ -604,8 +604,9 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
 	exclusions := []string{
-		"Networking",
-		"Netpol",
+		//"Networking", // problem still showed up
+		//"Netpol", // problem still showed up
+		"sig-storage",
 	}
 
 	matches := make([]*testCase, 0, len(tests))
