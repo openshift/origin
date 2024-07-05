@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/openshift/origin/pkg/dataloader"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -21,7 +23,11 @@ import (
 )
 
 const (
-	maxRetries = 3
+	maxTries                     = 3
+	sippyURL                     = "https://sippy.dptools.openshift.org/sippy-ng/"
+	raDataFile                   = "risk-analysis.json"
+	raReqLogFileName             = "risk-analysis-requests-" + dataloader.AutoDataLoaderSuffix
+	testFailureSummaryFilePrefix = "test-failures-summary"
 )
 
 // Options is used to run a risk analysis to determine how severe or unusual
@@ -30,9 +36,6 @@ type Options struct {
 	JUnitDir string
 	SippyURL string
 }
-
-const testFailureSummaryFilePrefix = "test-failures-summary"
-const sippyURL = "https://sippy.dptools.openshift.org/sippy-ng/"
 
 // Run performs the test risk analysis by reading the output files from the test run, submitting them to sippy,
 // and writing out the analysis result as a new artifact.
@@ -92,55 +95,8 @@ func (opt *Options) Run() error {
 		return nil
 	}
 
-	req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
-	if err != nil {
-		logrus.WithError(err).Error("Error creating GET request during risk analysis")
-		return nil
-	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-
-	var resp *http.Response
-	clientDoSuccess := false
-	for i := 1; i <= maxRetries; i++ {
-		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
-		defer cancelFn()
-		startTime := time.Now()
-		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxRetries, sippyURL)
-		resp, err = client.Do(req.WithContext(ctx))
-		endTime := time.Now()
-		duration := endTime.Sub(startTime)
-		logrus.Infof("Call to sippy finished after: %s", duration)
-		if err == nil {
-			clientDoSuccess = true
-			break
-		}
-		logrus.WithError(err).Warn("error requesting risk analysis from sippy, sleeping 30s")
-
-		// cancel the context we just used.
-		cancelFn()
-		time.Sleep(time.Duration(i*30) * time.Second)
-	}
-	if !clientDoSuccess {
-		logrus.WithError(err).Error("Unable to obtain risk analysis from sippy after retries")
-		return nil
-	}
-	defer resp.Body.Close()
-
-	riskAnalysisBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logrus.WithError(err).Error("Error reading risk analysis request body from sippy")
-		return nil
-	}
-	logrus.Info("response Body:", string(riskAnalysisBytes))
-
-	outputFile := filepath.Join(opt.JUnitDir, "risk-analysis.json")
-	err = ioutil.WriteFile(outputFile, riskAnalysisBytes, 0644)
-	if err != nil {
-		logrus.WithError(err).Error("Error writing risk analysis json artifact")
-		return nil
-	}
-	logrus.Infof("Successfully wrote: %s", outputFile)
+	riskAnalysisBytes, errRA := opt.readWriteRiskAnalysis(inputBytes)
+	// don't fail out yet, still run disruption if RA fails
 
 	disruptionBytes := []byte(`{Backends: []}`)
 	da, err := runDisruptionAnalysis(opt, finalProwJobRun.ClusterData.JobType)
@@ -151,6 +107,10 @@ func (opt *Options) Run() error {
 	disruptionBytes, err = json.Marshal(da)
 	if err != nil {
 		logrus.WithError(err).Error("Error marshalling disruption results")
+		return nil
+	}
+
+	if errRA != nil {
 		return nil
 	}
 
@@ -166,6 +126,131 @@ func (opt *Options) Run() error {
 	}
 
 	return nil
+}
+
+// struct that records the timing and status of each RA http client request
+type raRequestLog struct {
+	RequestCount int // which iteration are we on for this job requesting RA
+	StartTime    time.Time
+	Duration     time.Duration
+	Error        string
+	BytesRead    int
+}
+
+// readWriteRiskAnalysis requests Risk Analysis from sippy, writes the results to disk, and returns the RA html to include in prow job output.
+// If the request fails, it will try up to maxTries times before returning an error; an error means no RA data returned.
+func (opt *Options) readWriteRiskAnalysis(inputBytes []byte) ([]byte, error) {
+	req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
+	if err != nil {
+		logrus.WithError(err).Error("Error creating GET request during risk analysis")
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	riskAnalysisBytes, err := opt.requestRiskAnalysis(req, &http.Client{}, &realSleeper{})
+	if err != nil {
+		return nil, err
+	}
+
+	outputFile := filepath.Join(opt.JUnitDir, raDataFile)
+	err = os.WriteFile(outputFile, riskAnalysisBytes, 0644)
+	if err != nil {
+		logrus.WithError(err).Error("Error writing risk analysis json artifact")
+	} else {
+		logrus.Infof("Successfully wrote: %s", outputFile)
+	}
+	return riskAnalysisBytes, nil // whether or not the file was written
+}
+
+// sleeper interface to enable testing without actually sleeping
+type sleeper interface {
+	Sleep(d time.Duration)
+}
+type realSleeper struct{}
+
+func (rs *realSleeper) Sleep(d time.Duration) {
+	time.Sleep(d)
+}
+
+// requestRiskAnalysis makes the http request(s) and records the timing and status for each
+func (opt *Options) requestRiskAnalysis(req *http.Request, client *http.Client, sleepy sleeper) ([]byte, error) {
+	var resp *http.Response
+	var err error
+	reqLogs := []*raRequestLog{}
+	var finalReqLog *raRequestLog = nil    // keep final log entry to amend before writing if needed
+	defer opt.writeRARequestLogs(&reqLogs) // write all failures or successes after processing
+	clientDoSuccess := false
+	for i := 1; i <= maxTries; i++ {
+		reqLog := &raRequestLog{RequestCount: i, StartTime: time.Now()}
+		finalReqLog = reqLog
+		reqLogs = append(reqLogs, finalReqLog)
+		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
+		defer cancelFn()
+
+		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxTries, sippyURL)
+		resp, err = client.Do(req.WithContext(ctx))
+		cancelFn() // cancel the context timeout we just used.
+		reqLog.Duration = time.Now().Sub(reqLog.StartTime)
+		logrus.Infof("Call to sippy finished after: %f seconds", reqLog.Duration.Seconds())
+		if err == nil && resp.StatusCode != http.StatusOK {
+			err = fmt.Errorf("error requesting risk analysis from sippy: status %s", resp.Status)
+		}
+		if err == nil {
+			clientDoSuccess = true
+			break
+		}
+		reqLog.Error = fmt.Sprintf("%v", err)
+		logrus.WithError(err).Warn("error requesting risk analysis from sippy, sleeping 30s")
+		sleepy.Sleep(time.Duration(i*30) * time.Second)
+	}
+	if !clientDoSuccess {
+		failure := "unable to obtain risk analysis from sippy after retries"
+		logrus.WithError(err).Error(failure)
+		if err == nil { // no error, but no success either
+			err = fmt.Errorf(failure)
+		}
+		return nil, err
+	}
+
+	// we have a response, read the body
+	defer resp.Body.Close()
+	riskAnalysisBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.WithError(err).Error("Error reading risk analysis request body from sippy")
+		finalReqLog.Error = fmt.Sprintf("%v", err)
+		return nil, err
+	}
+	logrus.Info("response Body:", string(riskAnalysisBytes))
+	finalReqLog.BytesRead = len(riskAnalysisBytes)
+	return riskAnalysisBytes, nil
+}
+
+func (opt *Options) writeRARequestLogs(logs *[]*raRequestLog) {
+	rows := []map[string]string{}
+	for _, log := range *logs {
+		rows = append(rows, map[string]string{
+			"RequestCount":    fmt.Sprintf("%d", log.RequestCount),
+			"StartTime":       log.StartTime.Format(time.RFC3339),
+			"DurationSeconds": fmt.Sprintf("%f", log.Duration.Seconds()),
+			"Error":           log.Error,
+			"BytesRead":       fmt.Sprintf("%d", log.BytesRead),
+		})
+	}
+	dataFile := dataloader.DataFile{
+		TableName: "risk_analysis_api_requests",
+		Schema: map[string]dataloader.DataType{
+			"RequestCount":    dataloader.DataTypeInteger,
+			"StartTime":       dataloader.DataTypeTimestamp,
+			"DurationSeconds": dataloader.DataTypeFloat64,
+			"Error":           dataloader.DataTypeString,
+			"BytesRead":       dataloader.DataTypeInteger,
+		},
+		Rows: rows,
+	}
+	fileName := filepath.Join(opt.JUnitDir, raReqLogFileName)
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
 }
 
 type disruptionBackendAnalysis struct {

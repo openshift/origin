@@ -20,6 +20,7 @@ require (
 	github.com/google/gnostic-models v0.6.8
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
+	github.com/h2non/gock v1.2.0
 	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.3.0
 	github.com/lestrrat/go-jsschema v0.0.0-20181205002244-5c81c58ffcc3
 	github.com/lithammer/dedent v1.1.0
@@ -171,6 +172,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
+	github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
