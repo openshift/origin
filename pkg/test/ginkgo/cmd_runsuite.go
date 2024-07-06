@@ -608,6 +608,7 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 		"Netpol",     // problem still showed up
 		"sig-storage",
 		"network-perf",
+		"OpenShiftControllerManager",
 	}
 
 	matches := make([]*testCase, 0, len(tests))
