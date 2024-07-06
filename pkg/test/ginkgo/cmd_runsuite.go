@@ -607,7 +607,7 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 		"Networking", // problem still showed up
 		"Netpol",     // problem still showed up
 		"sig-storage",
-		"proxy implementation should not be vulnerable to the invalid conntrack state bug",
+		"network-perf",
 	}
 
 	matches := make([]*testCase, 0, len(tests))
