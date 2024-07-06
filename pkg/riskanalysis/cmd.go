@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"github.com/openshift/origin/pkg/dataloader"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedbackenddisruption"
@@ -23,11 +23,16 @@ import (
 )
 
 const (
+	testFailureSummaryFilePrefix = "test-failures-summary"
 	maxTries                     = 3
-	sippyURL                     = "https://sippy.dptools.openshift.org/sippy-ng/"
+	sippyUiURL                   = "https://sippy.dptools.openshift.org/sippy-ng/"
 	raDataFile                   = "risk-analysis.json"
 	raReqLogFileName             = "risk-analysis-requests-" + dataloader.AutoDataLoaderSuffix
-	testFailureSummaryFilePrefix = "test-failures-summary"
+	raReqLogTableName            = "risk_analysis_api_requests"
+	raOverallRiskFileName        = "risk-analysis-overall-results-" + dataloader.AutoDataLoaderSuffix
+	raOverallRiskTableName       = "risk_analysis_overall_results"
+	raTestResultsFileName        = "risk-analysis-test-results-" + dataloader.AutoDataLoaderSuffix
+	raTestResultsTableName       = "risk_analysis_test_results"
 )
 
 // Options is used to run a risk analysis to determine how severe or unusual
@@ -49,7 +54,7 @@ func (opt *Options) Run() error {
 	}
 	logrus.Infof("Found files: %v", resultFiles)
 
-	// we didn't find any files to process. log but don't return an error as  step may not have produced those files
+	// we didn't find any files to process. log but don't return an error as the step may not have produced those files
 	if len(resultFiles) == 0 {
 		logrus.Infof("Missing : %s file(s), exiting", testFailureSummaryFilePrefix)
 		return nil
@@ -116,11 +121,11 @@ func (opt *Options) Run() error {
 
 	// Write html file for spyglass
 	riskAnalysisHTMLTemplate := testdata.MustAsset("e2echart/test-risk-analysis.html")
-	html := bytes.ReplaceAll(riskAnalysisHTMLTemplate, []byte("TEST_RISK_ANALYSIS_SIPPY_URL_GOES_HERE"), []byte(sippyURL))
+	html := bytes.ReplaceAll(riskAnalysisHTMLTemplate, []byte("TEST_RISK_ANALYSIS_SIPPY_URL_GOES_HERE"), []byte(sippyUiURL))
 	html = bytes.ReplaceAll(html, []byte("TEST_RISK_ANALYSIS_JSON_GOES_HERE"), riskAnalysisBytes)
 	html = bytes.ReplaceAll(html, []byte("TEST_DISRUPTION_ANALYSIS_JSON_GOES_HERE"), disruptionBytes)
 	path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s.html", "test-risk-analysis"))
-	if err := ioutil.WriteFile(path, html, 0644); err != nil {
+	if err := os.WriteFile(path, html, 0644); err != nil {
 		logrus.WithError(err).Error("Error writing output file")
 		return nil
 	}
@@ -158,6 +163,8 @@ func (opt *Options) readWriteRiskAnalysis(inputBytes []byte) ([]byte, error) {
 	} else {
 		logrus.Infof("Successfully wrote: %s", outputFile)
 	}
+
+	opt.writeRAResults(riskAnalysisBytes)
 	return riskAnalysisBytes, nil // whether or not the file was written
 }
 
@@ -186,7 +193,7 @@ func (opt *Options) requestRiskAnalysis(req *http.Request, client *http.Client, 
 		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
 		defer cancelFn()
 
-		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxTries, sippyURL)
+		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxTries, req.RequestURI)
 		resp, err = client.Do(req.WithContext(ctx))
 		cancelFn() // cancel the context timeout we just used.
 		reqLog.Duration = time.Now().Sub(reqLog.StartTime)
@@ -228,15 +235,15 @@ func (opt *Options) writeRARequestLogs(logs *[]*raRequestLog) {
 	rows := []map[string]string{}
 	for _, log := range *logs {
 		rows = append(rows, map[string]string{
-			"RequestCount":    fmt.Sprintf("%d", log.RequestCount),
+			"RequestCount":    strconv.Itoa(log.RequestCount),
 			"StartTime":       log.StartTime.Format(time.RFC3339),
 			"DurationSeconds": fmt.Sprintf("%f", log.Duration.Seconds()),
 			"Error":           log.Error,
-			"BytesRead":       fmt.Sprintf("%d", log.BytesRead),
+			"BytesRead":       strconv.Itoa(log.BytesRead),
 		})
 	}
 	dataFile := dataloader.DataFile{
-		TableName: "risk_analysis_api_requests",
+		TableName: raReqLogTableName,
 		Schema: map[string]dataloader.DataType{
 			"RequestCount":    dataloader.DataTypeInteger,
 			"StartTime":       dataloader.DataTypeTimestamp,
@@ -250,6 +257,94 @@ func (opt *Options) writeRARequestLogs(logs *[]*raRequestLog) {
 	err := dataloader.WriteDataFile(fileName, dataFile)
 	if err != nil {
 		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
+}
+
+// writeRAResults writes the RA test results to autodl files in the junit directory; errors abort with a log message
+func (opt *Options) writeRAResults(analysisBytes []byte) {
+	var analysis struct {
+		Tests []struct {
+			Name   string
+			TestId int
+			Risk   struct {
+				Level struct {
+					Name  string
+					Level int
+				}
+				CurrentRuns           int
+				CurrentPasses         int
+				CurrentPassPercentage float64
+			}
+		}
+		OverallRisk struct {
+			Level struct {
+				Name  string
+				Level int
+			}
+			JobRunTestCount        int
+			JobRunTestFailures     int
+			NeverStableJob         bool
+			HistoricalRunTestCount int
+		}
+	}
+	err := json.Unmarshal(analysisBytes, &analysis)
+	if err != nil {
+		logrus.WithError(err).Error("Error unmarshalling risk analysis json")
+		return
+	}
+
+	overallFile := dataloader.DataFile{
+		TableName: raOverallRiskTableName,
+		Schema: map[string]dataloader.DataType{
+			"RiskLevel":              dataloader.DataTypeInteger,
+			"RiskName":               dataloader.DataTypeString,
+			"JobRunTestCount":        dataloader.DataTypeInteger,
+			"JobRunTestFailures":     dataloader.DataTypeInteger,
+			"NeverStableJob":         dataloader.DataTypeString,
+			"HistoricalRunTestCount": dataloader.DataTypeInteger,
+		},
+		Rows: []map[string]string{},
+	}
+	overallFile.Rows = append(overallFile.Rows, map[string]string{
+		"RiskLevel":              strconv.Itoa(analysis.OverallRisk.Level.Level),
+		"RiskName":               analysis.OverallRisk.Level.Name,
+		"JobRunTestCount":        strconv.Itoa(analysis.OverallRisk.JobRunTestCount),
+		"JobRunTestFailures":     strconv.Itoa(analysis.OverallRisk.JobRunTestFailures),
+		"NeverStableJob":         strconv.FormatBool(analysis.OverallRisk.NeverStableJob),
+		"HistoricalRunTestCount": strconv.Itoa(analysis.OverallRisk.HistoricalRunTestCount),
+	})
+	err = dataloader.WriteDataFile(filepath.Join(opt.JUnitDir, raOverallRiskFileName), overallFile)
+	if err != nil {
+		logrus.WithError(err).Errorf("Error writing risk analysis overall results autodl file %s", raOverallRiskFileName)
+	}
+
+	testsFile := dataloader.DataFile{
+		TableName: raTestResultsTableName,
+		Schema: map[string]dataloader.DataType{
+			"TestName":              dataloader.DataTypeString,
+			"TestID":                dataloader.DataTypeInteger,
+			"RiskLevel":             dataloader.DataTypeInteger,
+			"RiskName":              dataloader.DataTypeString,
+			"CurrentRuns":           dataloader.DataTypeInteger,
+			"CurrentPasses":         dataloader.DataTypeInteger,
+			"CurrentPassPercentage": dataloader.DataTypeFloat64,
+		},
+		Rows: []map[string]string{},
+	}
+	for _, test := range analysis.Tests {
+		testsFile.Rows = append(testsFile.Rows, map[string]string{
+			"TestName":              test.Name,
+			"TestID":                strconv.Itoa(test.TestId),
+			"RiskLevel":             strconv.Itoa(test.Risk.Level.Level),
+			"RiskName":              test.Risk.Level.Name,
+			"CurrentRuns":           strconv.Itoa(test.Risk.CurrentRuns),
+			"CurrentPasses":         strconv.Itoa(test.Risk.CurrentPasses),
+			"CurrentPassPercentage": fmt.Sprintf("%f", test.Risk.CurrentPassPercentage),
+		})
+	}
+	err = dataloader.WriteDataFile(filepath.Join(opt.JUnitDir, raTestResultsFileName), testsFile)
+	if err != nil {
+		logrus.WithError(err).Errorf("Error writing risk analysis test results autodl file %s", raTestResultsFileName)
 	}
 }
 
@@ -286,7 +381,7 @@ func runDisruptionAnalysis(opt *Options, jobType platformidentification.JobType)
 		if err != nil {
 			return nil, err
 		}
-		byteValue, _ := ioutil.ReadAll(f)
+		byteValue, _ := io.ReadAll(f)
 		err = json.Unmarshal(byteValue, &disruptList)
 		if err != nil {
 			return nil, err
