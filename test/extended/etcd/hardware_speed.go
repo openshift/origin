@@ -114,7 +114,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd", func
 
 func waitForEtcdToStabilizeOnTheSameRevision(t library.LoggingT, oc *exutil.CLI) error {
 	podClient := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd")
-	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "app=etcd", 5, 1*time.Minute, 5*time.Second, 30*time.Minute)
+	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, "app=etcd", 5, 24*time.Second, 5*time.Second, 30*time.Minute)
 }
 
 func expectedStandardHardwareSpeed() map[string]string {
