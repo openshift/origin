@@ -9,9 +9,9 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -16,8 +16,8 @@ import (
 	"github.com/sirupsen/logrus"
 
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"

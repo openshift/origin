@@ -6,8 +6,8 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

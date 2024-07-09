@@ -15,9 +15,9 @@ import (
 
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/library-go/test/library/metrics"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	helper "github.com/openshift/origin/test/extended/util/prometheus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

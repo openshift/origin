@@ -12,8 +12,8 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

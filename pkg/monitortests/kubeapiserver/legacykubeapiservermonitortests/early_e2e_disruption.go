@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 // amount of time near E2E test start that we consider "early"

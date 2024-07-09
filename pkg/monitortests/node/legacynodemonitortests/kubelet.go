@@ -9,10 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"

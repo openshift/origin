@@ -10,17 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-
-	"github.com/openshift/origin/test/extended/util/image"
-
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
-
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
+	"github.com/openshift/origin/pkg/monitortestframework"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"

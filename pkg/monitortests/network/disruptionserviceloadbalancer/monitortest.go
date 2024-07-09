@@ -28,10 +28,10 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework/service"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )

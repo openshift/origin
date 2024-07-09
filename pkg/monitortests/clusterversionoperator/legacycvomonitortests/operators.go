@@ -14,10 +14,10 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	platformidentification2 "github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/client-go/rest"
 )

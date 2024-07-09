@@ -24,13 +24,13 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 const (

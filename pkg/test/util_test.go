@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/library-go/test/library/junitapi"
 )
 
 //go:embed junit_upgrade_1674689374.xml

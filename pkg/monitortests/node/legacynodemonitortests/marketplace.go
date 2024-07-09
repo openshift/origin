@@ -1,8 +1,8 @@
 package legacynodemonitortests
 
 import (
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )

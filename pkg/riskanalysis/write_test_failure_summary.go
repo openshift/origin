@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/library-go/test/library/junitapi"
 )
 
 // WriteJobRunTestFailureSummary writes a more minimal json file summarizing a little info about the

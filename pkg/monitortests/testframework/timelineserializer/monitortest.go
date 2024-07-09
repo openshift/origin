@@ -9,8 +9,8 @@ import (
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/client-go/rest"
 )
 

@@ -6,9 +6,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"

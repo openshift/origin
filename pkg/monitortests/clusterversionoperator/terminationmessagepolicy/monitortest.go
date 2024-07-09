@@ -7,9 +7,9 @@ import (
 	"time"
 
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

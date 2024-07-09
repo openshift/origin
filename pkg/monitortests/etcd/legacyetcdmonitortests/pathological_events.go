@@ -1,9 +1,9 @@
 package legacyetcdmonitortests
 
 import (
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 // testRequiredInstallerResourcesMissing looks for this symptom:

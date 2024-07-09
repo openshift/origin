@@ -27,10 +27,10 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/image"
 )
 

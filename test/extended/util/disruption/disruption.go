@@ -25,9 +25,9 @@ import (
 	"k8s.io/kubernetes/test/e2e/upgrades"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
 const (

@@ -12,9 +12,9 @@ import (
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedbackenddisruption"
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/monitor/backenddisruption"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 )

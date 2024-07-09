@@ -6,11 +6,11 @@ import (
 	"time"
 
 	routeclient "github.com/openshift/client-go/route/clientset/versioned"
+	"github.com/openshift/library-go/test/library/junitapi"
 	utilmetrics "github.com/openshift/library-go/test/library/metrics"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/metrics"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

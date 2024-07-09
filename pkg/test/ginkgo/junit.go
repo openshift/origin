@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/library-go/test/library/junitapi"
 	"github.com/openshift/origin/pkg/test"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/version"
 )
