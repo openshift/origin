@@ -46,29 +46,33 @@ func (*metricsEndpointDown) EvaluateTestsFromConstructedIntervals(ctx context.Co
 		return eventInterval.Source == monitorapi.SourceMetricsEndpointDown
 	})
 	logger.Infof("found %d metrics endpoint down intervals", len(metricsEndpointDownIntervals))
-	nodeRebootIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Source == monitorapi.SourceNodeState && eventInterval.Message.Annotations["phase"] == "Reboot"
+
+	// We know these endpoints go down both during node update, and obviously during reboot, ignore overlap
+	// with either:
+	nodeUpdateIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return (eventInterval.Source == monitorapi.SourceNodeState && eventInterval.Message.Annotations["phase"] == "Update") ||
+			(eventInterval.Source == monitorapi.SourceNodeState && eventInterval.Message.Annotations["phase"] == "Reboot")
 	})
-	logger.Infof("found %d node reboot intervals", len(nodeRebootIntervals))
+	logger.Infof("found %d node update intervals", len(nodeUpdateIntervals))
 
 	for _, downInterval := range metricsEndpointDownIntervals {
 		logger.Infof("checking metrics down interval: %s", downInterval)
-		restartsForNodeIntervals := nodeRebootIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		restartsForNodeIntervals := nodeUpdateIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 			return eventInterval.Locator.Keys[monitorapi.LocatorNodeKey] == downInterval.Locator.Keys[monitorapi.LocatorNodeKey]
 		})
 		overlapIntervals := operatorstateanalyzer.FindOverlap(restartsForNodeIntervals, downInterval.From, downInterval.To)
 		if len(overlapIntervals) == 0 {
 			failures = append(failures, downInterval.String())
-			logger.Info("found no overlap with a node reboot")
+			logger.Info("found no overlap with a node update")
 		} else {
-			logger.Infof("found overlap with a node reboot: %s", overlapIntervals[0])
+			logger.Infof("found overlap with a node update: %s", overlapIntervals[0])
 		}
 	}
 	junits := []*junitapi.JUnitTestCase{}
 	if len(failures) > 0 {
-		testOutput := fmt.Sprintf("found prometheus reporting metrics endpoints down outside of a node reboot: \n  %s",
+		testOutput := fmt.Sprintf("found prometheus reporting metrics endpoints down outside of a node update: \n  %s",
 			strings.Join(failures, "\n  "))
-		// This metrics down interval did not overlap with any reboot for the corresponding node, fail/flake a junit:
+		// This metrics down interval did not overlap with any update for the corresponding node, fail/flake a junit:
 		// Limit to kubelet service, all we're querying right now?
 		junits = append(junits, &junitapi.JUnitTestCase{
 			Name: testName,
