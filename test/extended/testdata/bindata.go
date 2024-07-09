@@ -20106,7 +20106,7 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
           "git": {
             "uri":"https://github.com/sclorg/s2i-ruby-container"
           },
-          "contextDir": "3.0/test/puma-test-app"
+          "contextDir": "3.3/test/puma-test-app"
         },
         "strategy": {
           "type": "Source",
@@ -20118,8 +20118,8 @@ var _testExtendedTestdataBuildsTestContextBuildJson = []byte(`{
               }
             ],
             "from": {
-              "kind": "DockerImage",
-              "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              "kind": "ImageStreamTag",
+              "name": "ruby:latest"
             }
           }
         },
