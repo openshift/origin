@@ -65,22 +65,24 @@ spec:
   - featureGate: MetricsCollectionProfiles
     tests:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set should apply default collection profile to
-        all managed monitors when enabled'
+        collection profiles feature-set in an environment that migrates from default
+        to minimal collection profile should apply default collection profile initially'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set should expose information about the applied
+        collection profiles feature-set in an environment that migrates from default
+        to minimal collection profile should expose information about the applied
         collection profile using meta-metrics'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set should have at-least one implementation for
+        collection profiles feature-set in an environment that migrates from default
+        to minimal collection profile should have at least one implementation for
         each collection profile'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set should have no dedicated selectors initially'
-    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set should have no default profile enforcements
-        when not enabled'
-    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set should hide a default-only metric when minimal
+        collection profiles feature-set in an environment that migrates from default
+        to minimal collection profile should hide all default-only metrics when minimal
         collection profile is enabled'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set in an environment that migrates from minimal
+        to default collection profile should revert back to default collection profile
+        when none is specified'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
