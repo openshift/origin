@@ -62,6 +62,20 @@ spec:
         remove all network diagnostics pods when disabled'
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
         set the condition to false if there are no nodes able to host the source pods'
+  - featureGate: NetworkSegmentation
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        a user defined primary network can perform east/west traffic between nodes
+        for two pods connected over a L2 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        a user defined primary network can perform east/west traffic between nodes
+        two pods connected over a L3 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        a user defined primary network is isolated from the default network with L2
+        dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        a user defined primary network is isolated from the default network with L3
+        dualstack primary UDN'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
