@@ -24,6 +24,16 @@ func Map[T any, R any](f func(T) R, xs []T) []R {
 	return rv
 }
 
+func Filter[T any](f func(T) bool, xs []T) []T {
+	var rv []T
+	for _, x := range xs {
+		if f(x) {
+			rv = append(rv, x)
+		}
+	}
+	return rv
+}
+
 func RemoveIf[T any](f func(T) bool, xs []T) []T {
 	var rv []T
 	for _, x := range xs {

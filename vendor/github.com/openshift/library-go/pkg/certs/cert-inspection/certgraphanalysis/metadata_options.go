@@ -74,29 +74,35 @@ func (o *metadataOptions) rewritePath(path string) string {
 	return o.rewritePathFn(path)
 }
 
+func isProxyCA(metadata metav1.ObjectMeta, caBundle *certgraphapi.CertificateAuthorityBundle) bool {
+	if metadata.Namespace == "openshift-config-managed" && metadata.Name == "trusted-ca-bundle" {
+		return true
+	}
+	// this plugin does a direct copy
+	if metadata.Namespace == "openshift-cloud-controller-manager" && metadata.Name == "ccm-trusted-ca" {
+		return true
+	}
+	// this namespace appears to hash (notice trailing dash) the content and lose labels
+	if metadata.Namespace == "openshift-monitoring" && strings.Contains(metadata.Name, "-trusted-ca-bundle-") {
+		return true
+	}
+	if len(metadata.Labels["config.openshift.io/inject-trusted-cabundle"]) > 0 {
+		return true
+	}
+
+	for _, loc := range caBundle.Spec.OnDiskLocations {
+		if strings.Contains(loc.Path, "/trusted-ca-bundle/") || strings.Contains(loc.Path, "/etc/pki/tls") {
+			return true
+		}
+	}
+
+	return false
+}
+
 var (
 	ElideProxyCADetails = &metadataOptions{
 		rewriteCABundleFn: func(metadata metav1.ObjectMeta, caBundle *certgraphapi.CertificateAuthorityBundle) {
-			isProxyCA := false
-			if metadata.Namespace == "openshift-config-managed" && metadata.Name == "trusted-ca-bundle" {
-				isProxyCA = true
-			}
-			// this plugin does a direct copy
-			if metadata.Namespace == "openshift-cloud-controller-manager" && metadata.Name == "ccm-trusted-ca" {
-				isProxyCA = true
-			}
-			// this namespace appears to hash (notice trailing dash) the content and lose labels
-			if metadata.Namespace == "openshift-monitoring" && strings.Contains(metadata.Name, "-trusted-ca-bundle-") {
-				isProxyCA = true
-			}
-			if len(metadata.Labels["config.openshift.io/inject-trusted-cabundle"]) > 0 {
-				isProxyCA = true
-			}
-
-			if !isProxyCA {
-				return
-			}
-			if len(caBundle.Spec.CertificateMetadata) < 10 {
+			if !isProxyCA(metadata, caBundle) || len(caBundle.Spec.CertificateMetadata) < 10 {
 				return
 			}
 			caBundle.Name = "proxy-ca"

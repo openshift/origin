@@ -1234,6 +1234,14 @@ func (ss *ScaleSet) ensureVMSSInPool(_ *v1.Service, nodes []*v1.Node, backendPoo
 			klog.V(4).Infof("EnsureHostInPool: cannot obtain the primary network interface configuration of vmss %s", vmssName)
 			continue
 		}
+
+		// It is possible to run Windows 2019 nodes in IPv4-only mode in a dual-stack cluster. IPv6 is not supported on
+		// Windows 2019 nodes and therefore does not need to be added to the IPv6 backend pool.
+		if isWindows2019(vmss) && isBackendPoolIPv6(backendPoolID) {
+			klog.V(3).Infof("ensureVMSSInPool: vmss %s is Windows 2019, skipping adding to IPv6 backend pool", vmssName)
+			continue
+		}
+
 		vmssNIC := *vmss.VirtualMachineProfile.NetworkProfile.NetworkInterfaceConfigurations
 		primaryNIC, err := getPrimaryNetworkInterfaceConfiguration(vmssNIC, vmssName)
 		if err != nil {
@@ -1307,6 +1315,46 @@ func (ss *ScaleSet) ensureVMSSInPool(_ *v1.Service, nodes []*v1.Node, backendPoo
 		}
 	}
 	return nil
+}
+
+// isWindows2019 checks if the ImageReference on the VMSS matches a Windows Server 2019 image.
+func isWindows2019(vmss *compute.VirtualMachineScaleSet) bool {
+	if vmss == nil {
+		return false
+	}
+
+	if vmss.VirtualMachineProfile == nil || vmss.VirtualMachineProfile.StorageProfile == nil {
+		return false
+	}
+
+	storageProfile := vmss.VirtualMachineProfile.StorageProfile
+
+	if storageProfile.OsDisk == nil || storageProfile.OsDisk.OsType != compute.OperatingSystemTypesWindows {
+		return false
+	}
+
+	if storageProfile.ImageReference == nil || storageProfile.ImageReference.ID == nil {
+		return false
+	}
+	// example: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/AKS-Windows/providers/Microsoft.Compute/galleries/AKSWindows/images/windows-2019-containerd/versions/17763.5820.240516
+	imageRef := *storageProfile.ImageReference.ID
+	parts := strings.Split(imageRef, "/")
+	if len(parts) < 4 {
+		return false
+	}
+
+	imageName := parts[len(parts)-3]
+	if !strings.EqualFold(imageName, consts.VmssWindows2019ImageGalleryName) {
+		return false
+	}
+
+	osVersion := strings.Split(parts[len(parts)-1], ".")
+	if len(osVersion) != 3 {
+		return false
+	}
+	// Windows Server 2019 is build number 17763
+	// https://learn.microsoft.com/en-us/windows-server/get-started/windows-server-release-info
+	return osVersion[0] == consts.Windows2019OSBuildVersion
 }
 
 func (ss *ScaleSet) ensureHostsInPool(service *v1.Service, nodes []*v1.Node, backendPoolID string, vmSetNameOfLB string) error {

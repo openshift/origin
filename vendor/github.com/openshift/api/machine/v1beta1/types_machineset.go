@@ -150,6 +150,11 @@ type MachineSetStatus struct {
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 
+	// Conditions defines the current state of the MachineSet
+	// +listType=map
+	// +listMapKey=type
+	Conditions []Condition `json:"conditions,omitempty"`
+
 	// authoritativeAPI is the API that is authoritative for this resource.
 	// Valid values are MachineAPI, ClusterAPI and Migrating.
 	// This value is updated by the migration controller to reflect the authoritative API.

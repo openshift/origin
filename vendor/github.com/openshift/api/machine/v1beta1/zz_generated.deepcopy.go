@@ -1265,6 +1265,13 @@ func (in *MachineSetStatus) DeepCopyInto(out *MachineSetStatus) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]Condition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 
