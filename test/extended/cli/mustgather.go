@@ -135,15 +135,6 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 			g.Skip("External clusters don't have control plane audit logs")
 		}
 
-		upgradedFrom45 := false
-		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, history := range cv.Status.History {
-			if strings.HasPrefix(history.Version, "4.5.") {
-				upgradedFrom45 = true
-			}
-		}
-
 		// makes some tokens that should not show in the audit logs
 		_, sha256TokenName := exutil.GenerateOAuthTokenPair()
 		oauthClient := oauthv1client.NewForConfigOrDie(oc.AdminConfig())
@@ -250,14 +241,6 @@ var _ = g.Describe("[sig-cli] oc adm must-gather", func() {
 						}
 						o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
 
-						// TODO(4.7+): remove this check
-						// - if on 4.6 but not upgraded => disable check
-						// - if on 4.6 and we have been upgraded from older release => keep the check.
-						if upgradedFrom45 {
-							for _, token := range []string{"oauthaccesstokens", "oauthauthorizetokens", sha256TokenName} {
-								o.Expect(text).NotTo(o.ContainSubstring(token))
-							}
-						}
 						readFile = true
 						eventsChecked++
 					}

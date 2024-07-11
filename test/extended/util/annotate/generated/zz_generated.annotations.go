@@ -1183,6 +1183,16 @@ var Annotations = map[string]string{
 
 	"[sig-imageregistry][Feature:Image] signature TestImageRemoveSignature [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should not accept invalid ChunkSizeMiB value": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should reject ChunkSizeMiB value greater than 5 GiB": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should set ChunkSizeMiB value": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should set maximum valid ChunkSizeMiB value": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value": " [Suite:openshift/conformance/parallel/minimal]",
+
 	"[sig-imageregistry][Serial] Image signature workflow can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
 	"[sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": " [Suite:openshift/conformance/parallel]",
@@ -1426,6 +1436,8 @@ var Annotations = map[string]string{
 	"[sig-network][Feature:Whereabouts] should use whereabouts net-attach-def to limit IP ranges for newly created pods [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:bond] should create a pod with bond interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:commatrix][Serial] should apply firewall by blocking all ports except the ones OCP is listening on": " [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:tap] should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 

@@ -84,6 +84,13 @@ type AWSMachineProviderConfig struct {
 	// When omitted, no placement group is used when creating the EC2 instance.
 	// +optional
 	PlacementGroupName string `json:"placementGroupName,omitempty"`
+	// placementGroupPartition is the partition number within the placement group in which to launch the instance.
+	// This must be an integer value between 1 and 7. It is only valid if the placement group, referred in
+	// `PlacementGroupName` was created with strategy set to partition.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=7
+	// +optional
+	PlacementGroupPartition int32 `json:"placementGroupPartition,omitempty"`
 }
 
 // BlockDeviceMappingSpec describes a block device mapping

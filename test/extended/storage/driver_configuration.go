@@ -3,6 +3,11 @@ package storage
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	opv1 "github.com/openshift/api/operator/v1"
@@ -16,10 +21,6 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 	"k8s.io/utils/ptr"
-	"reflect"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -183,14 +184,14 @@ func loadAndCheckCloudConf(ctx context.Context, oc *exutil.CLI, sectionName stri
 		return nil
 	}
 
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps("openshift-cluster-csi-drivers").Get(ctx, "vsphere-csi-config", metav1.GetOptions{})
+	configSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-cluster-csi-drivers").Get(ctx, "vsphere-csi-config-secret", metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get ConfigMap: %v", err)
+		return fmt.Errorf("failed to get Secret: %v", err)
 	}
 
-	cloudConfData, ok := cm.Data["cloud.conf"]
+	cloudConfData, ok := configSecret.Data["cloud.conf"]
 	if !ok {
-		return fmt.Errorf("cloud.conf key not found in ConfigMap")
+		return fmt.Errorf("cloud.conf key not found in Secret")
 	}
 
 	cfg, err := ini.Load([]byte(cloudConfData))

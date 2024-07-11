@@ -9,7 +9,6 @@ import (
 	"time"
 
 	configv1 "github.com/openshift/api/config/v1"
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -69,7 +68,7 @@ func (t *AdminAckTest) Test(ctx context.Context) {
 	// the version was bumped).
 	postUpdateCtx, postUpdateCtxCancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer postUpdateCtxCancel()
-	if current, err := getCurrentVersion(postUpdateCtx, t.Config); err != nil {
+	if current, err := exutil.GetCurrentVersion(postUpdateCtx, t.Config); err != nil {
 		framework.Fail(err.Error())
 	} else if current != "" && !exercisedVersions.Has(current) {
 		// We never saw the current version while polling, so lets check it now
@@ -93,11 +92,10 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates, exercisedVersio
 	if err != nil {
 		return err
 	}
-	currentVersion, err := getCurrentVersion(ctx, t.Config)
+	currentVersion, err := exutil.GetCurrentVersion(ctx, t.Config)
 	if err != nil {
 		return err
 	}
-
 	if exercisedVersions != nil {
 		exercisedVersions.Insert(currentVersion)
 	}
@@ -152,37 +150,6 @@ func (t *AdminAckTest) test(ctx context.Context, exercisedGates, exercisedVersio
 	return nil
 }
 
-// getClusterVersion returns the ClusterVersion object.
-func getClusterVersion(ctx context.Context, config *restclient.Config) (*configv1.ClusterVersion, error) {
-	c, err := configv1client.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return c.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
-}
-
-// getCurrentVersion determines and returns the cluster's current version by iterating through the
-// provided update history until it finds the first version with update State of Completed. If a
-// Completed version is not found the version of the oldest history entry, which is the originally
-// installed version, is returned. If history is empty the empty string is returned.
-func getCurrentVersion(ctx context.Context, config *restclient.Config) (string, error) {
-	cv, err := getClusterVersion(ctx, config)
-	if err != nil {
-		return "", err
-	}
-
-	for _, h := range cv.Status.History {
-		if h.State == configv1.CompletedUpdate {
-			return h.Version, nil
-		}
-	}
-	// Empty history should only occur if method is called early in startup before history is populated.
-	if len(cv.Status.History) != 0 {
-		return cv.Status.History[len(cv.Status.History)-1].Version, nil
-	}
-	return "", nil
-}
-
 // getEffectiveMinor attempts to do a simple parse of the version provided.  If it does not parse, the value is considered
 // an empty string, which works for a comparison for equivalence.
 func getEffectiveMinor(version string) string {
@@ -226,11 +193,10 @@ func getAdminAcksConfigMap(ctx context.Context, oc *exutil.CLI) (*corev1.ConfigM
 // adminAckRequiredWithMessage returns true if Upgradeable condition reason is AdminAckRequired
 // or MultipleReasons and message contains given message.
 func adminAckRequiredWithMessage(ctx context.Context, config *restclient.Config, message string) (string, bool, error) {
-	clusterVersion, err := getClusterVersion(ctx, config)
+	clusterVersion, err := exutil.GetClusterVersion(ctx, config)
 	if err != nil {
 		return "", false, err
 	}
-
 	cond := getUpgradeableStatusCondition(clusterVersion.Status.Conditions)
 	if cond == nil {
 		return "", false, nil
@@ -243,7 +209,7 @@ func adminAckRequiredWithMessage(ctx context.Context, config *restclient.Config,
 
 // upgradeableExplicitlyFalse returns true if the Upgradeable condition status is set to false.
 func upgradeableExplicitlyFalse(ctx context.Context, config *restclient.Config) (bool, error) {
-	clusterVersion, err := getClusterVersion(ctx, config)
+	clusterVersion, err := exutil.GetClusterVersion(ctx, config)
 	if err != nil {
 		return false, err
 	}
