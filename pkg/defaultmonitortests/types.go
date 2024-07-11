@@ -15,9 +15,9 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/imageregistry/disruptionimageregistry"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptioninclusterapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
-	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/incluster_disruption_serializer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/statefulsetsrecreation"
@@ -108,6 +108,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-availability", "kube-apiserver", disruptionlegacyapiservers.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-new-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("apiserver-incluster-availability", "kube-apiserver", disruptioninclusterapiserver.NewInvariantInClusterDisruption(info))
 
 	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
 	monitorTestRegistry.AddMonitorTestOrDie("service-type-load-balancer-availability", "Networking / router", disruptionserviceloadbalancer.NewAvailabilityInvariant())
@@ -121,7 +122,6 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("external-azure-cloud-service-availability", "Test Framework", disruptionexternalazurecloudservicemonitoring.NewCloudAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie("pathological-event-analyzer", "Test Framework", pathologicaleventanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("disruption-summary-serializer", "Test Framework", disruptionserializer.NewDisruptionSummarySerializer())
-	monitorTestRegistry.AddMonitorTestOrDie("incluster-disruption-serializer", "kube-apiserver", incluster_disruption_serializer.NewInvariantInClusterDisruption(info))
 
 	monitorTestRegistry.AddMonitorTestOrDie("monitoring-statefulsets-recreation", "Monitoring", statefulsetsrecreation.NewStatefulsetsChecker())
 	monitorTestRegistry.AddMonitorTestOrDie("metrics-api-availability", "Monitoring", disruptionmetricsapi.NewAvailabilityInvariant())
