@@ -72,10 +72,10 @@ var _ = g.Describe("[sig-network][Feature:EgressFirewall]", func() {
 			_, err = noegFwoc.Run("exec").Args(pod, "--", "ping", "-c", "1", "1.1.1.1").Output()
 			expectNoError(err)
 		}
-		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "https://docs.openshift.com").Output()
+		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://docs.openshift.com").Output()
 		expectNoError(err)
 
-		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "http://www.google.com:80").Output()
+		_, err = noegFwoc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "http://www.google.com:80").Output()
 		expectNoError(err)
 		deleteTestEgressFw(noegFwf)
 	})
@@ -125,13 +125,13 @@ func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string, nodeSelec
 	// Test curl to docs.openshift.com should pass
 	// because we have allow dns rule for docs.openshift.com
 	g.By("sending traffic that matches allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "https://docs.openshift.com").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "https://docs.openshift.com").Output()
 	expectNoError(err)
 
 	// Test curl to www.google.com:80 should fail
 	// because we don't have allow dns rule for www.google.com:80
 	g.By("sending traffic that does not match allow dns rule")
-	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "http://www.google.com:80").Output()
+	_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "http://www.google.com:80").Output()
 	expectError(err)
 
 	if nodeSelectorSupport {
@@ -151,7 +151,7 @@ func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string, nodeSelec
 			e2e.ExpectNotEqual(len(nodeIP), 0)
 			hostPort := net.JoinHostPort(nodeIP, "6443")
 			url := fmt.Sprintf("https://%s", hostPort)
-			_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "-k", url).Output()
+			_, err = oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "-k", url).Output()
 			expectNoError(err)
 		}
 	}
@@ -160,7 +160,7 @@ func sendEgressFwTraffic(f *e2e.Framework, oc *exutil.CLI, pod string, nodeSelec
 
 func checkConnectivityToExternalHost(f *e2e.Framework, oc *exutil.CLI, pod string) bool {
 	g.By("executing a successful access to external internet")
-	_, err := oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m1", "http://www.google.com:80").Output()
+	_, err := oc.Run("exec").Args(pod, "--", "curl", "-q", "-s", "-I", "-m3", "http://www.google.com:80").Output()
 	if err != nil {
 		e2e.Logf("Unable to connect/talk to the internet: %v", err)
 		return false
