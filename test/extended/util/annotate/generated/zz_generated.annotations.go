@@ -1183,6 +1183,16 @@ var Annotations = map[string]string{
 
 	"[sig-imageregistry][Feature:Image] signature TestImageRemoveSignature [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should not accept invalid ChunkSizeMiB value": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should reject ChunkSizeMiB value greater than 5 GiB": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should set ChunkSizeMiB value": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should set maximum valid ChunkSizeMiB value": " [Suite:openshift/conformance/parallel/minimal]",
+
+	"[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value": " [Suite:openshift/conformance/parallel/minimal]",
+
 	"[sig-imageregistry][Serial] Image signature workflow can push a signed image to openshift registry and verify it [apigroup:user.openshift.io][apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/serial]",
 
 	"[sig-installer][Feature:baremetal] Baremetal platform should have baremetalhost resources": " [Suite:openshift/conformance/parallel]",

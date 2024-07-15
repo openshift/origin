@@ -19,14 +19,14 @@ package provider
 import (
 	"context"
 
-	"sigs.k8s.io/cloud-provider-azure/pkg/azclient"
-	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/mock_azclient"
-	"sigs.k8s.io/cloud-provider-azure/pkg/provider/config"
-
 	"go.uber.org/mock/gomock"
-
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/record"
 
+	"sigs.k8s.io/cloud-provider-azure/pkg/azclient"
+	"sigs.k8s.io/cloud-provider-azure/pkg/azclient/mock_azclient"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/diskclient/mockdiskclient"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/interfaceclient/mockinterfaceclient"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/loadbalancerclient/mockloadbalancerclient"
@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/vmssclient/mockvmssclient"
 	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/vmssvmclient/mockvmssvmclient"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
+	"sigs.k8s.io/cloud-provider-azure/pkg/provider/config"
 	utilsets "sigs.k8s.io/cloud-provider-azure/pkg/util/sets"
 )
 
@@ -131,6 +132,14 @@ func GetTestCloud(ctrl *gomock.Controller) (az *Cloud) {
 	az.storageAccountCache, _ = az.newStorageAccountCache()
 
 	az.regionZonesMap = map[string][]string{az.Location: {"1", "2", "3"}}
+
+	{
+		kubeClient := fake.NewSimpleClientset() // FIXME: inject kubeClient
+		informerFactory := informers.NewSharedInformerFactory(kubeClient, 0)
+		az.serviceLister = informerFactory.Core().V1().Services().Lister()
+		informerFactory.Start(wait.NeverStop)
+		informerFactory.WaitForCacheSync(wait.NeverStop)
+	}
 
 	return az
 }

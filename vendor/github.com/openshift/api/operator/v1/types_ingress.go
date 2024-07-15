@@ -342,6 +342,7 @@ type NodePlacement struct {
 	// See https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 	//
 	// +optional
+	// +listType=atomic
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 }
 
@@ -413,6 +414,7 @@ type LoadBalancerStrategy struct {
 	//
 	// +nullable
 	// +optional
+	// +listType=atomic
 	AllowedSourceRanges []CIDR `json:"allowedSourceRanges,omitempty"`
 
 	// providerParameters holds desired load balancer information specific to
@@ -1129,6 +1131,7 @@ type IngressControllerCaptureHTTPHeaders struct {
 	//
 	// +nullable
 	// +optional
+	// +listType=atomic
 	Request []IngressControllerCaptureHTTPHeader `json:"request,omitempty"`
 
 	// response specifies which HTTP response headers to capture.
@@ -1137,6 +1140,7 @@ type IngressControllerCaptureHTTPHeaders struct {
 	//
 	// +nullable
 	// +optional
+	// +listType=atomic
 	Response []IngressControllerCaptureHTTPHeader `json:"response,omitempty"`
 }
 
@@ -1263,6 +1267,7 @@ type AccessLogging struct {
 	// +nullable
 	// +optional
 	// +kubebuilder:validation:MaxItems=1
+	// +listType=atomic
 	HTTPCaptureCookies []IngressControllerCaptureHTTPCookie `json:"httpCaptureCookies,omitempty"`
 
 	// logEmptyRequests specifies how connections on which no request is
@@ -1402,6 +1407,7 @@ type IngressControllerHTTPHeaders struct {
 	//
 	// +nullable
 	// +optional
+	// +listType=atomic
 	HeaderNameCaseAdjustments []IngressControllerHTTPHeaderNameCaseAdjustment `json:"headerNameCaseAdjustments,omitempty"`
 
 	// actions specifies options for modifying headers and their values.
@@ -1865,6 +1871,8 @@ type IngressControllerStatus struct {
 	//     * DNS is managed.
 	//     * DNS records have been successfully created.
 	//   - False if any of those conditions are unsatisfied.
+	// +listType=map
+	// +listMapKey=type
 	Conditions []OperatorCondition `json:"conditions,omitempty"`
 
 	// tlsProfile is the TLS connection configuration that is in effect.

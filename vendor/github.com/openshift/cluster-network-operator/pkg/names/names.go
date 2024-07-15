@@ -58,6 +58,7 @@ const NonCriticalAnnotation = "networkoperator.openshift.io/non-critical"
 // Currently, this is looked for on Deployments, DaemonSets, and StatefulSets.
 // Its value reflects which cluster the resource belongs to. This helps avoid an overlap
 // in Hypershift where there can be multiple CNO instances running in the management cluster.
+// If the value is empty, the resource is not going to be tracked by StatusController.
 const GenerateStatusLabel = "networkoperator.openshift.io/generates-operator-status"
 
 // StandAloneClusterName is a value used for GenerateStatusLabel label when running in non-Hypershift environments
@@ -142,6 +143,10 @@ const NetworkTypeMigrationAnnotation = "network.openshift.io/network-type-migrat
 // conditions to indicate if MCP is updating
 const MachineConfigPoolsUpdating string = "MachineConfigPoolsUpdating"
 
+// MachineConfigPoolDegraded is the reason string NetworkTypeMigrationTargetCNIInUse and NetworkTypeMigrationMTUReady
+// conditions to indicate if MCP is degraded
+const MachineConfigPoolDegraded string = "MachineConfigPoolDegraded"
+
 // Status condition types of network.config for live migration
 const (
 	// NetworkTypeMigrationInProgress is the condition type for network type live migration to indicate if the migration
@@ -220,3 +225,9 @@ const DefaultClusterName = "default"
 
 // DashboardNamespace is the namespace where dashboards are created
 const DashboardNamespace = "openshift-config-managed"
+
+// DefaultFieldManagerPrefix is the default field manager prefix set on the managed fields.
+const DefaultFieldManagerPrefix = "network-operator"
+
+// NetworkDiagnosticsAvailableCondition is the condition type for network diagnostics availability
+const NetworkDiagnosticsAvailableCondition string = "NetworkDiagnosticsAvailable"
