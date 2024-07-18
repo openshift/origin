@@ -55,6 +55,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/api/annotations"
+	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -352,8 +353,13 @@ func (c *CLI) setupProject() string {
 	// TODO: some of them not even using the constants
 	DefaultServiceAccounts := []string{
 		"default",
-		"deployer",
 		"builder",
+	}
+	dcEnabled, err := IsCapabilityEnabled(c, configv1.ClusterVersionCapabilityDeploymentConfig)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if dcEnabled {
+		framework.Logf("%v capability is enabled, adding 'deployer' SA to the list of default SAs", configv1.ClusterVersionCapabilityDeploymentConfig)
+		DefaultServiceAccounts = append(DefaultServiceAccounts, "deployer")
 	}
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
