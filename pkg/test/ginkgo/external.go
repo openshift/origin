@@ -74,7 +74,7 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 	}
 
 	oc := util.NewCLIWithoutNamespace("default")
-	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	cv, err := util.GetClusterVersion(context.Background(), oc.AdminConfig())
 	if err != nil {
 		return "", fmt.Errorf("failed reading ClusterVersion/version: %w", err)
 	}
