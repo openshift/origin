@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"github.com/openshift/origin/pkg/dataloader"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/allowedbackenddisruption"
@@ -21,7 +23,16 @@ import (
 )
 
 const (
-	maxRetries = 3
+	testFailureSummaryFilePrefix = "test-failures-summary"
+	maxTries                     = 3
+	sippyUiURL                   = "https://sippy.dptools.openshift.org/sippy-ng/"
+	raDataFile                   = "risk-analysis.json"
+	raReqLogFileName             = "risk-analysis-requests-" + dataloader.AutoDataLoaderSuffix
+	raReqLogTableName            = "risk_analysis_api_requests"
+	raOverallRiskFileName        = "risk-analysis-overall-results-" + dataloader.AutoDataLoaderSuffix
+	raOverallRiskTableName       = "risk_analysis_overall_results"
+	raTestResultsFileName        = "risk-analysis-test-results-" + dataloader.AutoDataLoaderSuffix
+	raTestResultsTableName       = "risk_analysis_test_results"
 )
 
 // Options is used to run a risk analysis to determine how severe or unusual
@@ -30,9 +41,6 @@ type Options struct {
 	JUnitDir string
 	SippyURL string
 }
-
-const testFailureSummaryFilePrefix = "test-failures-summary"
-const sippyURL = "https://sippy.dptools.openshift.org/sippy-ng/"
 
 // Run performs the test risk analysis by reading the output files from the test run, submitting them to sippy,
 // and writing out the analysis result as a new artifact.
@@ -46,7 +54,7 @@ func (opt *Options) Run() error {
 	}
 	logrus.Infof("Found files: %v", resultFiles)
 
-	// we didn't find any files to process. log but don't return an error as  step may not have produced those files
+	// we didn't find any files to process. log but don't return an error as the step may not have produced those files
 	if len(resultFiles) == 0 {
 		logrus.Infof("Missing : %s file(s), exiting", testFailureSummaryFilePrefix)
 		return nil
@@ -92,55 +100,8 @@ func (opt *Options) Run() error {
 		return nil
 	}
 
-	req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
-	if err != nil {
-		logrus.WithError(err).Error("Error creating GET request during risk analysis")
-		return nil
-	}
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-
-	var resp *http.Response
-	clientDoSuccess := false
-	for i := 1; i <= maxRetries; i++ {
-		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
-		defer cancelFn()
-		startTime := time.Now()
-		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxRetries, sippyURL)
-		resp, err = client.Do(req.WithContext(ctx))
-		endTime := time.Now()
-		duration := endTime.Sub(startTime)
-		logrus.Infof("Call to sippy finished after: %s", duration)
-		if err == nil {
-			clientDoSuccess = true
-			break
-		}
-		logrus.WithError(err).Warn("error requesting risk analysis from sippy, sleeping 30s")
-
-		// cancel the context we just used.
-		cancelFn()
-		time.Sleep(time.Duration(i*30) * time.Second)
-	}
-	if !clientDoSuccess {
-		logrus.WithError(err).Error("Unable to obtain risk analysis from sippy after retries")
-		return nil
-	}
-	defer resp.Body.Close()
-
-	riskAnalysisBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logrus.WithError(err).Error("Error reading risk analysis request body from sippy")
-		return nil
-	}
-	logrus.Info("response Body:", string(riskAnalysisBytes))
-
-	outputFile := filepath.Join(opt.JUnitDir, "risk-analysis.json")
-	err = ioutil.WriteFile(outputFile, riskAnalysisBytes, 0644)
-	if err != nil {
-		logrus.WithError(err).Error("Error writing risk analysis json artifact")
-		return nil
-	}
-	logrus.Infof("Successfully wrote: %s", outputFile)
+	riskAnalysisBytes, errRA := opt.readWriteRiskAnalysis(inputBytes)
+	// don't fail out yet, still run disruption if RA fails
 
 	disruptionBytes := []byte(`{Backends: []}`)
 	da, err := runDisruptionAnalysis(opt, finalProwJobRun.ClusterData.JobType)
@@ -154,18 +115,237 @@ func (opt *Options) Run() error {
 		return nil
 	}
 
+	if errRA != nil {
+		return nil
+	}
+
 	// Write html file for spyglass
 	riskAnalysisHTMLTemplate := testdata.MustAsset("e2echart/test-risk-analysis.html")
-	html := bytes.ReplaceAll(riskAnalysisHTMLTemplate, []byte("TEST_RISK_ANALYSIS_SIPPY_URL_GOES_HERE"), []byte(sippyURL))
+	html := bytes.ReplaceAll(riskAnalysisHTMLTemplate, []byte("TEST_RISK_ANALYSIS_SIPPY_URL_GOES_HERE"), []byte(sippyUiURL))
 	html = bytes.ReplaceAll(html, []byte("TEST_RISK_ANALYSIS_JSON_GOES_HERE"), riskAnalysisBytes)
 	html = bytes.ReplaceAll(html, []byte("TEST_DISRUPTION_ANALYSIS_JSON_GOES_HERE"), disruptionBytes)
 	path := filepath.Join(opt.JUnitDir, fmt.Sprintf("%s.html", "test-risk-analysis"))
-	if err := ioutil.WriteFile(path, html, 0644); err != nil {
+	if err := os.WriteFile(path, html, 0644); err != nil {
 		logrus.WithError(err).Error("Error writing output file")
 		return nil
 	}
 
 	return nil
+}
+
+// struct that records the timing and status of each RA http client request
+type raRequestLog struct {
+	RequestCount int // which iteration are we on for this job requesting RA
+	StartTime    time.Time
+	Duration     time.Duration
+	Error        string
+	BytesRead    int
+}
+
+// readWriteRiskAnalysis requests Risk Analysis from sippy, writes the results to disk, and returns the RA html to include in prow job output.
+// If the request fails, it will try up to maxTries times before returning an error; an error means no RA data returned.
+func (opt *Options) readWriteRiskAnalysis(inputBytes []byte) ([]byte, error) {
+	req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
+	if err != nil {
+		logrus.WithError(err).Error("Error creating GET request during risk analysis")
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	riskAnalysisBytes, err := opt.requestRiskAnalysis(req, &http.Client{}, &realSleeper{})
+	if err != nil {
+		return nil, err
+	}
+
+	outputFile := filepath.Join(opt.JUnitDir, raDataFile)
+	err = os.WriteFile(outputFile, riskAnalysisBytes, 0644)
+	if err != nil {
+		logrus.WithError(err).Error("Error writing risk analysis json artifact")
+	} else {
+		logrus.Infof("Successfully wrote: %s", outputFile)
+	}
+
+	opt.writeRAResults(riskAnalysisBytes)
+	return riskAnalysisBytes, nil // whether or not the file was written
+}
+
+// sleeper interface to enable testing without actually sleeping
+type sleeper interface {
+	Sleep(d time.Duration)
+}
+type realSleeper struct{}
+
+func (rs *realSleeper) Sleep(d time.Duration) {
+	time.Sleep(d)
+}
+
+// requestRiskAnalysis makes the http request(s) and records the timing and status for each
+func (opt *Options) requestRiskAnalysis(req *http.Request, client *http.Client, sleepy sleeper) ([]byte, error) {
+	var resp *http.Response
+	var err error
+	reqLogs := []*raRequestLog{}
+	var finalReqLog *raRequestLog = nil    // keep final log entry to amend before writing if needed
+	defer opt.writeRARequestLogs(&reqLogs) // write all failures or successes after processing
+	clientDoSuccess := false
+	for i := 1; i <= maxTries; i++ {
+		reqLog := &raRequestLog{RequestCount: i, StartTime: time.Now()}
+		finalReqLog = reqLog
+		reqLogs = append(reqLogs, finalReqLog)
+		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
+		defer cancelFn()
+
+		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxTries, req.RequestURI)
+		resp, err = client.Do(req.WithContext(ctx))
+		cancelFn() // cancel the context timeout we just used.
+		reqLog.Duration = time.Now().Sub(reqLog.StartTime)
+		logrus.Infof("Call to sippy finished after: %f seconds", reqLog.Duration.Seconds())
+		if err == nil && resp.StatusCode != http.StatusOK {
+			err = fmt.Errorf("error requesting risk analysis from sippy: status %s", resp.Status)
+		}
+		if err == nil {
+			clientDoSuccess = true
+			break
+		}
+		reqLog.Error = fmt.Sprintf("%v", err)
+		logrus.WithError(err).Warn("error requesting risk analysis from sippy, sleeping 30s")
+		sleepy.Sleep(time.Duration(i*30) * time.Second)
+	}
+	if !clientDoSuccess {
+		failure := "unable to obtain risk analysis from sippy after retries"
+		logrus.WithError(err).Error(failure)
+		if err == nil { // no error, but no success either
+			err = fmt.Errorf(failure)
+		}
+		return nil, err
+	}
+
+	// we have a response, read the body
+	defer resp.Body.Close()
+	riskAnalysisBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.WithError(err).Error("Error reading risk analysis request body from sippy")
+		finalReqLog.Error = fmt.Sprintf("%v", err)
+		return nil, err
+	}
+	logrus.Info("response Body:", string(riskAnalysisBytes))
+	finalReqLog.BytesRead = len(riskAnalysisBytes)
+	return riskAnalysisBytes, nil
+}
+
+func (opt *Options) writeRARequestLogs(logs *[]*raRequestLog) {
+	rows := []map[string]string{}
+	for _, log := range *logs {
+		rows = append(rows, map[string]string{
+			"RequestCount":    strconv.Itoa(log.RequestCount),
+			"StartTime":       log.StartTime.Format(time.RFC3339),
+			"DurationSeconds": fmt.Sprintf("%f", log.Duration.Seconds()),
+			"Error":           log.Error,
+			"BytesRead":       strconv.Itoa(log.BytesRead),
+		})
+	}
+	dataFile := dataloader.DataFile{
+		TableName: raReqLogTableName,
+		Schema: map[string]dataloader.DataType{
+			"RequestCount":    dataloader.DataTypeInteger,
+			"StartTime":       dataloader.DataTypeTimestamp,
+			"DurationSeconds": dataloader.DataTypeFloat64,
+			"Error":           dataloader.DataTypeString,
+			"BytesRead":       dataloader.DataTypeInteger,
+		},
+		Rows: rows,
+	}
+	fileName := filepath.Join(opt.JUnitDir, raReqLogFileName)
+	err := dataloader.WriteDataFile(fileName, dataFile)
+	if err != nil {
+		logrus.WithError(err).Warnf("unable to write data file: %s", fileName)
+	}
+}
+
+// writeRAResults writes the RA test results to autodl files in the junit directory; errors abort with a log message
+func (opt *Options) writeRAResults(analysisBytes []byte) {
+	var analysis struct {
+		Tests []struct {
+			Name   string
+			TestId int
+			Risk   struct {
+				Level struct {
+					Name  string
+					Level int
+				}
+				CurrentRuns           int
+				CurrentPasses         int
+				CurrentPassPercentage float64
+			}
+		}
+		OverallRisk struct {
+			Level struct {
+				Name  string
+				Level int
+			}
+			JobRunTestCount        int
+			JobRunTestFailures     int
+			NeverStableJob         bool
+			HistoricalRunTestCount int
+		}
+	}
+	err := json.Unmarshal(analysisBytes, &analysis)
+	if err != nil {
+		logrus.WithError(err).Error("Error unmarshalling risk analysis json")
+		return
+	}
+
+	overallFile := dataloader.DataFile{
+		TableName: raOverallRiskTableName,
+		Schema: map[string]dataloader.DataType{
+			"RiskLevel":              dataloader.DataTypeInteger,
+			"RiskName":               dataloader.DataTypeString,
+			"JobRunTestCount":        dataloader.DataTypeInteger,
+			"JobRunTestFailures":     dataloader.DataTypeInteger,
+			"NeverStableJob":         dataloader.DataTypeString,
+			"HistoricalRunTestCount": dataloader.DataTypeInteger,
+		},
+		Rows: []map[string]string{},
+	}
+	overallFile.Rows = append(overallFile.Rows, map[string]string{
+		"RiskLevel":              strconv.Itoa(analysis.OverallRisk.Level.Level),
+		"RiskName":               analysis.OverallRisk.Level.Name,
+		"JobRunTestCount":        strconv.Itoa(analysis.OverallRisk.JobRunTestCount),
+		"JobRunTestFailures":     strconv.Itoa(analysis.OverallRisk.JobRunTestFailures),
+		"NeverStableJob":         strconv.FormatBool(analysis.OverallRisk.NeverStableJob),
+		"HistoricalRunTestCount": strconv.Itoa(analysis.OverallRisk.HistoricalRunTestCount),
+	})
+	err = dataloader.WriteDataFile(filepath.Join(opt.JUnitDir, raOverallRiskFileName), overallFile)
+	if err != nil {
+		logrus.WithError(err).Errorf("Error writing risk analysis overall results autodl file %s", raOverallRiskFileName)
+	}
+
+	testsFile := dataloader.DataFile{
+		TableName: raTestResultsTableName,
+		Schema: map[string]dataloader.DataType{
+			"TestName":              dataloader.DataTypeString,
+			"TestID":                dataloader.DataTypeInteger,
+			"RiskLevel":             dataloader.DataTypeInteger,
+			"RiskName":              dataloader.DataTypeString,
+			"CurrentRuns":           dataloader.DataTypeInteger,
+			"CurrentPasses":         dataloader.DataTypeInteger,
+			"CurrentPassPercentage": dataloader.DataTypeFloat64,
+		},
+		Rows: []map[string]string{},
+	}
+	for _, test := range analysis.Tests {
+		testsFile.Rows = append(testsFile.Rows, map[string]string{
+			"TestName":              test.Name,
+			"TestID":                strconv.Itoa(test.TestId),
+			"RiskLevel":             strconv.Itoa(test.Risk.Level.Level),
+			"RiskName":              test.Risk.Level.Name,
+			"CurrentRuns":           strconv.Itoa(test.Risk.CurrentRuns),
+			"CurrentPasses":         strconv.Itoa(test.Risk.CurrentPasses),
+			"CurrentPassPercentage": fmt.Sprintf("%f", test.Risk.CurrentPassPercentage),
+		})
+	}
+	err = dataloader.WriteDataFile(filepath.Join(opt.JUnitDir, raTestResultsFileName), testsFile)
+	if err != nil {
+		logrus.WithError(err).Errorf("Error writing risk analysis test results autodl file %s", raTestResultsFileName)
+	}
 }
 
 type disruptionBackendAnalysis struct {
@@ -201,7 +381,7 @@ func runDisruptionAnalysis(opt *Options, jobType platformidentification.JobType)
 		if err != nil {
 			return nil, err
 		}
-		byteValue, _ := ioutil.ReadAll(f)
+		byteValue, _ := io.ReadAll(f)
 		err = json.Unmarshal(byteValue, &disruptList)
 		if err != nil {
 			return nil, err

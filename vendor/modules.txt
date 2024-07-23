@@ -570,6 +570,12 @@ github.com/grpc-ecosystem/grpc-gateway/utilities
 github.com/grpc-ecosystem/grpc-gateway/v2/internal/httprule
 github.com/grpc-ecosystem/grpc-gateway/v2/runtime
 github.com/grpc-ecosystem/grpc-gateway/v2/utilities
+# github.com/h2non/gock v1.2.0
+## explicit; go 1.13
+github.com/h2non/gock
+# github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542
+## explicit
+github.com/h2non/parth
 # github.com/hashicorp/hcl v1.0.0
 ## explicit
 github.com/hashicorp/hcl
