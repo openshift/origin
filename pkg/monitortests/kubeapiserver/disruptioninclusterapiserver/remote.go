@@ -42,8 +42,12 @@ var (
 	namespaceYaml []byte
 	//go:embed manifests/crb-privileged.yaml
 	rbacPrivilegedYaml []byte
+	//go:embed manifests/clusterrole-monitor.yaml
+	rbacMonitorClusterRoleYaml []byte
 	//go:embed manifests/role-monitor.yaml
 	rbacMonitorRoleYaml []byte
+	//go:embed manifests/rb-monitor.yaml
+	rbacMonitorRBYaml []byte
 	//go:embed manifests/crb-monitor.yaml
 	rbacListOauthClientCRBYaml []byte
 	//go:embed manifests/serviceaccount.yaml
@@ -53,10 +57,10 @@ var (
 	//go:embed manifests/dep-service-network.yaml
 	serviceNetworkDeploymentYaml []byte
 	//go:embed manifests/dep-localhost.yaml
-	localhostDeploymentYaml []byte
-	rbacPrivilegedCRBName   string
-	rbacMonitorRoleName     string
-	rbacMonitorCRBName      string
+	localhostDeploymentYaml    []byte
+	rbacPrivilegedCRBName      string
+	rbacMonitorClusterRoleName string
+	rbacMonitorCRBName         string
 )
 
 type InvariantInClusterDisruption struct {
@@ -154,15 +158,27 @@ func (i *InvariantInClusterDisruption) createRBACPrivileged(ctx context.Context)
 	return nil
 }
 
-func (i *InvariantInClusterDisruption) createMonitorRole(ctx context.Context) error {
-	rbacMonitorRoleObj := resourceread.ReadClusterRoleV1OrDie(rbacMonitorRoleYaml)
+func (i *InvariantInClusterDisruption) createMonitorClusterRole(ctx context.Context) error {
+	rbacMonitorRoleObj := resourceread.ReadClusterRoleV1OrDie(rbacMonitorClusterRoleYaml)
 
 	client := i.kubeClient.RbacV1().ClusterRoles()
 	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("error creating oauthclients list role: %v", err)
 	}
-	rbacMonitorRoleName = rbacMonitorRoleObj.Name
+	rbacMonitorClusterRoleName = rbacMonitorRoleObj.Name
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) createMonitorRole(ctx context.Context) error {
+	rbacMonitorRoleObj := resourceread.ReadRoleV1OrDie(rbacMonitorRoleYaml)
+	rbacMonitorRoleObj.Namespace = i.namespaceName
+
+	client := i.kubeClient.RbacV1().Roles(i.namespaceName)
+	_, err := client.Create(ctx, rbacMonitorRoleObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating oauthclients list role: %v", err)
+	}
 	return nil
 }
 
@@ -174,6 +190,19 @@ func (i *InvariantInClusterDisruption) createMonitorCRB(ctx context.Context) err
 	obj, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("error creating oauthclients list CRB: %v", err)
+	}
+	rbacMonitorCRBName = obj.Name
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) createMonitorRB(ctx context.Context) error {
+	rbacMonitorCRBObj := resourceread.ReadRoleBindingV1OrDie(rbacMonitorRBYaml)
+	rbacMonitorCRBObj.Subjects[0].Namespace = i.namespaceName
+
+	client := i.kubeClient.RbacV1().RoleBindings(i.namespaceName)
+	obj, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("error creating monitor RB: %v", err)
 	}
 	rbacMonitorCRBName = obj.Name
 	return nil
@@ -311,11 +340,19 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error creating privileged SCC rolebinding: %v", err)
 	}
+	err = i.createMonitorClusterRole(ctx)
+	if err != nil {
+		return fmt.Errorf("error creating monitor cluster role: %v", err)
+	}
+	err = i.createMonitorCRB(ctx)
+	if err != nil {
+		return fmt.Errorf("error creating monitor rolebinding: %v", err)
+	}
 	err = i.createMonitorRole(ctx)
 	if err != nil {
 		return fmt.Errorf("error creating monitor role: %v", err)
 	}
-	err = i.createMonitorCRB(ctx)
+	err = i.createMonitorRB(ctx)
 	if err != nil {
 		return fmt.Errorf("error creating monitor rolebinding: %v", err)
 	}
@@ -417,12 +454,12 @@ func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
 	}
 
 	rolesClient := i.kubeClient.RbacV1().ClusterRoles()
-	err = rolesClient.Delete(ctx, rbacMonitorRoleName, metav1.DeleteOptions{})
+	err = rolesClient.Delete(ctx, rbacMonitorClusterRoleName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error removing monitor role: %v", err)
 	}
 	if !apierrors.IsNotFound(err) {
-		logrus.Infof("Role %s removed", rbacMonitorRoleName)
+		log.Infof("Role %s removed", rbacMonitorClusterRoleName)
 	}
 	log.Infof("collect data completed")
 	return nil
