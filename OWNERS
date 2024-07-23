@@ -16,6 +16,7 @@ filters:
     - soltysh
     - stbenjam
     - xueqzhan
+    - sosiouxme
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"
