@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"regexp"
 
-	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/sirupsen/logrus"
 )
 
 type featureGateFilter struct {
@@ -67,7 +68,9 @@ func (f *featureGateFilter) includeTest(name string) bool {
 		featureGates = append(featureGates, featureGate)
 	}
 
-	shouldIncludeTest := !f.disabled.HasAny(featureGates...) && f.enabled.HasAll(featureGates...)
+	hasAnyDisabledFeatureGates := f.disabled.HasAny(featureGates...)
+	hasAllEnabledFeatureGates := f.enabled.HasAll(featureGates...)
+	shouldIncludeTest := !hasAnyDisabledFeatureGates && hasAllEnabledFeatureGates
 	if shouldIncludeTest {
 		logrus.Infof("Including test: %q", name)
 	} else {

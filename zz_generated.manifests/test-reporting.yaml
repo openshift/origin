@@ -65,6 +65,10 @@ spec:
   - featureGate: MetricsCollectionProfiles
     tests:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
+        collection profiles feature-set in an environment that has the minimal profile
+        pre-set should hide all default-only metrics when minimal collection profile
+        is enabled'
+    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
         collection profiles feature-set in an environment that migrates from default
         to minimal collection profile should apply default collection profile initially'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
@@ -75,10 +79,6 @@ spec:
         collection profiles feature-set in an environment that migrates from default
         to minimal collection profile should have at least one implementation for
         each collection profile'
-    - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in an environment that migrates from default
-        to minimal collection profile should hide all default-only metrics when minimal
-        collection profile is enabled'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
         collection profiles feature-set in an environment that migrates from minimal
         to default collection profile should revert back to default collection profile

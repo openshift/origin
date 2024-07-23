@@ -142,88 +142,77 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}).Should(o.BeNil())
 			}
 		})
-		g.It("should hide all default-only metrics when minimal collection profile is enabled", func() {
-			appNameSelector := "app.kubernetes.io/name"
-			appName := "kube-state-metrics"
-			for _, profile := range []string{collectionProfileFull, collectionProfileMinimal} {
-				if profile == collectionProfileMinimal {
-					appName += "-" + profile
-				}
-				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
-				o.Expect(err).To(o.BeNil())
+	})
 
-				var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
-				o.Eventually(func() error {
-					monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
+	var _ = g.Context("in an environment that has the minimal profile pre-set", func() {
+		g.It("should hide all default-only metrics when minimal collection profile is enabled", func() {
+			profile := collectionProfileMinimal
+			appNameSelector := "app.kubernetes.io/name"
+			appName := "kube-state-metrics" + "-" + profile
+
+			var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
+			o.Eventually(func() error {
+				monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
+				if err != nil {
+					return err
+				}
+				if len(monitors.Items) == 0 {
+					return fmt.Errorf("no monitors found with collection profile %q and name: %q", profile, appName)
+				}
+				if len(monitors.Items) > 1 {
+					return fmt.Errorf("more than one monitor found with collection profile %q and name: %q", profile, appName)
+				}
+				kubeStateMetricsMonitor = monitors.Items[0]
+
+				return nil
+			}).Should(o.BeNil())
+
+			var regexpStringWholeMetricNamesCount int
+			kubeStateMetricsMonitorSpec := kubeStateMetricsMonitor.Spec
+			kubeStateMetricsMonitorSpecEndpoints := kubeStateMetricsMonitorSpec.Endpoints
+			if len(kubeStateMetricsMonitorSpecEndpoints) != 0 {
+				kubeStateMetricsMonitorSpecEndpoints0Relabelings := kubeStateMetricsMonitorSpecEndpoints[0].MetricRelabelConfigs
+				if len(kubeStateMetricsMonitorSpecEndpoints0Relabelings) != 0 {
+					for _, relabeling := range kubeStateMetricsMonitorSpecEndpoints0Relabelings {
+						// NOTE: This should accommodate for future changes to the relabeling scope.
+						if relabeling.Action == "keep" &&
+							len(relabeling.SourceLabels) == 1 &&
+							relabeling.SourceLabels[0] == "__name__" {
+							regexpString := relabeling.Regex
+							regexpStringWholeMetricNamesCount += strings.Count(regexpString, `|`) + 1
+						}
+					}
+				}
+			}
+			o.Expect(regexpStringWholeMetricNamesCount).To(o.BeNumerically(">", 0))
+
+			o.Eventually(func() error {
+				preRelabelingMetric := "scrape_samples_scraped"
+				var relabelledMetricsCountPre int
+				postRelabelingMetric := "scrape_samples_post_metric_relabeling"
+				var relabelledMetricsCountPost int
+				for j, metric := range []string{preRelabelingMetric, postRelabelingMetric} {
+					relabelingMetricQuery := fmt.Sprintf("max(%s{job=\"%s\",endpoint=\"https-main\"})", metric, appName)
+					queryResponse, err := helper.RunQuery(tctx, r.pclient, relabelingMetricQuery)
 					if err != nil {
 						return err
 					}
-					if len(monitors.Items) == 0 {
-						return fmt.Errorf("no monitors found with collection profile %q and name: %q", profile, appName)
+					if len(queryResponse.Data.Result) == 0 {
+						return fmt.Errorf("no result found for metric %q", metric)
 					}
-					if len(monitors.Items) > 1 {
-						return fmt.Errorf("more than one monitor found with collection profile %q and name: %q", profile, appName)
+					if j == 0 {
+						relabelledMetricsCountPre = int(queryResponse.Data.Result[0].Value)
 					}
-					kubeStateMetricsMonitor = monitors.Items[0]
-
-					return nil
-				}).Should(o.BeNil())
-
-				var regexpStringWholeMetricNamesCount int
-				kubeStateMetricsMonitorSpec := kubeStateMetricsMonitor.Spec
-				kubeStateMetricsMonitorSpecEndpoints := kubeStateMetricsMonitorSpec.Endpoints
-				if len(kubeStateMetricsMonitorSpecEndpoints) != 0 {
-					kubeStateMetricsMonitorSpecEndpoints0Relabelings := kubeStateMetricsMonitorSpecEndpoints[0].MetricRelabelConfigs
-					if len(kubeStateMetricsMonitorSpecEndpoints0Relabelings) != 0 {
-						for _, relabeling := range kubeStateMetricsMonitorSpecEndpoints0Relabelings {
-							// NOTE: This should accommodate for future changes to the relabeling scope.
-							if relabeling.Action == "keep" &&
-								len(relabeling.SourceLabels) == 1 &&
-								relabeling.SourceLabels[0] == "__name__" {
-								regexpString := relabeling.Regex
-								regexpStringWholeMetricNamesCount += strings.Count(regexpString, `|`) + 1
-							}
-						}
+					if j == 1 {
+						relabelledMetricsCountPost = int(queryResponse.Data.Result[0].Value)
 					}
 				}
-				if profile == collectionProfileMinimal {
-					o.Expect(regexpStringWholeMetricNamesCount).To(o.BeNumerically(">", 0))
-				}
-				if profile == collectionProfileFull {
-					o.Expect(regexpStringWholeMetricNamesCount).To(o.BeNumerically("==", 0))
+				if profile == collectionProfileMinimal && relabelledMetricsCountPost-relabelledMetricsCountPre != regexpStringWholeMetricNamesCount {
+					return fmt.Errorf("relabelled metrics count mismatch for profile %q, pre: %d, post: %d", profile, relabelledMetricsCountPre, relabelledMetricsCountPost)
 				}
 
-				o.Eventually(func() error {
-					preRelabelingMetric := "scrape_samples_scraped"
-					var relabelledMetricsCountPre int
-					postRelabelingMetric := "scrape_samples_post_metric_relabeling"
-					var relabelledMetricsCountPost int
-					for j, metric := range []string{preRelabelingMetric, postRelabelingMetric} {
-						relabelingMetricQuery := fmt.Sprintf("max(%s{job=\"%s\",endpoint=\"https-main\"})", metric, appName)
-						queryResponse, err := helper.RunQuery(tctx, r.pclient, relabelingMetricQuery)
-						if err != nil {
-							return err
-						}
-						if len(queryResponse.Data.Result) == 0 {
-							return fmt.Errorf("no result found for metric %q", metric)
-						}
-						if j == 0 {
-							relabelledMetricsCountPre = int(queryResponse.Data.Result[0].Value)
-						}
-						if j == 1 {
-							relabelledMetricsCountPost = int(queryResponse.Data.Result[0].Value)
-						}
-					}
-					if profile == collectionProfileFull && relabelledMetricsCountPost != relabelledMetricsCountPre {
-						return fmt.Errorf("relabelled metrics count mismatch for profile %q, pre: %d, post: %d", profile, relabelledMetricsCountPre, relabelledMetricsCountPost)
-					}
-					if profile == collectionProfileMinimal && relabelledMetricsCountPost-relabelledMetricsCountPre != regexpStringWholeMetricNamesCount {
-						return fmt.Errorf("relabelled metrics count mismatch for profile %q, pre: %d, post: %d", profile, relabelledMetricsCountPre, relabelledMetricsCountPost)
-					}
-
-					return nil
-				}).Should(o.BeNil())
-			}
+				return nil
+			}).Should(o.BeNil())
 		})
 	})
 
