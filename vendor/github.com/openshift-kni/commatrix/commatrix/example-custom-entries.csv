@@ -1,0 +1,3 @@
+Direction,Protocol,Port,Namespace,Service,Pod,Container,NodeRole,Optional
+ingress,TCP,9050,example-namespace,example-service,example-pod,example-container,master,false
+ingress,UDP,9051,example-namespace2,example-service2,example-pod2,example-container2,woker,false
