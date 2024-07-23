@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -79,13 +78,11 @@ func NewInvariantInClusterDisruption(info monitortestframework.MonitorTestInitia
 }
 
 func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx context.Context, deploymentObj *appsv1.Deployment) error {
-
 	client := i.kubeClient.AppsV1().Deployments(deploymentObj.Namespace)
 	_, err := client.Create(ctx, deploymentObj, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("error creating deployment %s: %v", deploymentObj.Namespace, err)
 	}
-	logrus.Infof("in-cluster monitor: deployment %s:\n%#v\n", deploymentObj.Name, deploymentObj.ObjectMeta)
 
 	timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
@@ -147,7 +144,6 @@ func (i *InvariantInClusterDisruption) createLocalhostDeployment(ctx context.Con
 func (i *InvariantInClusterDisruption) createRBACPrivileged(ctx context.Context) error {
 	rbacPrivilegedObj := resourceread.ReadClusterRoleBindingV1OrDie(rbacPrivilegedYaml)
 	rbacPrivilegedObj.Subjects[0].Namespace = i.namespaceName
-	logrus.Infof("in-cluster monitor: privileged CRB:\n%#v\n", rbacPrivilegedObj)
 
 	client := i.kubeClient.RbacV1().ClusterRoleBindings()
 	obj, err := client.Create(ctx, rbacPrivilegedObj, metav1.CreateOptions{})
@@ -173,7 +169,6 @@ func (i *InvariantInClusterDisruption) createMonitorRole(ctx context.Context) er
 func (i *InvariantInClusterDisruption) createMonitorCRB(ctx context.Context) error {
 	rbacMonitorCRBObj := resourceread.ReadClusterRoleBindingV1OrDie(rbacListOauthClientCRBYaml)
 	rbacMonitorCRBObj.Subjects[0].Namespace = i.namespaceName
-	logrus.Infof("in-cluster monitor: monitor role CRB:\n%#v\n", rbacMonitorCRBObj)
 
 	client := i.kubeClient.RbacV1().ClusterRoleBindings()
 	obj, err := client.Create(ctx, rbacMonitorCRBObj, metav1.CreateOptions{})
@@ -187,7 +182,6 @@ func (i *InvariantInClusterDisruption) createMonitorCRB(ctx context.Context) err
 func (i *InvariantInClusterDisruption) createServiceAccount(ctx context.Context) error {
 	serviceAccountObj := resourceread.ReadServiceAccountV1OrDie(serviceAccountYaml)
 	serviceAccountObj.SetNamespace(i.namespaceName)
-	logrus.Infof("in-cluster monitor: serviceaccount created in %s namespace\n", i.namespaceName)
 
 	client := i.kubeClient.CoreV1().ServiceAccounts(i.namespaceName)
 	_, err := client.Create(ctx, serviceAccountObj, metav1.CreateOptions{})
@@ -198,6 +192,8 @@ func (i *InvariantInClusterDisruption) createServiceAccount(ctx context.Context)
 }
 
 func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (string, error) {
+	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "createNamespace")
+
 	namespaceObj := resourceread.ReadNamespaceV1OrDie(namespaceYaml)
 
 	client := i.kubeClient.CoreV1().Namespaces()
@@ -205,7 +201,7 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return "", fmt.Errorf("error creating namespace: %v", err)
 	}
-	logrus.Infof("in-cluster monitor: created namespace %s\n", actualNamespace.Name)
+	log.Infof("created namespace %s", actualNamespace.Name)
 	return actualNamespace.Name, nil
 }
 
@@ -221,7 +217,8 @@ func (i *InvariantInClusterDisruption) namespaceAlreadyCreated(ctx context.Conte
 
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
 	var err error
-	logrus.Infof("in-cluster monitor: payload image pull spec is %v\n", i.payloadImagePullSpec)
+	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "StartCollection")
+	log.Infof("payload image pull spec is %v", i.payloadImagePullSpec)
 	if len(i.payloadImagePullSpec) == 0 {
 		configClient, err := configclient.NewForConfig(adminRESTConfig)
 		if err != nil {
@@ -249,7 +246,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return nil
 	}
 	i.openshiftTestsImagePullSpec = strings.TrimSpace(out.String())
-	logrus.Infof("in-cluster monitor: openshift-tests image pull spec is %v\n", i.openshiftTestsImagePullSpec)
+	log.Infof("openshift-tests image pull spec is %v", i.openshiftTestsImagePullSpec)
 
 	i.adminRESTConfig = adminRESTConfig
 	i.kubeClient, err = kubernetes.NewForConfig(i.adminRESTConfig)
@@ -259,16 +256,18 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 
 	if ok, _ := exutil.IsMicroShiftCluster(i.kubeClient); ok {
 		i.notSupportedReason = "microshift clusters don't have load balancers"
+		log.Infof("IsMicroShiftCluster: %s", i.notSupportedReason)
 		return nil
 	}
 
 	// Exit early if another test has already created a namespace
 	if i.namespaceAlreadyCreated(ctx) {
 		i.notSupportedReason = "in-cluster monitor is already running"
+		log.Infof("namespaceAlreadyCreated: %s", i.notSupportedReason)
 		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Starting in-cluster monitoring deployments\n")
+	log.Infof("starting monitoring deployments")
 	configClient, err := configclient.NewForConfig(i.adminRESTConfig)
 	if err != nil {
 		return fmt.Errorf("error constructing openshift config client: %v", err)
@@ -332,13 +331,18 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error creating internal LB: %v", err)
 	}
+	log.Infof("monitoring deployments started")
 	return nil
 }
 
 func (i *InvariantInClusterDisruption) CollectData(ctx context.Context, storageDir string, beginning time.Time, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "CollectData")
+
 	if len(i.notSupportedReason) > 0 {
 		return nil, nil, nil
 	}
+
+	log.Infof("creating flag configmap")
 
 	// create the stop collecting configmap and wait for 30s to thing to have stopped.  the 30s is just a guess
 	if _, err := i.kubeClient.CoreV1().ConfigMaps(i.namespaceName).Create(ctx, &corev1.ConfigMap{
@@ -354,7 +358,7 @@ func (i *InvariantInClusterDisruption) CollectData(ctx context.Context, storageD
 		return nil, nil, ctx.Err()
 	}
 
-	fmt.Fprintf(os.Stderr, "Collecting data from in-cluster monitoring deployments\n")
+	log.Infof("collecting data from the deployments")
 
 	pollerLabel, err := labels.NewRequirement("apiserver.openshift.io/disruption-actor", selection.Equals, []string{"poller"})
 	if err != nil {
@@ -362,6 +366,7 @@ func (i *InvariantInClusterDisruption) CollectData(ctx context.Context, storageD
 	}
 
 	intervals, junits, errs := disruptionlibrary.CollectIntervalsForPods(ctx, i.kubeClient, "Jira: \"kube-apiserver\"", i.namespaceName, labels.NewSelector().Add(*pollerLabel))
+	log.Infof("intervals collected")
 	return intervals, junits, utilerrors.NewAggregate(errs)
 }
 
@@ -378,28 +383,29 @@ func (i *InvariantInClusterDisruption) WriteContentToStorage(ctx context.Context
 }
 
 func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
+	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "Cleanup")
 	if len(i.notSupportedReason) > 0 {
 		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Removing in-cluster monitoring namespace\n")
+	log.Infof("removing monitoring namespace")
 	nsClient := i.kubeClient.CoreV1().Namespaces()
 	err := nsClient.Delete(ctx, i.namespaceName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error removing namespace %s: %v", i.namespaceName, err)
 	}
 	if !apierrors.IsNotFound(err) {
-		fmt.Fprintf(os.Stderr, "Namespace %s removed\n", i.namespaceName)
+		log.Infof("Namespace %s removed", i.namespaceName)
 	}
 
-	fmt.Fprintf(os.Stderr, "Removing in-cluster monitoring cluster roles and bindings\n")
+	log.Infof("removing monitoring cluster roles and bindings")
 	crbClient := i.kubeClient.RbacV1().ClusterRoleBindings()
 	err = crbClient.Delete(ctx, rbacPrivilegedCRBName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error removing cluster reader CRB: %v", err)
 	}
 	if !apierrors.IsNotFound(err) {
-		fmt.Fprintf(os.Stderr, "CRB %s removed\n", rbacPrivilegedCRBName)
+		log.Infof("CRB %s removed", rbacPrivilegedCRBName)
 	}
 
 	err = crbClient.Delete(ctx, rbacMonitorCRBName, metav1.DeleteOptions{})
@@ -407,7 +413,7 @@ func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
 		return fmt.Errorf("error removing monitor CRB: %v", err)
 	}
 	if !apierrors.IsNotFound(err) {
-		fmt.Fprintf(os.Stderr, "CRB %s removed\n", rbacMonitorCRBName)
+		log.Infof("CRB %s removed", rbacMonitorCRBName)
 	}
 
 	rolesClient := i.kubeClient.RbacV1().ClusterRoles()
@@ -416,7 +422,8 @@ func (i *InvariantInClusterDisruption) Cleanup(ctx context.Context) error {
 		return fmt.Errorf("error removing monitor role: %v", err)
 	}
 	if !apierrors.IsNotFound(err) {
-		fmt.Fprintf(os.Stderr, "Role %s removed\n", rbacMonitorRoleName)
+		logrus.Infof("Role %s removed", rbacMonitorRoleName)
 	}
+	log.Infof("collect data completed")
 	return nil
 }
