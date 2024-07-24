@@ -79,6 +79,30 @@ spec:
   - featureGate: NetworkSegmentation
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror
+        EndpointSlices in namespaces not using user defined primary networks L2 dualstack
+        primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror
+        EndpointSlices in namespaces not using user defined primary networks L3 dualstack
+        primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
+        managed by the default controller for namespaces with user defined primary
+        networks L2 dualstack primary UDN, cluster-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
+        managed by the default controller for namespaces with user defined primary
+        networks L2 dualstack primary UDN, host-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
+        managed by the default controller for namespaces with user defined primary
+        networks L3 dualstack primary UDN, cluster-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
+        managed by the default controller for namespaces with user defined primary
+        networks L3 dualstack primary UDN, host-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes can perform east/west traffic between
         nodes for two pods connected over a L2 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]

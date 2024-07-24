@@ -1473,6 +1473,18 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should set the condition to false if there are no nodes able to host the source pods": " [Suite:openshift/conformance/serial]",
 
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror EndpointSlices in namespaces not using user defined primary networks L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror EndpointSlices in namespaces not using user defined primary networks L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 dualstack primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 dualstack primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 dualstack primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 dualstack primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes can perform east/west traffic between nodes for two pods connected over a L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes can perform east/west traffic between nodes two pods connected over a L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
