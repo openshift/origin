@@ -37,7 +37,7 @@ spec:
               value: "/kubeconfigs/localhost.kubeconfig"
             - name: LOAD_BALANCER
               value: localhost
-          image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
+          image: to-be-replaced
           volumeMounts:
             - mountPath: /var/log/disruption-data
               name: artifacts

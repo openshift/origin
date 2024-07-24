@@ -35,7 +35,7 @@ spec:
           env:
             - name: LOAD_BALANCER
               value: service-network
-          image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
+          image: to-be-replaced
           volumeMounts:
             - mountPath: /var/log/disruption-data
               name: artifacts

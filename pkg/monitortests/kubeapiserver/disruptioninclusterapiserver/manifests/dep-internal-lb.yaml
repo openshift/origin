@@ -39,7 +39,7 @@ spec:
               value: "6443"
             - name: LOAD_BALANCER
               value: "internal-lb"
-          image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
+          image: to-be-replaced
           volumeMounts:
             - mountPath: /var/log/disruption-data
               name: artifacts
