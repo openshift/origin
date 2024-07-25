@@ -235,7 +235,7 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 }
 
 func (i *InvariantInClusterDisruption) namespaceAlreadyCreated(ctx context.Context) bool {
-	namespaces, err := i.kubeClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{
+	namespaces, err := i.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set{"apiserver.openshift.io/incluster-disruption": "true"}.AsSelector().String(),
 	})
 	if err != nil {
@@ -301,7 +301,7 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error constructing openshift config client: %v", err)
 	}
-	infra, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	infra, err := configClient.ConfigV1().Infrastructures().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error getting openshift infrastructure: %v", err)
 	}
@@ -312,13 +312,13 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	}
 	apiIntHost := internalAPI.Hostname()
 
-	allNodes, err := i.kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	allNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("error getting nodes: %v", err)
 	}
 	i.allNodes = int32(len(allNodes.Items))
 
-	controlPlaneNodes, err := i.kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{
+	controlPlaneNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set{"node-role.kubernetes.io/master": ""}.AsSelector().String(),
 	})
 	if err != nil {
