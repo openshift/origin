@@ -235,13 +235,19 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 }
 
 func (i *InvariantInClusterDisruption) namespaceAlreadyCreated(ctx context.Context) bool {
+	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "namespaceAlreadyCreated")
 	namespaces, err := i.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set{"apiserver.openshift.io/incluster-disruption": "true"}.AsSelector().String(),
 	})
 	if err != nil {
+		log.Infof("error: %v", err)
+		return true
+	}
+	if len(namespaces.Items) == 0 {
 		return false
 	}
-	return len(namespaces.Items) != 0
+	log.Infof("namespaces.Items: %v", namespaces.Items)
+	return true
 }
 
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
