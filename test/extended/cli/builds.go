@@ -226,7 +226,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("webhooks CRUD [apigroup:build.openshift.io]", func() {
+		g.It("webhooks CRUD [apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
 			g.By("check bc webhooks")
 			out, err := oc.Run("describe").Args("buildConfigs", "ruby-sample-build").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -284,7 +284,7 @@ var _ = g.Describe("[sig-cli] oc builds", func() {
 			))
 		})
 
-		g.It("start-build [apigroup:build.openshift.io]", func() {
+		g.It("start-build [apigroup:build.openshift.io][apigroup:apps.openshift.io]", func() {
 			g.By("valid build")
 			out, err := oc.Run("start-build").Args("--from-webhook", getTriggerURL("secret101", "generic")).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
