@@ -33,17 +33,17 @@ spec:
         due to JSONSchema errors on unchanged uncorrelatable fields'
   - featureGate: ChunkSizeMiB
     tests:
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should not accept invalid ChunkSizeMiB
         value'
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should reject ChunkSizeMiB value greater
         than 5 GiB'
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set ChunkSizeMiB value'
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set maximum valid ChunkSizeMiB value'
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value'
   - featureGate: DNSNameResolver
     tests:
