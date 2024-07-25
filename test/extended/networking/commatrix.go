@@ -29,6 +29,8 @@ const (
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 	g.It("should be equal to documeneted communication matrix", func() {
 		artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
+		err := os.MkdirAll(artifactsDir, 0755)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		kubeconfig, ok := os.LookupEnv("KUBECONFIG")
 		if !ok {
