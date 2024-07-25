@@ -236,7 +236,7 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 
 func (i *InvariantInClusterDisruption) namespaceAlreadyCreated(ctx context.Context) bool {
 	namespaces, err := i.kubeClient.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{
-		LabelSelector: labels.Set{"network.openshift.io/incluster-disruption": "true"}.AsSelector().String(),
+		LabelSelector: labels.Set{"apiserver.openshift.io/incluster-disruption": "true"}.AsSelector().String(),
 	})
 	if err != nil {
 		return false

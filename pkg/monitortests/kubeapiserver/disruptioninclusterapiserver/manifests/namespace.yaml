@@ -6,6 +6,6 @@ metadata:
     pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/audit: privileged
     pod-security.kubernetes.io/warn: privileged
-    network.openshift.io/incluster-disruption: "true"
+    apiserver.openshift.io/incluster-disruption: "true"
   annotations:
     workload.openshift.io/allowed: management
