@@ -234,20 +234,35 @@ func (i *InvariantInClusterDisruption) createNamespace(ctx context.Context) (str
 	return actualNamespace.Name, nil
 }
 
-func (i *InvariantInClusterDisruption) namespaceAlreadyCreated(ctx context.Context) bool {
+func (i *InvariantInClusterDisruption) removeExistingMonitorNamespaces(ctx context.Context) error {
 	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", i.namespaceName).WithField("func", "namespaceAlreadyCreated")
 	namespaces, err := i.kubeClient.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set{"apiserver.openshift.io/incluster-disruption": "true"}.AsSelector().String(),
 	})
 	if err != nil {
 		log.Infof("error: %v", err)
-		return true
+		return err
 	}
-	if len(namespaces.Items) == 0 {
-		return false
+	for _, ns := range namespaces.Items {
+		if err := i.deleteNamespace(ctx, ns.Name); err != nil {
+			return err
+		}
 	}
-	log.Infof("namespaces.Items: %v", namespaces.Items)
-	return true
+	return nil
+}
+
+func (i *InvariantInClusterDisruption) deleteNamespace(ctx context.Context, name string) error {
+	log := logrus.WithField("monitorTest", "apiserver-incluster-availability").WithField("namespace", name).WithField("func", "deleteNamespace")
+	log.Infof("removing monitoring namespace")
+	nsClient := i.kubeClient.CoreV1().Namespaces()
+	err := nsClient.Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error removing namespace %s: %v", name, err)
+	}
+	if !apierrors.IsNotFound(err) {
+		log.Infof("Namespace %s removed", name)
+	}
+	return nil
 }
 
 func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, _ monitorapi.RecorderWriter) error {
@@ -295,11 +310,10 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return nil
 	}
 
-	// Exit early if another test has already created a namespace
-	if i.namespaceAlreadyCreated(ctx) {
-		i.notSupportedReason = "in-cluster monitor is already running"
-		log.Infof("namespaceAlreadyCreated: %s", i.notSupportedReason)
-		return nil
+	// Replace namespace from earlier test
+	if err := i.removeExistingMonitorNamespaces(ctx); err != nil {
+		log.Infof("removeExistingMonitorNamespaces returned error %v", err)
+		return err
 	}
 
 	log.Infof("starting monitoring deployments")
