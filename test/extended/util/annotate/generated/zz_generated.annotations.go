@@ -1685,7 +1685,7 @@ var Annotations = map[string]string{
 
 	"[sig-scheduling][Early] The HAProxy router pods [apigroup:route.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
-	"[sig-scheduling][Early] The openshift-apiserver pods [apigroup:apps.openshift.io][apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:quota.openshift.io][apigroup:route.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
+	"[sig-scheduling][Early] The openshift-apiserver pods [apigroup:authorization.openshift.io][apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:quota.openshift.io][apigroup:route.openshift.io][apigroup:security.openshift.io][apigroup:template.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
 	"[sig-scheduling][Early] The openshift-authentication pods [apigroup:oauth.openshift.io] should be scheduled on different nodes": " [Skipped:SingleReplicaTopology] [Suite:openshift/conformance/parallel]",
 
