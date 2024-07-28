@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/riskanalysis"
+	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
@@ -149,6 +150,9 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 	}
 	onlyFailingTests := failedTestNames.Difference(successfulTestNames)
 	if len(onlyFailingTests) > 0 {
+		for _, tn := range onlyFailingTests {
+			logrus.Error("returning failed state from Stop() due to failed test: %s", tn)
+		}
 		resultState = Failed
 	}
 
