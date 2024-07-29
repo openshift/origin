@@ -241,7 +241,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 })
 
-func (r *runner) fetchMonitorsFor(selectors ...[2]string) (*prometheusoperatorv1.ServiceMonitorList, error) {
+func (r runner) fetchMonitorsFor(selectors ...[2]string) (*prometheusoperatorv1.ServiceMonitorList, error) {
 	managedMonitorsSelectors := []string{
 		fmt.Sprintf("%s=%s", "app.kubernetes.io/managed-by", operatorName),
 	}
@@ -253,7 +253,7 @@ func (r *runner) fetchMonitorsFor(selectors ...[2]string) (*prometheusoperatorv1
 	})
 }
 
-func (r *runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string) error {
+func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, collectionProfile string) error {
 	dataConfigYAMLPrometheusK8s := fmt.Sprintf("collectionProfile: %s", collectionProfile)
 	dataConfigYAMLPrometheusK8sStructured := map[string]interface{}{
 		"collectionProfile": collectionProfile,

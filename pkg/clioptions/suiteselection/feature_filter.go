@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/sirupsen/logrus"
 )
 
 type featureGateFilter struct {
@@ -68,16 +67,11 @@ func (f *featureGateFilter) includeTest(name string) bool {
 		featureGates = append(featureGates, featureGate)
 	}
 
-	hasAnyDisabledFeatureGates := f.disabled.HasAny(featureGates...)
-	hasAllEnabledFeatureGates := f.enabled.HasAll(featureGates...)
-	shouldIncludeTest := !hasAnyDisabledFeatureGates && hasAllEnabledFeatureGates
-	if shouldIncludeTest {
-		logrus.Infof("Including test: %q", name)
-	} else {
-		logrus.Infof("Excluding test: %q (requires feature-gates: %v)", name, featureGates)
+	if f.disabled.HasAny(featureGates...) {
+		return false
 	}
 
-	return shouldIncludeTest
+	return f.enabled.HasAll(featureGates...)
 }
 
 func includeNonFeatureGateTest(name string) bool {
