@@ -364,17 +364,6 @@ func InKubeVirtClusterContext(oc *exutil.CLI, body func()) {
 	)
 }
 
-func AfterLiveMigrateWorkersContext(f *e2e.Framework, body func()) {
-	Context("and live migrate hosted control plane workers [Early]",
-		func() {
-			BeforeEach(func() {
-				setMgmtFramework(f)
-				expectNoError(migrateWorkers(f))
-			})
-			body()
-		})
-}
-
 func setMgmtFramework(mgmtFramework *e2e.Framework) *exutil.CLI {
 	_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 	Expect(err).NotTo(HaveOccurred())
