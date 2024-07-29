@@ -33,7 +33,7 @@ var _ = g.Describe("[sig-cli] templates", func() {
 		multilinePath                = filepath.Join(testDataPath, "templates", "multiline.txt")
 	)
 
-	g.It("process [apigroup:apps.openshift.io][apigroup:template.openshift.io][Skipped:Disconnected]", func() {
+	g.It("process [apigroup:template.openshift.io][Skipped:Disconnected]", func() {
 		err := oc.Run("get").Args("templates").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("create").Args("-f", appTemplatePath).Execute()

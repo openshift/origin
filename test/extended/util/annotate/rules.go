@@ -175,6 +175,7 @@ var (
 			`\[sig-builds\]\[Feature:Builds\]\[pullsearch\] docker build where the registry is not specified Building from a Dockerfile whose FROM image ref does not specify the image registry should create a docker build that has buildah search from our predefined list of image registries and succeed`,
 			`\[sig-cli\] CLI can run inside of a busybox container`,
 			`\[sig-cli\] oc debug deployment configs from a build`,
+			`\[sig-cli\] oc debug deployment from a build`,
 			`\[sig-cli\] oc rsh specific flags should work well when access to a remote shell`,
 			`\[sig-cli\] oc builds get buildconfig`,
 			`\[sig-cli\] oc builds patch buildconfig`,

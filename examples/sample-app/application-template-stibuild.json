@@ -164,75 +164,24 @@
       }
     },
     {
-      "kind": "DeploymentConfig",
-      "apiVersion": "apps.openshift.io/v1",
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
       "metadata": {
         "name": "frontend",
         "annotations": {
-          "template.alpha.openshift.io/wait-for-ready": "true"
+          "template.alpha.openshift.io/wait-for-ready": "true",
+          "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"origin-ruby-sample:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
         }
       },
       "spec": {
         "strategy": {
-          "type": "Rolling",
-          "rollingParams": {
-            "updatePeriodSeconds": 1,
-            "intervalSeconds": 1,
-            "timeoutSeconds": 120,
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ],
-                "containerName": "ruby-helloworld"
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld"
-              }
-            }
-          },
-          "resources": {}
+          "type": "RollingUpdate"
         },
-        "triggers": [
-          {
-            "type": "ImageChange",
-            "imageChangeParams": {
-              "automatic": true,
-              "containerNames": [
-                "ruby-helloworld"
-              ],
-              "from": {
-                "kind": "ImageStreamTag",
-                "name": "origin-ruby-sample:latest"
-              }
-            }
-          },
-          {
-            "type": "ConfigChange"
-          }
-        ],
         "replicas": 2,
         "selector": {
-          "name": "frontend"
+          "matchLabels": {
+            "name": "frontend"
+          }
         },
         "template": {
           "metadata": {
@@ -317,8 +266,8 @@
       }
     },
     {
-      "kind": "DeploymentConfig",
-      "apiVersion": "apps.openshift.io/v1",
+      "kind": "Deployment",
+      "apiVersion": "apps/v1",
       "metadata": {
         "name": "database",
         "annotations": {
@@ -327,67 +276,13 @@
       },
       "spec": {
         "strategy": {
-          "type": "Recreate",
-          "recreateParams": {
-            "pre": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR1",
-                    "value": "custom_value1"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            },
-            "mid": {
-              "failurePolicy": "Abort",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            },
-            "post": {
-              "failurePolicy": "Ignore",
-              "execNewPod": {
-                "command": [
-                  "/bin/true"
-                ],
-                "env": [
-                  {
-                    "name": "CUSTOM_VAR2",
-                    "value": "custom_value2"
-                  }
-                ],
-                "containerName": "ruby-helloworld-database",
-                "volumes": ["ruby-helloworld-data"]
-              }
-            }
-          },
-          "resources": {}
+          "type": "Recreate"
         },
-        "triggers": [
-          {
-            "type": "ConfigChange"
-          }
-        ],
         "replicas": 1,
         "selector": {
-          "name": "database"
+          "matchLabels": {
+            "name": "database"
+          }
         },
         "template": {
           "metadata": {
