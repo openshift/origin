@@ -2,6 +2,7 @@ package cloud_controller_manager
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ghodss/yaml"
@@ -15,6 +16,11 @@ import (
 
 const cloudControllerNamespace = "openshift-cloud-controller-manager"
 const kuberControllerNamespace = "openshift-kube-controller-manager"
+
+type SimpleSystemdUnit struct {
+	Contents string
+	Name     string
+}
 
 var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager][Late]", func() {
 	defer g.GinkgoRecover()
@@ -52,16 +58,30 @@ var _ = g.Describe("[sig-cloud-provider][Feature:OpenShiftCloudControllerManager
 			g.Fail(fmt.Sprintf("Expected cloud-provider %v setting to indicate KCM relinquished cloud ownership", cloudProvider))
 		}
 
+		var systemdUnits []SimpleSystemdUnit
+
 		g.By("Getting masters MachineConfig")
-		masterkubelet, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("machineconfig/01-master-kubelet", "-o=jsonpath={.spec.config.systemd.units[0].contents}").Output()
+		masterkubelets, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("machineconfig/01-master-kubelet", "-o=jsonpath={.spec.config.systemd.units}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.By("Expecting masters MachineConfig to contain cloud-provider as external for kubelet")
-		o.Expect(masterkubelet).To(o.ContainSubstring("cloud-provider=external"))
+		err = json.Unmarshal([]byte(masterkubelets), &systemdUnits)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(systemdUnits).To(
+			o.ContainElement(o.SatisfyAll(
+				o.HaveField("Name", o.Equal("kubelet.service")),
+				o.HaveField("Contents", o.ContainSubstring("cloud-provider=external")),
+			)))
 
 		g.By("Getting workers MachineConfig")
-		workerkubelet, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("machineconfig/01-worker-kubelet", "-o=jsonpath={.spec.config.systemd.units[0].contents}").Output()
+		workerkubelets, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("machineconfig/01-worker-kubelet", "-o=jsonpath={.spec.config.systemd.units}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		g.By("Expecting workers MachineConfig to contain cloud-provider as external for kubelet")
-		o.Expect(workerkubelet).To(o.ContainSubstring("cloud-provider=external"))
+		err = json.Unmarshal([]byte(workerkubelets), &systemdUnits)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(systemdUnits).To(
+			o.ContainElement(o.SatisfyAll(
+				o.HaveField("Name", o.Equal("kubelet.service")),
+				o.HaveField("Contents", o.ContainSubstring("cloud-provider=external")),
+			)))
 	})
 })
