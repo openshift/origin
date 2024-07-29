@@ -145,13 +145,7 @@ type raRequestLog struct {
 // readWriteRiskAnalysis requests Risk Analysis from sippy, writes the results to disk, and returns the RA html to include in prow job output.
 // If the request fails, it will try up to maxTries times before returning an error; an error means no RA data returned.
 func (opt *Options) readWriteRiskAnalysis(inputBytes []byte) ([]byte, error) {
-	req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
-	if err != nil {
-		logrus.WithError(err).Error("Error creating GET request during risk analysis")
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	riskAnalysisBytes, err := opt.requestRiskAnalysis(req, &http.Client{}, &realSleeper{})
+	riskAnalysisBytes, err := opt.requestRiskAnalysis(inputBytes, &http.Client{}, &realSleeper{})
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +173,7 @@ func (rs *realSleeper) Sleep(d time.Duration) {
 }
 
 // requestRiskAnalysis makes the http request(s) and records the timing and status for each
-func (opt *Options) requestRiskAnalysis(req *http.Request, client *http.Client, sleepy sleeper) ([]byte, error) {
+func (opt *Options) requestRiskAnalysis(inputBytes []byte, client *http.Client, sleepy sleeper) ([]byte, error) {
 	var resp *http.Response
 	var err error
 	reqLogs := []*raRequestLog{}
@@ -187,11 +181,16 @@ func (opt *Options) requestRiskAnalysis(req *http.Request, client *http.Client, 
 	defer opt.writeRARequestLogs(&reqLogs) // write all failures or successes after processing
 	clientDoSuccess := false
 	for i := 1; i <= maxTries; i++ {
+		req, err := http.NewRequest("GET", opt.SippyURL, bytes.NewBuffer(inputBytes))
+		if err != nil {
+			logrus.WithError(err).Error("Error creating GET request during risk analysis")
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
 		reqLog := &raRequestLog{RequestCount: i, StartTime: time.Now()}
 		finalReqLog = reqLog
 		reqLogs = append(reqLogs, finalReqLog)
 		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
-		defer cancelFn()
 
 		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxTries, req.RequestURI)
 		resp, err = client.Do(req.WithContext(ctx))
