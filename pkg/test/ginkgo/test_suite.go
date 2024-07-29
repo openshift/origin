@@ -102,6 +102,8 @@ func (t *testCase) Retry() *testCase {
 	copied := &testCase{
 		name:          t.name,
 		spec:          t.spec,
+		rawName:       t.rawName,
+		binaryName:    t.binaryName,
 		locations:     t.locations,
 		testExclusion: t.testExclusion,
 
