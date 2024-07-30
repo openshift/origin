@@ -6,12 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v3"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -19,6 +13,11 @@ import (
 	prometheusoperatorv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	prometheusoperatorv1client "github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"gopkg.in/yaml.v3"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -52,7 +51,8 @@ type runner struct {
 	originalOperatorConfiguration *v1.ConfigMap
 }
 
-var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set", g.Ordered, func() {
+// This is [Serial] because it modifies the Cluster Monitoring Operator configuration between sub-specs.
+var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial][Conformance] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	o.SetDefaultEventuallyTimeout(15 * time.Minute)
@@ -154,16 +154,20 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			o.Eventually(func() error {
 				monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
 				if err != nil {
+					fmt.Println("[DEBUG] err != nil")
 					return err
 				}
 				if len(monitors.Items) == 0 {
-					return fmt.Errorf("no monitors found with collection profile %q and name: %q", profile, appName)
+					fmt.Println("[DEBUG] len(monitors.Items) == 0")
+					return fmt.Errorf("no monitors found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
 				}
 				if len(monitors.Items) > 1 {
-					return fmt.Errorf("more than one monitor found with collection profile %q and name: %q", profile, appName)
+					fmt.Println("[DEBUG] len(monitors.Items) > 1")
+					return fmt.Errorf("more than one monitor found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
 				}
 				kubeStateMetricsMonitor = monitors.Items[0]
 
+				fmt.Println("[DEBUG] return nil")
 				return nil
 			}).Should(o.BeNil())
 
@@ -225,15 +229,19 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				o.Eventually(func() error {
 					monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile})
 					if err != nil {
+						fmt.Println("[DEBUG] err != nil")
 						return err
 					}
 					if i == 0 && len(monitors.Items) != 0 {
+						fmt.Println("[DEBUG] i == 0 && len(monitors.Items) != 0")
 						return fmt.Errorf("monitors found with collection profile %q", profile)
 					}
 					if i == 1 && len(monitors.Items) == 0 {
+						fmt.Println("[DEBUG] i == 1 && len(monitors.Items) == 0")
 						return fmt.Errorf("no monitors found with collection profile %q", profile)
 					}
 
+					fmt.Println("[DEBUG] return nil")
 					return nil
 				}).Should(o.BeNil())
 			}
