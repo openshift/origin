@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mys2itest
+  annotations:
+    image.openshift.io/triggers: "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"mys2istream:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mys2itest
+      deployment: mys2itest
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: mys2itest
+        deployment: mys2itest
+    spec:
+      containers:
+      - image: " "
+        imagePullPolicy: Always
+        name: mys2itest
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
