@@ -43,6 +43,7 @@ var (
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2004074
 			`\[sig-network-edge\]\[Feature:Idling\] Unidling \[apigroup:apps.openshift.io\]\[apigroup:route.openshift.io\] should work with TCP \(while idling\)`,
+			`\[sig-network-edge\]\[Feature:Idling\] Unidling with Deployments \[apigroup:route.openshift.io\] should work with TCP \(while idling\)`,
 
 			// https://bugzilla.redhat.com/show_bug.cgi?id=2070929
 			`\[sig-network\]\[Feature:EgressIP\]\[apigroup:operator.openshift.io\] \[internal-targets\]`,

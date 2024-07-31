@@ -162,10 +162,11 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                  = exutil.NewCLIWithPodSecurityLevel("cli-idling", admissionapi.LevelBaseline).Verbose()
-		echoServerFixture   = exutil.FixturePath("testdata", "idling-echo-server.yaml")
-		echoServerRcFixture = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
-		framework           = oc.KubeFramework()
+		oc                          = exutil.NewCLIWithPodSecurityLevel("cli-idling", admissionapi.LevelBaseline).Verbose()
+		echoServerFixture           = exutil.FixturePath("testdata", "idling-echo-server.yaml")
+		echoServerFixtureDeployment = exutil.FixturePath("testdata", "idling-echo-server-deployment.yaml")
+		echoServerRcFixture         = exutil.FixturePath("testdata", "idling-echo-server-rc.yaml")
+		framework                   = oc.KubeFramework()
 	)
 
 	const (
@@ -240,6 +241,212 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 	g.Describe("Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io]", func() {
 		g.BeforeEach(func() {
 			fixture = echoServerFixture
+		})
+
+		g.It("should work with TCP (when fully idled)", func() {
+			g.By("Idling the service")
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Waiting for the pods to have terminated")
+			err = exutil.WaitForNoPodsRunning(oc)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Connecting to the service IP and checking the echo")
+			serviceName := resources["service"][0]
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			execPod := e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			err = tryEchoHTTP(svc, execPod)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Waiting until we have endpoints")
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Making sure the endpoints are no longer marked as idled")
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
+		})
+
+		g.It("should work with TCP (while idling)", func() {
+			g.By("Idling the service")
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Connecting to the service IP and repeatedly connecting, making sure we seamlessly idle and come back up")
+			serviceName := resources["service"][0]
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			execPod := e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			o.Consistently(func() error { return tryEchoHTTP(svc, execPod) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
+
+			g.By("Waiting until we have endpoints")
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Making sure the endpoints are no longer marked as idled")
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
+		})
+
+		// This is [Serial] because we really want to spam the service, and that
+		// seems to disrupt the cluster if we do it in the parallel suite.
+		g.It("should handle many TCP connections by possibly dropping those over a certain bound [Serial]", func() {
+			g.By("Idling the service")
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Waiting for the pods to have terminated")
+			serviceName := resources["service"][0]
+			err = exutil.WaitForNoPodsRunning(oc)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Connecting to the service IP many times and checking the echo")
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			var execPods [numExecPods]*kapiv1.Pod
+			for i := range execPods {
+				execPods[i] = e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, fmt.Sprintf("execpod-%d", i+1), nil)
+			}
+
+			errors := make([]error, connectionsToStart)
+			var connWG sync.WaitGroup
+			// spawn many connections over a span of 1 second
+			for i := 0; i < connectionsToStart; i++ {
+				connWG.Add(1)
+				go func(ind int) {
+					defer g.GinkgoRecover()
+					defer connWG.Done()
+					time.Sleep(time.Duration(ind) * (time.Second / connectionsToStart))
+					err = tryEchoHTTP(svc, execPods[ind%numExecPods])
+					errors[ind] = err
+				}(i)
+			}
+
+			connWG.Wait()
+
+			g.By(fmt.Sprintf("Expecting at least %d of those connections to succeed", minSuccessfulConnections))
+			successCount := 0
+			for _, err := range errors {
+				if err == nil {
+					successCount++
+				}
+			}
+			o.Expect(successCount).To(o.BeNumerically(">=", minSuccessfulConnections))
+
+			g.By("Waiting until we have endpoints")
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Making sure the endpoints are no longer marked as idled")
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
+		})
+
+		g.It("should work with UDP", func() {
+			g.By("Idling the service")
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Waiting for the pods to have terminated")
+			err = exutil.WaitForNoPodsRunning(oc)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Connecting to the service IP and checking the echo")
+			serviceName := resources["service"][0]
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			execPod := e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, "execpod", nil)
+			err = tryEchoUDP(svc, execPod)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Waiting until we have endpoints")
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Making sure the endpoints are no longer marked as idled")
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
+		})
+
+		// This is [Serial] because we really want to spam the service, and that
+		// seems to disrupt the cluster if we do it in the parallel suite.
+		g.It("should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]", func() {
+			g.By("Idling the service")
+			_, err := oc.Run("idle").Args("--resource-names-file", idlingFile).Output()
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Waiting for the pods to have terminated")
+			err = exutil.WaitForNoPodsRunning(oc)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Connecting to the service IP many times and checking the echo")
+			serviceName := resources["service"][0]
+			svc, err := oc.KubeClient().CoreV1().Services(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			var execPods [numExecPods]*kapiv1.Pod
+			for i := range execPods {
+				execPods[i] = e2epod.CreateExecPodOrFail(context.TODO(), framework.ClientSet, framework.Namespace.Name, fmt.Sprintf("execpod-%d", i+1), nil)
+			}
+
+			errors := make([]error, connectionsToStart)
+			var connWG sync.WaitGroup
+			// spawn many connections over a span of 1 second
+			for i := 0; i < connectionsToStart; i++ {
+				connWG.Add(1)
+				go func(ind int) {
+					defer g.GinkgoRecover()
+					defer connWG.Done()
+					time.Sleep(time.Duration(ind) * (time.Second / connectionsToStart))
+					err = tryEchoUDP(svc, execPods[ind%numExecPods])
+					errors[ind] = err
+				}(i)
+			}
+
+			connWG.Wait()
+
+			// all of the echoers should eventually succeed
+			errCount := 0
+			for _, err := range errors {
+				if err != nil {
+					errCount++
+				}
+			}
+			o.Expect(errCount).To(o.Equal(0))
+
+			g.By("Waiting until we have endpoints")
+			err = exutil.WaitForEndpointsAvailable(oc, serviceName)
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			endpoints, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(context.Background(), serviceName, metav1.GetOptions{})
+			o.Expect(err).ToNot(o.HaveOccurred())
+
+			g.By("Making sure the endpoints are no longer marked as idled")
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.IdledAtAnnotation))
+			o.Expect(endpoints.Annotations).NotTo(o.HaveKey(unidlingapi.UnidleTargetAnnotation))
+		})
+	})
+
+	g.Describe("Unidling with Deployments [apigroup:route.openshift.io]", func() {
+		g.BeforeEach(func() {
+			fixture = echoServerFixtureDeployment
 		})
 
 		g.It("should work with TCP (when fully idled)", func() {

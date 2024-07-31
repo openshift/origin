@@ -1289,6 +1289,16 @@ var Annotations = map[string]string{
 
 	"[sig-network-edge][Feature:Idling] Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io] should work with UDP": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should handle many TCP connections by possibly dropping those over a certain bound [Serial]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should handle many UDP senders (by continuing to drop all packets on the floor) [Serial]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should work with TCP (when fully idled)": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should work with TCP (while idling)": " [Disabled:Broken]",
+
+	"[sig-network-edge][Feature:Idling] Unidling with Deployments [apigroup:route.openshift.io] should work with UDP": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network] Internal connectivity for TCP and UDP on ports 9000-9999 is allowed [Serial:Self]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] external gateway address when using openshift ovn-kubernetes should match the address family of the pod": " [Suite:openshift/conformance/parallel]",
