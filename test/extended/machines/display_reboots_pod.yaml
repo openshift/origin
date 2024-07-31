@@ -18,7 +18,7 @@ spec:
         - mountPath: /host-root
           name: host-root
     - command:
-        - exec chroot /host-root journalctl -t 'systemd-logind' -g "rebooting" -q
+        - exec chroot /host-root journalctl -t 'systemd-logind' -g "rebooting" -q || true
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: reboots
       terminationMessagePolicy: FallbackToLogsOnError
