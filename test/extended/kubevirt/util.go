@@ -364,7 +364,7 @@ func InKubeVirtClusterContext(oc *exutil.CLI, body func()) {
 	)
 }
 
-func setMgmtFramework(mgmtFramework *e2e.Framework) *exutil.CLI {
+func SetMgmtFramework(mgmtFramework *e2e.Framework) *exutil.CLI {
 	_, hcpNamespace, err := exutil.GetHypershiftManagementClusterConfigAndNamespace()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -458,15 +458,15 @@ func expectNoError(err error, explain ...interface{}) {
 	ExpectWithOffset(1, err).NotTo(HaveOccurred(), explain...)
 }
 
-func mgmtClusterIsAWS(f *e2e.Framework) (bool, error) {
-	oc := setMgmtFramework(f)
+func MgmtClusterIsType(f *e2e.Framework, platformType configv1.PlatformType) (bool, error) {
+	oc := SetMgmtFramework(f)
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(),
 		"cluster", metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
 
-	return infra.Spec.PlatformSpec.Type == configv1.AWSPlatformType, nil
+	return infra.Spec.PlatformSpec.Type == platformType, nil
 }
 
 func dumpKubevirtArtifacts(f *e2e.Framework) {

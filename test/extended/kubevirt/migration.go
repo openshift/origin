@@ -2,6 +2,7 @@ package kubevirt
 
 import (
 	"context"
+	configv1 "github.com/openshift/api/config/v1"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -54,12 +55,12 @@ var _ = Describe("[sig-kubevirt] migration", func() {
 					WithPolling(5*time.Second).
 					Should(Equal(numberOfNodes), "nodes should have ready state before migration")
 
-				setMgmtFramework(mgmtFramework)
+				SetMgmtFramework(mgmtFramework)
 				expectNoError(migrateWorkers(mgmtFramework))
 			})
 			It("should maintain node readiness", func() {
 				By("Check node readiness is as expected")
-				isAWS, err := mgmtClusterIsAWS(mgmtFramework)
+				isAWS, err := MgmtClusterIsType(mgmtFramework, configv1.AWSPlatformType)
 				Expect(err).ToNot(HaveOccurred())
 
 				if isAWS {
