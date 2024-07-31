@@ -52321,29 +52321,21 @@ objects:
         name: "${NAME}:latest"
     triggers:
     - type: ConfigChange
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: "${NAME}"
     annotations:
       description: Defines how to deploy the application server
       template.alpha.openshift.io/wait-for-ready: 'true'
+      image.openshift.io/triggers: "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"${NAME}:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
   spec:
     strategy:
-      type: Rolling
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - simple-example
-        from:
-          kind: ImageStreamTag
-          name: "${NAME}:latest"
-    - type: ConfigChange
+      type: RollingUpdate
     replicas: 1
     selector:
-      name: "${NAME}"
+      matchLabels:
+        name: "${NAME}"
     template:
       metadata:
         name: "${NAME}"
