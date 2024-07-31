@@ -1075,7 +1075,7 @@ var Annotations = map[string]string{
 
 	"[sig-devex][Feature:ImageEcosystem][mysql][Slow] openshift mysql image Creating from a template should instantiate the template [apigroup:apps.openshift.io]": " [Disabled:Broken]",
 
-	"[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image hot deploy test should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": "",
+	"[sig-devex][Feature:ImageEcosystem][perl][Slow] hot deploy for openshift perl image hot deploy test should work [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]": "",
 
 	"[sig-devex][Feature:ImageEcosystem][php][Slow] hot deploy for openshift php image CakePHP example should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]": "",
 

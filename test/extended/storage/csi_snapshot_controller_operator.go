@@ -50,7 +50,7 @@ var _ = g.Describe("[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operat
 
 		g.By("# Modify the csi-snapshot-webhook-secret expiry annotation")
 		defer func() {
-			if exutil.WaitForDeploymentReady(oc, snapshotWebhookDeployName, clusterCSISnapshotOperatorNs) != nil {
+			if exutil.WaitForDeploymentReady(oc, snapshotWebhookDeployName, clusterCSISnapshotOperatorNs, -1) != nil {
 				e2e.Failf("The csiSnapshotWebhook was not recovered ready")
 			}
 		}()
@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-storage][Feature:Cluster-CSI-Snapshot-Controller-Operat
 
 		g.By("# Delete the csi-snapshot-webhook-secret")
 		defer func() {
-			if exutil.WaitForDeploymentReady(oc, snapshotWebhookDeployName, clusterCSISnapshotOperatorNs) != nil {
+			if exutil.WaitForDeploymentReady(oc, snapshotWebhookDeployName, clusterCSISnapshotOperatorNs, -1) != nil {
 				e2e.Failf("The csiSnapshotWebhook was not recovered ready")
 			}
 		}()

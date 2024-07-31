@@ -81,7 +81,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 					if c.deploymentConfigName != "" {
 						err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), c.deploymentConfigName, 1, true, oc)
 					} else if c.deploymentName != "" {
-						err = exutil.WaitForDeploymentReadyWithTimeout(oc, c.deploymentName, oc.Namespace(), 15*time.Minute)
+						err = exutil.WaitForDeploymentReadyWithTimeout(oc, c.deploymentName, oc.Namespace(), -1, 15*time.Minute)
 					} else {
 						g.Fail("invalid test configuration: neither deploymentConfigName nor deploymentName is set")
 					}
@@ -92,7 +92,7 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 						if c.dbDeploymentConfigName != "" {
 							err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), c.dbDeploymentConfigName, 1, true, oc)
 						} else if c.dbDeploymentName != "" {
-							err = exutil.WaitForDeploymentReadyWithTimeout(oc, c.dbDeploymentName, oc.Namespace(), 15*time.Minute)
+							err = exutil.WaitForDeploymentReadyWithTimeout(oc, c.dbDeploymentName, oc.Namespace(), -1, 15*time.Minute)
 						} else {
 							g.Fail("invalid test configuration: neither dbDeploymentConfigName nor dbDeploymentName is set")
 						}

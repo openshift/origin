@@ -49,7 +49,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = exutil.WaitForDeploymentReadyWithTimeout(oc, deploymentName, oc.Namespace(), 15*time.Minute)
+				err = exutil.WaitForDeploymentReadyWithTimeout(oc, deploymentName, oc.Namespace(), -1, 15*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for endpoint")
@@ -78,7 +78,7 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 				g.By("turning on hot-deploy")
 				err = oc.Run("set", "env").Args("deployment", deploymentName, "RAILS_ENV=development").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				err = exutil.WaitForDeploymentReady(oc, deploymentName, oc.Namespace())
+				err = exutil.WaitForDeploymentReady(oc, deploymentName, oc.Namespace(), -1)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for a new endpoint")
