@@ -78,8 +78,15 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				netConfig.namespace = f.Namespace.Name
 				workerNodes, err := getWorkerNodesOrdered(cs)
 				Expect(err).NotTo(HaveOccurred())
-				// TODO: should I skip this on SNO ?... or should I simply put pods the first and last node ?
-				Expect(len(workerNodes)).To(BeNumerically(">=", 2))
+
+				if len(workerNodes) == 1 {
+					workerNodes = append(
+						workerNodes,
+						v1.Node{ObjectMeta: metav1.ObjectMeta{
+							Name: workerNodes[0].Name, Namespace: workerNodes[0].Namespace,
+						}},
+					)
+				}
 
 				clientPodConfig.namespace = f.Namespace.Name
 				clientPodConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[0].Name}
