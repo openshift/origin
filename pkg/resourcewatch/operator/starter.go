@@ -108,6 +108,7 @@ func RunResourceWatch() error {
 		appResource("replicasets"),
 		resource("events.k8s.io", "v1", "events"),
 		resource("policy", "v1", "poddisruptionbudgets"),
+		resource("coordination.k8s.io", "v1", "leases"),
 		coreResource("pods"),
 		coreResource("nodes"),
 		coreResource("replicationcontrollers"),
