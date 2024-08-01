@@ -3,7 +3,6 @@ package csi
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -36,8 +35,10 @@ type OpenShiftCSIDriverConfig struct {
 type LUNStressTestConfig struct {
 	// How many Pods with one volume each to run in total. Set to 0 to disable the test.
 	PodsTotal int
-	// How long to wait for all Pods to start. 40 minutes by default.
-	Timeout time.Duration
+	// How long to wait for all Pods to start. Accepts the same suffixes as go
+	// time.Duration, e.g. "40m15s" for 40 minutes and 15 seconds. 40 minutes
+	// by default.
+	Timeout string
 }
 
 // runtime.DecodeInto needs a runtime.Object but doesn't do any

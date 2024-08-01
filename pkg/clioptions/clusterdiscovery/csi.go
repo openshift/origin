@@ -15,7 +15,7 @@ import (
 
 const (
 	CSIManifestEnvVar = "TEST_CSI_DRIVER_FILES"
-	OCPManifestEnvVar = "TEST_OCP_DRIVER_FILES"
+	OCPManifestEnvVar = "TEST_OCP_CSI_DRIVER_FILES"
 )
 
 // Initialize openshift/csi suite, i.e. define CSI tests from TEST_CSI_DRIVER_FILES.
