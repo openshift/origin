@@ -75,6 +75,11 @@ func (in *AWSMachineProviderConfig) DeepCopyInto(out *AWSMachineProviderConfig) 
 		(*in).DeepCopyInto(*out)
 	}
 	out.MetadataServiceOptions = in.MetadataServiceOptions
+	if in.PlacementGroupPartition != nil {
+		in, out := &in.PlacementGroupPartition, &out.PlacementGroupPartition
+		*out = new(int32)
+		**out = **in
+	}
 	return
 }
 
