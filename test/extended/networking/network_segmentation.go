@@ -56,7 +56,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		)
 
 		BeforeEach(func() {
-			e2eskipper.Skipf("TODO(kyrtapz): Unskip with https://github.com/openshift/origin/pull/28945")
 			cs = f.ClientSet
 
 			var err error
