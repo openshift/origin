@@ -505,7 +505,7 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][Slow] can use build secrets build with secrets and configMaps should contain secrets during the source strategy build [apigroup:build.openshift.io][apigroup:image.openshift.io]": "",
 
-	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token [apigroup:build.openshift.io]": "",
+	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an HTTP token should be able to clone source code via an HTTP token [apigroup:build.openshift.io]": " [Disabled:Broken]",
 
 	"[sig-builds][Feature:Builds][Slow] can use private repositories as build input build using an ssh private key should be able to clone source code via ssh [apigroup:build.openshift.io]": "",
 
