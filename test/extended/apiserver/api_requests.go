@@ -382,6 +382,10 @@ var _ = g.Describe("[sig-arch][Late]", func() {
 
 		operatorBoundExceeded := []string{}
 		for _, item := range watchRequestCounts {
+			if len(strings.Split(item.Operator, ":")) < 3 {
+				framework.Logf("Operator %v not recognized", item.Operator)
+				continue
+			}
 			operator := strings.Split(item.Operator, ":")[3]
 			allowedCount, exists := upperBound[operator]
 
