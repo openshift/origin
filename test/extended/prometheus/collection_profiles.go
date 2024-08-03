@@ -51,8 +51,10 @@ type runner struct {
 	originalOperatorConfiguration *v1.ConfigMap
 }
 
-// This is [Serial] because it modifies the Cluster Monitoring Operator configuration between sub-specs.
-var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial][Conformance] The collection profiles feature-set", g.Ordered, func() {
+// NOTE: The nested `Context` containers inside the following `Describe` container are used to group certain tests based on the environments they demand.
+// NOTE: When adding a test-case, ensure that the test-case is placed in the appropriate `Context` container.
+// NOTE: The containers themselves are guaranteed to run in the order in which they appear.
+var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set", g.Ordered, func() {
 	defer g.GinkgoRecover()
 
 	o.SetDefaultEventuallyTimeout(15 * time.Minute)
@@ -148,26 +150,22 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		g.It("should hide all default-only metrics when minimal collection profile is enabled", func() {
 			profile := collectionProfileMinimal
 			appNameSelector := "app.kubernetes.io/name"
-			appName := "kube-state-metrics" + "-" + profile
+			appName := "kube-state-metrics"
 
 			var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
 			o.Eventually(func() error {
 				monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
 				if err != nil {
-					fmt.Println("[DEBUG] err != nil")
 					return err
 				}
 				if len(monitors.Items) == 0 {
-					fmt.Println("[DEBUG] len(monitors.Items) == 0")
 					return fmt.Errorf("no monitors found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
 				}
 				if len(monitors.Items) > 1 {
-					fmt.Println("[DEBUG] len(monitors.Items) > 1")
 					return fmt.Errorf("more than one monitor found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
 				}
 				kubeStateMetricsMonitor = monitors.Items[0]
 
-				fmt.Println("[DEBUG] return nil")
 				return nil
 			}).Should(o.BeNil())
 
@@ -225,29 +223,51 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone)
 			o.Expect(err).To(o.BeNil())
 
-			for i, profile := range []string{collectionProfileMinimal, collectionProfileFull} {
-				o.Eventually(func() error {
-					monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile})
-					if err != nil {
-						fmt.Println("[DEBUG] err != nil")
-						return err
-					}
-					if i == 0 && len(monitors.Items) != 0 {
-						fmt.Println("[DEBUG] i == 0 && len(monitors.Items) != 0")
-						return fmt.Errorf("monitors found with collection profile %q", profile)
-					}
-					if i == 1 && len(monitors.Items) == 0 {
-						fmt.Println("[DEBUG] i == 1 && len(monitors.Items) == 0")
-						return fmt.Errorf("no monitors found with collection profile %q", profile)
-					}
+			o.Eventually(func() error {
+				respectsProfile, err := r.respectsProfileInPodMonitorSelector(collectionProfileFull)
+				if err != nil {
+					return err
+				}
+				if !respectsProfile {
+					return fmt.Errorf("collection profile %q is not respected", collectionProfileFull)
+				}
 
-					fmt.Println("[DEBUG] return nil")
-					return nil
-				}).Should(o.BeNil())
-			}
+				return nil
+			}).Should(o.BeNil())
 		})
 	})
 })
+
+func (r runner) respectsProfileInPodMonitorSelector(profile string) (bool, error) {
+	p, err := r.mclient.Prometheuses(operatorNamespaceName).Get(tctx, "k8s", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	podMonitorSelectors := p.Spec.PodMonitorSelector
+	for _, podMonitorSelector := range podMonitorSelectors.MatchExpressions {
+		if podMonitorSelector.Key == collectionProfileFeatureLabel {
+			if podMonitorSelector.Operator == metav1.LabelSelectorOpNotIn {
+				for _, value := range podMonitorSelector.Values {
+					if value == profile {
+						return false, nil
+					}
+				}
+				return true, nil
+			} else if podMonitorSelector.Operator == metav1.LabelSelectorOpIn {
+				for _, value := range podMonitorSelector.Values {
+					if value == profile {
+						return true, nil
+					}
+				}
+				return false, nil
+			} else {
+				return false, fmt.Errorf("unexpected operator: %#q", podMonitorSelector.Operator)
+			}
+		}
+	}
+
+	return false, nil
+}
 
 func (r runner) fetchMonitorsFor(selectors ...[2]string) (*prometheusoperatorv1.ServiceMonitorList, error) {
 	managedMonitorsSelectors := []string{

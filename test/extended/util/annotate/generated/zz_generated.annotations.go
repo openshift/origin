@@ -1241,15 +1241,15 @@ var Annotations = map[string]string{
 
 	"[sig-instrumentation][Late] OpenShift alerting rules [apigroup:image.openshift.io] should link to an HTTP(S) location if the runbook_url annotation is defined": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial][Conformance] The collection profiles feature-set in an environment that has the minimal profile pre-set should hide all default-only metrics when minimal collection profile is enabled": " [Suite:openshift/conformance/serial/minimal]",
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in an environment that has the minimal profile pre-set should hide all default-only metrics when minimal collection profile is enabled": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial][Conformance] The collection profiles feature-set in an environment that migrates from default to minimal collection profile should apply default collection profile initially": " [Suite:openshift/conformance/serial/minimal]",
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in an environment that migrates from default to minimal collection profile should apply default collection profile initially": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial][Conformance] The collection profiles feature-set in an environment that migrates from default to minimal collection profile should expose information about the applied collection profile using meta-metrics": " [Suite:openshift/conformance/serial/minimal]",
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in an environment that migrates from default to minimal collection profile should expose information about the applied collection profile using meta-metrics": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial][Conformance] The collection profiles feature-set in an environment that migrates from default to minimal collection profile should have at least one implementation for each collection profile": " [Suite:openshift/conformance/serial/minimal]",
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in an environment that migrates from default to minimal collection profile should have at least one implementation for each collection profile": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles][Serial][Conformance] The collection profiles feature-set in an environment that migrates from minimal to default collection profile should revert back to default collection profile when none is specified": " [Suite:openshift/conformance/serial/minimal]",
+	"[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The collection profiles feature-set in an environment that migrates from minimal to default collection profile should revert back to default collection profile when none is specified": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-instrumentation][sig-builds][Feature:Builds] Prometheus when installed on the cluster should start and expose a secured proxy and verify build metrics [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
