@@ -65,24 +65,20 @@ spec:
   - featureGate: MetricsCollectionProfiles
     tests:
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in an environment that has the minimal profile
-        pre-set should hide all default-only metrics when minimal collection profile
-        is enabled'
+        collection profiles feature-set in a heterogeneous environment, should expose
+        information about the applied collection profile using meta-metrics'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in an environment that migrates from default
-        to minimal collection profile should apply default collection profile initially'
+        collection profiles feature-set in a heterogeneous environment, should have
+        at least one implementation for each collection profile'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in an environment that migrates from default
-        to minimal collection profile should expose information about the applied
-        collection profile using meta-metrics'
+        collection profiles feature-set in a heterogeneous environment, should revert
+        to default collection profile when an empty collection profile value is specified'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in an environment that migrates from default
-        to minimal collection profile should have at least one implementation for
-        each collection profile'
+        collection profiles feature-set in a homogeneous minimal environment, should
+        hide default metrics'
     - testName: '[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfiles] The
-        collection profiles feature-set in an environment that migrates from minimal
-        to default collection profile should revert back to default collection profile
-        when none is specified'
+        collection profiles feature-set initially, in a homogeneous default environment,
+        should expose default metrics'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should

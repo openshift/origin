@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"regexp"
 
+	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-
-	clientconfigv1 "github.com/openshift/client-go/config/clientset/versioned"
 )
 
 type featureGateFilter struct {

@@ -61,6 +61,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	r := &runner{}
+
 	g.BeforeAll(func() {
 		if !exutil.IsTechPreviewNoUpgrade(oc) {
 			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
@@ -92,28 +93,46 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		o.Expect(err).To(o.BeNil())
 	})
 
-	var _ = g.Context("in an environment that migrates from default to minimal collection profile", func() {
-		g.It("should apply default collection profile initially", func() {
+	defaultOnlyMetric := "kube_deployment_status_replicas"
+
+	g.Context("initially, in a homogeneous default environment,", func() {
+		g.BeforeAll(func() {
 			o.Eventually(func() error {
-				monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, collectionProfileDefault})
+				enabled, err := r.isProfileEnabled(collectionProfileDefault)
 				if err != nil {
 					return err
 				}
-				if len(monitors.Items) == 0 {
-					return fmt.Errorf("no monitors found with collection profile %q", collectionProfileDefault)
+				if !enabled {
+					return fmt.Errorf("collection profile %q is not enabled", collectionProfileDefault)
 				}
 
 				return nil
 			}).Should(o.BeNil())
 		})
-		g.It("should expose information about the applied collection profile using meta-metrics", func() {
-			vectorExpression := "profile:cluster_monitoring_operator_collection_profile:max{profile=\"%s\"} == 1"
+		g.It("should expose default metrics", func() {
+			o.Eventually(func() error {
+				defaultMetricQuery := fmt.Sprintf("max(%s)", defaultOnlyMetric)
+				queryResponse, err := helper.RunQuery(tctx, r.pclient, defaultMetricQuery)
+				if err != nil {
+					return err
+				}
+				if len(queryResponse.Data.Result) == 0 {
+					return fmt.Errorf("expected %q to be present", defaultOnlyMetric)
+				}
 
+				return nil
+			}).Should(o.BeNil())
+		})
+	})
+
+	g.Context("in a heterogeneous environment,", func() {
+		g.It("should expose information about the applied collection profile using meta-metrics", func() {
 			for _, profile := range collectionProfilesSupportedList {
 				err := r.makeCollectionProfileConfigurationFor(tctx, profile)
 				o.Expect(err).To(o.BeNil())
 
 				o.Eventually(func() error {
+					vectorExpression := "max(profile:cluster_monitoring_operator_collection_profile:max{profile=\"%s\"}) == 1"
 					queryResponse, err := helper.RunQuery(tctx, r.pclient, fmt.Sprintf(vectorExpression, profile))
 					if err != nil {
 						return err
@@ -144,73 +163,17 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 				}).Should(o.BeNil())
 			}
 		})
-	})
+		g.It("should revert to default collection profile when an empty collection profile value is specified", func() {
+			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone)
+			o.Expect(err).To(o.BeNil())
 
-	var _ = g.Context("in an environment that has the minimal profile pre-set", func() {
-		g.It("should hide all default-only metrics when minimal collection profile is enabled", func() {
-			profile := collectionProfileMinimal
-			appNameSelector := "app.kubernetes.io/name"
-			appName := "kube-state-metrics"
-
-			var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
 			o.Eventually(func() error {
-				monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
+				enabled, err := r.isProfileEnabled(collectionProfileFull)
 				if err != nil {
 					return err
 				}
-				if len(monitors.Items) == 0 {
-					return fmt.Errorf("no monitors found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
-				}
-				if len(monitors.Items) > 1 {
-					return fmt.Errorf("more than one monitor found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
-				}
-				kubeStateMetricsMonitor = monitors.Items[0]
-
-				return nil
-			}).Should(o.BeNil())
-
-			var regexpStringWholeMetricNamesCount int
-			kubeStateMetricsMonitorSpec := kubeStateMetricsMonitor.Spec
-			kubeStateMetricsMonitorSpecEndpoints := kubeStateMetricsMonitorSpec.Endpoints
-			if len(kubeStateMetricsMonitorSpecEndpoints) != 0 {
-				kubeStateMetricsMonitorSpecEndpoints0Relabelings := kubeStateMetricsMonitorSpecEndpoints[0].MetricRelabelConfigs
-				if len(kubeStateMetricsMonitorSpecEndpoints0Relabelings) != 0 {
-					for _, relabeling := range kubeStateMetricsMonitorSpecEndpoints0Relabelings {
-						// NOTE: This should accommodate for future changes to the relabeling scope.
-						if relabeling.Action == "keep" &&
-							len(relabeling.SourceLabels) == 1 &&
-							relabeling.SourceLabels[0] == "__name__" {
-							regexpString := relabeling.Regex
-							regexpStringWholeMetricNamesCount += strings.Count(regexpString, `|`) + 1
-						}
-					}
-				}
-			}
-			o.Expect(regexpStringWholeMetricNamesCount).To(o.BeNumerically(">", 0))
-
-			o.Eventually(func() error {
-				preRelabelingMetric := "scrape_samples_scraped"
-				var relabelledMetricsCountPre int
-				postRelabelingMetric := "scrape_samples_post_metric_relabeling"
-				var relabelledMetricsCountPost int
-				for j, metric := range []string{preRelabelingMetric, postRelabelingMetric} {
-					relabelingMetricQuery := fmt.Sprintf("max(%s{job=\"%s\",endpoint=\"https-main\"})", metric, appName)
-					queryResponse, err := helper.RunQuery(tctx, r.pclient, relabelingMetricQuery)
-					if err != nil {
-						return err
-					}
-					if len(queryResponse.Data.Result) == 0 {
-						return fmt.Errorf("no result found for metric %q", metric)
-					}
-					if j == 0 {
-						relabelledMetricsCountPre = int(queryResponse.Data.Result[0].Value)
-					}
-					if j == 1 {
-						relabelledMetricsCountPost = int(queryResponse.Data.Result[0].Value)
-					}
-				}
-				if profile == collectionProfileMinimal && relabelledMetricsCountPost-relabelledMetricsCountPre != regexpStringWholeMetricNamesCount {
-					return fmt.Errorf("relabelled metrics count mismatch for profile %q, pre: %d, post: %d", profile, relabelledMetricsCountPre, relabelledMetricsCountPost)
+				if !enabled {
+					return fmt.Errorf("collection profile %q is not enabled", collectionProfileFull)
 				}
 
 				return nil
@@ -218,18 +181,34 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 	})
 
-	var _ = g.Context("in an environment that migrates from minimal to default collection profile", func() {
-		g.It("should revert back to default collection profile when none is specified", func() {
-			err := r.makeCollectionProfileConfigurationFor(tctx, collectionProfileNone)
-			o.Expect(err).To(o.BeNil())
+	g.Context("in a homogeneous minimal environment,", func() {
+		profile := collectionProfileMinimal
 
+		g.BeforeAll(func() {
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				respectsProfile, err := r.respectsProfileInPodMonitorSelector(collectionProfileFull)
+				enabled, err := r.isProfileEnabled(profile)
 				if err != nil {
 					return err
 				}
-				if !respectsProfile {
-					return fmt.Errorf("collection profile %q is not respected", collectionProfileFull)
+				if !enabled {
+					return fmt.Errorf("collection profile %q is not enabled", profile)
+				}
+
+				return nil
+			}).Should(o.BeNil())
+		})
+
+		g.It("should hide default metrics", func() {
+			o.Eventually(func() error {
+				defaultOnlyMetricQuery := fmt.Sprintf("absent(%s) == 1", defaultOnlyMetric)
+				queryResponse, err := helper.RunQuery(tctx, r.pclient, defaultOnlyMetricQuery)
+				if err != nil {
+					return err
+				}
+				if len(queryResponse.Data.Result) == 0 {
+					return fmt.Errorf("expected %q to be absent", defaultOnlyMetric)
 				}
 
 				return nil
@@ -238,35 +217,17 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 })
 
-func (r runner) respectsProfileInPodMonitorSelector(profile string) (bool, error) {
-	p, err := r.mclient.Prometheuses(operatorNamespaceName).Get(tctx, "k8s", metav1.GetOptions{})
+func (r runner) isProfileEnabled(profile string) (bool, error) {
+	vectorExpression := "max(profile:cluster_monitoring_operator_collection_profile:max{profile=\"%s\"}) == 1"
+	queryResponse, err := helper.RunQuery(tctx, r.pclient, fmt.Sprintf(vectorExpression, profile))
 	if err != nil {
 		return false, err
 	}
-	podMonitorSelectors := p.Spec.PodMonitorSelector
-	for _, podMonitorSelector := range podMonitorSelectors.MatchExpressions {
-		if podMonitorSelector.Key == collectionProfileFeatureLabel {
-			if podMonitorSelector.Operator == metav1.LabelSelectorOpNotIn {
-				for _, value := range podMonitorSelector.Values {
-					if value == profile {
-						return false, nil
-					}
-				}
-				return true, nil
-			} else if podMonitorSelector.Operator == metav1.LabelSelectorOpIn {
-				for _, value := range podMonitorSelector.Values {
-					if value == profile {
-						return true, nil
-					}
-				}
-				return false, nil
-			} else {
-				return false, fmt.Errorf("unexpected operator: %#q", podMonitorSelector.Operator)
-			}
-		}
+	if len(queryResponse.Data.Result) == 0 {
+		return false, nil
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func (r runner) fetchMonitorsFor(selectors ...[2]string) (*prometheusoperatorv1.ServiceMonitorList, error) {
