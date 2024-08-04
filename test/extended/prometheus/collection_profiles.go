@@ -3,6 +3,7 @@ package prometheus
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -93,8 +94,6 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		o.Expect(err).To(o.BeNil())
 	})
 
-	defaultOnlyMetric := "kube_deployment_status_replicas"
-
 	g.Context("initially, in a homogeneous default environment,", func() {
 		g.BeforeAll(func() {
 			o.Eventually(func() error {
@@ -111,6 +110,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 		g.It("should expose default metrics", func() {
 			o.Eventually(func() error {
+				defaultOnlyMetric := "prometheus_engine_query_log_enabled"
 				defaultMetricQuery := fmt.Sprintf("max(%s)", defaultOnlyMetric)
 				queryResponse, err := helper.RunQuery(tctx, r.pclient, defaultMetricQuery)
 				if err != nil {
@@ -201,14 +201,78 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		})
 
 		g.It("should hide default metrics", func() {
+			appNameSelector := "app.kubernetes.io/name"
+			appName := "kube-state-metrics"
+
+			var kubeStateMetricsMonitor *prometheusoperatorv1.ServiceMonitor
 			o.Eventually(func() error {
-				defaultOnlyMetricQuery := fmt.Sprintf("absent(%s) == 1", defaultOnlyMetric)
-				queryResponse, err := helper.RunQuery(tctx, r.pclient, defaultOnlyMetricQuery)
+				monitors, err := r.fetchMonitorsFor([2]string{collectionProfileFeatureLabel, profile}, [2]string{appNameSelector, appName})
+				if err != nil {
+					return err
+				}
+				if len(monitors.Items) == 0 {
+					return fmt.Errorf("no monitors found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
+				}
+				if len(monitors.Items) > 1 {
+					return fmt.Errorf("more than one monitor found with collection profile: %q and %#v=%q", profile, appNameSelector, appName)
+				}
+				kubeStateMetricsMonitor = monitors.Items[0]
+
+				return nil
+			}).Should(o.BeNil())
+
+			var kubeStateMetricsMainMetrics []string
+			kubeStateMetricsMonitorSpec := kubeStateMetricsMonitor.Spec
+			kubeStateMetricsMonitorSpecEndpoints := kubeStateMetricsMonitorSpec.Endpoints
+			if len(kubeStateMetricsMonitorSpecEndpoints) != 0 {
+				kubeStateMetricsMonitorSpecEndpoints0Relabelings := kubeStateMetricsMonitorSpecEndpoints[0].MetricRelabelConfigs
+				if len(kubeStateMetricsMonitorSpecEndpoints0Relabelings) != 0 {
+					for _, relabeling := range kubeStateMetricsMonitorSpecEndpoints0Relabelings {
+						// NOTE: This should accommodate for future changes to the relabeling scope.
+						if relabeling.Action == "keep" &&
+							len(relabeling.SourceLabels) == 1 &&
+							relabeling.SourceLabels[0] == "__name__" {
+							regexpString := relabeling.Regex
+							kubeRegex := regexp.MustCompile(`(?U)(kube_.*)[|,)]`)
+							kubeMetrics := kubeRegex.FindAllString(regexpString, -1)
+							for _, metric := range kubeMetrics {
+								// Golang doesn't support negative lookaheads.
+								if strings.HasPrefix(metric, "kube_state_metrics") {
+									continue
+								}
+								kubeStateMetricsMainMetrics = append(kubeStateMetricsMainMetrics, metric)
+							}
+						}
+					}
+				}
+			}
+			o.Expect(len(kubeStateMetricsMainMetrics)).To(o.BeNumerically(">", 0))
+
+			o.Eventually(func() error {
+				postRelabelingMetric := "scrape_samples_post_metric_relabeling"
+				relabelingMetricQuery := fmt.Sprintf("sum(%s{job=\"%s\",endpoint=\"https-main\",namespace=\"%s\"})", postRelabelingMetric, appName, operatorNamespaceName)
+				queryResponse, err := helper.RunQuery(tctx, r.pclient, relabelingMetricQuery)
 				if err != nil {
 					return err
 				}
 				if len(queryResponse.Data.Result) == 0 {
-					return fmt.Errorf("expected %q to be absent", defaultOnlyMetric)
+					return fmt.Errorf("no result found for metric %q", postRelabelingMetric)
+				}
+				wantCount := int(queryResponse.Data.Result[0].Value)
+
+				kubeStateMetricsMainMetricsString := strings.Join(kubeStateMetricsMainMetrics, "")
+				kubeStateMetricsMainMetricsCountQuery := fmt.Sprintf("count({__name__=~\"%s\"})", kubeStateMetricsMainMetricsString[:len(kubeStateMetricsMainMetricsString)-1 /* drop the last "|" or ")" */])
+				queryResponse, err = helper.RunQuery(tctx, r.pclient, kubeStateMetricsMainMetricsCountQuery)
+				if err != nil {
+					return err
+				}
+				if len(queryResponse.Data.Result) == 0 {
+					return fmt.Errorf("no result found for metric %q", kubeStateMetricsMainMetricsCountQuery)
+				}
+				gotCount := int(queryResponse.Data.Result[0].Value)
+
+				if gotCount != wantCount {
+					return fmt.Errorf("got %v, want %v", gotCount, wantCount)
 				}
 
 				return nil
