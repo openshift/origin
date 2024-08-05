@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/openshift/origin/pkg/disruption/backend"
 	"github.com/openshift/origin/pkg/disruption/backend/disruption"
 	"github.com/openshift/origin/pkg/disruption/backend/logger"
@@ -36,11 +34,10 @@ type Factory interface {
 
 // NewDisruptionTestFactory returns a shared disruption test factory that uses
 // the given rest Config object to create new disruption test instances.
-func NewDisruptionTestFactory(config *rest.Config, kubeClient kubernetes.Interface) Factory {
+func NewDisruptionTestFactory(config *rest.Config) Factory {
 	return &testFactory{
 		dependency: &restConfigDependency{
-			config:     config,
-			kubeClient: kubeClient,
+			config: config,
 		},
 	}
 }
@@ -141,6 +138,9 @@ type dependency interface {
 
 	// GetHostNameDecoder returns the appropriate HostNameDecoder instance.
 	GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error)
+
+	// GetRestConfig returns kubeconfig
+	GetRestConfig() *rest.Config
 }
 
 type testFactory struct {
@@ -189,14 +189,12 @@ func (b *testFactory) New(c TestConfiguration) (Sampler, error) {
 
 	pc := backendsampler.NewSampleProducerConsumer(client, requestor, backendsampler.NewResponseChecker(), collector)
 	runner := sampler.NewWithProducerConsumer(c.SampleInterval, pc)
-	samplerFinished := make(chan struct{})
 	backendSampler := &BackendSampler{
 		TestConfiguration:           c,
 		SampleRunner:                runner,
 		wantEventRecorderAndMonitor: []backend.WantEventRecorderAndMonitorRecorder{b.wantMonitorAndRecorder, want},
 		baseURL:                     requestor.GetBaseURL(),
 		hostNameDecoder:             b.hostNameDecoder,
-		samplerFinished:             samplerFinished,
 	}
 	return backendSampler, nil
 }
@@ -204,8 +202,7 @@ func (b *testFactory) New(c TestConfiguration) (Sampler, error) {
 // restConfigDependency is used by the factory when we want to create
 // a disruption test instance from a rest Config.
 type restConfigDependency struct {
-	config     *rest.Config
-	kubeClient kubernetes.Interface
+	config *rest.Config
 }
 
 func (r *restConfigDependency) NewTransport(tc TestConfiguration) (http.RoundTripper, error) {
@@ -224,10 +221,10 @@ func (r *restConfigDependency) NewTransport(tc TestConfiguration) (http.RoundTri
 	}
 	return rt, nil
 }
-func (r *restConfigDependency) HostName() string {
-	return r.config.Host
-}
-
+func (r *restConfigDependency) HostName() string { return r.config.Host }
 func (r *restConfigDependency) GetHostNameDecoder() (backend.HostNameDecoderWithRunner, error) {
-	return NewAPIServerIdentityToHostNameDecoder(r.kubeClient)
+	return NewAPIServerIdentityToHostNameDecoder(r.config)
+}
+func (r *restConfigDependency) GetRestConfig() *rest.Config {
+	return r.config
 }
