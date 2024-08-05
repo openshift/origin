@@ -6,6 +6,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
@@ -164,14 +166,22 @@ func writeMatrixToFile(matrix types.ComMatrix, fileName, format string, printFn 
 	return os.WriteFile(comMatrixFileName, res, 0644)
 }
 
-func GenerateMatrixDiff(mat1 types.ComMatrix, mat2 types.ComMatrix) string {
-	diff := consts.CSVHeaders + "\n"
+// GenerateMatrixDiff generates the diff between mat1 to mat2.
+func GenerateMatrixDiff(mat1, mat2 types.ComMatrix) (string, error) {
+	colNames, err := getComMatrixHeadersByFormat(types.FormatCSV)
+	if err != nil {
+		return "", fmt.Errorf("error getting commatrix CSV tags: %v", err)
+	}
+
+	diff := colNames + "\n"
+
 	for _, cd := range mat1.Matrix {
 		if mat2.Contains(cd) {
 			diff += fmt.Sprintf("%s\n", cd)
 			continue
 		}
 
+		// add "+" before cd's mat1 contains but mat2 doesn't
 		diff += fmt.Sprintf("+ %s\n", cd)
 	}
 
@@ -183,11 +193,28 @@ func GenerateMatrixDiff(mat1 types.ComMatrix, mat2 types.ComMatrix) string {
 		}
 
 		if !mat1.Contains(cd) {
+			// add "-" before cd's mat1 doesn't contain but mat2 does
 			diff += fmt.Sprintf("- %s\n", cd)
 		}
 	}
 
-	return diff
+	return diff, nil
+}
+
+func getComMatrixHeadersByFormat(format string) (string, error) {
+	typ := reflect.TypeOf(types.ComDetails{})
+
+	var tagsList []string
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		tag := field.Tag.Get(format)
+		if tag == "" {
+			return "", fmt.Errorf("field %v has no tag of format %s", field, format)
+		}
+		tagsList = append(tagsList, tag)
+	}
+
+	return strings.Join(tagsList, ","), nil
 }
 
 func separateMatrixByRole(matrix types.ComMatrix) (types.ComMatrix, types.ComMatrix) {

@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/openshift-kni/commatrix/consts"
+	"github.com/gocarina/gocsv"
 	"sigs.k8s.io/yaml"
 )
 
@@ -34,15 +34,15 @@ type ComMatrix struct {
 }
 
 type ComDetails struct {
-	Direction string `json:"direction" yaml:"direction"`
-	Protocol  string `json:"protocol" yaml:"protocol"`
-	Port      int    `json:"port" yaml:"port"`
-	Namespace string `json:"namespace" yaml:"namespace"`
-	Service   string `json:"service" yaml:"service"`
-	Pod       string `json:"pod" yaml:"pod"`
-	Container string `json:"container" yaml:"container"`
-	NodeRole  string `json:"nodeRole" yaml:"nodeRole"`
-	Optional  bool   `json:"optional" yaml:"optional"`
+	Direction string `json:"direction" yaml:"direction" csv:"Direction"`
+	Protocol  string `json:"protocol" yaml:"protocol" csv:"Protocol"`
+	Port      int    `json:"port" yaml:"port" csv:"Port"`
+	Namespace string `json:"namespace" yaml:"namespace" csv:"Namespace"`
+	Service   string `json:"service" yaml:"service" csv:"Service"`
+	Pod       string `json:"pod" yaml:"pod" csv:"Pod"`
+	Container string `json:"container" yaml:"container" csv:"Container"`
+	NodeRole  string `json:"nodeRole" yaml:"nodeRole" csv:"Node Role"`
+	Optional  bool   `json:"optional" yaml:"optional" csv:"Optional"`
 }
 
 func ToCSV(m ComMatrix) ([]byte, error) {
@@ -50,18 +50,11 @@ func ToCSV(m ComMatrix) ([]byte, error) {
 	w := bytes.NewBuffer(out)
 	csvwriter := csv.NewWriter(w)
 
-	err := csvwriter.Write(strings.Split(consts.CSVHeaders, ","))
+	err := gocsv.MarshalCSV(&m.Matrix, csvwriter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to write to CSV: %w", err)
+		return nil, err
 	}
 
-	for _, cd := range m.Matrix {
-		record := strings.Split(cd.String(), ",")
-		err := csvwriter.Write(record)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert to CSV foramt: %w", err)
-		}
-	}
 	csvwriter.Flush()
 
 	return w.Bytes(), nil

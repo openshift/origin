@@ -807,7 +807,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift-kni/commatrix v0.0.0-20240723113904-8cf81e2e0a77
+# github.com/openshift-kni/commatrix v0.0.0-20240804140833-20db0062b991
 ## explicit; go 1.21
 github.com/openshift-kni/commatrix/client
 github.com/openshift-kni/commatrix/commatrix

@@ -59,6 +59,12 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 		docComMatrix := &types.ComMatrix{Matrix: docComDetailsList}
 
+		g.By("generating diff between matrices for testing purposes")
+		diff, err := commatrix.GenerateMatrixDiff(*newComMatrix, *docComMatrix)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		err = os.WriteFile(filepath.Join(artifactsDir, "matrix-diff-ss"), []byte(diff), 0644)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
 		g.By("comparing new and documented commatrices")
 		areEqual := comMatricesAreEqual(*newComMatrix, *docComMatrix)
 		o.Expect(areEqual).To(o.BeTrue())
