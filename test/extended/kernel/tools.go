@@ -1,14 +1,21 @@
 package kernel
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/utils/cpuset"
 )
 
 const (
@@ -58,9 +65,14 @@ func runOslat(cpuCount int, oc *exutil.CLI) error {
 		return fmt.Errorf("more than 4 cores are required to run this oslat test. Found %d cores", cpuCount)
 	}
 
+	reservedCores, err := getReservedCores(oc)
+	if err != nil {
+		return errors.Wrap(err, "unable to get the reserved core configuration")
+	}
+
 	// Run the test
-	args := []string{rtPodName, "--", "oslat", "--cpu-list", fmt.Sprintf("4-%d", cpuCount-1), "--rtprio", "1", "--duration", "600", "--json", oslatReportFile}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
+	args := []string{rtPodName, "--", "oslat", "--cpu-list", fmt.Sprintf("%d-%d", reservedCores+1, cpuCount-1), "--rtprio", "1", "--duration", "600", "--json", oslatReportFile}
+	_, err = oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
 	if err != nil {
 		return errors.Wrap(err, "error running oslat")
 	}
@@ -187,6 +199,60 @@ func getProcessorCount(oc *exutil.CLI) (int, error) {
 	}
 
 	return count, nil
+}
+
+// getReservedCores will parse the performance profile (if it exists) and look for the reserved cpu configuration
+// The expected configurations should start with core 0 and be in the form 0-X
+func getReservedCores(oc *exutil.CLI) (int, error) {
+	// Performance profiles dictate constrained CPUSets, we gather them here to compare.
+	// Note: We're using a dynamic client here to avoid importing the PerformanceProfile
+	// for a simple query and keep this code change small. If we end up needing more interaction
+	// with PerformanceProfiles, then we should import the package and update this call.
+
+	performanceProfiles, err := oc.AdminDynamicClient().
+		Resource(schema.GroupVersionResource{
+			Resource: "performanceprofiles",
+			Group:    "performance.openshift.io",
+			Version:  "v2"}).Namespace("").List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return 0, fmt.Errorf("error listing performance profiles: %w", err)
+	}
+
+	if len(performanceProfiles.Items) == 0 {
+		e2e.Logf("no performance profile detected, using 0-3 as reserved cores")
+
+		return 3, nil
+	}
+
+	if len(performanceProfiles.Items) > 1 {
+		return 0, fmt.Errorf("unable to determine reserved cores, more than 1 performance profile was found")
+	}
+
+	pprof := performanceProfiles.Items[0]
+	reservedCPU, found, err := unstructured.NestedString(pprof.Object, "spec", "cpu", "reserved")
+	if err != nil {
+		return 0, fmt.Errorf("error getting reservedCPUSet from PerformanceProfile: %w", err)
+	}
+	if !found {
+		return 0, fmt.Errorf("expected spec.reserved to be found in PerformanceProfile(%s)", pprof.GetName())
+	}
+
+	reservedCPUset, err := cpuset.Parse(reservedCPU)
+	if err != nil {
+		return 0, errors.Wrap(err, "unable to parse the reserved cpuset")
+	}
+
+	reservedCPUs := strings.Split(reservedCPUset.String(), "-")
+	if len(reservedCPUs) != 2 {
+		return 0, fmt.Errorf("abnormal reserved cpu configuration detected. Please use the form '0-X'")
+	}
+
+	reservedEnd, err := strconv.Atoi(reservedCPUs[1])
+	if err != nil {
+		return 0, errors.Wrap(err, "unable to parse the end of the reserved cpu block")
+	}
+
+	return reservedEnd, nil
 }
 
 type rtevalOutput struct {
