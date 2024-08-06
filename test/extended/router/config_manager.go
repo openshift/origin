@@ -567,6 +567,8 @@ http {
 })
 
 func waitForRouteToRespond(ns, execPodName, proto, host, abspath, ipaddr string, port int) error {
+	// bracket IPv6 IPs when used as URI
+	host = exutil.IPUrl(host)
 	if port == 0 {
 		switch proto {
 		case "http":
