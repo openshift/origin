@@ -113,7 +113,7 @@ func TestRequestRiskAnalysisAllRetriesFail(t *testing.T) {
 	}
 	err = json.Unmarshal(fileContent, &data)
 	assert.NoError(t, err, "Log file content is not valid JSON")
-	assert.Equal(t, 3, len(data.Rows), "expect three attempts that fail")
+	assert.Equal(t, 4, len(data.Rows), "expect four attempts that fail")
 }
 
 func TestWriteRAResultsWritesDataCorrectly(t *testing.T) {

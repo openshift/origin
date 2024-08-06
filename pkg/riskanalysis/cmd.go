@@ -24,7 +24,7 @@ import (
 
 const (
 	testFailureSummaryFilePrefix = "test-failures-summary"
-	maxTries                     = 3
+	maxTries                     = 4
 	sippyUiURL                   = "https://sippy.dptools.openshift.org/sippy-ng/"
 	raDataFile                   = "risk-analysis.json"
 	raReqLogFileName             = "risk-analysis-requests-" + dataloader.AutoDataLoaderSuffix
@@ -190,7 +190,7 @@ func (opt *Options) requestRiskAnalysis(inputBytes []byte, client *http.Client, 
 		reqLog := &raRequestLog{RequestCount: i, StartTime: time.Now()}
 		finalReqLog = reqLog
 		reqLogs = append(reqLogs, finalReqLog)
-		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
+		ctx, cancelFn := context.WithTimeout(req.Context(), 30*time.Second)
 
 		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxTries, req.RequestURI)
 		resp, err = client.Do(req.WithContext(ctx))
@@ -209,7 +209,7 @@ func (opt *Options) requestRiskAnalysis(inputBytes []byte, client *http.Client, 
 			break
 		}
 		reqLog.Error = fmt.Sprintf("%v", err)
-		logrus.WithError(err).Warn("error requesting risk analysis from sippy, sleeping 30s")
+		logrus.WithError(err).Warnf("error requesting risk analysis from sippy, sleeping %ds", i*30)
 		sleepy.Sleep(time.Duration(i*30) * time.Second)
 	}
 	if !clientDoSuccess {
