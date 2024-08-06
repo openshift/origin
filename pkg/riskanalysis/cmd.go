@@ -198,7 +198,11 @@ func (opt *Options) requestRiskAnalysis(inputBytes []byte, client *http.Client, 
 		reqLog.Duration = time.Now().Sub(reqLog.StartTime)
 		logrus.Infof("Call to sippy finished after: %f seconds", reqLog.Duration.Seconds())
 		if err == nil && resp.StatusCode != http.StatusOK {
-			err = fmt.Errorf("error requesting risk analysis from sippy: status %s", resp.Status)
+			message, readErr := io.ReadAll(resp.Body) // some responses can help debug the problem
+			if readErr != nil {
+				message = []byte(("Error reading response body: " + readErr.Error()))
+			}
+			err = fmt.Errorf("error requesting risk analysis from sippy: status %s, message %s", resp.Status, message)
 		}
 		if err == nil {
 			clientDoSuccess = true
