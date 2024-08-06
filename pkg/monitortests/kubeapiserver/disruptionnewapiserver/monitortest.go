@@ -71,9 +71,5 @@ func (w *newAPIServerDisruptionChecker) WriteContentToStorage(ctx context.Contex
 }
 
 func (w *newAPIServerDisruptionChecker) Cleanup(ctx context.Context) error {
-	if w.notSupportedReason != nil {
-		return w.notSupportedReason
-	}
-
 	return nil
 }

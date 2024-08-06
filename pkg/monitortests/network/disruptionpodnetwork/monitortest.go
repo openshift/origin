@@ -1,8 +1,6 @@
 package disruptionpodnetwork
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"embed"
 	_ "embed"
@@ -28,8 +26,8 @@ import (
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -274,72 +272,8 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 	if err != nil {
 		return nil, nil, []error{err}
 	}
-	pollerPods, err := pna.kubeClient.CoreV1().Pods(pna.namespaceName).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.NewSelector().Add(*pollerLabel).Add(*typeLabel).String(),
-	})
-	if err != nil {
-		return nil, nil, []error{err}
-	}
-
-	retIntervals := monitorapi.Intervals{}
-	junits := []*junitapi.JUnitTestCase{}
-	errs := []error{}
-	buf := &bytes.Buffer{}
-	podsWithoutIntervals := []string{}
-	for _, pollerPod := range pollerPods.Items {
-		fmt.Fprintf(buf, "\n\nLogs for -n %v pod/%v\n", pollerPod.Namespace, pollerPod.Name)
-		req := pna.kubeClient.CoreV1().Pods(pna.namespaceName).GetLogs(pollerPod.Name, &corev1.PodLogOptions{})
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		logStream, err := req.Stream(ctx)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		foundInterval := false
-		scanner := bufio.NewScanner(logStream)
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			buf.Write(line)
-			buf.Write([]byte("\n"))
-			if len(line) == 0 {
-				continue
-			}
-
-			// not all lines are json, ignore errors.
-			if currInterval, err := monitorserialization.IntervalFromJSON(line); err == nil {
-				retIntervals = append(retIntervals, *currInterval)
-				foundInterval = true
-			}
-		}
-		if !foundInterval {
-			podsWithoutIntervals = append(podsWithoutIntervals, pollerPod.Name)
-		}
-	}
-
-	failures := []string{}
-	if len(podsWithoutIntervals) > 0 {
-		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
-	}
-	if len(pollerPods.Items) == 0 {
-		failures = append(failures, "no pods found for poller %q", typeOfConnection)
-	}
-
-	logJunit := &junitapi.JUnitTestCase{
-		Name:      fmt.Sprintf("[sig-network] can collect %v poller pod logs", typeOfConnection),
-		SystemOut: string(buf.Bytes()),
-	}
-	if len(failures) > 0 {
-		logJunit.FailureOutput = &junitapi.FailureOutput{
-			Output: strings.Join(failures, "\n"),
-		}
-	}
-	junits = append(junits, logJunit)
-
-	return retIntervals, junits, errs
+	labelSelector := labels.NewSelector().Add(*pollerLabel).Add(*typeLabel)
+	return disruptionlibrary.CollectIntervalsForPods(ctx, pna.kubeClient, "sig-network", pna.namespaceName, labelSelector)
 }
 
 func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
