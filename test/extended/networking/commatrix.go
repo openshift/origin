@@ -23,7 +23,9 @@ import (
 )
 
 const (
-	doc_commatrix_url = "https://raw.githubusercontent.com/openshift/openshift-docs/main/snippets/network-flow-matrix.csv"
+	docCommatrixUrl  = "https://raw.githubusercontent.com/openshift/openshift-docs/main/snippets/network-flow-matrix.csv"
+	diffFileComments = "// `+` indicates a port that has to be removed from the doccumented matrix.\n" +
+		"// `-` indicates a port isn't in the current doccumented matrix, and has to be added.\n"
 )
 
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
@@ -54,15 +56,18 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 
 		g.By("get documented commatrix")
 		fp := filepath.Join(artifactsDir, "doc-commatrix.csv")
-		createCSVFromUrl(doc_commatrix_url, fp)
+		createCSVFromUrl(docCommatrixUrl, fp)
 		docComDetailsList, err := commatrix.GetComDetailsListFromFile(fp, types.CSV)
 		o.Expect(err).ToNot(o.HaveOccurred())
+		if isSNO {
+			docComDetailsList = filterMasterNodeComDetailsFromList(docComDetailsList)
+		}
 		docComMatrix := &types.ComMatrix{Matrix: docComDetailsList}
 
 		g.By("generating diff between matrices for testing purposes")
 		diff, err := commatrix.GenerateMatrixDiff(*newComMatrix, *docComMatrix)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		err = os.WriteFile(filepath.Join(artifactsDir, "matrix-diff-ss"), []byte(diff), 0644)
+		err = os.WriteFile(filepath.Join(artifactsDir, "doc-diff-new"), []byte(diffFileComments + diff), 0644)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("comparing new and documented commatrices")
@@ -115,4 +120,14 @@ func comMatricesAreEqual(cm1 types.ComMatrix, cm2 types.ComMatrix) bool {
 
 	// Diff matrices are empty, ComMatrices are equal
 	return true
+}
+
+func filterMasterNodeComDetailsFromList(comDetails []types.ComDetails) []types.ComDetails {
+	masterComDetails := []types.ComDetails{}
+	for _, cd := range comDetails {
+		if cd.NodeRole == "master" {
+			masterComDetails = append(masterComDetails, cd)
+		}
+	}
+	return masterComDetails
 }
