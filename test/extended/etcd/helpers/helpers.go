@@ -485,7 +485,7 @@ func SkipIfUnsupportedPlatform(ctx context.Context, oc *exutil.CLI) {
 	machineClient := machineClientSet.MachineV1beta1().Machines("openshift-machine-api")
 	skipUnlessFunctionalMachineAPI(ctx, machineClient)
 	skipIfSingleNode(oc)
-	skipIfBareMetal(oc)
+	exutil.SkipIf(oc, "BareMetal")
 }
 
 func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1beta1client.MachineInterface) {
@@ -514,39 +514,12 @@ func skipUnlessFunctionalMachineAPI(ctx context.Context, machineClient machinev1
 	return
 }
 
-func skipIfAzure(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.AzurePlatformType {
-		e2eskipper.Skipf("this test is currently flaky on the azure platform")
-	}
-}
-
 func skipIfSingleNode(oc *exutil.CLI) {
 	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	if infra.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode {
 		e2eskipper.Skipf("this test can be run only against an HA cluster, skipping it on an SNO env")
-	}
-}
-
-func skipIfBareMetal(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.BareMetalPlatformType {
-		e2eskipper.Skipf("this test is currently broken on the metal platform and needs to be fixed")
-	}
-}
-
-func skipIfVsphere(oc *exutil.CLI) {
-	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-
-	if infra.Status.PlatformStatus.Type == configv1.VSpherePlatformType {
-		e2eskipper.Skipf("this test is currently broken on the vsphere platform and needs to be fixed (BZ2094919)")
 	}
 }
 
