@@ -31,6 +31,23 @@ spec:
         remove all network diagnostics pods when disabled'
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
         set the condition to false if there are no nodes able to host the source pods'
+  - featureGate: VSphereDriverConfiguration
+    tests:
+    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
+        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
+        allow all limits to be set at once'
+    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
+        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
+        allow setting VSAN limit'
+    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
+        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
+        allow setting VVOL limit'
+    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
+        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
+        allow setting global snapshot limit'
+    - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
+        vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
+        use default when unset'
   - featureGate: ValidatingAdmissionPolicy
     tests:
     - testName: '[sig-api-machinery] ValidatingAdmissionPolicy [Privileged:ClusterAdmin]
