@@ -2,6 +2,8 @@ package watchnodes
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -42,7 +44,11 @@ func (*nodeWatcher) ConstructComputedIntervals(ctx context.Context, startingInte
 }
 
 func (*nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+	// Fail tests when monitor test flags this as an error
+	junits := []*junitapi.JUnitTestCase{}
+	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals)...)
+	junits = append(junits, unreachableNodeTaint(finalIntervals)...)
+	return junits, nil
 }
 
 func (*nodeWatcher) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
@@ -52,4 +58,58 @@ func (*nodeWatcher) WriteContentToStorage(ctx context.Context, storageDir, timeS
 func (*nodeWatcher) Cleanup(ctx context.Context) error {
 	// TODO wire up the start to a context we can kill here
 	return nil
+}
+
+func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] node-lifecycle detects unexpected not ready node"
+	var failures []string
+	for _, event := range finalIntervals {
+		if event.Message.Reason == monitorapi.NodeUnexpectedReadyReason {
+			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", event.Locator.OldLocator(), event.Message.OldMessage(), event.From, event.To))
+		}
+	}
+
+	// failures during a run always fail the test suite
+	var tests []*junitapi.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("node-lifecycle reports %d unexpected notReady events. The node went NotReady in an unpredicted way.\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+	}
+
+	if len(tests) == 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+	}
+	return tests
+}
+
+func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] node-lifecycle detects unreachable state on node"
+	var failures []string
+	for _, event := range finalIntervals {
+		if event.Message.Reason == monitorapi.NodeUnreachableReason {
+			failures = append(failures, fmt.Sprintf("%v - %v from %v to %v", event.Locator.OldLocator(), event.Message.OldMessage(), event.From, event.To))
+		}
+	}
+
+	// failures during a run always fail the test suite
+	var tests []*junitapi.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("node-lifecycle reports %d unexpected node unreachable events. The node went unreachable in an unpredicted way.\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+	}
+
+	if len(tests) == 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+	}
+	return tests
 }
