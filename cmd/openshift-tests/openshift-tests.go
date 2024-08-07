@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/openshift/library-go/pkg/serviceability"
+	"github.com/openshift/origin/pkg/cmd"
 	collectdiskcertificates "github.com/openshift/origin/pkg/cmd/openshift-tests/collect-disk-certificates"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/dev"
 	"github.com/openshift/origin/pkg/cmd/openshift-tests/disruption"
@@ -23,6 +24,7 @@ import (
 	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
 	run_test "github.com/openshift/origin/pkg/cmd/openshift-tests/run-test"
 	run_upgrade "github.com/openshift/origin/pkg/cmd/openshift-tests/run-upgrade"
+	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
 	run_resourcewatch "github.com/openshift/origin/pkg/resourcewatch/cmd"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -60,13 +62,14 @@ func main() {
 	//pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
 	root := &cobra.Command{
-		Long: templates.LongDesc(`
-		OpenShift Tests
-
-		This command verifies behavior of an OpenShift cluster by running remote tests against
+		Long: templates.LongDesc(`This command verifies behavior of an OpenShift cluster by running remote tests against
 		the cluster API that exercise functionality. In general these tests may be disruptive
 		or require elevated privileges - see the descriptions of each test suite.
 		`),
+		// PersistentPreRun to always print the openshift-tests version; this populates
+		// down to subcommands as well. If you need to omit this output for a specific command,
+		// you can override PersistentPreRun to NoPrintVersion instead.
+		PersistentPreRun: cmd.PrintVersion,
 	}
 
 	ioStreams := genericclioptions.IOStreams{
@@ -90,6 +93,7 @@ func main() {
 		run_disruption.NewRunInClusterDisruptionMonitorCommand(ioStreams),
 		collectdiskcertificates.NewRunCollectDiskCertificatesCommand(ioStreams),
 		render.NewRenderCommand(ioStreams),
+		versioncmd.NewVersionCommand(ioStreams),
 	)
 
 	f := flag.CommandLine.Lookup("v")
