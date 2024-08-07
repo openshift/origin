@@ -1,6 +1,7 @@
 package watchnodes
 
 import (
+	"github.com/openshift/origin/pkg/monitortestlibrary/watchresources"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -50,7 +51,7 @@ func TestNodeRoles(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		if actual := nodeRoles(tc.node); tc.expected != actual {
+		if actual := watchresources.NodeRoles(tc.node); tc.expected != actual {
 			t.Errorf("mismatch roles. expected: %s, actual: %s", tc.expected, actual)
 		}
 	}

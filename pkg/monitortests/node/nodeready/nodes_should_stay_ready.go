@@ -2,17 +2,18 @@ package nodeready
 
 import (
 	"context"
+	"fmt"
 	"github.com/openshift/origin/pkg/monitortestlibrary/watchresources"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
+	"strings"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -35,7 +36,7 @@ func (w *nodesShouldStayReady) StartCollection(ctx context.Context, adminRESTCon
 	customStore := watchresources.NewMonitoringStore(
 		"pods",
 		nil,
-		toUpdateFns(w.nodeChangeFns),
+		[]watchresources.ObjUpdateFunc{w.watchNodeUpdateFunc},
 		nil,
 		recorder,
 		recorder,
@@ -47,29 +48,84 @@ func (w *nodesShouldStayReady) StartCollection(ctx context.Context, adminRESTCon
 }
 
 func (w *nodesShouldStayReady) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
-	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-	// MicroShift does not have a proper journal for the node logs api.
-	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
-	if err != nil {
-		return nil, nil, err
-	}
-	if isMicroShift {
-		return nil, nil, nil
-	}
-
-	intervals, err := intervalsFromNodeLogs(ctx, kubeClient, beginning, end)
-	return intervals, nil, err
+	return nil, nil, nil
 }
 
 func (*nodesShouldStayReady) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+	constructedIntervals := monitorapi.Intervals{}
+
+	readyRelatedIntervals := startingIntervals.Filter(func(curr monitorapi.Interval) bool {
+		if curr.Message.Reason == monitorapi.NodeUnexpectedNotReadyReason {
+			return true
+		}
+		if curr.Message.Reason == monitorapi.NodeReadyReason {
+			return true
+		}
+		return false
+	})
+
+	nodeNameToUnexpectedUnready := map[string]monitorapi.Interval{}
+	for _, curr := range readyRelatedIntervals {
+		key := curr.Locator.OldLocator()
+		switch {
+		case curr.Message.Reason == monitorapi.NodeUnexpectedNotReadyReason:
+			nodeNameToUnexpectedUnready[key] = curr
+		case curr.Message.Reason == monitorapi.NodeReadyReason:
+			unexpectedUnreadyInterval, ok := nodeNameToUnexpectedUnready[key]
+			if !ok {
+				continue
+			}
+			constructedIntervals = append(constructedIntervals,
+				monitorapi.NewInterval(unexpectedUnreadyInterval.Source, monitorapi.Error).
+					Locator(unexpectedUnreadyInterval.Locator).
+					Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedNotReadyReason).
+						WithAnnotations(unexpectedUnreadyInterval.Message.Annotations).
+						Constructed(monitorapi.ConstructionOwnerNodeLifecycle).
+						HumanMessage("unexpected node not ready")).
+					Build(unexpectedUnreadyInterval.From, curr.From),
+			)
+
+		}
+	}
+
+	return constructedIntervals, nil
+
 }
 
 func (*nodesShouldStayReady) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+	junits := []*junitapi.JUnitTestCase{}
+
+	unexpectedlyUnreadyNodes := finalIntervals.Filter(func(curr monitorapi.Interval) bool {
+		_, isConstructed := curr.Message.Annotations[monitorapi.AnnotationConstructed]
+		if curr.Message.Reason == monitorapi.NodeUnexpectedNotReadyReason && isConstructed {
+			return true
+		}
+		return false
+	})
+
+	if len(unexpectedlyUnreadyNodes) == 0 {
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name: `[Jira:"Node / Kubelet"] nodes should not go unready unexpectedly`,
+		})
+		return junits, nil
+	}
+
+	unreadyStrings := []string{}
+	for _, interval := range unexpectedlyUnreadyNodes {
+		unreadyStrings = append(unreadyStrings, interval.String())
+	}
+
+	summary := fmt.Sprintf("nodes went unexpectly unready %d times", len(unexpectedlyUnreadyNodes))
+	junits = append(junits, &junitapi.JUnitTestCase{
+		Name: `[Jira:"Node / Kubelet"] nodes should not go unready unexpectedly`,
+		FailureOutput: &junitapi.FailureOutput{
+			Message: summary,
+			Output:  strings.Join(unreadyStrings, "\n"),
+		},
+		SystemOut: summary,
+		SystemErr: summary,
+	})
+	return junits, nil
 }
 
 func (*nodesShouldStayReady) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
@@ -81,18 +137,43 @@ func (*nodesShouldStayReady) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func toUpdateFns(podUpdateFns []func(pod, oldPod *corev1.Node) []monitorapi.Interval) []watchresources.ObjUpdateFunc {
-	ret := []watchresources.ObjUpdateFunc{}
-
-	for i := range podUpdateFns {
-		fn := podUpdateFns[i]
-		ret = append(ret, func(obj, oldObj interface{}) []monitorapi.Interval {
-			if oldObj == nil {
-				return fn(obj.(*corev1.Node), nil)
-			}
-			return fn(obj.(*corev1.Node), oldObj.(*corev1.Node))
-		})
+func (w *nodesShouldStayReady) nodeUpdated(node, oldNode *corev1.Node) []monitorapi.Interval {
+	if oldNode == nil {
+		return nil
 	}
 
-	return ret
+	now := time.Now()
+	intervals := []monitorapi.Interval{}
+	roles := watchresources.NodeRoles(node)
+
+	newReady := false
+	if c := watchresources.FindNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
+		newReady = c.Status == corev1.ConditionTrue
+	}
+	oldReady := false
+	if c := watchresources.FindNodeCondition(oldNode.Status.Conditions, corev1.NodeReady, 0); c != nil {
+		oldReady = c.Status == corev1.ConditionTrue
+	}
+
+	newCurrentConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+	newDesiredConfig := node.Annotations["machineconfiguration.openshift.io/desiredConfig"]
+	machineConfigChanged := newCurrentConfig != newDesiredConfig
+
+	if !newReady && oldReady && !machineConfigChanged {
+		intervals = append(intervals,
+			monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Error).
+				Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+				Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedNotReadyReason).
+					WithAnnotations(map[monitorapi.AnnotationKey]string{
+						monitorapi.AnnotationRoles: roles,
+					}).
+					HumanMessage("unexpected node not ready")).
+				Build(now, now))
+	}
+
+	return nil
+}
+
+func (w *nodesShouldStayReady) watchNodeUpdateFunc(obj, oldObj interface{}) []monitorapi.Interval {
+	return w.nodeUpdated(obj.(*corev1.Node), oldObj.(*corev1.Node))
 }
