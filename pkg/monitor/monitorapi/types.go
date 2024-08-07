@@ -188,9 +188,11 @@ const (
 	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
 	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"
 
-	NodeUpdateReason   IntervalReason = "NodeUpdate"
-	NodeNotReadyReason IntervalReason = "NotReady"
-	NodeFailedLease    IntervalReason = "FailedToUpdateLease"
+	NodeUpdateReason          IntervalReason = "NodeUpdate"
+	NodeNotReadyReason        IntervalReason = "NotReady"
+	NodeFailedLease           IntervalReason = "FailedToUpdateLease"
+	NodeUnexpectedReadyReason IntervalReason = "UnexpectedNotReady"
+	NodeUnreachableReason     IntervalReason = "Unreachable"
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
@@ -283,6 +285,8 @@ const (
 	SourceKubeEvent                 IntervalSource = "KubeEvent"
 	SourceNetworkManagerLog         IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor               IntervalSource = "NodeMonitor"
+	SourceUnexpectedReady           IntervalSource = "NodeUnexpectedNotReady"
+	SourceUnreachable               IntervalSource = "NodeUnreachable"
 	SourceKubeletLog                IntervalSource = "KubeletLog"
 	SourcePodLog                    IntervalSource = "PodLog"
 	SourceEtcdLog                   IntervalSource = "EtcdLog"
