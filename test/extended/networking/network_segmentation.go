@@ -38,14 +38,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 	oc := exutil.NewCLIWithPodSecurityLevel("network-segmentation-e2e", admissionapi.LevelPrivileged)
 	f := oc.KubeFramework()
 
-	Context("a user defined primary network", func() {
+	InOVNKubernetesContext(func() {
 		const (
-			gatewayIPv4Address           = "10.128.0.1"
-			gatewayIPv6Address           = "2014:100:200::1"
 			nodeHostnameKey              = "kubernetes.io/hostname"
 			port                         = 9000
 			defaultPort                  = 8080
-			userDefinedNetworkIPv4Subnet = "10.128.0.0/16"
+			userDefinedNetworkIPv4Subnet = "203.203.0.0/16"
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
 			nadName                      = "gryffindor"
 		)
@@ -56,7 +54,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 		)
 
 		BeforeEach(func() {
-			e2eskipper.Skipf("TODO(kyrtapz): Unskip with https://github.com/openshift/origin/pull/28945")
 			cs = f.ClientSet
 
 			var err error
@@ -79,13 +76,12 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				netConfig.namespace = f.Namespace.Name
 				workerNodes, err := getWorkerNodesOrdered(cs)
 				Expect(err).NotTo(HaveOccurred())
-				// TODO: should I skip this on SNO ?... or should I simply put pods the first and last node ?
-				Expect(len(workerNodes)).To(BeNumerically(">=", 2))
+				Expect(len(workerNodes)).To(BeNumerically(">=", 1))
 
 				clientPodConfig.namespace = f.Namespace.Name
 				clientPodConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[0].Name}
 				serverPodConfig.namespace = f.Namespace.Name
-				serverPodConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[1].Name}
+				serverPodConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[len(workerNodes)-1].Name}
 
 				By("creating the attachment configuration")
 				_, err = nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
@@ -131,15 +127,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				},
 				*podConfig(
 					"client-pod",
-					nadName,
 				),
-				*podConfig(
-					"server-pod",
-					nadName,
-					withCommand(func() []string {
-						return httpServerContainerCmd(port)
-					}),
-				),
+				*podConfig("server-pod", withCommand(func() []string {
+					return httpServerContainerCmd(port)
+				})),
 			),
 			Entry(
 				"two pods connected over a L3 dualstack primary UDN",
@@ -151,15 +142,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				},
 				*podConfig(
 					"client-pod",
-					nadName,
 				),
-				*podConfig(
-					"server-pod",
-					nadName,
-					withCommand(func() []string {
-						return httpServerContainerCmd(port)
-					}),
-				),
+				*podConfig("server-pod", withCommand(func() []string {
+					return httpServerContainerCmd(port)
+				})),
 			),
 		)
 
@@ -287,15 +273,15 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					}, 5*time.Second).Should(BeTrue())
 				}
 
-				By("asserting healthcheck works (kubelet can access the UDN pod)")
-				// The pod should be ready
-				Expect(podutils.IsPodReady(udnPod)).To(BeTrue())
-
 				// connectivity check is run every second + 1sec initialDelay
 				// By this time we have spent at least 8 seconds doing the above checks
 				udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Get(context.Background(), udnPod.Name, metav1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(udnPod.Status.ContainerStatuses[0].RestartCount).To(Equal(int32(0)))
+
+				By("asserting healthcheck works (kubelet can access the UDN pod)")
+				// The pod should be ready
+				Expect(podutils.IsPodReady(udnPod)).To(BeTrue())
 
 				// TODO
 				//By("checking non-kubelet default network host process can't reach the UDN pod")
@@ -364,13 +350,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 					role:     "primary",
 				},
-				*podConfig(
-					"udn-pod",
-					nadName,
-					withCommand(func() []string {
-						return httpServerContainerCmd(port)
-					}),
-				),
+				*podConfig("udn-pod", withCommand(func() []string {
+					return httpServerContainerCmd(port)
+				})),
 			),
 			Entry(
 				"with L3 dualstack primary UDN",
@@ -380,13 +362,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 					role:     "primary",
 				},
-				*podConfig(
-					"udn-pod",
-					nadName,
-					withCommand(func() []string {
-						return httpServerContainerCmd(port)
-					}),
-				),
+				*podConfig("udn-pod", withCommand(func() []string {
+					return httpServerContainerCmd(port)
+				})),
 			),
 		)
 	})
@@ -411,10 +389,9 @@ func setRuntimeDefaultPSA(pod *v1.Pod) {
 
 type podOption func(*podConfiguration)
 
-func podConfig(podName, nadName string, opts ...podOption) *podConfiguration {
+func podConfig(podName string, opts ...podOption) *podConfiguration {
 	pod := &podConfiguration{
-		attachments: []nadapi.NetworkSelectionElement{{Name: nadName}},
-		name:        podName,
+		name: podName,
 	}
 	for _, opt := range opts {
 		opt(pod)
