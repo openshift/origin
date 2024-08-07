@@ -19,7 +19,7 @@ const (
 )
 
 // Initialize openshift/csi suite, i.e. define CSI tests from TEST_CSI_DRIVER_FILES.
-func initCSITests(dryRun bool) error {
+func initCSITests() error {
 	ocpDrivers := sets.New[string]()
 	upstreamDrivers := sets.New[string]()
 
