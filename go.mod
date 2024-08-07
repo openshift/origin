@@ -26,7 +26,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift-kni/commatrix v0.0.0-20240807112008-e7c02cfad255
+	github.com/openshift-kni/commatrix v0.0.0-20240807114741-a9b57e216229
 	github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f
 	github.com/openshift/apiserver-library-go v0.0.0-20240528110119-d099d1006d9d
 	github.com/openshift/build-machinery-go v0.0.0-20240613134303-8359781da660

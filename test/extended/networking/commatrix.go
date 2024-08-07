@@ -91,11 +91,15 @@ func applyRulesToNode(cs *client.ClientSet, role string, NFTtable []byte) error 
 	}
 
 	for _, node := range nodesList.Items {
-		if types.GetNodeRoles(&node)[0] != role {
+		nodeRolde, err := types.GetNodeRole(&node)
+		if err != nil {
+			return err
+		}
+		if nodeRolde != role {
 			continue
 		}
 		ns := "commatrix-firewall" + node.Name
-		err := utilsHelpers.CreateNamespace(ns)
+		err = utilsHelpers.CreateNamespace(ns)
 		if err != nil {
 			return err
 		}
@@ -176,10 +180,6 @@ func applyRulesToNode(cs *client.ClientSet, role string, NFTtable []byte) error 
 		err = os.WriteFile(filepath.Join(artifactsDir, fmt.Sprintf("nftables-%s.nft", node.Name)), []byte(output), 0644)
 		if err != nil {
 			return fmt.Errorf("failed to save nft file on for node artifacts %s %w", node.Name, err)
-		}
-		err = utilsHelpers.DeleteNamespace(ns)
-		if err != nil {
-			return err
 		}
 	}
 	return nil

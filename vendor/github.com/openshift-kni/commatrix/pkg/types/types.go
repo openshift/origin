@@ -354,15 +354,24 @@ func getComMatrixHeadersByFormat(format string) (string, error) {
 	return strings.Join(tagsList, ","), nil
 }
 
-func GetNodeRoles(node *corev1.Node) []string {
-	roles := []string{}
+func GetNodeRole(node *corev1.Node) (string, error) {
 	if _, ok := node.Labels[consts.RoleLabel+"master"]; ok {
-		roles = append(roles, "master")
+		return "master", nil
+	}
+
+	if _, ok := node.Labels[consts.RoleLabel+"control-plane"]; ok {
+		return "master", nil
 	}
 
 	if _, ok := node.Labels[consts.RoleLabel+"worker"]; ok {
-		roles = append(roles, "worker")
+		return "worker", nil
 	}
 
-	return roles
+	for label := range node.Labels {
+		if strings.HasPrefix(label, consts.RoleLabel) {
+			return strings.TrimPrefix(label, consts.RoleLabel), nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to determine role for node %s", node.Name)
 }
