@@ -65,6 +65,7 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		if isSNO {
 			docComDetailsList = filterMasterNodeComDetailsFromList(docComDetailsList)
 		}
+		docComDetailsList = excludeBareMetalEntries(docComDetailsList)
 		docComMatrix := &types.ComMatrix{Matrix: docComDetailsList}
 
 		g.By("generating diff between matrices for testing purposes")
@@ -124,6 +125,7 @@ func comMatricesAreEqual(cm1 types.ComMatrix, cm2 types.ComMatrix) bool {
 	return true
 }
 
+// filterMasterNodeComDetailsFromList filters and returns only comDetails with "master" as a Node roel
 func filterMasterNodeComDetailsFromList(comDetails []types.ComDetails) []types.ComDetails {
 	masterComDetails := []types.ComDetails{}
 	for _, cd := range comDetails {
@@ -132,4 +134,24 @@ func filterMasterNodeComDetailsFromList(comDetails []types.ComDetails) []types.C
 		}
 	}
 	return masterComDetails
+}
+
+// excludeBareMetalEntries excludes and returns only comDetails that are not bare metal static entries
+func excludeBareMetalEntries(comDetails []types.ComDetails) []types.ComDetails {
+	nonBMComDetails := []types.ComDetails{}
+	bmMasterStaticEntriesMatrix := &types.ComMatrix{Matrix: types.BaremetalStaticEntriesMaster}
+	bmWorkerStaticEntriesMatrix := &types.ComMatrix{Matrix: types.BaremetalStaticEntriesWorker}
+	for _, cd := range comDetails {
+		switch cd.NodeRole {
+		case "master":
+			if !bmMasterStaticEntriesMatrix.Contains(cd) {
+				nonBMComDetails = append(nonBMComDetails, cd)
+			}
+		case "worker":
+			if !bmWorkerStaticEntriesMatrix.Contains(cd) {
+				nonBMComDetails = append(nonBMComDetails, cd)
+			}
+		}
+	}
+	return nonBMComDetails
 }
