@@ -3,6 +3,7 @@ package watchpods
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/origin/pkg/monitortestlibrary/watchresources"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -525,7 +526,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 	}
 
 	listWatch := cache.NewListWatchFromClient(client.CoreV1().RESTClient(), "pods", "", fields.Everything())
-	customStore := newMonitoringStore(
+	customStore := watchresources.NewMonitoringStore(
 		"pods",
 		toCreateFns(podCreatedFns),
 		toUpdateFns(podChangeFns),
@@ -544,12 +545,8 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 
 }
 
-type objCreateFunc func(obj interface{}) []monitorapi.Interval
-type objUpdateFunc func(obj, oldObj interface{}) []monitorapi.Interval
-type objDeleteFunc func(obj interface{}) []monitorapi.Interval
-
-func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Interval) []objCreateFunc {
-	ret := []objCreateFunc{}
+func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Interval) []watchresources.ObjCreateFunc {
+	ret := []watchresources.ObjCreateFunc{}
 
 	for i := range podCreateFns {
 		fn := podCreateFns[i]
@@ -561,8 +558,8 @@ func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Interval) []o
 	return ret
 }
 
-func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Interval) []objDeleteFunc {
-	ret := []objDeleteFunc{}
+func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Interval) []watchresources.ObjDeleteFunc {
+	ret := []watchresources.ObjDeleteFunc{}
 
 	for i := range podDeleteFns {
 		fn := podDeleteFns[i]
@@ -574,8 +571,8 @@ func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Interval) []o
 	return ret
 }
 
-func toUpdateFns(podUpdateFns []func(pod, oldPod *corev1.Pod) []monitorapi.Interval) []objUpdateFunc {
-	ret := []objUpdateFunc{}
+func toUpdateFns(podUpdateFns []func(pod, oldPod *corev1.Pod) []monitorapi.Interval) []watchresources.ObjUpdateFunc {
+	ret := []watchresources.ObjUpdateFunc{}
 
 	for i := range podUpdateFns {
 		fn := podUpdateFns[i]
