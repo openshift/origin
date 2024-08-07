@@ -36,6 +36,18 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 
 		}
 
+		isUnknown := false
+		if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
+			isUnknown = c.Status == corev1.ConditionUnknown
+		}
+
+		wasUnknown := false
+		if !isCreate {
+			if c := findNodeCondition(oldNode.Status.Conditions, corev1.NodeReady, 0); c != nil {
+				wasUnknown = c.Status == corev1.ConditionUnknown
+			}
+		}
+
 		now := time.Now()
 		switch {
 		case isCreate && !isReady:
@@ -72,6 +84,15 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 					Message(monitorapi.NewMessage().Reason("Ready").
 						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
 						HumanMessage("node is ready")).Build(now, now),
+			}
+
+		case wasUnknown && isUnknown:
+			return []monitorapi.Interval{
+				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+					Message(monitorapi.NewMessage().Reason("Unknown").
+						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+						HumanMessage("node status is unknown")).Build(now, now),
 			}
 		}
 

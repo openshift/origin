@@ -43,6 +43,7 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		locatorToMessageAnnotations[nodeLocatorKey][string(monitorapi.AnnotationRoles)] = roles
 
 		notReadyState := statetracker.State("NotReady", "NodeNotReady", monitorapi.NodeNotReadyReason)
+		unknownState := statetracker.State("Unknown", "NodeUnknown", monitorapi.NodeUnknown)
 		updateState := statetracker.State("Update", "NodeUpdate", monitorapi.NodeUpdateReason)
 		drainState := statetracker.State("Drain", "NodeUpdatePhases", monitorapi.NodeUpdateReason)
 		osUpdateState := statetracker.State("OperatingSystemUpdate", "NodeUpdatePhases", monitorapi.NodeUpdateReason)
@@ -60,6 +61,10 @@ func intervalsFromEvents_NodeChanges(events monitorapi.Intervals, _ monitorapi.R
 		case "NotReady":
 			if event.Source == monitorapi.SourceNodeMonitor {
 				nodeStateTracker.OpenInterval(nodeLocator, notReadyState, event.From)
+			}
+		case "Unknown":
+			if event.Source == monitorapi.SourceNodeMonitor {
+				nodeStateTracker.OpenInterval(nodeLocator, unknownState, event.From)
 			}
 		case "Ready":
 			if event.Source == monitorapi.SourceNodeMonitor {
