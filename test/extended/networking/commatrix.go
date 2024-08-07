@@ -7,57 +7,60 @@ import (
 	"os"
 	"path/filepath"
 
-	configv1 "github.com/openshift/api/config/v1"
-	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
-	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	clientutil "github.com/openshift-kni/commatrix/client"
-	"github.com/openshift-kni/commatrix/commatrix"
-	"github.com/openshift-kni/commatrix/types"
-
+	clientutil "github.com/openshift-kni/commatrix/pkg/client"
+	commatrixcreator "github.com/openshift-kni/commatrix/pkg/commatrix-creator"
+	"github.com/openshift-kni/commatrix/pkg/endpointslices"
+	"github.com/openshift-kni/commatrix/pkg/types"
+	"github.com/openshift-kni/commatrix/pkg/utils"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
 	docCommatrixUrl  = "https://raw.githubusercontent.com/openshift/openshift-docs/main/snippets/network-flow-matrix.csv"
 	diffFileComments = "// `+` indicates a port that has to be removed from the doccumented matrix.\n" +
-		"// `-` indicates a port isn't in the current doccumented matrix, and has to be added.\n"
+		"// `-` indicates a port that isn't in the current doccumented matrix, and has to be added.\n"
 )
 
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 	g.It("should be equal to documeneted communication matrix", func() {
 		artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
+
 		err := os.MkdirAll(artifactsDir, 0755)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		kubeconfig, ok := os.LookupEnv("KUBECONFIG")
-		if !ok {
-			g.Fail("must set the KUBECONFIG environment variable")
-		}
-
-		cs, err := clientutil.New(kubeconfig)
+		cs, err := clientutil.New()
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		deployment := commatrix.MNO
-		isSNO, err := isSNOCluster(cs.ConfigV1Interface)
+		deployment := types.MNO
+		isSNO, err := isSNOCluster(cs)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isSNO {
-			deployment = commatrix.SNO
+			deployment = types.SNO
 		}
 
-		g.By("generating new commatrix")
-		newComMatrix, err := commatrix.New(kubeconfig, "", "", commatrix.Cloud, deployment)
+		g.By("preparing for commatrices generation")
+		epExporter, err := endpointslices.New(cs)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		commatrix.WriteMatrixToFileByType(*newComMatrix, "new-commatrix", types.FormatCSV, deployment, artifactsDir)
+		utilsHelpers := utils.New(cs)
+
+		g.By("generating new commatrix")
+		newComMatrixCreator, err := commatrixcreator.New(epExporter, "", "", types.Cloud, deployment)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		newComMatrix, err := newComMatrixCreator.CreateEndpointMatrix()
+		o.Expect(err).ToNot(o.HaveOccurred())
+		newComMatrix.WriteMatrixToFileByType(utilsHelpers, "new-commatrix", types.FormatCSV, deployment, artifactsDir)
 
 		g.By("get documented commatrix")
 		fp := filepath.Join(artifactsDir, "doc-commatrix.csv")
 		createCSVFromUrl(docCommatrixUrl, fp)
-		docComDetailsList, err := commatrix.GetComDetailsListFromFile(fp, types.CSV)
+		docComMatrixCreator, err := commatrixcreator.New(epExporter, fp, types.FormatCSV, types.Cloud, deployment)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		docComDetailsList, err := docComMatrixCreator.GetComDetailsListFromFile()
 		o.Expect(err).ToNot(o.HaveOccurred())
 		if isSNO {
 			docComDetailsList = filterMasterNodeComDetailsFromList(docComDetailsList)
@@ -65,9 +68,9 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		docComMatrix := &types.ComMatrix{Matrix: docComDetailsList}
 
 		g.By("generating diff between matrices for testing purposes")
-		diff, err := commatrix.GenerateMatrixDiff(*newComMatrix, *docComMatrix)
+		diff, err := newComMatrix.GenerateMatrixDiff(docComMatrix)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		err = os.WriteFile(filepath.Join(artifactsDir, "doc-diff-new"), []byte(diffFileComments + diff), 0644)
+		err = os.WriteFile(filepath.Join(artifactsDir, "doc-diff-new"), []byte(diffFileComments+diff), 0644)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("comparing new and documented commatrices")
@@ -77,13 +80,12 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 })
 
 // isSNOCluster will check if OCP is a single node cluster
-func isSNOCluster(oc configv1client.ConfigV1Interface) (bool, error) {
-	infrastructureType, err := oc.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+func isSNOCluster(cs *clientutil.ClientSet) (bool, error) {
+	nodes, err := cs.CoreV1Interface.Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return false, err
 	}
-	logrus.Infof("the cluster type is %s", infrastructureType.Status.ControlPlaneTopology)
-	return infrastructureType.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode, nil
+	return len(nodes.Items) == 1, nil
 }
 
 // createCSVFromUrl creates a CSV from the given URL at fp filepath

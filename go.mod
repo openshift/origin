@@ -27,7 +27,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift-kni/commatrix v0.0.0-20240804140833-20db0062b991
+	github.com/openshift-kni/commatrix v0.0.0-20240807084103-636beb441075
 	github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f
 	github.com/openshift/apiserver-library-go v0.0.0-20240716092710-e88385a79b17
 	github.com/openshift/build-machinery-go v0.0.0-20240613134303-8359781da660
@@ -273,6 +273,7 @@ require (
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
+	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.126.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d // indirect
