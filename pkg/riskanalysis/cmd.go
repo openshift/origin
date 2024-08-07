@@ -24,7 +24,7 @@ import (
 
 const (
 	testFailureSummaryFilePrefix = "test-failures-summary"
-	maxTries                     = 3
+	maxTries                     = 4
 	sippyUiURL                   = "https://sippy.dptools.openshift.org/sippy-ng/"
 	raDataFile                   = "risk-analysis.json"
 	raReqLogFileName             = "risk-analysis-requests-" + dataloader.AutoDataLoaderSuffix
@@ -190,7 +190,7 @@ func (opt *Options) requestRiskAnalysis(inputBytes []byte, client *http.Client, 
 		reqLog := &raRequestLog{RequestCount: i, StartTime: time.Now()}
 		finalReqLog = reqLog
 		reqLogs = append(reqLogs, finalReqLog)
-		ctx, cancelFn := context.WithTimeout(req.Context(), 20*time.Second)
+		ctx, cancelFn := context.WithTimeout(req.Context(), 30*time.Second)
 
 		logrus.Infof("Requesting risk analysis (attempt %d/%d) from: %s", i, maxTries, req.RequestURI)
 		resp, err = client.Do(req.WithContext(ctx))
@@ -198,14 +198,18 @@ func (opt *Options) requestRiskAnalysis(inputBytes []byte, client *http.Client, 
 		reqLog.Duration = time.Now().Sub(reqLog.StartTime)
 		logrus.Infof("Call to sippy finished after: %f seconds", reqLog.Duration.Seconds())
 		if err == nil && resp.StatusCode != http.StatusOK {
-			err = fmt.Errorf("error requesting risk analysis from sippy: status %s", resp.Status)
+			message, readErr := io.ReadAll(resp.Body) // some responses can help debug the problem
+			if readErr != nil {
+				message = []byte(("Error reading response body: " + readErr.Error()))
+			}
+			err = fmt.Errorf("error requesting risk analysis from sippy: status %s, message %s", resp.Status, message)
 		}
 		if err == nil {
 			clientDoSuccess = true
 			break
 		}
 		reqLog.Error = fmt.Sprintf("%v", err)
-		logrus.WithError(err).Warn("error requesting risk analysis from sippy, sleeping 30s")
+		logrus.WithError(err).Warnf("error requesting risk analysis from sippy, sleeping %ds", i*30)
 		sleepy.Sleep(time.Duration(i*30) * time.Second)
 	}
 	if !clientDoSuccess {
