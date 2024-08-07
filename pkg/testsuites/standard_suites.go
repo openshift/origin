@@ -374,6 +374,21 @@ var staticSuites = []ginkgo.TestSuite{
 		ClusterStabilityDuringTest: ginkgo.Stable,
 	},
 	{
+		Name: "openshift/kube-apiserver/rollout",
+		Description: templates.LongDesc(`
+		This test suite runs kube-apiserver rollout reliability.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/kube-apiserver/rollout") || isStandardEarlyOrLateTest(name)
+		},
+		TestTimeout:                90 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
 		Name: "openshift/nodes/realtime",
 		Description: templates.LongDesc(`
 		This test suite runs tests to validate realtime functionality on nodes.

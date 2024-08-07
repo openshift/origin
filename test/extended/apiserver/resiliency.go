@@ -10,6 +10,11 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
+	"github.com/openshift/origin/test/extended/operators"
+	"github.com/openshift/origin/test/extended/scheme"
+	"github.com/openshift/origin/test/extended/single_node"
+	exutil "github.com/openshift/origin/test/extended/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,13 +24,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
-
-	"github.com/openshift/origin/test/extended/operators"
-	"github.com/openshift/origin/test/extended/scheme"
-	"github.com/openshift/origin/test/extended/single_node"
-	exutil "github.com/openshift/origin/test/extended/util"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 )
 
 var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
@@ -35,6 +35,8 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("cluster-resiliency")
 
 	ginkgo.It("should allow a fast rollout of kube-apiserver with no pods restarts during API disruption [apigroup:config.openshift.io][apigroup:operator.openshift.io]", func() {
+		ctx := context.Background()
+
 		controlPlaneTopology, _ := single_node.GetTopologies(f)
 
 		if controlPlaneTopology != configv1.SingleReplicaTopologyMode {
@@ -68,12 +70,12 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 		_ = GetRestartedPods(c, restartingContainers)
 
 		ginkgo.By("Forcing API rollout")
-		forceApiRollout(oc)
+		forceKubeAPIServerRollout(ctx, oc.AdminOperatorClient(), "resiliency-test-")
 
 		// We are taking the API down, this can often take more than a minute so we have provided a reasonably generous timeout.
 		ginkgo.By("Expecting API to become unavailable")
 		err = wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
-			ready := isApiReady(config, httpClient, req)
+			ready := isApiReady(httpClient, req)
 			return !ready, nil
 		})
 
@@ -83,7 +85,7 @@ var _ = ginkgo.Describe("[Conformance][sig-sno][Serial] Cluster", func() {
 
 		ginkgo.By("Expecting API to become ready")
 		err = wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-			ready := isApiReady(config, httpClient, req)
+			ready := isApiReady(httpClient, req)
 			return ready, nil
 		})
 
@@ -130,15 +132,15 @@ func setRESTConfigDefaults(config *rest.Config) {
 	}
 }
 
-func forceApiRollout(oc *exutil.CLI) {
-	redeploymentReason := fmt.Sprintf(`{"spec":{"forceRedeploymentReason":"resiliency-test-%v"}}`, uuid.NewUUID())
+func forceKubeAPIServerRollout(ctx context.Context, operatorClient operatorv1client.Interface, reasonPrefix string) {
+	redeploymentReason := fmt.Sprintf(`{"spec":{"forceRedeploymentReason":"%v-%v"}}`, reasonPrefix, uuid.NewUUID())
 
-	_, err := oc.AdminOperatorClient().OperatorV1().KubeAPIServers().Patch(context.Background(), "cluster", types.MergePatchType,
+	_, err := operatorClient.OperatorV1().KubeAPIServers().Patch(ctx, "cluster", types.MergePatchType,
 		[]byte(redeploymentReason), metav1.PatchOptions{})
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 }
 
-func isApiReady(clusterConfig *rest.Config, httpClient *http.Client, req *http.Request) (ready bool) {
+func isApiReady(httpClient *http.Client, req *http.Request) (ready bool) {
 	resp, err := httpClient.Do(req)
 	if resp != nil && resp.Body != nil {
 		defer resp.Body.Close()
