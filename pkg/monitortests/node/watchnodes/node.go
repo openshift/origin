@@ -23,19 +23,11 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			isCreate = true
 		}
 
-		isReady := false
-		if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
-			isReady = c.Status == corev1.ConditionTrue
-		}
-
+		isReady := isNodeReady(node)
 		wasReady := false
 		if !isCreate {
-			if c := findNodeCondition(oldNode.Status.Conditions, corev1.NodeReady, 0); c != nil {
-				wasReady = c.Status == corev1.ConditionTrue
-			}
-
+			wasReady = isNodeReady(oldNode)
 		}
-
 		now := time.Now()
 		switch {
 		case isCreate && !isReady:
@@ -74,7 +66,6 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 						HumanMessage("node is ready")).Build(now, now),
 			}
 		}
-
 		return nil
 	}
 
@@ -153,6 +144,52 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 								monitorapi.AnnotationConfig: newDesired,
 							}).
 							HumanMessage("reached desired config")).
+						Build(now, now))
+			}
+			return intervals
+		},
+		// This function is added to help detect unexpected
+		// node not ready.
+		// We want to fail the monitor test if a node goes not ready
+		// if it is unexpected.
+		// Unexpected in this case means that it went not ready outside
+		// of a MCO config update.
+		func(node, oldNode *corev1.Node) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+
+			oldConfig := oldNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			newConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			isOldNodeReady := isNodeReady(oldNode)
+			isNewNodeReady := isNodeReady(node)
+			isConfigTheSame := oldConfig == newConfig
+
+			now := time.Now()
+			if (!isOldNodeReady || !isNewNodeReady) && isConfigTheSame {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Error).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedReadyReason).
+							HumanMessage("unexpected node not ready")).
+						Build(now, now))
+			}
+			return intervals
+		},
+		func(node, oldNode *corev1.Node) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+
+			oldConfig := oldNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			newConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			isOldNodeUnReachable := doesNodeHaveUnreachableTaints(oldNode)
+			isNewNodeUnReachable := doesNodeHaveUnreachableTaints(node)
+			isConfigTheSame := oldConfig == newConfig
+
+			now := time.Now()
+			if (isOldNodeUnReachable || isNewNodeUnReachable) && isConfigTheSame {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Error).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedReadyReason).
+							HumanMessage("unexpected node unreachable")).
 						Build(now, now))
 			}
 			return intervals
@@ -236,4 +273,28 @@ func findNodeCondition(status []corev1.NodeCondition, name corev1.NodeConditionT
 		}
 	}
 	return nil
+}
+
+func isNodeReady(node *corev1.Node) bool {
+	isReady := false
+	if node == nil {
+		return isReady
+	}
+	if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
+		isReady = c.Status == corev1.ConditionTrue
+	}
+	return isReady
+}
+
+func doesNodeHaveUnreachableTaints(node *corev1.Node) bool {
+	if node == nil {
+		return false
+	}
+	annotations := node.Annotations
+	for _, val := range annotations {
+		if val == corev1.TaintNodeUnreachable {
+			return true
+		}
+	}
+	return false
 }

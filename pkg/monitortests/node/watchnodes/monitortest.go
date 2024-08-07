@@ -42,6 +42,19 @@ func (*nodeWatcher) ConstructComputedIntervals(ctx context.Context, startingInte
 }
 
 func (*nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	// Fail tests when monitor test flags this as an error
+	for _, val := range finalIntervals {
+		if val.Source == monitorapi.SourceNodeMonitor && val.Message.Reason == monitorapi.NodeUnexpectedReadyReason {
+			return []*junitapi.JUnitTestCase{{
+				Name: "UnexpectedNodeNotReady", SystemOut: val.Message.HumanMessage,
+			}}, nil
+		}
+		if val.Source == monitorapi.SourceNodeMonitor && val.Message.Reason == monitorapi.NodeUnreachableReason {
+			return []*junitapi.JUnitTestCase{{
+				Name: "UnexpectedUnreachable", SystemOut: val.Message.HumanMessage,
+			}}, nil
+		}
+	}
 	return nil, nil
 }
 
