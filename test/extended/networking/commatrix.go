@@ -22,8 +22,8 @@ import (
 
 const (
 	docCommatrixUrl  = "https://raw.githubusercontent.com/openshift/openshift-docs/main/snippets/network-flow-matrix.csv"
-	diffFileComments = "// `+` indicates a port that has to be removed from the doccumented matrix.\n" +
-		"// `-` indicates a port that isn't in the current doccumented matrix, and has to be added.\n"
+	diffFileComments = "// `+` indicates a port that isn't in the current doccumented matrix, and has to be added.\n" +
+		"// `-` indicates a port that has to be removed from the doccumented matrix.\n"
 )
 
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
