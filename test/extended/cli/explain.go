@@ -207,6 +207,9 @@ var (
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "hostfirmwaresettings"},
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "preprovisioningimages"},
 		{Group: "metal3.io", Version: "v1alpha1", Resource: "provisionings"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "hostfirmwarecomponents"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "hardwaredata"},
+		{Group: "metal3.io", Version: "v1alpha1", Resource: "dataimages"},
 	}
 
 	nodeTuningTypes = []schema.GroupVersionResource{
