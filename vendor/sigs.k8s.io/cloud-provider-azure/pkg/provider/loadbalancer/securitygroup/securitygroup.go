@@ -25,7 +25,7 @@ import (
 	"strconv"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2022-07-01/network"
-	"github.com/go-logr/logr"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -59,7 +59,7 @@ var (
 
 // RuleHelper manages security rules within a security group.
 type RuleHelper struct {
-	logger   logr.Logger
+	logger   klog.Logger
 	sg       *network.SecurityGroup
 	snapshot []byte
 
@@ -69,7 +69,7 @@ type RuleHelper struct {
 	priorities map[int32]string
 }
 
-func NewSecurityGroupHelper(logger logr.Logger, sg *network.SecurityGroup) (*RuleHelper, error) {
+func NewSecurityGroupHelper(sg *network.SecurityGroup) (*RuleHelper, error) {
 	if sg == nil ||
 		sg.Name == nil ||
 		sg.SecurityGroupPropertiesFormat == nil ||
@@ -79,6 +79,7 @@ func NewSecurityGroupHelper(logger logr.Logger, sg *network.SecurityGroup) (*Rul
 		return nil, ErrInvalidSecurityGroup
 	}
 	var (
+		logger     = klog.Background().WithName("RuleHelper").WithValues("security-group-name", ptr.To(sg.Name))
 		rules      = make(map[string]*network.SecurityRule, len(*sg.SecurityGroupPropertiesFormat.SecurityRules))
 		priorities = make(map[int32]string, len(*sg.SecurityGroupPropertiesFormat.SecurityRules))
 	)
@@ -91,7 +92,7 @@ func NewSecurityGroupHelper(logger logr.Logger, sg *network.SecurityGroup) (*Rul
 	snapshot := makeSecurityGroupSnapshot(sg)
 
 	return &RuleHelper{
-		logger: logger.WithName("RuleHelper"),
+		logger: logger,
 		sg:     sg,
 
 		rules:      rules,
@@ -191,8 +192,12 @@ func (helper *RuleHelper) addAllowRule(
 	}
 	{
 		// Destination
-		addresses := append(ListDestinationPrefixes(rule), dstPrefixes...)
-		SetDestinationPrefixes(rule, addresses)
+		if rule.DestinationAddressPrefixes == nil {
+			rule.DestinationAddressPrefixes = &[]string{}
+		}
+		rule.DestinationAddressPrefixes = ptr.To(
+			NormalizeSecurityRuleAddressPrefixes(append(*rule.DestinationAddressPrefixes, dstPrefixes...)),
+		)
 		rule.DestinationPortRanges = ptr.To(dstPortRanges)
 	}
 
@@ -282,8 +287,12 @@ func (helper *RuleHelper) AddRuleForDenyAll(dstAddresses []netip.Addr) error {
 	{
 		// Destination
 		addresses := fnutil.Map(func(ip netip.Addr) string { return ip.String() }, dstAddresses)
-		addresses = append(addresses, ListDestinationPrefixes(rule)...)
-		SetDestinationPrefixes(rule, addresses)
+		if rule.DestinationAddressPrefixes == nil {
+			rule.DestinationAddressPrefixes = &[]string{}
+		}
+		rule.DestinationAddressPrefixes = ptr.To(
+			NormalizeSecurityRuleAddressPrefixes(append(*rule.DestinationAddressPrefixes, addresses...)),
+		)
 		rule.DestinationPortRange = ptr.To("*")
 	}
 
@@ -303,15 +312,6 @@ func (helper *RuleHelper) RemoveDestinationFromRules(
 	logger.V(10).Info("Cleaning destination from SecurityGroup")
 
 	for _, rule := range helper.rules {
-		if rule.Priority == nil {
-			continue
-		}
-		priority := *rule.Priority
-		if priority < consts.LoadBalancerMinimumPriority || consts.LoadBalancerMaximumPriority < priority {
-			logger.V(4).Info("Skip rule with not-in-range priority", "rule-name", *rule.Name, "priority", priority)
-			continue
-		}
-
 		if rule.Protocol != protocol {
 			continue
 		}
@@ -327,24 +327,6 @@ func (helper *RuleHelper) RemoveDestinationFromRules(
 func (helper *RuleHelper) removeDestinationFromRule(rule *network.SecurityRule, prefixes []string, retainDstPorts []int32) error {
 	logger := helper.logger.WithName("removeDestinationFromRule").
 		WithValues("security-rule-name", rule.Name)
-
-	var (
-		prefixIndex     = fnutil.IndexSet(prefixes) // Used to check whether the prefix should be removed.
-		currentPrefixes = ListDestinationPrefixes(rule)
-
-		expectedPrefixes = fnutil.RemoveIf(func(p string) bool { return prefixIndex[p] }, currentPrefixes) // The prefixes to keep.
-		targetPrefixes   = fnutil.Intersection(currentPrefixes, prefixes)                                  // The prefixes to remove.
-	)
-
-	// Clean DenyAll rule
-	if rule.Access == network.SecurityRuleAccessDeny && len(retainDstPorts) == 0 {
-		// Update the prefixes
-		SetDestinationPrefixes(rule, expectedPrefixes)
-
-		return nil
-	}
-
-	// Clean Allow rule
 	currentPorts, err := ListDestinationPortRanges(rule)
 	if err != nil {
 		// Skip the rule with invalid destination port ranges.
@@ -352,8 +334,14 @@ func (helper *RuleHelper) removeDestinationFromRule(rule *network.SecurityRule, 
 		logger.Info("Skip because it contains `*` or port-ranges as destination port ranges.")
 		return nil
 	}
+
 	var (
-		expectedPorts = fnutil.Intersection(currentPorts, retainDstPorts) // The ports to keep.
+		prefixIndex     = fnutil.IndexSet(prefixes) // Used to check whether the prefix should be removed.
+		currentPrefixes = ListDestinationPrefixes(rule)
+
+		expectedPrefixes = fnutil.RemoveIf(func(p string) bool { return prefixIndex[p] }, currentPrefixes) // The prefixes to keep.
+		targetPrefixes   = fnutil.Intersection(currentPrefixes, prefixes)                                  // The prefixes to remove.
+		expectedPorts    = fnutil.Intersection(currentPorts, retainDstPorts)                               // The ports to keep.
 	)
 
 	if len(targetPrefixes) == 0 || len(currentPorts) == len(expectedPorts) {
@@ -361,7 +349,8 @@ func (helper *RuleHelper) removeDestinationFromRule(rule *network.SecurityRule, 
 	}
 
 	// Update the prefixes
-	SetDestinationPrefixes(rule, expectedPrefixes)
+	rule.DestinationAddressPrefix = nil
+	rule.DestinationAddressPrefixes = ptr.To(NormalizeSecurityRuleAddressPrefixes(expectedPrefixes))
 
 	if len(expectedPorts) == 0 {
 		// No additional ports are expected, no more actions are needed.
@@ -378,6 +367,41 @@ func (helper *RuleHelper) removeDestinationFromRule(rule *network.SecurityRule, 
 	return helper.addAllowRule(rule.Protocol, ipFamily, ListSourcePrefixes(rule), prefixes, expectedPorts)
 }
 
+// RemoveDestinationPrefixesFromRules removes the given destination addresses from all rules.
+func (helper *RuleHelper) RemoveDestinationPrefixesFromRules(prefixes []string) {
+	helper.logger.V(10).Info("Cleaning destination address prefixes from SecurityGroup", "num-dst-prefixes", len(prefixes))
+
+	index := make(map[string]bool, len(prefixes))
+	for _, p := range prefixes {
+		index[p] = true
+	}
+
+	for _, rule := range helper.rules {
+		if rule.DestinationAddressPrefix != nil && index[*rule.DestinationAddressPrefix] {
+			rule.DestinationAddressPrefix = nil
+			continue
+		}
+		if rule.DestinationAddressPrefixes == nil {
+			continue
+		}
+
+		dstPrefixes := fnutil.RemoveIf(func(dstAddress string) bool {
+			return index[dstAddress]
+		}, *rule.DestinationAddressPrefixes)
+
+		switch len(dstPrefixes) {
+		case len(*rule.DestinationAddressPrefixes):
+			// No change.
+			continue
+		default:
+			// Update the prefixes.
+			rule.DestinationAddressPrefixes = ptr.To(
+				NormalizeSecurityRuleAddressPrefixes(dstPrefixes),
+			)
+		}
+	}
+}
+
 // SecurityGroup returns the underlying SecurityGroup object and a bool indicating whether any changes were made to the RuleHelper.
 func (helper *RuleHelper) SecurityGroup() (*network.SecurityGroup, bool, error) {
 	var (
@@ -385,12 +409,9 @@ func (helper *RuleHelper) SecurityGroup() (*network.SecurityGroup, bool, error) 
 		rules = make([]network.SecurityRule, 0, len(helper.rules))
 	)
 	for _, r := range helper.rules {
-		var (
-			dstAddresses = ListDestinationPrefixes(r)
-			dstASGs      = ptr.Deref(r.DestinationApplicationSecurityGroups, []network.ApplicationSecurityGroup{})
-		)
-
-		if len(dstAddresses) == 0 && len(dstASGs) == 0 {
+		noDstPrefixes := ptr.Deref(r.DestinationAddressPrefix, "") == "" &&
+			len(ptr.Deref(r.DestinationAddressPrefixes, []string{})) == 0
+		if noDstPrefixes {
 			// Skip the rule without destination prefixes.
 			continue
 		}

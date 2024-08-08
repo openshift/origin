@@ -3549,7 +3549,7 @@ k8s.io/metrics/pkg/client/external_metrics
 # k8s.io/mount-utils v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20240606123447-44fc19fb7985
 ## explicit; go 1.22.0
 k8s.io/mount-utils
-# k8s.io/pod-security-admission v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20240606123447-44fc19fb7985
+# k8s.io/pod-security-admission v0.30.0 => github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20240606123447-44fc19fb7985
 ## explicit; go 1.22.0
 k8s.io/pod-security-admission/admission
 k8s.io/pod-security-admission/admission/api
@@ -3595,10 +3595,9 @@ sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/client/metrics
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/pkg/common/metrics
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client/proto/client
-# sigs.k8s.io/cloud-provider-azure v1.30.4
+# sigs.k8s.io/cloud-provider-azure v1.30.1
 ## explicit; go 1.22.0
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients
-sigs.k8s.io/cloud-provider-azure/pkg/azureclients/armauth
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/armclient
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/blobclient
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/containerserviceclient
@@ -3638,7 +3637,6 @@ sigs.k8s.io/cloud-provider-azure/pkg/azureclients/vmssvmclient/mockvmssvmclient
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/zoneclient
 sigs.k8s.io/cloud-provider-azure/pkg/cache
 sigs.k8s.io/cloud-provider-azure/pkg/consts
-sigs.k8s.io/cloud-provider-azure/pkg/log
 sigs.k8s.io/cloud-provider-azure/pkg/metrics
 sigs.k8s.io/cloud-provider-azure/pkg/provider
 sigs.k8s.io/cloud-provider-azure/pkg/provider/config

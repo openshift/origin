@@ -69,7 +69,7 @@ require (
 	k8s.io/kubectl v0.30.0
 	k8s.io/kubernetes v1.30.1
 	k8s.io/pod-security-admission v0.30.0
-	k8s.io/utils v0.0.0-20240310230437-4693a0247e57
+	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
 	sigs.k8s.io/cloud-provider-azure v1.30.1
 	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1

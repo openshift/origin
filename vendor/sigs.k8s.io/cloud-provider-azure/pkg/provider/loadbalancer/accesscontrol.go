@@ -22,8 +22,8 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2022-07-01/network"
-	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
@@ -39,7 +39,7 @@ var (
 )
 
 type AccessControl struct {
-	logger   logr.Logger
+	logger   klog.Logger
 	svc      *v1.Service
 	sgHelper *securitygroup.RuleHelper
 
@@ -67,15 +67,18 @@ func SkipAnnotationValidation() AccessControlOption {
 	}
 }
 
-func NewAccessControl(logger logr.Logger, svc *v1.Service, sg *network.SecurityGroup, opts ...AccessControlOption) (*AccessControl, error) {
-	logger = logger.WithName("AccessControl").WithValues("security-group", ptr.To(sg.Name))
+func NewAccessControl(svc *v1.Service, sg *network.SecurityGroup, opts ...AccessControlOption) (*AccessControl, error) {
+	logger := klog.Background().
+		WithName("LoadBalancer.AccessControl").
+		WithValues("service-name", svc.Name).
+		WithValues("security-group-name", ptr.To(sg.Name))
 
 	options := defaultAccessControlOptions
 	for _, opt := range opts {
 		opt(&options)
 	}
 
-	sgHelper, err := securitygroup.NewSecurityGroupHelper(logger, sg)
+	sgHelper, err := securitygroup.NewSecurityGroupHelper(sg)
 	if err != nil {
 		logger.Error(err, "Failed to initialize RuleHelper")
 		return nil, err
@@ -92,13 +95,13 @@ func NewAccessControl(logger logr.Logger, svc *v1.Service, sg *network.SecurityG
 	if err != nil && !options.SkipAnnotationValidation {
 		logger.Error(err, "Failed to parse AllowedServiceTags configuration")
 	}
-	securityRuleDestinationPortsByProtocol, err := SecurityRuleDestinationPortsByProtocol(svc)
+	securityRuleDestinationPortsByProtocol, err := securityRuleDestinationPortsByProtocol(svc)
 	if err != nil {
 		logger.Error(err, "Failed to parse service spec.Ports")
 		return nil, err
 	}
 	if len(sourceRanges) > 0 && len(allowedIPRanges) > 0 {
-		logger.Error(ErrSetBothLoadBalancerSourceRangesAndAllowedIPRanges, "Forbidden configuration")
+		logger.Error(err, "Forbidden configuration")
 		return nil, ErrSetBothLoadBalancerSourceRangesAndAllowedIPRanges
 	}
 
@@ -308,11 +311,23 @@ func (ac *AccessControl) SecurityGroup() (*network.SecurityGroup, bool, error) {
 	return ac.sgHelper.SecurityGroup()
 }
 
-// SecurityRuleDestinationPortsByProtocol returns the service ports grouped by SecurityGroup protocol.
-func SecurityRuleDestinationPortsByProtocol(svc *v1.Service) (map[network.SecurityRuleProtocol][]int32, error) {
+// securityRuleDestinationPortsByProtocol returns the service ports grouped by SecurityGroup protocol.
+func securityRuleDestinationPortsByProtocol(svc *v1.Service) (map[network.SecurityRuleProtocol][]int32, error) {
+	convert := func(protocol v1.Protocol) (network.SecurityRuleProtocol, error) {
+		switch protocol {
+		case v1.ProtocolTCP:
+			return network.SecurityRuleProtocolTCP, nil
+		case v1.ProtocolUDP:
+			return network.SecurityRuleProtocolUDP, nil
+		case v1.ProtocolSCTP:
+			return network.SecurityRuleProtocolAsterisk, nil
+		}
+		return "", fmt.Errorf("unsupported protocol %s", protocol)
+	}
+
 	rv := make(map[network.SecurityRuleProtocol][]int32)
 	for _, port := range svc.Spec.Ports {
-		protocol, err := securitygroup.ProtocolFromKubernetes(port.Protocol)
+		protocol, err := convert(port.Protocol)
 		if err != nil {
 			return nil, err
 		}
