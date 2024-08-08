@@ -55,6 +55,7 @@ import (
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/api/annotations"
+	configv1 "github.com/openshift/api/config/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	projectv1 "github.com/openshift/api/project/v1"
 	userv1 "github.com/openshift/api/user/v1"
@@ -352,8 +353,15 @@ func (c *CLI) setupProject() string {
 	// TODO: some of them not even using the constants
 	DefaultServiceAccounts := []string{
 		"default",
-		"deployer",
 		"builder",
+	}
+	defaultRoleBindings := []string{"system:image-pullers", "system:image-builders"}
+	dcEnabled, err := IsCapabilityEnabled(c, configv1.ClusterVersionCapabilityDeploymentConfig)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if dcEnabled {
+		framework.Logf("%v capability is enabled, adding 'deployer' SA to the list of default SAs", configv1.ClusterVersionCapabilityDeploymentConfig)
+		DefaultServiceAccounts = append(DefaultServiceAccounts, "deployer")
+		defaultRoleBindings = append(defaultRoleBindings, "system:deployers")
 	}
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
@@ -365,7 +373,7 @@ func (c *CLI) setupProject() string {
 	cancel := func() {}
 	defer func() { cancel() }()
 	// Wait for default role bindings for those SAs
-	for _, name := range []string{"system:image-pullers", "system:image-builders", "system:deployers"} {
+	for _, name := range defaultRoleBindings {
 		framework.Logf("Waiting for RoleBinding %q to be provisioned...", name)
 
 		ctx, cancel = watchtools.ContextWithOptionalTimeout(context.Background(), 3*time.Minute)

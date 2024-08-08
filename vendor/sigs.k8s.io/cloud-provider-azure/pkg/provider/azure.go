@@ -693,18 +693,19 @@ func (az *Cloud) InitializeCloudFromConfig(ctx context.Context, config *Config, 
 		return nil
 	}
 
+	var authProvider *azclient.AuthProvider
+	authProvider, err = azclient.NewAuthProvider(&az.ARMClientConfig, &az.AzureAuthConfig.AzureAuthConfig)
+	if err != nil {
+		return err
+	}
 	// If uses network resources in different AAD Tenant, then prepare corresponding Service Principal Token for VM/VMSS client and network resources client
-	multiTenantServicePrincipalToken, networkResourceServicePrincipalToken, err := az.getAuthTokenInMultiTenantEnv(servicePrincipalToken)
+	multiTenantServicePrincipalToken, networkResourceServicePrincipalToken, err := az.getAuthTokenInMultiTenantEnv(servicePrincipalToken, authProvider)
 	if err != nil {
 		return err
 	}
 	az.configAzureClients(servicePrincipalToken, multiTenantServicePrincipalToken, networkResourceServicePrincipalToken)
 
 	if az.ComputeClientFactory == nil {
-		authProvider, err := azclient.NewAuthProvider(&az.ARMClientConfig, &az.AzureAuthConfig.AzureAuthConfig)
-		if err != nil {
-			return err
-		}
 		var cred azcore.TokenCredential
 		if authProvider.IsMultiTenantModeEnabled() {
 			multiTenantCred := authProvider.GetMultiTenantIdentity()
@@ -888,21 +889,21 @@ func (az *Cloud) setLBDefaults(config *Config) error {
 	return nil
 }
 
-func (az *Cloud) getAuthTokenInMultiTenantEnv(_ *adal.ServicePrincipalToken) (*adal.MultiTenantServicePrincipalToken, *adal.ServicePrincipalToken, error) {
+func (az *Cloud) getAuthTokenInMultiTenantEnv(_ *adal.ServicePrincipalToken, authProvider *azclient.AuthProvider) (adal.MultitenantOAuthTokenProvider, adal.OAuthTokenProvider, error) {
 	var err error
-	var multiTenantServicePrincipalToken *adal.MultiTenantServicePrincipalToken
-	var networkResourceServicePrincipalToken *adal.ServicePrincipalToken
+	var multiTenantOAuthToken adal.MultitenantOAuthTokenProvider
+	var networkResourceServicePrincipalToken adal.OAuthTokenProvider
 	if az.Config.UsesNetworkResourceInDifferentTenant() {
-		multiTenantServicePrincipalToken, err = ratelimitconfig.GetMultiTenantServicePrincipalToken(&az.Config.AzureAuthConfig, &az.Environment)
+		multiTenantOAuthToken, err = ratelimitconfig.GetMultiTenantServicePrincipalToken(&az.Config.AzureAuthConfig, &az.Environment, authProvider)
 		if err != nil {
 			return nil, nil, err
 		}
-		networkResourceServicePrincipalToken, err = ratelimitconfig.GetNetworkResourceServicePrincipalToken(&az.Config.AzureAuthConfig, &az.Environment)
+		networkResourceServicePrincipalToken, err = ratelimitconfig.GetNetworkResourceServicePrincipalToken(&az.Config.AzureAuthConfig, &az.Environment, authProvider)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
-	return multiTenantServicePrincipalToken, networkResourceServicePrincipalToken, nil
+	return multiTenantOAuthToken, networkResourceServicePrincipalToken, nil
 }
 
 func (az *Cloud) setCloudProviderBackoffDefaults(config *Config) wait.Backoff {
@@ -947,8 +948,8 @@ func (az *Cloud) setCloudProviderBackoffDefaults(config *Config) wait.Backoff {
 
 func (az *Cloud) configAzureClients(
 	servicePrincipalToken *adal.ServicePrincipalToken,
-	multiTenantServicePrincipalToken *adal.MultiTenantServicePrincipalToken,
-	networkResourceServicePrincipalToken *adal.ServicePrincipalToken) {
+	multiTenantOAuthTokenProvider adal.MultitenantOAuthTokenProvider,
+	networkResourceServicePrincipalToken adal.OAuthTokenProvider) {
 	azClientConfig := az.getAzureClientConfig(servicePrincipalToken)
 
 	// Prepare AzureClientConfig for all azure clients
@@ -981,8 +982,9 @@ func (az *Cloud) configAzureClients(
 	zoneClientConfig := azClientConfig.WithRateLimiter(nil)
 
 	// If uses network resources in different AAD Tenant, update Authorizer for VM/VMSS/VMAS client config
-	if multiTenantServicePrincipalToken != nil {
-		multiTenantServicePrincipalTokenAuthorizer := autorest.NewMultiTenantServicePrincipalTokenAuthorizer(multiTenantServicePrincipalToken)
+	if multiTenantOAuthTokenProvider != nil {
+		multiTenantServicePrincipalTokenAuthorizer := autorest.NewMultiTenantServicePrincipalTokenAuthorizer(multiTenantOAuthTokenProvider)
+
 		vmClientConfig.Authorizer = multiTenantServicePrincipalTokenAuthorizer
 		vmssClientConfig.Authorizer = multiTenantServicePrincipalTokenAuthorizer
 		vmssVMClientConfig.Authorizer = multiTenantServicePrincipalTokenAuthorizer

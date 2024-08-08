@@ -23,14 +23,15 @@ import (
 	"os"
 	"strings"
 
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 
-	"k8s.io/klog/v2"
-
 	"sigs.k8s.io/cloud-provider-azure/pkg/azclient"
+	"sigs.k8s.io/cloud-provider-azure/pkg/azureclients/armauth"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
 )
 
@@ -67,6 +68,7 @@ type AzureAuthConfig struct {
 // than only azure clients except VM/VMSS and network resource ones use this method to fetch Token.
 // For tokens for VM/VMSS and network resource ones, please check GetMultiTenantServicePrincipalToken and GetNetworkResourceServicePrincipalToken.
 func GetServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, resource string) (*adal.ServicePrincipalToken, error) {
+	logger := klog.Background().WithName("GetServicePrincipalToken")
 	var tenantID string
 	if strings.EqualFold(config.IdentitySystem, consts.ADFSIdentitySystem) {
 		tenantID = consts.ADFSIdentitySystem
@@ -79,7 +81,7 @@ func GetServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, r
 	}
 
 	if config.UseFederatedWorkloadIdentityExtension {
-		klog.V(2).Infoln("azure: using workload identity extension to retrieve access token")
+		logger.V(2).Info("Setup ARM general resource token provider", "method", "workload_identity")
 		oauthConfig, err := adal.NewOAuthConfigWithAPIVersion(env.ActiveDirectoryEndpoint, config.TenantID, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create the OAuth config: %w", err)
@@ -101,29 +103,29 @@ func GetServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, r
 	}
 
 	if config.UseManagedIdentityExtension {
-		klog.V(2).Infoln("azure: using managed identity extension to retrieve access token")
+		logger.V(2).Info("Setup ARM general resource token provider", "method", "msi")
 		msiEndpoint, err := adal.GetMSIVMEndpoint()
 		if err != nil {
 			return nil, fmt.Errorf("error getting the managed service identity endpoint: %w", err)
 		}
 		if len(config.UserAssignedIdentityID) > 0 {
-			klog.V(4).Info("azure: using User Assigned MSI ID to retrieve access token")
+			logger.V(2).Info("Parsing user assigned managed identity")
 			resourceID, err := azure.ParseResourceID(config.UserAssignedIdentityID)
 			if err == nil &&
 				strings.EqualFold(resourceID.Provider, "Microsoft.ManagedIdentity") &&
 				strings.EqualFold(resourceID.ResourceType, "userAssignedIdentities") {
-				klog.V(4).Info("azure: User Assigned MSI ID is resource ID")
+				logger.V(2).Info("Setup with user assigned managed identity", "id-type", "resource_id")
 				return adal.NewServicePrincipalTokenFromMSIWithIdentityResourceID(msiEndpoint,
 					resource,
 					config.UserAssignedIdentityID)
 			}
 
-			klog.V(4).Info("azure: User Assigned MSI ID is client ID")
+			logger.V(2).Info("Setup with user assigned managed identity", "id-type", "client_id")
 			return adal.NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint,
 				resource,
 				config.UserAssignedIdentityID)
 		}
-		klog.V(4).Info("azure: using System Assigned MSI to retrieve access token")
+		logger.V(2).Info("Setup with system assigned managed identity")
 		return adal.NewServicePrincipalTokenFromMSI(
 			msiEndpoint,
 			resource)
@@ -135,7 +137,7 @@ func GetServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, r
 	}
 
 	if len(config.AADClientSecret) > 0 {
-		klog.V(2).Infoln("azure: using client_id+client_secret to retrieve access token")
+		logger.V(2).Info("Setup ARM general resource token provider", "method", "sp_with_password")
 		return adal.NewServicePrincipalToken(
 			*oauthConfig,
 			config.AADClientID,
@@ -144,7 +146,7 @@ func GetServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, r
 	}
 
 	if len(config.AADClientCertPath) > 0 {
-		klog.V(2).Infoln("azure: using jwt client_assertion (client_cert+client_private_key) to retrieve access token")
+		logger.V(2).Info("Setup ARM general resource token provider", "method", "sp_with_certificate")
 		certData, err := os.ReadFile(config.AADClientCertPath)
 		if err != nil {
 			return nil, fmt.Errorf("reading the client certificate from file %s: %w", config.AADClientCertPath, err)
@@ -161,6 +163,8 @@ func GetServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, r
 			resource)
 	}
 
+	logger.V(2).Info("No valid auth method found")
+
 	return nil, ErrorNoAuth
 }
 
@@ -172,8 +176,10 @@ func GetServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, r
 // PrimaryToken of the returned multi-tenant token is for the AAD Tenant specified by TenantID, and AuxiliaryToken of the returned multi-tenant token is for the AAD Tenant specified by NetworkResourceTenantID.
 //
 // Azure VM/VMSS clients use this multi-tenant token, in order to operate those VM/VMSS in AAD Tenant specified by TenantID, and meanwhile in their payload they are referencing network resources (e.g. Load Balancer, Network Security Group, etc.) in AAD Tenant specified by NetworkResourceTenantID.
-func GetMultiTenantServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment) (*adal.MultiTenantServicePrincipalToken, error) {
-	err := config.checkConfigWhenNetworkResourceInDifferentTenant()
+func GetMultiTenantServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, authProvider *azclient.AuthProvider) (adal.MultitenantOAuthTokenProvider, error) {
+	logger := klog.Background().WithName("GetMultiTenantServicePrincipalToken")
+
+	err := config.ValidateForMultiTenant()
 	if err != nil {
 		return nil, fmt.Errorf("got error getting multi-tenant service principal token: %w", err)
 	}
@@ -184,8 +190,8 @@ func GetMultiTenantServicePrincipalToken(config *AzureAuthConfig, env *azure.Env
 		return nil, fmt.Errorf("creating the multi-tenant OAuth config: %w", err)
 	}
 
-	if len(config.AADClientSecret) > 0 {
-		klog.V(2).Infoln("azure: using client_id+client_secret to retrieve multi-tenant access token")
+	if len(config.AADClientSecret) > 0 && !strings.EqualFold(config.AADClientSecret, "msi") {
+		logger.V(2).Info("Setup ARM multi-tenant token provider", "method", "sp_with_password")
 		return adal.NewMultiTenantServicePrincipalToken(
 			multiTenantOAuthConfig,
 			config.AADClientID,
@@ -194,7 +200,7 @@ func GetMultiTenantServicePrincipalToken(config *AzureAuthConfig, env *azure.Env
 	}
 
 	if len(config.AADClientCertPath) > 0 {
-		klog.V(2).Infoln("azure: using jwt client_assertion (client_cert+client_private_key) to retrieve multi-tenant access token")
+		logger.V(2).Info("Setup ARM multi-tenant token provider", "method", "sp_with_certificate")
 		certData, err := os.ReadFile(config.AADClientCertPath)
 		if err != nil {
 			return nil, fmt.Errorf("reading the client certificate from file %s: %w", config.AADClientCertPath, err)
@@ -211,6 +217,18 @@ func GetMultiTenantServicePrincipalToken(config *AzureAuthConfig, env *azure.Env
 			env.ServiceManagementEndpoint)
 	}
 
+	if authProvider.ManagedIdentityCredential != nil && authProvider.NetworkTokenCredential != nil {
+		logger.V(2).Info("Setup ARM multi-tenant token provider", "method", "msi_with_auxiliary_token")
+		return armauth.NewMultiTenantTokenProvider(
+			klog.Background().WithName("multi-tenant-resource-token-provider"),
+			authProvider.ManagedIdentityCredential,
+			[]azcore.TokenCredential{authProvider.NetworkTokenCredential},
+			authProvider.DefaultTokenScope(),
+		)
+	}
+
+	logger.V(2).Info("No valid auth method found")
+
 	return nil, ErrorNoAuth
 }
 
@@ -220,8 +238,10 @@ func GetMultiTenantServicePrincipalToken(config *AzureAuthConfig, env *azure.Env
 // and this method creates a new service principal token for network resources tenant based on the configuration.
 //
 // Azure network resource (Load Balancer, Public IP, Route Table, Network Security Group and their sub level resources) clients use this multi-tenant token, in order to operate resources in AAD Tenant specified by NetworkResourceTenantID.
-func GetNetworkResourceServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment) (*adal.ServicePrincipalToken, error) {
-	err := config.checkConfigWhenNetworkResourceInDifferentTenant()
+func GetNetworkResourceServicePrincipalToken(config *AzureAuthConfig, env *azure.Environment, authProvider *azclient.AuthProvider) (adal.OAuthTokenProvider, error) {
+	logger := klog.Background().WithName("GetNetworkResourceServicePrincipalToken")
+
+	err := config.ValidateForMultiTenant()
 	if err != nil {
 		return nil, fmt.Errorf("got error(%w) in getting network resources service principal token", err)
 	}
@@ -231,8 +251,8 @@ func GetNetworkResourceServicePrincipalToken(config *AzureAuthConfig, env *azure
 		return nil, fmt.Errorf("creating the OAuth config for network resources tenant: %w", err)
 	}
 
-	if len(config.AADClientSecret) > 0 {
-		klog.V(2).Infoln("azure: using client_id+client_secret to retrieve access token for network resources tenant")
+	if len(config.AADClientSecret) > 0 && !strings.EqualFold(config.AADClientSecret, "msi") {
+		logger.V(2).Info("Setup ARM network resource token provider", "method", "sp_with_password")
 		return adal.NewServicePrincipalToken(
 			*oauthConfig,
 			config.AADClientID,
@@ -241,7 +261,7 @@ func GetNetworkResourceServicePrincipalToken(config *AzureAuthConfig, env *azure
 	}
 
 	if len(config.AADClientCertPath) > 0 {
-		klog.V(2).Infoln("azure: using jwt client_assertion (client_cert+client_private_key) to retrieve access token for network resources tenant")
+		logger.V(2).Info("Setup ARM network resource token provider", "method", "sp_with_certificate")
 		certData, err := os.ReadFile(config.AADClientCertPath)
 		if err != nil {
 			return nil, fmt.Errorf("reading the client certificate from file %s: %w", config.AADClientCertPath, err)
@@ -257,6 +277,18 @@ func GetNetworkResourceServicePrincipalToken(config *AzureAuthConfig, env *azure
 			privateKey,
 			env.ServiceManagementEndpoint)
 	}
+
+	if authProvider.ManagedIdentityCredential != nil && authProvider.NetworkTokenCredential != nil {
+		logger.V(2).Info("Setup ARM network resource token provider", "method", "msi_with_auxiliary_token")
+
+		return armauth.NewTokenProvider(
+			klog.Background().WithName("network-resource-token-provider"),
+			authProvider.NetworkTokenCredential,
+			authProvider.DefaultTokenScope(),
+		)
+	}
+
+	logger.V(2).Info("No valid auth method found")
 
 	return nil, ErrorNoAuth
 }
@@ -339,18 +371,14 @@ func azureStackOverrides(env *azure.Environment, resourceManagerEndpoint, identi
 	}
 }
 
-// checkConfigWhenNetworkResourceInDifferentTenant checks configuration for the scenario of using network resource in different tenant
-func (config *AzureAuthConfig) checkConfigWhenNetworkResourceInDifferentTenant() error {
+// ValidateForMultiTenant checks configuration for the scenario of using network resource in different tenant
+func (config *AzureAuthConfig) ValidateForMultiTenant() error {
 	if !config.UsesNetworkResourceInDifferentTenant() {
 		return fmt.Errorf("NetworkResourceTenantID must be configured")
 	}
 
 	if strings.EqualFold(config.IdentitySystem, consts.ADFSIdentitySystem) {
 		return fmt.Errorf("ADFS identity system is not supported")
-	}
-
-	if config.UseManagedIdentityExtension {
-		return fmt.Errorf("managed identity is not supported")
 	}
 
 	return nil

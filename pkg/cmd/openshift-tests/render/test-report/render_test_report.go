@@ -7,6 +7,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
+	"github.com/openshift/origin/pkg/cmd"
 	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -33,11 +34,11 @@ func NewRenderTestReportCommand(streams genericclioptions.IOStreams) *cobra.Comm
 	f := NewRenderTestReportOptions(streams, imagesetup.DefaultTestImageMirrorLocation)
 
 	cmd := &cobra.Command{
-		Use:   "test-report",
-		Short: "Write manifest indicating how many tests we have for each feature.",
-
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		Use:              "test-report",
+		Short:            "Write manifest indicating how many tests we have for each feature.",
+		PersistentPreRun: cmd.NoPrintVersion,
+		SilenceUsage:     true,
+		SilenceErrors:    true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o, err := f.ToOptions()
 			if err != nil {

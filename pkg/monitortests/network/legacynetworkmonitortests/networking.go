@@ -136,6 +136,12 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 			// These tests are trying to cause pod sandbox failures, so the errors are intended.
 			continue
 		}
+		if strings.Contains(event.Locator.Keys[monitorapi.LocatorNamespaceKey], "e2e-test-ns-global") &&
+			strings.Contains(event.Locator.Keys[monitorapi.LocatorPodKey], "test-ipv6") {
+			// expected failed add, see extended/networking/external_gateway.go#L32
+			// and https://issues.redhat.com/browse/OCPBUGS-37245
+			continue
+		}
 		if strings.Contains(event.Message.HumanMessage, "Multus") &&
 			strings.Contains(event.Message.HumanMessage, "error getting pod") &&
 			(strings.Contains(event.Message.HumanMessage, "connection refused") || strings.Contains(event.Message.HumanMessage, "i/o timeout")) {

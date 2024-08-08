@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2022-07-01/network"
+	v1 "k8s.io/api/core/v1"
 
 	"sigs.k8s.io/cloud-provider-azure/pkg/provider/loadbalancer/fnutil"
 	"sigs.k8s.io/cloud-provider-azure/pkg/provider/loadbalancer/iputil"
@@ -107,6 +108,17 @@ func ListDestinationPrefixes(r *network.SecurityRule) []string {
 	return rv
 }
 
+func SetDestinationPrefixes(r *network.SecurityRule, prefixes []string) {
+	ps := NormalizeSecurityRuleAddressPrefixes(prefixes)
+	if len(ps) == 1 {
+		r.DestinationAddressPrefix = &ps[0]
+		r.DestinationAddressPrefixes = nil
+	} else {
+		r.DestinationAddressPrefix = nil
+		r.DestinationAddressPrefixes = &ps
+	}
+}
+
 func ListDestinationPortRanges(r *network.SecurityRule) ([]int32, error) {
 	var values []string
 	if r.DestinationPortRange != nil {
@@ -126,4 +138,16 @@ func ListDestinationPortRanges(r *network.SecurityRule) ([]int32, error) {
 	}
 
 	return rv, nil
+}
+
+func ProtocolFromKubernetes(p v1.Protocol) (network.SecurityRuleProtocol, error) {
+	switch p {
+	case v1.ProtocolTCP:
+		return network.SecurityRuleProtocolTCP, nil
+	case v1.ProtocolUDP:
+		return network.SecurityRuleProtocolUDP, nil
+	case v1.ProtocolSCTP:
+		return network.SecurityRuleProtocolAsterisk, nil
+	}
+	return "", fmt.Errorf("unsupported protocol %s", p)
 }

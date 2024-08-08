@@ -33,17 +33,17 @@ spec:
         due to JSONSchema errors on unchanged uncorrelatable fields'
   - featureGate: ChunkSizeMiB
     tests:
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should not accept invalid ChunkSizeMiB
         value'
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should reject ChunkSizeMiB value greater
         than 5 GiB'
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set ChunkSizeMiB value'
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set maximum valid ChunkSizeMiB value'
-    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io]
+    - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value'
   - featureGate: DNSNameResolver
     tests:
@@ -76,6 +76,44 @@ spec:
         remove all network diagnostics pods when disabled'
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
         set the condition to false if there are no nodes able to host the source pods'
+  - featureGate: NetworkSegmentation
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror
+        EndpointSlices in namespaces not using user defined primary networks L2 dualstack
+        primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror
+        EndpointSlices in namespaces not using user defined primary networks L3 dualstack
+        primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
+        managed by the default controller for namespaces with user defined primary
+        networks L2 dualstack primary UDN, cluster-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
+        managed by the default controller for namespaces with user defined primary
+        networks L2 dualstack primary UDN, host-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
+        managed by the default controller for namespaces with user defined primary
+        networks L3 dualstack primary UDN, cluster-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
+        managed by the default controller for namespaces with user defined primary
+        networks L3 dualstack primary UDN, host-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes can perform east/west traffic between
+        nodes for two pods connected over a L2 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes can perform east/west traffic between
+        nodes two pods connected over a L3 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes is isolated from the default network with
+        L2 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes is isolated from the default network with
+        L3 dualstack primary UDN'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]

@@ -388,13 +388,21 @@ func newBackendPoolTypeNodeIP(c *Cloud) BackendPool {
 	return &backendPoolTypeNodeIP{c}
 }
 
+func (az *Cloud) getVnetResourceID() string {
+	rg := az.ResourceGroup
+	if len(az.VnetResourceGroup) > 0 {
+		rg = az.VnetResourceGroup
+	}
+	return fmt.Sprintf(
+		"/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s",
+		az.SubscriptionID,
+		rg,
+		az.VnetName,
+	)
+}
+
 func (bi *backendPoolTypeNodeIP) EnsureHostsInPool(service *v1.Service, nodes []*v1.Node, _, _, clusterName, lbName string, backendPool network.BackendAddressPool) error {
 	isIPv6 := isBackendPoolIPv6(pointer.StringDeref(backendPool.Name, ""))
-	vnetResourceGroup := bi.ResourceGroup
-	if len(bi.VnetResourceGroup) > 0 {
-		vnetResourceGroup = bi.VnetResourceGroup
-	}
-	vnetID := fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s", bi.SubscriptionID, vnetResourceGroup, bi.VnetName)
 
 	var (
 		changed               bool
@@ -425,10 +433,6 @@ func (bi *backendPoolTypeNodeIP) EnsureHostsInPool(service *v1.Service, nodes []
 	lbBackendPoolName := bi.getBackendPoolNameForService(service, clusterName, isIPv6)
 	if strings.EqualFold(pointer.StringDeref(backendPool.Name, ""), lbBackendPoolName) &&
 		backendPool.BackendAddressPoolPropertiesFormat != nil {
-		backendPool.VirtualNetwork = &network.SubResource{
-			ID: &vnetID,
-		}
-
 		if backendPool.LoadBalancerBackendAddresses == nil {
 			lbBackendPoolAddresses := make([]network.LoadBalancerBackendAddress, 0)
 			backendPool.LoadBalancerBackendAddresses = &lbBackendPoolAddresses
@@ -452,7 +456,9 @@ func (bi *backendPoolTypeNodeIP) EnsureHostsInPool(service *v1.Service, nodes []
 			}
 
 			privateIP := getNodePrivateIPAddress(node, isIPv6)
-			nodePrivateIPsSet.Insert(privateIP)
+			if privateIP != "" {
+				nodePrivateIPsSet.Insert(privateIP)
+			}
 
 			if bi.useMultipleStandardLoadBalancers() {
 				if !activeNodes.Has(node.Name) {
@@ -790,6 +796,22 @@ func newBackendPool(lb *network.LoadBalancer, isBackendPoolPreConfigured bool, p
 }
 
 func (az *Cloud) addNodeIPAddressesToBackendPool(backendPool *network.BackendAddressPool, nodeIPAddresses []string) bool {
+	vnetID := az.getVnetResourceID()
+	if backendPool.BackendAddressPoolPropertiesFormat != nil {
+		if backendPool.VirtualNetwork == nil ||
+			backendPool.VirtualNetwork.ID == nil {
+			backendPool.VirtualNetwork = &network.SubResource{
+				ID: &vnetID,
+			}
+		}
+	} else {
+		backendPool.BackendAddressPoolPropertiesFormat = &network.BackendAddressPoolPropertiesFormat{
+			VirtualNetwork: &network.SubResource{
+				ID: &vnetID,
+			},
+		}
+	}
+
 	if backendPool.LoadBalancerBackendAddresses == nil {
 		lbBackendPoolAddresses := make([]network.LoadBalancerBackendAddress, 0)
 		backendPool.LoadBalancerBackendAddresses = &lbBackendPoolAddresses
