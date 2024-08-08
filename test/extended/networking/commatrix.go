@@ -98,7 +98,7 @@ func applyRulesToNode(cs *client.ClientSet, role string, NFTtable []byte) error 
 		if nodeRolde != role {
 			continue
 		}
-		ns := "commatrix-firewall"
+		ns := "commatrix-firewall-" + role
 		err = utilsHelpers.CreateNamespace(ns)
 		if err != nil {
 			return err
