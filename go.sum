@@ -670,12 +670,6 @@ github.com/openshift-kni/commatrix v0.0.0-20240807114741-a9b57e216229 h1:lW1YJN5
 github.com/openshift-kni/commatrix v0.0.0-20240807114741-a9b57e216229/go.mod h1:eAUryDRAYS4tCsmH+7len8oRbLHMgiJ4G3/hqoI99CY=
 github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f h1:8qy74aofCvUwCdPafxgdWFsd3oCoMXhjaaCsXaWNCGM=
 github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f/go.mod h1:OOh6Qopf21pSzqNVCB5gomomBXb8o5sGKZxG2KNpaXM=
-github.com/openshift/apiserver-library-go v0.0.0-20240528110119-d099d1006d9d h1:4vbt+vT7Mw6MIYXL4dF+MS+kv2rpUJPw1qpRSlEiFAs=
-github.com/openshift/apiserver-library-go v0.0.0-20240528110119-d099d1006d9d/go.mod h1:DDVeKBhMfq0TwM4p90dCGz80UeUKPIOCXNBNj3bEXtU=
-github.com/openshift-kni/commatrix v0.0.0-20240807114741-a9b57e216229 h1:lW1YJN55Mz4Bx//oDf2Ht/duSPWD8PxE85/IKmAsl+M=
-github.com/openshift-kni/commatrix v0.0.0-20240807114741-a9b57e216229/go.mod h1:eAUryDRAYS4tCsmH+7len8oRbLHMgiJ4G3/hqoI99CY=
-github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f h1:8qy74aofCvUwCdPafxgdWFsd3oCoMXhjaaCsXaWNCGM=
-github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f/go.mod h1:OOh6Qopf21pSzqNVCB5gomomBXb8o5sGKZxG2KNpaXM=
 github.com/openshift/apiserver-library-go v0.0.0-20240716092710-e88385a79b17 h1:lJ0jen15LqSgZkFQLPPkgDRevNxc8B/Z5/vgZ2LoZ3A=
 github.com/openshift/apiserver-library-go v0.0.0-20240716092710-e88385a79b17/go.mod h1:DDVeKBhMfq0TwM4p90dCGz80UeUKPIOCXNBNj3bEXtU=
 github.com/openshift/build-machinery-go v0.0.0-20240613134303-8359781da660 h1:F0zE2bmdVvaEd18VXuGYQdJJ1FYJu4MIDW9PYZWc9No=
