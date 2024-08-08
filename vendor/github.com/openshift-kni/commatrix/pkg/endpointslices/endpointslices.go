@@ -25,8 +25,8 @@ type EndpointSlicesInfo struct {
 
 type EndpointSlicesExporter struct {
 	*client.ClientSet
-	nodesRolesMap map[string][]string
-	sliceInfo     []EndpointSlicesInfo
+	nodeToRole map[string]string
+	sliceInfo  []EndpointSlicesInfo
 }
 
 func New(cs *client.ClientSet) (*EndpointSlicesExporter, error) {
@@ -35,12 +35,16 @@ func New(cs *client.ClientSet) (*EndpointSlicesExporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	nodesRolesMap := map[string][]string{}
+
+	nodeToRole := map[string]string{}
 	for _, node := range nodeList.Items {
-		nodesRolesMap[node.Name] = types.GetNodeRoles(&node)
+		nodeToRole[node.Name], err = types.GetNodeRole(&node)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return &EndpointSlicesExporter{cs, nodesRolesMap, []EndpointSlicesInfo{}}, nil
+	return &EndpointSlicesExporter{cs, nodeToRole, []EndpointSlicesInfo{}}, nil
 }
 
 // load endpoint slices for services from type loadbalancer and node port only.
@@ -99,7 +103,7 @@ func (ep *EndpointSlicesExporter) ToComDetails() ([]types.ComDetails, error) {
 	comDetails := make([]types.ComDetails, 0)
 
 	for _, epSliceInfo := range ep.sliceInfo {
-		cds, err := epSliceInfo.toComDetails(ep.nodesRolesMap)
+		cds, err := epSliceInfo.toComDetails(ep.nodeToRole)
 		if err != nil {
 			return nil, err
 		}
@@ -120,14 +124,12 @@ func createEPSliceInfo(service corev1.Service, ep discoveryv1.EndpointSlice, pod
 }
 
 // getEndpointSliceNodeRoles gets endpointslice Info struct and returns which node roles the services are on.
-func (ei *EndpointSlicesInfo) getEndpointSliceNodeRoles(nodeRoles map[string][]string) []string {
+func (ei *EndpointSlicesInfo) getEndpointSliceNodeRoles(nodesRoles map[string]string) []string {
 	// map to prevent duplications
 	rolesMap := make(map[string]bool)
 	for _, endpoint := range ei.EndpointSlice.Endpoints {
-		roles := nodeRoles[*endpoint.NodeName]
-		for _, role := range roles {
-			rolesMap[role] = true
-		}
+		role := nodesRoles[*endpoint.NodeName]
+		rolesMap[role] = true
 	}
 
 	roles := []string{}
@@ -138,7 +140,7 @@ func (ei *EndpointSlicesInfo) getEndpointSliceNodeRoles(nodeRoles map[string][]s
 	return roles
 }
 
-func (ei *EndpointSlicesInfo) toComDetails(nodeRoles map[string][]string) ([]types.ComDetails, error) {
+func (ei *EndpointSlicesInfo) toComDetails(nodesRoles map[string]string) ([]types.ComDetails, error) {
 	if len(ei.EndpointSlice.OwnerReferences) == 0 {
 		return nil, fmt.Errorf("empty OwnerReferences in EndpointSlice %s/%s. skipping", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name)
 	}
@@ -152,8 +154,8 @@ func (ei *EndpointSlicesInfo) toComDetails(nodeRoles map[string][]string) ([]typ
 		return nil, fmt.Errorf("failed to get pod name for endpointslice %s: %w", ei.EndpointSlice.Name, err)
 	}
 
-	// Get the node roles of this endpointslice. (master or worker or both).
-	roles := ei.getEndpointSliceNodeRoles(nodeRoles)
+	// Get the node roles of this endpointslice.
+	roles := ei.getEndpointSliceNodeRoles(nodesRoles)
 
 	epSlice := ei.EndpointSlice
 	optional := isOptional(epSlice)

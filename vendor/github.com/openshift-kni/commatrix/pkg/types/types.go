@@ -133,7 +133,7 @@ func (m *ComMatrix) String() string {
 
 func (m *ComMatrix) WriteMatrixToFileByType(utilsHelpers utils.UtilsInterface, fileNamePrefix, format string, deployment Deployment, destDir string) error {
 	if format == FormatNFT {
-		masterMatrix, workerMatrix := m.separateMatrixByRole()
+		masterMatrix, workerMatrix := m.SeparateMatrixByRole()
 		err := masterMatrix.writeMatrixToFile(utilsHelpers, fileNamePrefix+"-master", format, destDir)
 		if err != nil {
 			return err
@@ -204,7 +204,7 @@ func (m *ComMatrix) print(format string) ([]byte, error) {
 	}
 }
 
-func (m *ComMatrix) separateMatrixByRole() (ComMatrix, ComMatrix) {
+func (m *ComMatrix) SeparateMatrixByRole() (ComMatrix, ComMatrix) {
 	var masterMatrix, workerMatrix ComMatrix
 	for _, entry := range m.Matrix {
 		if entry.NodeRole == "master" {
@@ -354,15 +354,24 @@ func getComMatrixHeadersByFormat(format string) (string, error) {
 	return strings.Join(tagsList, ","), nil
 }
 
-func GetNodeRoles(node *corev1.Node) []string {
-	roles := []string{}
+func GetNodeRole(node *corev1.Node) (string, error) {
 	if _, ok := node.Labels[consts.RoleLabel+"master"]; ok {
-		roles = append(roles, "master")
+		return "master", nil
+	}
+
+	if _, ok := node.Labels[consts.RoleLabel+"control-plane"]; ok {
+		return "master", nil
 	}
 
 	if _, ok := node.Labels[consts.RoleLabel+"worker"]; ok {
-		roles = append(roles, "worker")
+		return "worker", nil
 	}
 
-	return roles
+	for label := range node.Labels {
+		if strings.HasPrefix(label, consts.RoleLabel) {
+			return strings.TrimPrefix(label, consts.RoleLabel), nil
+		}
+	}
+
+	return "", fmt.Errorf("unable to determine role for node %s", node.Name)
 }

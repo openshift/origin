@@ -81,6 +81,16 @@ var GeneralStaticEntriesWorker = []ComDetails{
 		Pod:       "",
 		Container: "",
 		Optional:  false,
+	}, {
+		Direction: "Ingress",
+		Protocol:  "TCP",
+		Port:      10309,
+		NodeRole:  "worker",
+		Service:   "csi-node-driver",
+		Namespace: "openshift-cluster-csi-drivers",
+		Pod:       "csi-driver-node",
+		Container: "csi-node-driver-registrar",
+		Optional:  false,
 	},
 }
 
@@ -294,6 +304,16 @@ var GeneralStaticEntriesMaster = []ComDetails{
 		Namespace: "openshift-machine-config-operator",
 		Pod:       "machine-config-server",
 		Container: "machine-config-server",
+		Optional:  false,
+	}, {
+		Direction: "Ingress",
+		Protocol:  "TCP",
+		Port:      10309,
+		NodeRole:  "master",
+		Service:   "csi-node-driver",
+		Namespace: "openshift-cluster-csi-drivers",
+		Pod:       "csi-driver-node",
+		Container: "csi-node-driver-registrar",
 		Optional:  false,
 	},
 }
