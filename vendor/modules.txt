@@ -1992,7 +1992,7 @@ k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/netutil
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.30.2 => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20240606123447-44fc19fb7985
+# k8s.io/apiserver v0.30.2 => github.com/openshift/kubernetes/staging/src/k8s.io/apiserver v0.0.0-20240723170835-32f817d75efe
 ## explicit; go 1.22.0
 k8s.io/apiserver/pkg/admission
 k8s.io/apiserver/pkg/admission/configuration

@@ -25,6 +25,7 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 		oc                 = exutil.NewCLI("image-registry-config")
 		originalConfigSpec *imageregistryv1.ImageRegistryConfigStorageS3
 	)
+
 	o.SetDefaultEventuallyTimeout(5 * time.Minute)
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
