@@ -36,6 +36,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/images/trigger"
 	_ "github.com/openshift/origin/test/extended/jobs"
 	_ "github.com/openshift/origin/test/extended/kernel"
+	_ "github.com/openshift/origin/test/extended/kubelet_authentication_providers"
 	_ "github.com/openshift/origin/test/extended/kubevirt"
 	_ "github.com/openshift/origin/test/extended/machines"
 	_ "github.com/openshift/origin/test/extended/networking"
