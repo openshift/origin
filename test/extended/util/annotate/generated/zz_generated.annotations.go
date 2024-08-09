@@ -1439,6 +1439,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:bond] should create a pod with bond interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:commatrix][Serial] should apply firewall by blocking all ports except the ones OCP is listening on": " [Suite:openshift/conformance/serial]",
+
 	"[sig-network][Feature:tap] should create a pod with a tap interface [apigroup:k8s.cni.cncf.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:tuning] pod should not start for sysctls not on whitelist [apigroup:k8s.cni.cncf.io] net.ipv4.conf.IFNAME.arp_filter": " [Suite:openshift/conformance/parallel]",
