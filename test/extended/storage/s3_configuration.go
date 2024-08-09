@@ -30,8 +30,9 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	g.BeforeEach(func() {
-		// TODO: Remove this as soon as API and IR chunkSizeMiB is merged
-		g.Skip("ChunkSizeMiB tests are expected to fail currently")
+
+		skipIfNotS3Storage(oc)
+
 		imageRegistryConfigClient, err := imageregistry.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		imageRegistryConfig, err := imageRegistryConfigClient.ImageregistryV1().Configs().Get(ctx, clusterConfigName, metav1.GetOptions{})
@@ -181,4 +182,5 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][api
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(imageRegistryConfig.Spec.Storage.S3.ChunkSizeMiB).NotTo(o.Equal(chunkSize))
 	})
+
 })
