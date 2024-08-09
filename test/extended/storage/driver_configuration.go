@@ -41,11 +41,6 @@ var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	g.BeforeEach(func() {
-		//TODO: remove when GA
-		if !exutil.IsTechPreviewNoUpgrade(oc) {
-			g.Skip("this test is only expected to work with TechPreviewNoUpgrade clusters")
-		}
-
 		if !framework.ProviderIs("vsphere") {
 			g.Skip("this test is only expected to work with vSphere clusters")
 		}
