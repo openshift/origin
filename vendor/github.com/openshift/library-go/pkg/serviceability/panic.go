@@ -1,6 +1,7 @@
 package serviceability
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"time"
@@ -65,8 +66,8 @@ func behaviorOnPanic(mode string, productVersion version.Info) func() {
 	}
 }
 
-func crashOnDelay(delay time.Duration, delayString string) func(interface{}) {
-	return func(in interface{}) {
+func crashOnDelay(delay time.Duration, delayString string) func(context.Context, interface{}) {
+	return func(ctx context.Context, in interface{}) {
 		go func() {
 			klog.Errorf("Panic happened.  Process will crash in %v.", delayString)
 			time.Sleep(delay)

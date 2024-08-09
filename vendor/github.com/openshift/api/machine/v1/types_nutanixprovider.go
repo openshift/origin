@@ -78,6 +78,18 @@ type NutanixMachineProviderConfig struct {
 	// +optional
 	Categories []NutanixCategory `json:"categories"`
 
+	// gpus is a list of GPU devices to attach to the machine's VM.
+	// The GPU devices should already exist in Prism Central and associated with
+	// one of the Prism Element's hosts and available for the VM to attach (in "UNUSED" status).
+	// +listType=set
+	// +optional
+	GPUs []NutanixGPU `json:"gpus"`
+
+	// dataDisks holds information of the data disks to attach to the Machine's VM
+	// +listType=set
+	// +optional
+	DataDisks []NutanixVMDisk `json:"dataDisks"`
+
 	// userDataSecret is a local reference to a secret that contains the
 	// UserData to apply to the VM
 	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret,omitempty"`
@@ -152,6 +164,160 @@ type NutanixResourceIdentifier struct {
 	// name is the resource name in the PC
 	// +optional
 	Name *string `json:"name,omitempty"`
+}
+
+// NutanixGPUIdentifierType is an enumeration of different resource identifier types for GPU entities.
+// +kubebuilder:validation:Enum:=Name;DeviceID
+type NutanixGPUIdentifierType string
+
+const (
+	// NutanixGPUIdentifierName identifies a GPU by Name.
+	NutanixGPUIdentifierName NutanixGPUIdentifierType = "Name"
+
+	// NutanixGPUIdentifierDeviceID identifies a GPU by device ID.
+	NutanixGPUIdentifierDeviceID NutanixGPUIdentifierType = "DeviceID"
+)
+
+// NutanixGPU holds the identity of a Nutanix GPU resource in the Prism Central
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'DeviceID' ?  has(self.deviceID) : !has(self.deviceID)",message="deviceID configuration is required when type is DeviceID, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Name' ?  has(self.name) : !has(self.name)",message="name configuration is required when type is Name, and forbidden otherwise"
+// +union
+type NutanixGPU struct {
+	// type is the identifier type of the GPU device.
+	// Valid values are Name and DeviceID.
+	// +unionDiscriminator
+	// +kubebuilder:validation:Required
+	Type NutanixGPUIdentifierType `json:"type"`
+
+	// deviceID is the GPU device ID with the integer value.
+	// +optional
+	// +unionMember
+	DeviceID *int32 `json:"deviceID,omitempty"`
+
+	// name is the GPU device name
+	// +optional
+	// +unionMember
+	Name *string `json:"name,omitempty"`
+}
+
+// NutanixDiskMode is an enumeration of different disk modes.
+// +kubebuilder:validation:Enum=Standard;Flash
+type NutanixDiskMode string
+
+const (
+	// NutanixDiskModeStandard represents the disk standard mode (not flash).
+	NutanixDiskModeStandard NutanixDiskMode = "Standard"
+
+	// NutanixDiskModeFlash represents the disk flash mode.
+	NutanixDiskModeFlash NutanixDiskMode = "Flash"
+)
+
+// NutanixStorageResourceIdentifier holds the identity of a Nutanix storage resource (storage_container, etc.)
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uuid' ?  has(self.uuid) : !has(self.uuid)",message="uuid configuration is required when type is uuid, and forbidden otherwise"
+// +union
+type NutanixStorageResourceIdentifier struct {
+	// type is the identifier type to use for this resource.
+	// The valid value is "uuid".
+	// +unionDiscriminator
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum:=uuid
+	Type NutanixIdentifierType `json:"type"`
+
+	// uuid is the UUID of the storage resource in the PC.
+	// +optional
+	// +unionMember
+	UUID *string `json:"uuid,omitempty"`
+}
+
+// NutanixVMStorageConfig specifies the storage configuration parameters for VM disks.
+type NutanixVMStorageConfig struct {
+	// diskMode specifies the disk mode.
+	// The valid values are Standard and Flash, and the default is Standard.
+	// +kubebuilder:default=Standard
+	DiskMode NutanixDiskMode `json:"diskMode"`
+
+	// storageContainer refers to the storage_container used by the VM disk.
+	// +optional
+	StorageContainer *NutanixStorageResourceIdentifier `json:"storageContainer"`
+}
+
+// NutanixDiskDeviceType is the VM disk device type.
+// +kubebuilder:validation:Enum=Disk;CDRom
+type NutanixDiskDeviceType string
+
+const (
+	// NutanixDiskDeviceTypeDisk represents the VM disk device type "Disk".
+	NutanixDiskDeviceTypeDisk NutanixDiskDeviceType = "Disk"
+
+	// NutanixDiskDeviceTypeCDROM represents the VM disk device type "CDRom".
+	NutanixDiskDeviceTypeCDROM NutanixDiskDeviceType = "CDRom"
+)
+
+// NutanixDiskAdapterType is an enumeration of different disk device adapter types.
+// +kubebuilder:validation:Enum:=SCSI;IDE;PCI;SATA;SPAPR
+type NutanixDiskAdapterType string
+
+const (
+	// NutanixDiskAdapterTypeSCSI represents the disk adapter type "SCSI".
+	NutanixDiskAdapterTypeSCSI NutanixDiskAdapterType = "SCSI"
+
+	// NutanixDiskAdapterTypeIDE represents the disk adapter type "IDE".
+	NutanixDiskAdapterTypeIDE NutanixDiskAdapterType = "IDE"
+
+	// NutanixDiskAdapterTypePCI represents the disk adapter type "PCI".
+	NutanixDiskAdapterTypePCI NutanixDiskAdapterType = "PCI"
+
+	// NutanixDiskAdapterTypeSATA represents the disk adapter type "SATA".
+	NutanixDiskAdapterTypeSATA NutanixDiskAdapterType = "SATA"
+
+	// NutanixDiskAdapterTypeSPAPR represents the disk adapter type "SPAPR".
+	NutanixDiskAdapterTypeSPAPR NutanixDiskAdapterType = "SPAPR"
+)
+
+// NutanixVMDiskDeviceProperties specifies the disk device properties.
+type NutanixVMDiskDeviceProperties struct {
+	// deviceType specifies the disk device type.
+	// The valid values are "Disk" and "CDRom", and the default is "Disk".
+	// +kubebuilder:default=Disk
+	// +kubebuilder:validation:Required
+	DeviceType NutanixDiskDeviceType `json:"deviceType"`
+
+	// adapterType is the adapter type of the disk address.
+	// If the deviceType is "Disk", the valid adapterType can be "SCSI", "IDE", "PCI", "SATA" or "SPAPR".
+	// If the deviceType is "CDRom", the valid adapterType can be "IDE" or "SATA".
+	// +kubebuilder:validation:Required
+	AdapterType NutanixDiskAdapterType `json:"adapterType,omitempty"`
+
+	// deviceIndex is the index of the disk address. The valid values are non-negative integers, with the default value 0.
+	// For a Machine VM, the deviceIndex for the disks with the same deviceType.adapterType combination should
+	// start from 0 and increase consecutively afterwards. Note that for each Machine VM, the Disk.SCSI.0
+	// and CDRom.IDE.0 are reserved to be used by the VM's system. So for dataDisks of Disk.SCSI and CDRom.IDE,
+	// the deviceIndex should start from 1.
+	// +kubebuilder:default=0
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Required
+	DeviceIndex int32 `json:"deviceIndex,omitempty"`
+}
+
+// NutanixDataDisk specifies the VM data disk configuration parameters.
+type NutanixVMDisk struct {
+	// diskSize is size (in Quantity format) of the disk attached to the VM.
+	// See https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Format for the Quantity format and example documentation.
+	// The minimum diskSize is 1GB.
+	// +kubebuilder:validation:Required
+	DiskSize resource.Quantity `json:"diskSize"`
+
+	// deviceProperties are the properties of the disk device.
+	// +optional
+	DeviceProperties *NutanixVMDiskDeviceProperties `json:"deviceProperties,omitempty"`
+
+	// storageConfig are the storage configuration parameters of the VM disks.
+	// +optional
+	StorageConfig *NutanixVMStorageConfig `json:"storageConfig,omitempty"`
+
+	// dataSource refers to a data source image for the VM disk.
+	// +optional
+	DataSource *NutanixResourceIdentifier `json:"dataSource,omitempty"`
 }
 
 // NutanixMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.

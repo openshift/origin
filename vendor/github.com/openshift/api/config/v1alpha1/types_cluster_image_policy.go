@@ -14,7 +14,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +kubebuilder:subresource:status
 // +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/1457
 // +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
-// +openshift:enable:FeatureGate=ImagePolicy
+// +openshift:enable:FeatureGate=SigstoreImageVerification
 // +openshift:compatibility-gen:level=4
 type ClusterImagePolicy struct {
 	metav1.TypeMeta `json:",inline"`

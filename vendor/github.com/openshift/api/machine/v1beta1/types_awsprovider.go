@@ -90,7 +90,7 @@ type AWSMachineProviderConfig struct {
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=7
 	// +optional
-	PlacementGroupPartition int32 `json:"placementGroupPartition,omitempty"`
+	PlacementGroupPartition *int32 `json:"placementGroupPartition,omitempty"`
 }
 
 // BlockDeviceMappingSpec describes a block device mapping

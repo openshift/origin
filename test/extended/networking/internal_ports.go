@@ -19,8 +19,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"k8s.io/kubernetes/test/e2e/framework"
-	e2enetwork "k8s.io/kubernetes/test/e2e/framework/network"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
+	"k8s.io/kubernetes/test/utils/image"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	"github.com/openshift/origin/test/extended/util"
@@ -82,7 +82,7 @@ var _ = ginkgo.Describe("[sig-network] Internal connectivity", func() {
 						Containers: []v1.Container{
 							{
 								Name:    "webserver",
-								Image:   e2enetwork.NetexecImageName,
+								Image:   image.GetE2EImage(image.Agnhost),
 								Command: []string{"/agnhost", "netexec", fmt.Sprintf("--http-port=%v", nodeTCPPort), fmt.Sprintf("--udp-port=%v", nodeUDPPort)},
 								Ports: []v1.ContainerPort{
 									{Name: "tcp", ContainerPort: nodeTCPPort},

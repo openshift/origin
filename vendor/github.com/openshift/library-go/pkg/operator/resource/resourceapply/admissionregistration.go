@@ -152,6 +152,18 @@ func ApplyValidatingWebhookConfigurationImproved(ctx context.Context, client adm
 	return actual, true, nil
 }
 
+func DeleteValidatingWebhookConfiguration(ctx context.Context, client admissionregistrationclientv1.ValidatingWebhookConfigurationsGetter, recorder events.Recorder, required *admissionregistrationv1.ValidatingWebhookConfiguration) (*admissionregistrationv1.ValidatingWebhookConfiguration, bool, error) {
+	err := client.ValidatingWebhookConfigurations().Delete(ctx, required.Name, metav1.DeleteOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	reportDeleteEvent(recorder, required, err)
+	return nil, true, nil
+}
+
 // copyValidatingWebhookCABundle populates webhooks[].clientConfig.caBundle fields from existing resource if it was set before
 // and is not set in present. This provides upgrade compatibility with service-ca-bundle operator.
 func copyValidatingWebhookCABundle(from, to *admissionregistrationv1.ValidatingWebhookConfiguration) {
