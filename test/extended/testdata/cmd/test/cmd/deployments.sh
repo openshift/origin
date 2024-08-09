@@ -81,7 +81,7 @@ os::cmd::expect_success 'oc delete all --all'
 sleep 1
 os::cmd::expect_success 'oc delete all --all'
 
-os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild.json -l app=dockerbuild | oc create -f -'
+os::cmd::expect_success 'oc process -f ${TEST_DATA}/application-template-dockerbuild-dc.json -l app=dockerbuild | oc create -f -'
 os::cmd::try_until_success 'oc get rc/database-1'
 
 os::test::junit::declare_suite_start "cmd/deployments/get"

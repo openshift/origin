@@ -1,13 +1,16 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -25,12 +28,16 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("oc-debug", admissionapi.LevelBaseline)
 	testCLIDebug := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 	testDeploymentConfig := exutil.FixturePath("testdata", "test-deployment-config.yaml")
+	testDeployment := exutil.FixturePath("testdata", "test-deployment.yaml")
 	testReplicationController := exutil.FixturePath("testdata", "test-replication-controller.yaml")
 	helloPod := exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
 	imageStreamsCentos := exutil.FixturePath("..", "..", "examples", "image-streams", "image-streams-centos7.json")
 
-	g.It("deployment configs from a build [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {
-		err := oc.Run("create").Args("-f", testCLIDebug).Execute()
+	g.It("deployment from a build [apigroup:image.openshift.io]", func() {
+		projectName, err := oc.Run("project").Args("-q").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = oc.Run("create").Args("-f", testCLIDebug).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// wait for image stream to be present which means the build has completed
 		err = wait.Poll(cliInterval, buildTimeout, func() (bool, error) {
@@ -38,76 +45,90 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 			return err == nil, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		// and for replication controller which means we can kick of debug session
+
+		// and for replicaset which means we can kick of debug session
+		var rsName string
 		err = wait.Poll(cliInterval, deployTimeout, func() (bool, error) {
-			err := oc.Run("get").Args("replicationcontrollers", "local-busybox1-1").Execute()
+			rsList, err := oc.AdminKubeClient().AppsV1().ReplicaSets(projectName).List(context.TODO(), metav1.ListOptions{LabelSelector: "deployment=local-busybox1"})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			for _, item := range rsList.Items {
+				if item.Annotations["deployment.kubernetes.io/revision"] == "2" {
+					rsName = rsList.Items[0].Name
+				}
+			}
+			if rsName == "" {
+				klog.Infof("Waiting for a replicaset with deployment.kubernetes.io/revision=2")
+				return false, nil
+			}
+			rsName = rsList.Items[0].Name
+			err = oc.Run("get").Args("replicasets", rsName).Execute()
 			return err == nil, nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("should print the imagestream-based container entrypoint/command")
 		var out string
-		out, err = oc.Run("debug").Args("dc/local-busybox1").Output()
+		out, err = oc.Run("debug").Args("deployment/local-busybox1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.MatchRegexp("Starting pod/local-busybox1-debug.*, command was: /usr/bin/bash\n"))
+		o.Expect(out).To(o.MatchRegexp("Starting pod/local-busybox1-debug.* ...\n"))
 
 		g.By("should print the overridden imagestream-based container entrypoint/command")
-		out, err = oc.Run("debug").Args("dc/local-busybox2").Output()
+		out, err = oc.Run("debug").Args("deployment/local-busybox2").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.MatchRegexp("Starting pod/local-busybox2-debug.*, command was: foo bar baz qux\n"))
 
 		g.By("should print the container image-based container entrypoint/command")
-		out, err = oc.Run("debug").Args("dc/busybox1").Output()
+		out, err = oc.Run("debug").Args("deployment/busybox1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.MatchRegexp("Starting pod/busybox1-debug.* ...\n"))
 
 		g.By("should print the overridden container image-based container entrypoint/command")
-		out, err = oc.Run("debug").Args("dc/busybox2").Output()
+		out, err = oc.Run("debug").Args("deployment/busybox2").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.MatchRegexp("Starting pod/busybox2-debug.*, command was: foo bar baz qux\n"))
 	})
 
-	g.It("dissect deployment config debug [apigroup:apps.openshift.io]", func() {
-		err := oc.Run("create").Args("-f", testDeploymentConfig).Execute()
+	g.It("dissect deployment debug", func() {
+		err := oc.Run("create").Args("-f", testDeployment).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		var out string
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "-oyaml").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "-oyaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("- /bin/sh"))
 
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "--keep-annotations", "-oyaml").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--keep-annotations", "-oyaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("annotations:"))
 
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "--as-root", "-oyaml").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--as-root", "-oyaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("runAsUser: 0"))
 
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "--as-root=false", "-oyaml").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--as-root=false", "-oyaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("runAsNonRoot: true"))
 
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "--as-user=1", "-oyaml").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--as-user=1", "-oyaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("runAsUser: 1"))
 
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "-t", "-oyaml").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "-t", "-oyaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("stdinOnce"))
 		o.Expect(out).To(o.ContainSubstring("tty"))
 
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "--tty=false", "-oyaml").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--tty=false", "-oyaml").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).NotTo(o.ContainSubstring("tty"))
 
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "-oyaml", "--", "/bin/env").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "-oyaml", "--", "/bin/env").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("- /bin/env"))
 		o.Expect(out).NotTo(o.ContainSubstring("stdin"))
 		o.Expect(out).NotTo(o.ContainSubstring("tty"))
 
-		out, err = oc.Run("debug").Args("dc/test-deployment-config", "--node-name=invalid", "--", "/bin/env").Output()
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--node-name=invalid", "--", "/bin/env").Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(`on node "invalid"`))
 	})
@@ -150,8 +171,10 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		out, err = oc.Run("debug").Args("--request-timeout=10s", "-c", "ruby-helloworld", "--one-container", "dc/test-deployment-config", "-o", "jsonpath='{.metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("test-deployment-config"))
+	})
 
-		err = oc.Run("create").Args("-f", "-").InputString(`
+	g.It("ensure debug does not depend on a container actually existing for the selected resource for deployment", func() {
+		err := oc.Run("create").Args("-f", "-").InputString(`
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -176,7 +199,7 @@ spec:
 `).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err = oc.Run("debug").Args("--request-timeout=10s", "-c", "ruby-helloworld", "--one-container", "deploy/test-deployment", "-o", "jsonpath='{.metadata.name}").Output()
+		out, err := oc.Run("debug").Args("--request-timeout=10s", "-c", "ruby-helloworld", "--one-container", "deploy/test-deployment", "-o", "jsonpath='{.metadata.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("test-deployment-debug"))
 	})

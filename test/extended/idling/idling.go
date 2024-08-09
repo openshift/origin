@@ -237,7 +237,7 @@ var _ = g.Describe("[sig-network-edge][Feature:Idling]", func() {
 		})
 	})
 
-	g.Describe("Unidling [apigroup:apps.openshift.io][apigroup:route.openshift.io]", func() {
+	g.Describe("Unidling [apigroup:route.openshift.io]", func() {
 		g.BeforeEach(func() {
 			fixture = echoServerFixture
 		})

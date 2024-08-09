@@ -8,7 +8,6 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 
-	appsv1 "github.com/openshift/api/apps/v1"
 	configv1 "github.com/openshift/api/config/v1"
 	kappsv1 "k8s.io/api/apps/v1"
 	kbatchv1 "k8s.io/api/batch/v1"
@@ -177,7 +176,7 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(sts.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 	})
 
-	g.It("should update OpenShift object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {
+	g.It("should update OpenShift object image fields when local names are on [apigroup:image.openshift.io]", func() {
 		err := oc.Run("tag").Args(k8simage.GetE2EImage(k8simage.BusyBox), "busybox:latest").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = oc.Run("set", "image-lookup").Args("busybox").Execute()
@@ -201,11 +200,13 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unable to wait for image to be imported: %v", lastErr))
 
 		// deployment configs should auto replace local references
-		dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Create(ctx, &appsv1.DeploymentConfig{
+		dc, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx, &kappsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{Name: "resolve"},
-			Spec: appsv1.DeploymentConfigSpec{
-				Selector: map[string]string{"resolve": "true"},
-				Template: &kapiv1.PodTemplateSpec{
+			Spec: kappsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"resolve": "true"},
+				},
+				Template: kapiv1.PodTemplateSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{"resolve": "true"},
 					},
@@ -221,10 +222,10 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 		defer func() {
-			oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Delete(ctx, dc.Name, metav1.DeleteOptions{})
+			oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Delete(ctx, dc.Name, metav1.DeleteOptions{})
 		}()
 
-		dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(oc.Namespace()).Patch(context.Background(), dc.Name, types.StrategicMergePatchType, []byte(`{"spec": {"template": {"spec": {"containers": [{"name": "resolve", "image": "busybox:latest"}]}}}}`), metav1.PatchOptions{})
+		dc, err = oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Patch(context.Background(), dc.Name, types.StrategicMergePatchType, []byte(`{"spec": {"template": {"spec": {"containers": [{"name": "resolve", "image": "busybox:latest"}]}}}}`), metav1.PatchOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 	})

@@ -443,7 +443,7 @@ var _ = g.Describe("[sig-cli] oc adm", func() {
 		o.Expect(out).To(o.ContainSubstring("createuser2"))
 	})
 
-	g.It("build-chain [apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:apps.openshift.io]", func() {
+	g.It("build-chain [apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io]", func() {
 		// Test building a dependency tree
 		s2iBuildPath := exutil.FixturePath("..", "..", "examples", "sample-app", "application-template-stibuild.json")
 		out, _, err := ocns.Run("process").Args("-f", s2iBuildPath, "-l", "build=sti").Outputs()

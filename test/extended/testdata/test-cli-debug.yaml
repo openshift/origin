@@ -23,91 +23,83 @@ items:
     triggers:
     - type: ConfigChange
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: local-busybox1
+    annotations:
+      "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"local-busybox:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
   spec:
     replicas: 0
     selector:
-      deploymentconfig: local-busybox1
+      matchLabels:
+        deployment: local-busybox1
     template:
       metadata:
         labels:
-          deploymentconfig: local-busybox1
+          deployment: local-busybox1
       spec:
         containers:
         - name: local-busybox
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - local-busybox
-        from:
-          kind: ImageStreamTag
-          name: local-busybox:latest
+          image: " "
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: local-busybox2
+    annotations:
+      "image.openshift.io/triggers": "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"local-busybox:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
   spec:
     replicas: 0
     selector:
-      deploymentconfig: local-busybox2
+      matchLabels:
+        deployment: local-busybox2
     template:
       metadata:
         labels:
-          deploymentconfig: local-busybox2
+          deployment: local-busybox2
       spec:
         containers:
         - name: local-busybox
+          image: " "
           command:
           - foo
           - bar
           args:
           - baz
           - qux
-    triggers:
-    - type: ImageChange
-      imageChangeParams:
-        automatic: true
-        containerNames:
-        - local-busybox
-        from:
-          kind: ImageStreamTag
-          name: local-busybox:latest
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: busybox1
   spec:
     replicas: 0
     selector:
-      deploymentconfig: busybox1
+      matchLabels:
+        deployment: busybox1
     template:
       metadata:
         labels:
-          deploymentconfig: busybox1
+          deployment: busybox1
       spec:
         containers:
         - name: busybox
           image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
 
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- kind: Deployment
+  apiVersion: apps/v1
   metadata:
     name: busybox2
   spec:
     replicas: 0
     selector:
-      deploymentconfig: busybox2
+      matchLabels:
+        deployment: busybox2
     template:
       metadata:
         labels:
-          deploymentconfig: busybox2
+          deployment: busybox2
       spec:
         containers:
         - name: busybox

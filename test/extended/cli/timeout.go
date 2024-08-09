@@ -13,23 +13,23 @@ var _ = g.Describe("[sig-cli] oc --request-timeout", func() {
 
 	oc := exutil.NewCLI("oc-request-timeout")
 
-	g.It("works as expected [apigroup:apps.openshift.io]", func() {
+	g.It("works as expected", func() {
 		busyBoxImage := k8simage.GetE2EImage(k8simage.BusyBox)
-		err := oc.Run("create").Args("deploymentconfig", "testdc", "--image="+busyBoxImage).Execute()
+		err := oc.Run("create").Args("deployment", "testdc", "--image="+busyBoxImage).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		out, err := oc.Run("get", "dc/testdc").Args("-w", "-v=5", "--request-timeout=1s").Output()
+		out, err := oc.Run("get", "deployment/testdc").Args("-w", "-v=5", "--request-timeout=1s").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// timeout is set for both the request and on context in request
 		// seek8s.io/client-go/rest/request.go#request so if we get timeout
 		// from server or from context it's ok
 		o.Expect(out).Should(o.SatisfyAny(o.ContainSubstring("request canceled"), o.ContainSubstring("context deadline exceeded")))
 
-		out, err = oc.Run("get", "dc/testdc").Args("--request-timeout=1s").Output()
+		out, err = oc.Run("get", "deployment/testdc").Args("--request-timeout=1s").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("testdc"))
 
-		out, err = oc.Run("get", "dc/testdc").Args("--request-timeout=1").Output()
+		out, err = oc.Run("get", "deployment/testdc").Args("--request-timeout=1").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring("testdc"))
 

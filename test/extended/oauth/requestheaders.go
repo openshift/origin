@@ -61,7 +61,7 @@ type certAuthTest struct {
 var _ = g.Describe("[Serial] [sig-auth][Feature:OAuthServer] [RequestHeaders] [IdP]", func() {
 	var oc = exutil.NewCLI("request-headers")
 
-	g.It("test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io][apigroup:apps.openshift.io]", func() {
+	g.It("test RequestHeaders IdP [apigroup:config.openshift.io][apigroup:user.openshift.io]", func() {
 
 		// In some rare cases, CAO might be damaged when entering this test. If it is - the results
 		// of this test might flaky. This check ensures that we capture such situation early and

@@ -14,8 +14,8 @@ var _ = g.Describe("[sig-cli] oc run", func() {
 
 	var oc = exutil.NewCLIWithPodSecurityLevel("oc-run", admissionapi.LevelBaseline)
 
-	g.It("can use --image flag correctly [apigroup:apps.openshift.io]", func() {
-		_, err := oc.Run("create").Args("deploymentconfig", "newdcforimage", "--image=validimagevalue").Output()
+	g.It("can use --image flag correctly", func() {
+		_, err := oc.Run("create").Args("deployment", "newdcforimage", "--image=validimagevalue").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		_, err = oc.Run("run").Args("newdcforimage2", "--image=\"InvalidImageValue0192\"").Output()
