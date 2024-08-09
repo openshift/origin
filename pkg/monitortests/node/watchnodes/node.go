@@ -2,11 +2,8 @@ package watchnodes
 
 import (
 	"context"
-	"sort"
-	"strings"
+	"github.com/openshift/origin/pkg/monitortestlibrary/watchresources"
 	"time"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
@@ -24,13 +21,13 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 		}
 
 		isReady := false
-		if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
+		if c := watchresources.FindNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
 			isReady = c.Status == corev1.ConditionTrue
 		}
 
 		wasReady := false
 		if !isCreate {
-			if c := findNodeCondition(oldNode.Status.Conditions, corev1.NodeReady, 0); c != nil {
+			if c := watchresources.FindNodeCondition(oldNode.Status.Conditions, corev1.NodeReady, 0); c != nil {
 				wasReady = c.Status == corev1.ConditionTrue
 			}
 
@@ -42,8 +39,8 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			return []monitorapi.Interval{
 				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
 					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
-					Message(monitorapi.NewMessage().Reason("NotReady").
-						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+					Message(monitorapi.NewMessage().Reason(monitorapi.NodeNotReadyReason).
+						WithAnnotation(monitorapi.AnnotationRoles, watchresources.NodeRoles(node)).
 						HumanMessage("node is not ready")).Build(now, now),
 			}
 
@@ -51,8 +48,8 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			return []monitorapi.Interval{
 				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
 					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
-					Message(monitorapi.NewMessage().Reason("Ready").
-						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+					Message(monitorapi.NewMessage().Reason(monitorapi.NodeReadyReason).
+						WithAnnotation(monitorapi.AnnotationRoles, watchresources.NodeRoles(node)).
 						HumanMessage("node is ready")).Build(now, now),
 			}
 
@@ -60,8 +57,8 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			return []monitorapi.Interval{
 				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
 					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
-					Message(monitorapi.NewMessage().Reason("NotReady").
-						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+					Message(monitorapi.NewMessage().Reason(monitorapi.NodeNotReadyReason).
+						WithAnnotation(monitorapi.AnnotationRoles, watchresources.NodeRoles(node)).
 						HumanMessage("node is not ready")).Build(now, now),
 			}
 
@@ -69,8 +66,8 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			return []monitorapi.Interval{
 				monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
 					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
-					Message(monitorapi.NewMessage().Reason("Ready").
-						WithAnnotation(monitorapi.AnnotationRoles, nodeRoles(node)).
+					Message(monitorapi.NewMessage().Reason(monitorapi.NodeReadyReason).
+						WithAnnotation(monitorapi.AnnotationRoles, watchresources.NodeRoles(node)).
 						HumanMessage("node is ready")).Build(now, now),
 			}
 		}
@@ -87,12 +84,12 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 		nodeReadyFn,
 		func(node, oldNode *corev1.Node) []monitorapi.Interval {
 			var intervals []monitorapi.Interval
-			roles := nodeRoles(node)
+			roles := watchresources.NodeRoles(node)
 
 			now := time.Now()
 			for i := range node.Status.Conditions {
 				c := &node.Status.Conditions[i]
-				previous := findNodeCondition(oldNode.Status.Conditions, c.Type, i)
+				previous := watchresources.FindNodeCondition(oldNode.Status.Conditions, c.Type, i)
 				if previous == nil {
 					continue
 				}
@@ -123,7 +120,7 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 		},
 		func(node, oldNode *corev1.Node) []monitorapi.Interval {
 			var intervals []monitorapi.Interval
-			roles := nodeRoles(node)
+			roles := watchresources.NodeRoles(node)
 
 			oldConfig := oldNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
 			newConfig := node.Annotations["machineconfiguration.openshift.io/currentConfig"]
@@ -181,7 +178,7 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 					Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
 					Message(monitorapi.NewMessage().
 						WithAnnotations(map[monitorapi.AnnotationKey]string{
-							monitorapi.AnnotationRoles: nodeRoles(node),
+							monitorapi.AnnotationRoles: watchresources.NodeRoles(node),
 						}).
 						HumanMessage("deleted")).
 					Build(now, now)
@@ -204,36 +201,4 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 	)
 
 	go nodeInformer.Run(ctx.Done())
-}
-
-func nodeRoles(node *corev1.Node) string {
-	const roleLabel = "node-role.kubernetes.io/"
-	var roles []string
-	for label := range node.Labels {
-		if strings.Contains(label, roleLabel) {
-			role := label[len(roleLabel):]
-			if role == "" {
-				logrus.Warningf("ignoring blank role label %s", roleLabel)
-				continue
-			}
-			roles = append(roles, role)
-		}
-	}
-
-	sort.Strings(roles)
-	return strings.Join(roles, ",")
-}
-
-func findNodeCondition(status []corev1.NodeCondition, name corev1.NodeConditionType, position int) *corev1.NodeCondition {
-	if position < len(status) {
-		if status[position].Type == name {
-			return &status[position]
-		}
-	}
-	for i := range status {
-		if status[i].Type == name {
-			return &status[i]
-		}
-	}
-	return nil
 }

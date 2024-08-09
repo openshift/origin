@@ -1,4 +1,4 @@
-package watchpods
+package watchresources
 
 import (
 	"strconv"
@@ -10,6 +10,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/test/e2e/framework"
 )
+
+type ObjCreateFunc func(obj interface{}) []monitorapi.Interval
+type ObjUpdateFunc func(obj, oldObj interface{}) []monitorapi.Interval
+type ObjDeleteFunc func(obj interface{}) []monitorapi.Interval
 
 type resourceTracker interface {
 	// RecordResource stores a resource for later serialization.  Deletion is not tracked, so this can be used
@@ -31,11 +35,11 @@ type monitoringStore struct {
 	cacheOfNow            map[types.UID]interface{}
 }
 
-func newMonitoringStore(
+func NewMonitoringStore(
 	resourceType string,
-	createHandlers []objCreateFunc,
-	updateHandlers []objUpdateFunc,
-	deleteHandlers []objDeleteFunc,
+	createHandlers []ObjCreateFunc,
+	updateHandlers []ObjUpdateFunc,
+	deleteHandlers []ObjDeleteFunc,
 	resourceTracker resourceTracker,
 	intervalRecorder intervalRecorder,
 ) *monitoringStore {
