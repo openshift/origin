@@ -202,9 +202,46 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), deployment, metav1.CreateOptions{}); err != nil {
 			return err
 		}
+
+		// The pods need to go active and the pollers wait until we have at least one before starting.
+		checkForPods := func(ctx context.Context) (bool, error) {
+			return pna.podsAreReady(ctx, deployment)
+		}
+		err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 120*time.Second, true, checkForPods)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+// Checks if the Pods are ready for the given deployment
+func (pna *podNetworkAvalibility) podsAreReady(ctx context.Context, deployment *appsv1.Deployment) (bool, error) {
+	templateLabels := deployment.Spec.Template.ObjectMeta.Labels
+	pollerLabel, err := labels.NewRequirement("network.openshift.io/disruption-actor", selection.Equals, []string{templateLabels["network.openshift.io/disruption-actor"]})
+	if err != nil {
+		return false, err
+	}
+	typeLabel, err := labels.NewRequirement("network.openshift.io/disruption-target", selection.Equals, []string{templateLabels["network.openshift.io/disruption-target"]})
+	if err != nil {
+		return false, err
+	}
+	pods, err := pna.kubeClient.CoreV1().Pods(pna.namespaceName).List(ctx, metav1.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*pollerLabel).Add(*typeLabel).String(),
+	})
+	if err != nil {
+		klog.Warningf("Pods are not ready for %s", deployment.ObjectMeta.Name)
+		return false, err
+	}
+
+	if len(pods.Items) >= 1 {
+		klog.Infof("Pods are ready for %s", deployment.ObjectMeta.Name)
+		return len(pods.Items) >= 1, nil
+	}
+
+	klog.Infof("Pods are not ready for %s", deployment.ObjectMeta.Name)
+	return false, nil
 }
 
 func (pna *podNetworkAvalibility) serviceHasEndpoints(ctx context.Context) (bool, error) {
@@ -332,7 +369,7 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
 	}
 	if len(pollerPods.Items) == 0 {
-		failures = append(failures, "no pods found for poller %q", typeOfConnection)
+		failures = append(failures, fmt.Sprintf("no pods found for poller %s", typeOfConnection))
 	}
 
 	logJunit := &junitapi.JUnitTestCase{
