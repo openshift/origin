@@ -70,6 +70,19 @@
         {
             "InClusterLocation": {
                 "secretLocation": {
+                    "Namespace": "openshift-kube-controller-manager-operator",
+                    "Name": "csr-signer-signer"
+                },
+                "certKeyInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "secretLocation": {
                     "Namespace": "openshift-machine-api",
                     "Name": "metal3-ironic-tls"
                 },
