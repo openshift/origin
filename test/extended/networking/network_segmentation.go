@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -46,6 +47,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			userDefinedNetworkIPv4Subnet = "203.203.0.0/16"
 			userDefinedNetworkIPv6Subnet = "2014:100:200::0/60"
 			nadName                      = "gryffindor"
+
+			udnCrReadyTimeout = 5 * time.Second
 		)
 
 		var (
@@ -61,314 +64,392 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		DescribeTable(
-			"can perform east/west traffic between nodes",
-			func(
-				netConfigParams networkAttachmentConfigParams,
-				clientPodConfig podConfiguration,
-				serverPodConfig podConfiguration,
-			) {
-				if netConfigParams.topology == "layer3" {
-					e2eskipper.Skipf("IPv6 routes are not configured on the tech-preview lane since the cluster config is single-stack IPv4")
-				}
-				netConfig := newNetworkAttachmentConfig(netConfigParams)
+		DescribeTableSubtree("created using",
+			func(createNetworkFn func(c networkAttachmentConfigParams) error) {
 
-				netConfig.namespace = f.Namespace.Name
-				workerNodes, err := getWorkerNodesOrdered(cs)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(len(workerNodes)).To(BeNumerically(">=", 1))
+				DescribeTable(
+					"can perform east/west traffic between nodes",
+					func(
+						netConfig networkAttachmentConfigParams,
+						clientPodConfig podConfiguration,
+						serverPodConfig podConfiguration,
+					) {
+						if netConfig.topology == "layer3" {
+							e2eskipper.Skipf("IPv6 routes are not configured on the tech-preview lane since the cluster config is single-stack IPv4")
+						}
+						var err error
 
-				clientPodConfig.namespace = f.Namespace.Name
-				clientPodConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[0].Name}
-				serverPodConfig.namespace = f.Namespace.Name
-				serverPodConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[len(workerNodes)-1].Name}
+						netConfig.namespace = f.Namespace.Name
+						workerNodes, err := getWorkerNodesOrdered(cs)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(len(workerNodes)).To(BeNumerically(">=", 1))
 
-				By("creating the attachment configuration")
-				_, err = nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
-					context.Background(),
-					generateNAD(netConfig),
-					metav1.CreateOptions{},
+						clientPodConfig.namespace = f.Namespace.Name
+						clientPodConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[0].Name}
+						serverPodConfig.namespace = f.Namespace.Name
+						serverPodConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[len(workerNodes)-1].Name}
+
+						By("creating the network")
+						netConfig.namespace = f.Namespace.Name
+						Expect(createNetworkFn(netConfig)).To(Succeed())
+
+						By("creating client/server pods")
+						runUDNPod(cs, f.Namespace.Name, serverPodConfig, nil)
+						runUDNPod(cs, f.Namespace.Name, clientPodConfig, nil)
+
+						var serverIP string
+						for i, cidr := range strings.Split(netConfig.cidr, ",") {
+							if cidr != "" {
+								By("asserting the server pod has an IP from the configured range")
+								serverIP, err = podIPsForUserDefinedPrimaryNetwork(
+									cs,
+									f.Namespace.Name,
+									serverPodConfig.name,
+									namespacedName(f.Namespace.Name, netConfig.name),
+									i,
+								)
+								Expect(err).NotTo(HaveOccurred())
+								const netPrefixLengthPerNode = 24
+								By(fmt.Sprintf("asserting the server pod IP %v is from the configured range %v/%v", serverIP, cidr, netPrefixLengthPerNode))
+								subnet, err := getNetCIDRSubnet(cidr)
+								Expect(err).NotTo(HaveOccurred())
+								Expect(inRange(subnet, serverIP)).To(Succeed())
+							}
+
+							By("asserting the *client* pod can contact the server pod exposed endpoint")
+							podShouldReach(oc, clientPodConfig.name, formatHostAndPort(net.ParseIP(serverIP), port))
+						}
+					},
+					Entry(
+						"for two pods connected over a L2 dualstack primary UDN",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer2",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "primary",
+						},
+						*podConfig(
+							"client-pod",
+						),
+						*podConfig("server-pod", withCommand(func() []string {
+							return httpServerContainerCmd(port)
+						})),
+					),
+					Entry(
+						"two pods connected over a L3 dualstack primary UDN",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer3",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "primary",
+						},
+						*podConfig(
+							"client-pod",
+						),
+						*podConfig("server-pod", withCommand(func() []string {
+							return httpServerContainerCmd(port)
+						})),
+					),
 				)
-				Expect(err).NotTo(HaveOccurred())
 
-				runUDNPod(cs, f.Namespace.Name, serverPodConfig, nil)
-				runUDNPod(cs, f.Namespace.Name, clientPodConfig, nil)
+				DescribeTable(
+					"is isolated from the default network",
+					func(
+						netConfigParams networkAttachmentConfigParams,
+						udnPodConfig podConfiguration,
+					) {
+						By("Creating second namespace for default network pods")
+						defaultNetNamespace := f.Namespace.Name + "-default"
+						_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: defaultNetNamespace,
+							},
+						}, metav1.CreateOptions{})
+						Expect(err).NotTo(HaveOccurred())
+						defer func() {
+							Expect(cs.CoreV1().Namespaces().Delete(context.Background(), defaultNetNamespace, metav1.DeleteOptions{})).To(Succeed())
+						}()
 
-				var serverIP string
-				for i, cidr := range strings.Split(netConfig.cidr, ",") {
-					if cidr != "" {
-						By("asserting the server pod has an IP from the configured range")
-						serverIP, err = podIPsForUserDefinedPrimaryNetwork(
+						By("creating the network")
+						netConfigParams.namespace = f.Namespace.Name
+						Expect(createNetworkFn(netConfigParams)).To(Succeed())
+						Expect(err).NotTo(HaveOccurred())
+
+						udnPodConfig.namespace = f.Namespace.Name
+
+						udnPod := runUDNPod(cs, f.Namespace.Name, udnPodConfig, func(pod *v1.Pod) {
+							pod.Spec.Containers[0].ReadinessProbe = &v1.Probe{
+								ProbeHandler: v1.ProbeHandler{
+									HTTPGet: &v1.HTTPGetAction{
+										Path: "/healthz",
+										Port: intstr.FromInt32(port),
+									},
+								},
+								InitialDelaySeconds: 1,
+								PeriodSeconds:       1,
+								FailureThreshold:    1,
+							}
+							pod.Spec.Containers[0].LivenessProbe = &v1.Probe{
+								ProbeHandler: v1.ProbeHandler{
+									HTTPGet: &v1.HTTPGetAction{
+										Path: "/healthz",
+										Port: intstr.FromInt32(port),
+									},
+								},
+								InitialDelaySeconds: 1,
+								PeriodSeconds:       1,
+								FailureThreshold:    1,
+							}
+							// add NET_ADMIN to change pod routes
+							pod.Spec.Containers[0].SecurityContext = &v1.SecurityContext{
+								Capabilities: &v1.Capabilities{
+									Add: []v1.Capability{"NET_ADMIN"},
+								},
+							}
+						})
+
+						const podGenerateName = "udn-test-pod-"
+						By("creating default network pod")
+						defaultPod := frameworkpod.CreateExecPodOrFail(
+							context.Background(),
+							f.ClientSet,
+							defaultNetNamespace,
+							podGenerateName,
+							func(pod *v1.Pod) {
+								pod.Spec.Containers[0].Args = []string{"netexec"}
+								setRuntimeDefaultPSA(pod)
+							},
+						)
+
+						By("creating default network client pod")
+						defaultClientPod := frameworkpod.CreateExecPodOrFail(
+							context.Background(),
+							f.ClientSet,
+							defaultNetNamespace,
+							podGenerateName,
+							func(pod *v1.Pod) {
+								setRuntimeDefaultPSA(pod)
+							},
+						)
+
+						udnIPv4, udnIPv6, err := podIPsForDefaultNetwork(
 							cs,
 							f.Namespace.Name,
-							serverPodConfig.name,
-							namespacedName(f.Namespace.Name, netConfig.name),
-							i,
+							udnPod.GetName(),
 						)
 						Expect(err).NotTo(HaveOccurred())
-						const netPrefixLengthPerNode = 24
-						By(fmt.Sprintf("asserting the server pod IP %v is from the configured range %v/%v", serverIP, cidr, netPrefixLengthPerNode))
-						subnet, err := getNetCIDRSubnet(cidr)
-						Expect(err).NotTo(HaveOccurred())
-						Expect(inRange(subnet, serverIP)).To(Succeed())
-					}
 
-					By("asserting the *client* pod can contact the server pod exposed endpoint")
-					podShouldReach(oc, clientPodConfig.name, formatHostAndPort(net.ParseIP(serverIP), port))
-				}
-			},
-			Entry(
-				"for two pods connected over a L2 dualstack primary UDN",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer2",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "primary",
-				},
-				*podConfig(
-					"client-pod",
-				),
-				*podConfig("server-pod", withCommand(func() []string {
-					return httpServerContainerCmd(port)
-				})),
-			),
-			Entry(
-				"two pods connected over a L3 dualstack primary UDN",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer3",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "primary",
-				},
-				*podConfig(
-					"client-pod",
-				),
-				*podConfig("server-pod", withCommand(func() []string {
-					return httpServerContainerCmd(port)
-				})),
-			),
-		)
+						for _, destIP := range []string{udnIPv4, udnIPv6} {
+							if destIP == "" {
+								continue
+							}
+							// positive case for UDN pod is a successful healthcheck, checked later
+							By("checking the default network pod can't reach UDN pod on IP " + destIP)
+							Consistently(func() bool {
+								return connectToServer(podConfiguration{namespace: defaultPod.Namespace, name: defaultPod.Name}, destIP, port) != nil
+							}, 5*time.Second).Should(BeTrue())
+						}
 
-		DescribeTable(
-			"is isolated from the default network",
-			func(
-				netConfigParams networkAttachmentConfigParams,
-				udnPodConfig podConfiguration,
-			) {
-				By("Creating second namespace for default network pods")
-				defaultNetNamespace := f.Namespace.Name + "-default"
-				_, err := cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: defaultNetNamespace,
-					},
-				}, metav1.CreateOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				defer func() {
-					Expect(cs.CoreV1().Namespaces().Delete(context.Background(), defaultNetNamespace, metav1.DeleteOptions{})).To(Succeed())
-				}()
-
-				netConfig := newNetworkAttachmentConfig(netConfigParams)
-				netConfig.namespace = f.Namespace.Name
-				udnPodConfig.namespace = f.Namespace.Name
-
-				By("creating the attachment configuration")
-				_, err = nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
-					context.Background(),
-					generateNAD(netConfig),
-					metav1.CreateOptions{},
-				)
-				Expect(err).NotTo(HaveOccurred())
-
-				udnPod := runUDNPod(cs, f.Namespace.Name, udnPodConfig, func(pod *v1.Pod) {
-					pod.Spec.Containers[0].ReadinessProbe = &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							HTTPGet: &v1.HTTPGetAction{
-								Path: "/healthz",
-								Port: intstr.FromInt32(port),
-							},
-						},
-						InitialDelaySeconds: 1,
-						PeriodSeconds:       1,
-						FailureThreshold:    1,
-					}
-					pod.Spec.Containers[0].LivenessProbe = &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							HTTPGet: &v1.HTTPGetAction{
-								Path: "/healthz",
-								Port: intstr.FromInt32(port),
-							},
-						},
-						InitialDelaySeconds: 1,
-						PeriodSeconds:       1,
-						FailureThreshold:    1,
-					}
-					// add NET_ADMIN to change pod routes
-					pod.Spec.Containers[0].SecurityContext = &v1.SecurityContext{
-						Capabilities: &v1.Capabilities{
-							Add: []v1.Capability{"NET_ADMIN"},
-						},
-					}
-				})
-
-				const podGenerateName = "udn-test-pod-"
-				By("creating default network pod")
-				defaultPod := frameworkpod.CreateExecPodOrFail(
-					context.Background(),
-					f.ClientSet,
-					defaultNetNamespace,
-					podGenerateName,
-					func(pod *v1.Pod) {
-						pod.Spec.Containers[0].Args = []string{"netexec"}
-						setRuntimeDefaultPSA(pod)
-					},
-				)
-
-				By("creating default network client pod")
-				defaultClientPod := frameworkpod.CreateExecPodOrFail(
-					context.Background(),
-					f.ClientSet,
-					defaultNetNamespace,
-					podGenerateName,
-					func(pod *v1.Pod) {
-						setRuntimeDefaultPSA(pod)
-					},
-				)
-
-				udnIPv4, udnIPv6, err := podIPsForDefaultNetwork(
-					cs,
-					f.Namespace.Name,
-					udnPod.GetName(),
-				)
-				Expect(err).NotTo(HaveOccurred())
-
-				for _, destIP := range []string{udnIPv4, udnIPv6} {
-					if destIP == "" {
-						continue
-					}
-					// positive case for UDN pod is a successful healthcheck, checked later
-					By("checking the default network pod can't reach UDN pod on IP " + destIP)
-					Consistently(func() bool {
-						return connectToServer(podConfiguration{namespace: defaultPod.Namespace, name: defaultPod.Name}, destIP, port) != nil
-					}, 5*time.Second).Should(BeTrue())
-				}
-
-				defaultIPv4, defaultIPv6, err := podIPsForDefaultNetwork(
-					cs,
-					defaultPod.Namespace,
-					defaultPod.Name,
-				)
-				Expect(err).NotTo(HaveOccurred())
-
-				for _, destIP := range []string{defaultIPv4, defaultIPv6} {
-					if destIP == "" {
-						continue
-					}
-					By("checking the default network client pod can reach default pod on IP " + destIP)
-					Eventually(func() bool {
-						return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, defaultPort) == nil
-					}).Should(BeTrue())
-					By("checking the UDN pod can't reach the default network pod on IP " + destIP)
-					Consistently(func() bool {
-						return connectToServer(udnPodConfig, destIP, defaultPort) != nil
-					}, 5*time.Second).Should(BeTrue())
-				}
-
-				// connectivity check is run every second + 1sec initialDelay
-				// By this time we have spent at least 8 seconds doing the above checks
-				udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Get(context.Background(), udnPod.Name, metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(udnPod.Status.ContainerStatuses[0].RestartCount).To(Equal(int32(0)))
-
-				By("asserting healthcheck works (kubelet can access the UDN pod)")
-				// The pod should be ready
-				Expect(podutils.IsPodReady(udnPod)).To(BeTrue())
-
-				// TODO
-				//By("checking non-kubelet default network host process can't reach the UDN pod")
-
-				By("asserting UDN pod can't reach host via default network interface")
-				// tweak pod route to use default network interface as default
-				podAnno, err := unmarshalPodAnnotation(udnPod.Annotations, "default")
-				Expect(err).NotTo(HaveOccurred())
-				for _, podIP := range podAnno.IPs {
-					ipCommand := []string{"exec", udnPod.Name, "--", "ip"}
-					if podIP.IP.To4() == nil {
-						ipCommand = append(ipCommand, "-6")
-					}
-					// 1. Find current default route and delete it
-					defRoute, err := e2ekubectl.RunKubectl(udnPod.Namespace,
-						append(ipCommand, "route", "show", "default")...)
-					Expect(err).NotTo(HaveOccurred())
-					defRoute = strings.TrimSpace(defRoute)
-					if defRoute == "" {
-						continue
-					}
-					framework.Logf("Found default route %v, deleting", defRoute)
-					cmd := append(ipCommand, "route", "del")
-					_, err = e2ekubectl.RunKubectl(udnPod.Namespace,
-						append(cmd, strings.Split(defRoute, " ")...)...)
-					Expect(err).NotTo(HaveOccurred())
-
-					// 2. Add a new default route to use default network interface
-					gatewayIP := NextIP(Network(podIP).IP)
-					_, err = e2ekubectl.RunKubectl(udnPod.Namespace,
-						append(ipCommand, "route", "add", "default", "via", gatewayIP.String(), "dev", "eth0")...)
-					Expect(err).NotTo(HaveOccurred())
-				}
-				// Now try to reach the host from the UDN pod
-				defaultPodHostIP := udnPod.Status.HostIPs
-				for _, hostIP := range defaultPodHostIP {
-					By("checking the UDN pod can't reach the host on IP " + hostIP.IP)
-					ping := "ping"
-					if utilnet.IsIPv6String(hostIP.IP) {
-						ping = "ping6"
-					}
-					Consistently(func() bool {
-						_, err := e2ekubectl.RunKubectl(udnPod.Namespace, "exec", udnPod.Name, "--",
-							ping, "-c", "1", "-W", "1", hostIP.IP,
+						defaultIPv4, defaultIPv6, err := podIPsForDefaultNetwork(
+							cs,
+							defaultPod.Namespace,
+							defaultPod.Name,
 						)
-						return err == nil
-					}, 4*time.Second).Should(BeFalse())
-				}
+						Expect(err).NotTo(HaveOccurred())
 
-				By("asserting UDN pod can't reach default services via default network interface")
-				// route setup is already done, get kapi IPs
-				kapi, err := cs.CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
-				Expect(err).NotTo(HaveOccurred())
-				for _, kapiIP := range kapi.Spec.ClusterIPs {
-					By("checking the UDN pod can't reach kapi service on IP " + kapiIP)
-					Consistently(func() bool {
-						return connectToServer(udnPodConfig, kapiIP, int(kapi.Spec.Ports[0].Port)) != nil
-					}, 5*time.Second).Should(BeTrue())
-				}
+						for _, destIP := range []string{defaultIPv4, defaultIPv6} {
+							if destIP == "" {
+								continue
+							}
+							By("checking the default network client pod can reach default pod on IP " + destIP)
+							Eventually(func() bool {
+								return connectToServer(podConfiguration{namespace: defaultClientPod.Namespace, name: defaultClientPod.Name}, destIP, defaultPort) == nil
+							}).Should(BeTrue())
+							By("checking the UDN pod can't reach the default network pod on IP " + destIP)
+							Consistently(func() bool {
+								return connectToServer(udnPodConfig, destIP, defaultPort) != nil
+							}, 5*time.Second).Should(BeTrue())
+						}
+
+						// connectivity check is run every second + 1sec initialDelay
+						// By this time we have spent at least 8 seconds doing the above checks
+						udnPod, err = cs.CoreV1().Pods(udnPod.Namespace).Get(context.Background(), udnPod.Name, metav1.GetOptions{})
+						Expect(err).NotTo(HaveOccurred())
+						Expect(udnPod.Status.ContainerStatuses[0].RestartCount).To(Equal(int32(0)))
+
+						By("asserting healthcheck works (kubelet can access the UDN pod)")
+						// The pod should be ready
+						Expect(podutils.IsPodReady(udnPod)).To(BeTrue())
+
+						// TODO
+						//By("checking non-kubelet default network host process can't reach the UDN pod")
+
+						By("asserting UDN pod can't reach host via default network interface")
+						// tweak pod route to use default network interface as default
+						podAnno, err := unmarshalPodAnnotation(udnPod.Annotations, "default")
+						Expect(err).NotTo(HaveOccurred())
+						for _, podIP := range podAnno.IPs {
+							ipCommand := []string{"exec", udnPod.Name, "--", "ip"}
+							if podIP.IP.To4() == nil {
+								ipCommand = append(ipCommand, "-6")
+							}
+							// 1. Find current default route and delete it
+							defRoute, err := e2ekubectl.RunKubectl(udnPod.Namespace,
+								append(ipCommand, "route", "show", "default")...)
+							Expect(err).NotTo(HaveOccurred())
+							defRoute = strings.TrimSpace(defRoute)
+							if defRoute == "" {
+								continue
+							}
+							framework.Logf("Found default route %v, deleting", defRoute)
+							cmd := append(ipCommand, "route", "del")
+							_, err = e2ekubectl.RunKubectl(udnPod.Namespace,
+								append(cmd, strings.Split(defRoute, " ")...)...)
+							Expect(err).NotTo(HaveOccurred())
+
+							// 2. Add a new default route to use default network interface
+							gatewayIP := NextIP(Network(podIP).IP)
+							_, err = e2ekubectl.RunKubectl(udnPod.Namespace,
+								append(ipCommand, "route", "add", "default", "via", gatewayIP.String(), "dev", "eth0")...)
+							Expect(err).NotTo(HaveOccurred())
+						}
+						// Now try to reach the host from the UDN pod
+						defaultPodHostIP := udnPod.Status.HostIPs
+						for _, hostIP := range defaultPodHostIP {
+							By("checking the UDN pod can't reach the host on IP " + hostIP.IP)
+							ping := "ping"
+							if utilnet.IsIPv6String(hostIP.IP) {
+								ping = "ping6"
+							}
+							Consistently(func() bool {
+								_, err := e2ekubectl.RunKubectl(udnPod.Namespace, "exec", udnPod.Name, "--",
+									ping, "-c", "1", "-W", "1", hostIP.IP,
+								)
+								return err == nil
+							}, 4*time.Second).Should(BeFalse())
+						}
+
+						By("asserting UDN pod can't reach default services via default network interface")
+						// route setup is already done, get kapi IPs
+						kapi, err := cs.CoreV1().Services("default").Get(context.Background(), "kubernetes", metav1.GetOptions{})
+						Expect(err).NotTo(HaveOccurred())
+						for _, kapiIP := range kapi.Spec.ClusterIPs {
+							By("checking the UDN pod can't reach kapi service on IP " + kapiIP)
+							Consistently(func() bool {
+								return connectToServer(udnPodConfig, kapiIP, int(kapi.Spec.Ports[0].Port)) != nil
+							}, 5*time.Second).Should(BeTrue())
+						}
+					},
+					Entry(
+						"with L2 dualstack primary UDN",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer2",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "primary",
+						},
+						*podConfig("udn-pod", withCommand(func() []string {
+							return httpServerContainerCmd(port)
+						})),
+					),
+					Entry(
+						"with L3 dualstack primary UDN",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer3",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "primary",
+						},
+						*podConfig("udn-pod", withCommand(func() []string {
+							return httpServerContainerCmd(port)
+						})),
+					),
+				)
 			},
-			Entry(
-				"with L2 dualstack primary UDN",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer2",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "primary",
-				},
-				*podConfig("udn-pod", withCommand(func() []string {
-					return httpServerContainerCmd(port)
-				})),
-			),
-			Entry(
-				"with L3 dualstack primary UDN",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer3",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "primary",
-				},
-				*podConfig("udn-pod", withCommand(func() []string {
-					return httpServerContainerCmd(port)
-				})),
-			),
+			Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) error {
+				netConfig := newNetworkAttachmentConfig(c)
+				nad := generateNAD(netConfig)
+				_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(context.Background(), nad, metav1.CreateOptions{})
+				return err
+			}),
+			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
+				udnManifest := generateUserDefinedNetworkManifest(&c)
+				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
+				DeferCleanup(cleanup)
+				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, c.name, udnCrReadyTimeout)).To(Succeed())
+				return err
+			}),
 		)
 	})
 })
+
+func generateUserDefinedNetworkManifest(params *networkAttachmentConfigParams) string {
+	nadToUdnParams := map[string]string{
+		"primary":   "Primary",
+		"secondary": "Secondary",
+		"layer2":    "Layer2",
+		"layer3":    "Layer3",
+	}
+	subnets := generateSubnetsYaml(params)
+	return `
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: ` + params.name + `
+spec:
+  topology: ` + nadToUdnParams[params.topology] + `
+  ` + params.topology + `: 
+    role: ` + nadToUdnParams[params.role] + `
+    subnets: ` + subnets + `
+`
+}
+
+func generateSubnetsYaml(params *networkAttachmentConfigParams) string {
+	if params.topology == "layer3" {
+		l3Subnets := generateLayer3Subnets(params.cidr)
+		return fmt.Sprintf("[%s]", strings.Join(l3Subnets, ","))
+	}
+	return fmt.Sprintf("[%s]", params.cidr)
+}
+
+func generateLayer3Subnets(cidrs string) []string {
+	cidrList := strings.Split(cidrs, ",")
+	var subnets []string
+	for _, cidr := range cidrList {
+		cidrSplit := strings.Split(cidr, "/")
+		switch len(cidrSplit) {
+		case 2:
+			subnets = append(subnets, fmt.Sprintf(`{cidr: "%s/%s"}`, cidrSplit[0], cidrSplit[1]))
+		case 3:
+			subnets = append(subnets, fmt.Sprintf(`{cidr: "%s/%s", hostSubnet: %q }`, cidrSplit[0], cidrSplit[1], cidrSplit[2]))
+		default:
+			panic(fmt.Sprintf("invalid layer3 subnet: %v", cidr))
+		}
+	}
+	return subnets
+}
+
+func createManifest(namespace, manifest string) (func(), error) {
+	path := "test-ovn-k-udn-" + rand.String(5) + ".yaml"
+	if err := os.WriteFile(path, []byte(manifest), 0644); err != nil {
+		framework.Failf("Unable to write udn yaml to disk: %v", err)
+	}
+	cleanup := func() {
+		if err := os.Remove(path); err != nil {
+			framework.Logf("Unable to remove udn yaml from disk: %v", err)
+		}
+	}
+	_, err := e2ekubectl.RunKubectl(namespace, "create", "-f", path)
+	if err != nil {
+		return cleanup, err
+	}
+	return cleanup, nil
+}
+
+func waitForUserDefinedNetworkReady(namespace, name string, timeout time.Duration) error {
+	_, err := e2ekubectl.RunKubectl(namespace, "wait", "userdefinednetwork", name, "--for", "condition=NetworkReady=True", "--timeout", timeout.String())
+	return err
+}
 
 func setRuntimeDefaultPSA(pod *v1.Pod) {
 	dontEscape := false
