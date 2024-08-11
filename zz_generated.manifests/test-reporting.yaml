@@ -103,17 +103,33 @@ spec:
         managed by the default controller for namespaces with user defined primary
         networks L3 dualstack primary UDN, host-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes can perform east/west traffic between
-        nodes for two pods connected over a L2 dualstack primary UDN'
-    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes can perform east/west traffic between
-        nodes two pods connected over a L3 dualstack primary UDN'
-    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes is isolated from the default network with
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        can perform east/west traffic between nodes for two pods connected over a
         L2 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes is isolated from the default network with
-        L3 dualstack primary UDN'
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        can perform east/west traffic between nodes two pods connected over a L3 dualstack
+        primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        is isolated from the default network with L2 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        is isolated from the default network with L3 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork can perform
+        east/west traffic between nodes for two pods connected over a L2 dualstack
+        primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork can perform
+        east/west traffic between nodes two pods connected over a L3 dualstack primary
+        UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated
+        from the default network with L2 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated
+        from the default network with L3 dualstack primary UDN'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]
