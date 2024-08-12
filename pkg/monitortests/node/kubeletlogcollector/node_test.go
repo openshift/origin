@@ -116,10 +116,10 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 					Message: monitorapi.Message{
-						Reason:       "FailedToUpdateLease",
+						Reason:       monitorapi.NodeFailedLease,
 						HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
 						Annotations: map[monitorapi.AnnotationKey]string{
-							monitorapi.AnnotationReason: "FailedToUpdateLease",
+							monitorapi.AnnotationReason: string(monitorapi.NodeFailedLease),
 						},
 					},
 				},
@@ -141,10 +141,35 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 					Message: monitorapi.Message{
-						Reason:       "FailedToUpdateLease",
+						Reason:       monitorapi.NodeFailedLease,
 						HumanMessage: "https://api-int.ci-op-cyqgzj4w-ed5cd.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-cyqgzj4w-ed5cd-ll5md-master-0?timeout=10s - http2: client connection lost",
 						Annotations: map[monitorapi.AnnotationKey]string{
-							monitorapi.AnnotationReason: "FailedToUpdateLease",
+							monitorapi.AnnotationReason: string(monitorapi.NodeFailedLease),
+						},
+					},
+				},
+				From: systemdJournalLogTime("Jun 29 05:16:54.197389"),
+				To:   systemdJournalLogTime("Jun 29 05:16:55.197389"),
+			},
+		},
+		{
+			name:          "leaseUpdateErrorBackoff",
+			logLine:       "Jun 29 05:16:54.197389 ci-op-cyqgzj4w-ed5cd-ll5md-master-0 kubenswrapper[2336]: E0629 05:16:54.195979    2336 controller.go:193] failed to update lease using latest lease, fallback to ensure lease",
+			generatorFunc: eventsFromKubeletLogs,
+			want: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Level: monitorapi.Info,
+					Locator: monitorapi.Locator{
+						Type: monitorapi.LocatorTypeNode,
+						Keys: map[monitorapi.LocatorKey]string{
+							"node": "testName",
+						},
+					},
+					Message: monitorapi.Message{
+						Reason:       monitorapi.NodeFailedLeaseBackoff,
+						HumanMessage: "detected multiple lease failures",
+						Annotations: map[monitorapi.AnnotationKey]string{
+							monitorapi.AnnotationReason: string(monitorapi.NodeFailedLeaseBackoff),
 						},
 					},
 				},
@@ -553,4 +578,465 @@ func Test_readinessFailure(t *testing.T) {
 			assert.Equal(t, tt.want[0].To, got[0].To)
 		})
 	}
+}
+
+func TestNodeLeaseClusters(t *testing.T) {
+
+	testcase := []struct {
+		name         string
+		rawIntervals monitorapi.Intervals
+		want         monitorapi.Intervals
+	}{
+		{
+			name: "no lease failures in interval",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeContainer,
+							Keys: map[monitorapi.LocatorKey]string{
+								"namespace": "openshift-monitoring",
+								"pod":       "prometheus-k8s-0",
+								"uid":       "a1947638-25c2-4fd8-b3c8-4dbaa666bc61",
+								"container": "",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       "HttpClientConnectionLost",
+							HumanMessage: "NotRelevantForLease",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "HttpClientConnectionLost",
+								monitorapi.AnnotationNode:   "testName",
+							},
+						},
+					},
+					From: systemdJournalLogTime("Sep 27 08:59:59.857303"),
+					To:   systemdJournalLogTime("Sep 27 08:59:59.857303"),
+				},
+			},
+			want: monitorapi.Intervals(nil),
+		},
+		{
+			name: "lease failures insignificant",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "single lease failure; can ignore",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+				},
+			},
+			want: monitorapi.Intervals(nil),
+		},
+		{
+			name: "lease failures significant single node",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:17.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:18.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:13:17.753983"),
+					To:   systemdJournalLogTime("May 19 19:13:18.753983"),
+				},
+			},
+			want: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+				},
+			},
+		},
+		{
+			name: "lease failures significant two node",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "node 1; cluster 1; first lease error",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "node 1; cluster 1; second lease error",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "node 1; cluster 1; third lease error",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:17.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:18.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "insigificant lease error",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:13:17.753983"),
+					To:   systemdJournalLogTime("May 19 19:13:18.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node2",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "node 2; cluster 1; first lease error",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node2",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node2",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:17.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:18.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node2",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:13:17.753983"),
+					To:   systemdJournalLogTime("May 19 19:13:18.753983"),
+				},
+			},
+			want: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node1",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "node 1; cluster 1; first lease error",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "node2",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "node 2; cluster 1; first lease error",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+				},
+			},
+		},
+		{
+			name: "lease failures; duplicated events",
+			rawIntervals: monitorapi.Intervals{
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+				},
+				{
+					Condition: monitorapi.Condition{
+						Level: monitorapi.Info,
+						Locator: monitorapi.Locator{
+							Type: monitorapi.LocatorTypeNode,
+							Keys: map[monitorapi.LocatorKey]string{
+								"node": "testName",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason:       monitorapi.NodeFailedLeaseBackoff,
+							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationReason: "FailedToUpdateLease",
+							},
+						},
+					},
+					From: systemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+				},
+			},
+			want: monitorapi.Intervals(nil),
+		},
+	}
+
+	for _, tc := range testcase {
+		t.Run(tc.name, func(t *testing.T) {
+			got := findLeaseIntervalsImportant(tc.rawIntervals)
+			assert.Equal(t, len(tc.want), len(got))
+			if len(tc.want) > 0 {
+				assert.Equal(t, tc.want[0].Locator, got[0].Locator)
+				assert.Equal(t, tc.want[0].Message, got[0].Message)
+				assert.Equal(t, tc.want[0].Level, got[0].Level)
+				assert.Equal(t, tc.want[0].From, got[0].From)
+				assert.Equal(t, tc.want[0].To, got[0].To)
+			}
+		})
+	}
+
 }

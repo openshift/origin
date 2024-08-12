@@ -101,6 +101,7 @@ func eventsFromKubeletLogs(nodeName string, kubeletLog []byte) monitorapi.Interv
 		ret = append(ret, failedToDeleteCGroupsPath(nodeLocator, currLine)...)
 		ret = append(ret, anonymousCertConnectionError(nodeLocator, currLine)...)
 		ret = append(ret, leaseUpdateError(nodeLocator, currLine)...)
+		ret = append(ret, leaseFailBackOff(nodeLocator, currLine)...)
 	}
 
 	return ret
@@ -455,6 +456,8 @@ var failedLeaseUpdateErrorRegex = regexp.MustCompile(`failed to update lease, er
 // upper 'F'ailed and 'err'
 var failedLeaseUpdateErrRegex = regexp.MustCompile(`Failed to update lease\" err\=\"Put \\\"(?P<URL>[a-z0-9.-:\/\-\?\=]+)\\\": (?P<MSG>[^\"]+)`)
 
+var failedLeaseFiveTimes = regexp.MustCompile(`failed to update lease using latest lease, fallback to ensure lease`)
+
 func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
 
 	// Two cases, one upper F the other lower so substring match without the leading f
@@ -500,6 +503,70 @@ func leaseUpdateError(nodeLocator monitorapi.Locator, logLine string) monitorapi
 			Display().
 			Build(failureTime, failureTime.Add(1*time.Second)),
 	}
+}
+
+func leaseFailBackOff(nodeLocator monitorapi.Locator, logLine string) monitorapi.Intervals {
+
+	failureTime := systemdJournalLogTime(logLine)
+
+	subMatches := failedLeaseFiveTimes.FindStringSubmatch(logLine)
+
+	if len(subMatches) == 0 {
+		return nil
+	}
+
+	return monitorapi.Intervals{
+		monitorapi.NewInterval(monitorapi.SourceKubeletLog, monitorapi.Info).
+			Locator(nodeLocator).
+			Message(
+				monitorapi.NewMessage().Reason(monitorapi.NodeFailedLeaseBackoff).HumanMessage("detected multiple lease failures"),
+			).
+			Display().
+			Build(failureTime, failureTime.Add(1*time.Second)),
+	}
+}
+
+// Our tests will flag an error if leases are failing more than 3 times in 33 seconds.
+// So we will find the first lease failure and then see if more than 3 failures around leases happen
+// If that is the case, we will flag that lease failure as important and fail the test.
+// This will take all the intervals and return only the intervals that we want to report as a failure
+func findLeaseIntervalsImportant(intervals monitorapi.Intervals) monitorapi.Intervals {
+	const leaseInterval = 33 * time.Second
+	// Get all intervals that have NodeLease errors
+	nodeLeaseIntervals := intervals.Filter(monitorapi.NodeLeaseBackoff)
+	if len(nodeLeaseIntervals) == 0 {
+		return monitorapi.Intervals(nil)
+	}
+	intervalsByNode := make(map[string]monitorapi.Intervals)
+
+	for _, val := range nodeLeaseIntervals {
+		nodeName := val.Condition.Locator.Keys["node"]
+		if len(intervalsByNode[nodeName]) == 0 {
+			intervalsByNode[nodeName] = append(intervalsByNode[nodeName], val)
+		}
+		// We have a lot of events that have the same To and From.
+		// We will assume that intervals that have the same node and occur at the same time
+		// are duplicated events.
+		previousInterval := intervalsByNode[nodeName][len(intervalsByNode[nodeName])-1]
+		if val.From != previousInterval.From && val.To != previousInterval.To {
+			intervalsByNode[nodeName] = append(intervalsByNode[nodeName], val)
+		}
+	}
+	importantIntervals := monitorapi.Intervals(nil)
+	for _, val := range intervalsByNode {
+		if len(val) < 3 {
+			continue
+		}
+		for i, interval := range val {
+			if i >= len(val)-2 {
+				continue
+			}
+			if val[i+2].To.Before(interval.To.Add(leaseInterval)) {
+				importantIntervals = append(importantIntervals, interval)
+			}
+		}
+	}
+	return importantIntervals
 }
 
 var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
