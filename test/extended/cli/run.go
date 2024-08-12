@@ -22,4 +22,13 @@ var _ = g.Describe("[sig-cli] oc run", func() {
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(err.Error()).To(o.ContainSubstring("error: Invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"))
 	})
+
+	g.It("can use --image flag correctly for deployment", func() {
+		_, err := oc.Run("create").Args("deployment", "newdcforimage", "--image=validimagevalue").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		_, err = oc.Run("run").Args("newdcforimage2", "--image=\"InvalidImageValue0192\"").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(err.Error()).To(o.ContainSubstring("error: Invalid image name \"\\\"InvalidImageValue0192\\\"\": invalid reference format"))
+	})
 })

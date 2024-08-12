@@ -661,6 +661,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc --request-timeout works as expected [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc --request-timeout works as expected for deployment": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc adm build-chain [apigroup:build.openshift.io][apigroup:image.openshift.io][apigroup:project.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc adm cluster-role-reapers [Serial][apigroup:authorization.openshift.io][apigroup:user.openshift.io]": " [Suite:openshift/conformance/serial]",
@@ -757,6 +759,8 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc debug dissect deployment config debug [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc debug dissect deployment debug": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc debug does not require a real resource on the server": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc debug ensure debug does not depend on a container actually existing for the selected resource [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
@@ -764,6 +768,8 @@ var Annotations = map[string]string{
 	"[sig-cli] oc debug ensure it works with image streams [apigroup:image.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc env can set environment variables [apigroup:apps.openshift.io][apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-cli] oc env can set environment variables for deployment [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc explain list uncovered GroupVersionResources": " [Suite:openshift/conformance/parallel]",
 
@@ -819,6 +825,12 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc help works as expected": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by all": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by label": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-cli] oc idle Deployments [apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by name": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by all": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc idle [apigroup:apps.openshift.io][apigroup:route.openshift.io][apigroup:project.openshift.io][apigroup:image.openshift.io] by checking previous scale": " [Suite:openshift/conformance/parallel]",
@@ -845,9 +857,13 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc run can use --image flag correctly [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-cli] oc run can use --image flag correctly for deployment": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-cli] oc secret creates and retrieves expected": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc service creates and deletes services": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-cli] oc set image can set images for pods and deployments [apigroup:image.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc set image can set images for pods and deployments [apigroup:image.openshift.io][apigroup:apps.openshift.io][Skipped:Disconnected]": " [Suite:openshift/conformance/parallel]",
 

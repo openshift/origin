@@ -25,6 +25,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	oc := exutil.NewCLIWithPodSecurityLevel("oc-debug", admissionapi.LevelBaseline)
 	testCLIDebug := exutil.FixturePath("testdata", "test-cli-debug.yaml")
 	testDeploymentConfig := exutil.FixturePath("testdata", "test-deployment-config.yaml")
+	testDeployment := exutil.FixturePath("testdata", "test-deployment.yaml")
 	testReplicationController := exutil.FixturePath("testdata", "test-replication-controller.yaml")
 	helloPod := exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
 	imageStreamsCentos := exutil.FixturePath("..", "..", "examples", "image-streams", "image-streams-centos7.json")
@@ -108,6 +109,51 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 		o.Expect(out).NotTo(o.ContainSubstring("tty"))
 
 		out, err = oc.Run("debug").Args("dc/test-deployment-config", "--node-name=invalid", "--", "/bin/env").Output()
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring(`on node "invalid"`))
+	})
+
+	g.It("dissect deployment debug", func() {
+		err := oc.Run("create").Args("-f", testDeployment).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		var out string
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "-oyaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("- /bin/sh"))
+
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--keep-annotations", "-oyaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("annotations:"))
+
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--as-root", "-oyaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("runAsUser: 0"))
+
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--as-root=false", "-oyaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("runAsNonRoot: true"))
+
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--as-user=1", "-oyaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("runAsUser: 1"))
+
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "-t", "-oyaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("stdinOnce"))
+		o.Expect(out).To(o.ContainSubstring("tty"))
+
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--tty=false", "-oyaml").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).NotTo(o.ContainSubstring("tty"))
+
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "-oyaml", "--", "/bin/env").Output()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(out).To(o.ContainSubstring("- /bin/env"))
+		o.Expect(out).NotTo(o.ContainSubstring("stdin"))
+		o.Expect(out).NotTo(o.ContainSubstring("tty"))
+
+		out, err = oc.Run("debug").Args("deployment/test-deployment", "--node-name=invalid", "--", "/bin/env").Output()
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(out).To(o.ContainSubstring(`on node "invalid"`))
 	})
