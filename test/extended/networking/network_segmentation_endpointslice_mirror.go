@@ -70,8 +70,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 				By("deploying the backend pods")
 				replicas := 3
+				isDualStack := false
 				for i := 0; i < replicas; i++ {
-					runUDNPod(cs, f.Namespace.Name,
+					p := runUDNPod(cs, f.Namespace.Name,
 						*podConfig(fmt.Sprintf("backend-%d", i), func(cfg *podConfiguration) { cfg.namespace = f.Namespace.Name }),
 						func(pod *corev1.Pod) {
 							pod.Spec.HostNetwork = isHostNetwork
@@ -80,6 +81,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 							}
 							pod.Labels["app"] = "test"
 						})
+					isDualStack = getIPFamily(p.Status.PodIPs) == DualStack
 				}
 
 				By("creating the service")
@@ -92,11 +94,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				nodes, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
 				framework.ExpectNoError(err, "Failed listing worker nodes %v", err)
 				Expect(len(nodes.Items)).To(BeNumerically(">", 0))
-
-				v4HostSubnet, v6HostSubnet, err := parseHostSubnet(&nodes.Items[0])
-				framework.ExpectNoError(err, "Failed parsing host subnet %v", err)
-
-				isDualStack := v4HostSubnet != "" && v6HostSubnet != ""
 
 				By("asserting the mirrored EndpointSlice exists and contains PODs primary IPs")
 				Eventually(func() error {
@@ -332,7 +329,7 @@ func getNodeIP(cs clientset.Interface, nodeName string, isIPv6 bool) (net.IP, er
 	}
 
 	for _, addr := range node.Status.Addresses {
-		if addr.Type == corev1.NodeInternalIP && utilnet.IsIPv6CIDRString(addr.Address) == isIPv6 {
+		if addr.Type == corev1.NodeInternalIP && utilnet.IsIPv6String(addr.Address) == isIPv6 {
 			return net.ParseIP(addr.Address), nil
 		}
 	}
