@@ -22,8 +22,8 @@ import (
 
 const (
 	docCommatrixUrl  = "https://raw.githubusercontent.com/openshift/openshift-docs/main/snippets/network-flow-matrix.csv"
-	diffFileComments = "// `+` indicates a port that isn't in the current doccumented matrix, and has to be added.\n" +
-		"// `-` indicates a port that has to be removed from the doccumented matrix.\n"
+	diffFileComments = "// `+` indicates a port that isn't in the current documented matrix, and has to be added.\n" +
+		"// `-` indicates a port that has to be removed from the documented matrix.\n"
 )
 
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
@@ -62,8 +62,10 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 		docComDetailsList, err := docComMatrixCreator.GetComDetailsListFromFile()
 		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// Filter certain ports in doc commatrix to avoid showing them in the diff matrix
 		if isSNO {
-			docComDetailsList = filterMasterNodeComDetailsFromList(docComDetailsList)
+			docComDetailsList = filterComDetailsForSNO(docComDetailsList)
 		}
 		docComDetailsList = excludeBareMetalEntries(docComDetailsList)
 		docComMatrix := &types.ComMatrix{Matrix: docComDetailsList}
@@ -125,11 +127,13 @@ func comMatricesAreEqual(cm1 types.ComMatrix, cm2 types.ComMatrix) bool {
 	return true
 }
 
-// filterMasterNodeComDetailsFromList filters and returns only comDetails with "master" as a Node roel
-func filterMasterNodeComDetailsFromList(comDetails []types.ComDetails) []types.ComDetails {
+// filterComDetailsForSNO filters given comDetails to enable comprasion to generated SNO matrix
+func filterComDetailsForSNO(comDetails []types.ComDetails) []types.ComDetails {
 	masterComDetails := []types.ComDetails{}
+	mnoStaticEntriesMatrix := &types.ComMatrix{Matrix: types.MNOStaticEntries}
 	for _, cd := range comDetails {
-		if cd.NodeRole == "master" {
+		// filter only comDetails with "master" as a Node roel while excluding MNO static entries
+		if cd.NodeRole == "master" && !mnoStaticEntriesMatrix.Contains(cd) {
 			masterComDetails = append(masterComDetails, cd)
 		}
 	}
