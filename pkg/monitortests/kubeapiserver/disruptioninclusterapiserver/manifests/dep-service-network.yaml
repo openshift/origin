@@ -29,12 +29,15 @@ spec:
           command:
             - openshift-tests
             - run-disruption
-            - --output-file=/var/log/disruption-data/monitor-events/service-network-monitor.txt
+            - --output-file=/var/log/disruption-data/monitor-events/service-network-monitor-$(DEPLOYMENT_ID).txt
             - --lb-type=$(LOAD_BALANCER)
             - --stop-configmap=stop-configmap
           env:
             - name: LOAD_BALANCER
               value: service-network
+            - name: DEPLOYMENT_ID
+              #to be overwritten at deployment initialization time
+              value: "DEFAULT"
           image: to-be-replaced
           volumeMounts:
             - mountPath: /var/log/disruption-data

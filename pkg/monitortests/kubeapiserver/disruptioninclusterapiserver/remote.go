@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -82,6 +83,9 @@ func NewInvariantInClusterDisruption(info monitortestframework.MonitorTestInitia
 }
 
 func (i *InvariantInClusterDisruption) createDeploymentAndWaitToRollout(ctx context.Context, deploymentObj *appsv1.Deployment) error {
+	deploymentID := uuid.New().String()
+	deploymentObj = disruptionlibrary.UpdateDeploymentENVs(deploymentObj, deploymentID, "")
+
 	client := i.kubeClient.AppsV1().Deployments(deploymentObj.Namespace)
 	_, err := client.Create(ctx, deploymentObj, metav1.CreateOptions{})
 	if err != nil {
