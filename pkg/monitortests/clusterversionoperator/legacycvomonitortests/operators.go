@@ -91,6 +91,9 @@ func testStableSystemOperatorStateTransitions(events monitorapi.Intervals, clien
 			}
 			return "", nil
 		}
+		if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+			return "", nil
+		}
 		return "We are not worried about Degraded=True blips for stable-system tests yet.", nil
 	}
 
@@ -206,8 +209,8 @@ func testUpgradeOperatorStateTransitions(events monitorapi.Intervals, clientConf
 			}
 		}
 
-		if condition.Type == configv1.OperatorDegraded {
-			return "We are not worried about Degraded=True blips for update tests yet.", nil
+		if condition.Type == configv1.OperatorDegraded && condition.Status == configv1.ConditionTrue {
+			return "", nil
 		}
 
 		// we know the Status is not true and the Type is not degraded at this point indicating we are available=false
