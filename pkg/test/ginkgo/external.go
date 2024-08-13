@@ -14,6 +14,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/test/extended/util"
@@ -129,7 +130,7 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to serialize ephemeral cluster pull secret locally: %v", err)
 	}
-
+	klog.Infof("JSAF: using image %s", image)
 	if len(image) == 0 {
 		return "", fmt.Errorf("%s not found", tag)
 	}
