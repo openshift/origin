@@ -1,14 +1,25 @@
 approvers:
-  - danehans
   - frobware
   - knobunc
   - Miciah
   - miheer
-  - sgreene570
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
 reviewers:
-  - danehans
   - frobware
   - knobunc
   - Miciah
   - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
+emeritus_approvers:
+  - danehans
   - sgreene570
