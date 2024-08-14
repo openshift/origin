@@ -170,49 +170,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			defer os.RemoveAll(tempDir)
-			args := []string{"--dest-dir", tempDir, "--", "/usr/bin/gather_audit_logs"}
 
-			// download the audit logs from the cluster
-			o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
-
-			// act
-			expectedDirectoriesToExpectedCount := []string{path.Join(clihelpers.GetPluginOutputDir(tempDir), "audit_logs", "kube-apiserver")}
-			for _, auditDirectory := range expectedDirectoriesToExpectedCount {
-				err := filepath.Walk(auditDirectory, func(path string, info os.FileInfo, err error) error {
-					g.By(path)
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					if info.IsDir() {
-						return nil
-					}
-					fileName := filepath.Base(path)
-					if !clihelpers.IsAuditFile(fileName) {
-						return nil
-					}
-
-					file, err := os.Open(path)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					defer file.Close()
-					fi, err := file.Stat()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					if fi.Size() == 0 {
-						return nil
-					}
-
-					gzipReader, err := gzip.NewReader(file)
-					o.Expect(err).NotTo(o.HaveOccurred())
-					err = gzipReader.Close()
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					apiServerName := extractAPIServerNameFromAuditFile(fileName)
-					o.Expect(apiServerName).ToNot(o.BeEmpty())
-
-					auditLogsPerServer[apiServerName] = append(auditLogsPerServer[apiServerName], path)
-
-					return nil
-				})
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
+			auditLogsPerServer = gatherMustGatherFor(oc, tempDir, clihelpers.IsAuditFile, extractAPIServerNameFromAuditFile)
 		}
 
 		for apiServerName, auditLogs := range auditLogsPerServer {
@@ -280,13 +239,12 @@ func extractAPIServerNameFromAuditFile(auditFileName string) string {
 	return auditFileName[0:pos]
 }
 
-func gatherMustGatherFor() {
-	// download the audit logs from the cluster
+func gatherMustGatherFor(oc *exutil.CLI, destinationDir string, fileMatcherFn func(string) bool, apiServerNameFromFileExtractorFn func(string) string) map[string][]string {
+	args := []string{"--dest-dir", destinationDir, "--", "/usr/bin/gather_audit_logs"}
 	o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
 
-	// act
-	expectedDirectoriesToExpectedCount := []string{path.Join(clihelpers.GetPluginOutputDir(tempDir), "audit_logs", "kube-apiserver")}
-	for _, auditDirectory := range expectedDirectoriesToExpectedCount {
+	ret := map[string][]string{}
+	for _, auditDirectory := range []string{path.Join(clihelpers.GetPluginOutputDir(destinationDir), "audit_logs", "kube-apiserver")} {
 		err := filepath.Walk(auditDirectory, func(path string, info os.FileInfo, err error) error {
 			g.By(path)
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -295,7 +253,7 @@ func gatherMustGatherFor() {
 				return nil
 			}
 			fileName := filepath.Base(path)
-			if !clihelpers.IsAuditFile(fileName) {
+			if !fileMatcherFn(fileName) {
 				return nil
 			}
 
@@ -313,13 +271,13 @@ func gatherMustGatherFor() {
 			err = gzipReader.Close()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			apiServerName := extractAPIServerNameFromAuditFile(fileName)
+			apiServerName := apiServerNameFromFileExtractorFn(fileName)
 			o.Expect(apiServerName).ToNot(o.BeEmpty())
 
-			auditLogsPerServer[apiServerName] = append(auditLogsPerServer[apiServerName], path)
-
+			ret[apiServerName] = append(ret[apiServerName], path)
 			return nil
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
+	return ret
 }
