@@ -178,18 +178,9 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			for _, auditLog := range auditLogs {
 				lateRequestCounter := 0
 				func() {
-					file, err := os.Open(auditLog)
+					reader, err := newFileWrapper(auditLog)
 					o.Expect(err).NotTo(o.HaveOccurred())
-					defer file.Close()
-
-					var reader io.Reader
-					reader = file
-					if isGzipFileByExtension(file.Name()) {
-						gzipReader, err := gzip.NewReader(file)
-						o.Expect(err).NotTo(o.HaveOccurred())
-						defer gzipReader.Close()
-						reader = gzipReader
-					}
+					defer reader.Close()
 
 					scanner := bufio.NewScanner(reader)
 					for scanner.Scan() {
