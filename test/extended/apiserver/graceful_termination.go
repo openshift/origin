@@ -279,3 +279,47 @@ func extractAPIServerNameFromAuditFile(auditFileName string) string {
 	}
 	return auditFileName[0:pos]
 }
+
+func gatherMustGatherFor() {
+	// download the audit logs from the cluster
+	o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+
+	// act
+	expectedDirectoriesToExpectedCount := []string{path.Join(clihelpers.GetPluginOutputDir(tempDir), "audit_logs", "kube-apiserver")}
+	for _, auditDirectory := range expectedDirectoriesToExpectedCount {
+		err := filepath.Walk(auditDirectory, func(path string, info os.FileInfo, err error) error {
+			g.By(path)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if info.IsDir() {
+				return nil
+			}
+			fileName := filepath.Base(path)
+			if !clihelpers.IsAuditFile(fileName) {
+				return nil
+			}
+
+			file, err := os.Open(path)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			defer file.Close()
+			fi, err := file.Stat()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if fi.Size() == 0 {
+				return nil
+			}
+
+			gzipReader, err := gzip.NewReader(file)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = gzipReader.Close()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			apiServerName := extractAPIServerNameFromAuditFile(fileName)
+			o.Expect(apiServerName).ToNot(o.BeEmpty())
+
+			auditLogsPerServer[apiServerName] = append(auditLogsPerServer[apiServerName], path)
+
+			return nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+}
