@@ -16,6 +16,7 @@ spec:
     - --collect-dir=/rootfs/etc/docker/certs.d
     - --collect-dir=/rootfs/var/lib/ovn-ic/etc
     - --collect-dir=/rootfs/var/lib/openvswitch/pki
+    - --collect-dir=/rootfs/var/lib/kubelet/pki
     - --root-fs-mountpoint=/rootfs
     image: "image-registry.openshift-image-registry.svc:5000/openshift/tests:latest"
     imagePullPolicy: Always
