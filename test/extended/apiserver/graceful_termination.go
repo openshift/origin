@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -58,6 +59,45 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 		if len(messages) > 0 {
 			result.Flakef("kube-apiserver reported a non-graceful termination (after %s which is test environment dependent). Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%s", eventsAfterTime, strings.Join(messages, "\n"))
+		}
+	})
+
+	g.It("kubelet terminates kube-apiserver gracefully extended", func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if *controlPlaneTopology == configv1.ExternalTopologyMode {
+			g.Skip("oc must-gather doesn't currently support external controlPlaneTopology")
+		}
+
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		o.Expect(err).NotTo(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+
+		var finalMessageBuilder strings.Builder
+		terminationRegexp := regexp.MustCompile(`Previous pod .* did not terminate gracefully`)
+		terminationLogsPerServer := gatherMustGatherFor(oc, tempDir, clihelpers.IsTerminationLog, extractAPIServerNameFromTerminationFile)
+		for apiServerName, terminationLogs := range terminationLogsPerServer {
+			for _, terminationLog := range terminationLogs {
+				func() {
+					reader, err := newFileWrapper(terminationLog)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					defer reader.Close()
+
+					scanner := bufio.NewScanner(reader)
+					for scanner.Scan() {
+						text := scanner.Text()
+						if terminationRegexp.MatchString(text) {
+							finalMessageBuilder.WriteString(fmt.Sprintf("\n %v wasn't gracefully terminated, reason: %v", apiServerName, text))
+						}
+					}
+					o.Expect(scanner.Err()).NotTo(o.HaveOccurred())
+				}()
+			}
+		}
+
+		if len(finalMessageBuilder.String()) > 0 {
+			result.Flakef("The following API Servers weren't gracefully terminated: %v", finalMessageBuilder.String())
 		}
 	})
 
@@ -224,6 +264,14 @@ func isGzipFileByExtension(fileName string) bool {
 
 func extractAPIServerNameFromAuditFile(auditFileName string) string {
 	pos := strings.Index(auditFileName, "-audit")
+	if pos == -1 {
+		return ""
+	}
+	return auditFileName[0:pos]
+}
+
+func extractAPIServerNameFromTerminationFile(auditFileName string) string {
+	pos := strings.Index(auditFileName, "-termination")
 	if pos == -1 {
 		return ""
 	}

@@ -379,3 +379,7 @@ func IsAuditFile(fileName string) bool {
 
 	return (strings.Contains(fileName, "-audit-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "audit.log.gz")
 }
+
+func IsTerminationLog(fileName string) bool {
+	return (strings.Contains(fileName, "-termination-") && strings.HasSuffix(fileName, ".log.gz")) || strings.HasSuffix(fileName, "termination.log.gz")
+}
