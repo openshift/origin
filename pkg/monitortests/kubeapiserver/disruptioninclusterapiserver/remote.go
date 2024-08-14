@@ -71,6 +71,7 @@ type InvariantInClusterDisruption struct {
 	notSupportedReason          string
 	allNodes                    int32
 	controlPlaneNodes           int32
+	workerNodes                 int32
 
 	adminRESTConfig *rest.Config
 	kubeClient      kubernetes.Interface
@@ -114,8 +115,8 @@ func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Co
 	deploymentObj := resourceread.ReadDeploymentV1OrDie(internalLBDeploymentYaml)
 	deploymentObj.SetNamespace(i.namespaceName)
 	deploymentObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
-	// set amount of deployment replicas to make sure it runs on all nodes
-	deploymentObj.Spec.Replicas = &i.allNodes
+	// set amount of deployment replicas to make sure it runs on all worker nodes
+	deploymentObj.Spec.Replicas = &i.workerNodes
 	// we need to use the openshift-tests image of the destination during an upgrade.
 	deploymentObj.Spec.Template.Spec.Containers[0].Image = i.openshiftTestsImagePullSpec
 
@@ -125,8 +126,8 @@ func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Co
 func (i *InvariantInClusterDisruption) createServiceNetworkDeployment(ctx context.Context) error {
 	deploymentObj := resourceread.ReadDeploymentV1OrDie(serviceNetworkDeploymentYaml)
 	deploymentObj.SetNamespace(i.namespaceName)
-	// set amount of deployment replicas to make sure it runs on all nodes
-	deploymentObj.Spec.Replicas = &i.allNodes
+	// set amount of deployment replicas to make sure it runs on all worker nodes
+	deploymentObj.Spec.Replicas = &i.workerNodes
 	// we need to use the openshift-tests image of the destination during an upgrade.
 	deploymentObj.Spec.Template.Spec.Containers[0].Image = i.openshiftTestsImagePullSpec
 
@@ -349,6 +350,14 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 		return fmt.Errorf("error getting control plane nodes: %v", err)
 	}
 	i.controlPlaneNodes = int32(len(controlPlaneNodes.Items))
+
+	workerNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+		LabelSelector: labels.Set{"node-role.kubernetes.io/worker": ""}.AsSelector().String(),
+	})
+	if err != nil {
+		return fmt.Errorf("error getting worker nodes: %v", err)
+	}
+	i.workerNodes = int32(len(workerNodes.Items))
 
 	namespace, err := i.createNamespace(ctx)
 	if err != nil {
