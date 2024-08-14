@@ -281,3 +281,46 @@ func gatherMustGatherFor(oc *exutil.CLI, destinationDir string, fileMatcherFn fu
 	}
 	return ret
 }
+
+type fileWrapper struct {
+	file   *os.File
+	reader io.ReadCloser
+}
+
+func newFileWrapper(filePath string) (*fileWrapper, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var reader io.ReadCloser = file
+	if isGzipFileByExtension(file.Name()) {
+		gzipReader, err := gzip.NewReader(file)
+		if err != nil {
+			file.Close() // ignore err
+			return nil, err
+		}
+		reader = gzipReader
+	}
+
+	return &fileWrapper{
+		file:   file,
+		reader: reader,
+	}, nil
+}
+
+func (fw *fileWrapper) Read(p []byte) (int, error) {
+	return fw.reader.Read(p)
+}
+
+func (fw *fileWrapper) Close() error {
+	if err := fw.reader.Close(); err != nil {
+		return err
+	}
+
+	// only close the file if it's not the same as the reader
+	if fw.reader != fw.file {
+		return fw.file.Close()
+	}
+	return nil
+}
