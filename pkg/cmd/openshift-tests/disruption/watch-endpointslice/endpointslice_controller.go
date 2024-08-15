@@ -98,7 +98,7 @@ func NewEndpointWatcher(
 	}
 	c.syncHandler = c.syncEndpointSlice
 
-	endpointSliceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	endpointSliceInformerHandler, _ := endpointSliceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			c.queue.Add("checK")
 		},
@@ -109,7 +109,8 @@ func NewEndpointWatcher(
 			c.queue.Add("checK")
 		},
 	})
-	configmapInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+
+	configmapInformerHandler, _ := configmapInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			c.queue.Add("checK")
 		},
@@ -120,6 +121,9 @@ func NewEndpointWatcher(
 			c.queue.Add("checK")
 		},
 	})
+
+	c.informersToSync = append(c.informersToSync, endpointSliceInformerHandler.HasSynced, configmapInformerHandler.HasSynced)
+
 	return c
 }
 
