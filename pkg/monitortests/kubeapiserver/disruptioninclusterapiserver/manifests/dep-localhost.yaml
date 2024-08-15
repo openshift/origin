@@ -46,13 +46,13 @@ spec:
               name: artifacts
             - mountPath: /kubeconfigs
               name: node-kubeconfigs
+          securityContext:
+            privileged: true
+            runAsUser: 0
       nodeSelector:
         node-role.kubernetes.io/control-plane: ""
       hostNetwork: true
       serviceAccountName: disruption-monitor-sa
-      securityContext:
-        privileged: true
-        runAsUser: 0
       volumes:
         - hostPath:
             path: /var/log/disruption-data

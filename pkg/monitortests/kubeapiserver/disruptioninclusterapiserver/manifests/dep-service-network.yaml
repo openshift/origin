@@ -46,9 +46,6 @@ spec:
             privileged: true
             runAsUser: 0
       serviceAccountName: disruption-monitor-sa
-      securityContext:
-        privileged: true
-        runAsUser: 0
       volumes:
         - hostPath:
             path: /var/log/disruption-data

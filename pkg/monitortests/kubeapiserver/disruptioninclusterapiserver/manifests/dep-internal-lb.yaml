@@ -46,11 +46,11 @@ spec:
           volumeMounts:
             - mountPath: /var/log/disruption-data
               name: artifacts
+          securityContext:
+            privileged: true
+            runAsUser: 0
       hostNetwork: true
       serviceAccountName: disruption-monitor-sa
-      securityContext:
-        privileged: true
-        runAsUser: 0
       volumes:
         - hostPath:
             path: /var/log/disruption-data
