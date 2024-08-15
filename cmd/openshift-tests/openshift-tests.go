@@ -24,8 +24,8 @@ import (
 	run_disruption "github.com/openshift/origin/pkg/cmd/openshift-tests/run-disruption"
 	run_test "github.com/openshift/origin/pkg/cmd/openshift-tests/run-test"
 	run_upgrade "github.com/openshift/origin/pkg/cmd/openshift-tests/run-upgrade"
+	"github.com/openshift/origin/pkg/cmd/openshift-tests/run_resource_watch"
 	versioncmd "github.com/openshift/origin/pkg/cmd/openshift-tests/version"
-	run_resourcewatch "github.com/openshift/origin/pkg/resourcewatch/cmd"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/sirupsen/logrus"
@@ -88,7 +88,7 @@ func main() {
 		monitor.NewMonitorCommand(ioStreams),
 		disruption.NewDisruptionCommand(ioStreams),
 		risk_analysis.NewTestFailureRiskAnalysisCommand(),
-		run_resourcewatch.NewRunResourceWatchCommand(),
+		run_resource_watch.NewRunResourceWatchCommand(),
 		timeline.NewTimelineCommand(ioStreams),
 		run_disruption.NewRunInClusterDisruptionMonitorCommand(ioStreams),
 		collectdiskcertificates.NewRunCollectDiskCertificatesCommand(ioStreams),
