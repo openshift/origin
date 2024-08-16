@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	auditloganalyzer2 "github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer/summary"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -55,12 +55,12 @@ func (o auditLogSummaryOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	auditLogSummary, err := auditloganalyzer2.GetKubeAuditLogSummary(ctx, kubeClient, nil, nil)
+	auditLogSummary, err := summary.GetKubeAuditLogSummary(ctx, kubeClient, nil, nil)
 	if err != nil {
 		return err
 	}
 
-	if err := auditloganalyzer2.WriteAuditLogSummary(o.ArtifactDir, "", auditLogSummary); err != nil {
+	if err := summary.WriteAuditLogSummary(o.ArtifactDir, "", auditLogSummary); err != nil {
 		return err
 	}
 

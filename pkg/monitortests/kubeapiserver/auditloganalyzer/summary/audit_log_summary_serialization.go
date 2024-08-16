@@ -1,4 +1,4 @@
-package auditloganalyzer
+package summary
 
 import (
 	"sort"

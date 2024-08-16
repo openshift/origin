@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/imageregistry/disruptionimageregistry"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiunreachablefromclientmetrics"
-	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
+	auditloganalyzer "github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer/monitortest"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"

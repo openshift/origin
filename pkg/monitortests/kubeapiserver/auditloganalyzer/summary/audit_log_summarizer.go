@@ -1,14 +1,15 @@
-package auditloganalyzer
+package summary
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/openshift/origin/pkg/dataloader"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/openshift/origin/pkg/dataloader"
+	"github.com/sirupsen/logrus"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -85,31 +86,31 @@ func (i *auditEventInfo) getGroupVersionResource(auditEvent *auditv1.Event) sche
 	return *i.groupVersionResource
 }
 
-func (s *AuditLogSummary) Add(auditEvent *auditv1.Event, auditEventInfo auditEventInfo) {
+func (s *AuditLogSummary) Add(auditEvent *auditv1.Event) {
 	if auditEvent == nil {
 		s.lineReadFailureCount++
 		return
 	}
 
 	s.requestCounts.Add(auditEvent)
-
-	gvr := auditEventInfo.getGroupVersionResource(auditEvent)
+	info := auditEventInfo{}
+	gvr := info.getGroupVersionResource(auditEvent)
 	if _, ok := s.perResourceRequestCount[gvr]; !ok {
 		s.perResourceRequestCount[gvr] = NewPerResourceRequestCount(gvr)
 	}
-	s.perResourceRequestCount[gvr].Add(auditEvent, auditEventInfo)
+	s.perResourceRequestCount[gvr].Add(auditEvent, info)
 
 	if _, ok := s.perUserRequestCount[auditEvent.User.Username]; !ok {
 		s.perUserRequestCount[auditEvent.User.Username] = NewPerUserRequestCount(auditEvent.User.Username)
 	}
-	s.perUserRequestCount[auditEvent.User.Username].Add(auditEvent, auditEventInfo)
+	s.perUserRequestCount[auditEvent.User.Username].Add(auditEvent, info)
 
 	if auditEvent.ResponseStatus != nil {
 		httpStatus := auditEvent.ResponseStatus.Code
 		if _, ok := s.perHTTPStatusRequestCount[httpStatus]; !ok {
 			s.perHTTPStatusRequestCount[httpStatus] = NewPerStatusRequestCount(httpStatus)
 		}
-		s.perHTTPStatusRequestCount[httpStatus].Add(auditEvent, auditEventInfo)
+		s.perHTTPStatusRequestCount[httpStatus].Add(auditEvent, info)
 	}
 }
 
