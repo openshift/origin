@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubectl/pkg/util/podutils"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -58,6 +59,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 			var err error
 			nadClient, err = nadclient.NewForConfig(f.ClientConfig())
+			Expect(err).NotTo(HaveOccurred())
+		})
+		AfterEach(func() {
+			err := cleanupPods(cs, f.Namespace.Name)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -164,6 +169,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				}, metav1.CreateOptions{})
 				Expect(err).NotTo(HaveOccurred())
 				defer func() {
+					err := cleanupPods(cs, defaultNetNamespace)
+					Expect(err).NotTo(HaveOccurred())
 					Expect(cs.CoreV1().Namespaces().Delete(context.Background(), defaultNetNamespace, metav1.DeleteOptions{})).To(Succeed())
 				}()
 
@@ -467,6 +474,21 @@ func runUDNPod(cs clientset.Interface, namespace string, podConfig podConfigurat
 		return updatedPod.Status.Phase
 	}, 2*time.Minute, 6*time.Second).Should(Equal(v1.PodRunning))
 	return updatedPod
+}
+
+// in order to ensure that Network Attached Definitions are cleaned up properly the pods must be removed first
+func cleanupPods(cs clientset.Interface, namespace string) error {
+	podList, err := cs.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, pod := range podList.Items {
+		if err := e2epod.DeletePodWithWait(context.TODO(), cs, &pod); err != nil {
+			return err
+		}
+	}
+	return nil
+
 }
 
 type networkAttachmentConfigParams struct {
