@@ -235,7 +235,7 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 			if event.Message.Annotations[monitorapi.AnnotationCause] == "ContainerCreating" {
 				continue
 			}
-			failures = append(failures, fmt.Sprintf("%v - %v", event.Locator.OldLocator(), event.Message.OldMessage()))
+			failures = append(failures, fmt.Sprintf("container restart at %v: %v - %v", event.From, event.Locator.OldLocator(), event.Message.OldMessage()))
 
 		// workload containers should never exit non-zero during normal operations
 		case reason == monitorapi.ContainerReasonContainerExit && code != "0":
@@ -244,10 +244,14 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 	}
 
 	var excessiveExits []string
+	maxRestartCount := 3
 	for locator, messages := range containerExits {
 		if len(messages) > 0 {
 			messageSet := sets.NewString(messages...)
-			excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
+			// Blanket fail for restarts over 3
+			if len(messages) > maxRestartCount {
+				excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
+			}
 		}
 	}
 	sort.Strings(excessiveExits)
@@ -267,6 +271,12 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 	// mark flaky for now while we debug
 	testCases = append(testCases, &junitapi.JUnitTestCase{Name: failToStartTestName})
 
+	// We want to deflake this test.
+	// Plan is to release this test and report any failures for pods
+	// that restart more than 3 times
+	// We will then build exclusion rules for those that we see
+	// and then make this test fail for any case that doesn't match the rules
+	// we have.
 	const excessiveRestartTestName = "[sig-architecture] platform pods should not exit more than once with a non-zero exit code"
 	if len(excessiveExits) > 0 {
 		testCases = append(testCases, &junitapi.JUnitTestCase{
@@ -277,9 +287,7 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 			},
 		})
 	}
-	// mark flaky for now while we debug
 	testCases = append(testCases, &junitapi.JUnitTestCase{Name: excessiveRestartTestName})
-
 	return testCases
 }
 
