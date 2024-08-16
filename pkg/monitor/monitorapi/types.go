@@ -108,6 +108,8 @@ const (
 	LocatorTypeClusterVersion  LocatorType = "ClusterVersion"
 	LocatorTypeKind            LocatorType = "Kind"
 	LocatorTypeCloudMetrics    LocatorType = "CloudMetrics"
+
+	LocatorTypeAPIUnreachableFromClient LocatorType = "APIUnreachableFromClient"
 )
 
 type LocatorKey string
@@ -141,6 +143,8 @@ const (
 	LocatorRowKey                   LocatorKey = "row"
 	LocatorServerKey                LocatorKey = "server"
 	LocatorMetricKey                LocatorKey = "metric"
+
+	LocatorAPIUnreachableHostKey LocatorKey = "host"
 )
 
 type Locator struct {
@@ -212,6 +216,9 @@ const (
 	UpgradeCompleteReason IntervalReason = "UpgradeComplete"
 
 	NodeInstallerReason IntervalReason = "NodeInstaller"
+
+	// client metrics show error connecting to the kube-apiserver
+	APIUnreachableFromClientMetrics IntervalReason = "APIUnreachableFromClientMetrics"
 )
 
 type AnnotationKey string
@@ -300,6 +307,8 @@ const (
 	SourceNodeState                              = "NodeState"
 	SourcePodState                               = "PodState"
 	SourceCloudMetrics                           = "CloudMetrics"
+
+	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
 )
 
 type Interval struct {
