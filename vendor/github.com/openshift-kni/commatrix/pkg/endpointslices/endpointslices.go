@@ -29,6 +29,15 @@ type EndpointSlicesExporter struct {
 	sliceInfo  []EndpointSlicesInfo
 }
 
+type NoOwnerRefErr struct {
+	name      string
+	namespace string
+}
+
+func (e *NoOwnerRefErr) Error() string {
+	return fmt.Sprintf("empty OwnerReferences in EndpointSlice %s/%s. skipping", e.namespace, e.name)
+}
+
 func New(cs *client.ClientSet) (*EndpointSlicesExporter, error) {
 	nodeList := &corev1.NodeList{}
 	err := cs.List(context.TODO(), nodeList)
@@ -105,9 +114,14 @@ func (ep *EndpointSlicesExporter) ToComDetails() ([]types.ComDetails, error) {
 	for _, epSliceInfo := range ep.sliceInfo {
 		cds, err := epSliceInfo.toComDetails(ep.nodeToRole)
 		if err != nil {
-			return nil, err
+			switch err.(type) {
+			case *NoOwnerRefErr:
+				log.Debug(err.Error())
+				continue
+			default:
+				return nil, err
+			}
 		}
-
 		comDetails = append(comDetails, cds...)
 	}
 
@@ -142,7 +156,7 @@ func (ei *EndpointSlicesInfo) getEndpointSliceNodeRoles(nodesRoles map[string]st
 
 func (ei *EndpointSlicesInfo) toComDetails(nodesRoles map[string]string) ([]types.ComDetails, error) {
 	if len(ei.EndpointSlice.OwnerReferences) == 0 {
-		return nil, fmt.Errorf("empty OwnerReferences in EndpointSlice %s/%s. skipping", ei.EndpointSlice.Namespace, ei.EndpointSlice.Name)
+		return nil, &NoOwnerRefErr{name: ei.EndpointSlice.Name, namespace: ei.EndpointSlice.Namespace}
 	}
 
 	res := make([]types.ComDetails, 0)

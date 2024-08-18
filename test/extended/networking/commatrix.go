@@ -71,7 +71,7 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		docComMatrix := &types.ComMatrix{Matrix: docComDetailsList}
 
 		g.By("generating diff between matrices for testing purposes")
-		diff, err := newComMatrix.GenerateMatrixDiff(docComMatrix)
+		diff, err := newComMatrix.GenerateDiff(docComMatrix)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		err = os.WriteFile(filepath.Join(artifactsDir, "doc-diff-new"), []byte(diffFileComments+diff), 0644)
 		o.Expect(err).ToNot(o.HaveOccurred())
