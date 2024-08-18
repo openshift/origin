@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -564,16 +565,22 @@ func generateLayer3Subnets(cidrs string) []string {
 }
 
 func createManifest(namespace, manifest string) (func(), error) {
-	path := "test-ovn-k-udn-" + rand.String(5) + ".yaml"
+	tmpDir, err := os.MkdirTemp("", "udn-test")
+	if err != nil {
+		return nil, err
+	}
+	cleanup := func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			framework.Logf("Unable to remove udn test yaml files from disk %s: %v", tmpDir, err)
+		}
+	}
+
+	path := filepath.Join(tmpDir, "test-ovn-k-udn-"+rand.String(5)+".yaml")
 	if err := os.WriteFile(path, []byte(manifest), 0644); err != nil {
 		framework.Failf("Unable to write udn yaml to disk: %v", err)
 	}
-	cleanup := func() {
-		if err := os.Remove(path); err != nil {
-			framework.Logf("Unable to remove udn yaml from disk: %v", err)
-		}
-	}
-	_, err := e2ekubectl.RunKubectl(namespace, "create", "-f", path)
+
+	_, err = e2ekubectl.RunKubectl(namespace, "create", "-f", path)
 	if err != nil {
 		return cleanup, err
 	}
