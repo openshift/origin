@@ -227,6 +227,7 @@
 // test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json
 // test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/idling-deployment.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json
 // test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json
@@ -273,6 +274,7 @@
 // test/extended/testdata/cmd/test/cmd/testdata/test-bc.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/test-buildcli.json
 // test/extended/testdata/cmd/test/cmd/testdata/test-deployment-config.yaml
+// test/extended/testdata/cmd/test/cmd/testdata/test-deployment.yaml
 // test/extended/testdata/cmd/test/cmd/testdata/test-docker-build.json
 // test/extended/testdata/cmd/test/cmd/testdata/test-image-stream.json
 // test/extended/testdata/cmd/test/cmd/testdata/test-image.json
@@ -335,6 +337,7 @@
 // test/extended/testdata/hello-builder/Dockerfile
 // test/extended/testdata/hello-builder/scripts/assemble
 // test/extended/testdata/hello-builder/scripts/run
+// test/extended/testdata/idling-echo-server-deployment.yaml
 // test/extended/testdata/idling-echo-server-rc.yaml
 // test/extended/testdata/idling-echo-server.yaml
 // test/extended/testdata/image/deployment-with-annotation-trigger.yaml
@@ -480,6 +483,7 @@
 // test/extended/testdata/test-buildcli.json
 // test/extended/testdata/test-cli-debug.yaml
 // test/extended/testdata/test-deployment-config.yaml
+// test/extended/testdata/test-deployment.yaml
 // test/extended/testdata/test-env-pod.json
 // test/extended/testdata/test-replication-controller.yaml
 // test/extended/testdata/test-secret.json
@@ -36538,6 +36542,66 @@ func testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataCmdTestCmdTestdataIdlingDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  generateName: idling-echo-
+  labels:
+    app: idling-echo
+    deployment: idling-echo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: idling-echo
+      deployment: idling-echo
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: idling-echo
+        deployment: idling-echo
+    spec:
+      containers:
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+        name: idling-tcp-echo
+        command:
+          - /usr/bin/socat
+          - TCP4-LISTEN:8675,reuseaddr,fork
+          - EXEC:'/bin/cat'
+        ports:
+        - containerPort: 8675
+          protocol: TCP
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+        name: idling-udp-echo
+        command:
+          - /usr/bin/socat
+          - UDP4-LISTEN:3090,reuseaddr,fork
+          - EXEC:'/bin/cat'
+        ports:
+        - containerPort: 3090
+          protocol: UDP
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataIdlingDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataIdlingDeploymentYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataIdlingDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataIdlingDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/idling-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
@@ -41684,6 +41748,55 @@ func testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml() (*asset, e
 	return a, nil
 }
 
+var _testExtendedTestdataCmdTestCmdTestdataTestDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: test-deployment
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: test-deployment
+    spec:
+      containers:
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 3Gi
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - emptyDir: {}
+        name: vol1
+`)
+
+func testExtendedTestdataCmdTestCmdTestdataTestDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataCmdTestCmdTestdataTestDeploymentYaml, nil
+}
+
+func testExtendedTestdataCmdTestCmdTestdataTestDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataCmdTestCmdTestdataTestDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/cmd/test/cmd/testdata/test-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson = []byte(`{
   "kind":"BuildConfig",
   "apiVersion":"build.openshift.io/v1",
@@ -44850,6 +44963,113 @@ func testExtendedTestdataHelloBuilderScriptsRun() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/hello-builder/scripts/run", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataIdlingEchoServerDeploymentYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: idling-echo
+  spec:
+    replicas: 2
+    selector:
+      matchLabels:
+        app: idling-echo
+        deployment: idling-echo
+    strategy:
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: idling-echo
+          deployment: idling-echo
+      spec:
+        containers:
+        - image: registry.k8s.io/e2e-test-images/agnhost:2.47
+          name: idling-echo-server
+          args: [ "netexec", "--http-port", "8675", "--udp-port", "3090" ]
+          ports:
+          - containerPort: 8675
+            protocol: TCP
+          - containerPort: 3090
+            protocol: UDP
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: idling-echo
+    labels:
+      app: idling-echo
+  spec:
+    selector:
+      app: idling-echo
+    ports:
+      - port: 8675
+        name: tcp-echo
+        protocol: TCP
+      - port: 3090
+        name: udp-echo
+        protocol: UDP
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: idling-echo
+  spec:
+    to:
+      kind: Service
+      name: idling-echo
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: idling-echo-reencrypt
+  spec:
+    tls:
+      termination: reencrypt
+      # the actual certificate here is not relevant, since we're not
+      # actually serving TLS
+      destinationCACertificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIDIjCCAgqgAwIBAgIBATANBgkqhkiG9w0BAQUFADCBoTELMAkGA1UEBhMCVVMx
+        CzAJBgNVBAgMAlNDMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0Rl
+        ZmF1bHQgQ29tcGFueSBMdGQxEDAOBgNVBAsMB1Rlc3QgQ0ExGjAYBgNVBAMMEXd3
+        dy5leGFtcGxlY2EuY29tMSIwIAYJKoZIhvcNAQkBFhNleGFtcGxlQGV4YW1wbGUu
+        Y29tMB4XDTE1MDExMjE0MTk0MVoXDTE2MDExMjE0MTk0MVowfDEYMBYGA1UEAwwP
+        d3d3LmV4YW1wbGUuY29tMQswCQYDVQQIDAJTQzELMAkGA1UEBhMCVVMxIjAgBgkq
+        hkiG9w0BCQEWE2V4YW1wbGVAZXhhbXBsZS5jb20xEDAOBgNVBAoMB0V4YW1wbGUx
+        EDAOBgNVBAsMB0V4YW1wbGUwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMrv
+        gu6ZTTefNN7jjiZbS/xvQjyXjYMN7oVXv76jbX8gjMOmg9m0xoVZZFAE4XyQDuCm
+        47VRx5Qrf/YLXmB2VtCFvB0AhXr5zSeWzPwaAPrjA4ebG+LUo24ziS8KqNxrFs1M
+        mNrQUgZyQC6XIe1JHXc9t+JlL5UZyZQC1IfaJulDAgMBAAGjDTALMAkGA1UdEwQC
+        MAAwDQYJKoZIhvcNAQEFBQADggEBAFCi7ZlkMnESvzlZCvv82Pq6S46AAOTPXdFd
+        TMvrh12E1sdVALF1P1oYFJzG1EiZ5ezOx88fEDTW+Lxb9anw5/KJzwtWcfsupf1m
+        V7J0D3qKzw5C1wjzYHh9/Pz7B1D0KthQRATQCfNf8s6bbFLaw/dmiIUhHLtIH5Qc
+        yfrejTZbOSP77z8NOWir+BWWgIDDB2//3AkDIQvT20vmkZRhkqSdT7et4NmXOX/j
+        jhPti4b2Fie0LeuvgaOdKjCpQQNrYthZHXeVlOLRhMTSk3qUczenkKTOhvP7IS9q
+        +Dzv5hqgSfvMG392KWh5f8xXfJNs4W5KLbZyl901MeReiLrPH3w=
+        -----END CERTIFICATE-----
+    to:
+      kind: Service
+      name: idling-echo
+`)
+
+func testExtendedTestdataIdlingEchoServerDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataIdlingEchoServerDeploymentYaml, nil
+}
+
+func testExtendedTestdataIdlingEchoServerDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataIdlingEchoServerDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/idling-echo-server-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -52974,6 +53194,55 @@ func testExtendedTestdataTestDeploymentConfigYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataTestDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: test-deployment
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: test-deployment
+    spec:
+      containers:
+      - image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 3Gi
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - emptyDir: {}
+        name: vol1
+`)
+
+func testExtendedTestdataTestDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestDeploymentYaml, nil
+}
+
+func testExtendedTestdataTestDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestDeploymentYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/test-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataTestEnvPodJson = []byte(`{
   "kind":"Pod",
   "apiVersion":"v1",
@@ -55199,6 +55468,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/external-service.yaml":                                     testExtendedTestdataCmdTestCmdTestdataExternalServiceYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/hello-openshift/hello-pod.json":                            testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/idling-dc.yaml":                                            testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/idling-deployment.yaml":                                    testExtendedTestdataCmdTestCmdTestdataIdlingDeploymentYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/idling-svc-route.yaml":                                     testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/image-streams/image-streams-centos7.json":                  testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json,
 	"test/extended/testdata/cmd/test/cmd/testdata/jenkins/jenkins-ephemeral-template.json":                   testExtendedTestdataCmdTestCmdTestdataJenkinsJenkinsEphemeralTemplateJson,
@@ -55245,6 +55515,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/cmd/test/cmd/testdata/test-bc.yaml":                                              testExtendedTestdataCmdTestCmdTestdataTestBcYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/test-buildcli.json":                                        testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/test-deployment-config.yaml":                               testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml,
+	"test/extended/testdata/cmd/test/cmd/testdata/test-deployment.yaml":                                      testExtendedTestdataCmdTestCmdTestdataTestDeploymentYaml,
 	"test/extended/testdata/cmd/test/cmd/testdata/test-docker-build.json":                                    testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/test-image-stream.json":                                    testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson,
 	"test/extended/testdata/cmd/test/cmd/testdata/test-image.json":                                           testExtendedTestdataCmdTestCmdTestdataTestImageJson,
@@ -55307,6 +55578,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/hello-builder/Dockerfile":                                                        testExtendedTestdataHelloBuilderDockerfile,
 	"test/extended/testdata/hello-builder/scripts/assemble":                                                  testExtendedTestdataHelloBuilderScriptsAssemble,
 	"test/extended/testdata/hello-builder/scripts/run":                                                       testExtendedTestdataHelloBuilderScriptsRun,
+	"test/extended/testdata/idling-echo-server-deployment.yaml":                                              testExtendedTestdataIdlingEchoServerDeploymentYaml,
 	"test/extended/testdata/idling-echo-server-rc.yaml":                                                      testExtendedTestdataIdlingEchoServerRcYaml,
 	"test/extended/testdata/idling-echo-server.yaml":                                                         testExtendedTestdataIdlingEchoServerYaml,
 	"test/extended/testdata/image/deployment-with-annotation-trigger.yaml":                                   testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml,
@@ -55452,6 +55724,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-buildcli.json":                                                              testExtendedTestdataTestBuildcliJson,
 	"test/extended/testdata/test-cli-debug.yaml":                                                             testExtendedTestdataTestCliDebugYaml,
 	"test/extended/testdata/test-deployment-config.yaml":                                                     testExtendedTestdataTestDeploymentConfigYaml,
+	"test/extended/testdata/test-deployment.yaml":                                                            testExtendedTestdataTestDeploymentYaml,
 	"test/extended/testdata/test-env-pod.json":                                                               testExtendedTestdataTestEnvPodJson,
 	"test/extended/testdata/test-replication-controller.yaml":                                                testExtendedTestdataTestReplicationControllerYaml,
 	"test/extended/testdata/test-secret.json":                                                                testExtendedTestdataTestSecretJson,
@@ -55857,8 +56130,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 								"hello-openshift": {nil, map[string]*bintree{
 									"hello-pod.json": {testExtendedTestdataCmdTestCmdTestdataHelloOpenshiftHelloPodJson, map[string]*bintree{}},
 								}},
-								"idling-dc.yaml":        {testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml, map[string]*bintree{}},
-								"idling-svc-route.yaml": {testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml, map[string]*bintree{}},
+								"idling-dc.yaml":         {testExtendedTestdataCmdTestCmdTestdataIdlingDcYaml, map[string]*bintree{}},
+								"idling-deployment.yaml": {testExtendedTestdataCmdTestCmdTestdataIdlingDeploymentYaml, map[string]*bintree{}},
+								"idling-svc-route.yaml":  {testExtendedTestdataCmdTestCmdTestdataIdlingSvcRouteYaml, map[string]*bintree{}},
 								"image-streams": {nil, map[string]*bintree{
 									"image-streams-centos7.json": {testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json, map[string]*bintree{}},
 								}},
@@ -55918,6 +56192,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 								"test-bc.yaml":                     {testExtendedTestdataCmdTestCmdTestdataTestBcYaml, map[string]*bintree{}},
 								"test-buildcli.json":               {testExtendedTestdataCmdTestCmdTestdataTestBuildcliJson, map[string]*bintree{}},
 								"test-deployment-config.yaml":      {testExtendedTestdataCmdTestCmdTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
+								"test-deployment.yaml":             {testExtendedTestdataCmdTestCmdTestdataTestDeploymentYaml, map[string]*bintree{}},
 								"test-docker-build.json":           {testExtendedTestdataCmdTestCmdTestdataTestDockerBuildJson, map[string]*bintree{}},
 								"test-image-stream.json":           {testExtendedTestdataCmdTestCmdTestdataTestImageStreamJson, map[string]*bintree{}},
 								"test-image.json":                  {testExtendedTestdataCmdTestCmdTestdataTestImageJson, map[string]*bintree{}},
@@ -56020,8 +56295,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"run":      {testExtendedTestdataHelloBuilderScriptsRun, map[string]*bintree{}},
 					}},
 				}},
-				"idling-echo-server-rc.yaml": {testExtendedTestdataIdlingEchoServerRcYaml, map[string]*bintree{}},
-				"idling-echo-server.yaml":    {testExtendedTestdataIdlingEchoServerYaml, map[string]*bintree{}},
+				"idling-echo-server-deployment.yaml": {testExtendedTestdataIdlingEchoServerDeploymentYaml, map[string]*bintree{}},
+				"idling-echo-server-rc.yaml":         {testExtendedTestdataIdlingEchoServerRcYaml, map[string]*bintree{}},
+				"idling-echo-server.yaml":            {testExtendedTestdataIdlingEchoServerYaml, map[string]*bintree{}},
 				"image": {nil, map[string]*bintree{
 					"deployment-with-annotation-trigger.yaml": {testExtendedTestdataImageDeploymentWithAnnotationTriggerYaml, map[string]*bintree{}},
 					"test-image.json":                         {testExtendedTestdataImageTestImageJson, map[string]*bintree{}},
@@ -56237,6 +56513,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-buildcli.json":                   {testExtendedTestdataTestBuildcliJson, map[string]*bintree{}},
 				"test-cli-debug.yaml":                  {testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
 				"test-deployment-config.yaml":          {testExtendedTestdataTestDeploymentConfigYaml, map[string]*bintree{}},
+				"test-deployment.yaml":                 {testExtendedTestdataTestDeploymentYaml, map[string]*bintree{}},
 				"test-env-pod.json":                    {testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
 				"test-replication-controller.yaml":     {testExtendedTestdataTestReplicationControllerYaml, map[string]*bintree{}},
 				"test-secret.json":                     {testExtendedTestdataTestSecretJson, map[string]*bintree{}},
