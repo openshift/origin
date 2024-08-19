@@ -11,13 +11,17 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 
-	clientutil "github.com/openshift-kni/commatrix/pkg/client"
+	client "github.com/openshift-kni/commatrix/pkg/client"
 	commatrixcreator "github.com/openshift-kni/commatrix/pkg/commatrix-creator"
 	"github.com/openshift-kni/commatrix/pkg/endpointslices"
+	matrixdiff "github.com/openshift-kni/commatrix/pkg/matrix-diff"
 	"github.com/openshift-kni/commatrix/pkg/types"
 	"github.com/openshift-kni/commatrix/pkg/utils"
-	exutil "github.com/openshift/origin/test/extended/util"
+	configv1 "github.com/openshift/api/config/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
+	// exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -28,19 +32,29 @@ const (
 
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 	g.It("should be equal to documeneted communication matrix", func() {
-		artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
+		// artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
+		artifactsDir := filepath.Join(".", "commatrix")
 
 		err := os.MkdirAll(artifactsDir, 0755)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		cs, err := clientutil.New()
+		cs, err := client.New()
 		o.Expect(err).ToNot(o.HaveOccurred())
 
+		configClient := configv1client.NewForConfigOrDie(cs.Config)
+
 		deployment := types.MNO
-		isSNO, err := isSNOCluster(cs)
+		isSNO, err := isSNOCluster(configClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isSNO {
 			deployment = types.SNO
+		}
+
+		env := types.Cloud
+		isBM, err := isBMCluster(configClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isBM {
+			env = types.Baremetal
 		}
 
 		g.By("preparing for commatrices generation")
@@ -49,7 +63,7 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		utilsHelpers := utils.New(cs)
 
 		g.By("generating new commatrix")
-		newComMatrixCreator, err := commatrixcreator.New(epExporter, "", "", types.Cloud, deployment)
+		newComMatrixCreator, err := commatrixcreator.New(epExporter, "", "", env, deployment)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		newComMatrix, err := newComMatrixCreator.CreateEndpointMatrix()
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -58,22 +72,35 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		g.By("get documented commatrix")
 		fp := filepath.Join(artifactsDir, "doc-commatrix.csv")
 		createCSVFromUrl(docCommatrixUrl, fp)
-		docComMatrixCreator, err := commatrixcreator.New(epExporter, fp, types.FormatCSV, types.Cloud, deployment)
+		docComMatrixCreator, err := commatrixcreator.New(epExporter, fp, types.FormatCSV, env, deployment)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		docComDetailsList, err := docComMatrixCreator.GetComDetailsListFromFile()
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		// Filter certain ports in doc commatrix to avoid showing them in the diff matrix
+		g.By("Filter documented commatrix for diff generation")
+		// if cluster is a SNO exclude MNO static entries in diff generation
 		if isSNO {
-			docComDetailsList = filterComDetailsForSNO(docComDetailsList)
+			docComDetailsList = excludeMNOstaticEntries(docComDetailsList)
 		}
-		docComDetailsList = excludeBareMetalEntries(docComDetailsList)
+
+		// if cluster is running on BM exclude Cloud static entries in diff generation
+		// else cluster is running on Cloud and exclude BM static entries in diff generation.
+		if isBM {
+			docComDetailsList = excludeGivenStaticEntries(docComDetailsList,
+				&types.ComMatrix{Matrix: types.CloudStaticEntriesMaster},
+				&types.ComMatrix{Matrix: types.CloudStaticEntriesWorker})
+		} else {
+			docComDetailsList = excludeGivenStaticEntries(docComDetailsList,
+				&types.ComMatrix{Matrix: types.BaremetalStaticEntriesMaster},
+				&types.ComMatrix{Matrix: types.BaremetalStaticEntriesWorker})
+		}
 		docComMatrix := &types.ComMatrix{Matrix: docComDetailsList}
 
 		g.By("generating diff between matrices for testing purposes")
-		diff, err := newComMatrix.GenerateDiff(docComMatrix)
+		diff := matrixdiff.Generate(newComMatrix, docComMatrix)
+		diffStr, err := diff.String()
 		o.Expect(err).ToNot(o.HaveOccurred())
-		err = os.WriteFile(filepath.Join(artifactsDir, "doc-diff-new"), []byte(diffFileComments+diff), 0644)
+		err = os.WriteFile(filepath.Join(artifactsDir, "doc-diff-new"), []byte(diffFileComments+diffStr), 0644)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("comparing new and documented commatrices")
@@ -83,12 +110,24 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 })
 
 // isSNOCluster will check if OCP is a single node cluster
-func isSNOCluster(cs *clientutil.ClientSet) (bool, error) {
-	nodes, err := cs.CoreV1Interface.Nodes().List(context.Background(), metav1.ListOptions{})
+func isSNOCluster(oc *configv1client.ConfigV1Client) (bool, error) {
+	infrastructureType, err := oc.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
-	return len(nodes.Items) == 1, nil
+
+	logrus.Infof("the cluster type is %s", infrastructureType.Status.ControlPlaneTopology)
+	return infrastructureType.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode, nil
+}
+
+func isBMCluster(oc *configv1client.ConfigV1Client) (bool, error) {
+	infrastructureType, err := oc.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	logrus.Infof("the cluster platform is %s", infrastructureType.Status.PlatformStatus.Type)
+	return infrastructureType.Status.PlatformStatus.Type == configv1.BareMetalPlatformType, nil
 }
 
 // createCSVFromUrl creates a CSV from the given URL at fp filepath
@@ -127,8 +166,8 @@ func comMatricesAreEqual(cm1 types.ComMatrix, cm2 types.ComMatrix) bool {
 	return true
 }
 
-// filterComDetailsForSNO filters given comDetails to enable comprasion to generated SNO matrix
-func filterComDetailsForSNO(comDetails []types.ComDetails) []types.ComDetails {
+// excludeMNOstaticEntries filters given comDetails to enable comprasion to generated SNO matrix
+func excludeMNOstaticEntries(comDetails []types.ComDetails) []types.ComDetails {
 	masterComDetails := []types.ComDetails{}
 	mnoStaticEntriesMatrix := &types.ComMatrix{Matrix: types.MNOStaticEntries}
 	for _, cd := range comDetails {
@@ -141,21 +180,19 @@ func filterComDetailsForSNO(comDetails []types.ComDetails) []types.ComDetails {
 }
 
 // excludeBareMetalEntries excludes and returns only comDetails that are not bare metal static entries
-func excludeBareMetalEntries(comDetails []types.ComDetails) []types.ComDetails {
-	nonBMComDetails := []types.ComDetails{}
-	bmMasterStaticEntriesMatrix := &types.ComMatrix{Matrix: types.BaremetalStaticEntriesMaster}
-	bmWorkerStaticEntriesMatrix := &types.ComMatrix{Matrix: types.BaremetalStaticEntriesWorker}
+func excludeGivenStaticEntries(comDetails []types.ComDetails, masterStaticEntriesMatrix, workerStaticEntriesMatrix *types.ComMatrix) []types.ComDetails {
+	filteredComDetails := []types.ComDetails{}
 	for _, cd := range comDetails {
 		switch cd.NodeRole {
 		case "master":
-			if !bmMasterStaticEntriesMatrix.Contains(cd) {
-				nonBMComDetails = append(nonBMComDetails, cd)
+			if !masterStaticEntriesMatrix.Contains(cd) {
+				filteredComDetails = append(filteredComDetails, cd)
 			}
 		case "worker":
-			if !bmWorkerStaticEntriesMatrix.Contains(cd) {
-				nonBMComDetails = append(nonBMComDetails, cd)
+			if !workerStaticEntriesMatrix.Contains(cd) {
+				filteredComDetails = append(filteredComDetails, cd)
 			}
 		}
 	}
-	return nonBMComDetails
+	return filteredComDetails
 }
