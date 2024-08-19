@@ -44,6 +44,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
 	watchtools "k8s.io/client-go/tools/watch"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 const certInspectResultFile = "/tmp/shared/pkiList.json"
@@ -112,6 +113,7 @@ var _ = g.Describe(fmt.Sprintf("[sig-arch][Late][Jira:%q]", "kube-apiserver"), g
 
 		_, bootstrapHostname, err := certgraphanalysis.GetBootstrapIPAndHostname(ctx, kubeClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.Logf("Found bootstrap hostname %q", bootstrapHostname)
 		inClusterPKIContent, err := gatherCertsFromPlatformNamespaces(ctx, kubeClient, masters, bootstrapHostname)
 		o.Expect(err).NotTo(o.HaveOccurred())
 

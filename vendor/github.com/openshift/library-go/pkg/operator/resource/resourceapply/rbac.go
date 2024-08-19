@@ -11,6 +11,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 )
 
@@ -21,7 +22,7 @@ func ApplyClusterRole(ctx context.Context, client rbacclientv1.ClusterRolesGette
 		requiredCopy := required.DeepCopy()
 		actual, err := client.ClusterRoles().Create(
 			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*rbacv1.ClusterRole), metav1.CreateOptions{})
-		reportCreateEvent(recorder, required, err)
+		resourcehelper.ReportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -55,7 +56,7 @@ func ApplyClusterRole(ctx context.Context, client rbacclientv1.ClusterRolesGette
 	}
 
 	actual, err := client.ClusterRoles().Update(ctx, existingCopy, metav1.UpdateOptions{})
-	reportUpdateEvent(recorder, required, err)
+	resourcehelper.ReportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
 
@@ -67,7 +68,7 @@ func ApplyClusterRoleBinding(ctx context.Context, client rbacclientv1.ClusterRol
 		requiredCopy := required.DeepCopy()
 		actual, err := client.ClusterRoleBindings().Create(
 			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*rbacv1.ClusterRoleBinding), metav1.CreateOptions{})
-		reportCreateEvent(recorder, required, err)
+		resourcehelper.ReportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -110,7 +111,7 @@ func ApplyClusterRoleBinding(ctx context.Context, client rbacclientv1.ClusterRol
 	}
 
 	actual, err := client.ClusterRoleBindings().Update(ctx, existingCopy, metav1.UpdateOptions{})
-	reportUpdateEvent(recorder, requiredCopy, err)
+	resourcehelper.ReportUpdateEvent(recorder, requiredCopy, err)
 	return actual, true, err
 }
 
@@ -121,7 +122,7 @@ func ApplyRole(ctx context.Context, client rbacclientv1.RolesGetter, recorder ev
 		requiredCopy := required.DeepCopy()
 		actual, err := client.Roles(required.Namespace).Create(
 			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*rbacv1.Role), metav1.CreateOptions{})
-		reportCreateEvent(recorder, required, err)
+		resourcehelper.ReportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -143,7 +144,7 @@ func ApplyRole(ctx context.Context, client rbacclientv1.RolesGetter, recorder ev
 		klog.Infof("Role %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, existingCopy))
 	}
 	actual, err := client.Roles(required.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
-	reportUpdateEvent(recorder, required, err)
+	resourcehelper.ReportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
 
@@ -155,7 +156,7 @@ func ApplyRoleBinding(ctx context.Context, client rbacclientv1.RoleBindingsGette
 		requiredCopy := required.DeepCopy()
 		actual, err := client.RoleBindings(required.Namespace).Create(
 			ctx, resourcemerge.WithCleanLabelsAndAnnotations(requiredCopy).(*rbacv1.RoleBinding), metav1.CreateOptions{})
-		reportCreateEvent(recorder, required, err)
+		resourcehelper.ReportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -198,7 +199,7 @@ func ApplyRoleBinding(ctx context.Context, client rbacclientv1.RoleBindingsGette
 	}
 
 	actual, err := client.RoleBindings(requiredCopy.Namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
-	reportUpdateEvent(recorder, requiredCopy, err)
+	resourcehelper.ReportUpdateEvent(recorder, requiredCopy, err)
 	return actual, true, err
 }
 
@@ -210,7 +211,7 @@ func DeleteClusterRole(ctx context.Context, client rbacclientv1.ClusterRolesGett
 	if err != nil {
 		return nil, false, err
 	}
-	reportDeleteEvent(recorder, required, err)
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
 	return nil, true, nil
 }
 
@@ -222,7 +223,7 @@ func DeleteClusterRoleBinding(ctx context.Context, client rbacclientv1.ClusterRo
 	if err != nil {
 		return nil, false, err
 	}
-	reportDeleteEvent(recorder, required, err)
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
 	return nil, true, nil
 }
 
@@ -234,7 +235,7 @@ func DeleteRole(ctx context.Context, client rbacclientv1.RolesGetter, recorder e
 	if err != nil {
 		return nil, false, err
 	}
-	reportDeleteEvent(recorder, required, err)
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
 	return nil, true, nil
 }
 
@@ -246,6 +247,6 @@ func DeleteRoleBinding(ctx context.Context, client rbacclientv1.RoleBindingsGett
 	if err != nil {
 		return nil, false, err
 	}
-	reportDeleteEvent(recorder, required, err)
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
 	return nil, true, nil
 }
