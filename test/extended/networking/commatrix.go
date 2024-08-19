@@ -205,11 +205,11 @@ func excludeGivenStaticEntries(comDetails []types.ComDetails, masterStaticEntrie
 	for _, cd := range comDetails {
 		switch cd.NodeRole {
 		case "master":
-			if masterStaticEntriesMatrix != nil && !masterStaticEntriesMatrix.Contains(cd) {
+			if masterStaticEntriesMatrix == nil || !masterStaticEntriesMatrix.Contains(cd) {
 				filteredComDetails = append(filteredComDetails, cd)
 			}
 		case "worker":
-			if workerStaticEntriesMatrix != nil && !workerStaticEntriesMatrix.Contains(cd) {
+			if workerStaticEntriesMatrix == nil || !workerStaticEntriesMatrix.Contains(cd) {
 				filteredComDetails = append(filteredComDetails, cd)
 			}
 		}
