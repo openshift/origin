@@ -666,8 +666,8 @@ github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78 h1:R
 github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/selinux v1.11.0 h1:+5Zbo97w3Lbmb3PeqQtpmTkMwsW5nRI3YaLpt7tQ7oU=
 github.com/opencontainers/selinux v1.11.0/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
-github.com/openshift-kni/commatrix v0.0.0-20240818083205-9095bd0cb952 h1:krMRpmlU86syt6yETHz+ukHlQlkAuEUt/yi2Ptag5LI=
-github.com/openshift-kni/commatrix v0.0.0-20240818083205-9095bd0cb952/go.mod h1:eAUryDRAYS4tCsmH+7len8oRbLHMgiJ4G3/hqoI99CY=
+github.com/openshift-kni/commatrix v0.0.0-20240819074621-dbe8ff20d304 h1:we4W4u9rqgUSsYiis3Ms1iTi+uvYGu8/pA9hYN4872Y=
+github.com/openshift-kni/commatrix v0.0.0-20240819074621-dbe8ff20d304/go.mod h1:eAUryDRAYS4tCsmH+7len8oRbLHMgiJ4G3/hqoI99CY=
 github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f h1:8qy74aofCvUwCdPafxgdWFsd3oCoMXhjaaCsXaWNCGM=
 github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f/go.mod h1:OOh6Qopf21pSzqNVCB5gomomBXb8o5sGKZxG2KNpaXM=
 github.com/openshift/apiserver-library-go v0.0.0-20240716092710-e88385a79b17 h1:lJ0jen15LqSgZkFQLPPkgDRevNxc8B/Z5/vgZ2LoZ3A=

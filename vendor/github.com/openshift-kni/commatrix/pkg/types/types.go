@@ -154,71 +154,6 @@ func (m *ComMatrix) WriteMatrixToFileByType(utilsHelpers utils.UtilsInterface, f
 	return nil
 }
 
-// markDiffBetweenMatrices map the cd's string of the matrices to ints in the following way:
-// cd which m contains but other doesn't --> 1
-// cd both m and other contains --> 0
-// cd which other doesn't contain but m does --> -1.
-func (m *ComMatrix) markDiffBetweenMatrices(other *ComMatrix) map[string]int {
-	mapComDetailToSign := make(map[string]int)
-
-	for _, cd := range m.Matrix {
-		if other.Contains(cd) {
-			mapComDetailToSign[cd.String()] = 0
-		} else {
-			// m contains cd but other doesn't
-			mapComDetailToSign[cd.String()] = 1
-		}
-	}
-
-	for _, cd := range other.Matrix {
-		// Skip "rpc.statd" ports, these are randomly open ports on the node,
-		// no need to mention them in the matrix diff
-		if cd.Service == "rpc.statd" {
-			continue
-		}
-
-		if !m.Contains(cd) {
-			// m doesn't contain cd but other does
-			mapComDetailToSign[cd.String()] = -1
-		}
-	}
-
-	return mapComDetailToSign
-}
-
-// GenerateMatrixDiff generates the diff between mat1 to mat2.
-func (m *ComMatrix) GenerateDiff(other *ComMatrix) (string, error) {
-	combinedComDetails := append([]ComDetails{}, m.Matrix...)
-	combinedComDetails = append(combinedComDetails, other.Matrix...)
-	combinedComMatrix := ComMatrix{Matrix: combinedComDetails}
-
-	combinedComMatrix.SortAndRemoveDuplicates()
-
-	mapComDetailToSign := m.markDiffBetweenMatrices(other)
-
-	colNames, err := getComMatrixHeadersByFormat(FormatCSV)
-	if err != nil {
-		return "", fmt.Errorf("error getting commatrix CSV tags: %v", err)
-	}
-	diff := colNames + "\n"
-
-	// iterate over organized united Matrix and check every cd diff sign.
-	for _, cd := range combinedComMatrix.Matrix {
-		switch mapComDetailToSign[cd.String()] {
-		case 1:
-			// add "+" before cd's mat1 contains but mat2 doesn't
-			diff += fmt.Sprintf("+ %s\n", cd)
-		case -1:
-			// add "-" before cd's mat1 contains but mat2 doesn't
-			diff += fmt.Sprintf("- %s\n", cd)
-		case 0:
-			diff += fmt.Sprintf("%s\n", cd)
-		}
-	}
-
-	return diff, nil
-}
-
 func (m *ComMatrix) print(format string) ([]byte, error) {
 	switch format {
 	case FormatJSON:
@@ -368,7 +303,7 @@ func (cd ComDetails) Equals(other ComDetails) bool {
 	return strComDetail1 == strComDetail2
 }
 
-func getComMatrixHeadersByFormat(format string) (string, error) {
+func GetComMatrixHeadersByFormat(format string) (string, error) {
 	typ := reflect.TypeOf(ComDetails{})
 
 	var tagsList []string
