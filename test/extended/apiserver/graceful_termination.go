@@ -76,20 +76,21 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			kasLogFileNames, _, err := oc.AsAdmin().Run("adm").Args("node-logs", master.Name, "--path=kube-apiserver/").Outputs()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			for _, kasLogFileName := range strings.Split(kasLogFileNames, "\n") {
-				if isKASTerminationLogFile(kasLogFileName) {
-					g.By(fmt.Sprintf("Getting and processing %s file for kube-apiserver on master: %s", kasLogFileName, master.Name))
-					kasTerminationFileOutput, _, err := oc.AsAdmin().Run("adm").Args("node-logs", master.Name, fmt.Sprintf("--path=kube-apiserver/%s", kasLogFileName)).Outputs()
-					o.Expect(err).NotTo(o.HaveOccurred())
-					kasTerminationFileReader := strings.NewReader(kasTerminationFileOutput)
-					kasTerminationFileScanner := bufio.NewScanner(kasTerminationFileReader)
-					for kasTerminationFileScanner.Scan() {
-						line := kasTerminationFileScanner.Text()
-						if terminationRegexp.MatchString(line) {
-							finalMessageBuilder.WriteString(fmt.Sprintf("\n kube-apiserver on node %s wasn't gracefully terminated, reason: %s", master.Name, line))
-						}
-					}
-					o.Expect(kasTerminationFileScanner.Err()).NotTo(o.HaveOccurred())
+				if !isKASTerminationLogFile(kasLogFileName) {
+					continue
 				}
+				g.By(fmt.Sprintf("Getting and processing %s file for kube-apiserver on master: %s", kasLogFileName, master.Name))
+				kasTerminationFileOutput, _, err := oc.AsAdmin().Run("adm").Args("node-logs", master.Name, fmt.Sprintf("--path=kube-apiserver/%s", kasLogFileName)).Outputs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				kasTerminationFileReader := strings.NewReader(kasTerminationFileOutput)
+				kasTerminationFileScanner := bufio.NewScanner(kasTerminationFileReader)
+				for kasTerminationFileScanner.Scan() {
+					line := kasTerminationFileScanner.Text()
+					if terminationRegexp.MatchString(line) {
+						finalMessageBuilder.WriteString(fmt.Sprintf("\n kube-apiserver on node %s wasn't gracefully terminated, reason: %s", master.Name, line))
+					}
+				}
+				o.Expect(kasTerminationFileScanner.Err()).NotTo(o.HaveOccurred())
 			}
 		}
 		if len(finalMessageBuilder.String()) > 0 {
