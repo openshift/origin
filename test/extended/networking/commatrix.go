@@ -30,6 +30,34 @@ const (
 		"// `-` indicates a port that has to be removed from the documented matrix.\n"
 )
 
+var (
+	// Entries which are open on the worker node instead of master in MNO cluster.
+	// Will be excluded in diff generatation between documented and generated comMatrix.
+	MNOExcludedMasterComDetails = []types.ComDetails{
+		{
+			Direction: "Ingress",
+			Protocol:  "TCP",
+			Port:      80,
+			NodeRole:  "master",
+			Service:   "router-default",
+			Namespace: "openshift-ingress",
+			Pod:       "router-default",
+			Container: "router",
+			Optional:  false,
+		}, {
+			Direction: "Ingress",
+			Protocol:  "TCP",
+			Port:      443,
+			NodeRole:  "master",
+			Service:   "router-default",
+			Namespace: "openshift-ingress",
+			Pod:       "router-default",
+			Container: "router",
+			Optional:  false,
+		},
+	}
+)
+
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 	g.It("should be equal to documeneted communication matrix", func() {
 		// artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
@@ -80,7 +108,12 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		g.By("Filter documented commatrix for diff generation")
 		// if cluster is a SNO exclude MNO static entries in diff generation
 		if isSNO {
-			docComDetailsList = excludeMNOstaticEntries(docComDetailsList)
+			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: types.MNOStaticEntries}, nil)
+		} else {
+			// Exclude specific master entries that are documented as both worker and master,
+			// and are open only on the worker node in MNO clusters.
+			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: MNOExcludedMasterComDetails}, nil)
+
 		}
 
 		// if cluster is running on BM exclude Cloud static entries in diff generation
@@ -166,30 +199,17 @@ func comMatricesAreEqual(cm1 types.ComMatrix, cm2 types.ComMatrix) bool {
 	return true
 }
 
-// excludeMNOstaticEntries filters given comDetails to enable comprasion to generated SNO matrix
-func excludeMNOstaticEntries(comDetails []types.ComDetails) []types.ComDetails {
-	masterComDetails := []types.ComDetails{}
-	mnoStaticEntriesMatrix := &types.ComMatrix{Matrix: types.MNOStaticEntries}
-	for _, cd := range comDetails {
-		// filter only comDetails with "master" as a Node roel while excluding MNO static entries
-		if cd.NodeRole == "master" && !mnoStaticEntriesMatrix.Contains(cd) {
-			masterComDetails = append(masterComDetails, cd)
-		}
-	}
-	return masterComDetails
-}
-
 // excludeBareMetalEntries excludes and returns only comDetails that are not bare metal static entries
 func excludeGivenStaticEntries(comDetails []types.ComDetails, masterStaticEntriesMatrix, workerStaticEntriesMatrix *types.ComMatrix) []types.ComDetails {
 	filteredComDetails := []types.ComDetails{}
 	for _, cd := range comDetails {
 		switch cd.NodeRole {
 		case "master":
-			if !masterStaticEntriesMatrix.Contains(cd) {
+			if masterStaticEntriesMatrix != nil && !masterStaticEntriesMatrix.Contains(cd) {
 				filteredComDetails = append(filteredComDetails, cd)
 			}
 		case "worker":
-			if !workerStaticEntriesMatrix.Contains(cd) {
+			if workerStaticEntriesMatrix != nil && !workerStaticEntriesMatrix.Contains(cd) {
 				filteredComDetails = append(filteredComDetails, cd)
 			}
 		}
