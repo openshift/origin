@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/test/extended/util"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -122,6 +124,34 @@ func max(a, b int) int {
 	return b
 }
 
+type RunMatchFunc func(run *RunInformation) bool
+
+type RunInformation struct {
+	platformidentification.JobType
+	suite *TestSuite
+}
+
+type externalBinaryStruct struct {
+	// The payload image tag in which an external binary path can be found
+	imageTag string
+	// The binary path to extract from the image
+	binaryPath string
+
+	// nil, nil - run for all suites
+	// (), nil, - run for only those matched by include
+	// nil, () - run for all except excluded
+	// (), () - include overridden by exclude
+	includeForRun RunMatchFunc
+	excludeForRun RunMatchFunc
+}
+
+type externalBinaryResult struct {
+	err            error
+	skipReason     string
+	externalBinary *externalBinaryStruct
+	externalTests  []*testCase
+}
+
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo, upgrade bool) error {
 	ctx := context.Background()
 
@@ -130,17 +160,90 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
 
-	fmt.Fprintf(o.Out, "found %d tests for suite\n", len(tests))
+	fmt.Fprintf(o.Out, "Found %d tests for in openshift-tests binary for suite %q\n", len(tests), suite.Name)
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
 		buf := &bytes.Buffer{}
-		fmt.Fprintf(buf, "Attempting to pull tests from external binary...\n")
-		externalTests, err := externalTestsForSuite(ctx)
+
+		// A registry of available external binaries and in which image
+		// they reside in the payload.
+		externalBinaries := []externalBinaryStruct{
+			{
+				imageTag:   "hyperkube",
+				binaryPath: "/usr/bin/k8s-tests",
+			},
+		}
+
+		var (
+			externalTests []*testCase
+			wg            sync.WaitGroup
+			resultCh      = make(chan externalBinaryResult, len(externalBinaries))
+			err           error
+		)
+
+		oc := util.NewCLIWithoutNamespace("default")
+		jobType, err := platformidentification.GetJobType(context.Background(), oc.AdminConfig())
+		if err != nil {
+			return fmt.Errorf("failed determining job type: %w", err)
+		}
+
+		runInformation := &RunInformation{
+			JobType: *jobType,
+			suite:   suite,
+		}
+
+		releaseImageReferences, err := extractReleaseImageStream()
+		if err != nil {
+			return fmt.Errorf("unable to extract image references from release payload: %w", err)
+		}
+
+		for _, externalBinary := range externalBinaries {
+			wg.Add(1)
+			go func(externalBinary externalBinaryStruct) {
+				defer wg.Done()
+
+				var skipReason string
+				if (externalBinary.includeForRun != nil && !externalBinary.includeForRun(runInformation)) ||
+					(externalBinary.excludeForRun != nil && externalBinary.excludeForRun(runInformation)) {
+					skipReason = "excluded by suite selection functions"
+				}
+
+				var tagTestSet []*testCase
+				var tagErr error
+				if skipReason == "" {
+					tagTestSet, tagErr = externalTestsForSuite(ctx, releaseImageReferences, externalBinary.imageTag, externalBinary.binaryPath)
+				}
+
+				resultCh <- externalBinaryResult{
+					err:            tagErr,
+					skipReason:     skipReason,
+					externalBinary: &externalBinary,
+					externalTests:  tagTestSet,
+				}
+
+			}(externalBinary)
+		}
+
+		wg.Wait()
+		close(resultCh)
+
+		for result := range resultCh {
+			if result.skipReason != "" {
+				fmt.Fprintf(buf, "Skipping test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.skipReason)
+			} else if result.err != nil {
+				fmt.Fprintf(buf, "Error during test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.err)
+				err = result.err
+			} else {
+				fmt.Fprintf(buf, "Discovered %v tests from image %q and binary %q\n", len(result.externalTests), result.externalBinary.imageTag, result.externalBinary.binaryPath)
+				externalTests = append(externalTests, result.externalTests...)
+			}
+		}
+
 		if err == nil {
-			filteredTests := []*testCase{}
+			var filteredTests []*testCase
 			for _, test := range tests {
-				// tests contains all the tests "registered" in openshif-tests binary,
+				// tests contains all the tests "registered" in openshift-tests binary,
 				// this also includes vendored k8s tests, since this path assumes we're
 				// using external binary to run these tests we need to remove them
 				// from the final lists, which contains:
@@ -151,9 +254,9 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 				}
 			}
 			tests = append(filteredTests, externalTests...)
-			fmt.Fprintf(buf, "Got %d tests from external binary\n", len(externalTests))
+			fmt.Fprintf(buf, "Discovered a total of %v external tests and will run a total of %v\n", len(externalTests), len(tests))
 		} else {
-			fmt.Fprintf(buf, "Falling back to built-in suite, failed reading external test suites: %v\n", err)
+			fmt.Fprintf(buf, "Errors encountered while extracting one or more external test suites; Falling back to built-in suite: %v\n", err)
 			// adding this test twice (one failure here, and success below) will
 			// ensure it gets picked as flake further down in synthetic tests processing
 			fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
@@ -173,7 +276,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
 	}
 
-	fmt.Fprintf(o.Out, "found %d tests (incl externals)\n", len(tests))
+	fmt.Fprintf(o.Out, "Found %d tests (including externals)\n", len(tests))
 
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
