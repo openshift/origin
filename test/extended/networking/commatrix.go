@@ -107,7 +107,8 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		g.By("Filter documented commatrix for diff generation")
 		// if cluster is a SNO exclude MNO static entries in diff generation
 		if isSNO {
-			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: types.MNOStaticEntries}, nil)
+			// Exclude MNO static entries and all worker nodes entries.
+			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: types.MNOStaticEntries}, &types.ComMatrix{Matrix: docComDetailsList})
 		} else {
 			// Exclude specific master entries that are documented as both worker and master,
 			// and are open only on the worker node in MNO clusters.
