@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -160,7 +161,12 @@ func podFrom(locator string) monitorapi.PodReference {
 }
 
 func (*apiserverGracefulShutdownAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+	testName := "[sig-arch] connection(s) to a kube-apiserver instance should not be created very late in the graceful termination process (more than 80% has passed)"
+	checker := pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.LateConnectionDuringAPIServerShutdown, 1, 1)
+
+	junits := []*junitapi.JUnitTestCase{}
+	junits = append(junits, checker.Test(finalIntervals)...)
+	return junits, nil
 }
 
 func (w *apiserverGracefulShutdownAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
