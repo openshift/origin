@@ -188,11 +188,12 @@ const (
 	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
 	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"
 
-	NodeUpdateReason          IntervalReason = "NodeUpdate"
-	NodeNotReadyReason        IntervalReason = "NotReady"
-	NodeFailedLease           IntervalReason = "FailedToUpdateLease"
-	NodeUnexpectedReadyReason IntervalReason = "UnexpectedNotReady"
-	NodeUnreachableReason     IntervalReason = "Unreachable"
+	NodeUpdateReason                IntervalReason = "NodeUpdate"
+	NodeNotReadyReason              IntervalReason = "NotReady"
+	NodeFailedLease                 IntervalReason = "FailedToUpdateLease"
+	NodeUnexpectedReadyReason       IntervalReason = "UnexpectedNotReady"
+	NodeUnexpectedUnreachableReason IntervalReason = "UnexpectedUnreachable"
+	NodeUnreachable                 IntervalReason = "Unreachable"
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"

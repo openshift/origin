@@ -176,6 +176,8 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			}
 			return intervals
 		},
+		// This case will create an interval if a node is unreachable but the node was not drained
+		// This will be reported as a failed test.
 		func(node, oldNode *corev1.Node) []monitorapi.Interval {
 			var intervals []monitorapi.Interval
 
@@ -184,11 +186,23 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			isNodeUnscheduable := node.Spec.Unschedulable
 
 			now := time.Now()
+			// always mark unreachable
+			if !isOldNodeUnReachable && isNewNodeUnReachable {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceUnreachable, monitorapi.Info).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnreachable).
+							HumanMessage("node unreachable")).
+						Display().
+						Build(now, now))
+			}
+
+			// sometimes also create the unexpectedunreachable
 			if !isOldNodeUnReachable && isNewNodeUnReachable && !isNodeUnscheduable {
 				intervals = append(intervals,
-					monitorapi.NewInterval(monitorapi.SourceUnreachable, monitorapi.Warning).
+					monitorapi.NewInterval(monitorapi.SourceUnreachable, monitorapi.Error).
 						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
-						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnreachableReason).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedUnreachableReason).
 							HumanMessage("unexpected node unreachable")).
 						Display().
 						Build(now, now))

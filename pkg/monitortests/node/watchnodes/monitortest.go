@@ -91,7 +91,7 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnit
 	const testName = "[sig-node] node-lifecycle detects unreachable state on node"
 	var failures []string
 	for _, event := range finalIntervals {
-		if event.Message.Reason == monitorapi.NodeUnreachableReason {
+		if event.Message.Reason == monitorapi.NodeUnexpectedUnreachableReason {
 			failures = append(failures, fmt.Sprintf("%v - %v from %v to %v", event.Locator.OldLocator(), event.Message.OldMessage(), event.From, event.To))
 		}
 	}
