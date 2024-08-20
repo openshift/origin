@@ -21,7 +21,7 @@ import (
 	"github.com/openshift-kni/commatrix/pkg/utils"
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
-	// exutil "github.com/openshift/origin/test/extended/util"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -60,8 +60,7 @@ var (
 
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 	g.It("should be equal to documeneted communication matrix", func() {
-		// artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
-		artifactsDir := filepath.Join(".", "commatrix")
+		artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
 
 		err := os.MkdirAll(artifactsDir, 0755)
 		o.Expect(err).NotTo(o.HaveOccurred())
