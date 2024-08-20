@@ -81,7 +81,6 @@ func createIntervalsFromPrometheusSamples(logger logrus.FieldLogger, promVal pro
 	case promVal.Type() == prometheustypes.ValMatrix:
 		promMatrix := promVal.(prometheustypes.Matrix)
 		for _, promSampleStream := range promMatrix {
-			logger.Infof("temp: got prom sampleStream: +%v", promSampleStream)
 
 			lb := monitorapi.NewLocator().PrometheusTargetDownFromPromSampleStream(promSampleStream)
 
@@ -95,7 +94,6 @@ func createIntervalsFromPrometheusSamples(logger logrus.FieldLogger, promVal pro
 			var outageStart *time.Time
 			var outageLast *time.Time
 			for _, currValue := range promSampleStream.Values {
-				logger.Infof("temp: got prom value: +%v", currValue)
 				currTime := currValue.Timestamp.Time()
 				if outageStart == nil {
 					outageStart = &currTime
