@@ -35,9 +35,9 @@ const (
 )
 
 var (
-	// Entries which are open on the worker node instead of master in MNO cluster.
+	// Entries which are open on the worker node instead of master in standard cluster.
 	// Will be excluded in diff generatation between documented and generated comMatrix.
-	MNOExcludedMasterComDetails = []types.ComDetails{
+	StandardExcludedMasterComDetails = []types.ComDetails{
 		{
 			Direction: "Ingress",
 			Protocol:  "TCP",
@@ -74,7 +74,7 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 
 		configClient := configv1client.NewForConfigOrDie(cs.Config)
 
-		deployment := types.MNO
+		deployment := types.Standard
 		isSNO, err := isSNOCluster(configClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if isSNO {
@@ -126,14 +126,14 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("Filter documented commatrix for diff generation")
-		// if cluster is a SNO exclude MNO static entries in diff generation
+		// if cluster is a SNO exclude standard deployment type's static entries in diff generation
 		if isSNO {
-			// Exclude MNO static entries and all worker nodes entries.
-			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: types.MNOStaticEntries}, &types.ComMatrix{Matrix: docComDetailsList})
+			// Exclude static entries of standard deployment type and all worker nodes entries.
+			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: types.StandardStaticEntries}, &types.ComMatrix{Matrix: docComDetailsList})
 		} else {
 			// Exclude specific master entries that are documented as both worker and master,
-			// and are open only on the worker node in MNO clusters.
-			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: MNOExcludedMasterComDetails}, nil)
+			// and are open only on the worker node in standard clusters.
+			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: StandardExcludedMasterComDetails}, nil)
 
 		}
 

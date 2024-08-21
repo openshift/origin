@@ -31,7 +31,7 @@ type Deployment int
 
 const (
 	SNO Deployment = iota
-	MNO
+	Standard
 )
 
 const (
@@ -80,8 +80,8 @@ func GetEnv(envStr string) (Env, error) {
 
 func GetDeployment(deploymentStr string) (Deployment, error) {
 	switch deploymentStr {
-	case "mno":
-		return MNO, nil
+	case "standard":
+		return Standard, nil
 	case "sno":
 		return SNO, nil
 	default:
@@ -138,7 +138,7 @@ func (m *ComMatrix) WriteMatrixToFileByType(utilsHelpers utils.UtilsInterface, f
 		if err != nil {
 			return err
 		}
-		if deployment == MNO {
+		if deployment == Standard {
 			err := workerMatrix.writeMatrixToFile(utilsHelpers, fileNamePrefix+"-worker", format, destDir)
 			if err != nil {
 				return err

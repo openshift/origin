@@ -8,13 +8,13 @@ import (
 
 type status int
 
-// Both = cd's present in both mat1 and mat2.
-// UniqueA = cd's present in mat1 but not in mat2.
-// UniqueB = cd's present in mat2 but not in mat1.
+// Both = cd's present in both primary mat and secondary mat.
+// UniquePrimary = cd's present in primary mat but not in secondary mat.
+// UniqueSecondary = cd's present in secondary mat but not in primary mat.
 const (
 	both status = iota
-	uniqueA
-	uniqueB
+	uniquePrimary
+	uniqueSecondary
 )
 
 type MatrixDiff struct {
@@ -22,26 +22,26 @@ type MatrixDiff struct {
 	cdToStatus map[string]status
 }
 
-// Generates the diff between mat1 to mat2.
-func Generate(mat1 *types.ComMatrix, mat2 *types.ComMatrix) MatrixDiff {
+// Generates the diff between primary mat to secondary mat.
+func Generate(primary *types.ComMatrix, secondary *types.ComMatrix) MatrixDiff {
 	matrix := types.ComMatrix{}
 	epsStatus := map[string]status{}
 
-	for _, cd := range mat1.Matrix {
+	for _, cd := range primary.Matrix {
 		matrix.Matrix = append(matrix.Matrix, cd)
 		epsStatus[cd.String()] = both
 
-		if !mat2.Contains(cd) {
-			epsStatus[cd.String()] = uniqueA
+		if !secondary.Contains(cd) {
+			epsStatus[cd.String()] = uniquePrimary
 		}
 	}
 
-	for _, cd := range mat2.Matrix {
+	for _, cd := range secondary.Matrix {
 		matrix.Matrix = append(matrix.Matrix, cd)
 		epsStatus[cd.String()] = both
 
-		if !mat1.Contains(cd) {
-			epsStatus[cd.String()] = uniqueB
+		if !primary.Contains(cd) {
+			epsStatus[cd.String()] = uniqueSecondary
 		}
 	}
 
@@ -61,14 +61,40 @@ func (m *MatrixDiff) String() (string, error) {
 		switch m.cdToStatus[cd.String()] {
 		case both:
 			diff += fmt.Sprintf("%s\n", cd)
-		case uniqueA:
-			// add "+" before cd's present in mat1 but not in mat2.
+		case uniquePrimary:
+			// add "+" before cd's present in primary mat but not in secondary mat.
 			diff += fmt.Sprintf("+ %s\n", cd)
-		case uniqueB:
-			// add "-" before cd's present in mat2 but not in mat1.
+		case uniqueSecondary:
+			// add "-" before cd's present in secondary mat but not in primary mat.
 			diff += fmt.Sprintf("- %s\n", cd)
 		}
 	}
 
 	return diff, nil
+}
+
+// Generates the unique entries in primary mat.
+func (m *MatrixDiff) GenerateUniquePrimary() *types.ComMatrix {
+	matrix := types.ComMatrix{}
+
+	for _, cd := range m.Matrix {
+		if m.cdToStatus[cd.String()] == uniquePrimary {
+			matrix.Matrix = append(matrix.Matrix, cd)
+		}
+	}
+
+	return &matrix
+}
+
+// Generates the unique entries in secondary mat.
+func (m *MatrixDiff) GenerateUniqueSecondary() *types.ComMatrix {
+	matrix := types.ComMatrix{}
+
+	for _, cd := range m.Matrix {
+		if m.cdToStatus[cd.String()] == uniqueSecondary {
+			matrix.Matrix = append(matrix.Matrix, cd)
+		}
+	}
+
+	return &matrix
 }

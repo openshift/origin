@@ -484,7 +484,7 @@ var CloudStaticEntriesMaster = []ComDetails{
 	},
 }
 
-var MNOStaticEntries = []ComDetails{
+var StandardStaticEntries = []ComDetails{
 	{
 		Direction: "Ingress",
 		Protocol:  "UDP",

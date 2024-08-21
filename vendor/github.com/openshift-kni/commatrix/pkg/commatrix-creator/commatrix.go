@@ -154,7 +154,7 @@ func (cm *CommunicationMatrixCreator) getStaticEntries() ([]types.ComDetails, er
 		return comDetails, nil
 	}
 
-	comDetails = append(comDetails, types.MNOStaticEntries...)
+	comDetails = append(comDetails, types.StandardStaticEntries...)
 	comDetails = append(comDetails, types.GeneralStaticEntriesWorker...)
 	log.Debug("Successfully determined static entries")
 	return comDetails, nil
