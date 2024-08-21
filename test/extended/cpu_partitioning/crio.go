@@ -33,11 +33,19 @@ import (
 const collectionScript = `
 #!/bin/bash
 
+crictl_version=$(crictl --version)
+jq_flags=""
+
+# TODO: Remove after successful nightly to 1.31 crictl
+if [[ $crictl_version =~ "1.30" ]]; then
+	jq_flags="-rs"
+fi
+
 container_ids=$(sudo crictl ps -q)
 container_data=$(sudo crictl inspect $container_ids)
 
 # Filter down CRIO data to relevant information only
-workload_containers=$(echo $container_data | jq -rs '[ 
+workload_containers=$(echo $container_data | jq $jq_flags '[
 	.[] | select(.info.runtimeSpec.annotations["target.workload.openshift.io/management"]) | 
 	{
 		cpuSet: (.info.runtimeSpec.linux.resources.cpu.cpus // ""),
