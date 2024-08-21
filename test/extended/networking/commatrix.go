@@ -118,7 +118,6 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		newComMatrix.WriteMatrixToFileByType(utilsHelpers, "new-commatrix", types.FormatCSV, deployment, artifactsDir)
 
 		g.By("get documented commatrix")
-		fmt.Printf("docCommatrixUrl: %s\n", docCommatrixVersionedUrl)
 		fp := filepath.Join(artifactsDir, "doc-commatrix.csv")
 		createCSVFromUrl(docCommatrixVersionedUrl, fp)
 		docComMatrixCreator, err := commatrixcreator.New(epExporter, fp, types.FormatCSV, env, deployment)
