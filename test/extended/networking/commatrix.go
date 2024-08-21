@@ -2,10 +2,13 @@ package networking
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -25,8 +28,9 @@ import (
 )
 
 const (
-	docCommatrixUrl  = "https://raw.githubusercontent.com/openshift/openshift-docs/main/snippets/network-flow-matrix.csv"
-	diffFileComments = "// `+` indicates a port that isn't in the current documented matrix, and has to be added.\n" +
+	minimalDocCommatrixVersion = 4.16
+	docCommatrixBaseUrl        = "https://raw.githubusercontent.com/openshift/openshift-docs/enterprise-VERSION/snippets/network-flow-matrix.csv"
+	diffFileComments           = "// `+` indicates a port that isn't in the current documented matrix, and has to be added.\n" +
 		"// `-` indicates a port that has to be removed from the documented matrix.\n"
 )
 
@@ -59,7 +63,7 @@ var (
 )
 
 var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
-	g.It("should be equal to documeneted communication matrix", func() {
+	g.It("generated communication matrix should be equal to documented communication matrix", func() {
 		artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
 
 		err := os.MkdirAll(artifactsDir, 0755)
@@ -84,6 +88,23 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 			env = types.Baremetal
 		}
 
+		g.By("get cluster's version and check if it's suitable for test")
+		clusterXYVersion, err := getClusterXYersion(configClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		floatClusterXYVersion, err := strconv.ParseFloat(clusterXYVersion, 64)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		if floatClusterXYVersion < minimalDocCommatrixVersion {
+			g.Skip(fmt.Sprintf("If the cluster version is lower than the lowest version that "+
+				"has a documented communication matrix (%v), skip test", minimalDocCommatrixVersion))
+		}
+		docCommatrixVersionedUrl := strings.Replace(docCommatrixBaseUrl, "VERSION", clusterXYVersion, 1)
+		resp, err := http.Get(docCommatrixVersionedUrl)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		defer resp.Body.Close()
+		// expect response status code to differ from status not found
+		docURLStatusIsNotFound := resp.StatusCode == http.StatusNotFound
+		o.Expect(docURLStatusIsNotFound).To(o.BeFalse())
+
 		g.By("preparing for commatrices generation")
 		epExporter, err := endpointslices.New(cs)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -97,8 +118,9 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		newComMatrix.WriteMatrixToFileByType(utilsHelpers, "new-commatrix", types.FormatCSV, deployment, artifactsDir)
 
 		g.By("get documented commatrix")
+		fmt.Printf("docCommatrixUrl: %s\n", docCommatrixVersionedUrl)
 		fp := filepath.Join(artifactsDir, "doc-commatrix.csv")
-		createCSVFromUrl(docCommatrixUrl, fp)
+		createCSVFromUrl(docCommatrixVersionedUrl, fp)
 		docComMatrixCreator, err := commatrixcreator.New(epExporter, fp, types.FormatCSV, env, deployment)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		docComDetailsList, err := docComMatrixCreator.GetComDetailsListFromFile()
@@ -141,6 +163,19 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		o.Expect(areEqual).To(o.BeTrue())
 	})
 })
+
+// getClusterXYersion return cluster's version in X.Y stream
+func getClusterXYersion(configClient *configv1client.ConfigV1Client) (string, error) {
+	clusterVersion, err := configClient.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return "", nil
+	}
+	ClusterVersionParts := strings.SplitN(clusterVersion.Status.Desired.Version, ".", 3)
+	if len(ClusterVersionParts) < 2 {
+		return "", fmt.Errorf("Cluster Version has only X stream.")
+	}
+	return strings.Join(ClusterVersionParts[:2], "."), nil
+}
 
 // isSNOCluster will check if OCP is a single node cluster
 func isSNOCluster(oc *configv1client.ConfigV1Client) (bool, error) {
