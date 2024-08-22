@@ -98,6 +98,7 @@ const (
 	LocatorTypePod             LocatorType = "Pod"
 	LocatorTypeContainer       LocatorType = "Container"
 	LocatorTypeNode            LocatorType = "Node"
+	LocatorTypeMachine         LocatorType = "Machine"
 	LocatorTypeAlert           LocatorType = "Alert"
 	LocatorTypeMetricsEndpoint LocatorType = "MetricsEndpoint"
 	LocatorTypeClusterOperator LocatorType = "ClusterOperator"
@@ -118,6 +119,7 @@ const (
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorDeploymentKey      LocatorKey = "deployment"
 	LocatorNodeKey            LocatorKey = "node"
+	LocatorMachineKey         LocatorKey = "machine"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
 	LocatorNameKey            LocatorKey = "name"
 	LocatorHmsgKey            LocatorKey = "hmsg"
@@ -198,6 +200,11 @@ const (
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
 
+	MachineCreated      IntervalReason = "MachineCreated"
+	MachineDeletedInAPI IntervalReason = "MachineDeletedInAPI"
+	MachinePhaseChanged IntervalReason = "MachinePhaseChange"
+	MachinePhase        IntervalReason = "MachinePhase"
+
 	Timeout IntervalReason = "Timeout"
 
 	E2ETestStarted  IntervalReason = "E2ETestStarted"
@@ -239,6 +246,7 @@ const (
 	AnnotationPathological       AnnotationKey = "pathological"
 	AnnotationConstructed        AnnotationKey = "constructed"
 	AnnotationPhase              AnnotationKey = "phase"
+	AnnotationPreviousPhase      AnnotationKey = "previousPhase"
 	AnnotationIsStaticPod        AnnotationKey = "mirrored"
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
@@ -258,9 +266,11 @@ const (
 type ConstructionOwner string
 
 const (
-	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
-	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
-	ConstructionOwnerEtcdLifecycle = "etcd-lifecycle-constructor"
+	ConstructionOwnerNodeLifecycle    = "node-lifecycle-constructor"
+	ConstructionOwnerPodLifecycle     = "pod-lifecycle-constructor"
+	ConstructionOwnerEtcdLifecycle    = "etcd-lifecycle-constructor"
+	ConstructionOwnerMachineLifecycle = "machine-lifecycle-constructor"
+	ConstructionOwnerLeaseChecker     = "lease-checker"
 )
 
 type Message struct {
@@ -305,6 +315,9 @@ const (
 	SourceNodeState                              = "NodeState"
 	SourcePodState                               = "PodState"
 	SourceCloudMetrics                           = "CloudMetrics"
+
+	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
+	SourceMachine                  IntervalSource = "MachineMonitor"
 )
 
 type Interval struct {
