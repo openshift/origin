@@ -26,13 +26,12 @@ type serializedTest struct {
 
 // externalTestsForSuite reads tests from external binary, currently only
 // k8s-tests is supported
-func externalTestsForSuite(ctx context.Context) ([]*testCase, error) {
+func externalTestsForSuite(ctx context.Context, tag string, binaryPath string) ([]*testCase, error) {
 	var tests []*testCase
 
-	// TODO: add support for binaries from other images
-	testBinary, err := extractBinaryFromReleaseImage("hyperkube", "/usr/bin/k8s-tests")
+	testBinary, err := extractBinaryFromReleaseImage(tag, binaryPath)
 	if err != nil {
-		return nil, fmt.Errorf("unable to extract k8s-tests binary: %w", err)
+		return nil, fmt.Errorf("unable to extract %v binary from tag %v: %w", binaryPath, tag, err)
 	}
 
 	command := exec.Command(testBinary, "list")
