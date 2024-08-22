@@ -142,7 +142,6 @@ var (
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with revision history limits should never persist more old deployments than acceptable after being observed by the controller`,
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs with test deployments should run a deployment to completion and then scale to zero`,
 			`\[sig-apps\]\[Feature:DeploymentConfig\] deploymentconfigs won't deploy RC with unresolved images when patched with empty image`,
-			`\[sig-apps\]\[Feature:Jobs\] Users should be able to create and run a job in a user project`,
 			`\[sig-arch\] Managed cluster should expose cluster services outside the cluster`,
 			`\[sig-arch\]\[Early\] Managed cluster should \[apigroup:config.openshift.io\] start all core operators`,
 			`\[sig-auth\]\[Feature:SecurityContextConstraints\] TestPodDefaultCapabilities`,

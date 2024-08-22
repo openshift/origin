@@ -157,8 +157,6 @@ var Annotations = map[string]string{
 
 	"[sig-apps][Feature:DeploymentConfig] deploymentconfigs won't deploy RC with unresolved images when patched with empty image [apigroup:apps.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-apps][Feature:Jobs] Users should be able to create and run a job in a user project": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
-
 	"[sig-apps][Feature:OpenShiftControllerManager] TestDeployScale [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-apps][Feature:OpenShiftControllerManager] TestDeploymentConfigDefaults [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
