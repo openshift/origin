@@ -109,6 +109,13 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 		Build()
 }
 
+func (b *LocatorBuilder) MachineFromName(machineName string) Locator {
+	return b.
+		withTargetType(LocatorTypeMachine).
+		withNode(machineName).
+		Build()
+}
+
 func (b *LocatorBuilder) NodeFromNameWithRow(nodeName, row string) Locator {
 	return b.
 		withTargetType(LocatorTypeNode).
@@ -242,6 +249,11 @@ func (b *LocatorBuilder) withNamespace(namespace string) *LocatorBuilder {
 
 func (b *LocatorBuilder) withNode(nodeName string) *LocatorBuilder {
 	b.annotations[LocatorNodeKey] = nodeName
+	return b
+}
+
+func (b *LocatorBuilder) withMachine(machineName string) *LocatorBuilder {
+	b.annotations[LocatorMachineKey] = machineName
 	return b
 }
 
