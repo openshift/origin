@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/testframework/knownimagechecker"
 	"github.com/openshift/origin/pkg/monitortests/testframework/legacytestframeworkmonitortests"
 	"github.com/openshift/origin/pkg/monitortests/testframework/metricsendpointdown"
+	"github.com/openshift/origin/pkg/monitortests/testframework/operatorloganalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/pathologicaleventanalyzer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/timelineserializer"
 	"github.com/openshift/origin/pkg/monitortests/testframework/trackedresourcesserializer"
@@ -180,6 +181,8 @@ func newUniversalMonitorTests(info monitortestframework.MonitorTestInitializatio
 	monitorTestRegistry.AddMonitorTestOrDie("e2e-test-analyzer", "Test Framework", e2etestanalyzer.NewAnalyzer())
 	monitorTestRegistry.AddMonitorTestOrDie("event-collector", "Test Framework", watchevents.NewEventWatcher())
 	monitorTestRegistry.AddMonitorTestOrDie("clusteroperator-collector", "Test Framework", watchclusteroperators.NewOperatorWatcher())
+	monitorTestRegistry.AddMonitorTestOrDie("initial-and-final-operator-log-scraper", "Test Framework", operatorloganalyzer.InitialAndFinalOperatorLogScraper())
+	monitorTestRegistry.AddMonitorTestOrDie("lease-checker", "Test Framework", operatorloganalyzer.OperatorLeaseCheck())
 
 	monitorTestRegistry.AddMonitorTestOrDie("azure-metrics-collector", "Test Framework", azuremetrics.NewAzureMetricsCollector())
 	monitorTestRegistry.AddMonitorTestOrDie("watch-request-counts-collector", "Test Framework", watchrequestcountscollector.NewWatchRequestCountSerializer())
