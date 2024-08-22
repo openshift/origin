@@ -98,6 +98,7 @@ const (
 	LocatorTypePod             LocatorType = "Pod"
 	LocatorTypeContainer       LocatorType = "Container"
 	LocatorTypeNode            LocatorType = "Node"
+	LocatorTypeMachine         LocatorType = "Machine"
 	LocatorTypeAlert           LocatorType = "Alert"
 	LocatorTypeMetricsEndpoint LocatorType = "MetricsEndpoint"
 	LocatorTypeClusterOperator LocatorType = "ClusterOperator"
@@ -120,6 +121,7 @@ const (
 	LocatorNamespaceKey       LocatorKey = "namespace"
 	LocatorDeploymentKey      LocatorKey = "deployment"
 	LocatorNodeKey            LocatorKey = "node"
+	LocatorMachineKey         LocatorKey = "machine"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
 	LocatorNameKey            LocatorKey = "name"
 	LocatorHmsgKey            LocatorKey = "hmsg"
@@ -201,6 +203,8 @@ const (
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
+
+	MachinePhaseChanged IntervalReason = "MachinePhaseChange"
 
 	Timeout IntervalReason = "Timeout"
 
@@ -319,6 +323,7 @@ const (
 	SourceCloudMetrics                           = "CloudMetrics"
 
 	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
+	SourceMachine                  IntervalSource = "MachineMonitor"
 )
 
 type Interval struct {

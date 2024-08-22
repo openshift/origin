@@ -64,7 +64,7 @@ func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals) []*junitap
 	const testName = "[sig-node] node-lifecycle detects unexpected not ready node"
 	var failures []string
 	for _, event := range finalIntervals {
-		if event.Message.Reason == monitorapi.NodeUnexpectedReadyReason {
+		if errorOnInterval(event, finalIntervals) && event.Message.Reason == monitorapi.NodeUnexpectedReadyReason {
 			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", event.Locator.OldLocator(), event.Message.OldMessage(), event.From, event.To))
 		}
 	}
@@ -91,7 +91,7 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnit
 	const testName = "[sig-node] node-lifecycle detects unreachable state on node"
 	var failures []string
 	for _, event := range finalIntervals {
-		if event.Message.Reason == monitorapi.NodeUnexpectedUnreachableReason {
+		if errorOnInterval(event, finalIntervals) && event.Message.Reason == monitorapi.NodeUnexpectedUnreachableReason {
 			failures = append(failures, fmt.Sprintf("%v - %v from %v to %v", event.Locator.OldLocator(), event.Message.OldMessage(), event.From, event.To))
 		}
 	}
@@ -112,4 +112,26 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnit
 		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	}
 	return tests
+}
+
+func errorOnInterval(interval monitorapi.Interval, machineIntervals monitorapi.Intervals) bool {
+	// There are a few cases we need to catch.
+	for _, val := range machineIntervals {
+		// case 1:
+		// Interval is between the machine phase change - no overlap
+		if interval.From.After(val.From) && interval.To.Before(val.To) {
+			return false
+		}
+		// case 2:
+		// Interval is after machine phase change but it lasts beyond the interval
+		if interval.From.After(val.From) && interval.To.Before(val.To) {
+			return false
+		}
+		// case 3:
+		// Interval is before machine phase change but it ends before the interval ends.
+		if interval.From.Before(val.From) && interval.To.After(val.To) {
+			return false
+		}
+	}
+	return true
 }
