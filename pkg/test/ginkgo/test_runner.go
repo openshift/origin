@@ -13,9 +13,10 @@ import (
 	"syscall"
 	"time"
 
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 type testSuiteRunner interface {
@@ -306,7 +307,13 @@ func (c *commandContext) RunTestInNewProcess(ctx context.Context, test *testCase
 
 	ret.start = time.Now()
 	testBinary, testName := c.extractCommands(test)
-	command := exec.Command(testBinary, "run-test", testName)
+	var command *exec.Cmd
+	switch test.testProvider {
+	case TestProviderGo:
+		command = exec.Command(testBinary, "-test.run", test.rawName)
+	default:
+		command = exec.Command(testBinary, "run-test", testName)
+	}
 	command.Env = append(os.Environ(), updateEnvVars(c.env)...)
 
 	timeout := c.timeout

@@ -9,8 +9,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/errors"
 
-	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 	k8sgenerated "k8s.io/kubernetes/openshift-hack/e2e/annotate/generated"
+
+	origingenerated "github.com/openshift/origin/test/extended/util/annotate/generated"
 )
 
 func testsForSuite() ([]*testCase, error) {
@@ -74,9 +75,10 @@ type testCase struct {
 	// rawName is the name as reported by external binary
 	rawName string
 	// binaryName is the name of the external binary
-	binaryName string
-	spec       types.TestSpec
-	locations  []types.CodeLocation
+	binaryName   string
+	testProvider TestProvider
+	spec         types.TestSpec
+	locations    []types.CodeLocation
 
 	// identifies which tests can be run in parallel (ginkgo runs suites linearly)
 	testExclusion string

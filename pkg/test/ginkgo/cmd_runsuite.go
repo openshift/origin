@@ -122,6 +122,11 @@ func max(a, b int) int {
 	return b
 }
 
+type TestProvider string
+
+const TestProviderKube TestProvider = "kube"
+const TestProviderGo TestProvider = "go"
+
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo, upgrade bool) error {
 	ctx := context.Background()
 
@@ -142,10 +147,17 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		externalBinaries := []struct {
 			imageTag   string
 			binaryPath string
+			provider   TestProvider
 		}{
 			{
 				imageTag:   "hyperkube",
 				binaryPath: "/usr/bin/k8s-tests",
+				provider:   TestProviderKube,
+			},
+			{
+				imageTag:   "tests",
+				binaryPath: "/usr/bin/example.test",
+				provider:   TestProviderGo,
 			},
 		}
 
@@ -153,7 +165,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		var err error
 		for _, externalBinary := range externalBinaries {
 			fmt.Fprintf(buf, "Attempting to pull external binary %v from %v...\n", externalBinary.binaryPath, externalBinary.imageTag)
-			tagTestSet, tagErr := externalTestsForSuite(ctx, "hyperkube", "/usr/bin/k8s-tests")
+			tagTestSet, tagErr := externalTestsForSuite(ctx, externalBinary.imageTag, externalBinary.binaryPath, externalBinary.provider)
 			if tagErr != nil {
 				err = fmt.Errorf("failed reading external test suites for %v: %w", externalBinary.imageTag, tagErr)
 				break
