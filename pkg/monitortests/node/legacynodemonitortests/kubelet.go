@@ -235,11 +235,11 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 			if event.Message.Annotations[monitorapi.AnnotationCause] == "ContainerCreating" {
 				continue
 			}
-			failures = append(failures, fmt.Sprintf("container restart at %v: %v - %v", event.From, event.Locator.OldLocator(), event.Message.OldMessage()))
+			failures = append(failures, fmt.Sprintf("container failed to start at %v: %v - %v", event.From, event.Locator.OldLocator(), event.Message.OldMessage()))
 
 		// workload containers should never exit non-zero during normal operations
 		case reason == monitorapi.ContainerReasonContainerExit && code != "0":
-			containerExits[event.Locator.OldLocator()] = append(containerExits[event.Locator.OldLocator()], event.Message.OldMessage())
+			containerExits[event.Locator.OldLocator()] = append(containerExits[event.Locator.OldLocator()], fmt.Sprintf("non-zero exit at %v: %v", event.From, event.Message.OldMessage()))
 		}
 	}
 
@@ -250,7 +250,7 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 			messageSet := sets.NewString(messages...)
 			// Blanket fail for restarts over 3
 			if len(messages) > maxRestartCount {
-				excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
+				excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times at:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
 			}
 		}
 	}
