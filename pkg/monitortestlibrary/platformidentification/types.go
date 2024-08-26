@@ -89,7 +89,18 @@ func BuildClusterData(ctx context.Context, clientConfig *rest.Config) (ClusterDa
 	if err != nil {
 		errors = append(errors, err)
 	} else if len(network.Spec.ClusterNetwork) > 0 {
-		if strings.Contains(network.Spec.ClusterNetwork[0].CIDR, ":") {
+		isIPv6 := false
+		isIPv4 := false
+		for _, n := range network.Spec.ClusterNetwork {
+			if strings.Contains(n.CIDR, ":") {
+				isIPv6 = true
+			} else {
+				isIPv4 = true
+			}
+		}
+		if isIPv4 && isIPv6 {
+			clusterData.NetworkStack = "Dual"
+		} else if isIPv6 {
 			clusterData.NetworkStack = "IPv6"
 		} else {
 			clusterData.NetworkStack = "IPv4"
