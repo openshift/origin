@@ -314,6 +314,31 @@ func (b *LocatorBuilder) KubeAPIServerWithLB(loadBalancer string) Locator {
 	return b.Build()
 }
 
+func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, serviceNetworkIP string) Locator {
+	// the label 'host' is the endpoint used to contact the kube-apiserver
+	getHost := func(metric model.Metric, serviceNetworkIP string) string {
+		host := string(metric["host"])
+		switch {
+		case strings.HasPrefix(host, serviceNetworkIP):
+			return "service-network"
+		case strings.HasPrefix(host, "api-int."):
+			return "internal-lb"
+		case strings.HasPrefix(host, "api."):
+			return "external-lb"
+		case strings.HasPrefix(host, "[::1]:6443") || strings.HasPrefix(host, "localhost:6443"):
+			return "localhost"
+		// these are probably the apiserver trying to contact the e2e test webhooks
+		case strings.HasPrefix(host, "e2e-test-webhook.e2e-webhook"):
+			return "e2e-test-webhooks"
+		}
+		return host
+	}
+
+	b.targetType = LocatorTypeAPIUnreachableFromClient
+	b.annotations[LocatorAPIUnreachableHostKey] = getHost(metric, serviceNetworkIP)
+	return b.Build()
+}
+
 // TODO decide whether we want to allow "random" locator keys.  deads2k is -1 on random locator keys and thinks we should enumerate every possible key we special case.
 func (b *LocatorBuilder) KubeEvent(event *corev1.Event) Locator {
 

@@ -53591,6 +53591,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
         return (eventInterval.source === "APIServerGracefulShutdown")
     }
 
+    function isAPIUnreachableFromClientActivity(eventInterval) {
+        return (eventInterval.source === "APIUnreachableFromClient")
+    }
+
     function isEndpointConnectivity(eventInterval) {
         if (eventInterval.message.reason !== "DisruptionBegan" && eventInterval.message.reason !== "DisruptionSamplerOutageBegan") {
             return false
@@ -53715,6 +53719,10 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
     function apiserverShutdownValue(item) {
         // TODO: isolate DNS error into CIClusterDisruption
         return [buildLocatorDisplayString(item.locator), "", "GracefulShutdownInterval"]
+    }
+
+    function isAPIUnreachableFromClientValue(item) {
+        return [buildLocatorDisplayString(item.locator), "", "APIUnreachableFromClientMetrics"]
     }
 
     function disruptionValue(item) {
@@ -53928,6 +53936,9 @@ var _e2echartE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "apiserver-shutdown", data: []})
         createTimelineData(apiserverShutdownValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isGracefulShutdownActivity, regex)
+
+        timelineGroups.push({group: "api-unreachable", data: []})
+        createTimelineData(isAPIUnreachableFromClientValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isAPIUnreachableFromClientActivity, regex)
 
         timelineGroups.push({ group: "etcd-leaders", data: [] })
         createTimelineData(etcdLeadershipLogsValue, timelineGroups[timelineGroups.length - 1].data, eventIntervals, isEtcdLeadershipAndNotEmpty, regex)
