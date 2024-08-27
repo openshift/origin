@@ -21,7 +21,7 @@ var _ = Describe("[sig-kubevirt] services", func() {
 		f1.NamespacePodSecurityLevel = admissionapi.LevelPrivileged
 
 		It("should allow connections to pods from infra cluster pod via NodePort across different infra nodes", func() {
-			oc = setMgmtFramework(mgmtFramework)
+			oc = SetMgmtFramework(mgmtFramework)
 			// This tests connectivity from the infra cluster's pod network to a NodePort
 			// within a nested KubeVirt Hypershift guest cluster.
 			//
@@ -58,7 +58,7 @@ var _ = Describe("[sig-kubevirt] services", func() {
 		})
 
 		It("should allow connections to pods from infra cluster pod via LoadBalancer service across different guest nodes", func() {
-			oc = setMgmtFramework(mgmtFramework)
+			oc = SetMgmtFramework(mgmtFramework)
 			// Within a nested KubeVirt guest cluster, this tests the ability for
 			// LoadBalancer services to route from pod network to pods across infra nodes.
 			// client pod (on infra cluster) -> guest node IP -> LoadBalancer Service -> server pod (on guest cluster)
