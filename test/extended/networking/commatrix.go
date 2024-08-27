@@ -98,7 +98,7 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 			g.Skip(fmt.Sprintf("If the cluster version is lower than the lowest version that "+
 				"has a documented communication matrix (%v), skip test", minimalDocCommatrixVersion))
 		}
-		
+
 		docCommatrixVersionedUrl := strings.Replace(docCommatrixBaseUrl, "VERSION", clusterVersion, 1)
 
 		g.By("preparing for commatrices generation")
@@ -164,8 +164,16 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("comparing new and documented commatrices")
-		areEqual := comMatricesAreEqual(*newComMatrix, *docComMatrix)
-		o.Expect(areEqual).To(o.BeTrue())
+		notUsedPortsMat := diff.GenerateUniquePrimary()
+		if len(notUsedPortsMat.Matrix) > 0 {
+			logrus.Warningf("the following ports are documented but are not used: \n %s", notUsedPortsMat)
+		}
+
+		missingPortsMat := diff.GenerateUniqueSecondary()
+		if len(missingPortsMat.Matrix) > 0 {
+			err := fmt.Errorf("the following ports are used but are not documented: \n %s", missingPortsMat)
+			o.Expect(err).ToNot(o.HaveOccurred())
+		}
 	})
 })
 
@@ -198,20 +206,6 @@ func isBMCluster(oc *configv1client.ConfigV1Client) (bool, error) {
 
 	logrus.Infof("the cluster platform is %s", infrastructureType.Status.PlatformStatus.Type)
 	return infrastructureType.Status.PlatformStatus.Type == configv1.BareMetalPlatformType, nil
-}
-
-// comMatricesAreEqual return true if given comMatrices are equal, and false otherwise
-func comMatricesAreEqual(cm1 types.ComMatrix, cm2 types.ComMatrix) bool {
-	diff1 := cm1.Diff(cm2)
-	diff2 := cm2.Diff(cm1)
-
-	// Check if the Diff matrices are not empty
-	if len(diff1.Matrix) > 0 || len(diff2.Matrix) > 0 {
-		return false
-	}
-
-	// Diff matrices are empty, ComMatrices are equal
-	return true
 }
 
 // excludeStaticEntriesWithGivenNodeRole excludes from comDetails, static entries from staticEntriesMatrix with the given nodeRole
