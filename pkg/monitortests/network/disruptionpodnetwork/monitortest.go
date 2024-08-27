@@ -126,6 +126,15 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
+	// Wait for pull secrets to have been created for the namespace default service accounts
+	defaultSAAccounts := []string{"default", "builder", "deployer"}
+	for _, sa := range defaultSAAccounts {
+		err = pna.waitForSASecrets(ctx, sa)
+		if err != nil {
+			return err
+		}
+	}
+
 	// our pods tolerate masters, so create one for each of them.
 	nodes, err := pna.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -375,4 +384,33 @@ func (pna *podNetworkAvalibility) Cleanup(ctx context.Context) error {
 
 	}
 	return nil
+}
+
+func (pna *podNetworkAvalibility) waitForSASecrets(ctx context.Context, name string) error {
+	waitFn := func(ctx context.Context) (bool, error) {
+		sa, err := pna.kubeClient.CoreV1().ServiceAccounts(pna.namespaceName).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			// If we can't access the service accounts, let's wait till the controller
+			// create it.
+			if apierrors.IsNotFound(err) || apierrors.IsForbidden(err) {
+				klog.Infof("Waiting for service account %q to be available: %v (will retry) ...", name, err)
+				return false, nil
+			}
+			return false, fmt.Errorf("failed to get service account %q: %v", name, err)
+		}
+		secretNames := []string{}
+		var hasDockercfg bool
+		for _, s := range sa.ImagePullSecrets {
+			if strings.Contains(s.Name, "-dockercfg-") {
+				hasDockercfg = true
+			}
+			secretNames = append(secretNames, s.Name)
+		}
+		if hasDockercfg {
+			return true, nil
+		}
+		klog.Infof("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))
+		return false, nil
+	}
+	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 3*time.Minute, true, waitFn)
 }
