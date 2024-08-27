@@ -101,6 +101,15 @@ var _ = ginkgo.Describe("[Conformance][Suite:openshift/kube-apiserver/rollout][J
 			forceKubeAPIServerRollout(ctx, operatorClient, fmt.Sprintf("rollout %d-", i))
 		}
 
+		// Ensure we wait for kube-apiserver to stabilize before exiting the test, in case we were
+		// still rolling out when we hit the timeout above
+		shouldEndWaitCtx, shouldEndWaitCancelFn := context.WithTimeout(context.Background(), 20*time.Minute)
+		defer shouldEndWaitCancelFn()
+		err = exutil.WaitForOperatorProgressingFalse(shouldEndWaitCtx, oc.AdminConfigClient(), "kube-apiserver")
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error waiting for kube-apiserver to stabilize: %w", err))
+		}
+
 		if len(errs) > 0 {
 			framework.ExpectNoError(errors.Join(errs...))
 		}
