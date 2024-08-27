@@ -24,6 +24,7 @@ var defaultSCCs = sets.NewString(
 	"hostmount-anyuid",
 	"hostnetwork",
 	"hostnetwork-v2",
+	"node-exporter",
 	"nonroot",
 	"nonroot-v2",
 	"privileged",
