@@ -89,21 +89,17 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		}
 
 		g.By("get cluster's version and check if it's suitable for test")
-		clusterXYVersion, err := getClusterXYersion(configClient)
+		clusterVersion, err := getClusterVersion(configClient)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		floatClusterXYVersion, err := strconv.ParseFloat(clusterXYVersion, 64)
+		floatClusterVersion, err := strconv.ParseFloat(clusterVersion, 64)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		if floatClusterXYVersion < minimalDocCommatrixVersion {
+
+		if floatClusterVersion < minimalDocCommatrixVersion {
 			g.Skip(fmt.Sprintf("If the cluster version is lower than the lowest version that "+
 				"has a documented communication matrix (%v), skip test", minimalDocCommatrixVersion))
 		}
-		docCommatrixVersionedUrl := strings.Replace(docCommatrixBaseUrl, "VERSION", clusterXYVersion, 1)
-		resp, err := http.Get(docCommatrixVersionedUrl)
-		o.Expect(err).ToNot(o.HaveOccurred())
-		defer resp.Body.Close()
-		// expect response status code to differ from status not found
-		docURLStatusIsNotFound := resp.StatusCode == http.StatusNotFound
-		o.Expect(docURLStatusIsNotFound).To(o.BeFalse())
+		
+		docCommatrixVersionedUrl := strings.Replace(docCommatrixBaseUrl, "VERSION", clusterVersion, 1)
 
 		g.By("preparing for commatrices generation")
 		epExporter, err := endpointslices.New(cs)
@@ -118,35 +114,45 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		newComMatrix.WriteMatrixToFileByType(utilsHelpers, "new-commatrix", types.FormatCSV, deployment, artifactsDir)
 
 		g.By("get documented commatrix")
-		fp := filepath.Join(artifactsDir, "doc-commatrix.csv")
-		createCSVFromUrl(docCommatrixVersionedUrl, fp)
-		docComMatrixCreator, err := commatrixcreator.New(epExporter, fp, types.FormatCSV, env, deployment)
+		// get documented commatrix from URL
+		resp, err := http.Get(docCommatrixVersionedUrl)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		defer resp.Body.Close()
+		// expect response status code to differ from status not found
+		o.Expect(resp.StatusCode).ToNot(o.Equal(http.StatusNotFound))
+
+		// write documented commatrix to file
+		docCommatrixContent, err := io.ReadAll(resp.Body)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		docFilePath := filepath.Join(artifactsDir, "doc-commatrix.csv")
+		err = os.WriteFile(docFilePath, docCommatrixContent, 0644)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.By("Filter documented commatrix for diff generation")
+		// get origin documented commatrix details
+		docComMatrixCreator, err := commatrixcreator.New(epExporter, docFilePath, types.FormatCSV, env, deployment)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		docComDetailsList, err := docComMatrixCreator.GetComDetailsListFromFile()
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		g.By("Filter documented commatrix for diff generation")
-		// if cluster is a SNO exclude standard deployment type's static entries in diff generation
 		if isSNO {
-			// Exclude static entries of standard deployment type and all worker nodes entries.
-			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: types.StandardStaticEntries}, &types.ComMatrix{Matrix: docComDetailsList})
+			// Exclude all worker nodes static entries.
+			docComDetailsList = excludeStaticEntriesWithGivenNodeRole(docComDetailsList, &types.ComMatrix{Matrix: docComDetailsList}, "worker")
+			// Exclude static entries of standard deployment type.
+			docComDetailsList = excludeStaticEntriesWithGivenNodeRole(docComDetailsList, &types.ComMatrix{Matrix: types.StandardStaticEntries}, "master")
 		} else {
-			// Exclude specific master entries that are documented as both worker and master,
-			// and are open only on the worker node in standard clusters.
-			docComDetailsList = excludeGivenStaticEntries(docComDetailsList, &types.ComMatrix{Matrix: StandardExcludedMasterComDetails}, nil)
-
+			// Exclude specific master entries (see StandardExcludedMasterComDetails var description)
+			docComDetailsList = excludeStaticEntriesWithGivenNodeRole(docComDetailsList, &types.ComMatrix{Matrix: StandardExcludedMasterComDetails}, "master")
 		}
 
 		// if cluster is running on BM exclude Cloud static entries in diff generation
 		// else cluster is running on Cloud and exclude BM static entries in diff generation.
 		if isBM {
-			docComDetailsList = excludeGivenStaticEntries(docComDetailsList,
-				&types.ComMatrix{Matrix: types.CloudStaticEntriesMaster},
-				&types.ComMatrix{Matrix: types.CloudStaticEntriesWorker})
+			docComDetailsList = excludeStaticEntriesWithGivenNodeRole(docComDetailsList, &types.ComMatrix{Matrix: types.CloudStaticEntriesWorker}, "worker")
+			docComDetailsList = excludeStaticEntriesWithGivenNodeRole(docComDetailsList, &types.ComMatrix{Matrix: types.CloudStaticEntriesMaster}, "master")
 		} else {
-			docComDetailsList = excludeGivenStaticEntries(docComDetailsList,
-				&types.ComMatrix{Matrix: types.BaremetalStaticEntriesMaster},
-				&types.ComMatrix{Matrix: types.BaremetalStaticEntriesWorker})
+			docComDetailsList = excludeStaticEntriesWithGivenNodeRole(docComDetailsList, &types.ComMatrix{Matrix: types.BaremetalStaticEntriesWorker}, "worker")
+			docComDetailsList = excludeStaticEntriesWithGivenNodeRole(docComDetailsList, &types.ComMatrix{Matrix: types.BaremetalStaticEntriesMaster}, "master")
 		}
 		docComMatrix := &types.ComMatrix{Matrix: docComDetailsList}
 
@@ -163,17 +169,14 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 	})
 })
 
-// getClusterXYersion return cluster's version in X.Y stream
-func getClusterXYersion(configClient *configv1client.ConfigV1Client) (string, error) {
+// getClusterVersion return cluster's Y stream version
+func getClusterVersion(configClient *configv1client.ConfigV1Client) (string, error) {
 	clusterVersion, err := configClient.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
-		return "", nil
+		return "", err
 	}
-	ClusterVersionParts := strings.SplitN(clusterVersion.Status.Desired.Version, ".", 3)
-	if len(ClusterVersionParts) < 2 {
-		return "", fmt.Errorf("Cluster Version has only X stream.")
-	}
-	return strings.Join(ClusterVersionParts[:2], "."), nil
+	clusterVersionParts := strings.SplitN(clusterVersion.Status.Desired.Version, ".", 3)
+	return strings.Join(clusterVersionParts[:2], "."), nil
 }
 
 // isSNOCluster will check if OCP is a single node cluster
@@ -197,28 +200,6 @@ func isBMCluster(oc *configv1client.ConfigV1Client) (bool, error) {
 	return infrastructureType.Status.PlatformStatus.Type == configv1.BareMetalPlatformType, nil
 }
 
-// createCSVFromUrl creates a CSV from the given URL at fp filepath
-func createCSVFromUrl(url string, fp string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	file, err := os.Create(fp)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // comMatricesAreEqual return true if given comMatrices are equal, and false otherwise
 func comMatricesAreEqual(cm1 types.ComMatrix, cm2 types.ComMatrix) bool {
 	diff1 := cm1.Diff(cm2)
@@ -233,19 +214,18 @@ func comMatricesAreEqual(cm1 types.ComMatrix, cm2 types.ComMatrix) bool {
 	return true
 }
 
-// excludeBareMetalEntries excludes and returns only comDetails that are not bare metal static entries
-func excludeGivenStaticEntries(comDetails []types.ComDetails, masterStaticEntriesMatrix, workerStaticEntriesMatrix *types.ComMatrix) []types.ComDetails {
+// excludeStaticEntriesWithGivenNodeRole excludes from comDetails, static entries from staticEntriesMatrix with the given nodeRole
+// The function returns filtered ComDetails without the excluded entries.
+func excludeStaticEntriesWithGivenNodeRole(comDetails []types.ComDetails, staticEntriesMatrix *types.ComMatrix, nodeRole string) []types.ComDetails {
 	filteredComDetails := []types.ComDetails{}
 	for _, cd := range comDetails {
 		switch cd.NodeRole {
-		case "master":
-			if masterStaticEntriesMatrix == nil || !masterStaticEntriesMatrix.Contains(cd) {
+		case nodeRole:
+			if !staticEntriesMatrix.Contains(cd) {
 				filteredComDetails = append(filteredComDetails, cd)
 			}
-		case "worker":
-			if workerStaticEntriesMatrix == nil || !workerStaticEntriesMatrix.Contains(cd) {
-				filteredComDetails = append(filteredComDetails, cd)
-			}
+		default:
+			filteredComDetails = append(filteredComDetails, cd)
 		}
 	}
 	return filteredComDetails
