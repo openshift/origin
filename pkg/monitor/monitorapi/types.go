@@ -222,6 +222,10 @@ const (
 
 	// client metrics show error connecting to the kube-apiserver
 	APIUnreachableFromClientMetrics IntervalReason = "APIUnreachableFromClientMetrics"
+
+	LeaseAcquiring        IntervalReason = "Acquiring"
+	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
+	LeaseAcquired         IntervalReason = "Acquired"
 )
 
 type AnnotationKey string
@@ -268,6 +272,7 @@ const (
 	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
 	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
 	ConstructionOwnerEtcdLifecycle = "etcd-lifecycle-constructor"
+	ConstructionOwnerLeaseChecker  = "lease-checker"
 )
 
 type Message struct {

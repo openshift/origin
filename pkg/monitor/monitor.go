@@ -114,7 +114,8 @@ func (m *Monitor) Stop(ctx context.Context) (ResultState, error) {
 	m.junits = append(m.junits, computedJunit...)
 
 	fmt.Fprintf(os.Stderr, "Evaluating tests.\n")
-	finalEvents := m.recorder.Intervals(m.startTime, m.stopTime)
+	// compute intervals based on *all* the intervals.  Individual monitortests can choose how to restrict themselves.
+	finalEvents := m.recorder.Intervals(time.Time{}, time.Time{})
 	filename := fmt.Sprintf("events_used_for_junits_%s.json", m.startTime.UTC().Format("20060102-150405"))
 	if err := monitorserialization.EventsToFile(filepath.Join(m.storageDir, filename), finalEvents); err != nil {
 		fmt.Fprintf(os.Stderr, "error: Failed to junit event info: %v\n", err)
