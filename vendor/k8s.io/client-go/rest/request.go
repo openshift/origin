@@ -35,7 +35,7 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-
+	"github.com/davecgh/go-spew/spew"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1114,7 +1114,7 @@ func (r *Request) transformResponse(resp *http.Response, req *http.Request) Resu
 			}
 		default:
 			klog.Errorf("Unexpected error when reading response body: %v", err)
-			unexpectedErr := fmt.Errorf("unexpected error when reading response body. Please retry. Original error: %w", err)
+			unexpectedErr := fmt.Errorf("unexpected error when reading response body. Please retry. %v %T %#v spew=%v Original error: %w", net.IsConnectionReset(err), err, err, spew.Sdump(err), err)
 			return Result{
 				err: unexpectedErr,
 			}
