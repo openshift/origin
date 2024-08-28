@@ -2,6 +2,7 @@ package watchmachines
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -20,10 +21,10 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 			now := time.Now()
 			if machine.Status.Phase != nil && oldMachine.Status.Phase != nil && *machine.Status.Phase != *oldMachine.Status.Phase {
 				intervals = append(intervals,
-					monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Warning).
+					monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
 						Locator(monitorapi.NewLocator().MachineFromName(machine.Name)).
 						Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhaseChanged).
-							HumanMessage("changed")).
+							HumanMessage(fmt.Sprintf("Machine phase changed from %s to %s", *oldMachine.Status.Phase, *machine.Status.Phase))).
 						Build(now, now))
 			}
 			return intervals
@@ -36,17 +37,6 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 			AddFunc: func(obj interface{}) {
 			},
 			DeleteFunc: func(obj interface{}) {
-				machine, ok := obj.(*machine.Machine)
-				if !ok {
-					return
-				}
-				now := time.Now()
-				i := monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
-					Locator(monitorapi.NewLocator().MachineFromName(machine.Name)).
-					Message(monitorapi.NewMessage().
-						HumanMessage("deleted")).
-					Build(now, now)
-				m.AddIntervals(i)
 			},
 			UpdateFunc: func(old, obj interface{}) {
 				newMachine, newOk := obj.(*machine.Machine)

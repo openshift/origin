@@ -119,7 +119,7 @@ func didIntervalHappenBetweenMachinePhaseChange(interval monitorapi.Interval, ma
 	// There are a few cases we need to catch.
 	for _, val := range machineIntervals {
 		// case 1:
-		// Interval is between the machine config change - no overlap
+		// Interval is between the machine phase change - no overlap
 		if interval.From.After(val.From) && interval.To.Before(val.To) {
 			return true
 		}
