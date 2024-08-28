@@ -655,9 +655,13 @@ var Annotations = map[string]string{
 
 	"[sig-ci] [Early] prow job name should match cluster version [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-ci] [Early] prow job name should match feature set": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-ci] [Early] prow job name should match network type": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-ci] [Early] prow job name should match platform type": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-ci] [Early] prow job name should match security mode": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc --request-timeout works as expected [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 

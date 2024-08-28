@@ -33,6 +33,35 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 	}
 	isPeriodic := strings.HasPrefix(jobName, "periodic-")
 
+	g.It("should match feature set", func() {
+		if jobName == "" {
+			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
+		}
+
+		isTechPreview := exutil.IsTechPreviewNoUpgrade(oc)
+		if strings.Contains(jobName, "-techpreview") && !isTechPreview {
+			e2e.Failf("job name %q has mismatched feature set in name (expected techpreview in cluster feature set)", jobName)
+		}
+		if !strings.Contains(jobName, "-techpreview") && isTechPreview {
+			e2e.Failf("job name %q has mismatched feature set in name (expected techpreview in job name)", jobName)
+		}
+	})
+
+	g.It("should match security mode", func() {
+		if jobName == "" {
+			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
+		}
+
+		isFIPS, err := exutil.IsFIPS(oc.AdminKubeClient().CoreV1())
+		e2e.ExpectNoError(err, "could not retrieve security mode")
+		if strings.Contains(jobName, "-fips") && !isFIPS {
+			e2e.Failf("job name %q has mismatched security mode in name (expected fips to be enabled)", jobName)
+		}
+		if !strings.Contains(jobName, "-fips") && isFIPS {
+			e2e.Failf("job name %q has mismatched security mode in name (expected fips in job name)", jobName)
+		}
+	})
+
 	g.It("should match platform type", func() {
 		if jobName == "" {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
