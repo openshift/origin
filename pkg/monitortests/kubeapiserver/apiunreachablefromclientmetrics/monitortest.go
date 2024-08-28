@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/metrics"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -71,13 +72,24 @@ type apiUnreachableMonitor struct {
 }
 
 type monitorTest struct {
-	monitor *apiUnreachableMonitor
+	monitor            *apiUnreachableMonitor
+	notSupportedReason error
 }
 
 func (test *monitorTest) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	kubeClient, err := kubernetes.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return err
+	}
+	isMicroShift, err := exutil.IsMicroShiftCluster(kubeClient)
+	if err != nil {
+		return fmt.Errorf("unable to determine if cluster is MicroShift: %v", err)
+	}
+	if isMicroShift {
+		test.notSupportedReason = &monitortestframework.NotSupportedError{
+			Reason: "platform MicroShift not supported",
+		}
+		return test.notSupportedReason
 	}
 	routeClient, err := routeclient.NewForConfig(adminRESTConfig)
 	if err != nil {
@@ -111,6 +123,10 @@ func (test *monitorTest) StartCollection(ctx context.Context, adminRESTConfig *r
 }
 
 func (test *monitorTest) CollectData(ctx context.Context, storageDir string, beginning, end time.Time) (monitorapi.Intervals, []*junitapi.JUnitTestCase, error) {
+	if test.notSupportedReason != nil {
+		return nil, nil, test.notSupportedReason
+	}
+
 	m := test.monitor
 	if m == nil {
 		return monitorapi.Intervals{}, nil, fmt.Errorf("monitor test is not initialized")
@@ -122,20 +138,20 @@ func (test *monitorTest) CollectData(ctx context.Context, storageDir string, beg
 	return m.callback.intervals, nil, nil
 }
 
-func (*monitorTest) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
-	return nil, nil
+func (test *monitorTest) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
+	return nil, test.notSupportedReason
 }
 
-func (*monitorTest) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+func (test *monitorTest) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	return nil, test.notSupportedReason
 }
 
-func (*monitorTest) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	return nil
+func (test *monitorTest) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
+	return test.notSupportedReason
 }
 
-func (*monitorTest) Cleanup(ctx context.Context) error {
-	return nil
+func (test *monitorTest) Cleanup(ctx context.Context) error {
+	return test.notSupportedReason
 }
 
 // callback passed to the metric analyzer so we can construct the api unreachable intervals
