@@ -205,6 +205,7 @@ const (
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
 
 	MachinePhaseChanged IntervalReason = "MachinePhaseChange"
+	MachinePhase        IntervalReason = "MachinePhase"
 
 	Timeout IntervalReason = "Timeout"
 
@@ -250,6 +251,7 @@ const (
 	AnnotationPathological       AnnotationKey = "pathological"
 	AnnotationConstructed        AnnotationKey = "constructed"
 	AnnotationPhase              AnnotationKey = "phase"
+	AnnotationPreviousPhase      AnnotationKey = "previous-phase"
 	AnnotationIsStaticPod        AnnotationKey = "mirrored"
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
@@ -269,9 +271,10 @@ const (
 type ConstructionOwner string
 
 const (
-	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
-	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
-	ConstructionOwnerEtcdLifecycle = "etcd-lifecycle-constructor"
+	ConstructionOwnerNodeLifecycle    = "node-lifecycle-constructor"
+	ConstructionOwnerPodLifecycle     = "pod-lifecycle-constructor"
+	ConstructionOwnerEtcdLifecycle    = "etcd-lifecycle-constructor"
+	ConstructionOwnerMachineLifecycle = "machine-lifecycle-constructor"
 )
 
 type Message struct {
@@ -548,6 +551,18 @@ func (intervals Intervals) Duration(minCurrentDuration time.Duration) time.Durat
 		}
 	}
 	return totalDuration
+}
+
+// returns true if the needle starts during any of the time covered by one of the Intervals .from->.to
+func IntervalStartsDuring(haystack Intervals, needle Interval) bool {
+	for _, curr := range haystack {
+		needleStartEqualOrAfterFrom := needle.From.Equal(curr.From) || needle.From.After(curr.From)
+		needleStartEqualOrBeforeTo := needle.From.Equal(curr.To) || needle.From.Before(curr.To)
+		if needleStartEqualOrAfterFrom && needleStartEqualOrBeforeTo {
+			return true
+		}
+	}
+	return false
 }
 
 // EventIntervalMatchesFunc is a function for matching eventIntervales

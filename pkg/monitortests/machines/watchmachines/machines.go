@@ -19,12 +19,25 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 		func(machine, oldMachine *machine.Machine) []monitorapi.Interval {
 			var intervals []monitorapi.Interval
 			now := time.Now()
-			if machine.Status.Phase != nil && oldMachine.Status.Phase != nil && *machine.Status.Phase != *oldMachine.Status.Phase {
+			oldHasPhase := oldMachine != nil && oldMachine.Status.Phase != nil
+			newHasPhase := machine != nil && machine.Status.Phase != nil
+			oldPhase := "<missing>"
+			newPhase := "<missing>"
+			if oldHasPhase {
+				oldPhase = *oldMachine.Status.Phase
+			}
+			if newHasPhase {
+				newPhase = *machine.Status.Phase
+			}
+
+			if oldPhase != newPhase {
 				intervals = append(intervals,
 					monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
 						Locator(monitorapi.NewLocator().MachineFromName(machine.Name)).
 						Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhaseChanged).
-							HumanMessage(fmt.Sprintf("Machine phase changed from %s to %s", *oldMachine.Status.Phase, *machine.Status.Phase))).
+							WithAnnotation(monitorapi.AnnotationPreviousPhase, oldPhase).
+							WithAnnotation(monitorapi.AnnotationPhase, newPhase).
+							HumanMessage(fmt.Sprintf("Machine phase changed from %s to %s", oldPhase, newPhase))).
 						Build(now, now))
 			}
 			return intervals

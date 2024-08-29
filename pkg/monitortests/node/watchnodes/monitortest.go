@@ -44,10 +44,26 @@ func (*nodeWatcher) ConstructComputedIntervals(ctx context.Context, startingInte
 }
 
 func (*nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	machineDeletingPhaseIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		if eventInterval.Message.Reason != monitorapi.MachinePhase {
+			return false
+		}
+		// TODO I don't know this phase
+		if eventInterval.Message.Annotations[monitorapi.AnnotationPhase] == "some deleting phase string" {
+			return true
+		}
+		return false
+	})
+	machinesToDeletingPhase := map[string][]monitorapi.Interval{}
+	for _, machineDeletingInterval := range machineDeletingPhaseIntervals {
+		machineName := machineDeletingInterval.Locator.Keys[monitorapi.LocatorMachineKey]
+		machinesToDeletingPhase[machineName] = append(machinesToDeletingPhase[machineName], machineDeletingInterval)
+	}
+
 	// Fail tests when monitor test flags this as an error
 	junits := []*junitapi.JUnitTestCase{}
-	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals)...)
-	junits = append(junits, unreachableNodeTaint(finalIntervals)...)
+	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals, machinesToDeletingPhase)...)
+	junits = append(junits, unreachableNodeTaint(finalIntervals, machinesToDeletingPhase)...)
 	return junits, nil
 }
 
@@ -60,12 +76,24 @@ func (*nodeWatcher) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals, machineDeletingPhaseIntervals map[string][]monitorapi.Interval) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] node-lifecycle detects unexpected not ready node"
+
+	unexpectedUnreadyIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		if eventInterval.Message.Reason == monitorapi.NodeUnexpectedReadyReason {
+			return true
+		}
+		return false
+	})
+
 	var failures []string
-	for _, event := range finalIntervals {
-		if errorOnInterval(event, finalIntervals) && event.Message.Reason == monitorapi.NodeUnexpectedReadyReason {
-			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", event.Locator.OldLocator(), event.Message.OldMessage(), event.From, event.To))
+	for _, unexpectedUnreadyInterval := range unexpectedUnreadyIntervals {
+		// TODO this probably isn't how to do this
+		machineNameForNode := unexpectedUnreadyInterval.Locator.Keys[monitorapi.LocatorNodeKey]
+		machineDeletingIntervals := machineDeletingPhaseIntervals[machineNameForNode]
+
+		if !monitorapi.IntervalStartsDuring(machineDeletingIntervals, unexpectedUnreadyInterval) {
+			failures = append(failures, fmt.Sprintf("%v - %v at from: %v - to: %v", unexpectedUnreadyInterval.Locator.OldLocator(), unexpectedUnreadyInterval.Message.OldMessage(), unexpectedUnreadyInterval.From, unexpectedUnreadyInterval.To))
 		}
 	}
 
@@ -87,11 +115,15 @@ func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals) []*junitap
 	return tests
 }
 
-func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func unreachableNodeTaint(finalIntervals monitorapi.Intervals, machineDeletingPhaseIntervals map[string][]monitorapi.Interval) []*junitapi.JUnitTestCase {
 	const testName = "[sig-node] node-lifecycle detects unreachable state on node"
 	var failures []string
 	for _, event := range finalIntervals {
-		if errorOnInterval(event, finalIntervals) && event.Message.Reason == monitorapi.NodeUnexpectedUnreachableReason {
+		// TODO this probably isn't how to do this
+		machineNameForNode := event.Locator.Keys[monitorapi.LocatorNodeKey]
+		machineDeletingIntervals := machineDeletingPhaseIntervals[machineNameForNode]
+
+		if !monitorapi.IntervalStartsDuring(machineDeletingIntervals, event) {
 			failures = append(failures, fmt.Sprintf("%v - %v from %v to %v", event.Locator.OldLocator(), event.Message.OldMessage(), event.From, event.To))
 		}
 	}
@@ -112,26 +144,4 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals) []*junitapi.JUnit
 		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	}
 	return tests
-}
-
-func errorOnInterval(interval monitorapi.Interval, machineIntervals monitorapi.Intervals) bool {
-	// There are a few cases we need to catch.
-	for _, val := range machineIntervals {
-		// case 1:
-		// Interval is between the machine phase change - no overlap
-		if interval.From.After(val.From) && interval.To.Before(val.To) {
-			return false
-		}
-		// case 2:
-		// Interval is after machine phase change but it lasts beyond the interval
-		if interval.From.After(val.From) && interval.To.Before(val.To) {
-			return false
-		}
-		// case 3:
-		// Interval is before machine phase change but it ends before the interval ends.
-		if interval.From.Before(val.From) && interval.To.After(val.To) {
-			return false
-		}
-	}
-	return true
 }
