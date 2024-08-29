@@ -50,196 +50,215 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		DescribeTable(
-			"mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks",
-			func(
-				netConfigParams networkAttachmentConfigParams,
-				isHostNetwork bool,
-			) {
-				netConfig := newNetworkAttachmentConfig(netConfigParams)
+		DescribeTableSubtree("created using",
+			func(createNetworkFn func(c networkAttachmentConfigParams) error) {
 
-				netConfig.namespace = f.Namespace.Name
+				DescribeTable(
+					"mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks",
+					func(
+						netConfig networkAttachmentConfigParams,
+						isHostNetwork bool,
+					) {
+						By("creating the network")
+						netConfig.namespace = f.Namespace.Name
+						Expect(createNetworkFn(netConfig)).To(Succeed())
 
-				By("creating the attachment configuration")
-				_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
-					context.Background(),
-					generateNAD(netConfig),
-					metav1.CreateOptions{},
-				)
-				Expect(err).NotTo(HaveOccurred())
+						By("deploying the backend pods")
+						replicas := 3
+						isDualStack := false
+						for i := 0; i < replicas; i++ {
+							p := runUDNPod(cs, f.Namespace.Name,
+								*podConfig(fmt.Sprintf("backend-%d", i), func(cfg *podConfiguration) { cfg.namespace = f.Namespace.Name }),
+								func(pod *corev1.Pod) {
+									pod.Spec.HostNetwork = isHostNetwork
+									if pod.Labels == nil {
+										pod.Labels = map[string]string{}
+									}
+									pod.Labels["app"] = "test"
+								})
+							isDualStack = getIPFamily(p.Status.PodIPs) == DualStack
+						}
 
-				By("deploying the backend pods")
-				replicas := 3
-				isDualStack := false
-				for i := 0; i < replicas; i++ {
-					p := runUDNPod(cs, f.Namespace.Name,
-						*podConfig(fmt.Sprintf("backend-%d", i), func(cfg *podConfiguration) { cfg.namespace = f.Namespace.Name }),
-						func(pod *corev1.Pod) {
-							pod.Spec.HostNetwork = isHostNetwork
-							if pod.Labels == nil {
-								pod.Labels = map[string]string{}
+						By("creating the service")
+						svc := e2eservice.CreateServiceSpec("test-service", "", false, map[string]string{"app": "test"})
+						familyPolicy := corev1.IPFamilyPolicyPreferDualStack
+						svc.Spec.IPFamilyPolicy = &familyPolicy
+						_, err := cs.CoreV1().Services(f.Namespace.Name).Create(context.Background(), svc, metav1.CreateOptions{})
+						framework.ExpectNoError(err, "Failed creating service %v", err)
+
+						nodes, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
+						framework.ExpectNoError(err, "Failed listing worker nodes %v", err)
+						Expect(len(nodes.Items)).To(BeNumerically(">", 0))
+
+						By("asserting the mirrored EndpointSlice exists and contains PODs primary IPs")
+						Eventually(func() error {
+							return validateMirroredEndpointSlices(cs, f.Namespace.Name, svc.Name, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, replicas, isDualStack, isHostNetwork)
+						}, 2*time.Minute, 6*time.Second).Should(Succeed())
+
+						By("removing the mirrored EndpointSlice so it gets recreated")
+						err = cs.DiscoveryV1().EndpointSlices(f.Namespace.Name).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
+						framework.ExpectNoError(err, "Failed removing the mirrored EndpointSlice %v", err)
+						Eventually(func() error {
+							return validateMirroredEndpointSlices(cs, f.Namespace.Name, svc.Name, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, replicas, isDualStack, isHostNetwork)
+						}, 2*time.Minute, 6*time.Second).Should(Succeed())
+
+						By("removing the service so both EndpointSlices get removed")
+						err = cs.CoreV1().Services(f.Namespace.Name).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
+						framework.ExpectNoError(err, "Failed removing the service %v", err)
+						Eventually(func() error {
+							esList, err := cs.DiscoveryV1().EndpointSlices(f.Namespace.Name).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
+							if err != nil {
+								return err
 							}
-							pod.Labels["app"] = "test"
-						})
-					isDualStack = getIPFamily(p.Status.PodIPs) == DualStack
-				}
 
-				By("creating the service")
-				svc := e2eservice.CreateServiceSpec("test-service", "", false, map[string]string{"app": "test"})
-				familyPolicy := corev1.IPFamilyPolicyPreferDualStack
-				svc.Spec.IPFamilyPolicy = &familyPolicy
-				_, err = cs.CoreV1().Services(f.Namespace.Name).Create(context.Background(), svc, metav1.CreateOptions{})
-				framework.ExpectNoError(err, "Failed creating service %v", err)
+							if len(esList.Items) != 0 {
+								return fmt.Errorf("expected no mirrored EndpointSlice, got: %d", len(esList.Items))
+							}
+							return nil
+						}, 2*time.Minute, 6*time.Second).Should(Succeed())
 
-				nodes, err := cs.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/worker"})
-				framework.ExpectNoError(err, "Failed listing worker nodes %v", err)
-				Expect(len(nodes.Items)).To(BeNumerically(">", 0))
-
-				By("asserting the mirrored EndpointSlice exists and contains PODs primary IPs")
-				Eventually(func() error {
-					return validateMirroredEndpointSlices(cs, f.Namespace.Name, svc.Name, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, replicas, isDualStack, isHostNetwork)
-				}, 2*time.Minute, 6*time.Second).Should(Succeed())
-
-				By("removing the mirrored EndpointSlice so it gets recreated")
-				err = cs.DiscoveryV1().EndpointSlices(f.Namespace.Name).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
-				framework.ExpectNoError(err, "Failed removing the mirrored EndpointSlice %v", err)
-				Eventually(func() error {
-					return validateMirroredEndpointSlices(cs, f.Namespace.Name, svc.Name, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet, replicas, isDualStack, isHostNetwork)
-				}, 2*time.Minute, 6*time.Second).Should(Succeed())
-
-				By("removing the service so both EndpointSlices get removed")
-				err = cs.CoreV1().Services(f.Namespace.Name).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
-				framework.ExpectNoError(err, "Failed removing the service %v", err)
-				Eventually(func() error {
-					esList, err := cs.DiscoveryV1().EndpointSlices(f.Namespace.Name).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
-					if err != nil {
-						return err
-					}
-
-					if len(esList.Items) != 0 {
-						return fmt.Errorf("expected no mirrored EndpointSlice, got: %d", len(esList.Items))
-					}
-					return nil
-				}, 2*time.Minute, 6*time.Second).Should(Succeed())
-
+					},
+					Entry(
+						"L2 dualstack primary UDN, cluster-networked pods",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer2",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "primary",
+						},
+						false,
+					),
+					Entry(
+						"L3 dualstack primary UDN, cluster-networked pods",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer3",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "primary",
+						},
+						false,
+					),
+					Entry(
+						"L2 dualstack primary UDN, host-networked pods",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer2",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "primary",
+						},
+						true,
+					),
+					Entry(
+						"L3 dualstack primary UDN, host-networked pods",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer3",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "primary",
+						},
+						true,
+					),
+				)
 			},
-			Entry(
-				"L2 dualstack primary UDN, cluster-networked pods",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer2",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "primary",
-				},
-				false,
-			),
-			Entry(
-				"L3 dualstack primary UDN, cluster-networked pods",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer3",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "primary",
-				},
-				false,
-			),
-			Entry(
-				"L2 dualstack primary UDN, host-networked pods",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer2",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "primary",
-				},
-				true,
-			),
-			Entry(
-				"L3 dualstack primary UDN, host-networked pods",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer3",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "primary",
-				},
-				true,
-			),
+			Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) error {
+				netConfig := newNetworkAttachmentConfig(c)
+				nad := generateNAD(netConfig)
+				_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(context.Background(), nad, metav1.CreateOptions{})
+				return err
+			}),
+			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
+				udnManifest := generateUserDefinedNetworkManifest(&c)
+				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
+				DeferCleanup(cleanup)
+				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, c.name, 5*time.Second)).To(Succeed())
+				return err
+			}),
 		)
 
-		DescribeTable(
-			"does not mirror EndpointSlices in namespaces not using user defined primary networks",
-			func(
-				netConfigParams networkAttachmentConfigParams,
-			) {
-				netConfig := newNetworkAttachmentConfig(netConfigParams)
+		DescribeTableSubtree("created using",
+			func(createNetworkFn func(c networkAttachmentConfigParams) error) {
+				DescribeTable(
+					"does not mirror EndpointSlices in namespaces not using user defined primary networks",
+					func(
+						netConfig networkAttachmentConfigParams,
+					) {
+						By("creating the network")
+						netConfig.namespace = f.Namespace.Name
+						Expect(createNetworkFn(netConfig)).To(Succeed())
 
-				netConfig.namespace = f.Namespace.Name
+						By("deploying the backend pods")
+						replicas := 3
+						for i := 0; i < replicas; i++ {
+							runUDNPod(cs, f.Namespace.Name,
+								*podConfig(fmt.Sprintf("backend-%d", i), func(cfg *podConfiguration) {
+									cfg.namespace = f.Namespace.Name
+									// Add the net-attach annotation for secondary networks
+									if netConfig.role == "secondary" {
+										cfg.attachments = []nadapi.NetworkSelectionElement{{Name: netConfig.name}}
+									}
+								}),
+								func(pod *corev1.Pod) {
+									if pod.Labels == nil {
+										pod.Labels = map[string]string{}
+									}
+									pod.Labels["app"] = "test"
 
-				By("creating the attachment configuration")
-				_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(
-					context.Background(),
-					generateNAD(netConfig),
-					metav1.CreateOptions{},
+								})
+						}
+
+						By("creating the service")
+						svc := e2eservice.CreateServiceSpec("test-service", "", false, map[string]string{"app": "test"})
+						familyPolicy := corev1.IPFamilyPolicyPreferDualStack
+						svc.Spec.IPFamilyPolicy = &familyPolicy
+						_, err := cs.CoreV1().Services(f.Namespace.Name).Create(context.Background(), svc, metav1.CreateOptions{})
+						framework.ExpectNoError(err, "Failed creating service %v", err)
+
+						By("asserting the mirrored EndpointSlice does not exist")
+						Eventually(func() error {
+							esList, err := cs.DiscoveryV1().EndpointSlices(f.Namespace.Name).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
+							if err != nil {
+								return err
+							}
+
+							if len(esList.Items) != 0 {
+								return fmt.Errorf("expected no mirrored EndpointSlice, got: %d", len(esList.Items))
+							}
+							return nil
+						}, 2*time.Minute, 6*time.Second).Should(Succeed())
+					},
+					Entry(
+						"L2 dualstack primary UDN",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer2",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "secondary",
+						},
+					),
+					Entry(
+						"L3 dualstack primary UDN",
+						networkAttachmentConfigParams{
+							name:     nadName,
+							topology: "layer3",
+							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
+							role:     "secondary",
+						},
+					),
 				)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("deploying the backend pods")
-				replicas := 3
-				for i := 0; i < replicas; i++ {
-					runUDNPod(cs, f.Namespace.Name,
-						*podConfig(fmt.Sprintf("backend-%d", i), func(cfg *podConfiguration) {
-							cfg.namespace = f.Namespace.Name
-							// Add the net-attach annotation for secondary networks
-							if netConfig.role == "secondary" {
-								cfg.attachments = []nadapi.NetworkSelectionElement{{Name: netConfig.name}}
-							}
-						}),
-						func(pod *corev1.Pod) {
-							if pod.Labels == nil {
-								pod.Labels = map[string]string{}
-							}
-							pod.Labels["app"] = "test"
-
-						})
-				}
-
-				By("creating the service")
-				svc := e2eservice.CreateServiceSpec("test-service", "", false, map[string]string{"app": "test"})
-				familyPolicy := corev1.IPFamilyPolicyPreferDualStack
-				svc.Spec.IPFamilyPolicy = &familyPolicy
-				_, err = cs.CoreV1().Services(f.Namespace.Name).Create(context.Background(), svc, metav1.CreateOptions{})
-				framework.ExpectNoError(err, "Failed creating service %v", err)
-
-				By("asserting the mirrored EndpointSlice does not exist")
-				Eventually(func() error {
-					esList, err := cs.DiscoveryV1().EndpointSlices(f.Namespace.Name).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "k8s.ovn.org/service-name", svc.Name)})
-					if err != nil {
-						return err
-					}
-
-					if len(esList.Items) != 0 {
-						return fmt.Errorf("expected no mirrored EndpointSlice, got: %d", len(esList.Items))
-					}
-					return nil
-				}, 2*time.Minute, 6*time.Second).Should(Succeed())
 			},
-			Entry(
-				"L2 dualstack primary UDN",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer2",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "secondary",
-				},
-			),
-			Entry(
-				"L3 dualstack primary UDN",
-				networkAttachmentConfigParams{
-					name:     nadName,
-					topology: "layer3",
-					cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
-					role:     "secondary",
-				},
-			),
+			Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) error {
+				netConfig := newNetworkAttachmentConfig(c)
+				nad := generateNAD(netConfig)
+				_, err := nadClient.NetworkAttachmentDefinitions(f.Namespace.Name).Create(context.Background(), nad, metav1.CreateOptions{})
+				return err
+			}),
+			Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) error {
+				udnManifest := generateUserDefinedNetworkManifest(&c)
+				cleanup, err := createManifest(f.Namespace.Name, udnManifest)
+				DeferCleanup(cleanup)
+				Expect(waitForUserDefinedNetworkReady(f.Namespace.Name, c.name, 5*time.Second)).To(Succeed())
+				return err
+			}),
 		)
 	})
 })
