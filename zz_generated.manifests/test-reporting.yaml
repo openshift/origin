@@ -79,29 +79,61 @@ spec:
   - featureGate: NetworkSegmentation
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror
-        EndpointSlices in namespaces not using user defined primary networks L2 dualstack
-        primary UDN'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces
+        not using user defined primary networks L2 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror
-        EndpointSlices in namespaces not using user defined primary networks L3 dualstack
-        primary UDN'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces
+        not using user defined primary networks L3 dualstack primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
-        managed by the default controller for namespaces with user defined primary
-        networks L2 dualstack primary UDN, cluster-networked pods'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
+        controller for namespaces with user defined primary networks L2 dualstack
+        primary UDN, cluster-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
-        managed by the default controller for namespaces with user defined primary
-        networks L2 dualstack primary UDN, host-networked pods'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
+        controller for namespaces with user defined primary networks L2 dualstack
+        primary UDN, host-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
-        managed by the default controller for namespaces with user defined primary
-        networks L3 dualstack primary UDN, cluster-networked pods'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
+        controller for namespaces with user defined primary networks L3 dualstack
+        primary UDN, cluster-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices
-        managed by the default controller for namespaces with user defined primary
-        networks L3 dualstack primary UDN, host-networked pods'
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
+        controller for namespaces with user defined primary networks L3 dualstack
+        primary UDN, host-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork does not mirror EndpointSlices in namespaces not using
+        user defined primary networks L2 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork does not mirror EndpointSlices in namespaces not using
+        user defined primary networks L3 dualstack primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork mirrors EndpointSlices managed by the default controller
+        for namespaces with user defined primary networks L2 dualstack primary UDN,
+        cluster-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork mirrors EndpointSlices managed by the default controller
+        for namespaces with user defined primary networks L2 dualstack primary UDN,
+        host-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork mirrors EndpointSlices managed by the default controller
+        for namespaces with user defined primary networks L3 dualstack primary UDN,
+        cluster-networked pods'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        EndpointSlices mirroring when using openshift ovn-kubernetes created using
+        UserDefinedNetwork mirrors EndpointSlices managed by the default controller
+        for namespaces with user defined primary networks L3 dualstack primary UDN,
+        host-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork
         cannot be deleted when being used'
