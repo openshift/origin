@@ -2,6 +2,7 @@ package watchmachines
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	machineClient "github.com/openshift/client-go/machine/clientset/versioned"
@@ -37,6 +38,37 @@ func (w *machineWatcher) CollectData(ctx context.Context, storageDir string, beg
 
 func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
 	constructedIntervals := monitorapi.Intervals{}
+
+	allMachinePhaseChanges := startingIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		if eventInterval.Message.Reason == monitorapi.MachinePhaseChanged {
+			return true
+		}
+		return false
+	})
+
+	machineNameToPhaseChanges := map[string][]monitorapi.Interval{}
+	for _, machinePhaseChange := range allMachinePhaseChanges {
+		machineName := machinePhaseChange.Locator.Keys[monitorapi.LocatorMachineKey]
+		machineNameToPhaseChanges[machineName] = append(machineNameToPhaseChanges[machineName], machinePhaseChange)
+	}
+
+	for _, phaseChanges := range machineNameToPhaseChanges {
+		previousChangeTime := time.Time{}
+		for _, phaseChange := range phaseChanges {
+			previousPhase := phaseChange.Message.Annotations[monitorapi.AnnotationPreviousPhase]
+			constructedIntervals = append(constructedIntervals,
+				monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
+					Locator(phaseChange.Locator).
+					Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhaseChanged).
+						Constructed(monitorapi.ConstructionOwnerLeaseChecker).
+						WithAnnotation(monitorapi.AnnotationPhase, previousPhase).
+						HumanMessage(fmt.Sprintf("Machine is in %q", previousPhase))).
+					Display().
+					Build(previousChangeTime, phaseChange.From),
+			)
+			previousChangeTime = phaseChange.From
+		}
+	}
 
 	return constructedIntervals, nil
 }

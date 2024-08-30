@@ -205,6 +205,7 @@ const (
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
 
 	MachinePhaseChanged IntervalReason = "MachinePhaseChange"
+	MachinePhase        IntervalReason = "MachinePhase"
 
 	Timeout IntervalReason = "Timeout"
 
@@ -254,6 +255,7 @@ const (
 	AnnotationPathological       AnnotationKey = "pathological"
 	AnnotationConstructed        AnnotationKey = "constructed"
 	AnnotationPhase              AnnotationKey = "phase"
+	AnnotationPreviousPhase      AnnotationKey = "previousPhase"
 	AnnotationIsStaticPod        AnnotationKey = "mirrored"
 	// TODO this looks wrong. seems like it ought to be set in the to/from
 	AnnotationDuration       AnnotationKey = "duration"
@@ -273,10 +275,11 @@ const (
 type ConstructionOwner string
 
 const (
-	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
-	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
-	ConstructionOwnerEtcdLifecycle = "etcd-lifecycle-constructor"
-	ConstructionOwnerLeaseChecker  = "lease-checker"
+	ConstructionOwnerNodeLifecycle    = "node-lifecycle-constructor"
+	ConstructionOwnerPodLifecycle     = "pod-lifecycle-constructor"
+	ConstructionOwnerEtcdLifecycle    = "etcd-lifecycle-constructor"
+	ConstructionOwnerMachineLifecycle = "machine-lifecycle-constructor"
+	ConstructionOwnerLeaseChecker     = "lease-checker"
 )
 
 type Message struct {

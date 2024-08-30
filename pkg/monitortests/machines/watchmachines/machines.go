@@ -20,11 +20,35 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 		func(machine, oldMachine *machine.Machine) []monitorapi.Interval {
 			var intervals []monitorapi.Interval
 			now := time.Now()
-			if machine.Status.Phase != nil && oldMachine.Status.Phase != nil && *machine.Status.Phase != *oldMachine.Status.Phase {
+			oldHasPhase := oldMachine != nil && oldMachine.Status.Phase != nil
+			newHasPhase := machine != nil && machine.Status.Phase != nil
+			oldPhase := "<missing>"
+			newPhase := "<missing>"
+			if oldHasPhase {
+				oldPhase = *oldMachine.Status.Phase
+			}
+			if newHasPhase {
+				newPhase = *machine.Status.Phase
+			}
+
+			nodeName := "<unknown>"
+			oldHasNodeRef := oldMachine != nil && oldMachine.Status.NodeRef != nil
+			newHasNodeRef := machine != nil && machine.Status.NodeRef != nil
+			if oldHasNodeRef {
+				nodeName = oldMachine.Status.NodeRef.Name
+			}
+			if newHasNodeRef {
+				nodeName = machine.Status.NodeRef.Name
+			}
+
+			if oldPhase != newPhase {
 				intervals = append(intervals,
 					monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
 						Locator(monitorapi.NewLocator().MachineFromName(machine.Name)).
-						Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhaseChanged).
+						Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhase).
+							WithAnnotation(monitorapi.AnnotationPhase, newPhase).
+							WithAnnotation(monitorapi.AnnotationPreviousPhase, oldPhase).
+							WithAnnotation(monitorapi.AnnotationNode, nodeName).
 							HumanMessage(fmt.Sprintf("Machine phase changed from %s to %s", *oldMachine.Status.Phase, *machine.Status.Phase))).
 						Build(now, now))
 			}
@@ -35,7 +59,7 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 	nullFunc := []func(machine *machine.Machine) []monitorapi.Interval{
 		func(oldMachine *machine.Machine) []monitorapi.Interval { return nil },
 	}
-	listWatch := cache.NewListWatchFromClient(client.Discovery().RESTClient(), "machines", "openshift-machine-api", fields.Everything())
+	listWatch := cache.NewListWatchFromClient(client.MachineV1beta1().RESTClient(), "machines", "openshift-machine-api", fields.Everything())
 	customStore := monitortestlibrary.NewMonitoringStore(
 		"machines",
 		toNullCreateFns(nullFunc),
