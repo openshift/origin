@@ -85,6 +85,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						var err error
 
 						netConfig.namespace = f.Namespace.Name
+						// correctCIDRFamily makes using the ginkgo framework so it needs to be in the test case
+						netConfig.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 						workerNodes, err := getWorkerNodesOrdered(cs)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(len(workerNodes)).To(BeNumerically(">=", 1))
@@ -126,11 +128,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						}
 					},
 					Entry(
-						"for two pods connected over a L2 dualstack primary UDN",
+						"for two pods connected over a L2 primary UDN",
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer2",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "primary",
 						},
 						*podConfig(
@@ -141,11 +142,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						})),
 					),
 					Entry(
-						"two pods connected over a L3 dualstack primary UDN",
+						"two pods connected over a L3 primary UDN",
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer3",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "primary",
 						},
 						*podConfig(
@@ -177,6 +177,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 						By("creating the network")
 						netConfigParams.namespace = f.Namespace.Name
+						// correctCIDRFamily makes using the ginkgo framework so it needs to be in the test case
+						netConfigParams.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 						Expect(createNetworkFn(netConfigParams)).To(Succeed())
 						Expect(err).NotTo(HaveOccurred())
 
@@ -346,11 +348,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						}
 					},
 					Entry(
-						"with L2 dualstack primary UDN",
+						"with L2 primary UDN",
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer2",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "primary",
 						},
 						*podConfig("udn-pod", withCommand(func() []string {
@@ -358,11 +359,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						})),
 					),
 					Entry(
-						"with L3 dualstack primary UDN",
+						"with L3 primary UDN",
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer3",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "primary",
 						},
 						*podConfig("udn-pod", withCommand(func() []string {
@@ -676,7 +676,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			Expect(err).NotTo(HaveOccurred())
 
 			By("create primary network UserDefinedNetwork")
-			cleanup, err := createManifest(f.Namespace.Name, newPrimaryUserDefinedNetworkManifest(primaryUdnName))
+			cleanup, err := createManifest(f.Namespace.Name, newPrimaryUserDefinedNetworkManifest(oc, primaryUdnName))
 			DeferCleanup(cleanup)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -768,7 +768,7 @@ func waitForUserDefinedNetworkReady(namespace, name string, timeout time.Duratio
 	return err
 }
 
-func newPrimaryUserDefinedNetworkManifest(name string) string {
+func newPrimaryUserDefinedNetworkManifest(oc *exutil.CLI, name string) string {
 	return `
 apiVersion: k8s.ovn.org/v1
 kind: UserDefinedNetwork
@@ -778,10 +778,28 @@ spec:
   topology: Layer3
   layer3:
     role: Primary
-    subnets:
+    subnets: ` + generateCIDRforUDN(oc)
+}
+
+func generateCIDRforUDN(oc *exutil.CLI) string {
+	hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
+	Expect(err).NotTo(HaveOccurred())
+
+	cidr := `
+    - cidr: 10.20.100.0/16
+`
+	if hasIPv6 && hasIPv4 {
+		cidr = `
     - cidr: 10.20.100.0/16
     - cidr: 2014:100:200::0/60
 `
+	} else if hasIPv6 {
+		cidr = `
+    - cidr: 2014:100:200::0/60
+`
+	}
+	return cidr
+
 }
 
 func newUserDefinedNetworkManifest(name string) string {
@@ -1069,6 +1087,24 @@ func networkSelectionElements(elements ...nadapi.NetworkSelectionElement) map[st
 
 func httpServerContainerCmd(port uint16) []string {
 	return []string{"netexec", "--http-port", fmt.Sprintf("%d", port)}
+}
+
+// takes the CLI, ipv4 and ipv6 cidrs and returns the correct cidr family for the cluster under test
+func correctCIDRFamily(oc *exutil.CLI, ipv4CIDR, ipv6CIDR string) string {
+	hasIPv4, hasIPv6, err := GetIPAddressFamily(oc)
+	Expect(err).NotTo(HaveOccurred())
+	// dual stack cluster
+	if hasIPv6 && hasIPv4 {
+		return strings.Join([]string{ipv4CIDR, ipv6CIDR}, ",")
+
+	}
+	// single stack ipv6 cluster
+	if hasIPv6 {
+		return ipv6CIDR
+	}
+	// ipv4 single stack cluster
+	return ipv4CIDR
+
 }
 
 func getNetCIDRSubnet(netCIDR string) (string, error) {
