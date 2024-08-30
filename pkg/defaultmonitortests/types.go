@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptioninclusterapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionlegacyapiservers"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/faultyloadbalancer"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/legacykubeapiservermonitortests"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/disruptionmetricsapi"
 	"github.com/openshift/origin/pkg/monitortests/monitoring/statefulsetsrecreation"
@@ -128,6 +129,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("monitoring-statefulsets-recreation", "Monitoring", statefulsetsrecreation.NewStatefulsetsChecker())
 	monitorTestRegistry.AddMonitorTestOrDie("metrics-api-availability", "Monitoring", disruptionmetricsapi.NewAvailabilityInvariant())
 	monitorTestRegistry.AddMonitorTestOrDie(apiunreachablefromclientmetrics.MonitorName, "kube-apiserver", apiunreachablefromclientmetrics.NewMonitorTest())
+	monitorTestRegistry.AddMonitorTestOrDie(faultyloadbalancer.MonitorName, "kube-apiserver", faultyloadbalancer.NewMonitorTest())
 
 	return monitorTestRegistry
 }
