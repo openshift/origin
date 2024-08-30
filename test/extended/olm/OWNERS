@@ -1,17 +1,20 @@
 reviewers:
-  - njhale
+  - grokspawn
+  - m1kola
+  - everettraven
+  - tmshort
+  - perdasilva
+  - LalatenduMohanty
+  - dtfranz
   - kevinrizza
-  - benluddy
   - dinhxuanvu
   - anik120
-  - exdx
-  - awgreene
-  - hasbro17
   - ankitathomas
   - joelanford
-  - timflannagan
 approvers:
-  - njhale
+  - joelanford
+  - perdasilva
+  - tmshort
+  - grokspawn
+  - LalatenduMohanty
   - kevinrizza
-  - benluddy
-  - awgreene
