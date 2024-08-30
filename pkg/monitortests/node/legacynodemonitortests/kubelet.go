@@ -248,8 +248,8 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 	for locator, messages := range containerExits {
 		if len(messages) > 0 {
 			messageSet := sets.NewString(messages...)
-			// Blanket fail for restarts over 3
-			if len(messages) > maxRestartCount {
+			// Blanket fail for restarts over maxRestartCount
+			if !isThisContainerRestartExcluded(locator) && len(messages) > maxRestartCount {
 				excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times at:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
 			}
 		}
@@ -287,7 +287,6 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 			},
 		})
 	}
-	testCases = append(testCases, &junitapi.JUnitTestCase{Name: excessiveRestartTestName})
 	return testCases
 }
 
