@@ -1127,6 +1127,8 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][Feature:CertRotation][Suite:openshift/etcd/certrotation] etcd can recreate trust bundle [Timeout:15m]": "",
 
+	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Disruptive] etcd is able to block the rollout of a revision when the quorum is not safe": " [Serial]",
+
 	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:2h] [Feature:EtcdRecovery][Disruptive] Recover with snapshot with two unhealthy nodes and lost quorum": " [Serial]",
 
 	"[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:30m] [Feature:EtcdRecovery][Disruptive] Restore snapshot from node on another single unhealthy node": " [Serial]",
