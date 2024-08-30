@@ -49,7 +49,7 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 							WithAnnotation(monitorapi.AnnotationPhase, newPhase).
 							WithAnnotation(monitorapi.AnnotationPreviousPhase, oldPhase).
 							WithAnnotation(monitorapi.AnnotationNode, nodeName).
-							HumanMessage(fmt.Sprintf("Machine phase changed from %s to %s", *oldMachine.Status.Phase, *machine.Status.Phase))).
+							HumanMessage(fmt.Sprintf("Machine phase changed from %s to %s", oldPhase, newPhase))).
 						Build(now, now))
 			}
 			return intervals
@@ -64,7 +64,7 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 		"machines",
 		toNullCreateFns(nullFunc),
 		toUpdateFns(machinePhaseChangeFns),
-		toDeleteFns(nullFunc),
+		toNullDeleteFns(nullFunc),
 		m,
 		m,
 	)
@@ -77,7 +77,7 @@ func toNullCreateFns([]func(_ *machine.Machine) []monitorapi.Interval) []monitor
 	return ret
 }
 
-func toDeleteFns(_ []func(pod *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjDeleteFunc {
+func toNullDeleteFns(_ []func(pod *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjDeleteFunc {
 	ret := []monitortestlibrary.ObjDeleteFunc{}
 	return ret
 }

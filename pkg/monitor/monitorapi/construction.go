@@ -112,7 +112,7 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 func (b *LocatorBuilder) MachineFromName(machineName string) Locator {
 	return b.
 		withTargetType(LocatorTypeMachine).
-		withNode(machineName).
+		withMachine(machineName).
 		Build()
 }
 
