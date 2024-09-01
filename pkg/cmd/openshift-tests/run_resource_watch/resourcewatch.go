@@ -1,4 +1,4 @@
-package cmd
+package run_resource_watch
 
 import (
 	"github.com/openshift/origin/pkg/resourcewatch/operator"

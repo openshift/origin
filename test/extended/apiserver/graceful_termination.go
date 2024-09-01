@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -58,6 +59,42 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 		if len(messages) > 0 {
 			result.Flakef("kube-apiserver reported a non-graceful termination (after %s which is test environment dependent). Probably kubelet or CRI-O is not giving the time to cleanly shut down. This can lead to connection refused and network I/O timeout errors in other components.\n\n%s", eventsAfterTime, strings.Join(messages, "\n"))
+		}
+	})
+
+	// This test extends the previous test by checking the content of the termination files for kube-apiservers.
+	// It should catch cases where the event is not persisted in the database. It should also catch
+	// cases where the KAS is immediately restarted or shut down after an ungraceful termination.
+	g.It("kubelet terminates kube-apiserver gracefully extended", func() {
+		var finalMessageBuilder strings.Builder
+		terminationRegexp := regexp.MustCompile(`Previous pod .* did not terminate gracefully`)
+
+		masters, err := oc.AsAdmin().KubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: "node-role.kubernetes.io/master"})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		for _, master := range masters.Items {
+			g.By(fmt.Sprintf("Getting log files for kube-apiserver on master: %s", master.Name))
+			kasLogFileNames, _, err := oc.AsAdmin().Run("adm").Args("node-logs", master.Name, "--path=kube-apiserver/").Outputs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			for _, kasLogFileName := range strings.Split(kasLogFileNames, "\n") {
+				if !isKASTerminationLogFile(kasLogFileName) {
+					continue
+				}
+				g.By(fmt.Sprintf("Getting and processing %s file for kube-apiserver on master: %s", kasLogFileName, master.Name))
+				kasTerminationFileOutput, _, err := oc.AsAdmin().Run("adm").Args("node-logs", master.Name, fmt.Sprintf("--path=kube-apiserver/%s", kasLogFileName)).Outputs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				kasTerminationFileReader := strings.NewReader(kasTerminationFileOutput)
+				kasTerminationFileScanner := bufio.NewScanner(kasTerminationFileReader)
+				for kasTerminationFileScanner.Scan() {
+					line := kasTerminationFileScanner.Text()
+					if terminationRegexp.MatchString(line) {
+						finalMessageBuilder.WriteString(fmt.Sprintf("\n kube-apiserver on node %s wasn't gracefully terminated, reason: %s", master.Name, line))
+					}
+				}
+				o.Expect(kasTerminationFileScanner.Err()).NotTo(o.HaveOccurred())
+			}
+		}
+		if len(finalMessageBuilder.String()) > 0 {
+			g.GinkgoT().Errorf("The following API Servers weren't gracefully terminated: %v", finalMessageBuilder.String())
 		}
 	})
 
@@ -257,4 +294,8 @@ func extractAPIServerNameFromAuditFile(auditFileName string) string {
 		return ""
 	}
 	return auditFileName[0:pos]
+}
+
+func isKASTerminationLogFile(fileName string) bool {
+	return strings.Contains(fileName, "termination")
 }

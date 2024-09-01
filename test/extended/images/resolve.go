@@ -175,6 +175,36 @@ var _ = g.Describe("[sig-imageregistry][Feature:ImageLookup] Image policy", func
 		sts, err = oc.KubeClient().AppsV1().StatefulSets(oc.Namespace()).Patch(context.Background(), sts.Name, types.StrategicMergePatchType, []byte(`{"spec": {"template": {"spec": {"containers": [{"name": "resolve", "image": "busybox:latest"}]}}}}`), metav1.PatchOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(sts.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
+
+		// deployments should auto replace local references
+		dc, err := oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Create(ctx, &kappsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "resolve"},
+			Spec: kappsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"resolve": "true"},
+				},
+				Template: kapiv1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{"resolve": "true"},
+					},
+					Spec: kapiv1.PodSpec{
+						TerminationGracePeriodSeconds: &one,
+						Containers: []kapiv1.Container{
+							{Name: "resolve", Image: "busybox:latest", Command: []string{"/bin/true"}},
+						},
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
+		defer func() {
+			oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Delete(ctx, dc.Name, metav1.DeleteOptions{})
+		}()
+
+		dc, err = oc.AdminKubeClient().AppsV1().Deployments(oc.Namespace()).Patch(context.Background(), dc.Name, types.StrategicMergePatchType, []byte(`{"spec": {"template": {"spec": {"containers": [{"name": "resolve", "image": "busybox:latest"}]}}}}`), metav1.PatchOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(internalImageReference))
 	})
 
 	g.It("should update OpenShift object image fields when local names are on [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {

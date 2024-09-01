@@ -36,6 +36,8 @@ type MonitorTestInitializationInfo struct {
 	DisableMonitorTests []string
 }
 
+type OpenshiftTestImageGetterFunc func(ctx context.Context, adminRESTConfig *rest.Config) (imagePullSpec string, notSupportedReason string, err error)
+
 type MonitorTest interface {
 	// StartCollection is responsible for setting up all resources required for collection of data on the cluster.
 	// An error will not stop execution, but will cause a junit failure that will cause the job run to fail.

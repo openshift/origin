@@ -24,7 +24,7 @@ spec:
     - command: ['/bin/bash', '-ec']
       args:
         - |
-          chroot /host-root journalctl -o short-iso -t 'systemd-logind' -g "rebooting" -q
+          chroot /host-root journalctl -o short-iso -t 'systemd-logind' -g "rebooting" -q || true
       image: image-registry.openshift-image-registry.svc:5000/openshift/tools:latest
       name: reboots
       terminationMessagePolicy: FallbackToLogsOnError

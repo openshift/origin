@@ -1,8 +1,6 @@
 package disruptionpodnetwork
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"embed"
 	_ "embed"
@@ -28,8 +26,8 @@ import (
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/disruptionlibrary"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/openshift/origin/test/extended/util/image"
 )
@@ -90,18 +88,6 @@ func NewPodNetworkAvalibilityInvariant(info monitortestframework.MonitorTestInit
 	}
 }
 
-func updateDeploymentENVs(deployment *appsv1.Deployment, deploymentID, serviceClusterIP string) *appsv1.Deployment {
-	for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
-		if env.Name == "DEPLOYMENT_ID" {
-			deployment.Spec.Template.Spec.Containers[0].Env[i].Value = deploymentID
-		} else if env.Name == "SERVICE_CLUSTER_IP" && len(serviceClusterIP) > 0 {
-			deployment.Spec.Template.Spec.Containers[0].Env[i].Value = serviceClusterIP
-		}
-	}
-
-	return deployment
-}
-
 func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	deploymentID := uuid.New().String()
 
@@ -126,6 +112,15 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
+	// Wait for pull secrets to have been created for the namespace default service accounts
+	defaultSAAccounts := []string{"default", "builder", "deployer"}
+	for _, sa := range defaultSAAccounts {
+		err = pna.waitForSASecrets(ctx, sa)
+		if err != nil {
+			return err
+		}
+	}
+
 	// our pods tolerate masters, so create one for each of them.
 	nodes, err := pna.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -135,25 +130,25 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 
 	podNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	podNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-	podNetworkToPodNetworkPollerDeployment = updateDeploymentENVs(podNetworkToPodNetworkPollerDeployment, deploymentID, "")
+	podNetworkToPodNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(podNetworkToPodNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	podNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	podNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-	podNetworkToHostNetworkPollerDeployment = updateDeploymentENVs(podNetworkToHostNetworkPollerDeployment, deploymentID, "")
+	podNetworkToHostNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(podNetworkToHostNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), podNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	hostNetworkToPodNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToPodNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-	hostNetworkToPodNetworkPollerDeployment = updateDeploymentENVs(hostNetworkToPodNetworkPollerDeployment, deploymentID, "")
+	hostNetworkToPodNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(hostNetworkToPodNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToPodNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	hostNetworkToHostNetworkPollerDeployment.Spec.Replicas = &numNodes
 	hostNetworkToHostNetworkPollerDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-	hostNetworkToHostNetworkPollerDeployment = updateDeploymentENVs(hostNetworkToHostNetworkPollerDeployment, deploymentID, "")
+	hostNetworkToHostNetworkPollerDeployment = disruptionlibrary.UpdateDeploymentENVs(hostNetworkToHostNetworkPollerDeployment, deploymentID, "")
 	if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkToHostNetworkPollerDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
@@ -181,7 +176,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 
 	// we need to have the service network pollers wait until we have at least one healthy endpoint before starting.
-	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 120*time.Second, true, pna.serviceHasEndpoints)
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 300*time.Second, true, pna.serviceHasEndpoints)
 	if err != nil {
 		return err
 	}
@@ -189,7 +184,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	for _, deployment := range []*appsv1.Deployment{podNetworkServicePollerDep, hostNetworkServicePollerDep} {
 		deployment.Spec.Replicas = &numNodes
 		deployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
-		deployment = updateDeploymentENVs(deployment, deploymentID, service.Spec.ClusterIP)
+		deployment = disruptionlibrary.UpdateDeploymentENVs(deployment, deploymentID, service.Spec.ClusterIP)
 		if _, err = pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), deployment, metav1.CreateOptions{}); err != nil {
 			return err
 		}
@@ -265,72 +260,8 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 	if err != nil {
 		return nil, nil, []error{err}
 	}
-	pollerPods, err := pna.kubeClient.CoreV1().Pods(pna.namespaceName).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.NewSelector().Add(*pollerLabel).Add(*typeLabel).String(),
-	})
-	if err != nil {
-		return nil, nil, []error{err}
-	}
-
-	retIntervals := monitorapi.Intervals{}
-	junits := []*junitapi.JUnitTestCase{}
-	errs := []error{}
-	buf := &bytes.Buffer{}
-	podsWithoutIntervals := []string{}
-	for _, pollerPod := range pollerPods.Items {
-		fmt.Fprintf(buf, "\n\nLogs for -n %v pod/%v\n", pollerPod.Namespace, pollerPod.Name)
-		req := pna.kubeClient.CoreV1().Pods(pna.namespaceName).GetLogs(pollerPod.Name, &corev1.PodLogOptions{})
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		logStream, err := req.Stream(ctx)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		foundInterval := false
-		scanner := bufio.NewScanner(logStream)
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			buf.Write(line)
-			buf.Write([]byte("\n"))
-			if len(line) == 0 {
-				continue
-			}
-
-			// not all lines are json, ignore errors.
-			if currInterval, err := monitorserialization.IntervalFromJSON(line); err == nil {
-				retIntervals = append(retIntervals, *currInterval)
-				foundInterval = true
-			}
-		}
-		if !foundInterval {
-			podsWithoutIntervals = append(podsWithoutIntervals, pollerPod.Name)
-		}
-	}
-
-	failures := []string{}
-	if len(podsWithoutIntervals) > 0 {
-		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
-	}
-	if len(pollerPods.Items) == 0 {
-		failures = append(failures, "no pods found for poller %q", typeOfConnection)
-	}
-
-	logJunit := &junitapi.JUnitTestCase{
-		Name:      fmt.Sprintf("[sig-network] can collect %v poller pod logs", typeOfConnection),
-		SystemOut: string(buf.Bytes()),
-	}
-	if len(failures) > 0 {
-		logJunit.FailureOutput = &junitapi.FailureOutput{
-			Output: strings.Join(failures, "\n"),
-		}
-	}
-	junits = append(junits, logJunit)
-
-	return retIntervals, junits, errs
+	labelSelector := labels.NewSelector().Add(*pollerLabel).Add(*typeLabel)
+	return disruptionlibrary.CollectIntervalsForPods(ctx, pna.kubeClient, "sig-network", pna.namespaceName, labelSelector)
 }
 
 func (pna *podNetworkAvalibility) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (constructedIntervals monitorapi.Intervals, err error) {
@@ -375,4 +306,33 @@ func (pna *podNetworkAvalibility) Cleanup(ctx context.Context) error {
 
 	}
 	return nil
+}
+
+func (pna *podNetworkAvalibility) waitForSASecrets(ctx context.Context, name string) error {
+	waitFn := func(ctx context.Context) (bool, error) {
+		sa, err := pna.kubeClient.CoreV1().ServiceAccounts(pna.namespaceName).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			// If we can't access the service accounts, let's wait till the controller
+			// create it.
+			if apierrors.IsNotFound(err) || apierrors.IsForbidden(err) {
+				klog.Infof("Waiting for service account %q to be available: %v (will retry) ...", name, err)
+				return false, nil
+			}
+			return false, fmt.Errorf("failed to get service account %q: %v", name, err)
+		}
+		secretNames := []string{}
+		var hasDockercfg bool
+		for _, s := range sa.ImagePullSecrets {
+			if strings.Contains(s.Name, "-dockercfg-") {
+				hasDockercfg = true
+			}
+			secretNames = append(secretNames, s.Name)
+		}
+		if hasDockercfg {
+			return true, nil
+		}
+		klog.Infof("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))
+		return false, nil
+	}
+	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 3*time.Minute, true, waitFn)
 }

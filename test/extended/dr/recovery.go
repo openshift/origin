@@ -21,8 +21,13 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 	oc := exutil.NewCLIWithoutNamespace("recovery")
 
 	g.AfterEach(func() {
+		g.GinkgoT().Log("turning the quorum guard back on")
+		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": false}}}`)
+		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
 		g.GinkgoT().Log("waiting to delete post backup resources....")
-		err := removePostBackupResources(oc)
+		err = removePostBackupResources(oc)
 		err = errors.Wrap(err, "post backup resources cleanup timed out")
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
@@ -81,9 +86,14 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 	oc := exutil.NewCLIWithoutNamespace("recovery")
 
 	g.AfterEach(func() {
+		g.GinkgoT().Log("turning the quorum guard back on")
+		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": false}}}`)
+		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
 		// we need to ensure this test also ends with a stable revision for api and etcd
 		g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
-		err := waitForApiServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = waitForApiServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
 		err = errors.Wrap(err, "cleanup timed out waiting for APIServer pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 

@@ -180,7 +180,11 @@ func (m *recorder) RecordAt(t time.Time, conditions ...monitorapi.Condition) {
 func (m *recorder) snapshot() monitorapi.Intervals {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	return m.events
+	eventsCopy := make(monitorapi.Intervals, len(m.events))
+	for i, event := range m.events {
+		eventsCopy[i] = event
+	}
+	return eventsCopy
 }
 
 // Intervals returns all events that occur between from and to, including

@@ -134,18 +134,6 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			expectedAllowName: "AllowBackOffRestartingFailedContainer",
 		},
 		{
-			name: "leaky statefulsets events",
-			locator: monitorapi.Locator{
-				Keys: map[monitorapi.LocatorKey]string{
-					monitorapi.LocatorNamespaceKey: "openshift-monitoring",
-				},
-			},
-
-			msg: monitorapi.NewMessage().HumanMessage("StatefulSet openshift-monitoring/prometheus-k8s is recreating terminated Pod prometheus-k8s-0").
-				Reason("RecreatingTerminatedPod").Build(),
-			expectedAllowName: "LeakyStatefulsetEvents",
-		},
-		{
 			name: "pod sandbox matches but is not allowed to repeat pathologically",
 			locator: monitorapi.Locator{
 				Keys: map[monitorapi.LocatorKey]string{

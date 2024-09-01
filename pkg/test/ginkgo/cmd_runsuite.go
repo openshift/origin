@@ -18,12 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
-
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
@@ -31,6 +25,11 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -590,13 +589,16 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 	}
 	// TODO: this version along with below exclusions lists needs to be updated
 	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "30") {
+	if !strings.HasPrefix(serverVersion.Minor, "31") {
 		return tests, nil
 	}
 
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
-	exclusions := []string{}
+	exclusions := []string{
+		// affected by the available controller split https://github.com/kubernetes/kubernetes/pull/126149
+		`[sig-api-machinery] health handlers should contain necessary checks`,
+	}
 
 	matches := make([]*testCase, 0, len(tests))
 outerLoop:

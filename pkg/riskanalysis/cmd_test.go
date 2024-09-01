@@ -67,8 +67,8 @@ func TestRequestRiskAnalysisSuccessAfterRetry(t *testing.T) {
 
 	tmp := t.TempDir()
 	opt := &Options{SippyURL: url, JUnitDir: tmp}
-	req, _ := http.NewRequest("GET", opt.SippyURL, nil)
-	raContent, err := opt.requestRiskAnalysis(req, client, &mockSleeper{})
+	// req, _ := http.NewRequest("GET", opt.SippyURL, nil)
+	raContent, err := opt.requestRiskAnalysis(make([]byte, 0), client, &mockSleeper{})
 	assert.NoError(t, err, "Failed to read the request content")
 	assert.Equal(t, reqContent, string(raContent))
 
@@ -98,8 +98,8 @@ func TestRequestRiskAnalysisAllRetriesFail(t *testing.T) {
 
 	tmp := t.TempDir()
 	opt := &Options{SippyURL: url, JUnitDir: tmp}
-	req, _ := http.NewRequest("GET", opt.SippyURL, nil)
-	_, err := opt.requestRiskAnalysis(req, client, &mockSleeper{})
+	// req, _ := http.NewRequest("GET", opt.SippyURL, nil)
+	_, err := opt.requestRiskAnalysis(make([]byte, 0), client, &mockSleeper{})
 	assert.Error(t, err, "Should fail to request RA content")
 
 	// Attempt to load JSON from the expected log file
@@ -113,7 +113,7 @@ func TestRequestRiskAnalysisAllRetriesFail(t *testing.T) {
 	}
 	err = json.Unmarshal(fileContent, &data)
 	assert.NoError(t, err, "Log file content is not valid JSON")
-	assert.Equal(t, 3, len(data.Rows), "expect three attempts that fail")
+	assert.Equal(t, 4, len(data.Rows), "expect four attempts that fail")
 }
 
 func TestWriteRAResultsWritesDataCorrectly(t *testing.T) {

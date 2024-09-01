@@ -108,6 +108,8 @@ const (
 	LocatorTypeClusterVersion  LocatorType = "ClusterVersion"
 	LocatorTypeKind            LocatorType = "Kind"
 	LocatorTypeCloudMetrics    LocatorType = "CloudMetrics"
+
+	LocatorTypeAPIUnreachableFromClient LocatorType = "APIUnreachableFromClient"
 )
 
 type LocatorKey string
@@ -141,6 +143,8 @@ const (
 	LocatorRowKey                   LocatorKey = "row"
 	LocatorServerKey                LocatorKey = "server"
 	LocatorMetricKey                LocatorKey = "metric"
+
+	LocatorAPIUnreachableHostKey LocatorKey = "host"
 )
 
 type Locator struct {
@@ -188,9 +192,12 @@ const (
 	PodReasonDeletedBeforeScheduling IntervalReason = "DeletedBeforeScheduling"
 	PodReasonDeletedAfterCompletion  IntervalReason = "DeletedAfterCompletion"
 
-	NodeUpdateReason   IntervalReason = "NodeUpdate"
-	NodeNotReadyReason IntervalReason = "NotReady"
-	NodeFailedLease    IntervalReason = "FailedToUpdateLease"
+	NodeUpdateReason                IntervalReason = "NodeUpdate"
+	NodeNotReadyReason              IntervalReason = "NotReady"
+	NodeFailedLease                 IntervalReason = "FailedToUpdateLease"
+	NodeUnexpectedReadyReason       IntervalReason = "UnexpectedNotReady"
+	NodeUnexpectedUnreachableReason IntervalReason = "UnexpectedUnreachable"
+	NodeUnreachable                 IntervalReason = "Unreachable"
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
@@ -212,6 +219,13 @@ const (
 	UpgradeCompleteReason IntervalReason = "UpgradeComplete"
 
 	NodeInstallerReason IntervalReason = "NodeInstaller"
+
+	// client metrics show error connecting to the kube-apiserver
+	APIUnreachableFromClientMetrics IntervalReason = "APIUnreachableFromClientMetrics"
+
+	LeaseAcquiring        IntervalReason = "Acquiring"
+	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
+	LeaseAcquired         IntervalReason = "Acquired"
 )
 
 type AnnotationKey string
@@ -258,6 +272,7 @@ const (
 	ConstructionOwnerNodeLifecycle = "node-lifecycle-constructor"
 	ConstructionOwnerPodLifecycle  = "pod-lifecycle-constructor"
 	ConstructionOwnerEtcdLifecycle = "etcd-lifecycle-constructor"
+	ConstructionOwnerLeaseChecker  = "lease-checker"
 )
 
 type Message struct {
@@ -283,6 +298,8 @@ const (
 	SourceKubeEvent                 IntervalSource = "KubeEvent"
 	SourceNetworkManagerLog         IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor               IntervalSource = "NodeMonitor"
+	SourceUnexpectedReady           IntervalSource = "NodeUnexpectedNotReady"
+	SourceUnreachable               IntervalSource = "NodeUnreachable"
 	SourceKubeletLog                IntervalSource = "KubeletLog"
 	SourcePodLog                    IntervalSource = "PodLog"
 	SourceEtcdLog                   IntervalSource = "EtcdLog"
@@ -300,6 +317,8 @@ const (
 	SourceNodeState                              = "NodeState"
 	SourcePodState                               = "PodState"
 	SourceCloudMetrics                           = "CloudMetrics"
+
+	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
 )
 
 type Interval struct {

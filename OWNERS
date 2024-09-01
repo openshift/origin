@@ -9,6 +9,7 @@ filters:
     - stlaz
     - p0lyn0mial
     approvers:
+    - bertinatto
     - DennisPeriquet
     - deads2k
     - dgoodwin
@@ -16,6 +17,7 @@ filters:
     - soltysh
     - stbenjam
     - xueqzhan
+    - sosiouxme
   "^\\.go.(mod|sum)$":
     labels:
     - "vendor-update"

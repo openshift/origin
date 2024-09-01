@@ -7,10 +7,8 @@ import (
 	"syscall"
 
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
-
 	"github.com/openshift/origin/pkg/resourcewatch/controller/configmonitor"
 	"github.com/openshift/origin/pkg/resourcewatch/storage"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -64,6 +62,7 @@ func RunResourceWatch() error {
 	dynamicInformer := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 0)
 
 	resourcesToWatch := []schema.GroupVersionResource{
+		// provide high level details of configuration that feeds operator behavior
 		configResource("apiservers"),
 		configResource("authentications"),
 		configResource("builds"),
@@ -83,6 +82,8 @@ func RunResourceWatch() error {
 		configResource("projects"),
 		configResource("proxies"),
 		configResource("schedulers"),
+
+		// operator resources provide low level details about how what operators are doing
 		operatorResource("authentications"),
 		operatorResource("cloudcredentials"),
 		operatorResource("clustercsidrivers"),
@@ -102,12 +103,28 @@ func RunResourceWatch() error {
 		operatorResource("openshiftcontrollermanagers"),
 		operatorResource("servicecas"),
 		operatorResource("storages"),
+
+		// machine resources are required to reason about the happenings of nodes
+		resource("machine.openshift.io", "v1", "controlplanemachinesets"),
+		resource("machine.openshift.io", "v1beta1", "machinehealthchecks"),
+		resource("machine.openshift.io", "v1beta1", "machines"),
+		resource("machine.openshift.io", "v1beta1", "machinesets"),
+
+		// describes the behavior of operand rollouts
 		appResource("deployments"),
 		appResource("daemonsets"),
 		appResource("statefulsets"),
 		appResource("replicasets"),
+
+		// describe notable happenings
 		resource("events.k8s.io", "v1", "events"),
+
+		// describes the behavior of node drains
 		resource("policy", "v1", "poddisruptionbudgets"),
+
+		// describes behavior of service endpoints
+		resource("discovery.k8s.io", "v1", "endpointslices"),
+
 		coreResource("pods"),
 		coreResource("nodes"),
 		coreResource("replicationcontrollers"),

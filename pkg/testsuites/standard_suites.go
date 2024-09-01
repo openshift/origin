@@ -228,9 +228,18 @@ var staticSuites = []ginkgo.TestSuite{
 	{
 		Name: "openshift/csi",
 		Description: templates.LongDesc(`
-		Run tests for an CSI driver. Set the TEST_CSI_DRIVER_FILES environment variable to the name of file with
-		CSI driver test manifest. The manifest specifies Kubernetes + CSI features to test with the driver.
-		See https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/external/README.md for required format of the file.
+		Run tests for an CSI driver. The CSI driver tests are configured by two yaml file manifests.
+		TEST_CSI_DRIVER_FILES environment variable must be a name of file with the upstream
+		CSI driver test manifest. See
+		https://github.com/openshift/kubernetes/blob/master/test/e2e/storage/external/README.md for
+		required format of the file. Replace "master" with the OpenShift version you are testing
+		against, e.g. "blob/release-4.17/test/..."
+		TEST_OCP_CSI_DRIVER_FILES environment is optional and when set, must be a name of file
+		with the OCP specific CSI driver test manifest. By specifying this file, the test suite will
+		run the OCP specific tests in addition to the upstream tests. See
+		https://github.com/openshift/origin/tree/master/test/extended/storage/csi for required format
+		of the file. Replace "master" with the OpenShift version you are testing against, e.g.
+		"blob/release-4.17/test/..."
 		`),
 		Matches: func(name string) bool {
 			if isDisabled(name) {
@@ -370,6 +379,21 @@ var staticSuites = []ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/etcd/certrotation") || strings.Contains(name, "[Feature:CertRotation]") || isStandardEarlyOrLateTest(name)
 		},
 		TestTimeout:                60 * time.Minute,
+		Parallelism:                1,
+		ClusterStabilityDuringTest: ginkgo.Stable,
+	},
+	{
+		Name: "openshift/kube-apiserver/rollout",
+		Description: templates.LongDesc(`
+		This test suite runs kube-apiserver rollout reliability.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/kube-apiserver/rollout") || isStandardEarlyOrLateTest(name)
+		},
+		TestTimeout:                90 * time.Minute,
 		Parallelism:                1,
 		ClusterStabilityDuringTest: ginkgo.Stable,
 	},

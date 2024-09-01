@@ -18,7 +18,7 @@ const (
 	clusterConfigName = "cluster"
 )
 
-var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB", func() {
+var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io] Image Registry Config ChunkSizeMiB", func() {
 	defer g.GinkgoRecover()
 	var (
 		ctx                = context.Background()
@@ -30,6 +30,9 @@ var _ = g.Describe("[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Conformance
 	o.SetDefaultEventuallyPollingInterval(5 * time.Second)
 
 	g.BeforeEach(func() {
+
+		skipIfNotS3Storage(oc)
+
 		imageRegistryConfigClient, err := imageregistry.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 		imageRegistryConfig, err := imageRegistryConfigClient.ImageregistryV1().Configs().Get(ctx, clusterConfigName, metav1.GetOptions{})
