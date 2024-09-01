@@ -23,7 +23,3 @@ func BackendDisruptionSeconds(backendDisruptionName string, events Intervals) (t
 func IsDisruptionEvent(eventInterval Interval) bool {
 	return eventInterval.Source == SourceDisruption
 }
-
-func HasRealLoadBalancer(eventInterval Interval) bool {
-	return eventInterval.Locator.Keys[LocatorLoadBalancerKey] != "localhost"
-}
