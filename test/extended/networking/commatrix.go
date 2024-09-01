@@ -22,7 +22,6 @@ import (
 	matrixdiff "github.com/openshift-kni/commatrix/pkg/matrix-diff"
 	"github.com/openshift-kni/commatrix/pkg/types"
 	"github.com/openshift-kni/commatrix/pkg/utils"
-	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned/typed/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -72,24 +71,9 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		cs, err := client.New()
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		configClient := configv1client.NewForConfigOrDie(cs.Config)
-
-		deployment := types.Standard
-		isSNO, err := isSNOCluster(configClient)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isSNO {
-			deployment = types.SNO
-		}
-
-		env := types.Cloud
-		isBM, err := isBMCluster(configClient)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		if isBM {
-			env = types.Baremetal
-		}
 
 		g.By("get cluster's version and check if it's suitable for test")
-		clusterVersion, err := getClusterVersion(configClient)
+		clusterVersion, err := getClusterVersion(cs)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		floatClusterVersion, err := strconv.ParseFloat(clusterVersion, 64)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -105,6 +89,20 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		epExporter, err := endpointslices.New(cs)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		utilsHelpers := utils.New(cs)
+
+		deployment := types.Standard
+		isSNO, err := utilsHelpers.IsSNOCluster()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isSNO {
+			deployment = types.SNO
+		}
+
+		env := types.Cloud
+		isBM, err := utilsHelpers.IsBMInfra()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if isBM {
+			env = types.Baremetal
+		}
 
 		g.By("generating new commatrix")
 		newComMatrixCreator, err := commatrixcreator.New(epExporter, "", "", env, deployment)
@@ -178,34 +176,14 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 })
 
 // getClusterVersion return cluster's Y stream version
-func getClusterVersion(configClient *configv1client.ConfigV1Client) (string, error) {
+func getClusterVersion(cs *client.ClientSet) (string, error) {
+	configClient := configv1client.NewForConfigOrDie(cs.Config)
 	clusterVersion, err := configClient.ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 	clusterVersionParts := strings.SplitN(clusterVersion.Status.Desired.Version, ".", 3)
 	return strings.Join(clusterVersionParts[:2], "."), nil
-}
-
-// isSNOCluster will check if OCP is a single node cluster
-func isSNOCluster(oc *configv1client.ConfigV1Client) (bool, error) {
-	infrastructureType, err := oc.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		return false, err
-	}
-
-	logrus.Infof("the cluster type is %s", infrastructureType.Status.ControlPlaneTopology)
-	return infrastructureType.Status.ControlPlaneTopology == configv1.SingleReplicaTopologyMode, nil
-}
-
-func isBMCluster(oc *configv1client.ConfigV1Client) (bool, error) {
-	infrastructureType, err := oc.Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		return false, err
-	}
-
-	logrus.Infof("the cluster platform is %s", infrastructureType.Status.PlatformStatus.Type)
-	return infrastructureType.Status.PlatformStatus.Type == configv1.BareMetalPlatformType, nil
 }
 
 // excludeStaticEntriesWithGivenNodeRole excludes from comDetails, static entries from staticEntriesMatrix with the given nodeRole

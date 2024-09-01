@@ -17,7 +17,9 @@ const (
 	uniqueSecondary
 )
 
+// MatrixDiff represent the diff between two comMatrices.
 type MatrixDiff struct {
+	// Matrix Diff's ComMatrix is the combined matrix of the primary and secondary matrices.
 	types.ComMatrix
 	cdToStatus map[string]status
 }

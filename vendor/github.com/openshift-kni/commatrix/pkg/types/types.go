@@ -192,25 +192,6 @@ func (m *ComMatrix) writeMatrixToFile(utilsHelpers utils.UtilsInterface, fileNam
 	return utilsHelpers.WriteFile(comMatrixFileName, res)
 }
 
-// Diff returns the diff ComMatrix.
-func (m *ComMatrix) Diff(other ComMatrix) ComMatrix {
-	diff := []ComDetails{}
-	for _, cd1 := range m.Matrix {
-		found := false
-		for _, cd2 := range other.Matrix {
-			if cd1.Equals(cd2) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diff = append(diff, cd1)
-		}
-	}
-
-	return ComMatrix{Matrix: diff}
-}
-
 func (m *ComMatrix) Contains(cd ComDetails) bool {
 	for _, cd1 := range m.Matrix {
 		if cd1.Equals(cd) {
