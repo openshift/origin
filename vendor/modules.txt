@@ -1808,7 +1808,7 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# k8s.io/api v0.30.3 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20240717161530-d96eb3e9e01f
+# k8s.io/api v0.30.3 => github.com/openshift/kubernetes/staging/src/k8s.io/api v0.0.0-20240723170835-32f817d75efe
 ## explicit; go 1.22.0
 k8s.io/api/admission/v1
 k8s.io/api/admission/v1beta1
@@ -1867,7 +1867,7 @@ k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
 k8s.io/api/storagemigration/v1alpha1
-# k8s.io/apiextensions-apiserver v0.30.3 => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20240717161530-d96eb3e9e01f
+# k8s.io/apiextensions-apiserver v0.30.3 => github.com/openshift/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20240723170835-32f817d75efe
 ## explicit; go 1.22.0
 k8s.io/apiextensions-apiserver/pkg/apihelpers
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions
@@ -1917,7 +1917,7 @@ k8s.io/apiextensions-apiserver/pkg/registry/customresource/tableconvertor
 k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition
 k8s.io/apiextensions-apiserver/test/integration
 k8s.io/apiextensions-apiserver/test/integration/fixtures
-# k8s.io/apimachinery v0.30.3 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20240717161530-d96eb3e9e01f
+# k8s.io/apimachinery v0.30.3 => github.com/openshift/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20240723170835-32f817d75efe
 ## explicit; go 1.22.0
 k8s.io/apimachinery/pkg/api/apitesting
 k8s.io/apimachinery/pkg/api/equality
@@ -2166,7 +2166,7 @@ k8s.io/cli-runtime/pkg/genericclioptions
 k8s.io/cli-runtime/pkg/genericiooptions
 k8s.io/cli-runtime/pkg/printers
 k8s.io/cli-runtime/pkg/resource
-# k8s.io/client-go v0.30.3 => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20240717161530-d96eb3e9e01f
+# k8s.io/client-go v0.30.3 => github.com/openshift/kubernetes/staging/src/k8s.io/client-go v0.0.0-20240723170835-32f817d75efe
 ## explicit; go 1.22.0
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
 k8s.io/client-go/applyconfigurations/admissionregistration/v1alpha1
