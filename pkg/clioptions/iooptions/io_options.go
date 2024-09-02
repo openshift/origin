@@ -1,8 +1,10 @@
 package iooptions
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"path"
 
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -34,6 +36,11 @@ func (o *OutputFlags) ConfigureIOStreams(streams genericclioptions.IOStreams, st
 	if len(o.OutFile) == 0 {
 		streamSetter.SetIOStreams(streams)
 		return doNothing, nil
+	}
+
+	dir := path.Dir(o.OutFile)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return doNothing, fmt.Errorf("failed to create parentdir %q: %w", dir, err)
 	}
 
 	f, err := os.OpenFile(o.OutFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0640)
