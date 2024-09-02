@@ -18,7 +18,7 @@ func TestMultipleSingleSecondDisruptions(events monitorapi.Intervals) []*junitap
 	const manyFailureTestPrefix = "[sig-network] there should be reasonably few single second disruptions for "
 
 	allServers := sets.String{}
-	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent)
+	allDisruptionEventsIntervals := events.Filter(monitorapi.IsDisruptionEvent).Filter(monitorapi.HasRealLoadBalancer)
 	logrus.Infof("filtered %d intervals down to %d disruption intervals", len(events), len(allDisruptionEventsIntervals))
 	for _, eventInterval := range allDisruptionEventsIntervals {
 		backend := eventInterval.Locator.Keys[monitorapi.LocatorBackendDisruptionNameKey]

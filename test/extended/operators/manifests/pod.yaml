@@ -53,5 +53,9 @@ spec:
   - emptyDir: {}
     name: shared-dir
   tolerations:
+  # Ensure pod can be scheduled on master nodes
   - key: node-role.kubernetes.io/master
+    effect: NoSchedule
+  # Ensure pod can be scheduled on edge nodes
+  - key: node-role.kubernetes.io/edge
     effect: NoSchedule

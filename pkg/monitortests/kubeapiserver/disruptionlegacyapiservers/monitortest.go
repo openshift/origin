@@ -8,6 +8,8 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestframework"
 
+	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	oauthv1 "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -57,16 +59,22 @@ func newDisruptionCheckerForKubeAPI(adminRESTConfig *rest.Config) (*disruptionli
 	), nil
 }
 
-func newDisruptionCheckerForKubeAPICached(adminRESTConfig *rest.Config) (*disruptionlibrary.Availability, error) {
-	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
+func newDisruptionCheckerForKubeAPICached(adminRESTConfig *rest.Config, kubeClient kubernetes.Interface) (*disruptionlibrary.Availability, error) {
 
-	disruptionBackedName := "cache-kube-api"
-	newConnectionTestName, reusedConnectionTestName := testNames("sig-api-machinery", disruptionBackedName)
-	newConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, "/api/v1/namespaces/default?resourceVersion=0", monitorapi.NewConnectionType)
+	// find latest resourceVersion of the default namespace so that we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
+	ns, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), "default", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	reusedConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, "/api/v1/namespaces/default?resourceVersion=0", monitorapi.ReusedConnectionType)
+	path := fmt.Sprintf("/api/v1/namespaces/default?resourceVersion=%s", ns.ResourceVersion)
+
+	disruptionBackedName := "cache-kube-api"
+	newConnectionTestName, reusedConnectionTestName := testNames("sig-api-machinery", disruptionBackedName)
+	newConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, path, monitorapi.NewConnectionType)
+	if err != nil {
+		return nil, err
+	}
+	reusedConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, path, monitorapi.ReusedConnectionType)
 	if err != nil {
 		return nil, err
 	}
@@ -94,15 +102,25 @@ func newDisruptionCheckerForOpenshiftAPI(adminRESTConfig *rest.Config) (*disrupt
 }
 
 func newDisruptionCheckerForOpenshiftAPICached(adminRESTConfig *rest.Config) (*disruptionlibrary.Availability, error) {
-	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
 
-	disruptionBackedName := "cache-openshift-api"
-	newConnectionTestName, reusedConnectionTestName := testNames("sig-api-machinery", disruptionBackedName)
-	newConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, "/apis/image.openshift.io/v1/namespaces/default/imagestreams?resourceVersion=0", monitorapi.NewConnectionType)
+	// find latest resourceVersion of the namespace so that we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
+	client, err := imagev1.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return nil, err
 	}
-	reusedConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, "/apis/image.openshift.io/v1/namespaces/default/imagestreams?resourceVersion=0", monitorapi.ReusedConnectionType)
+	streams, err := client.ImageStreams("default").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	path := fmt.Sprintf("/apis/image.openshift.io/v1/namespaces/default/imagestreams?resourceVersion=%s", streams.ResourceVersion)
+
+	disruptionBackedName := "cache-openshift-api"
+	newConnectionTestName, reusedConnectionTestName := testNames("sig-api-machinery", disruptionBackedName)
+	newConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, path, monitorapi.NewConnectionType)
+	if err != nil {
+		return nil, err
+	}
+	reusedConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, path, monitorapi.ReusedConnectionType)
 	if err != nil {
 		return nil, err
 	}
@@ -129,16 +147,25 @@ func newDisruptionCheckerForOAuthAPI(adminRESTConfig *rest.Config) (*disruptionl
 	), nil
 }
 
-func newDisruptionCheckerForOAuthCached(adminRESTConfig *rest.Config) (*disruptionlibrary.Availability, error) {
-	// by setting resourceVersion="0" we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
-
-	disruptionBackedName := "cache-oauth-api"
-	newConnectionTestName, reusedConnectionTestName := testNames("sig-api-machinery", disruptionBackedName)
-	newConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, "/apis/oauth.openshift.io/v1/oauthclients?resourceVersion=0", monitorapi.NewConnectionType)
+func newDisruptionCheckerForOAuthCached(adminRESTConfig *rest.Config, kubeClient kubernetes.Interface) (*disruptionlibrary.Availability, error) {
+	// find latest resourceVersion of the namespace so that we instruct the server to get the data from the memory cache and avoid contacting with the etcd.
+	client, err := oauthv1.NewForConfig(adminRESTConfig)
 	if err != nil {
 		return nil, err
 	}
-	reusedConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, "/apis/oauth.openshift.io/v1/oauthclients?resourceVersion=0", monitorapi.ReusedConnectionType)
+	oauthclients, err := client.OAuthClients().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	path := fmt.Sprintf("/apis/image.openshift.io/v1/namespaces/default/imagestreams?resourceVersion=%s", oauthclients.ResourceVersion)
+
+	disruptionBackedName := "cache-oauth-api"
+	newConnectionTestName, reusedConnectionTestName := testNames("sig-api-machinery", disruptionBackedName)
+	newConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, path, monitorapi.NewConnectionType)
+	if err != nil {
+		return nil, err
+	}
+	reusedConnections, err := createAPIServerBackendSampler(adminRESTConfig, disruptionBackedName, path, monitorapi.ReusedConnectionType)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +211,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 	w.disruptionCheckers = append(w.disruptionCheckers, curr)
-	curr, err = newDisruptionCheckerForKubeAPICached(adminRESTConfig)
+	curr, err = newDisruptionCheckerForKubeAPICached(adminRESTConfig, kubeClient)
 	if err != nil {
 		return err
 	}
@@ -206,7 +233,7 @@ func (w *availability) StartCollection(ctx context.Context, adminRESTConfig *res
 		return err
 	}
 	w.disruptionCheckers = append(w.disruptionCheckers, curr)
-	curr, err = newDisruptionCheckerForOAuthCached(adminRESTConfig)
+	curr, err = newDisruptionCheckerForOAuthCached(adminRESTConfig, kubeClient)
 	if err != nil {
 		return err
 	}
