@@ -45,7 +45,7 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 				intervals = append(intervals,
 					monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
 						Locator(monitorapi.NewLocator().MachineFromName(machine.Name)).
-						Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhase).
+						Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhaseChanged).
 							WithAnnotation(monitorapi.AnnotationPhase, newPhase).
 							WithAnnotation(monitorapi.AnnotationPreviousPhase, oldPhase).
 							WithAnnotation(monitorapi.AnnotationNode, nodeName).

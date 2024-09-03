@@ -40,10 +40,7 @@ func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingI
 	constructedIntervals := monitorapi.Intervals{}
 
 	allMachinePhaseChanges := startingIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		if eventInterval.Message.Reason == monitorapi.MachinePhaseChanged {
-			return true
-		}
-		return false
+		return eventInterval.Message.Reason == monitorapi.MachinePhaseChanged
 	})
 
 	machineNameToPhaseChanges := map[string][]monitorapi.Interval{}
@@ -59,8 +56,8 @@ func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingI
 			constructedIntervals = append(constructedIntervals,
 				monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
 					Locator(phaseChange.Locator).
-					Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhaseChanged).
-						Constructed(monitorapi.ConstructionOwnerLeaseChecker).
+					Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhase).
+						Constructed(monitorapi.ConstructionOwnerMachineLifecycle).
 						WithAnnotation(monitorapi.AnnotationPhase, previousPhase).
 						HumanMessage(fmt.Sprintf("Machine is in %q", previousPhase))).
 					Display().
