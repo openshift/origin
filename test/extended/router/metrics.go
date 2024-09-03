@@ -159,9 +159,12 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				if len(findGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
-					if findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0] >= float64(times) {
-						return true, nil
+				if len(findNonZeroGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
+					if g := findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels); len(g) > 0 {
+						// stop retrying if the route got expected number of connections.
+						if g[0] >= float64(times) {
+							return true, nil
+						}
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
@@ -185,23 +188,28 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				}
 			}
 			foundEndpoints := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "server")...)
-			o.Expect(allEndpoints.List()).To(o.Equal(foundEndpoints.List()))
+			// There can be more server slots than endpoints if DCM is enabled (dynamic ones).
+			o.Expect(foundEndpoints.List()).To(o.ContainElements(allEndpoints.List()))
 			foundServices := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "service")...)
-			o.Expect(services).To(o.Equal(foundServices.List()))
+			// Dynamic servers (_dynamic_pods-N) have empty value for service label.
+			// "foundServices" may be a bigger set than expected endpoints if DCM is enabled.
+			o.Expect(foundServices.List()).To(o.ContainElements(services))
 			foundPods := sets.NewString(findMetricLabels(metrics["haproxy_server_http_responses_total"], serverLabels, "pod")...)
-			o.Expect([]string{"endpoint-1", "endpoint-2"}).To(o.Equal(foundPods.List()))
+			// Dynamic servers (_dynamic_pods-N) have empty value for pod label.
+			// "foundPods" may be a bigger set than expected endpoints is DCM is enabled.
+			o.Expect(foundPods.List()).To(o.ContainElements([]string{"endpoint-1", "endpoint-2"}))
 
 			// route specific metrics from server and backend
-			o.Expect(findGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "2xx"))).To(o.ConsistOf(o.BeNumerically(">", 0), o.BeNumerically(">", 0)))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "5xx"))).To(o.Equal([]float64{0, 0}))
+			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "2xx"))).To(o.ConsistOf(o.BeNumerically(">", 0), o.BeNumerically(">", 0)))
+			o.Expect(findGaugesWithLabels(metrics["haproxy_server_http_responses_total"], serverLabels.With("code", "5xx"))).To(o.HaveEach(float64(0)))
 			// backends started returning response counts in https://github.com/openshift/router/pull/132
 			o.Expect(findGaugesWithLabels(metrics["haproxy_backend_http_responses_total"], routeLabels.With("code", "2xx"))).ToNot(o.BeZero())
-			o.Expect(findGaugesWithLabels(metrics["haproxy_server_connections_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
+			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_connections_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
 			o.Expect(findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)).To(o.ConsistOf(o.BeNumerically(">=", times)))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)).To(o.Equal([]float64{1, 1}))
+			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)).To(o.Equal([]float64{1, 1}))
 			o.Expect(findGaugesWithLabels(metrics["haproxy_backend_up"], routeLabels)).To(o.Equal([]float64{1}))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_server_bytes_in_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
-			o.Expect(findGaugesWithLabels(metrics["haproxy_server_bytes_out_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
+			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_bytes_in_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
+			o.Expect(findNonZeroGaugesWithLabels(metrics["haproxy_server_bytes_out_total"], serverLabels)).To(o.ConsistOf(o.BeNumerically(">=", 0), o.BeNumerically(">=", 0)))
 
 			// generic metrics
 			o.Expect(findGaugesWithLabels(metrics["haproxy_up"], nil)).To(o.Equal([]float64{1}))
@@ -366,11 +374,34 @@ func findCountersWithLabels(f *dto.MetricFamily, promLabels map[string]string) [
 }
 
 func findGaugesWithLabels(f *dto.MetricFamily, promLabels map[string]string) []float64 {
+	return findGaugesWithLabelsCond(f, promLabels, nil)
+}
+
+func findGaugesWithLabelsCond(f *dto.MetricFamily, promLabels map[string]string, cond func(v float64) bool) []float64 {
 	var result []float64
 	for _, m := range findMetricsWithLabels(f, promLabels) {
-		result = append(result, m.Gauge.GetValue())
+		if cond == nil || cond(m.Gauge.GetValue()) {
+			result = append(result, m.Gauge.GetValue())
+		}
 	}
 	return result
+}
+
+// findNonZeroGaugesWithLabels skips gauges with 0 value to avoid false negatives
+// from the server slots which are DOWN.
+// The Dynamic Configuration Manager (DCM) adds dynamic server slots and
+// uses both these slots and the servers added during HAProxy config rendering.
+// When DCM is enabled, not all server slots are always in the UP state,
+// unlike the behavior without DCM where all slots are UP by default.
+// As a result, we may want to filter out servers where the gauge is set to 0 (== DOWN).
+// TODO: metrics for the slots which are DOWN should not be exposed to avoid
+// the ambiguity of the zero value (no value or zero value) when DCM is enabled.
+func findNonZeroGaugesWithLabels(f *dto.MetricFamily, promLabels map[string]string) []float64 {
+	return findGaugesWithLabelsCond(f, promLabels, nonZeroCond)
+}
+
+func nonZeroCond(v float64) bool {
+	return v != float64(0)
 }
 
 func findMetricLabels(f *dto.MetricFamily, promLabels map[string]string, match string) []string {
