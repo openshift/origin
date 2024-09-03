@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -237,7 +238,15 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			// max_sessions should reset after a reload, it is not possible to deterministically ensure max sessions is captured due to the
 			// 30s scrape interval of router + the likelihood the router is being reloaded is high. Just verify that the value is reset
 			// because no one else should be hitting this server.
-			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels)[0]).To(o.Equal(float64(0)))
+
+			dacEnabledRouter := true
+			maxSessions := 0
+			if dacEnabledRouter == true {
+				// If Dynamic Config Manager is enabled, chances the router was reloaded
+				// are low (or not existent). So, there should be some sessions.
+				maxSessions = 1
+			}
+			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels)[0]).To(o.Equal(float64(maxSessions)))
 		})
 
 		g.It("should expose the profiling endpoints", func() {
@@ -341,7 +350,13 @@ func findMetricsWithLabels(f *dto.MetricFamily, promLabels map[string]string) []
 	}
 	for _, m := range f.Metric {
 		matched := map[string]struct{}{}
+		dacMetric := false
 		for _, l := range m.Label {
+			if l.GetName() == "server" {
+				if strings.HasPrefix(l.GetValue(), "_dynamic-pod-") {
+					dacMetric = true
+				}
+			}
 			if expect, ok := promLabels[l.GetName()]; ok {
 				if expect != l.GetValue() {
 					break
@@ -352,7 +367,9 @@ func findMetricsWithLabels(f *dto.MetricFamily, promLabels map[string]string) []
 		if len(matched) != len(promLabels) {
 			continue
 		}
-		result = append(result, m)
+		if !dacMetric {
+			result = append(result, m)
+		}
 	}
 	return result
 }
