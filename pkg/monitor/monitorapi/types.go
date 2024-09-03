@@ -338,10 +338,12 @@ func (r IntervalReason) String() string {
 	return string(r)
 }
 
+const TimeFormat = "Jan 02 15:04:05"
+
 func (i Interval) String() string {
 	if i.From.Equal(i.To) {
 		return fmt.Sprintf("%s.%03d %s %s %s",
-			i.From.Format("Jan 02 15:04:05"),
+			i.From.Format(TimeFormat),
 			i.From.Nanosecond()/int(time.Millisecond),
 			i.Level.String()[:1],
 			i.Locator.OldLocator(),
@@ -350,7 +352,7 @@ func (i Interval) String() string {
 	duration := i.To.Sub(i.From)
 	if duration < time.Second {
 		return fmt.Sprintf("%s.%03d - %-5s %s %s %s",
-			i.From.Format("Jan 02 15:04:05"),
+			i.From.Format(TimeFormat),
 			i.From.Nanosecond()/int(time.Millisecond),
 			strconv.Itoa(int(duration/time.Millisecond))+"ms",
 			i.Level.String()[:1],
@@ -358,7 +360,7 @@ func (i Interval) String() string {
 			strings.Replace(i.Message.OldMessage(), "\n", "\\n", -1))
 	}
 	return fmt.Sprintf("%s.%03d - %-5s %s %s %s",
-		i.From.Format("Jan 02 15:04:05"),
+		i.From.Format(TimeFormat),
 		i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(duration/time.Second))+"s",
 		i.Level.String()[:1],
 		i.Locator.OldLocator(),
