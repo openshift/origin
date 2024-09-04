@@ -89,23 +89,23 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
-        controller for namespaces with user defined primary networks L2 dualstack
-        primary UDN, cluster-networked pods'
+        controller for namespaces with user defined primary networks L2 primary UDN,
+        cluster-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
-        controller for namespaces with user defined primary networks L2 dualstack
-        primary UDN, host-networked pods'
+        controller for namespaces with user defined primary networks L2 primary UDN,
+        host-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
-        controller for namespaces with user defined primary networks L3 dualstack
-        primary UDN, cluster-networked pods'
+        controller for namespaces with user defined primary networks L3 primary UDN,
+        cluster-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default
-        controller for namespaces with user defined primary networks L3 dualstack
-        primary UDN, host-networked pods'
+        controller for namespaces with user defined primary networks L3 primary UDN,
+        host-networked pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         UserDefinedNetwork does not mirror EndpointSlices in namespaces not using
@@ -117,23 +117,23 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         UserDefinedNetwork mirrors EndpointSlices managed by the default controller
-        for namespaces with user defined primary networks L2 dualstack primary UDN,
-        cluster-networked pods'
+        for namespaces with user defined primary networks L2 primary UDN, cluster-networked
+        pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         UserDefinedNetwork mirrors EndpointSlices managed by the default controller
-        for namespaces with user defined primary networks L2 dualstack primary UDN,
-        host-networked pods'
+        for namespaces with user defined primary networks L2 primary UDN, host-networked
+        pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         UserDefinedNetwork mirrors EndpointSlices managed by the default controller
-        for namespaces with user defined primary networks L3 dualstack primary UDN,
-        cluster-networked pods'
+        for namespaces with user defined primary networks L3 primary UDN, cluster-networked
+        pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         EndpointSlices mirroring when using openshift ovn-kubernetes created using
         UserDefinedNetwork mirrors EndpointSlices managed by the default controller
-        for namespaces with user defined primary networks L3 dualstack primary UDN,
-        host-networked pods'
+        for namespaces with user defined primary networks L3 primary UDN, host-networked
+        pods'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork
         cannot be deleted when being used'
@@ -146,37 +146,41 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
         can perform east/west traffic between nodes for two pods connected over a
-        L2 dualstack primary UDN'
+        L2 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
-        can perform east/west traffic between nodes two pods connected over a L3 dualstack
-        primary UDN'
+        can perform east/west traffic between nodes two pods connected over a L3 primary
+        UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
-        is isolated from the default network with L2 dualstack primary UDN'
+        is isolated from the default network with L2 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
-        is isolated from the default network with L3 dualstack primary UDN'
+        is isolated from the default network with L3 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        isolates overlapping CIDRs with L2 primary UDN'
+    - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
+        when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions
+        isolates overlapping CIDRs with L3 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes created using UserDefinedNetwork can perform
-        east/west traffic between nodes for two pods connected over a L2 dualstack
-        primary UDN'
+        east/west traffic between nodes for two pods connected over a L2 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes created using UserDefinedNetwork can perform
-        east/west traffic between nodes two pods connected over a L3 dualstack primary
-        UDN'
+        east/west traffic between nodes two pods connected over a L3 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated
-        from the default network with L2 dualstack primary UDN'
+        from the default network with L2 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated
-        from the default network with L3 dualstack primary UDN'
+        from the default network with L3 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes isolates overlapping CIDRs with L2 primary
-        UDN'
+        when using openshift ovn-kubernetes created using UserDefinedNetwork isolates
+        overlapping CIDRs with L2 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
-        when using openshift ovn-kubernetes isolates overlapping CIDRs with L3 primary
-        UDN'
+        when using openshift ovn-kubernetes created using UserDefinedNetwork isolates
+        overlapping CIDRs with L3 primary UDN'
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes when primary network exist, UserDefinedNetwork
         status should report not-ready'
