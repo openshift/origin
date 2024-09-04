@@ -634,6 +634,47 @@ func getIPFamily(podIPs []v1.PodIP) IPFamily {
 	}
 }
 
+// Create a pod on the specified node using the agnostic host image
+func createPodOnNode(client k8sclient.Interface, podName, nodeSelector, namespace string, command []string, labels map[string]string, options ...func(*v1.Pod)) (*v1.Pod, error) {
+
+	contName := fmt.Sprintf("%s-container", podName)
+	pod := frameworkpod.NewAgnhostPod(namespace, podName, nil, nil, nil)
+	pod.Spec.Containers[0].Command = command
+	pod.Labels = labels
+	pod.Spec.NodeName = nodeSelector
+	pod.Spec.RestartPolicy = v1.RestartPolicyNever
+
+	for _, o := range options {
+		o(pod)
+	}
+
+	res, err := client.CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pod %s %s: %w", pod.Name, namespace, err)
+	}
+
+	err = frameworkpod.WaitForPodRunningInNamespace(context.Background(), client, pod)
+	if err != nil {
+		res, err = client.CoreV1().Pods(namespace).Get(context.Background(), pod.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get pod %s %s: %w", pod.Name, namespace, err)
+		}
+		e2e.Logf("Warning: Failed to get pod running %v: %v", *res, err)
+		logs, logErr := frameworkpod.GetPodLogs(context.TODO(), client, namespace, pod.Name, contName)
+		if logErr != nil {
+			e2e.Logf("Warning: Failed to get logs from pod %q: %v", pod.Name, logErr)
+		} else {
+			e2e.Logf("pod %s/%s logs:\n%s", namespace, pod.Name, logs)
+		}
+	}
+	// Need to get it again to ensure the ip addresses are filled
+	res, err = client.CoreV1().Pods(namespace).Get(context.Background(), pod.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pod %s %s: %w", pod.Name, namespace, err)
+	}
+	return res, nil
+}
+
 func createPod(client k8sclient.Interface, ns, generateName string) ([]corev1.PodIP, error) {
 	pod := frameworkpod.NewAgnhostPod(ns, "", nil, nil, nil)
 	pod.ObjectMeta.GenerateName = generateName
