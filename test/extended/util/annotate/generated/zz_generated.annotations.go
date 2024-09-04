@@ -1605,6 +1605,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] services on a user defined primary network should be reachable through their cluster IP and node port L3 dualstack primary UDN, cluster-networked pods, NodePort service": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes allow ingress traffic to one pod from a particular namespace in L2 primary UDN": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] Network Policies when using openshift ovn-kubernetes allow ingress traffic to one pod from a particular namespace in L3 primary UDN": " [Suite:openshift/conformance/parallel]",
