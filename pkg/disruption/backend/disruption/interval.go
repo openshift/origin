@@ -1,6 +1,9 @@
 package disruption
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/openshift/origin/pkg/disruption/backend"
 	backendsampler "github.com/openshift/origin/pkg/disruption/backend/sampler"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -109,7 +112,15 @@ func (t *intervalTracker) collect(result backend.SampleResult) {
 	case previous.Succeeded() && current.Succeeded():
 		return
 	case !previous.Succeeded() && !current.Succeeded():
-		if previous.Error() == current.Error() {
+		previousErrorCensored := previous.Error()
+		currentErrorCensored := current.Error()
+		// Censor sample-id from error message
+		if previous.Sample != nil && current.Sample != nil {
+			previousErrorCensored = strings.ReplaceAll(previous.Error(), fmt.Sprintf("&sample-id=%d", previous.Sample.ID), "")
+			currentErrorCensored = strings.ReplaceAll(current.Error(), fmt.Sprintf("&sample-id=%d", current.Sample.ID), "")
+		}
+
+		if previousErrorCensored == currentErrorCensored {
 			return
 		}
 		//  both previous and current failed, but with different errors
