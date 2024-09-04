@@ -385,6 +385,187 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 			}),
 		)
 
+		DescribeTable(
+			"isolates overlapping CIDRs",
+			func(
+				topology string,
+				numberOfPods int,
+				userDefinedSubnet string,
+
+			) {
+
+				nadClient, err := nadclient.NewForConfig(f.ClientConfig())
+				Expect(err).NotTo(HaveOccurred())
+
+				red := "red"
+				blue := "blue"
+
+				namespaceRed := f.Namespace.Name + "-" + red
+				namespaceBlue := f.Namespace.Name + "-" + blue
+
+				nad := networkAttachmentConfigParams{
+					topology: topology,
+					cidr:     fmt.Sprintf("%s,%s", userDefinedSubnet, userDefinedNetworkIPv6Subnet),
+					role:     "primary",
+				}
+				for _, namespace := range []string{namespaceRed, namespaceBlue} {
+					By("Creating namespace " + namespace)
+					_, err = cs.CoreV1().Namespaces().Create(context.Background(), &v1.Namespace{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: namespace,
+						},
+					}, metav1.CreateOptions{})
+					Expect(err).NotTo(HaveOccurred())
+					defer func() {
+						Expect(cs.CoreV1().Namespaces().Delete(
+							context.Background(),
+							namespace,
+							metav1.DeleteOptions{},
+						)).To(Succeed())
+					}()
+				}
+				networkNamespaceMap := map[string]string{namespaceRed: red, namespaceBlue: blue}
+				for namespace, network := range networkNamespaceMap {
+					By("creating the attachment configuration for network " + network + " in namespace " + namespace)
+					netConfig := newNetworkAttachmentConfig(nad)
+					netConfig.namespace = namespace
+					netConfig.name = network
+
+					_, err = nadClient.NetworkAttachmentDefinitions(namespace).Create(
+						context.Background(),
+						generateNAD(netConfig),
+						metav1.CreateOptions{},
+					)
+					Expect(err).NotTo(HaveOccurred())
+				}
+				workerNodes, err := getWorkerNodesOrdered(cs)
+				Expect(err).NotTo(HaveOccurred())
+				pods := []*v1.Pod{}
+				redIPs := []string{}
+				blueIPs := []string{}
+				for namespace, network := range networkNamespaceMap {
+					for i := 0; i < numberOfPods; i++ {
+						podConfig := *podConfig(
+							fmt.Sprintf("%s-pod-%d", network, i),
+							withCommand(func() []string {
+								return httpServerContainerCmd(port)
+							}),
+						)
+						podConfig.namespace = namespace
+						//ensure testing accross nodes
+						if i%2 == 0 {
+							podConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[0].Name}
+
+						} else {
+
+							podConfig.nodeSelector = map[string]string{nodeHostnameKey: workerNodes[len(workerNodes)-1].Name}
+						}
+						By("creating pod " + podConfig.name + " in " + podConfig.namespace)
+						pod := runUDNPod(
+							cs,
+							podConfig.namespace,
+							podConfig,
+							func(pod *v1.Pod) {
+								setRuntimeDefaultPSA(pod)
+							})
+						pods = append(pods, pod)
+						podIP, err := podIPsForUserDefinedPrimaryNetwork(
+							cs,
+							pod.Namespace,
+							pod.Name,
+							namespacedName(namespace, network),
+							0,
+						)
+						Expect(err).NotTo(HaveOccurred())
+						if network == red {
+							redIPs = append(redIPs, podIP)
+						} else {
+							blueIPs = append(blueIPs, podIP)
+						}
+					}
+				}
+
+				By("ensuring pods only communicate with pods in their network")
+				for _, pod := range pods {
+					isRedPod := strings.Contains(pod.Name, red)
+					ips := redIPs
+					if !isRedPod {
+						ips = blueIPs
+					}
+					for _, ip := range ips {
+						result, err := e2ekubectl.RunKubectl(
+							pod.Namespace,
+							"exec",
+							pod.Name,
+							"--",
+							"curl",
+							"--connect-timeout",
+							"2",
+							net.JoinHostPort(ip, fmt.Sprintf("%d", port)+"/hostname"),
+						)
+						Expect(err).NotTo(HaveOccurred())
+						if isRedPod {
+							Expect(strings.Contains(result, red)).To(BeTrue())
+						} else {
+							Expect(strings.Contains(result, blue)).To(BeTrue())
+						}
+					}
+				}
+
+				By("Deleting pods in network blue except " + fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1))
+				for i := 0; i < numberOfPods-1; i++ {
+					err := cs.CoreV1().Pods(namespaceBlue).Delete(
+						context.Background(),
+						fmt.Sprintf("%s-pod-%d", blue, i),
+						metav1.DeleteOptions{},
+					)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				podIP, err := podIPsForUserDefinedPrimaryNetwork(
+					cs,
+					namespaceBlue,
+					fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1),
+					namespacedName(namespaceBlue, blue),
+					0,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Remaining blue pod cannot communicate with red networks overlapping CIDR")
+				for _, ip := range redIPs {
+					if podIP == ip {
+						//don't try with your own IP
+						continue
+					}
+					_, err := e2ekubectl.RunKubectl(
+						namespaceBlue,
+						"exec",
+						fmt.Sprintf("%s-pod-%d", blue, numberOfPods-1),
+						"--",
+						"curl",
+						"--connect-timeout",
+						"2",
+						net.JoinHostPort(ip, fmt.Sprintf("%d", port)),
+					)
+					Expect(strings.Contains(err.Error(), "Connection timeout")).To(Equal(true))
+				}
+			},
+			// can completely fill the L2 topology because it does not depend on the size of the clusters hostsubnet
+			Entry(
+				"with L2 primary UDN",
+				"layer2",
+				4,
+				"10.128.0.0/29",
+			),
+			// limit the number of pods to 10
+			Entry(
+				"with L3 primary UDN",
+				"layer3",
+				10,
+				userDefinedNetworkIPv4Subnet,
+			),
+		)
+
 		Context("UserDefinedNetwork", func() {
 			const (
 				testUdnName                = "test-net"
