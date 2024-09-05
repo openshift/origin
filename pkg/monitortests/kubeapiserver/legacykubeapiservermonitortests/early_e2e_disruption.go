@@ -11,27 +11,30 @@ import (
 )
 
 // amount of time after E2E tests start that we consider "early"
+const preE2ECheckDuration = 3 * time.Minute
 const earlyE2ECheckDuration = 3 * time.Minute
 
 func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[Jira:\"kube-apiserver\"] API servers should not experience disruption near the start of E2E testing"
-
-	// regex to match the backends we care about
-	var earlyE2EBackendRe = regexp.MustCompile(`^(cache-)?(openshift|kube|oauth)-api-`)
-
-	var periodStart, periodEnd time.Time // the time period we're interested in disruption
+	var e2eStart time.Time // anchor the time period we're interested in disruption
 	for _, event := range events {
 		if event.Source == monitorapi.SourceE2ETest {
-			periodStart = event.From
-			periodEnd = event.From.Add(earlyE2ECheckDuration)
+			e2eStart = event.From
 			break
 		}
 	}
 
-	if periodStart.IsZero() {
+	const preTestName = "[Jira:\"oauth-apiserver\"] oauth servers should not experience disruption shortly before the start of E2E testing"
+	const earlyTestName = "[Jira:\"kube-apiserver\"] API servers should not experience disruption during the start of E2E testing"
+	if e2eStart.IsZero() {
 		return []*junitapi.JUnitTestCase{
 			{
-				Name: testName,
+				Name: preTestName,
+				SkipMessage: &junitapi.SkipMessage{
+					Message: "no E2E tests ran", // no point in this test
+				},
+			},
+			{
+				Name: earlyTestName,
 				SkipMessage: &junitapi.SkipMessage{
 					Message: "no E2E tests ran", // no point in this test
 				},
@@ -39,6 +42,36 @@ func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals) []*junitapi.JU
 		}
 	}
 
+	junits := []*junitapi.JUnitTestCase{}
+
+	// find the oauth disruption described in OCPBUGS-39021
+	eventsFound := findDisruptionEvents(events, e2eStart.Add(-preE2ECheckDuration), e2eStart, regexp.MustCompile(`^(cache-)?oauth-api-`))
+	if count := len(eventsFound); count > 0 {
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name: preTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("found %d oauth disruption events shortly before E2E test start (%s) with messages:\n%s",
+					count, e2eStart.Format(monitorapi.TimeFormat), strings.Join(eventsFound, "\n")),
+			},
+		})
+	}
+	junits = append(junits, &junitapi.JUnitTestCase{Name: preTestName}) // success after fail makes a flake, to record when this is happening
+
+	// find the api disruption described in TRT-1794
+	eventsFound = findDisruptionEvents(events, e2eStart, e2eStart.Add(earlyE2ECheckDuration), regexp.MustCompile(`^(cache-)?(openshift|kube|oauth)-api-`))
+	if count := len(eventsFound); count > 0 {
+		junits = append(junits, &junitapi.JUnitTestCase{
+			Name: earlyTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("found %d disruption events shortly after E2E test start (%s) with messages:\n%s",
+					count, e2eStart.Format(monitorapi.TimeFormat), strings.Join(eventsFound, "\n")),
+			},
+		})
+	}
+	return append(junits, &junitapi.JUnitTestCase{Name: earlyTestName}) // success after fail makes a flake, to record when this is happening
+}
+
+func findDisruptionEvents(events monitorapi.Intervals, periodStart time.Time, periodEnd time.Time, backendMatcher *regexp.Regexp) []string {
 	eventsFound := []string{}
 	for _, event := range events {
 		if event.Source != monitorapi.SourceDisruption || event.Message.Reason != monitorapi.DisruptionBeganEventReason {
@@ -51,23 +84,9 @@ func testEarlyE2EAPIServerDisruption(events monitorapi.Intervals) []*junitapi.JU
 			break // no need to examine events entirely later than the period
 		}
 		// we are left with disruption events where some or all is in the period of interest
-		if earlyE2EBackendRe.MatchString(event.Locator.Keys["backend-disruption-name"]) {
+		if backendMatcher.MatchString(event.Locator.Keys["backend-disruption-name"]) {
 			eventsFound = append(eventsFound, event.String())
 		}
 	}
-
-	junits := []*junitapi.JUnitTestCase{}
-	if count := len(eventsFound); count > 0 {
-		junits = []*junitapi.JUnitTestCase{
-			{
-				Name: testName,
-				FailureOutput: &junitapi.FailureOutput{
-					Output: fmt.Sprintf("found %d disruption events near E2E test start (%s) with messages:\n%s",
-						count, periodStart.Format(monitorapi.TimeFormat), strings.Join(eventsFound, "\n")),
-				},
-			},
-		}
-	}
-	successTest := &junitapi.JUnitTestCase{Name: testName}
-	return append(junits, successTest) // only flake, never fail; just want to see how much this is happening
+	return eventsFound
 }
