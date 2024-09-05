@@ -15,12 +15,13 @@ import (
 type auditLogAnalyzer struct {
 	adminRESTConfig *rest.Config
 
-	// auditLogSummary is written during CollectData
-	auditLogSummary *AuditLogSummary
+	summarizer *summarizer
 }
 
 func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
-	return &auditLogAnalyzer{}
+	return &auditLogAnalyzer{
+		summarizer: NewAuditLogSummarizer(),
+	}
 }
 
 func (w *auditLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -34,10 +35,12 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		return nil, nil, err
 	}
 
-	auditLogSummary, auditEvents, err := intervalsFromAuditLogs(ctx, kubeClient, beginning, end)
-	w.auditLogSummary = auditLogSummary
+	auditLogHandlers := []AuditEventHandler{
+		w.summarizer,
+	}
+	err = GetKubeAuditLogSummary(ctx, kubeClient, &beginning, &end, auditLogHandlers)
 
-	return auditEvents, nil, err
+	return nil, nil, err
 }
 
 func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -49,10 +52,8 @@ func (*auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Conte
 }
 
 func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	if w.auditLogSummary != nil {
-		if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.auditLogSummary); currErr != nil {
-			return currErr
-		}
+	if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.summarizer.auditLogSummary); currErr != nil {
+		return currErr
 	}
 	return nil
 }
@@ -60,15 +61,4 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 func (*auditLogAnalyzer) Cleanup(ctx context.Context) error {
 	// TODO wire up the start to a context we can kill here
 	return nil
-}
-
-func intervalsFromAuditLogs(ctx context.Context, kubeClient kubernetes.Interface, beginning, end time.Time) (*AuditLogSummary, monitorapi.Intervals, error) {
-	ret := monitorapi.Intervals{}
-	auditLogSummary, err := GetKubeAuditLogSummary(ctx, kubeClient, &beginning, &end)
-	if err != nil {
-		// TODO report the error AND the best possible summary we have
-		return auditLogSummary, nil, err
-	}
-
-	return auditLogSummary, ret, nil
 }
