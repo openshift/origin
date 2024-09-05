@@ -233,6 +233,8 @@ const (
 	LeaseAcquiring        IntervalReason = "Acquiring"
 	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
 	LeaseAcquired         IntervalReason = "Acquired"
+
+	LateConnectionDuringShutdown = "LateConnectionDuringShutdown"
 )
 
 type AnnotationKey string
@@ -265,6 +267,12 @@ const (
 	AnnotationRoles          AnnotationKey = "roles"
 	AnnotationStatus         AnnotationKey = "status"
 	AnnotationCondition      AnnotationKey = "condition"
+	AnnotationRequestURI                   = "requestURI"
+	AnnotationSourceIP                     = "sourceIP"
+	AnnotationUserAgent                    = "userAgent"
+	AnnotationRequestURIs                  = "requestURIs"
+	AnnotationSourceIPs                    = "sourceIPs"
+	AnnotationUserAgents                   = "userAgents"
 )
 
 // ConstructionOwner was originally meant to signify that an interval was derived from other intervals.
@@ -329,6 +337,7 @@ const (
 
 	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
 	SourceMachine                  IntervalSource = "MachineMonitor"
+	SourceTerminationLog                          = "TerminationLog"
 )
 
 type Interval struct {

@@ -1,0 +1,8 @@
+# Late Connections
+{{ range $node, $logs := . }}
+## {{ $node }}
+
+```
+{{ range $logs }}{{ .TS.Format "0102 15:04:05.000000" }}] {{ .Msg }}
+{{ end }}{{ end -}}
+```
