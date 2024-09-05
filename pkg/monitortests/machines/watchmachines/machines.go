@@ -16,10 +16,27 @@ import (
 
 func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, client machineClient.Interface) {
 
-	machinePhaseChangeFns := []func(machine, oldMachine *machine.Machine) []monitorapi.Interval{
+	machineChangeFns := []func(machine, oldMachine *machine.Machine) []monitorapi.Interval{
+		// this is first so machine created shows up first when queried
+		func(machine, oldMachine *machine.Machine) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+			if oldMachine != nil {
+				return intervals
+			}
+
+			intervals = append(intervals,
+				monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
+					Locator(monitorapi.NewLocator().MachineFromName(machine.Name)).
+					Message(monitorapi.NewMessage().Reason(monitorapi.MachineCreated).
+						HumanMessage("Machine created")).
+					Build(machine.ObjectMeta.CreationTimestamp.Time, machine.ObjectMeta.CreationTimestamp.Time))
+			return intervals
+		},
+
 		func(machine, oldMachine *machine.Machine) []monitorapi.Interval {
 			var intervals []monitorapi.Interval
 			now := time.Now()
+
 			oldHasPhase := oldMachine != nil && oldMachine.Status.Phase != nil
 			newHasPhase := machine != nil && machine.Status.Phase != nil
 			oldPhase := "<missing>"
@@ -41,10 +58,18 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 				nodeName = machine.Status.NodeRef.Name
 			}
 
+			machineName := "<missing>"
+			if oldMachine != nil {
+				machineName = oldMachine.Name
+			}
+			if machine != nil {
+				machineName = machine.Name
+			}
+
 			if oldPhase != newPhase {
 				intervals = append(intervals,
 					monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
-						Locator(monitorapi.NewLocator().MachineFromName(machine.Name)).
+						Locator(monitorapi.NewLocator().MachineFromName(machineName)).
 						Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhaseChanged).
 							WithAnnotation(monitorapi.AnnotationPhase, newPhase).
 							WithAnnotation(monitorapi.AnnotationPreviousPhase, oldPhase).
@@ -54,17 +79,31 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 			}
 			return intervals
 		},
+
+		// this is last so machine deleted shows up last when queried
+		func(machine, oldMachine *machine.Machine) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+			if machine != nil {
+				return intervals
+			}
+
+			now := time.Now()
+			intervals = append(intervals,
+				monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
+					Locator(monitorapi.NewLocator().MachineFromName(oldMachine.Name)).
+					Message(monitorapi.NewMessage().Reason(monitorapi.MachineDeletedInAPI).
+						HumanMessage("Machine deleted")).
+					Build(now, now))
+			return intervals
+		},
 	}
 
-	nullFunc := []func(machine *machine.Machine) []monitorapi.Interval{
-		func(oldMachine *machine.Machine) []monitorapi.Interval { return nil },
-	}
 	listWatch := cache.NewListWatchFromClient(client.MachineV1beta1().RESTClient(), "machines", "openshift-machine-api", fields.Everything())
 	customStore := monitortestlibrary.NewMonitoringStore(
 		"machines",
-		toNullCreateFns(nullFunc),
-		toUpdateFns(machinePhaseChangeFns),
-		toNullDeleteFns(nullFunc),
+		toCreateFns(machineChangeFns),
+		toUpdateFns(machineChangeFns),
+		toDeleteFns(machineChangeFns),
 		m,
 		m,
 	)
@@ -72,20 +111,35 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 	go reflector.Run(ctx.Done())
 }
 
-func toNullCreateFns([]func(_ *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjCreateFunc {
+func toCreateFns(machineUpdateFns []func(machine, oldMachine *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjCreateFunc {
 	ret := []monitortestlibrary.ObjCreateFunc{}
+
+	for i := range machineUpdateFns {
+		fn := machineUpdateFns[i]
+		ret = append(ret, func(obj interface{}) []monitorapi.Interval {
+			return fn(obj.(*machine.Machine), nil)
+		})
+	}
+
 	return ret
 }
 
-func toNullDeleteFns(_ []func(pod *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjDeleteFunc {
+func toDeleteFns(machineUpdateFns []func(machine, oldMachine *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjDeleteFunc {
 	ret := []monitortestlibrary.ObjDeleteFunc{}
+
+	for i := range machineUpdateFns {
+		fn := machineUpdateFns[i]
+		ret = append(ret, func(obj interface{}) []monitorapi.Interval {
+			return fn(nil, obj.(*machine.Machine))
+		})
+	}
 	return ret
 }
-func toUpdateFns(podUpdateFns []func(machine, oldMachine *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjUpdateFunc {
+func toUpdateFns(machineUpdateFns []func(machine, oldMachine *machine.Machine) []monitorapi.Interval) []monitortestlibrary.ObjUpdateFunc {
 	ret := []monitortestlibrary.ObjUpdateFunc{}
 
-	for i := range podUpdateFns {
-		fn := podUpdateFns[i]
+	for i := range machineUpdateFns {
+		fn := machineUpdateFns[i]
 		ret = append(ret, func(obj, oldObj interface{}) []monitorapi.Interval {
 			if oldObj == nil {
 				return fn(obj.(*machine.Machine), nil)

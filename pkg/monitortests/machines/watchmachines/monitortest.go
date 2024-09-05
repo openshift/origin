@@ -39,18 +39,35 @@ func (w *machineWatcher) CollectData(ctx context.Context, storageDir string, beg
 func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
 	constructedIntervals := monitorapi.Intervals{}
 
-	allMachinePhaseChanges := startingIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		return eventInterval.Message.Reason == monitorapi.MachinePhaseChanged
+	allMachineChanges := startingIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		if eventInterval.Message.Reason == monitorapi.MachineCreated ||
+			eventInterval.Message.Reason == monitorapi.MachinePhaseChanged ||
+			eventInterval.Message.Reason == monitorapi.MachineDeletedInAPI {
+			return true
+		}
+		return false
 	})
 
-	machineNameToPhaseChanges := map[string][]monitorapi.Interval{}
-	for _, machinePhaseChange := range allMachinePhaseChanges {
+	machineNameToChanges := map[string][]monitorapi.Interval{}
+	for _, machinePhaseChange := range allMachineChanges {
 		machineName := machinePhaseChange.Locator.Keys[monitorapi.LocatorMachineKey]
-		machineNameToPhaseChanges[machineName] = append(machineNameToPhaseChanges[machineName], machinePhaseChange)
+		machineNameToChanges[machineName] = append(machineNameToChanges[machineName], machinePhaseChange)
 	}
 
-	for _, phaseChanges := range machineNameToPhaseChanges {
+	for _, allMachineChanges := range machineNameToChanges {
 		previousChangeTime := time.Time{}
+		createdIntervals := monitorapi.Intervals(allMachineChanges).Filter(func(eventInterval monitorapi.Interval) bool {
+			return eventInterval.Message.Reason == monitorapi.MachineCreated
+		})
+		if len(createdIntervals) > 0 {
+			previousChangeTime = createdIntervals[0].From
+		}
+		machineLocator := monitorapi.Locator{}
+		lastPhase := ""
+
+		phaseChanges := monitorapi.Intervals(allMachineChanges).Filter(func(eventInterval monitorapi.Interval) bool {
+			return eventInterval.Message.Reason == monitorapi.MachinePhaseChanged
+		})
 		for _, phaseChange := range phaseChanges {
 			previousPhase := phaseChange.Message.Annotations[monitorapi.AnnotationPreviousPhase]
 			constructedIntervals = append(constructedIntervals,
@@ -64,6 +81,28 @@ func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingI
 					Build(previousChangeTime, phaseChange.From),
 			)
 			previousChangeTime = phaseChange.From
+			lastPhase = phaseChange.Message.Annotations[monitorapi.AnnotationPhase]
+			machineLocator = phaseChange.Locator
+		}
+
+		deletionTime := time.Time{}
+		deletedIntervals := monitorapi.Intervals(allMachineChanges).Filter(func(eventInterval monitorapi.Interval) bool {
+			return eventInterval.Message.Reason == monitorapi.MachineDeletedInAPI
+		})
+		if len(deletedIntervals) > 0 {
+			deletionTime = deletedIntervals[0].To
+		}
+		if len(lastPhase) > 0 {
+			constructedIntervals = append(constructedIntervals,
+				monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
+					Locator(machineLocator).
+					Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhase).
+						Constructed(monitorapi.ConstructionOwnerMachineLifecycle).
+						WithAnnotation(monitorapi.AnnotationPhase, lastPhase).
+						HumanMessage(fmt.Sprintf("Machine is in %q", lastPhase))).
+					Display().
+					Build(previousChangeTime, deletionTime),
+			)
 		}
 	}
 

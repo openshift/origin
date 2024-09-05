@@ -204,6 +204,8 @@ const (
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
 
+	MachineCreated      IntervalReason = "MachineCreated"
+	MachineDeletedInAPI IntervalReason = "MachineDeletedInAPI"
 	MachinePhaseChanged IntervalReason = "MachinePhaseChange"
 	MachinePhase        IntervalReason = "MachinePhase"
 
