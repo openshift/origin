@@ -219,7 +219,7 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/profile v1.3.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
@@ -337,3 +337,11 @@ replace (
 	k8s.io/sample-cli-plugin => github.com/openshift/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20240723170835-32f817d75efe
 	k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20240723170835-32f817d75efe
 )
+
+replace github.com/openshift/api => github.com/atiratree/api v0.0.0-20240830152941-34de2c1ab9d8
+
+replace github.com/openshift/client-go => github.com/atiratree/client-go v0.0.0-20240830171345-d8eefb9e13fa
+
+replace github.com/openshift/library-go => github.com/atiratree/library-go v0.0.0-20240830172616-6ec6d5a91763
+
+replace github.com/openshift/apiserver-library-go => github.com/atiratree/apiserver-library-go v0.0.0-20240902141710-d46ab0ce0d50
