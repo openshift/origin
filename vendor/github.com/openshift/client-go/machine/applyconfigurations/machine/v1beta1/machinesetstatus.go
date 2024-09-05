@@ -16,6 +16,7 @@ type MachineSetStatusApplyConfiguration struct {
 	ObservedGeneration     *int64                         `json:"observedGeneration,omitempty"`
 	ErrorReason            *v1beta1.MachineSetStatusError `json:"errorReason,omitempty"`
 	ErrorMessage           *string                        `json:"errorMessage,omitempty"`
+	Conditions             []ConditionApplyConfiguration  `json:"conditions,omitempty"`
 	AuthoritativeAPI       *v1beta1.MachineAuthority      `json:"authoritativeAPI,omitempty"`
 	SynchronizedGeneration *int64                         `json:"synchronizedGeneration,omitempty"`
 }
@@ -79,6 +80,19 @@ func (b *MachineSetStatusApplyConfiguration) WithErrorReason(value v1beta1.Machi
 // If called multiple times, the ErrorMessage field is set to the value of the last call.
 func (b *MachineSetStatusApplyConfiguration) WithErrorMessage(value string) *MachineSetStatusApplyConfiguration {
 	b.ErrorMessage = &value
+	return b
+}
+
+// WithConditions adds the given value to the Conditions field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Conditions field.
+func (b *MachineSetStatusApplyConfiguration) WithConditions(values ...*ConditionApplyConfiguration) *MachineSetStatusApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithConditions")
+		}
+		b.Conditions = append(b.Conditions, *values[i])
+	}
 	return b
 }
 

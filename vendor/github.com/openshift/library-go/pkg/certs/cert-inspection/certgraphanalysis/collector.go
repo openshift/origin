@@ -289,17 +289,11 @@ func GetBootstrapIPAndHostname(ctx context.Context, kubeClient kubernetes.Interf
 		if !ok || !strings.Contains(certHostNames, bootstrapIP) {
 			continue
 		}
-		// Node name is stored as last word in the secret description
-		description, ok := secret.Annotations[annotations.OpenShiftDescription]
-		if !ok {
-			continue
+		// Extract bootstrap name from etcd secret name
+		if result, found := strings.CutPrefix(secret.Name, "etcd-peer-"); found {
+			bootstrapHostname = result
+			break
 		}
-		descriptionWords := strings.Split(description, " ")
-		if len(descriptionWords) < 1 {
-			continue
-		}
-		bootstrapHostname = descriptionWords[len(descriptionWords)-1]
-		break
 	}
 
 	return bootstrapIP, bootstrapHostname, nil

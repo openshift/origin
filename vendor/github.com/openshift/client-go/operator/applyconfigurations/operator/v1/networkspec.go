@@ -11,17 +11,18 @@ import (
 // with apply.
 type NetworkSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
-	ClusterNetwork                 []ClusterNetworkEntryApplyConfiguration         `json:"clusterNetwork,omitempty"`
-	ServiceNetwork                 []string                                        `json:"serviceNetwork,omitempty"`
-	DefaultNetwork                 *DefaultNetworkDefinitionApplyConfiguration     `json:"defaultNetwork,omitempty"`
-	AdditionalNetworks             []AdditionalNetworkDefinitionApplyConfiguration `json:"additionalNetworks,omitempty"`
-	DisableMultiNetwork            *bool                                           `json:"disableMultiNetwork,omitempty"`
-	UseMultiNetworkPolicy          *bool                                           `json:"useMultiNetworkPolicy,omitempty"`
-	DeployKubeProxy                *bool                                           `json:"deployKubeProxy,omitempty"`
-	DisableNetworkDiagnostics      *bool                                           `json:"disableNetworkDiagnostics,omitempty"`
-	KubeProxyConfig                *ProxyConfigApplyConfiguration                  `json:"kubeProxyConfig,omitempty"`
-	ExportNetworkFlows             *ExportNetworkFlowsApplyConfiguration           `json:"exportNetworkFlows,omitempty"`
-	Migration                      *NetworkMigrationApplyConfiguration             `json:"migration,omitempty"`
+	ClusterNetwork                 []ClusterNetworkEntryApplyConfiguration          `json:"clusterNetwork,omitempty"`
+	ServiceNetwork                 []string                                         `json:"serviceNetwork,omitempty"`
+	DefaultNetwork                 *DefaultNetworkDefinitionApplyConfiguration      `json:"defaultNetwork,omitempty"`
+	AdditionalNetworks             []AdditionalNetworkDefinitionApplyConfiguration  `json:"additionalNetworks,omitempty"`
+	DisableMultiNetwork            *bool                                            `json:"disableMultiNetwork,omitempty"`
+	UseMultiNetworkPolicy          *bool                                            `json:"useMultiNetworkPolicy,omitempty"`
+	DeployKubeProxy                *bool                                            `json:"deployKubeProxy,omitempty"`
+	DisableNetworkDiagnostics      *bool                                            `json:"disableNetworkDiagnostics,omitempty"`
+	KubeProxyConfig                *ProxyConfigApplyConfiguration                   `json:"kubeProxyConfig,omitempty"`
+	ExportNetworkFlows             *ExportNetworkFlowsApplyConfiguration            `json:"exportNetworkFlows,omitempty"`
+	Migration                      *NetworkMigrationApplyConfiguration              `json:"migration,omitempty"`
+	AdditionalRoutingCapabilities  *AdditionalRoutingCapabilitiesApplyConfiguration `json:"additionalRoutingCapabilities,omitempty"`
 }
 
 // NetworkSpecApplyConfiguration constructs an declarative configuration of the NetworkSpec type for use with
@@ -167,5 +168,13 @@ func (b *NetworkSpecApplyConfiguration) WithExportNetworkFlows(value *ExportNetw
 // If called multiple times, the Migration field is set to the value of the last call.
 func (b *NetworkSpecApplyConfiguration) WithMigration(value *NetworkMigrationApplyConfiguration) *NetworkSpecApplyConfiguration {
 	b.Migration = value
+	return b
+}
+
+// WithAdditionalRoutingCapabilities sets the AdditionalRoutingCapabilities field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the AdditionalRoutingCapabilities field is set to the value of the last call.
+func (b *NetworkSpecApplyConfiguration) WithAdditionalRoutingCapabilities(value *AdditionalRoutingCapabilitiesApplyConfiguration) *NetworkSpecApplyConfiguration {
+	b.AdditionalRoutingCapabilities = value
 	return b
 }

@@ -800,7 +800,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f
+# github.com/openshift/api v0.0.0-20240704102751-33ed71ab039f => github.com/atiratree/api v0.0.0-20240830152941-34de2c1ab9d8
 ## explicit; go 1.22.0
 github.com/openshift/api
 github.com/openshift/api/annotations
@@ -875,7 +875,7 @@ github.com/openshift/api/template/v1
 github.com/openshift/api/unidling/v1alpha1
 github.com/openshift/api/user
 github.com/openshift/api/user/v1
-# github.com/openshift/apiserver-library-go v0.0.0-20240716092710-e88385a79b17
+# github.com/openshift/apiserver-library-go v0.0.0-20240716092710-e88385a79b17 => github.com/atiratree/apiserver-library-go v0.0.0-20240902141710-d46ab0ce0d50
 ## explicit; go 1.22.0
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy
 github.com/openshift/apiserver-library-go/pkg/admission/imagepolicy/apis/imagepolicy/v1
@@ -906,7 +906,7 @@ github.com/openshift/build-machinery-go/make/targets/golang
 github.com/openshift/build-machinery-go/make/targets/openshift
 github.com/openshift/build-machinery-go/make/targets/openshift/operator
 github.com/openshift/build-machinery-go/scripts
-# github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
+# github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87 => github.com/atiratree/client-go v0.0.0-20240830171345-d8eefb9e13fa
 ## explicit; go 1.22.0
 github.com/openshift/client-go/apiserver/applyconfigurations/apiserver/v1
 github.com/openshift/client-go/apiserver/applyconfigurations/internal
@@ -1037,7 +1037,7 @@ github.com/openshift/client-go/user/listers/user/v1
 # github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb
 ## explicit; go 1.22.0
 github.com/openshift/cluster-network-operator/pkg/names
-# github.com/openshift/library-go v0.0.0-20240709182732-b94141242b0c
+# github.com/openshift/library-go v0.0.0-20240709182732-b94141242b0c => github.com/atiratree/library-go v0.0.0-20240830172616-6ec6d5a91763
 ## explicit; go 1.22.0
 github.com/openshift/library-go/pkg/apiserver/admission/admissionrestconfig
 github.com/openshift/library-go/pkg/apiserver/admission/admissiontimeout
@@ -1108,7 +1108,7 @@ github.com/pkg/errors
 # github.com/pkg/profile v1.3.0
 ## explicit
 github.com/pkg/profile
-# github.com/pmezard/go-difflib v1.0.0
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib
 # github.com/pquerna/cachecontrol v0.1.0
@@ -3838,3 +3838,7 @@ sigs.k8s.io/yaml/goyaml.v2
 # k8s.io/sample-apiserver => github.com/openshift/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20240723170835-32f817d75efe
 # k8s.io/sample-cli-plugin => github.com/openshift/kubernetes/staging/src/k8s.io/sample-cli-plugin v0.0.0-20240723170835-32f817d75efe
 # k8s.io/sample-controller => github.com/openshift/kubernetes/staging/src/k8s.io/sample-controller v0.0.0-20240723170835-32f817d75efe
+# github.com/openshift/api => github.com/atiratree/api v0.0.0-20240830152941-34de2c1ab9d8
+# github.com/openshift/client-go => github.com/atiratree/client-go v0.0.0-20240830171345-d8eefb9e13fa
+# github.com/openshift/library-go => github.com/atiratree/library-go v0.0.0-20240830172616-6ec6d5a91763
+# github.com/openshift/apiserver-library-go => github.com/atiratree/apiserver-library-go v0.0.0-20240902141710-d46ab0ce0d50

@@ -62,7 +62,7 @@ route/
     tests/
       routes.route.openshift.io/
         AAA_ungated.yaml
-        ExternalRouteCertificate.yaml
+        RouteExternalCertificate.yaml
 ```
 Here's an `AAA_ungated.yaml` example:
 ```yaml
@@ -72,12 +72,12 @@ crdName: routes.route.openshift.io
 tests:
 ```
 
-Here's an `ExternalRouteCertificate.yaml` example:
+Here's an `RouteExternalCertificate.yaml` example:
 ```yaml
 apiVersion: apiextensions.k8s.io/v1 # Hack because controller-gen complains if we don't have this.
 name: Route
 crdName: routes.route.openshift.io
-featureGate: ExternalRouteCertificate
+featureGate: RouteExternalCertificate
 tests:
 ```
 

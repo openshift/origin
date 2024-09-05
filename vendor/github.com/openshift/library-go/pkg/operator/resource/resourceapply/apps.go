@@ -15,6 +15,7 @@ import (
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 )
 
@@ -118,7 +119,7 @@ func ApplyDeploymentWithForce(ctx context.Context, client appsclientv1.Deploymen
 	existing, err := client.Deployments(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		actual, err := client.Deployments(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
-		reportCreateEvent(recorder, required, err)
+		resourcehelper.ReportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -155,7 +156,7 @@ func ApplyDeploymentWithForce(ctx context.Context, client appsclientv1.Deploymen
 	}
 
 	actual, err := client.Deployments(required.Namespace).Update(ctx, toWrite, metav1.UpdateOptions{})
-	reportUpdateEvent(recorder, required, err)
+	resourcehelper.ReportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
 
@@ -205,7 +206,7 @@ func ApplyDaemonSetWithForce(ctx context.Context, client appsclientv1.DaemonSets
 	existing, err := client.DaemonSets(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		actual, err := client.DaemonSets(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
-		reportCreateEvent(recorder, required, err)
+		resourcehelper.ReportCreateEvent(recorder, required, err)
 		return actual, true, err
 	}
 	if err != nil {
@@ -241,6 +242,6 @@ func ApplyDaemonSetWithForce(ctx context.Context, client appsclientv1.DaemonSets
 		klog.Infof("DaemonSet %q changes: %v", required.Namespace+"/"+required.Name, JSONPatchNoError(existing, toWrite))
 	}
 	actual, err := client.DaemonSets(required.Namespace).Update(ctx, toWrite, metav1.UpdateOptions{})
-	reportUpdateEvent(recorder, required, err)
+	resourcehelper.ReportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }

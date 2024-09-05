@@ -335,6 +335,12 @@ func DeleteAll(ctx context.Context, clients *ClientHolder, recorder events.Recor
 			} else {
 				_, result.Changed, result.Error = DeleteStorageClass(ctx, clients.kubeClient.StorageV1(), recorder, t)
 			}
+		case *admissionregistrationv1.ValidatingWebhookConfiguration:
+			if clients.kubeClient == nil {
+				result.Error = fmt.Errorf("missing kubeClient")
+			} else {
+				_, result.Changed, result.Error = DeleteValidatingWebhookConfiguration(ctx, clients.kubeClient.AdmissionregistrationV1(), recorder, t)
+			}
 		case *storagev1.CSIDriver:
 			if clients.kubeClient == nil {
 				result.Error = fmt.Errorf("missing kubeClient")

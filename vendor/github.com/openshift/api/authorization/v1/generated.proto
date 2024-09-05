@@ -155,7 +155,11 @@ message IsPersonalSubjectAccessReview {
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
 message LocalResourceAccessReview {
-  // Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
+  // metadata is the standard object's metadata.
+  // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 2;
+
+  // Action describes the action being tested. The Namespace element is FORCED to the current namespace.
   optional Action Action = 1;
 }
 
@@ -164,6 +168,10 @@ message LocalResourceAccessReview {
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
 message LocalSubjectAccessReview {
+  // metadata is the standard object's metadata.
+  // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 5;
+
   // Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
   optional Action Action = 1;
 
@@ -270,6 +278,10 @@ message PolicyRule {
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
 message ResourceAccessReview {
+  // metadata is the standard object's metadata.
+  // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 2;
+
   // Action describes the action being tested.
   optional Action Action = 1;
 }
@@ -429,6 +441,10 @@ message RoleList {
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
 message SelfSubjectRulesReview {
+  // metadata is the standard object's metadata.
+  // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 3;
+
   // Spec adds information about how to conduct the check
   optional SelfSubjectRulesReviewSpec spec = 1;
 
@@ -473,6 +489,10 @@ message ServiceAccountRestriction {
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
 message SubjectAccessReview {
+  // metadata is the standard object's metadata.
+  // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 5;
+
   // Action describes the action being tested.
   optional Action Action = 1;
 
@@ -515,6 +535,10 @@ message SubjectAccessReviewResponse {
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
 message SubjectRulesReview {
+  // metadata is the standard object's metadata.
+  // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 3;
+
   // Spec adds information about how to conduct the check
   optional SubjectRulesReviewSpec spec = 1;
 

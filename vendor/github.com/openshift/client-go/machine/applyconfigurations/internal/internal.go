@@ -517,6 +517,14 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: availableReplicas
       type:
         scalar: numeric
+    - name: conditions
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.machine.v1beta1.Condition
+          elementRelationship: associative
+          keys:
+          - type
     - name: errorMessage
       type:
         scalar: string

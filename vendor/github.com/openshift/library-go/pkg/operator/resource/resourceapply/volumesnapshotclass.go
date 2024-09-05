@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
 )
 
 const (
@@ -124,6 +125,6 @@ func DeleteVolumeSnapshotClass(ctx context.Context, client dynamic.Interface, re
 	if err != nil {
 		return nil, false, err
 	}
-	reportDeleteEvent(recorder, required, err)
+	resourcehelper.ReportDeleteEvent(recorder, required, err)
 	return nil, true, nil
 }

@@ -16,23 +16,37 @@ machineconfignodes.machineconfiguration.openshift.io:
     openshift.io/operator-managed: ""
   PluralName: machineconfignodes
   PrinterColumns:
+  - jsonPath: .spec.pool.name
+    name: PoolName
+    type: string
+  - jsonPath: .spec.configVersion.desired
+    name: DesiredConfig
+    type: string
+  - jsonPath: .status.configVersion.current
+    name: CurrentConfig
+    type: string
   - jsonPath: .status.conditions[?(@.type=="Updated")].status
     name: Updated
     type: string
   - jsonPath: .status.conditions[?(@.type=="UpdatePrepared")].status
     name: UpdatePrepared
+    priority: 1
     type: string
   - jsonPath: .status.conditions[?(@.type=="UpdateExecuted")].status
     name: UpdateExecuted
+    priority: 1
     type: string
   - jsonPath: .status.conditions[?(@.type=="UpdatePostActionComplete")].status
     name: UpdatePostActionComplete
+    priority: 1
     type: string
   - jsonPath: .status.conditions[?(@.type=="UpdateComplete")].status
     name: UpdateComplete
+    priority: 1
     type: string
   - jsonPath: .status.conditions[?(@.type=="Resumed")].status
     name: Resumed
+    priority: 1
     type: string
   - jsonPath: .status.conditions[?(@.type=="UpdateCompatible")].status
     name: UpdateCompatible

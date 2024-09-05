@@ -9,7 +9,8 @@ import (
 // AWSClassicLoadBalancerParametersApplyConfiguration represents an declarative configuration of the AWSClassicLoadBalancerParameters type for use
 // with apply.
 type AWSClassicLoadBalancerParametersApplyConfiguration struct {
-	ConnectionIdleTimeout *v1.Duration `json:"connectionIdleTimeout,omitempty"`
+	ConnectionIdleTimeout *v1.Duration                  `json:"connectionIdleTimeout,omitempty"`
+	Subnets               *AWSSubnetsApplyConfiguration `json:"subnets,omitempty"`
 }
 
 // AWSClassicLoadBalancerParametersApplyConfiguration constructs an declarative configuration of the AWSClassicLoadBalancerParameters type for use with
@@ -23,5 +24,13 @@ func AWSClassicLoadBalancerParameters() *AWSClassicLoadBalancerParametersApplyCo
 // If called multiple times, the ConnectionIdleTimeout field is set to the value of the last call.
 func (b *AWSClassicLoadBalancerParametersApplyConfiguration) WithConnectionIdleTimeout(value v1.Duration) *AWSClassicLoadBalancerParametersApplyConfiguration {
 	b.ConnectionIdleTimeout = &value
+	return b
+}
+
+// WithSubnets sets the Subnets field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Subnets field is set to the value of the last call.
+func (b *AWSClassicLoadBalancerParametersApplyConfiguration) WithSubnets(value *AWSSubnetsApplyConfiguration) *AWSClassicLoadBalancerParametersApplyConfiguration {
+	b.Subnets = value
 	return b
 }

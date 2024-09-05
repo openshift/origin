@@ -11,7 +11,7 @@ import (
 type AWSLoadBalancerParametersApplyConfiguration struct {
 	Type                          *v1.AWSLoadBalancerType                             `json:"type,omitempty"`
 	ClassicLoadBalancerParameters *AWSClassicLoadBalancerParametersApplyConfiguration `json:"classicLoadBalancer,omitempty"`
-	NetworkLoadBalancerParameters *v1.AWSNetworkLoadBalancerParameters                `json:"networkLoadBalancer,omitempty"`
+	NetworkLoadBalancerParameters *AWSNetworkLoadBalancerParametersApplyConfiguration `json:"networkLoadBalancer,omitempty"`
 }
 
 // AWSLoadBalancerParametersApplyConfiguration constructs an declarative configuration of the AWSLoadBalancerParameters type for use with
@@ -39,7 +39,7 @@ func (b *AWSLoadBalancerParametersApplyConfiguration) WithClassicLoadBalancerPar
 // WithNetworkLoadBalancerParameters sets the NetworkLoadBalancerParameters field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the NetworkLoadBalancerParameters field is set to the value of the last call.
-func (b *AWSLoadBalancerParametersApplyConfiguration) WithNetworkLoadBalancerParameters(value v1.AWSNetworkLoadBalancerParameters) *AWSLoadBalancerParametersApplyConfiguration {
-	b.NetworkLoadBalancerParameters = &value
+func (b *AWSLoadBalancerParametersApplyConfiguration) WithNetworkLoadBalancerParameters(value *AWSNetworkLoadBalancerParametersApplyConfiguration) *AWSLoadBalancerParametersApplyConfiguration {
+	b.NetworkLoadBalancerParameters = value
 	return b
 }

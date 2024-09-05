@@ -111,7 +111,9 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             namedType: com.github.openshift.api.route.v1.RouteIngressCondition
-          elementRelationship: atomic
+          elementRelationship: associative
+          keys:
+          - type
     - name: host
       type:
         scalar: string
@@ -166,7 +168,10 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             namedType: com.github.openshift.api.route.v1.RouteTargetReference
-          elementRelationship: atomic
+          elementRelationship: associative
+          keys:
+          - name
+          - kind
     - name: host
       type:
         scalar: string

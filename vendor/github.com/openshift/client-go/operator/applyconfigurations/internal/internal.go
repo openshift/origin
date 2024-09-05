@@ -142,6 +142,9 @@ var schemaYAML = typed.YAMLObject(`types:
 - name: com.github.openshift.api.operator.v1.AWSCSIDriverConfigSpec
   map:
     fields:
+    - name: efsVolumeMetrics
+      type:
+        namedType: com.github.openshift.api.operator.v1.AWSEFSVolumeMetrics
     - name: kmsKeyARN
       type:
         scalar: string
@@ -151,6 +154,33 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: connectionIdleTimeout
       type:
         namedType: io.k8s.apimachinery.pkg.apis.meta.v1.Duration
+    - name: subnets
+      type:
+        namedType: com.github.openshift.api.operator.v1.AWSSubnets
+- name: com.github.openshift.api.operator.v1.AWSEFSVolumeMetrics
+  map:
+    fields:
+    - name: recursiveWalk
+      type:
+        namedType: com.github.openshift.api.operator.v1.AWSEFSVolumeMetricsRecursiveWalkConfig
+    - name: state
+      type:
+        scalar: string
+      default: ""
+    unions:
+    - discriminator: state
+      fields:
+      - fieldName: recursiveWalk
+        discriminatorValue: RecursiveWalk
+- name: com.github.openshift.api.operator.v1.AWSEFSVolumeMetricsRecursiveWalkConfig
+  map:
+    fields:
+    - name: fsRateLimit
+      type:
+        scalar: numeric
+    - name: refreshPeriodMinutes
+      type:
+        scalar: numeric
 - name: com.github.openshift.api.operator.v1.AWSLoadBalancerParameters
   map:
     fields:
@@ -173,16 +203,31 @@ var schemaYAML = typed.YAMLObject(`types:
         discriminatorValue: NetworkLoadBalancerParameters
 - name: com.github.openshift.api.operator.v1.AWSNetworkLoadBalancerParameters
   map:
-    elementType:
-      scalar: untyped
-      list:
-        elementType:
-          namedType: __untyped_atomic_
-        elementRelationship: atomic
-      map:
-        elementType:
-          namedType: __untyped_deduced_
-        elementRelationship: separable
+    fields:
+    - name: eipAllocations
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: subnets
+      type:
+        namedType: com.github.openshift.api.operator.v1.AWSSubnets
+- name: com.github.openshift.api.operator.v1.AWSSubnets
+  map:
+    fields:
+    - name: ids
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
+    - name: names
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
 - name: com.github.openshift.api.operator.v1.AccessLogging
   map:
     fields:
@@ -235,6 +280,15 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         scalar: string
       default: ""
+- name: com.github.openshift.api.operator.v1.AdditionalRoutingCapabilities
+  map:
+    fields:
+    - name: providers
+      type:
+        list:
+          elementType:
+            scalar: string
+          elementRelationship: atomic
 - name: com.github.openshift.api.operator.v1.Authentication
   map:
     fields:
@@ -433,6 +487,26 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: version
       type:
         scalar: string
+- name: com.github.openshift.api.operator.v1.Capability
+  map:
+    fields:
+    - name: name
+      type:
+        scalar: string
+      default: ""
+    - name: visibility
+      type:
+        namedType: com.github.openshift.api.operator.v1.CapabilityVisibility
+      default: {}
+- name: com.github.openshift.api.operator.v1.CapabilityVisibility
+  map:
+    fields:
+    - name: state
+      type:
+        scalar: string
+      default: ""
+    unions:
+    - discriminator: state
 - name: com.github.openshift.api.operator.v1.ClientTLS
   map:
     fields:
@@ -719,6 +793,14 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: brand
       type:
         scalar: string
+    - name: capabilities
+      type:
+        list:
+          elementType:
+            namedType: com.github.openshift.api.operator.v1.Capability
+          elementRelationship: associative
+          keys:
+          - name
     - name: customLogoFile
       type:
         namedType: com.github.openshift.api.config.v1.ConfigMapFileReference
@@ -1697,7 +1779,9 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             namedType: com.github.openshift.api.operator.v1.OperatorCondition
-          elementRelationship: atomic
+          elementRelationship: associative
+          keys:
+          - type
     - name: domain
       type:
         scalar: string
@@ -2428,7 +2512,6 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: mode
       type:
         scalar: string
-      default: ""
     - name: mtu
       type:
         namedType: com.github.openshift.api.operator.v1.MTUMigration
@@ -2443,7 +2526,12 @@ var schemaYAML = typed.YAMLObject(`types:
         list:
           elementType:
             namedType: com.github.openshift.api.operator.v1.AdditionalNetworkDefinition
-          elementRelationship: atomic
+          elementRelationship: associative
+          keys:
+          - name
+    - name: additionalRoutingCapabilities
+      type:
+        namedType: com.github.openshift.api.operator.v1.AdditionalRoutingCapabilities
     - name: clusterNetwork
       type:
         list:
@@ -2782,6 +2870,9 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: policyAuditConfig
       type:
         namedType: com.github.openshift.api.operator.v1.PolicyAuditConfig
+    - name: routeAdvertisements
+      type:
+        scalar: string
     - name: v4InternalSubnet
       type:
         scalar: string

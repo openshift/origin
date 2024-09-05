@@ -209,6 +209,10 @@ var schemaYAML = typed.YAMLObject(`types:
       type:
         namedType: com.github.openshift.api.security.v1.SupplementalGroupsStrategyOptions
       default: {}
+    - name: userNamespaceLevel
+      type:
+        scalar: string
+      default: AllowHostLevel
     - name: users
       type:
         list:
