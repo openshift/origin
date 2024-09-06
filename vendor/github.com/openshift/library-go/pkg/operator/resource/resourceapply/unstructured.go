@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	"github.com/openshift/library-go/pkg/operator/events"
 )
 
 // ApplyKnownUnstructured applies few selected Unstructured types, where it semantic knowledge
@@ -20,6 +21,10 @@ func ApplyKnownUnstructured(ctx context.Context, client dynamic.Interface, recor
 		return ApplyPrometheusRule(ctx, client, recorder, obj)
 	case schema.GroupKind{Group: "snapshot.storage.k8s.io", Kind: "VolumeSnapshotClass"}:
 		return ApplyVolumeSnapshotClass(ctx, client, recorder, obj)
+	case schema.GroupKind{Group: "monitoring.coreos.com", Kind: "Alertmanager"}:
+		return ApplyAlertmanager(ctx, client, recorder, obj)
+	case schema.GroupKind{Group: "monitoring.coreos.com", Kind: "Prometheus"}:
+		return ApplyPrometheus(ctx, client, recorder, obj)
 
 	}
 
@@ -35,6 +40,10 @@ func DeleteKnownUnstructured(ctx context.Context, client dynamic.Interface, reco
 		return DeletePrometheusRule(ctx, client, recorder, obj)
 	case schema.GroupKind{Group: "snapshot.storage.k8s.io", Kind: "VolumeSnapshotClass"}:
 		return DeleteVolumeSnapshotClass(ctx, client, recorder, obj)
+	case schema.GroupKind{Group: "monitoring.coreos.com", Kind: "Alertmanager"}:
+		return DeleteAlertmanager(ctx, client, recorder, obj)
+	case schema.GroupKind{Group: "monitoring.coreos.com", Kind: "Prometheus"}:
+		return DeletePrometheus(ctx, client, recorder, obj)
 
 	}
 

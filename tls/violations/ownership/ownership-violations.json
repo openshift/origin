@@ -16,19 +16,6 @@
         {
             "InClusterLocation": {
                 "configMapLocation": {
-                    "Namespace": "openshift-config-managed",
-                    "Name": "kubelet-bootstrap-kubeconfig"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
                     "Namespace": "openshift-console",
                     "Name": "default-ingress-cert"
                 },
@@ -59,19 +46,6 @@
                 "secretLocation": {
                     "Namespace": "openshift-ingress-operator",
                     "Name": "router-ca"
-                },
-                "certKeyInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-machine-api",
-                    "Name": "metal3-ironic-tls"
                 },
                 "certKeyInfo": {
                     "owningJiraComponent": "",

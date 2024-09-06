@@ -3,6 +3,7 @@ package ownership
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/openshift/library-go/pkg/markdown"
 
 	"github.com/openshift/origin/pkg/certs"
@@ -54,20 +55,22 @@ func generateViolationJSON(pkiInfo *certs.PKIRegistryInfo) *certs.PKIRegistryInf
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		if curr.InClusterLocation == nil {
+		certKeyInfo := tlsmetadatainterfaces.GetCertKeyPairInfo(curr)
+		if certKeyInfo == nil {
 			continue
 		}
-		owner := curr.InClusterLocation.CertKeyInfo.OwningJiraComponent
+		owner := certKeyInfo.OwningJiraComponent
 		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			ret.CertKeyPairs = append(ret.CertKeyPairs, curr)
 		}
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		if curr.InClusterLocation == nil {
+		caBundleInfo := tlsmetadatainterfaces.GetCABundleInfo(curr)
+		if caBundleInfo == nil {
 			continue
 		}
-		owner := curr.InClusterLocation.CABundleInfo.OwningJiraComponent
+		owner := caBundleInfo.OwningJiraComponent
 		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			ret.CertificateAuthorityBundles = append(ret.CertificateAuthorityBundles, curr)
 		}
@@ -84,10 +87,11 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 
 	for i := range pkiInfo.CertKeyPairs {
 		curr := pkiInfo.CertKeyPairs[i]
-		if curr.InClusterLocation == nil {
+		certKeyInfo := tlsmetadatainterfaces.GetCertKeyPairInfo(curr)
+		if certKeyInfo == nil {
 			continue
 		}
-		owner := curr.InClusterLocation.CertKeyInfo.OwningJiraComponent
+		owner := certKeyInfo.OwningJiraComponent
 		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			certsWithoutOwners = append(certsWithoutOwners, curr)
 			continue
@@ -96,10 +100,11 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 	}
 	for i := range pkiInfo.CertificateAuthorityBundles {
 		curr := pkiInfo.CertificateAuthorityBundles[i]
-		if curr.InClusterLocation == nil {
+		caBundleInfo := tlsmetadatainterfaces.GetCABundleInfo(curr)
+		if caBundleInfo == nil {
 			continue
 		}
-		owner := curr.InClusterLocation.CABundleInfo.OwningJiraComponent
+		owner := caBundleInfo.OwningJiraComponent
 		if len(owner) == 0 || owner == tlsmetadatainterfaces.UnknownOwner {
 			caBundlesWithoutOwners = append(caBundlesWithoutOwners, curr)
 			continue
@@ -115,13 +120,18 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certsWithoutOwners)))
 			md.OrderedListStart()
 			for _, curr := range certsWithoutOwners {
-				if curr.InClusterLocation == nil {
-					continue
+				if curr.InClusterLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
+					md.Text("\n")
 				}
-				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-				md.Text("\n")
+				if curr.OnDiskLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+					md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
+					md.Text("\n")
+				}
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -130,13 +140,18 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 			md.Title(3, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundlesWithoutOwners)))
 			md.OrderedListStart()
 			for _, curr := range caBundlesWithoutOwners {
-				if curr.InClusterLocation == nil {
-					continue
+				if curr.InClusterLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
+					md.Text("\n")
 				}
-				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-				md.Text("\n")
+				if curr.OnDiskLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+					md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
+					md.Text("\n")
+				}
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -152,13 +167,18 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 			md.Title(3, fmt.Sprintf("Certificates (%d)", len(certs)))
 			md.OrderedListStart()
 			for _, curr := range certs {
-				if curr.InClusterLocation == nil {
-					continue
+				if curr.InClusterLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
+					md.Text("\n")
 				}
-				md.NewOrderedListItem()
-				md.Textf("ns/%v secret/%v\n", curr.InClusterLocation.SecretLocation.Namespace, curr.InClusterLocation.SecretLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CertKeyInfo.Description)
-				md.Text("\n")
+				if curr.OnDiskLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+					md.Textf("**Description:** %v", curr.OnDiskLocation.CertKeyInfo.Description)
+					md.Text("\n")
+				}
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
@@ -169,13 +189,18 @@ func generateOwnershipMarkdown(pkiInfo *certs.PKIRegistryInfo) ([]byte, error) {
 			md.Title(3, fmt.Sprintf("Certificate Authority Bundles (%d)", len(caBundles)))
 			md.OrderedListStart()
 			for _, curr := range caBundles {
-				if curr.InClusterLocation == nil {
-					continue
+				if curr.InClusterLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
+					md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
+					md.Text("\n")
 				}
-				md.NewOrderedListItem()
-				md.Textf("ns/%v configmap/%v\n", curr.InClusterLocation.ConfigMapLocation.Namespace, curr.InClusterLocation.ConfigMapLocation.Name)
-				md.Textf("**Description:** %v", curr.InClusterLocation.CABundleInfo.Description)
-				md.Text("\n")
+				if curr.OnDiskLocation != nil {
+					md.NewOrderedListItem()
+					md.Textf("file %v\n", curr.OnDiskLocation.OnDiskLocation.Path)
+					md.Textf("**Description:** %v", curr.OnDiskLocation.CABundleInfo.Description)
+					md.Text("\n")
+				}
 			}
 			md.OrderedListEnd()
 			md.Text("\n")
