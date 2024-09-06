@@ -364,7 +364,7 @@ func (b *LocatorBuilder) KubeAPIServerWithLB(loadBalancer string) Locator {
 	return b.Build()
 }
 
-func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, serviceNetworkIP string) Locator {
+func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, serviceNetworkIP, nodeName, nodeRole string) Locator {
 	// the label 'host' is the endpoint used to contact the kube-apiserver
 	getHost := func(metric model.Metric, serviceNetworkIP string) string {
 		host := string(metric["host"])
@@ -385,7 +385,15 @@ func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, servi
 	}
 
 	b.targetType = LocatorTypeAPIUnreachableFromClient
-	b.annotations[LocatorAPIUnreachableHostKey] = getHost(metric, serviceNetworkIP)
+	if host := getHost(metric, serviceNetworkIP); len(host) > 0 {
+		b.annotations[LocatorAPIUnreachableHostKey] = host
+	}
+	if job := string(metric["job"]); len(job) > 0 {
+		b.annotations[LocatorAPIUnreachableComponentKey] = job
+	}
+
+	b.annotations[LocatorNodeKey] = nodeName
+	b.annotations[LocatorNodeRoleKey] = nodeRole
 	return b.Build()
 }
 
