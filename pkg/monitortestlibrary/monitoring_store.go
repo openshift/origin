@@ -1,4 +1,4 @@
-package watchpods
+package monitortestlibrary
 
 import (
 	"strconv"
@@ -11,14 +11,18 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 )
 
-type resourceTracker interface {
+type ObjCreateFunc func(obj interface{}) []monitorapi.Interval
+type ObjUpdateFunc func(obj, oldObj interface{}) []monitorapi.Interval
+type ObjDeleteFunc func(obj interface{}) []monitorapi.Interval
+
+type ResourceTracker interface {
 	// RecordResource stores a resource for later serialization.  Deletion is not tracked, so this can be used
 	// to determine the final state of resource that are deleted in a namespace.
 	// Annotations are added to indicate number of updates and the number of recreates.
 	RecordResource(resourceType string, obj runtime.Object)
 }
 
-type intervalRecorder interface {
+type IntervalRecorder interface {
 	AddIntervals(intervals ...monitorapi.Interval)
 }
 
@@ -31,13 +35,13 @@ type monitoringStore struct {
 	cacheOfNow            map[types.UID]interface{}
 }
 
-func newMonitoringStore(
+func NewMonitoringStore(
 	resourceType string,
-	createHandlers []objCreateFunc,
-	updateHandlers []objUpdateFunc,
-	deleteHandlers []objDeleteFunc,
-	resourceTracker resourceTracker,
-	intervalRecorder intervalRecorder,
+	createHandlers []ObjCreateFunc,
+	updateHandlers []ObjUpdateFunc,
+	deleteHandlers []ObjDeleteFunc,
+	resourceTracker ResourceTracker,
+	intervalRecorder IntervalRecorder,
 ) *monitoringStore {
 	s := &monitoringStore{
 		FakeCustomStore:       &cache.FakeCustomStore{},

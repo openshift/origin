@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
@@ -525,7 +526,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 	}
 
 	listWatch := cache.NewListWatchFromClient(client.CoreV1().RESTClient(), "pods", "", fields.Everything())
-	customStore := newMonitoringStore(
+	customStore := monitortestlibrary.NewMonitoringStore(
 		"pods",
 		toCreateFns(podCreatedFns),
 		toUpdateFns(podChangeFns),
@@ -544,12 +545,8 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 
 }
 
-type objCreateFunc func(obj interface{}) []monitorapi.Interval
-type objUpdateFunc func(obj, oldObj interface{}) []monitorapi.Interval
-type objDeleteFunc func(obj interface{}) []monitorapi.Interval
-
-func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Interval) []objCreateFunc {
-	ret := []objCreateFunc{}
+func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Interval) []monitortestlibrary.ObjCreateFunc {
+	ret := []monitortestlibrary.ObjCreateFunc{}
 
 	for i := range podCreateFns {
 		fn := podCreateFns[i]
@@ -561,8 +558,8 @@ func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Interval) []o
 	return ret
 }
 
-func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Interval) []objDeleteFunc {
-	ret := []objDeleteFunc{}
+func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Interval) []monitortestlibrary.ObjDeleteFunc {
+	ret := []monitortestlibrary.ObjDeleteFunc{}
 
 	for i := range podDeleteFns {
 		fn := podDeleteFns[i]
@@ -574,8 +571,8 @@ func toDeleteFns(podDeleteFns []func(pod *corev1.Pod) []monitorapi.Interval) []o
 	return ret
 }
 
-func toUpdateFns(podUpdateFns []func(pod, oldPod *corev1.Pod) []monitorapi.Interval) []objUpdateFunc {
-	ret := []objUpdateFunc{}
+func toUpdateFns(podUpdateFns []func(pod, oldPod *corev1.Pod) []monitorapi.Interval) []monitortestlibrary.ObjUpdateFunc {
+	ret := []monitortestlibrary.ObjUpdateFunc{}
 
 	for i := range podUpdateFns {
 		fn := podUpdateFns[i]
