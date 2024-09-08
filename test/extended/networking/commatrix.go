@@ -71,7 +71,6 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		cs, err := client.New()
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-
 		g.By("get cluster's version and check if it's suitable for test")
 		clusterVersion, err := getClusterVersion(cs)
 		o.Expect(err).NotTo(o.HaveOccurred())
