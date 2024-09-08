@@ -14,80 +14,74 @@
 
 package swag
 
-import (
-	"unicode"
-	"unicode/utf8"
-)
+import "unicode"
 
 type (
-	lexemKind uint8
+	nameLexem interface {
+		GetUnsafeGoName() string
+		GetOriginal() string
+		IsInitialism() bool
+	}
 
-	nameLexem struct {
+	initialismNameLexem struct {
 		original          string
 		matchedInitialism string
-		kind              lexemKind
+	}
+
+	casualNameLexem struct {
+		original string
 	}
 )
 
-const (
-	lexemKindCasualName lexemKind = iota
-	lexemKindInitialismName
-)
-
-func newInitialismNameLexem(original, matchedInitialism string) nameLexem {
-	return nameLexem{
-		kind:              lexemKindInitialismName,
+func newInitialismNameLexem(original, matchedInitialism string) *initialismNameLexem {
+	return &initialismNameLexem{
 		original:          original,
 		matchedInitialism: matchedInitialism,
 	}
 }
 
-func newCasualNameLexem(original string) nameLexem {
-	return nameLexem{
-		kind:     lexemKindCasualName,
+func newCasualNameLexem(original string) *casualNameLexem {
+	return &casualNameLexem{
 		original: original,
 	}
 }
 
-func (l nameLexem) GetUnsafeGoName() string {
-	if l.kind == lexemKindInitialismName {
-		return l.matchedInitialism
-	}
+func (l *initialismNameLexem) GetUnsafeGoName() string {
+	return l.matchedInitialism
+}
 
-	var (
-		first rune
-		rest  string
-	)
-
+func (l *casualNameLexem) GetUnsafeGoName() string {
+	var first rune
+	var rest string
 	for i, orig := range l.original {
 		if i == 0 {
 			first = orig
 			continue
 		}
-
 		if i > 0 {
 			rest = l.original[i:]
 			break
 		}
 	}
-
 	if len(l.original) > 1 {
-		b := poolOfBuffers.BorrowBuffer(utf8.UTFMax + len(rest))
-		defer func() {
-			poolOfBuffers.RedeemBuffer(b)
-		}()
-		b.WriteRune(unicode.ToUpper(first))
-		b.WriteString(lower(rest))
-		return b.String()
+		return string(unicode.ToUpper(first)) + lower(rest)
 	}
 
 	return l.original
 }
 
-func (l nameLexem) GetOriginal() string {
+func (l *initialismNameLexem) GetOriginal() string {
 	return l.original
 }
 
-func (l nameLexem) IsInitialism() bool {
-	return l.kind == lexemKindInitialismName
+func (l *casualNameLexem) GetOriginal() string {
+	return l.original
+}
+
+func (l *initialismNameLexem) IsInitialism() bool {
+	return true
+}
+
+func (l *casualNameLexem) IsInitialism() bool {
+	return false
 }

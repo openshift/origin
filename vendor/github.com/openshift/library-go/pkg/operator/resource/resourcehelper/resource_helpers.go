@@ -63,6 +63,9 @@ func FormatResourceForCLI(obj runtime.Object) string {
 
 // GuessObjectGroupVersionKind returns a human readable for the passed runtime object.
 func GuessObjectGroupVersionKind(object runtime.Object) schema.GroupVersionKind {
+	if object == nil {
+		return schema.GroupVersionKind{Kind: "<unknown>"}
+	}
 	if gvk := object.GetObjectKind().GroupVersionKind(); len(gvk.Kind) > 0 {
 		return gvk
 	}

@@ -6,13 +6,16 @@ package google
 
 import (
 	"context"
-	"log"
-	"sync"
+	"time"
 
 	"golang.org/x/oauth2"
 )
 
-var logOnce sync.Once // only spam about deprecation once
+// Set at init time by appengine_gen1.go. If nil, we're not on App Engine standard first generation (<= Go 1.9) or App Engine flexible.
+var appengineTokenFunc func(c context.Context, scopes ...string) (token string, expiry time.Time, err error)
+
+// Set at init time by appengine_gen1.go. If nil, we're not on App Engine standard first generation (<= Go 1.9) or App Engine flexible.
+var appengineAppIDFunc func(c context.Context) string
 
 // AppEngineTokenSource returns a token source that fetches tokens from either
 // the current application's service account or from the metadata server,
@@ -20,10 +23,8 @@ var logOnce sync.Once // only spam about deprecation once
 // details. If you are implementing a 3-legged OAuth 2.0 flow on App Engine that
 // involves user accounts, see oauth2.Config instead.
 //
-// The current version of this library requires at least Go 1.17 to build,
-// so first generation App Engine runtimes (<= Go 1.9) are unsupported.
-// Previously, on first generation App Engine runtimes, AppEngineTokenSource
-// returned a token source that fetches tokens issued to the
+// First generation App Engine runtimes (<= Go 1.9):
+// AppEngineTokenSource returns a token source that fetches tokens issued to the
 // current App Engine application's service account. The provided context must have
 // come from appengine.NewContext.
 //
@@ -33,8 +34,5 @@ var logOnce sync.Once // only spam about deprecation once
 // context and scopes are not used. Please use DefaultTokenSource (or ComputeTokenSource,
 // which DefaultTokenSource will use in this case) instead.
 func AppEngineTokenSource(ctx context.Context, scope ...string) oauth2.TokenSource {
-	logOnce.Do(func() {
-		log.Print("google: AppEngineTokenSource is deprecated on App Engine standard second generation runtimes (>= Go 1.11) and App Engine flexible. Please use DefaultTokenSource or ComputeTokenSource.")
-	})
-	return ComputeTokenSource("")
+	return appEngineTokenSource(ctx, scope...)
 }
