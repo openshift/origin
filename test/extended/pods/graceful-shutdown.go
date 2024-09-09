@@ -340,6 +340,7 @@ func createTestBed(ctx context.Context, oc *exutil.CLI) {
 	err = callRBAC(ctx, oc, true)
 	Expect(err).NotTo(HaveOccurred())
 	err = exutil.WaitForServiceAccountWithSecret(
+		oc.AdminConfigClient().ConfigV1().ClusterVersions(),
 		oc.AdminKubeClient().CoreV1().ServiceAccounts(namespace),
 		serviceAccountName)
 	Expect(err).NotTo(HaveOccurred())

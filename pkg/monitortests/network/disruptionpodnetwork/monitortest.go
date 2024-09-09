@@ -27,6 +27,8 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
+	configv1 "github.com/openshift/api/config/v1"
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -126,12 +128,20 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
+	imageRegistryEnabled, err := isImageRegistryEnabled(adminRESTConfig)
+	if err != nil {
+		return err
+	}
+
 	// Wait for pull secrets to have been created for the namespace default service accounts
-	defaultSAAccounts := []string{"default", "builder", "deployer"}
-	for _, sa := range defaultSAAccounts {
-		err = pna.waitForSASecrets(ctx, sa)
-		if err != nil {
-			return err
+	// if image registry is enabled
+	if imageRegistryEnabled {
+		defaultSAAccounts := []string{"default"}
+		for _, sa := range defaultSAAccounts {
+			err = pna.waitForSASecrets(ctx, sa)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -413,4 +423,21 @@ func (pna *podNetworkAvalibility) waitForSASecrets(ctx context.Context, name str
 		return false, nil
 	}
 	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 3*time.Minute, true, waitFn)
+}
+
+func isImageRegistryEnabled(config *rest.Config) (bool, error) {
+	ocpConfig, err := configv1client.NewForConfig(config)
+	if err != nil {
+		return false, err
+	}
+	cv, err := ocpConfig.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	for _, capability := range cv.Status.Capabilities.EnabledCapabilities {
+		if capability == configv1.ClusterVersionCapabilityImageRegistry {
+			return true, nil
+		}
+	}
+	return false, nil
 }
