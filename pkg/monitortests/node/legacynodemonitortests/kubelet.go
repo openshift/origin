@@ -2,17 +2,20 @@ package legacynodemonitortests
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
 )
 
 func testKubeletToAPIServerGracefulTermination(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
@@ -220,7 +223,7 @@ func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*junita
 	return tests
 }
 
-func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	containerExits := make(map[string][]string)
 	failures := []string{}
 	for _, event := range events {
@@ -245,11 +248,17 @@ func testContainerFailures(events monitorapi.Intervals) []*junitapi.JUnitTestCas
 
 	var excessiveExits []string
 	maxRestartCount := 3
+
+	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(events, time.Time{}, time.Time{})
+
+	clusterDataPlatform, _ := platformidentification.BuildClusterData(context.Background(), adminRestConfig)
+
+	exclusions := Exclusion{upgradeJob: isUpgrade, clusterData: clusterDataPlatform}
 	for locator, messages := range containerExits {
 		if len(messages) > 0 {
 			messageSet := sets.NewString(messages...)
 			// Blanket fail for restarts over maxRestartCount
-			if !isThisContainerRestartExcluded(locator) && len(messages) > maxRestartCount {
+			if !isThisContainerRestartExcluded(locator, exclusions) && len(messages) > maxRestartCount {
 				excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times at:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
 			}
 		}

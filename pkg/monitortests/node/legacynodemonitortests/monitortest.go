@@ -14,6 +14,7 @@ import (
 )
 
 type legacyMonitorTests struct {
+	adminRESTConfig *rest.Config
 }
 
 func NewLegacyTests() monitortestframework.MonitorTest {
@@ -21,6 +22,7 @@ func NewLegacyTests() monitortestframework.MonitorTest {
 }
 
 func (w *legacyMonitorTests) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
+	w.adminRESTConfig = adminRESTConfig
 	return nil
 }
 
@@ -34,7 +36,7 @@ func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, start
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	junits := []*junitapi.JUnitTestCase{}
-	junits = append(junits, testContainerFailures(finalIntervals)...)
+	junits = append(junits, testContainerFailures(w.adminRESTConfig, finalIntervals)...)
 	junits = append(junits, testDeleteGracePeriodZero(finalIntervals)...)
 	junits = append(junits, testKubeApiserverProcessOverlap(finalIntervals)...)
 	junits = append(junits, testKubeAPIServerGracefulTermination(finalIntervals)...)
