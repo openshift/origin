@@ -110,7 +110,7 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 		newComMatrix.WriteMatrixToFileByType(utilsHelpers, "new-commatrix", types.FormatCSV, deployment, artifactsDir)
 
-		g.By("get documented commatrix")
+		g.By(fmt.Sprintf("get documented commatrix version %s", clusterVersion))
 		// get documented commatrix from URL
 		resp, err := http.Get(docCommatrixVersionedUrl)
 		o.Expect(err).ToNot(o.HaveOccurred())
