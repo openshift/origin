@@ -122,6 +122,13 @@ func RunResourceWatch() error {
 		// describes the behavior of node drains
 		resource("policy", "v1", "poddisruptionbudgets"),
 
+		// describes the behavior of admission during the run
+		resource("admissionregistration.k8s.io", "v1", "validatingadmissionpolicies"),
+		resource("admissionregistration.k8s.io", "v1", "validatingadmissionpolicybindings"),
+
+		// describes the behavior of aggregated apiservers
+		resource("apiregistration.k8s.io", "v1", "apiservices"),
+
 		// describes behavior of service endpoints
 		resource("discovery.k8s.io", "v1", "endpointslices"),
 
