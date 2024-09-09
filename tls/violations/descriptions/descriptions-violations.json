@@ -213,6 +213,25 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-cluster-csi-drivers",
+                    "Name": "openstack-cinder-csi-driver-trusted-ca-bundle"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "selectedCertMetadataAnnotations": [
+                        {
+                            "key": "openshift.io/owning-component",
+                            "value": "Networking / cluster-network-operator"
+                        }
+                    ],
+                    "owningJiraComponent": "Networking / cluster-network-operator",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
+                    "Namespace": "openshift-cluster-csi-drivers",
                     "Name": "shared-resource-csi-driver-operator-trusted-ca-bundle"
                 },
                 "certificateAuthorityBundleInfo": {
