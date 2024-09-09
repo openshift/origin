@@ -82,8 +82,6 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 				"has a documented communication matrix (%v), skip test", minimalDocCommatrixVersion))
 		}
 
-		docCommatrixVersionedUrl := strings.Replace(docCommatrixBaseUrl, "VERSION", clusterVersion, 1)
-
 		g.By("preparing for commatrices generation")
 		epExporter, err := endpointslices.New(cs)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -112,11 +110,16 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 
 		g.By(fmt.Sprintf("get documented commatrix version %s", clusterVersion))
 		// get documented commatrix from URL
-		resp, err := http.Get(docCommatrixVersionedUrl)
+		resp, err := http.Get(strings.Replace(docCommatrixBaseUrl, "VERSION", clusterVersion, 1))
 		o.Expect(err).ToNot(o.HaveOccurred())
 		defer resp.Body.Close()
-		// expect response status code to differ from status not found
-		o.Expect(resp.StatusCode).ToNot(o.Equal(http.StatusNotFound))
+		// if response status code equals to "status not found", compare generated commatrix to the master documented commatrix
+		if resp.StatusCode == http.StatusNotFound {
+			resp, err := http.Get(strings.Replace(docCommatrixBaseUrl, "enterprise-VERSION", "main", 1))
+			o.Expect(err).ToNot(o.HaveOccurred())
+			defer resp.Body.Close()
+			o.Expect(resp.StatusCode).ToNot(o.Equal(http.StatusNotFound))
+		}
 
 		// write documented commatrix to file
 		docCommatrixContent, err := io.ReadAll(resp.Body)
