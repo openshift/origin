@@ -133,6 +133,7 @@ func RunResourceWatch() error {
 		resource("discovery.k8s.io", "v1", "endpointslices"),
 
 		coreResource("pods"),
+		coreResource("namespaces"),
 		coreResource("nodes"),
 		coreResource("replicationcontrollers"),
 		coreResource("services"),
