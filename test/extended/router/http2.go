@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -39,22 +38,40 @@ const (
 	http2ClientTimeout = 1 * time.Minute
 )
 
+// makeHTTPClient creates a new HTTP client, configurable for timeout
+// duration and optional HTTP/2 support.
+//
+// When useHTTP2Transport is true, the function enables HTTP/2 support
+// via http2.ConfigureTransport, modifying the http.Transport to
+// support HTTP/2 with a fallback to HTTP/1.1. If useHTTP2Transport is
+// false, the client defaults to HTTP/1.1. The protocol selection
+// between HTTP/2 and HTTP/1.1 occurs during the TLS handshake through
+// ALPN, defaulting to HTTP/1.1 if HTTP/2 is not mutually agreed upon.
+//
+// This client is also configured with TLS settings that skip
+// certificate verification (InsecureSkipVerify).
+//
+// The function returns a pointer to the configured http.Client.
 func makeHTTPClient(useHTTP2Transport bool, timeout time.Duration) *http.Client {
 	tlsConfig := tls.Config{
 		InsecureSkipVerify: true,
 	}
 
-	c := &http.Client{
-		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tlsConfig,
-		},
+	transport := &http.Transport{
+		TLSClientConfig: &tlsConfig,
+		Proxy:           http.ProxyFromEnvironment,
 	}
 
+	c := &http.Client{
+		Timeout:   timeout,
+		Transport: transport,
+	}
+
+	// If HTTP/2 is to be used, configure it to allow falling back
+	// to HTTP/1.1
 	if useHTTP2Transport {
-		c.Transport = &http2.Transport{
-			TLSClientConfig: &tlsConfig,
-		}
+		// Explicitly allow HTTP/2.
+		http2.ConfigureTransport(transport)
 	}
 
 	return c
@@ -391,7 +408,6 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				backendProto      string
 				statusCode        int
 				useHTTP2Transport bool
-				expectedGetError  string
 			}{{
 				route:             "http2-custom-cert-edge",
 				frontendProto:     "HTTP/2.0",
@@ -412,12 +428,16 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 				useHTTP2Transport: true,
 			}, {
 				route:             "http2-default-cert-edge",
+				statusCode:        http.StatusOK,
+				frontendProto:     "HTTP/1.1",
+				backendProto:      "HTTP/1.1",
 				useHTTP2Transport: true,
-				expectedGetError:  `http2: unexpected ALPN protocol ""; want "h2"`,
 			}, {
 				route:             "http2-default-cert-reencrypt",
+				statusCode:        http.StatusOK,
+				frontendProto:     "HTTP/1.1",
+				backendProto:      "HTTP/2.0", // reencrypt always has backend ALPN enabled
 				useHTTP2Transport: true,
-				expectedGetError:  `http2: unexpected ALPN protocol ""; want "h2"`,
 			}, {
 				route:             "http2-custom-cert-edge",
 				frontendProto:     "HTTP/1.1",
@@ -465,32 +485,19 @@ var _ = g.Describe("[sig-network-edge][Conformance][Area:Networking][Feature:Rou
 					host := tc.route + "." + shardFQDN
 					e2e.Logf("[test #%d/%d]: GET route: %s", i+1, len(testCases), host)
 					resp, err = client.Get("https://" + host)
-					if err != nil && len(tc.expectedGetError) != 0 {
-						errMatch := strings.Contains(err.Error(), tc.expectedGetError)
-						if !errMatch {
-							e2e.Logf("[test #%d/%d]: config: %s, GET error: %v", i+1, len(testCases), testConfig, err)
-						}
-						return errMatch, nil
-					}
 					if err != nil {
 						e2e.Logf("[test #%d/%d]: config: %s, GET error: %v", i+1, len(testCases), testConfig, err)
 						return false, nil // could be 503 if service not ready
 					}
-					if tc.statusCode == 0 {
-						resp.Body.Close()
-						return false, nil
-					}
 					if resp.StatusCode != tc.statusCode {
+						// Successful responses are checked and asserted
+						// in the o.Expect() checks below.
 						resp.Body.Close()
 						e2e.Logf("[test #%d/%d]: config: %s, expected status: %v, actual status: %v", i+1, len(testCases), testConfig, tc.statusCode, resp.StatusCode)
 						return false, nil
 					}
 					return true, nil
 				})).NotTo(o.HaveOccurred())
-
-				if tc.expectedGetError != "" {
-					continue
-				}
 
 				o.Expect(resp).ToNot(o.BeNil(), testConfig)
 				o.Expect(resp.StatusCode).To(o.Equal(tc.statusCode), testConfig)
