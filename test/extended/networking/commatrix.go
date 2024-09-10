@@ -164,12 +164,14 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.By("comparing new and documented commatrices")
-		notUsedPortsMat := diff.GenerateUniquePrimary()
+		// Get ports that are in the documented commatrix but not in the generated commatrix.
+		notUsedPortsMat := diff.GenerateUniqueSecondary()
 		if len(notUsedPortsMat.Matrix) > 0 {
 			logrus.Warningf("the following ports are documented but are not used: \n %s", notUsedPortsMat)
 		}
-
-		missingPortsMat := diff.GenerateUniqueSecondary()
+		
+		// Get ports that are in the generated commatrix but not in the documented commatrix.
+		missingPortsMat := diff.GenerateUniquePrimary()
 		if len(missingPortsMat.Matrix) > 0 {
 			err := fmt.Errorf("the following ports are used but are not documented: \n %s", missingPortsMat)
 			o.Expect(err).ToNot(o.HaveOccurred())
