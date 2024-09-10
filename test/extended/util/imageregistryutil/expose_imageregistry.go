@@ -3,6 +3,8 @@ package imageregistryutil
 import (
 	"context"
 	"fmt"
+	"math/rand"
+	"os/exec"
 	"time"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -68,4 +70,39 @@ func exposeImageRegistryGenerateName(ctx context.Context, routeClient routeclien
 	time.Sleep(30 * time.Second)
 
 	return route, nil
+}
+func getRandomString() string {
+	chars := "abcdefghijklmnopqrstuvwxyz"
+	seed := rand.New(rand.NewSource(time.Now().UnixNano()))
+	buffer := make([]byte, 8)
+	for index := range buffer {
+		buffer[index] = chars[seed.Intn(len(chars))]
+	}
+	return string(buffer)
+}
+
+func exposeRouteFromSVC(oc *exutil.CLI, rType, ns, route, service string) string {
+	err := oc.AsAdmin().WithoutNamespace().Run("create").Args("route", rType, route, "--service="+service, "-n", ns).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	regRoute, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("route", route, "-n", ns, "-o=jsonpath={.spec.host}").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return regRoute
+}
+
+func waitRouteReady(route string) {
+	curlCmd := "curl -k https://" + route
+	var output []byte
+	var curlErr error
+	pollErr := wait.Poll(5*time.Second, 1*time.Minute, func() (bool, error) {
+		output, curlErr = exec.Command("bash", "-c", curlCmd).CombinedOutput()
+		if curlErr != nil {
+			e2e.Logf("the route is not ready, go to next round")
+			return false, nil
+		}
+		return true, nil
+	})
+	if pollErr != nil {
+		e2e.Logf("output is: %v with error %v", string(output), curlErr.Error())
+	}
+	exutil.AssertWaitPollNoErr(pollErr, "The route can't be used")
 }
