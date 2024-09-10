@@ -1557,12 +1557,6 @@ var Annotations = map[string]string{
 
 	"[sig-network] load balancer should not be managed by OpenShift": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should allow multicast traffic in namespaces where it is enabled": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-multitenant, redhat/openshift-ovs-networkpolicy' should block multicast traffic in namespaces where it is disabled": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-network] multicast when using one of the OpenshiftSDN modes 'redhat/openshift-ovs-subnet' should block multicast traffic": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-network] network isolation when using a plugin in a mode that does not isolate namespaces by default should allow communication between pods in different namespaces on different nodes": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network] network isolation when using a plugin in a mode that does not isolate namespaces by default should allow communication between pods in different namespaces on the same node": " [Suite:openshift/conformance/parallel]",
