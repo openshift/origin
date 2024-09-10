@@ -65,7 +65,6 @@ const (
 	DIFFERENT_NODE NodeType = iota
 
 	// TODO get these defined as constandts in networkutils
-	OpenshiftSDNPluginName  = "OpenShiftSDN"
 	OVNKubernetesPluginName = "OVNKubernetes"
 
 	// IP Address Families
@@ -235,24 +234,6 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 
 var cachedNetworkPluginName *string
 
-func openshiftSDNMode() string {
-	if cachedNetworkPluginName == nil {
-		// We don't use exutil.NewCLI() here because it can't be called from BeforeEach()
-		out, err := exec.Command(
-			"oc", "--kubeconfig="+exutil.KubeConfigPath(),
-			"get", "clusternetwork", "default",
-			"--template={{.pluginName}}",
-		).CombinedOutput()
-		pluginName := string(out)
-		if err != nil {
-			e2e.Logf("Could not check network plugin name: %v. Assuming the OpenshiftSDN plugin is not being used", err)
-			pluginName = ""
-		}
-		cachedNetworkPluginName = &pluginName
-	}
-	return *cachedNetworkPluginName
-}
-
 func platformType(configClient configv1client.Interface) (configv1.PlatformType, error) {
 	infrastructure, err := configClient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
@@ -404,20 +385,6 @@ func findAppropriateNodes(f *e2e.Framework, nodeType NodeType) (*corev1.Node, *c
 	}
 	e2e.Logf("Using %s for test (%v out of %v)", candidates[0].Name, candidateNames, nodeNames)
 	return &candidates[0], &candidates[0], nil
-}
-
-func InOpenShiftSDNContext(body func()) {
-	Context("when using openshift-sdn",
-		func() {
-			BeforeEach(func() {
-				if networkPluginName() != OpenshiftSDNPluginName {
-					e2eskipper.Skipf("Not using openshift-sdn")
-				}
-			})
-
-			body()
-		},
-	)
 }
 
 func InBareMetalIPv4ClusterContext(oc *exutil.CLI, body func()) {
