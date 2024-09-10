@@ -169,7 +169,7 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		if len(notUsedPortsMat.Matrix) > 0 {
 			logrus.Warningf("the following ports are documented but are not used: \n %s", notUsedPortsMat)
 		}
-		
+
 		// Get ports that are in the generated commatrix but not in the documented commatrix.
 		missingPortsMat := diff.GenerateUniquePrimary()
 		if len(missingPortsMat.Matrix) > 0 {
