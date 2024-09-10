@@ -23,19 +23,11 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			isCreate = true
 		}
 
-		isReady := false
-		if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
-			isReady = c.Status == corev1.ConditionTrue
-		}
-
+		isReady := isNodeReady(node)
 		wasReady := false
 		if !isCreate {
-			if c := findNodeCondition(oldNode.Status.Conditions, corev1.NodeReady, 0); c != nil {
-				wasReady = c.Status == corev1.ConditionTrue
-			}
-
+			wasReady = isNodeReady(oldNode)
 		}
-
 		now := time.Now()
 		switch {
 		case isCreate && !isReady:
@@ -74,7 +66,6 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 						HumanMessage("node is ready")).Build(now, now),
 			}
 		}
-
 		return nil
 	}
 
@@ -153,6 +144,67 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 								monitorapi.AnnotationConfig: newDesired,
 							}).
 							HumanMessage("reached desired config")).
+						Build(now, now))
+			}
+			return intervals
+		},
+		// This function is added to help detect unexpected
+		// node not ready.
+		// We want to fail the monitor test if a node goes not ready
+		// if it is unexpected.
+		// Unexpected in this case means that it went not ready outside
+		// of a MCO config update.
+		func(node, oldNode *corev1.Node) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+
+			oldConfig := oldNode.Annotations["machineconfiguration.openshift.io/currentConfig"]
+			newDesired := node.Annotations["machineconfiguration.openshift.io/desiredConfig"]
+			isOldNodeReady := isNodeReady(oldNode)
+			isNewNodeReady := isNodeReady(node)
+			isConfigTheSame := oldConfig == newDesired
+			isNodeUnscheduable := node.Spec.Unschedulable
+
+			now := time.Now()
+			if isOldNodeReady && !isNewNodeReady && isConfigTheSame && !isNodeUnscheduable {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceUnexpectedReady, monitorapi.Error).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedReadyReason).
+							HumanMessage("unexpected node not ready")).
+						Display().
+						Build(now, now))
+			}
+			return intervals
+		},
+		// This case will create an interval if a node is unreachable but the node was not drained
+		// This will be reported as a failed test.
+		func(node, oldNode *corev1.Node) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+
+			isOldNodeUnReachable := doesNodeHaveUnreachableTaints(oldNode)
+			isNewNodeUnReachable := doesNodeHaveUnreachableTaints(node)
+			isNodeUnscheduable := node.Spec.Unschedulable
+
+			now := time.Now()
+			// always mark unreachable
+			if !isOldNodeUnReachable && isNewNodeUnReachable {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceUnreachable, monitorapi.Info).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnreachable).
+							HumanMessage("node unreachable")).
+						Display().
+						Build(now, now))
+			}
+
+			// sometimes also create the unexpectedunreachable
+			if !isOldNodeUnReachable && isNewNodeUnReachable && !isNodeUnscheduable {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceUnreachable, monitorapi.Error).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeUnexpectedUnreachableReason).
+							HumanMessage("unexpected node unreachable")).
+						Display().
 						Build(now, now))
 			}
 			return intervals
@@ -236,4 +288,28 @@ func findNodeCondition(status []corev1.NodeCondition, name corev1.NodeConditionT
 		}
 	}
 	return nil
+}
+
+func isNodeReady(node *corev1.Node) bool {
+	isReady := false
+	if node == nil {
+		return isReady
+	}
+	if c := findNodeCondition(node.Status.Conditions, corev1.NodeReady, 0); c != nil {
+		isReady = c.Status == corev1.ConditionTrue
+	}
+	return isReady
+}
+
+func doesNodeHaveUnreachableTaints(node *corev1.Node) bool {
+	if node == nil {
+		return false
+	}
+	taints := node.Spec.Taints
+	for _, val := range taints {
+		if val.Key == corev1.TaintNodeUnreachable {
+			return true
+		}
+	}
+	return false
 }
