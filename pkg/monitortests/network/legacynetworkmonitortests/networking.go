@@ -55,14 +55,14 @@ func testPodSandboxCreation(events monitorapi.Intervals, clientConfig *rest.Conf
 	// we can further refine this signal by subdividing different failure modes if it is pertinent.  Right now I'm seeing
 	// 1. error reading container (probably exited) json message: EOF
 	// 2. dial tcp 10.0.76.225:6443: i/o timeout
-	// 3. error getting pod: pods "terminate-cmd-rpofb45fa14c-96bb-40f7-bd9e-346721740cac" not found
+	// 3. Path:"" ERRORED: error configuring pod [openshift-kube-apiserver/revision-pruner-10-master-1] networking: Multus: [openshift-kube-apiserver/revision-pruner-10-master-1/72c4e0fa-fcf2-47f7-a9ff-4efdb1dc55c5]: error waiting for pod: pod "revision-pruner-10-master-1" not found
 	// 4. write child: broken pipe
 	bySubStrings := []testCategorizer{
 		{by: " by reading container", substring: "error reading container (probably exited) json message: EOF"},
 		{by: " by pinging container registry", substring: "pinging container registry"}, // likely combined with i/o timeout but separate test for visibility
 		{by: " by not timing out", substring: "i/o timeout"},
 		{by: " by writing network status", substring: "error setting the networks status"},
-		{by: " by getting pod", substring: " error getting pod: pods"},
+		{by: " by getting pod", substring: " error waiting for pod: pod"},
 		{by: " by writing child", substring: "write child: broken pipe"},
 		{by: " by ovn default network ready", substring: "have you checked that your default network is ready? still waiting for readinessindicatorfile"},
 		{by: " by adding pod to network", substring: "failed (add)"},
