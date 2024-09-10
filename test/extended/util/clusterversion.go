@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -103,4 +104,15 @@ func DetermineImageFromRelease(ctx context.Context, oc *CLI, imageTagName string
 		}
 	}
 	return "", fmt.Errorf("Could not find image: %s", imageTagName)
+}
+
+// IsExternalOIDCCluster checks if the cluster is using external OIDC.
+func IsExternalOIDCCluster(oc *CLI) (bool, error) {
+	authType, stdErr, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("authentication/cluster", "-o=jsonpath={.spec.type}").Outputs()
+	if err != nil {
+		return false, fmt.Errorf("error checking if the cluster is using external OIDC: %v", stdErr)
+	}
+	e2e.Logf("Found authentication type used: %v", authType)
+
+	return authType == string(configv1.AuthenticationTypeOIDC), nil
 }

@@ -1241,3 +1241,41 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 		})
 	})
 })
+
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLI("bootstrap-policy")
+
+	g.Context("", func() {
+		g.Describe("ROSA-OSD_CCS-ARO-Author:jitli-LEVEL0-Critical-48959-Should be able to get public images connect to the server and have basic auth credentials", func() {
+			g.It("should succeed [apigroup:image.openshift.io]", func() {
+				// Skip Hypershift external OIDC clusters
+				isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if isExternalOIDCCluster {
+					g.Skip("Skipping the test as we are running against a Hypershift external OIDC cluster")
+				}
+
+				g.By("Create route to expose the registry")
+
+				routeName := getRandomString()
+				defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("route", routeName, "-n", "openshift-image-registry").Execute()
+				host := exposeRouteFromSVC(oc, "reencrypt", "openshift-image-registry", routeName, "image-registry")
+				waitRouteReady(host)
+
+				g.By("Grant public access to the openshift namespace")
+				defer oc.AsAdmin().WithoutNamespace().Run("policy").Args("remove-role-from-group", "system:image-puller", "system:unauthenticated", "--namespace", "openshift").Execute()
+				output, err := oc.AsAdmin().WithoutNamespace().Run("policy").Args("add-role-to-group", "system:image-puller", "system:unauthenticated", "--namespace", "openshift").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).To(o.ContainSubstring("clusterrole.rbac.authorization.k8s.io/system:image-puller added: \"system:unauthenticated\""))
+
+				g.By("Try to fetch image metadata")
+				output, err = oc.AsAdmin().Run("image").Args("info", "--insecure", host+"/openshift/tools:latest", "--show-multiarch").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).NotTo(o.ContainSubstring("error: unauthorized: authentication required"))
+				o.Expect(output).NotTo(o.ContainSubstring("Unable to connect to the server: no basic auth credentials"))
+				o.Expect(output).To(o.ContainSubstring(host + "/openshift/tools:latest"))
+			})
+		})
+	})
+})
