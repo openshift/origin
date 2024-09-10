@@ -907,8 +907,6 @@ var Annotations = map[string]string{
 
 	"[sig-cli] oc explain list uncovered GroupVersionResources": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-cli] oc explain networking types when using openshift-sdn should contain proper fields description for special networking types": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-cli] oc explain should contain proper fields description for apps.openshift.io [apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc explain should contain proper fields description for authorization.openshift.io [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
@@ -918,6 +916,8 @@ var Annotations = map[string]string{
 	"[sig-cli] oc explain should contain proper fields description for console.openshift.io [apigroup:console.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc explain should contain proper fields description for image.openshift.io [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-cli] oc explain should contain proper fields description for network.operator.openshift.io [apigroup:network.operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-cli] oc explain should contain proper fields description for oauth.openshift.io [apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
