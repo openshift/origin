@@ -28725,7 +28725,7 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 			"name": "PERL_VERSION",
 			"displayName": "Version of Perl Image",
 			"description": "Version of Perl image to be used (5.30-el7, 5.30-ubi8, or latest).",
-			"value": "5.30-ubi8",
+			"value": "5.32-ubi8",
 			"required": true
 		},
 		{
@@ -28823,7 +28823,8 @@ var _testExtendedTestdataClusterQuickstartsDancerMysqlJson = []byte(`{
 		"app": "dancer-mysql-example",
 		"template": "dancer-mysql-example"
 	}
-}`)
+}
+`)
 
 func testExtendedTestdataClusterQuickstartsDancerMysqlJsonBytes() ([]byte, error) {
 	return _testExtendedTestdataClusterQuickstartsDancerMysqlJson, nil
@@ -34155,12 +34156,12 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/delete-istag"
 # test deleting a tag using oc delete
-os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.30-'
-os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.30-'
-os::cmd::expect_success_and_text "oc describe is perl | sed -n -e '0,/^Tags:/d' -e '/^\s\+/d' -e '/./p' | head -n 1" '5.30-'
-os::cmd::expect_success "oc delete istag/perl:5.30-el7 --context='${cluster_admin_context}'"
-os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'name:5.30-el7'
-os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}' 'tag:5.30-el7'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .spec.tags 0).name}}'" '5.32-'
+os::cmd::expect_success_and_text "oc get is perl --template '{{(index .status.tags 0).tag}}'" '5.32-'
+os::cmd::expect_success_and_text "oc describe is perl | sed -n -e '0,/^Tags:/d' -e '/^\s\+/d' -e '/./p' | head -n 1" '5.32-'
+os::cmd::expect_success "oc delete istag/perl:5.32-el8 --context='${cluster_admin_context}'"
+os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.spec.tags}}' 'name:5.32-el8'
+os::cmd::expect_success_and_not_text 'oc get is/perl --template={{.status.tags}}' 'tag:5.32-el8'
 os::cmd::expect_success 'oc delete all --all'
 
 echo "delete istag: ok"
@@ -37185,20 +37186,20 @@ var _testExtendedTestdataCmdTestCmdTestdataImageStreamsImageStreamsCentos7Json =
             }
           },
           {
-            "name": "5.30-el7",
+            "name": "5.32-el8",
             "annotations": {
-              "description": "Build and run Perl 5.30 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30/README.md.",
+              "description": "Build and run Perl 5.32 applications on CentOS 8. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-perl-container/blob/master/5.30/README.md.",
               "iconClass": "icon-perl",
-              "openshift.io/display-name": "Perl 5.30 (CentOS 7)",
+              "openshift.io/display-name": "Perl 5.32 (CentOS 8)",
               "openshift.io/provider-display-name": "Red Hat, Inc.",
               "sampleRepo": "https://github.com/sclorg/dancer-ex.git",
-              "supports": "perl:5.30,perl",
+              "supports": "perl:5.32,perl",
               "tags": "builder,perl",
-              "version": "5.30"
+              "version": "5.32"
             },
             "from": {
               "kind": "DockerImage",
-              "name": "quay.io/centos7/perl-530-centos7:centos7"
+              "name": "registry.redhat.io/ubi8/perl-532:latest"
             },
             "generation": null,
             "importPolicy": {},
