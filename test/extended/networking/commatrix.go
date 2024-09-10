@@ -115,9 +115,8 @@ var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
 		defer resp.Body.Close()
 		// if response status code equals to "status not found", compare generated commatrix to the master documented commatrix
 		if resp.StatusCode == http.StatusNotFound {
-			resp, err := http.Get(strings.Replace(docCommatrixBaseUrl, "enterprise-VERSION", "main", 1))
+			resp, err = http.Get(strings.Replace(docCommatrixBaseUrl, "enterprise-VERSION", "main", 1))
 			o.Expect(err).ToNot(o.HaveOccurred())
-			defer resp.Body.Close()
 			o.Expect(resp.StatusCode).ToNot(o.Equal(http.StatusNotFound))
 		}
 
