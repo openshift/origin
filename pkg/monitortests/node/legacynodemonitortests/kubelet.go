@@ -224,12 +224,16 @@ func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*junita
 }
 
 func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	containerExits := make(map[string][]string)
-	failures := []string{}
+	openshiftNamespaces := sets.Set[string]{}
+	containerExitsByNamespace := map[string]map[string][]string{}
+	failuresByNamespace := map[string][]string{}
 	for _, event := range events {
-		if !strings.Contains(event.Locator.Keys[monitorapi.LocatorNamespaceKey], "openshift-") {
+		namespace := event.Locator.Keys[monitorapi.LocatorNamespaceKey]
+		if !strings.Contains(namespace, "openshift-") {
 			continue
 		}
+		openshiftNamespaces.Insert(namespace)
+
 		reason := event.Message.Reason
 		code := event.Message.Annotations[monitorapi.AnnotationContainerExitCode]
 		switch {
@@ -238,15 +242,20 @@ func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Inter
 			if event.Message.Annotations[monitorapi.AnnotationCause] == "ContainerCreating" {
 				continue
 			}
-			failures = append(failures, fmt.Sprintf("container failed to start at %v: %v - %v", event.From, event.Locator.OldLocator(), event.Message.OldMessage()))
+			failuresByNamespace[namespace] = append(failuresByNamespace[namespace], fmt.Sprintf("container failed to start at %v: %v - %v", event.From, event.Locator.OldLocator(), event.Message.OldMessage()))
 
 		// workload containers should never exit non-zero during normal operations
 		case reason == monitorapi.ContainerReasonContainerExit && code != "0":
+			containerExits, ok := containerExitsByNamespace[namespace]
+			if !ok {
+				containerExits = map[string][]string{}
+			}
 			containerExits[event.Locator.OldLocator()] = append(containerExits[event.Locator.OldLocator()], fmt.Sprintf("non-zero exit at %v: %v", event.From, event.Message.OldMessage()))
+			containerExitsByNamespace[namespace] = containerExits
 		}
 	}
 
-	var excessiveExits []string
+	excessiveExitsByNamespace := map[string][]string{}
 	maxRestartCount := 3
 
 	isUpgrade := platformidentification.DidUpgradeHappenDuringCollection(events, time.Time{}, time.Time{})
@@ -254,31 +263,39 @@ func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Inter
 	clusterDataPlatform, _ := platformidentification.BuildClusterData(context.Background(), adminRestConfig)
 
 	exclusions := Exclusion{upgradeJob: isUpgrade, clusterData: clusterDataPlatform}
-	for locator, messages := range containerExits {
-		if len(messages) > 0 {
-			messageSet := sets.NewString(messages...)
-			// Blanket fail for restarts over maxRestartCount
-			if !isThisContainerRestartExcluded(locator, exclusions) && len(messages) > maxRestartCount {
-				excessiveExits = append(excessiveExits, fmt.Sprintf("%s restarted %d times at:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
+	for namespace, containerExits := range containerExitsByNamespace {
+		for locator, messages := range containerExits {
+			if len(messages) > 0 {
+				messageSet := sets.NewString(messages...)
+				// Blanket fail for restarts over maxRestartCount
+				if !isThisContainerRestartExcluded(locator, exclusions) && len(messages) > maxRestartCount {
+					excessiveExitsByNamespace[namespace] = append(excessiveExitsByNamespace[namespace], fmt.Sprintf("%s restarted %d times at:\n%s", locator, len(messages), strings.Join(messageSet.List(), "\n")))
+				}
 			}
 		}
 	}
-	sort.Strings(excessiveExits)
+	for namespace, excessiveExits := range excessiveExitsByNamespace {
+		sort.Strings(excessiveExits)
+		excessiveExitsByNamespace[namespace] = excessiveExits
+	}
 
 	var testCases []*junitapi.JUnitTestCase
 
-	const failToStartTestName = "[sig-architecture] platform pods should not fail to start"
-	if len(failures) > 0 {
-		testCases = append(testCases, &junitapi.JUnitTestCase{
-			Name:      failToStartTestName,
-			SystemOut: strings.Join(failures, "\n"),
-			FailureOutput: &junitapi.FailureOutput{
-				Output: fmt.Sprintf("%d container starts had issues\n\n%s", len(failures), strings.Join(failures, "\n")),
-			},
-		})
+	for _, namespace := range sets.List(openshiftNamespaces) { // this ensures we create test case for every namespace, even in success cases
+		failures := failuresByNamespace[namespace]
+		failToStartTestName := fmt.Sprintf("[sig-architecture] platform pods in ns/%s should not fail to start", namespace)
+		if len(failures) > 0 {
+			testCases = append(testCases, &junitapi.JUnitTestCase{
+				Name:      failToStartTestName,
+				SystemOut: strings.Join(failures, "\n"),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("%d container starts had issues\n\n%s", len(failures), strings.Join(failures, "\n")),
+				},
+			})
+		}
+		// mark flaky for now while we debug
+		testCases = append(testCases, &junitapi.JUnitTestCase{Name: failToStartTestName})
 	}
-	// mark flaky for now while we debug
-	testCases = append(testCases, &junitapi.JUnitTestCase{Name: failToStartTestName})
 
 	// We want to deflake this test.
 	// Plan is to release this test and report any failures for pods
@@ -286,15 +303,18 @@ func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Inter
 	// We will then build exclusion rules for those that we see
 	// and then make this test fail for any case that doesn't match the rules
 	// we have.
-	const excessiveRestartTestName = "[sig-architecture] platform pods should not exit more than once with a non-zero exit code"
-	if len(excessiveExits) > 0 {
-		testCases = append(testCases, &junitapi.JUnitTestCase{
-			Name:      excessiveRestartTestName,
-			SystemOut: strings.Join(excessiveExits, "\n"),
-			FailureOutput: &junitapi.FailureOutput{
-				Output: fmt.Sprintf("%d containers with multiple restarts\n\n%s", len(excessiveExits), strings.Join(excessiveExits, "\n\n")),
-			},
-		})
+	for _, namespace := range sets.List(openshiftNamespaces) { // this ensures we create test case for every namespace, even in success cases
+		excessiveExits := excessiveExitsByNamespace[namespace]
+		excessiveRestartTestName := fmt.Sprintf("[sig-architecture] platform pods in ns/%s should not exit more than once with a non-zero exit code", namespace)
+		if len(excessiveExits) > 0 {
+			testCases = append(testCases, &junitapi.JUnitTestCase{
+				Name:      excessiveRestartTestName,
+				SystemOut: strings.Join(excessiveExits, "\n"),
+				FailureOutput: &junitapi.FailureOutput{
+					Output: fmt.Sprintf("%d containers with multiple restarts\n\n%s", len(excessiveExits), strings.Join(excessiveExits, "\n\n")),
+				},
+			})
+		}
 	}
 	return testCases
 }
