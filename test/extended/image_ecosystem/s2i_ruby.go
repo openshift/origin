@@ -18,6 +18,10 @@ import (
 )
 
 var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy for openshift ruby image", func() {
+  // The rails sample is not supported in the Samples operator and has bitrotten. Let's skip the test but keep the test code around
+	// just in case the sample gets resurrected in the future.
+	g.Skip("The rails-postgresql-example is not working anymore in the samples operator (since OCP 4.17) so let's not use it for tests.")
+
 	defer g.GinkgoRecover()
 	var (
 		railsTemplate = "rails-postgresql-example"
