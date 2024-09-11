@@ -61,7 +61,7 @@ var (
 	}
 )
 
-var _ = g.Describe("[sig-network][Feature:commatrix][Serial]", func() {
+var _ = g.Describe("[sig-network][Feature:commatrix][apigroup:config.openshift.io][Serial]", func() {
 	g.It("generated communication matrix should be equal to documented communication matrix", func() {
 		artifactsDir := filepath.Join(exutil.ArtifactDirPath(), "commatrix")
 
