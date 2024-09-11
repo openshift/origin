@@ -45,6 +45,9 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 
 		g.Describe("Rails example", func() {
 			g.It(fmt.Sprintf("should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]"), func() {
+				// The rails sample is not supported in the Samples operator and has bitrotten. Let's skip the test but keep the test code around
+				// just in case the sample gets resurrected in the future.
+				g.Skip("The rails-postgresql-example is not working anymore and is not supported by the samples operator (since OCP 4.16) so let's not use it for tests.")
 
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app %q", railsTemplate))
