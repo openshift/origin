@@ -60,6 +60,8 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						isHostNetwork bool,
 					) {
 						By("creating the network")
+						// correctCIDRFamily makes use of the ginkgo framework so it needs to be in the testcase
+						netConfig.cidr = correctCIDRFamily(oc, userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet)
 						netConfig.namespace = f.Namespace.Name
 						Expect(createNetworkFn(netConfig)).To(Succeed())
 
@@ -119,41 +121,37 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 
 					},
 					Entry(
-						"L2 dualstack primary UDN, cluster-networked pods",
+						"L2 primary UDN, cluster-networked pods",
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer2",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "primary",
 						},
 						false,
 					),
 					Entry(
-						"L3 dualstack primary UDN, cluster-networked pods",
+						"L3 primary UDN, cluster-networked pods",
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer3",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "primary",
 						},
 						false,
 					),
 					Entry(
-						"L2 dualstack primary UDN, host-networked pods",
+						"L2 primary UDN, host-networked pods",
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer2",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "primary",
 						},
 						true,
 					),
 					Entry(
-						"L3 dualstack primary UDN, host-networked pods",
+						"L3 primary UDN, host-networked pods",
 						networkAttachmentConfigParams{
 							name:     nadName,
 							topology: "layer3",
-							cidr:     fmt.Sprintf("%s,%s", userDefinedNetworkIPv4Subnet, userDefinedNetworkIPv6Subnet),
 							role:     "primary",
 						},
 						true,
