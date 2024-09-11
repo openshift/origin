@@ -3,6 +3,7 @@ package authorization
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"reflect"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	util "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
@@ -1258,7 +1260,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 
 				g.By("Create route to expose the registry")
 
-				routeName := getRandomString()
+				routeName := util.GetRandomString()
 				defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("route", routeName, "-n", "openshift-image-registry").Execute()
 				host := exposeRouteFromSVC(oc, "reencrypt", "openshift-image-registry", routeName, "image-registry")
 				waitRouteReady(host)
@@ -1279,3 +1281,29 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 		})
 	})
 })
+
+func exposeRouteFromSVC(oc *exutil.CLI, rType, ns, route, service string) string {
+	err := oc.AsAdmin().WithoutNamespace().Run("create").Args("route", rType, route, "--service="+service, "-n", ns).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	regRoute, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("route", route, "-n", ns, "-o=jsonpath={.spec.host}").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return regRoute
+}
+
+func waitRouteReady(route string) {
+	curlCmd := "curl -k https://" + route
+	var output []byte
+	var curlErr error
+	pollErr := wait.Poll(5*time.Second, 1*time.Minute, func() (bool, error) {
+		output, curlErr = exec.Command("bash", "-c", curlCmd).CombinedOutput()
+		if curlErr != nil {
+			e2e.Logf("the route is not ready, go to next round")
+			return false, nil
+		}
+		return true, nil
+	})
+	if pollErr != nil {
+		e2e.Logf("output is: %v with error %v", string(output), curlErr.Error())
+	}
+	exutil.AssertWaitPollNoErr(pollErr, "The route can't be used")
+}
