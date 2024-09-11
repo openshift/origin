@@ -2,7 +2,7 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (125)](#Items-Do-NOT-Meet-the-Requirement-125)
+  - [Items Do NOT Meet the Requirement (127)](#Items-Do-NOT-Meet-the-Requirement-127)
     - [ (4)](#-4)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -12,6 +12,8 @@
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
     - [End User (1)](#End-User-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
+    - [Image Registry (2)](#Image-Registry-2)
+      - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [Machine Config Operator (3)](#Machine-Config-Operator-3)
       - [Certificates (1)](#Certificates-1)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -60,7 +62,7 @@ These descriptions must be in the style of API documentation and must include
 
 To create a description, set the `openshift.io/description` annotation to the markdown formatted string describing your TLS artifact. 
 
-## Items Do NOT Meet the Requirement (125)
+## Items Do NOT Meet the Requirement (127)
 ###  (4)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
@@ -111,6 +113,35 @@ To create a description, set the `openshift.io/description` annotation to the ma
 1. ns/openshift-config configmap/user-ca-bundle
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/docker/certs.d/virthost.ostest.test.metalkube.org:5000/ca.crt
+      
+
+
+
+### Image Registry (2)
+#### Certificate Authority Bundles (2)
+1. file /etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt
+      
+
+2. file /etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt
       
 
 
@@ -411,9 +442,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/pki/tls/certs/ca-bundle.crt
+      
+
 2. file /etc/pki/tls/certs/ca-bundle.crt
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/pki/tls/cert.pem
       
 
 
@@ -466,9 +507,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+      
+
 2. ns/openshift-config-managed secret/kube-scheduler-client-cert-key
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
       
 
 3. ns/openshift-kube-apiserver secret/aggregator-client
@@ -476,9 +527,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.crt
+      
+
 4. ns/openshift-kube-apiserver secret/check-endpoints-client-cert-key
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.crt
       
 
 5. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
@@ -486,9 +547,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/control-plane-node-admin-client-cert-key/tls.crt
+      
+
 6. ns/openshift-kube-apiserver secret/external-loadbalancer-serving-certkey
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.crt
       
 
 7. ns/openshift-kube-apiserver secret/internal-loadbalancer-serving-certkey
@@ -496,9 +567,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.crt
+      
+
 8. ns/openshift-kube-apiserver secret/kubelet-client
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt
       
 
 9. ns/openshift-kube-apiserver secret/localhost-recovery-serving-certkey
@@ -511,14 +592,32 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.crt
+      
+
 11. ns/openshift-kube-apiserver secret/node-kubeconfigs
 
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
+      
+
 12. ns/openshift-kube-apiserver secret/service-network-serving-certkey
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.crt
       
 
 13. ns/openshift-kube-apiserver-operator secret/aggregator-client-signer
@@ -556,6 +655,14 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
+      
+
 20. ns/openshift-kube-apiserver-operator secret/node-system-admin-signer
 
       **Description:** 
@@ -571,9 +678,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+      
+
 23. ns/openshift-kube-scheduler secret/kube-scheduler-client-cert-key
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
       
 
 24. file /etc/kubernetes/kubeconfig
@@ -599,14 +716,36 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
 3. ns/openshift-config-managed configmap/kube-apiserver-client-ca
 
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+      
+
 4. ns/openshift-config-managed configmap/kube-apiserver-server-ca
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
 5. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
@@ -619,9 +758,22 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+      
+
 7. ns/openshift-kube-apiserver configmap/aggregator-client-ca
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
       
 
 8. ns/openshift-kube-apiserver configmap/client-ca
@@ -629,9 +781,25 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+      
+
 9. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
 10. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
@@ -674,14 +842,34 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
 18. ns/openshift-kube-controller-manager configmap/client-ca
 
       **Description:** 
       
 
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+      
+
 19. ns/openshift-route-controller-manager configmap/client-ca
 
       **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
 20. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
@@ -805,14 +993,29 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Peer (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-0>.crt
+      
+
 8. ns/openshift-etcd secret/etcd-peer-\<master-1>
 
       **Description:** Peer (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-1>.crt
+      
+
 9. ns/openshift-etcd secret/etcd-peer-\<master-2>
 
       **Description:** Peer (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-peer-\<master-2>.crt
       
 
 10. ns/openshift-etcd secret/etcd-serving-\<bootstrap>
@@ -825,14 +1028,29 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Serving (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-0>.crt
+      
+
 12. ns/openshift-etcd secret/etcd-serving-\<master-1>
 
       **Description:** Serving (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-1>.crt
+      
+
 13. ns/openshift-etcd secret/etcd-serving-\<master-2>
 
       **Description:** Serving (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-\<master-2>.crt
       
 
 14. ns/openshift-etcd secret/etcd-serving-metrics-\<bootstrap>
@@ -845,14 +1063,29 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Serving (client and server) certificate for node \<master-0>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-0>.crt
+      
+
 16. ns/openshift-etcd secret/etcd-serving-metrics-\<master-1>
 
       **Description:** Serving (client and server) certificate for node \<master-1>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-1>.crt
+      
+
 17. ns/openshift-etcd secret/etcd-serving-metrics-\<master-2>
 
       **Description:** Serving (client and server) certificate for node \<master-2>, generated by cluster-etcd-operator for etcd. This certificate is valid for 1095 days and starts refreshing after 803 days.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/secrets/etcd-all-certs/etcd-serving-metrics-\<master-2>.crt
       
 
 18. ns/openshift-etcd secret/etcd-signer
@@ -888,9 +1121,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate clients and peers of etcd.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/server-ca-bundle.crt
+      
+
 2. ns/openshift-config configmap/etcd-ca-bundle
 
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate clients and peers of etcd.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/server-ca-bundle.crt
       
 
 3. ns/openshift-config configmap/etcd-serving-ca
@@ -898,9 +1141,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate clients and peers of etcd.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/server-ca-bundle.crt
+      
+
 4. ns/openshift-etcd configmap/etcd-ca-bundle
 
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate clients and peers of etcd.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/server-ca-bundle.crt
       
 
 5. ns/openshift-etcd configmap/etcd-metrics-ca-bundle
@@ -908,9 +1161,19 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate Prometheus ServiceMonitors reaching etcd.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/metrics-ca-bundle.crt
+      
+
 6. ns/openshift-etcd-operator configmap/etcd-ca-bundle
 
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate clients and peers of etcd.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/server-ca-bundle.crt
       
 
 7. ns/openshift-etcd-operator configmap/etcd-metric-serving-ca
@@ -918,14 +1181,29 @@ To create a description, set the `openshift.io/description` annotation to the ma
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate Prometheus ServiceMonitors reaching etcd.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/metrics-ca-bundle.crt
+      
+
 8. ns/openshift-kube-apiserver configmap/etcd-serving-ca
 
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate clients and peers of etcd.
       
 
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/server-ca-bundle.crt
+      
+
 9. ns/openshift-oauth-apiserver configmap/etcd-serving-ca
 
       **Description:** Generated by cluster-etcd-operator for etcd and is used to authenticate clients and peers of etcd.
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/etcd-certs/configmaps/etcd-all-bundles/server-ca-bundle.crt
       
 
 
