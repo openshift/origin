@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -37,6 +38,7 @@ func (*operatorLeaseCheck) ConstructComputedIntervals(ctx context.Context, start
 		}
 		return false
 	})
+	sort.Sort(byLeaseAcquisition(leaseIntervals))
 
 	podToLeaseIntervals := map[string][]monitorapi.Interval{}
 
@@ -57,7 +59,11 @@ func (*operatorLeaseCheck) ConstructComputedIntervals(ctx context.Context, start
 
 			case monitorapi.LeaseAcquired:
 				if lastAcquiringFrom == nil {
-					errs = append(errs, fmt.Errorf("missing acquiring stage for %v", podLocator))
+					allIntervals := []string{}
+					for _, curr := range perPodLeaseIntervals {
+						allIntervals = append(allIntervals, curr.String())
+					}
+					errs = append(errs, fmt.Errorf("missing acquiring stage for %v: all intervals\n\t%v", podLocator, strings.Join(allIntervals, "\n\t")))
 				} else {
 					ret = append(ret, monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
 						Locator(interval.Locator).
@@ -77,6 +83,48 @@ func (*operatorLeaseCheck) ConstructComputedIntervals(ctx context.Context, start
 	}
 
 	return ret, errors.Join(errs...)
+}
+
+type byLeaseAcquisition monitorapi.Intervals
+
+func (intervals byLeaseAcquisition) Less(i, j int) bool {
+	// currently synced with https://github.com/openshift/origin/blob/9b001745ec8006eb406bd92e3555d1070b9b656e/pkg/monitor/serialization/serialize.go#L175
+
+	switch d := intervals[i].From.Sub(intervals[j].From); {
+	case d < 0:
+		return true
+	case d > 0:
+		return false
+	}
+	switch d := intervals[i].To.Sub(intervals[j].To); {
+	case d < 0:
+		return true
+	case d > 0:
+		return false
+	}
+
+	if intervals[i].Message.Reason != intervals[j].Message.Reason {
+		// customization to lease acquiring first.  we have things very close in time
+		if intervals[i].Message.Reason == monitorapi.LeaseAcquiringStarted {
+			return true
+		}
+		if intervals[i].Message.Reason == monitorapi.LeaseAcquired {
+			return false
+		}
+
+		return intervals[i].Message.Reason < intervals[j].Message.Reason
+	}
+	if intervals[i].Message.HumanMessage != intervals[j].Message.HumanMessage {
+		return intervals[i].Message.HumanMessage < intervals[j].Message.HumanMessage
+	}
+
+	// TODO: this could be a bit slow, but leaving it simple if we can get away with it. Sorting structured locators
+	// that use keys is trickier than the old flat string method.
+	return intervals[i].Locator.OldLocator() < intervals[j].Locator.OldLocator()
+}
+func (intervals byLeaseAcquisition) Len() int { return len(intervals) }
+func (intervals byLeaseAcquisition) Swap(i, j int) {
+	intervals[i], intervals[j] = intervals[j], intervals[i]
 }
 
 func (*operatorLeaseCheck) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
