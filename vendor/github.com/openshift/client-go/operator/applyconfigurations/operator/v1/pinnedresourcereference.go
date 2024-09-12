@@ -2,7 +2,7 @@
 
 package v1
 
-// PinnedResourceReferenceApplyConfiguration represents an declarative configuration of the PinnedResourceReference type for use
+// PinnedResourceReferenceApplyConfiguration represents a declarative configuration of the PinnedResourceReference type for use
 // with apply.
 type PinnedResourceReferenceApplyConfiguration struct {
 	Group    *string `json:"group,omitempty"`
@@ -10,7 +10,7 @@ type PinnedResourceReferenceApplyConfiguration struct {
 	Resource *string `json:"resource,omitempty"`
 }
 
-// PinnedResourceReferenceApplyConfiguration constructs an declarative configuration of the PinnedResourceReference type for use with
+// PinnedResourceReferenceApplyConfiguration constructs a declarative configuration of the PinnedResourceReference type for use with
 // apply.
 func PinnedResourceReference() *PinnedResourceReferenceApplyConfiguration {
 	return &PinnedResourceReferenceApplyConfiguration{}

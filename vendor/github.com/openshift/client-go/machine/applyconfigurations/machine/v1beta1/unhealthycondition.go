@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// UnhealthyConditionApplyConfiguration represents an declarative configuration of the UnhealthyCondition type for use
+// UnhealthyConditionApplyConfiguration represents a declarative configuration of the UnhealthyCondition type for use
 // with apply.
 type UnhealthyConditionApplyConfiguration struct {
 	Type    *v1.NodeConditionType `json:"type,omitempty"`
@@ -15,7 +15,7 @@ type UnhealthyConditionApplyConfiguration struct {
 	Timeout *metav1.Duration      `json:"timeout,omitempty"`
 }
 
-// UnhealthyConditionApplyConfiguration constructs an declarative configuration of the UnhealthyCondition type for use with
+// UnhealthyConditionApplyConfiguration constructs a declarative configuration of the UnhealthyCondition type for use with
 // apply.
 func UnhealthyCondition() *UnhealthyConditionApplyConfiguration {
 	return &UnhealthyConditionApplyConfiguration{}

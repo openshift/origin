@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// GatherStatusApplyConfiguration represents an declarative configuration of the GatherStatus type for use
+// GatherStatusApplyConfiguration represents a declarative configuration of the GatherStatus type for use
 // with apply.
 type GatherStatusApplyConfiguration struct {
 	LastGatherTime     *v1.Time                           `json:"lastGatherTime,omitempty"`
@@ -14,7 +14,7 @@ type GatherStatusApplyConfiguration struct {
 	Gatherers          []GathererStatusApplyConfiguration `json:"gatherers,omitempty"`
 }
 
-// GatherStatusApplyConfiguration constructs an declarative configuration of the GatherStatus type for use with
+// GatherStatusApplyConfiguration constructs a declarative configuration of the GatherStatus type for use with
 // apply.
 func GatherStatus() *GatherStatusApplyConfiguration {
 	return &GatherStatusApplyConfiguration{}

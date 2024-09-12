@@ -6,7 +6,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// SimpleMacvlanConfigApplyConfiguration represents an declarative configuration of the SimpleMacvlanConfig type for use
+// SimpleMacvlanConfigApplyConfiguration represents a declarative configuration of the SimpleMacvlanConfig type for use
 // with apply.
 type SimpleMacvlanConfigApplyConfiguration struct {
 	Master     *string                       `json:"master,omitempty"`
@@ -15,7 +15,7 @@ type SimpleMacvlanConfigApplyConfiguration struct {
 	MTU        *uint32                       `json:"mtu,omitempty"`
 }
 
-// SimpleMacvlanConfigApplyConfiguration constructs an declarative configuration of the SimpleMacvlanConfig type for use with
+// SimpleMacvlanConfigApplyConfiguration constructs a declarative configuration of the SimpleMacvlanConfig type for use with
 // apply.
 func SimpleMacvlanConfig() *SimpleMacvlanConfigApplyConfiguration {
 	return &SimpleMacvlanConfigApplyConfiguration{}

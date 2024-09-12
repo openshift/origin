@@ -69,8 +69,8 @@ type MachineSetSpec struct {
 	// Currently the authoritative API determines which controller will manage the resource, this will change in a future release.
 	// To ensure the change has been accepted, please verify that the `status.authoritativeAPI` field has been updated to the desired value and that the `Synchronized` condition is present and set to `True`.
 	// +kubebuilder:validation:Enum=MachineAPI;ClusterAPI
-	// +kubebuilder:validation:Default:=MachineAPI
-	// +default:=MachineAPI
+	// +kubebuilder:validation:Default=MachineAPI
+	// +default="MachineAPI"
 	// +openshift:enable:FeatureGate=MachineAPIMigration
 	// +optional
 	AuthoritativeAPI MachineAuthority `json:"authoritativeAPI,omitempty"`

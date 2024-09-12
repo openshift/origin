@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// OLMApplyConfiguration represents an declarative configuration of the OLM type for use
+// OLMApplyConfiguration represents a declarative configuration of the OLM type for use
 // with apply.
 type OLMApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type OLMApplyConfiguration struct {
 	Status                           *OLMStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// OLM constructs an declarative configuration of the OLM type for use with
+// OLM constructs a declarative configuration of the OLM type for use with
 // apply.
 func OLM(name string) *OLMApplyConfiguration {
 	b := &OLMApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *OLMApplyConfiguration) WithSpec(value *OLMSpecApplyConfiguration) *OLMA
 func (b *OLMApplyConfiguration) WithStatus(value *OLMStatusApplyConfiguration) *OLMApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *OLMApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

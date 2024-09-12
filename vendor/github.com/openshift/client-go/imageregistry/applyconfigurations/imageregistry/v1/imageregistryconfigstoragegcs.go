@@ -2,7 +2,7 @@
 
 package v1
 
-// ImageRegistryConfigStorageGCSApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorageGCS type for use
+// ImageRegistryConfigStorageGCSApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageGCS type for use
 // with apply.
 type ImageRegistryConfigStorageGCSApplyConfiguration struct {
 	Bucket    *string `json:"bucket,omitempty"`
@@ -11,7 +11,7 @@ type ImageRegistryConfigStorageGCSApplyConfiguration struct {
 	KeyID     *string `json:"keyID,omitempty"`
 }
 
-// ImageRegistryConfigStorageGCSApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorageGCS type for use with
+// ImageRegistryConfigStorageGCSApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageGCS type for use with
 // apply.
 func ImageRegistryConfigStorageGCS() *ImageRegistryConfigStorageGCSApplyConfiguration {
 	return &ImageRegistryConfigStorageGCSApplyConfiguration{}

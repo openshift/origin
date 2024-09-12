@@ -6,7 +6,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// DNSSpecApplyConfiguration represents an declarative configuration of the DNSSpec type for use
+// DNSSpecApplyConfiguration represents a declarative configuration of the DNSSpec type for use
 // with apply.
 type DNSSpecApplyConfiguration struct {
 	Servers           []ServerApplyConfiguration           `json:"servers,omitempty"`
@@ -18,7 +18,7 @@ type DNSSpecApplyConfiguration struct {
 	Cache             *DNSCacheApplyConfiguration          `json:"cache,omitempty"`
 }
 
-// DNSSpecApplyConfiguration constructs an declarative configuration of the DNSSpec type for use with
+// DNSSpecApplyConfiguration constructs a declarative configuration of the DNSSpec type for use with
 // apply.
 func DNSSpec() *DNSSpecApplyConfiguration {
 	return &DNSSpecApplyConfiguration{}

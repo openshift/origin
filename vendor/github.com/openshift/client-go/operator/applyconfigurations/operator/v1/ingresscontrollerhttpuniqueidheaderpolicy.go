@@ -2,14 +2,14 @@
 
 package v1
 
-// IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration represents an declarative configuration of the IngressControllerHTTPUniqueIdHeaderPolicy type for use
+// IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration represents a declarative configuration of the IngressControllerHTTPUniqueIdHeaderPolicy type for use
 // with apply.
 type IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration struct {
 	Name   *string `json:"name,omitempty"`
 	Format *string `json:"format,omitempty"`
 }
 
-// IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration constructs an declarative configuration of the IngressControllerHTTPUniqueIdHeaderPolicy type for use with
+// IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration constructs a declarative configuration of the IngressControllerHTTPUniqueIdHeaderPolicy type for use with
 // apply.
 func IngressControllerHTTPUniqueIdHeaderPolicy() *IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration {
 	return &IngressControllerHTTPUniqueIdHeaderPolicyApplyConfiguration{}

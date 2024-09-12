@@ -2,7 +2,7 @@
 
 package v1
 
-// StaticIPAMConfigApplyConfiguration represents an declarative configuration of the StaticIPAMConfig type for use
+// StaticIPAMConfigApplyConfiguration represents a declarative configuration of the StaticIPAMConfig type for use
 // with apply.
 type StaticIPAMConfigApplyConfiguration struct {
 	Addresses []StaticIPAMAddressesApplyConfiguration `json:"addresses,omitempty"`
@@ -10,7 +10,7 @@ type StaticIPAMConfigApplyConfiguration struct {
 	DNS       *StaticIPAMDNSApplyConfiguration        `json:"dns,omitempty"`
 }
 
-// StaticIPAMConfigApplyConfiguration constructs an declarative configuration of the StaticIPAMConfig type for use with
+// StaticIPAMConfigApplyConfiguration constructs a declarative configuration of the StaticIPAMConfig type for use with
 // apply.
 func StaticIPAMConfig() *StaticIPAMConfigApplyConfiguration {
 	return &StaticIPAMConfigApplyConfiguration{}

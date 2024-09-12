@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// IPsecConfigApplyConfiguration represents an declarative configuration of the IPsecConfig type for use
+// IPsecConfigApplyConfiguration represents a declarative configuration of the IPsecConfig type for use
 // with apply.
 type IPsecConfigApplyConfiguration struct {
 	Mode *v1.IPsecMode `json:"mode,omitempty"`
 }
 
-// IPsecConfigApplyConfiguration constructs an declarative configuration of the IPsecConfig type for use with
+// IPsecConfigApplyConfiguration constructs a declarative configuration of the IPsecConfig type for use with
 // apply.
 func IPsecConfig() *IPsecConfigApplyConfiguration {
 	return &IPsecConfigApplyConfiguration{}

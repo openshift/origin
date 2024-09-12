@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// KubeAPIServerApplyConfiguration represents an declarative configuration of the KubeAPIServer type for use
+// KubeAPIServerApplyConfiguration represents a declarative configuration of the KubeAPIServer type for use
 // with apply.
 type KubeAPIServerApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type KubeAPIServerApplyConfiguration struct {
 	Status                           *KubeAPIServerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// KubeAPIServer constructs an declarative configuration of the KubeAPIServer type for use with
+// KubeAPIServer constructs a declarative configuration of the KubeAPIServer type for use with
 // apply.
 func KubeAPIServer(name string) *KubeAPIServerApplyConfiguration {
 	b := &KubeAPIServerApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *KubeAPIServerApplyConfiguration) WithSpec(value *KubeAPIServerSpecApply
 func (b *KubeAPIServerApplyConfiguration) WithStatus(value *KubeAPIServerStatusApplyConfiguration) *KubeAPIServerApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *KubeAPIServerApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ControlPlaneMachineSetSpecApplyConfiguration represents an declarative configuration of the ControlPlaneMachineSetSpec type for use
+// ControlPlaneMachineSetSpecApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetSpec type for use
 // with apply.
 type ControlPlaneMachineSetSpecApplyConfiguration struct {
 	State    *v1.ControlPlaneMachineSetState                   `json:"state,omitempty"`
@@ -17,7 +17,7 @@ type ControlPlaneMachineSetSpecApplyConfiguration struct {
 	Template *ControlPlaneMachineSetTemplateApplyConfiguration `json:"template,omitempty"`
 }
 
-// ControlPlaneMachineSetSpecApplyConfiguration constructs an declarative configuration of the ControlPlaneMachineSetSpec type for use with
+// ControlPlaneMachineSetSpecApplyConfiguration constructs a declarative configuration of the ControlPlaneMachineSetSpec type for use with
 // apply.
 func ControlPlaneMachineSetSpec() *ControlPlaneMachineSetSpecApplyConfiguration {
 	return &ControlPlaneMachineSetSpecApplyConfiguration{}

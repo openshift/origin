@@ -2,14 +2,14 @@
 
 package v1
 
-// KubeAPIServerStatusApplyConfiguration represents an declarative configuration of the KubeAPIServerStatus type for use
+// KubeAPIServerStatusApplyConfiguration represents a declarative configuration of the KubeAPIServerStatus type for use
 // with apply.
 type KubeAPIServerStatusApplyConfiguration struct {
 	StaticPodOperatorStatusApplyConfiguration `json:",inline"`
 	ServiceAccountIssuers                     []ServiceAccountIssuerStatusApplyConfiguration `json:"serviceAccountIssuers,omitempty"`
 }
 
-// KubeAPIServerStatusApplyConfiguration constructs an declarative configuration of the KubeAPIServerStatus type for use with
+// KubeAPIServerStatusApplyConfiguration constructs a declarative configuration of the KubeAPIServerStatus type for use with
 // apply.
 func KubeAPIServerStatus() *KubeAPIServerStatusApplyConfiguration {
 	return &KubeAPIServerStatusApplyConfiguration{}
@@ -52,6 +52,14 @@ func (b *KubeAPIServerStatusApplyConfiguration) WithReadyReplicas(value int32) *
 	return b
 }
 
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *KubeAPIServerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *KubeAPIServerStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
+	return b
+}
+
 // WithGenerations adds the given value to the Generations field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Generations field.
@@ -62,14 +70,6 @@ func (b *KubeAPIServerStatusApplyConfiguration) WithGenerations(values ...*Gener
 		}
 		b.Generations = append(b.Generations, *values[i])
 	}
-	return b
-}
-
-// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
-func (b *KubeAPIServerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *KubeAPIServerStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
 	return b
 }
 

@@ -2,13 +2,13 @@
 
 package v1
 
-// AWSFailureDomainPlacementApplyConfiguration represents an declarative configuration of the AWSFailureDomainPlacement type for use
+// AWSFailureDomainPlacementApplyConfiguration represents a declarative configuration of the AWSFailureDomainPlacement type for use
 // with apply.
 type AWSFailureDomainPlacementApplyConfiguration struct {
 	AvailabilityZone *string `json:"availabilityZone,omitempty"`
 }
 
-// AWSFailureDomainPlacementApplyConfiguration constructs an declarative configuration of the AWSFailureDomainPlacement type for use with
+// AWSFailureDomainPlacementApplyConfiguration constructs a declarative configuration of the AWSFailureDomainPlacement type for use with
 // apply.
 func AWSFailureDomainPlacement() *AWSFailureDomainPlacementApplyConfiguration {
 	return &AWSFailureDomainPlacementApplyConfiguration{}

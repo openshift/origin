@@ -2,14 +2,14 @@
 
 package v1
 
-// AzureFailureDomainApplyConfiguration represents an declarative configuration of the AzureFailureDomain type for use
+// AzureFailureDomainApplyConfiguration represents a declarative configuration of the AzureFailureDomain type for use
 // with apply.
 type AzureFailureDomainApplyConfiguration struct {
 	Zone   *string `json:"zone,omitempty"`
 	Subnet *string `json:"subnet,omitempty"`
 }
 
-// AzureFailureDomainApplyConfiguration constructs an declarative configuration of the AzureFailureDomain type for use with
+// AzureFailureDomainApplyConfiguration constructs a declarative configuration of the AzureFailureDomain type for use with
 // apply.
 func AzureFailureDomain() *AzureFailureDomainApplyConfiguration {
 	return &AzureFailureDomainApplyConfiguration{}

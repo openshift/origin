@@ -2,7 +2,7 @@
 
 package v1
 
-// InsightsOperatorStatusApplyConfiguration represents an declarative configuration of the InsightsOperatorStatus type for use
+// InsightsOperatorStatusApplyConfiguration represents a declarative configuration of the InsightsOperatorStatus type for use
 // with apply.
 type InsightsOperatorStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
@@ -10,7 +10,7 @@ type InsightsOperatorStatusApplyConfiguration struct {
 	InsightsReport                   *InsightsReportApplyConfiguration `json:"insightsReport,omitempty"`
 }
 
-// InsightsOperatorStatusApplyConfiguration constructs an declarative configuration of the InsightsOperatorStatus type for use with
+// InsightsOperatorStatusApplyConfiguration constructs a declarative configuration of the InsightsOperatorStatus type for use with
 // apply.
 func InsightsOperatorStatus() *InsightsOperatorStatusApplyConfiguration {
 	return &InsightsOperatorStatusApplyConfiguration{}
@@ -50,6 +50,14 @@ func (b *InsightsOperatorStatusApplyConfiguration) WithVersion(value string) *In
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *InsightsOperatorStatusApplyConfiguration) WithReadyReplicas(value int32) *InsightsOperatorStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *InsightsOperatorStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *InsightsOperatorStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

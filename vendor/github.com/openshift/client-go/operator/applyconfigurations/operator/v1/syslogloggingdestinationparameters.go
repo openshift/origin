@@ -2,7 +2,7 @@
 
 package v1
 
-// SyslogLoggingDestinationParametersApplyConfiguration represents an declarative configuration of the SyslogLoggingDestinationParameters type for use
+// SyslogLoggingDestinationParametersApplyConfiguration represents a declarative configuration of the SyslogLoggingDestinationParameters type for use
 // with apply.
 type SyslogLoggingDestinationParametersApplyConfiguration struct {
 	Address   *string `json:"address,omitempty"`
@@ -11,7 +11,7 @@ type SyslogLoggingDestinationParametersApplyConfiguration struct {
 	MaxLength *uint32 `json:"maxLength,omitempty"`
 }
 
-// SyslogLoggingDestinationParametersApplyConfiguration constructs an declarative configuration of the SyslogLoggingDestinationParameters type for use with
+// SyslogLoggingDestinationParametersApplyConfiguration constructs a declarative configuration of the SyslogLoggingDestinationParameters type for use with
 // apply.
 func SyslogLoggingDestinationParameters() *SyslogLoggingDestinationParametersApplyConfiguration {
 	return &SyslogLoggingDestinationParametersApplyConfiguration{}

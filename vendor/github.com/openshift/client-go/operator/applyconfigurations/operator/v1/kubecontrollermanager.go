@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// KubeControllerManagerApplyConfiguration represents an declarative configuration of the KubeControllerManager type for use
+// KubeControllerManagerApplyConfiguration represents a declarative configuration of the KubeControllerManager type for use
 // with apply.
 type KubeControllerManagerApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type KubeControllerManagerApplyConfiguration struct {
 	Status                           *KubeControllerManagerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// KubeControllerManager constructs an declarative configuration of the KubeControllerManager type for use with
+// KubeControllerManager constructs a declarative configuration of the KubeControllerManager type for use with
 // apply.
 func KubeControllerManager(name string) *KubeControllerManagerApplyConfiguration {
 	b := &KubeControllerManagerApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *KubeControllerManagerApplyConfiguration) WithSpec(value *KubeController
 func (b *KubeControllerManagerApplyConfiguration) WithStatus(value *KubeControllerManagerStatusApplyConfiguration) *KubeControllerManagerApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *KubeControllerManagerApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/api/authorization/v1"
 )
 
-// ResourceAttributesAccessReviewApplyConfiguration represents an declarative configuration of the ResourceAttributesAccessReview type for use
+// ResourceAttributesAccessReviewApplyConfiguration represents a declarative configuration of the ResourceAttributesAccessReview type for use
 // with apply.
 type ResourceAttributesAccessReviewApplyConfiguration struct {
 	Required []v1.ResourceAttributes `json:"required,omitempty"`
 	Missing  []v1.ResourceAttributes `json:"missing,omitempty"`
 }
 
-// ResourceAttributesAccessReviewApplyConfiguration constructs an declarative configuration of the ResourceAttributesAccessReview type for use with
+// ResourceAttributesAccessReviewApplyConfiguration constructs a declarative configuration of the ResourceAttributesAccessReview type for use with
 // apply.
 func ResourceAttributesAccessReview() *ResourceAttributesAccessReviewApplyConfiguration {
 	return &ResourceAttributesAccessReviewApplyConfiguration{}

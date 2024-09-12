@@ -7,7 +7,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// MachineConfigPoolSpecApplyConfiguration represents an declarative configuration of the MachineConfigPoolSpec type for use
+// MachineConfigPoolSpecApplyConfiguration represents a declarative configuration of the MachineConfigPoolSpec type for use
 // with apply.
 type MachineConfigPoolSpecApplyConfiguration struct {
 	MachineConfigSelector *v1.LabelSelectorApplyConfiguration                     `json:"machineConfigSelector,omitempty"`
@@ -18,7 +18,7 @@ type MachineConfigPoolSpecApplyConfiguration struct {
 	PinnedImageSets       []PinnedImageSetRefApplyConfiguration                   `json:"pinnedImageSets,omitempty"`
 }
 
-// MachineConfigPoolSpecApplyConfiguration constructs an declarative configuration of the MachineConfigPoolSpec type for use with
+// MachineConfigPoolSpecApplyConfiguration constructs a declarative configuration of the MachineConfigPoolSpec type for use with
 // apply.
 func MachineConfigPoolSpec() *MachineConfigPoolSpecApplyConfiguration {
 	return &MachineConfigPoolSpecApplyConfiguration{}

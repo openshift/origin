@@ -2,14 +2,14 @@
 
 package v1
 
-// NodeDisruptionPolicyStatusFileApplyConfiguration represents an declarative configuration of the NodeDisruptionPolicyStatusFile type for use
+// NodeDisruptionPolicyStatusFileApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyStatusFile type for use
 // with apply.
 type NodeDisruptionPolicyStatusFileApplyConfiguration struct {
 	Path    *string                                              `json:"path,omitempty"`
 	Actions []NodeDisruptionPolicyStatusActionApplyConfiguration `json:"actions,omitempty"`
 }
 
-// NodeDisruptionPolicyStatusFileApplyConfiguration constructs an declarative configuration of the NodeDisruptionPolicyStatusFile type for use with
+// NodeDisruptionPolicyStatusFileApplyConfiguration constructs a declarative configuration of the NodeDisruptionPolicyStatusFile type for use with
 // apply.
 func NodeDisruptionPolicyStatusFile() *NodeDisruptionPolicyStatusFileApplyConfiguration {
 	return &NodeDisruptionPolicyStatusFileApplyConfiguration{}

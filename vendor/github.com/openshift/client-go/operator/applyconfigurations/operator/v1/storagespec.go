@@ -7,14 +7,14 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// StorageSpecApplyConfiguration represents an declarative configuration of the StorageSpec type for use
+// StorageSpecApplyConfiguration represents a declarative configuration of the StorageSpec type for use
 // with apply.
 type StorageSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 	VSphereStorageDriver           *operatorv1.StorageDriverType `json:"vsphereStorageDriver,omitempty"`
 }
 
-// StorageSpecApplyConfiguration constructs an declarative configuration of the StorageSpec type for use with
+// StorageSpecApplyConfiguration constructs a declarative configuration of the StorageSpec type for use with
 // apply.
 func StorageSpec() *StorageSpecApplyConfiguration {
 	return &StorageSpecApplyConfiguration{}

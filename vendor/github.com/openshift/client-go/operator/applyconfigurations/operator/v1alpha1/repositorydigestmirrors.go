@@ -2,14 +2,14 @@
 
 package v1alpha1
 
-// RepositoryDigestMirrorsApplyConfiguration represents an declarative configuration of the RepositoryDigestMirrors type for use
+// RepositoryDigestMirrorsApplyConfiguration represents a declarative configuration of the RepositoryDigestMirrors type for use
 // with apply.
 type RepositoryDigestMirrorsApplyConfiguration struct {
 	Source  *string  `json:"source,omitempty"`
 	Mirrors []string `json:"mirrors,omitempty"`
 }
 
-// RepositoryDigestMirrorsApplyConfiguration constructs an declarative configuration of the RepositoryDigestMirrors type for use with
+// RepositoryDigestMirrorsApplyConfiguration constructs a declarative configuration of the RepositoryDigestMirrors type for use with
 // apply.
 func RepositoryDigestMirrors() *RepositoryDigestMirrorsApplyConfiguration {
 	return &RepositoryDigestMirrorsApplyConfiguration{}

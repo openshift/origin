@@ -2,14 +2,14 @@
 
 package v1
 
-// ContainerRuntimeConfigStatusApplyConfiguration represents an declarative configuration of the ContainerRuntimeConfigStatus type for use
+// ContainerRuntimeConfigStatusApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfigStatus type for use
 // with apply.
 type ContainerRuntimeConfigStatusApplyConfiguration struct {
 	ObservedGeneration *int64                                              `json:"observedGeneration,omitempty"`
 	Conditions         []ContainerRuntimeConfigConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
-// ContainerRuntimeConfigStatusApplyConfiguration constructs an declarative configuration of the ContainerRuntimeConfigStatus type for use with
+// ContainerRuntimeConfigStatusApplyConfiguration constructs a declarative configuration of the ContainerRuntimeConfigStatus type for use with
 // apply.
 func ContainerRuntimeConfigStatus() *ContainerRuntimeConfigStatusApplyConfiguration {
 	return &ContainerRuntimeConfigStatusApplyConfiguration{}

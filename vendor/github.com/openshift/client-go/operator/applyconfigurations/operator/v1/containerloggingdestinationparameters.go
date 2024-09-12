@@ -2,13 +2,13 @@
 
 package v1
 
-// ContainerLoggingDestinationParametersApplyConfiguration represents an declarative configuration of the ContainerLoggingDestinationParameters type for use
+// ContainerLoggingDestinationParametersApplyConfiguration represents a declarative configuration of the ContainerLoggingDestinationParameters type for use
 // with apply.
 type ContainerLoggingDestinationParametersApplyConfiguration struct {
 	MaxLength *int32 `json:"maxLength,omitempty"`
 }
 
-// ContainerLoggingDestinationParametersApplyConfiguration constructs an declarative configuration of the ContainerLoggingDestinationParameters type for use with
+// ContainerLoggingDestinationParametersApplyConfiguration constructs a declarative configuration of the ContainerLoggingDestinationParameters type for use with
 // apply.
 func ContainerLoggingDestinationParameters() *ContainerLoggingDestinationParametersApplyConfiguration {
 	return &ContainerLoggingDestinationParametersApplyConfiguration{}

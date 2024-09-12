@@ -4,9 +4,6 @@ package v1
 
 import (
 	"context"
-	json "encoding/json"
-	"fmt"
-	"time"
 
 	v1 "github.com/openshift/api/operator/v1"
 	operatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
@@ -14,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // CloudCredentialsGetter has a method to return a CloudCredentialInterface.
@@ -27,6 +24,7 @@ type CloudCredentialsGetter interface {
 type CloudCredentialInterface interface {
 	Create(ctx context.Context, cloudCredential *v1.CloudCredential, opts metav1.CreateOptions) (*v1.CloudCredential, error)
 	Update(ctx context.Context, cloudCredential *v1.CloudCredential, opts metav1.UpdateOptions) (*v1.CloudCredential, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 	UpdateStatus(ctx context.Context, cloudCredential *v1.CloudCredential, opts metav1.UpdateOptions) (*v1.CloudCredential, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
@@ -35,193 +33,25 @@ type CloudCredentialInterface interface {
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.CloudCredential, err error)
 	Apply(ctx context.Context, cloudCredential *operatorv1.CloudCredentialApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudCredential, err error)
+	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
 	ApplyStatus(ctx context.Context, cloudCredential *operatorv1.CloudCredentialApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudCredential, err error)
 	CloudCredentialExpansion
 }
 
 // cloudCredentials implements CloudCredentialInterface
 type cloudCredentials struct {
-	client rest.Interface
+	*gentype.ClientWithListAndApply[*v1.CloudCredential, *v1.CloudCredentialList, *operatorv1.CloudCredentialApplyConfiguration]
 }
 
 // newCloudCredentials returns a CloudCredentials
 func newCloudCredentials(c *OperatorV1Client) *cloudCredentials {
 	return &cloudCredentials{
-		client: c.RESTClient(),
+		gentype.NewClientWithListAndApply[*v1.CloudCredential, *v1.CloudCredentialList, *operatorv1.CloudCredentialApplyConfiguration](
+			"cloudcredentials",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			"",
+			func() *v1.CloudCredential { return &v1.CloudCredential{} },
+			func() *v1.CloudCredentialList { return &v1.CloudCredentialList{} }),
 	}
-}
-
-// Get takes name of the cloudCredential, and returns the corresponding cloudCredential object, and an error if there is any.
-func (c *cloudCredentials) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.CloudCredential, err error) {
-	result = &v1.CloudCredential{}
-	err = c.client.Get().
-		Resource("cloudcredentials").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of CloudCredentials that match those selectors.
-func (c *cloudCredentials) List(ctx context.Context, opts metav1.ListOptions) (result *v1.CloudCredentialList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1.CloudCredentialList{}
-	err = c.client.Get().
-		Resource("cloudcredentials").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested cloudCredentials.
-func (c *cloudCredentials) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Resource("cloudcredentials").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a cloudCredential and creates it.  Returns the server's representation of the cloudCredential, and an error, if there is any.
-func (c *cloudCredentials) Create(ctx context.Context, cloudCredential *v1.CloudCredential, opts metav1.CreateOptions) (result *v1.CloudCredential, err error) {
-	result = &v1.CloudCredential{}
-	err = c.client.Post().
-		Resource("cloudcredentials").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(cloudCredential).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a cloudCredential and updates it. Returns the server's representation of the cloudCredential, and an error, if there is any.
-func (c *cloudCredentials) Update(ctx context.Context, cloudCredential *v1.CloudCredential, opts metav1.UpdateOptions) (result *v1.CloudCredential, err error) {
-	result = &v1.CloudCredential{}
-	err = c.client.Put().
-		Resource("cloudcredentials").
-		Name(cloudCredential.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(cloudCredential).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *cloudCredentials) UpdateStatus(ctx context.Context, cloudCredential *v1.CloudCredential, opts metav1.UpdateOptions) (result *v1.CloudCredential, err error) {
-	result = &v1.CloudCredential{}
-	err = c.client.Put().
-		Resource("cloudcredentials").
-		Name(cloudCredential.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(cloudCredential).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the cloudCredential and deletes it. Returns an error if one occurs.
-func (c *cloudCredentials) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.client.Delete().
-		Resource("cloudcredentials").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *cloudCredentials) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Resource("cloudcredentials").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched cloudCredential.
-func (c *cloudCredentials) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.CloudCredential, err error) {
-	result = &v1.CloudCredential{}
-	err = c.client.Patch(pt).
-		Resource("cloudcredentials").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Apply takes the given apply declarative configuration, applies it and returns the applied cloudCredential.
-func (c *cloudCredentials) Apply(ctx context.Context, cloudCredential *operatorv1.CloudCredentialApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudCredential, err error) {
-	if cloudCredential == nil {
-		return nil, fmt.Errorf("cloudCredential provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(cloudCredential)
-	if err != nil {
-		return nil, err
-	}
-	name := cloudCredential.Name
-	if name == nil {
-		return nil, fmt.Errorf("cloudCredential.Name must be provided to Apply")
-	}
-	result = &v1.CloudCredential{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Resource("cloudcredentials").
-		Name(*name).
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// ApplyStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-func (c *cloudCredentials) ApplyStatus(ctx context.Context, cloudCredential *operatorv1.CloudCredentialApplyConfiguration, opts metav1.ApplyOptions) (result *v1.CloudCredential, err error) {
-	if cloudCredential == nil {
-		return nil, fmt.Errorf("cloudCredential provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(cloudCredential)
-	if err != nil {
-		return nil, err
-	}
-
-	name := cloudCredential.Name
-	if name == nil {
-		return nil, fmt.Errorf("cloudCredential.Name must be provided to Apply")
-	}
-
-	result = &v1.CloudCredential{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Resource("cloudcredentials").
-		Name(*name).
-		SubResource("status").
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }

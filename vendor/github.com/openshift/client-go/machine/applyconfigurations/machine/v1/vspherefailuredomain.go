@@ -2,13 +2,13 @@
 
 package v1
 
-// VSphereFailureDomainApplyConfiguration represents an declarative configuration of the VSphereFailureDomain type for use
+// VSphereFailureDomainApplyConfiguration represents a declarative configuration of the VSphereFailureDomain type for use
 // with apply.
 type VSphereFailureDomainApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// VSphereFailureDomainApplyConfiguration constructs an declarative configuration of the VSphereFailureDomain type for use with
+// VSphereFailureDomainApplyConfiguration constructs a declarative configuration of the VSphereFailureDomain type for use with
 // apply.
 func VSphereFailureDomain() *VSphereFailureDomainApplyConfiguration {
 	return &VSphereFailureDomainApplyConfiguration{}

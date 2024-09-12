@@ -2,14 +2,14 @@
 
 package v1
 
-// DeveloperConsoleCatalogCustomizationApplyConfiguration represents an declarative configuration of the DeveloperConsoleCatalogCustomization type for use
+// DeveloperConsoleCatalogCustomizationApplyConfiguration represents a declarative configuration of the DeveloperConsoleCatalogCustomization type for use
 // with apply.
 type DeveloperConsoleCatalogCustomizationApplyConfiguration struct {
 	Categories []DeveloperConsoleCatalogCategoryApplyConfiguration `json:"categories,omitempty"`
 	Types      *DeveloperConsoleCatalogTypesApplyConfiguration     `json:"types,omitempty"`
 }
 
-// DeveloperConsoleCatalogCustomizationApplyConfiguration constructs an declarative configuration of the DeveloperConsoleCatalogCustomization type for use with
+// DeveloperConsoleCatalogCustomizationApplyConfiguration constructs a declarative configuration of the DeveloperConsoleCatalogCustomization type for use with
 // apply.
 func DeveloperConsoleCatalogCustomization() *DeveloperConsoleCatalogCustomizationApplyConfiguration {
 	return &DeveloperConsoleCatalogCustomizationApplyConfiguration{}

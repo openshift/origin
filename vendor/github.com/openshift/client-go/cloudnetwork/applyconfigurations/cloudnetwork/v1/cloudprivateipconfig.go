@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// CloudPrivateIPConfigApplyConfiguration represents an declarative configuration of the CloudPrivateIPConfig type for use
+// CloudPrivateIPConfigApplyConfiguration represents a declarative configuration of the CloudPrivateIPConfig type for use
 // with apply.
 type CloudPrivateIPConfigApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type CloudPrivateIPConfigApplyConfiguration struct {
 	Status                           *CloudPrivateIPConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// CloudPrivateIPConfig constructs an declarative configuration of the CloudPrivateIPConfig type for use with
+// CloudPrivateIPConfig constructs a declarative configuration of the CloudPrivateIPConfig type for use with
 // apply.
 func CloudPrivateIPConfig(name string) *CloudPrivateIPConfigApplyConfiguration {
 	b := &CloudPrivateIPConfigApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *CloudPrivateIPConfigApplyConfiguration) WithSpec(value *CloudPrivateIPC
 func (b *CloudPrivateIPConfigApplyConfiguration) WithStatus(value *CloudPrivateIPConfigStatusApplyConfiguration) *CloudPrivateIPConfigApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *CloudPrivateIPConfigApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

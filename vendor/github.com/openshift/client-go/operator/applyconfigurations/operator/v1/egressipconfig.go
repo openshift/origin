@@ -2,13 +2,13 @@
 
 package v1
 
-// EgressIPConfigApplyConfiguration represents an declarative configuration of the EgressIPConfig type for use
+// EgressIPConfigApplyConfiguration represents a declarative configuration of the EgressIPConfig type for use
 // with apply.
 type EgressIPConfigApplyConfiguration struct {
 	ReachabilityTotalTimeoutSeconds *uint32 `json:"reachabilityTotalTimeoutSeconds,omitempty"`
 }
 
-// EgressIPConfigApplyConfiguration constructs an declarative configuration of the EgressIPConfig type for use with
+// EgressIPConfigApplyConfiguration constructs a declarative configuration of the EgressIPConfig type for use with
 // apply.
 func EgressIPConfig() *EgressIPConfigApplyConfiguration {
 	return &EgressIPConfigApplyConfiguration{}

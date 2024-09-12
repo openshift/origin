@@ -2,7 +2,7 @@
 
 package v1
 
-// DNSStatusApplyConfiguration represents an declarative configuration of the DNSStatus type for use
+// DNSStatusApplyConfiguration represents a declarative configuration of the DNSStatus type for use
 // with apply.
 type DNSStatusApplyConfiguration struct {
 	ClusterIP     *string                               `json:"clusterIP,omitempty"`
@@ -10,7 +10,7 @@ type DNSStatusApplyConfiguration struct {
 	Conditions    []OperatorConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
-// DNSStatusApplyConfiguration constructs an declarative configuration of the DNSStatus type for use with
+// DNSStatusApplyConfiguration constructs a declarative configuration of the DNSStatus type for use with
 // apply.
 func DNSStatus() *DNSStatusApplyConfiguration {
 	return &DNSStatusApplyConfiguration{}

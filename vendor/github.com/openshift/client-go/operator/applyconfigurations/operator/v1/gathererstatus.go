@@ -7,7 +7,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// GathererStatusApplyConfiguration represents an declarative configuration of the GathererStatus type for use
+// GathererStatusApplyConfiguration represents a declarative configuration of the GathererStatus type for use
 // with apply.
 type GathererStatusApplyConfiguration struct {
 	Conditions         []v1.ConditionApplyConfiguration `json:"conditions,omitempty"`
@@ -15,7 +15,7 @@ type GathererStatusApplyConfiguration struct {
 	LastGatherDuration *metav1.Duration                 `json:"lastGatherDuration,omitempty"`
 }
 
-// GathererStatusApplyConfiguration constructs an declarative configuration of the GathererStatus type for use with
+// GathererStatusApplyConfiguration constructs a declarative configuration of the GathererStatus type for use with
 // apply.
 func GathererStatus() *GathererStatusApplyConfiguration {
 	return &GathererStatusApplyConfiguration{}

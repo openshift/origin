@@ -2,7 +2,7 @@
 
 package v1alpha1
 
-// BuildInputsApplyConfiguration represents an declarative configuration of the BuildInputs type for use
+// BuildInputsApplyConfiguration represents a declarative configuration of the BuildInputs type for use
 // with apply.
 type BuildInputsApplyConfiguration struct {
 	BaseOSExtensionsImagePullspec *string                                       `json:"baseOSExtensionsImagePullspec,omitempty"`
@@ -15,7 +15,7 @@ type BuildInputsApplyConfiguration struct {
 	Containerfile                 []MachineOSContainerfileApplyConfiguration    `json:"containerFile,omitempty"`
 }
 
-// BuildInputsApplyConfiguration constructs an declarative configuration of the BuildInputs type for use with
+// BuildInputsApplyConfiguration constructs a declarative configuration of the BuildInputs type for use with
 // apply.
 func BuildInputs() *BuildInputsApplyConfiguration {
 	return &BuildInputsApplyConfiguration{}

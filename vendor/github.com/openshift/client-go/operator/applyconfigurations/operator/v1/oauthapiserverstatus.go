@@ -2,13 +2,13 @@
 
 package v1
 
-// OAuthAPIServerStatusApplyConfiguration represents an declarative configuration of the OAuthAPIServerStatus type for use
+// OAuthAPIServerStatusApplyConfiguration represents a declarative configuration of the OAuthAPIServerStatus type for use
 // with apply.
 type OAuthAPIServerStatusApplyConfiguration struct {
 	LatestAvailableRevision *int32 `json:"latestAvailableRevision,omitempty"`
 }
 
-// OAuthAPIServerStatusApplyConfiguration constructs an declarative configuration of the OAuthAPIServerStatus type for use with
+// OAuthAPIServerStatusApplyConfiguration constructs a declarative configuration of the OAuthAPIServerStatus type for use with
 // apply.
 func OAuthAPIServerStatus() *OAuthAPIServerStatusApplyConfiguration {
 	return &OAuthAPIServerStatusApplyConfiguration{}

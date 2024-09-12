@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// BuildOutputsApplyConfiguration represents an declarative configuration of the BuildOutputs type for use
+// BuildOutputsApplyConfiguration represents a declarative configuration of the BuildOutputs type for use
 // with apply.
 type BuildOutputsApplyConfiguration struct {
 	CurrentImagePullSecret *ImageSecretObjectReferenceApplyConfiguration `json:"currentImagePullSecret,omitempty"`
 }
 
-// BuildOutputsApplyConfiguration constructs an declarative configuration of the BuildOutputs type for use with
+// BuildOutputsApplyConfiguration constructs a declarative configuration of the BuildOutputs type for use with
 // apply.
 func BuildOutputs() *BuildOutputsApplyConfiguration {
 	return &BuildOutputsApplyConfiguration{}

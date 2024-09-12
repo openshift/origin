@@ -6,14 +6,14 @@ import (
 	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 )
 
-// MachineOSBuilderReferenceApplyConfiguration represents an declarative configuration of the MachineOSBuilderReference type for use
+// MachineOSBuilderReferenceApplyConfiguration represents a declarative configuration of the MachineOSBuilderReference type for use
 // with apply.
 type MachineOSBuilderReferenceApplyConfiguration struct {
 	ImageBuilderType *v1alpha1.MachineOSImageBuilderType `json:"imageBuilderType,omitempty"`
 	PodImageBuilder  *ObjectReferenceApplyConfiguration  `json:"buildPod,omitempty"`
 }
 
-// MachineOSBuilderReferenceApplyConfiguration constructs an declarative configuration of the MachineOSBuilderReference type for use with
+// MachineOSBuilderReferenceApplyConfiguration constructs a declarative configuration of the MachineOSBuilderReference type for use with
 // apply.
 func MachineOSBuilderReference() *MachineOSBuilderReferenceApplyConfiguration {
 	return &MachineOSBuilderReferenceApplyConfiguration{}

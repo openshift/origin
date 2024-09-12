@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/imageregistry/v1"
 )
 
-// ImageRegistryConfigStorageApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorage type for use
+// ImageRegistryConfigStorageApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorage type for use
 // with apply.
 type ImageRegistryConfigStorageApplyConfiguration struct {
 	EmptyDir        *v1.ImageRegistryConfigStorageEmptyDir                  `json:"emptyDir,omitempty"`
@@ -20,7 +20,7 @@ type ImageRegistryConfigStorageApplyConfiguration struct {
 	ManagementState *string                                                 `json:"managementState,omitempty"`
 }
 
-// ImageRegistryConfigStorageApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorage type for use with
+// ImageRegistryConfigStorageApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorage type for use with
 // apply.
 func ImageRegistryConfigStorage() *ImageRegistryConfigStorageApplyConfiguration {
 	return &ImageRegistryConfigStorageApplyConfiguration{}

@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// LoadBalancerStrategyApplyConfiguration represents an declarative configuration of the LoadBalancerStrategy type for use
+// LoadBalancerStrategyApplyConfiguration represents a declarative configuration of the LoadBalancerStrategy type for use
 // with apply.
 type LoadBalancerStrategyApplyConfiguration struct {
 	Scope               *v1.LoadBalancerScope                             `json:"scope,omitempty"`
@@ -15,7 +15,7 @@ type LoadBalancerStrategyApplyConfiguration struct {
 	DNSManagementPolicy *v1.LoadBalancerDNSManagementPolicy               `json:"dnsManagementPolicy,omitempty"`
 }
 
-// LoadBalancerStrategyApplyConfiguration constructs an declarative configuration of the LoadBalancerStrategy type for use with
+// LoadBalancerStrategyApplyConfiguration constructs a declarative configuration of the LoadBalancerStrategy type for use with
 // apply.
 func LoadBalancerStrategy() *LoadBalancerStrategyApplyConfiguration {
 	return &LoadBalancerStrategyApplyConfiguration{}

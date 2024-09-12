@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// KubeSchedulerSpecApplyConfiguration represents an declarative configuration of the KubeSchedulerSpec type for use
+// KubeSchedulerSpecApplyConfiguration represents a declarative configuration of the KubeSchedulerSpec type for use
 // with apply.
 type KubeSchedulerSpecApplyConfiguration struct {
 	StaticPodOperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// KubeSchedulerSpecApplyConfiguration constructs an declarative configuration of the KubeSchedulerSpec type for use with
+// KubeSchedulerSpecApplyConfiguration constructs a declarative configuration of the KubeSchedulerSpec type for use with
 // apply.
 func KubeSchedulerSpec() *KubeSchedulerSpecApplyConfiguration {
 	return &KubeSchedulerSpecApplyConfiguration{}

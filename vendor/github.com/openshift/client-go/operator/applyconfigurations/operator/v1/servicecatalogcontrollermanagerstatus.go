@@ -2,13 +2,13 @@
 
 package v1
 
-// ServiceCatalogControllerManagerStatusApplyConfiguration represents an declarative configuration of the ServiceCatalogControllerManagerStatus type for use
+// ServiceCatalogControllerManagerStatusApplyConfiguration represents a declarative configuration of the ServiceCatalogControllerManagerStatus type for use
 // with apply.
 type ServiceCatalogControllerManagerStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// ServiceCatalogControllerManagerStatusApplyConfiguration constructs an declarative configuration of the ServiceCatalogControllerManagerStatus type for use with
+// ServiceCatalogControllerManagerStatusApplyConfiguration constructs a declarative configuration of the ServiceCatalogControllerManagerStatus type for use with
 // apply.
 func ServiceCatalogControllerManagerStatus() *ServiceCatalogControllerManagerStatusApplyConfiguration {
 	return &ServiceCatalogControllerManagerStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *ServiceCatalogControllerManagerStatusApplyConfiguration) WithVersion(va
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *ServiceCatalogControllerManagerStatusApplyConfiguration) WithReadyReplicas(value int32) *ServiceCatalogControllerManagerStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *ServiceCatalogControllerManagerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *ServiceCatalogControllerManagerStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

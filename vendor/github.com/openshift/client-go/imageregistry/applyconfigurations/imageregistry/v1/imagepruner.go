@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ImagePrunerApplyConfiguration represents an declarative configuration of the ImagePruner type for use
+// ImagePrunerApplyConfiguration represents a declarative configuration of the ImagePruner type for use
 // with apply.
 type ImagePrunerApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type ImagePrunerApplyConfiguration struct {
 	Status                           *ImagePrunerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// ImagePruner constructs an declarative configuration of the ImagePruner type for use with
+// ImagePruner constructs a declarative configuration of the ImagePruner type for use with
 // apply.
 func ImagePruner(name string) *ImagePrunerApplyConfiguration {
 	b := &ImagePrunerApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *ImagePrunerApplyConfiguration) WithSpec(value *ImagePrunerSpecApplyConf
 func (b *ImagePrunerApplyConfiguration) WithStatus(value *ImagePrunerStatusApplyConfiguration) *ImagePrunerApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *ImagePrunerApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

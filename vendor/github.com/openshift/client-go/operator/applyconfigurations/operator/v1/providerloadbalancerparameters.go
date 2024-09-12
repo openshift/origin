@@ -6,16 +6,17 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// ProviderLoadBalancerParametersApplyConfiguration represents an declarative configuration of the ProviderLoadBalancerParameters type for use
+// ProviderLoadBalancerParametersApplyConfiguration represents a declarative configuration of the ProviderLoadBalancerParameters type for use
 // with apply.
 type ProviderLoadBalancerParametersApplyConfiguration struct {
-	Type *v1.LoadBalancerProviderType                 `json:"type,omitempty"`
-	AWS  *AWSLoadBalancerParametersApplyConfiguration `json:"aws,omitempty"`
-	GCP  *GCPLoadBalancerParametersApplyConfiguration `json:"gcp,omitempty"`
-	IBM  *IBMLoadBalancerParametersApplyConfiguration `json:"ibm,omitempty"`
+	Type      *v1.LoadBalancerProviderType                       `json:"type,omitempty"`
+	AWS       *AWSLoadBalancerParametersApplyConfiguration       `json:"aws,omitempty"`
+	GCP       *GCPLoadBalancerParametersApplyConfiguration       `json:"gcp,omitempty"`
+	IBM       *IBMLoadBalancerParametersApplyConfiguration       `json:"ibm,omitempty"`
+	OpenStack *OpenStackLoadBalancerParametersApplyConfiguration `json:"openstack,omitempty"`
 }
 
-// ProviderLoadBalancerParametersApplyConfiguration constructs an declarative configuration of the ProviderLoadBalancerParameters type for use with
+// ProviderLoadBalancerParametersApplyConfiguration constructs a declarative configuration of the ProviderLoadBalancerParameters type for use with
 // apply.
 func ProviderLoadBalancerParameters() *ProviderLoadBalancerParametersApplyConfiguration {
 	return &ProviderLoadBalancerParametersApplyConfiguration{}
@@ -50,5 +51,13 @@ func (b *ProviderLoadBalancerParametersApplyConfiguration) WithGCP(value *GCPLoa
 // If called multiple times, the IBM field is set to the value of the last call.
 func (b *ProviderLoadBalancerParametersApplyConfiguration) WithIBM(value *IBMLoadBalancerParametersApplyConfiguration) *ProviderLoadBalancerParametersApplyConfiguration {
 	b.IBM = value
+	return b
+}
+
+// WithOpenStack sets the OpenStack field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the OpenStack field is set to the value of the last call.
+func (b *ProviderLoadBalancerParametersApplyConfiguration) WithOpenStack(value *OpenStackLoadBalancerParametersApplyConfiguration) *ProviderLoadBalancerParametersApplyConfiguration {
+	b.OpenStack = value
 	return b
 }

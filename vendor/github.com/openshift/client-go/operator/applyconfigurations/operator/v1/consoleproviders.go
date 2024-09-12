@@ -2,13 +2,13 @@
 
 package v1
 
-// ConsoleProvidersApplyConfiguration represents an declarative configuration of the ConsoleProviders type for use
+// ConsoleProvidersApplyConfiguration represents a declarative configuration of the ConsoleProviders type for use
 // with apply.
 type ConsoleProvidersApplyConfiguration struct {
 	Statuspage *StatuspageProviderApplyConfiguration `json:"statuspage,omitempty"`
 }
 
-// ConsoleProvidersApplyConfiguration constructs an declarative configuration of the ConsoleProviders type for use with
+// ConsoleProvidersApplyConfiguration constructs a declarative configuration of the ConsoleProviders type for use with
 // apply.
 func ConsoleProviders() *ConsoleProvidersApplyConfiguration {
 	return &ConsoleProvidersApplyConfiguration{}

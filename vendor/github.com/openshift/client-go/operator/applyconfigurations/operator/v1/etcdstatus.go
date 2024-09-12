@@ -6,14 +6,14 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// EtcdStatusApplyConfiguration represents an declarative configuration of the EtcdStatus type for use
+// EtcdStatusApplyConfiguration represents a declarative configuration of the EtcdStatus type for use
 // with apply.
 type EtcdStatusApplyConfiguration struct {
 	StaticPodOperatorStatusApplyConfiguration `json:",inline"`
 	HardwareSpeed                             *operatorv1.ControlPlaneHardwareSpeed `json:"controlPlaneHardwareSpeed,omitempty"`
 }
 
-// EtcdStatusApplyConfiguration constructs an declarative configuration of the EtcdStatus type for use with
+// EtcdStatusApplyConfiguration constructs a declarative configuration of the EtcdStatus type for use with
 // apply.
 func EtcdStatus() *EtcdStatusApplyConfiguration {
 	return &EtcdStatusApplyConfiguration{}
@@ -56,6 +56,14 @@ func (b *EtcdStatusApplyConfiguration) WithReadyReplicas(value int32) *EtcdStatu
 	return b
 }
 
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *EtcdStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *EtcdStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
+	return b
+}
+
 // WithGenerations adds the given value to the Generations field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Generations field.
@@ -66,14 +74,6 @@ func (b *EtcdStatusApplyConfiguration) WithGenerations(values ...*GenerationStat
 		}
 		b.Generations = append(b.Generations, *values[i])
 	}
-	return b
-}
-
-// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
-func (b *EtcdStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *EtcdStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
 	return b
 }
 

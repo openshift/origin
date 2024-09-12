@@ -7,7 +7,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// OperatorSpecApplyConfiguration represents an declarative configuration of the OperatorSpec type for use
+// OperatorSpecApplyConfiguration represents a declarative configuration of the OperatorSpec type for use
 // with apply.
 type OperatorSpecApplyConfiguration struct {
 	ManagementState            *v1.ManagementState   `json:"managementState,omitempty"`
@@ -17,7 +17,7 @@ type OperatorSpecApplyConfiguration struct {
 	ObservedConfig             *runtime.RawExtension `json:"observedConfig,omitempty"`
 }
 
-// OperatorSpecApplyConfiguration constructs an declarative configuration of the OperatorSpec type for use with
+// OperatorSpecApplyConfiguration constructs a declarative configuration of the OperatorSpec type for use with
 // apply.
 func OperatorSpec() *OperatorSpecApplyConfiguration {
 	return &OperatorSpecApplyConfiguration{}

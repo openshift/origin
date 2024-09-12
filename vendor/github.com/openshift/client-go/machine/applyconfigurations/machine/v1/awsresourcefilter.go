@@ -2,14 +2,14 @@
 
 package v1
 
-// AWSResourceFilterApplyConfiguration represents an declarative configuration of the AWSResourceFilter type for use
+// AWSResourceFilterApplyConfiguration represents a declarative configuration of the AWSResourceFilter type for use
 // with apply.
 type AWSResourceFilterApplyConfiguration struct {
 	Name   *string  `json:"name,omitempty"`
 	Values []string `json:"values,omitempty"`
 }
 
-// AWSResourceFilterApplyConfiguration constructs an declarative configuration of the AWSResourceFilter type for use with
+// AWSResourceFilterApplyConfiguration constructs a declarative configuration of the AWSResourceFilter type for use with
 // apply.
 func AWSResourceFilter() *AWSResourceFilterApplyConfiguration {
 	return &AWSResourceFilterApplyConfiguration{}

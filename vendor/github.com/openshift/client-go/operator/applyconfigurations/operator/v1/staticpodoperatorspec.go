@@ -7,7 +7,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// StaticPodOperatorSpecApplyConfiguration represents an declarative configuration of the StaticPodOperatorSpec type for use
+// StaticPodOperatorSpecApplyConfiguration represents a declarative configuration of the StaticPodOperatorSpec type for use
 // with apply.
 type StaticPodOperatorSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
@@ -16,7 +16,7 @@ type StaticPodOperatorSpecApplyConfiguration struct {
 	SucceededRevisionLimit         *int32  `json:"succeededRevisionLimit,omitempty"`
 }
 
-// StaticPodOperatorSpecApplyConfiguration constructs an declarative configuration of the StaticPodOperatorSpec type for use with
+// StaticPodOperatorSpecApplyConfiguration constructs a declarative configuration of the StaticPodOperatorSpec type for use with
 // apply.
 func StaticPodOperatorSpec() *StaticPodOperatorSpecApplyConfiguration {
 	return &StaticPodOperatorSpecApplyConfiguration{}

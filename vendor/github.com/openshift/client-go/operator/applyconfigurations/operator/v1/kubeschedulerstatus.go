@@ -2,13 +2,13 @@
 
 package v1
 
-// KubeSchedulerStatusApplyConfiguration represents an declarative configuration of the KubeSchedulerStatus type for use
+// KubeSchedulerStatusApplyConfiguration represents a declarative configuration of the KubeSchedulerStatus type for use
 // with apply.
 type KubeSchedulerStatusApplyConfiguration struct {
 	StaticPodOperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// KubeSchedulerStatusApplyConfiguration constructs an declarative configuration of the KubeSchedulerStatus type for use with
+// KubeSchedulerStatusApplyConfiguration constructs a declarative configuration of the KubeSchedulerStatus type for use with
 // apply.
 func KubeSchedulerStatus() *KubeSchedulerStatusApplyConfiguration {
 	return &KubeSchedulerStatusApplyConfiguration{}
@@ -51,6 +51,14 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithReadyReplicas(value int32) *
 	return b
 }
 
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *KubeSchedulerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *KubeSchedulerStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
+	return b
+}
+
 // WithGenerations adds the given value to the Generations field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Generations field.
@@ -61,14 +69,6 @@ func (b *KubeSchedulerStatusApplyConfiguration) WithGenerations(values ...*Gener
 		}
 		b.Generations = append(b.Generations, *values[i])
 	}
-	return b
-}
-
-// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
-func (b *KubeSchedulerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *KubeSchedulerStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
 	return b
 }
 

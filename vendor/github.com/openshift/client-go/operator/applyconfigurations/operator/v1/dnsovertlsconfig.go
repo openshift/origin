@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 )
 
-// DNSOverTLSConfigApplyConfiguration represents an declarative configuration of the DNSOverTLSConfig type for use
+// DNSOverTLSConfigApplyConfiguration represents a declarative configuration of the DNSOverTLSConfig type for use
 // with apply.
 type DNSOverTLSConfigApplyConfiguration struct {
 	ServerName *string                    `json:"serverName,omitempty"`
 	CABundle   *v1.ConfigMapNameReference `json:"caBundle,omitempty"`
 }
 
-// DNSOverTLSConfigApplyConfiguration constructs an declarative configuration of the DNSOverTLSConfig type for use with
+// DNSOverTLSConfigApplyConfiguration constructs a declarative configuration of the DNSOverTLSConfig type for use with
 // apply.
 func DNSOverTLSConfig() *DNSOverTLSConfigApplyConfiguration {
 	return &DNSOverTLSConfigApplyConfiguration{}

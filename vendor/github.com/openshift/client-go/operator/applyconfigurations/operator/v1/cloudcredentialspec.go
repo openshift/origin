@@ -7,14 +7,14 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// CloudCredentialSpecApplyConfiguration represents an declarative configuration of the CloudCredentialSpec type for use
+// CloudCredentialSpecApplyConfiguration represents a declarative configuration of the CloudCredentialSpec type for use
 // with apply.
 type CloudCredentialSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 	CredentialsMode                *operatorv1.CloudCredentialsMode `json:"credentialsMode,omitempty"`
 }
 
-// CloudCredentialSpecApplyConfiguration constructs an declarative configuration of the CloudCredentialSpec type for use with
+// CloudCredentialSpecApplyConfiguration constructs a declarative configuration of the CloudCredentialSpec type for use with
 // apply.
 func CloudCredentialSpec() *CloudCredentialSpecApplyConfiguration {
 	return &CloudCredentialSpecApplyConfiguration{}

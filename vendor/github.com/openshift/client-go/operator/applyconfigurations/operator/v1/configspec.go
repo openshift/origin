@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// ConfigSpecApplyConfiguration represents an declarative configuration of the ConfigSpec type for use
+// ConfigSpecApplyConfiguration represents a declarative configuration of the ConfigSpec type for use
 // with apply.
 type ConfigSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// ConfigSpecApplyConfiguration constructs an declarative configuration of the ConfigSpec type for use with
+// ConfigSpecApplyConfiguration constructs a declarative configuration of the ConfigSpec type for use with
 // apply.
 func ConfigSpec() *ConfigSpecApplyConfiguration {
 	return &ConfigSpecApplyConfiguration{}

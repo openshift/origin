@@ -6,13 +6,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// ProviderSpecApplyConfiguration represents an declarative configuration of the ProviderSpec type for use
+// ProviderSpecApplyConfiguration represents a declarative configuration of the ProviderSpec type for use
 // with apply.
 type ProviderSpecApplyConfiguration struct {
 	Value *runtime.RawExtension `json:"value,omitempty"`
 }
 
-// ProviderSpecApplyConfiguration constructs an declarative configuration of the ProviderSpec type for use with
+// ProviderSpecApplyConfiguration constructs a declarative configuration of the ProviderSpec type for use with
 // apply.
 func ProviderSpec() *ProviderSpecApplyConfiguration {
 	return &ProviderSpecApplyConfiguration{}

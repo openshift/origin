@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/imageregistry/v1"
 )
 
-// AzureNetworkAccessApplyConfiguration represents an declarative configuration of the AzureNetworkAccess type for use
+// AzureNetworkAccessApplyConfiguration represents a declarative configuration of the AzureNetworkAccess type for use
 // with apply.
 type AzureNetworkAccessApplyConfiguration struct {
 	Type     *v1.AzureNetworkAccessType                    `json:"type,omitempty"`
 	Internal *AzureNetworkAccessInternalApplyConfiguration `json:"internal,omitempty"`
 }
 
-// AzureNetworkAccessApplyConfiguration constructs an declarative configuration of the AzureNetworkAccess type for use with
+// AzureNetworkAccessApplyConfiguration constructs a declarative configuration of the AzureNetworkAccess type for use with
 // apply.
 func AzureNetworkAccess() *AzureNetworkAccessApplyConfiguration {
 	return &AzureNetworkAccessApplyConfiguration{}

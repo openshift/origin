@@ -2,13 +2,13 @@
 
 package v1
 
-// IBMCloudCSIDriverConfigSpecApplyConfiguration represents an declarative configuration of the IBMCloudCSIDriverConfigSpec type for use
+// IBMCloudCSIDriverConfigSpecApplyConfiguration represents a declarative configuration of the IBMCloudCSIDriverConfigSpec type for use
 // with apply.
 type IBMCloudCSIDriverConfigSpecApplyConfiguration struct {
 	EncryptionKeyCRN *string `json:"encryptionKeyCRN,omitempty"`
 }
 
-// IBMCloudCSIDriverConfigSpecApplyConfiguration constructs an declarative configuration of the IBMCloudCSIDriverConfigSpec type for use with
+// IBMCloudCSIDriverConfigSpecApplyConfiguration constructs a declarative configuration of the IBMCloudCSIDriverConfigSpec type for use with
 // apply.
 func IBMCloudCSIDriverConfigSpec() *IBMCloudCSIDriverConfigSpecApplyConfiguration {
 	return &IBMCloudCSIDriverConfigSpecApplyConfiguration{}

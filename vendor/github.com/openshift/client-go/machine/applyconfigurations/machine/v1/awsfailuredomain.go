@@ -2,14 +2,14 @@
 
 package v1
 
-// AWSFailureDomainApplyConfiguration represents an declarative configuration of the AWSFailureDomain type for use
+// AWSFailureDomainApplyConfiguration represents a declarative configuration of the AWSFailureDomain type for use
 // with apply.
 type AWSFailureDomainApplyConfiguration struct {
 	Subnet    *AWSResourceReferenceApplyConfiguration      `json:"subnet,omitempty"`
 	Placement *AWSFailureDomainPlacementApplyConfiguration `json:"placement,omitempty"`
 }
 
-// AWSFailureDomainApplyConfiguration constructs an declarative configuration of the AWSFailureDomain type for use with
+// AWSFailureDomainApplyConfiguration constructs a declarative configuration of the AWSFailureDomain type for use with
 // apply.
 func AWSFailureDomain() *AWSFailureDomainApplyConfiguration {
 	return &AWSFailureDomainApplyConfiguration{}

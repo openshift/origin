@@ -2,7 +2,7 @@
 
 package v1
 
-// AzureDiskEncryptionSetApplyConfiguration represents an declarative configuration of the AzureDiskEncryptionSet type for use
+// AzureDiskEncryptionSetApplyConfiguration represents a declarative configuration of the AzureDiskEncryptionSet type for use
 // with apply.
 type AzureDiskEncryptionSetApplyConfiguration struct {
 	SubscriptionID *string `json:"subscriptionID,omitempty"`
@@ -10,7 +10,7 @@ type AzureDiskEncryptionSetApplyConfiguration struct {
 	Name           *string `json:"name,omitempty"`
 }
 
-// AzureDiskEncryptionSetApplyConfiguration constructs an declarative configuration of the AzureDiskEncryptionSet type for use with
+// AzureDiskEncryptionSetApplyConfiguration constructs a declarative configuration of the AzureDiskEncryptionSet type for use with
 // apply.
 func AzureDiskEncryptionSet() *AzureDiskEncryptionSetApplyConfiguration {
 	return &AzureDiskEncryptionSetApplyConfiguration{}

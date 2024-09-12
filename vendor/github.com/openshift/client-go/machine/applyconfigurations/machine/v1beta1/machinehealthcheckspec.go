@@ -9,7 +9,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// MachineHealthCheckSpecApplyConfiguration represents an declarative configuration of the MachineHealthCheckSpec type for use
+// MachineHealthCheckSpecApplyConfiguration represents a declarative configuration of the MachineHealthCheckSpec type for use
 // with apply.
 type MachineHealthCheckSpecApplyConfiguration struct {
 	Selector            *v1.LabelSelectorApplyConfiguration    `json:"selector,omitempty"`
@@ -19,7 +19,7 @@ type MachineHealthCheckSpecApplyConfiguration struct {
 	RemediationTemplate *corev1.ObjectReference                `json:"remediationTemplate,omitempty"`
 }
 
-// MachineHealthCheckSpecApplyConfiguration constructs an declarative configuration of the MachineHealthCheckSpec type for use with
+// MachineHealthCheckSpecApplyConfiguration constructs a declarative configuration of the MachineHealthCheckSpec type for use with
 // apply.
 func MachineHealthCheckSpec() *MachineHealthCheckSpecApplyConfiguration {
 	return &MachineHealthCheckSpecApplyConfiguration{}

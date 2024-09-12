@@ -391,6 +391,7 @@ var (
 type CIDR string
 
 // LoadBalancerStrategy holds parameters for a load balancer.
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=SetEIPForNLBIngressController,rule="!has(self.scope) || self.scope != 'Internal' || !has(self.providerParameters) || !has(self.providerParameters.aws) || !has(self.providerParameters.aws.networkLoadBalancer) || !has(self.providerParameters.aws.networkLoadBalancer.eipAllocations)",message="eipAllocations are forbidden when the scope is Internal."
 type LoadBalancerStrategy struct {
 	// scope indicates the scope at which the load balancer is exposed.
 	// Possible values are "External" and "Internal".
@@ -454,6 +455,7 @@ const (
 
 // ProviderLoadBalancerParameters holds desired load balancer information
 // specific to the underlying infrastructure provider.
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'OpenStack' ? true : !has(self.openstack)",message="openstack is not permitted when type is not OpenStack"
 // +union
 type ProviderLoadBalancerParameters struct {
 	// type is the underlying infrastructure provider for the load balancer.
@@ -491,6 +493,15 @@ type ProviderLoadBalancerParameters struct {
 	//
 	// +optional
 	IBM *IBMLoadBalancerParameters `json:"ibm,omitempty"`
+
+	// openstack provides configuration settings that are specific to OpenStack
+	// load balancers.
+	//
+	// If empty, defaults will be applied. See specific openstack fields for
+	// details about their defaults.
+	//
+	// +optional
+	OpenStack *OpenStackLoadBalancerParameters `json:"openstack,omitempty"`
 }
 
 // LoadBalancerProviderType is the underlying infrastructure provider for the
@@ -558,6 +569,52 @@ const (
 	AWSNetworkLoadBalancer AWSLoadBalancerType = "NLB"
 )
 
+// AWSSubnets contains a list of references to AWS subnets by
+// ID or name.
+// +kubebuilder:validation:XValidation:rule=`has(self.ids) && has(self.names) ? size(self.ids + self.names) <= 10 : true`,message="the total number of subnets cannot exceed 10"
+// +kubebuilder:validation:XValidation:rule=`has(self.ids) && self.ids.size() > 0 || has(self.names) && self.names.size() > 0`,message="must specify at least 1 subnet name or id"
+type AWSSubnets struct {
+	// ids specifies a list of AWS subnets by subnet ID.
+	// Subnet IDs must start with "subnet-", consist only
+	// of alphanumeric characters, must be exactly 24
+	// characters long, must be unique, and the total
+	// number of subnets specified by ids and names
+	// must not exceed 10.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:XValidation:rule=`self.all(x, self.exists_one(y, x == y))`,message="subnet ids cannot contain duplicates"
+	// + Note: Though it may seem redundant, MaxItems is necessary to prevent exceeding of the cost budget for the validation rules.
+	// +kubebuilder:validation:MaxItems=10
+	IDs []AWSSubnetID `json:"ids,omitempty"`
+
+	// names specifies a list of AWS subnets by subnet name.
+	// Subnet names must not start with "subnet-", must not
+	// include commas, must be under 256 characters in length,
+	// must be unique, and the total number of subnets
+	// specified by ids and names must not exceed 10.
+	//
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:XValidation:rule=`self.all(x, self.exists_one(y, x == y))`,message="subnet names cannot contain duplicates"
+	// + Note: Though it may seem redundant, MaxItems is necessary to prevent exceeding of the cost budget for the validation rules.
+	// +kubebuilder:validation:MaxItems=10
+	Names []AWSSubnetName `json:"names,omitempty"`
+}
+
+// AWSSubnetID is a reference to an AWS subnet ID.
+// +kubebuilder:validation:MinLength=24
+// +kubebuilder:validation:MaxLength=24
+// +kubebuilder:validation:Pattern=`^subnet-[0-9A-Za-z]+$`
+type AWSSubnetID string
+
+// AWSSubnetName is a reference to an AWS subnet name.
+// +kubebuilder:validation:MinLength=1
+// +kubebuilder:validation:MaxLength=256
+// +kubebuilder:validation:XValidation:rule=`!self.contains(',')`,message="subnet name cannot contain a comma"
+// +kubebuilder:validation:XValidation:rule=`!self.startsWith('subnet-')`,message="subnet name cannot start with 'subnet-'"
+type AWSSubnetName string
+
 // GCPLoadBalancerParameters provides configuration settings that are
 // specific to GCP load balancers.
 type GCPLoadBalancerParameters struct {
@@ -618,6 +675,24 @@ type IBMLoadBalancerParameters struct {
 	Protocol IngressControllerProtocol `json:"protocol,omitempty"`
 }
 
+// OpenStackLoadBalancerParameters provides configuration settings that are
+// specific to OpenStack load balancers.
+type OpenStackLoadBalancerParameters struct {
+	// loadBalancerIP specifies the floating IP address that the load balancer will use.
+	// When not specified, an IP address will be assigned randomly by the OpenStack cloud provider.
+	// This value must be a valid IPv4 or IPv6 address.
+	// + ---
+	// + Note: this field is meant to be set by the ingress controller to populate the
+	// + `Service.Spec.LoadBalancerIP` field which has been deprecated in Kubernetes:
+	// + https://github.com/kubernetes/kubernetes/pull/107235
+	// + However, the field is still used by cloud-provider-openstack to reconcile
+	// + the floating IP that we attach to the load balancer.
+	//
+	// +kubebuilder:validation:XValidation:rule="isIP(self)",message="loadBalancerIP must be a valid IPv4 or IPv6 address"
+	// +optional
+	LoadBalancerIP string `json:"loadBalancerIP,omitempty"`
+}
+
 // AWSClassicLoadBalancerParameters holds configuration parameters for an
 // AWS Classic load balancer.
 type AWSClassicLoadBalancerParameters struct {
@@ -632,12 +707,88 @@ type AWSClassicLoadBalancerParameters struct {
 	// +kubebuilder:validation:Format=duration
 	// +optional
 	ConnectionIdleTimeout metav1.Duration `json:"connectionIdleTimeout,omitempty"`
+
+	// subnets specifies the subnets to which the load balancer will
+	// attach. The subnets may be specified by either their
+	// ID or name. The total number of subnets is limited to 10.
+	//
+	// In order for the load balancer to be provisioned with subnets,
+	// each subnet must exist, each subnet must be from a different
+	// availability zone, and the load balancer service must be
+	// recreated to pick up new values.
+	//
+	// When omitted from the spec, the subnets will be auto-discovered
+	// for each availability zone. Auto-discovered subnets are not reported
+	// in the status of the IngressController object.
+	//
+	// +optional
+	// +openshift:enable:FeatureGate=IngressControllerLBSubnetsAWS
+	Subnets *AWSSubnets `json:"subnets,omitempty"`
 }
 
 // AWSNetworkLoadBalancerParameters holds configuration parameters for an
-// AWS Network load balancer.
+// AWS Network load balancer. For Example: Setting AWS EIPs https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=SetEIPForNLBIngressController,rule=`has(self.subnets) && has(self.subnets.ids) && has(self.subnets.names) && has(self.eipAllocations) ? size(self.subnets.ids + self.subnets.names) == size(self.eipAllocations) : true`,message="number of subnets must be equal to number of eipAllocations"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=SetEIPForNLBIngressController,rule=`has(self.subnets) && has(self.subnets.ids) && !has(self.subnets.names) && has(self.eipAllocations) ? size(self.subnets.ids) == size(self.eipAllocations) : true`,message="number of subnets must be equal to number of eipAllocations"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=SetEIPForNLBIngressController,rule=`has(self.subnets) && has(self.subnets.names) && !has(self.subnets.ids) && has(self.eipAllocations) ? size(self.subnets.names) == size(self.eipAllocations) : true`,message="number of subnets must be equal to number of eipAllocations"
 type AWSNetworkLoadBalancerParameters struct {
+	// subnets specifies the subnets to which the load balancer will
+	// attach. The subnets may be specified by either their
+	// ID or name. The total number of subnets is limited to 10.
+	//
+	// In order for the load balancer to be provisioned with subnets,
+	// each subnet must exist, each subnet must be from a different
+	// availability zone, and the load balancer service must be
+	// recreated to pick up new values.
+	//
+	// When omitted from the spec, the subnets will be auto-discovered
+	// for each availability zone. Auto-discovered subnets are not reported
+	// in the status of the IngressController object.
+	//
+	// +optional
+	// +openshift:enable:FeatureGate=IngressControllerLBSubnetsAWS
+	Subnets *AWSSubnets `json:"subnets,omitempty"`
+
+	// eipAllocations is a list of IDs for Elastic IP (EIP) addresses that
+	// are assigned to the Network Load Balancer.
+	// The following restrictions apply:
+	//
+	// eipAllocations can only be used with external scope, not internal.
+	// An EIP can be allocated to only a single IngressController.
+	// The number of EIP allocations must match the number of subnets that are used for the load balancer.
+	// Each EIP allocation must be unique.
+	// A maximum of 10 EIP allocations are permitted.
+	//
+	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html for general
+	// information about configuration, characteristics, and limitations of Elastic IP addresses.
+	//
+	// +openshift:enable:FeatureGate=SetEIPForNLBIngressController
+	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:XValidation:rule=`self.all(x, self.exists_one(y, x == y))`,message="eipAllocations cannot contain duplicates"
+	// +kubebuilder:validation:MaxItems=10
+	EIPAllocations []EIPAllocation `json:"eipAllocations"`
 }
+
+// EIPAllocation is an ID for an Elastic IP (EIP) address that can be allocated to an ELB in the AWS environment.
+// Values must begin with `eipalloc-` followed by exactly 17 hexadecimal (`[0-9a-fA-F]`) characters.
+// + Explanation of the regex `^eipalloc-[0-9a-fA-F]{17}$` for validating value of the EIPAllocation:
+// + ^eipalloc- ensures the string starts with "eipalloc-".
+// + [0-9a-fA-F]{17} matches exactly 17 hexadecimal characters (0-9, a-f, A-F).
+// + $ ensures the string ends after the 17 hexadecimal characters.
+// + Example of Valid and Invalid values:
+// + eipalloc-1234567890abcdef1 is valid.
+// + eipalloc-1234567890abcde is not valid (too short).
+// + eipalloc-1234567890abcdefg is not valid (contains a non-hex character 'g').
+// + Max length is calculated as follows:
+// + eipalloc- = 9 chars and 17 hexadecimal chars after `-`
+// + So, total is 17 + 9 = 26 chars required for value of an EIPAllocation.
+//
+// +kubebuilder:validation:MinLength=26
+// +kubebuilder:validation:MaxLength=26
+// +kubebuilder:validation:XValidation:rule=`self.startsWith('eipalloc-')`,message="eipAllocations should start with 'eipalloc-'"
+// +kubebuilder:validation:XValidation:rule=`self.split("-", 2)[1].matches('[0-9a-fA-F]{17}$')`,message="eipAllocations must be 'eipalloc-' followed by exactly 17 hexadecimal characters (0-9, a-f, A-F)"
+type EIPAllocation string
 
 // HostNetworkStrategy holds parameters for the HostNetwork endpoint publishing
 // strategy.

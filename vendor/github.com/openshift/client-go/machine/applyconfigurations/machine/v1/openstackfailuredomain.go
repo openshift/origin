@@ -2,14 +2,14 @@
 
 package v1
 
-// OpenStackFailureDomainApplyConfiguration represents an declarative configuration of the OpenStackFailureDomain type for use
+// OpenStackFailureDomainApplyConfiguration represents a declarative configuration of the OpenStackFailureDomain type for use
 // with apply.
 type OpenStackFailureDomainApplyConfiguration struct {
 	AvailabilityZone *string                       `json:"availabilityZone,omitempty"`
 	RootVolume       *RootVolumeApplyConfiguration `json:"rootVolume,omitempty"`
 }
 
-// OpenStackFailureDomainApplyConfiguration constructs an declarative configuration of the OpenStackFailureDomain type for use with
+// OpenStackFailureDomainApplyConfiguration constructs a declarative configuration of the OpenStackFailureDomain type for use with
 // apply.
 func OpenStackFailureDomain() *OpenStackFailureDomainApplyConfiguration {
 	return &OpenStackFailureDomainApplyConfiguration{}

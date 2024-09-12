@@ -2,13 +2,13 @@
 
 package v1
 
-// ServiceCatalogAPIServerStatusApplyConfiguration represents an declarative configuration of the ServiceCatalogAPIServerStatus type for use
+// ServiceCatalogAPIServerStatusApplyConfiguration represents a declarative configuration of the ServiceCatalogAPIServerStatus type for use
 // with apply.
 type ServiceCatalogAPIServerStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// ServiceCatalogAPIServerStatusApplyConfiguration constructs an declarative configuration of the ServiceCatalogAPIServerStatus type for use with
+// ServiceCatalogAPIServerStatusApplyConfiguration constructs a declarative configuration of the ServiceCatalogAPIServerStatus type for use with
 // apply.
 func ServiceCatalogAPIServerStatus() *ServiceCatalogAPIServerStatusApplyConfiguration {
 	return &ServiceCatalogAPIServerStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *ServiceCatalogAPIServerStatusApplyConfiguration) WithVersion(value stri
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *ServiceCatalogAPIServerStatusApplyConfiguration) WithReadyReplicas(value int32) *ServiceCatalogAPIServerStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *ServiceCatalogAPIServerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *ServiceCatalogAPIServerStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

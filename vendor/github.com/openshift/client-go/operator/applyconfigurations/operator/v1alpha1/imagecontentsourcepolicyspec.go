@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// ImageContentSourcePolicySpecApplyConfiguration represents an declarative configuration of the ImageContentSourcePolicySpec type for use
+// ImageContentSourcePolicySpecApplyConfiguration represents a declarative configuration of the ImageContentSourcePolicySpec type for use
 // with apply.
 type ImageContentSourcePolicySpecApplyConfiguration struct {
 	RepositoryDigestMirrors []RepositoryDigestMirrorsApplyConfiguration `json:"repositoryDigestMirrors,omitempty"`
 }
 
-// ImageContentSourcePolicySpecApplyConfiguration constructs an declarative configuration of the ImageContentSourcePolicySpec type for use with
+// ImageContentSourcePolicySpecApplyConfiguration constructs a declarative configuration of the ImageContentSourcePolicySpec type for use with
 // apply.
 func ImageContentSourcePolicySpec() *ImageContentSourcePolicySpecApplyConfiguration {
 	return &ImageContentSourcePolicySpecApplyConfiguration{}

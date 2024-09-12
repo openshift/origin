@@ -8,13 +8,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// OLMSpecApplyConfiguration represents an declarative configuration of the OLMSpec type for use
+// OLMSpecApplyConfiguration represents a declarative configuration of the OLMSpec type for use
 // with apply.
 type OLMSpecApplyConfiguration struct {
 	v1.OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// OLMSpecApplyConfiguration constructs an declarative configuration of the OLMSpec type for use with
+// OLMSpecApplyConfiguration constructs a declarative configuration of the OLMSpec type for use with
 // apply.
 func OLMSpec() *OLMSpecApplyConfiguration {
 	return &OLMSpecApplyConfiguration{}

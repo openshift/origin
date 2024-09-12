@@ -2,13 +2,13 @@
 
 package v1
 
-// S3TrustedCASourceApplyConfiguration represents an declarative configuration of the S3TrustedCASource type for use
+// S3TrustedCASourceApplyConfiguration represents a declarative configuration of the S3TrustedCASource type for use
 // with apply.
 type S3TrustedCASourceApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// S3TrustedCASourceApplyConfiguration constructs an declarative configuration of the S3TrustedCASource type for use with
+// S3TrustedCASourceApplyConfiguration constructs a declarative configuration of the S3TrustedCASource type for use with
 // apply.
 func S3TrustedCASource() *S3TrustedCASourceApplyConfiguration {
 	return &S3TrustedCASourceApplyConfiguration{}

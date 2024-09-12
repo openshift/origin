@@ -6,7 +6,7 @@ import (
 	v1beta1 "github.com/openshift/client-go/machine/applyconfigurations/machine/v1beta1"
 )
 
-// OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration represents an declarative configuration of the OpenShiftMachineV1Beta1MachineTemplate type for use
+// OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration represents a declarative configuration of the OpenShiftMachineV1Beta1MachineTemplate type for use
 // with apply.
 type OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration struct {
 	FailureDomains *FailureDomainsApplyConfiguration                           `json:"failureDomains,omitempty"`
@@ -14,7 +14,7 @@ type OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration struct {
 	Spec           *v1beta1.MachineSpecApplyConfiguration                      `json:"spec,omitempty"`
 }
 
-// OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration constructs an declarative configuration of the OpenShiftMachineV1Beta1MachineTemplate type for use with
+// OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration constructs a declarative configuration of the OpenShiftMachineV1Beta1MachineTemplate type for use with
 // apply.
 func OpenShiftMachineV1Beta1MachineTemplate() *OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration {
 	return &OpenShiftMachineV1Beta1MachineTemplateApplyConfiguration{}

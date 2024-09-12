@@ -2,14 +2,14 @@
 
 package v1
 
-// IPv4OVNKubernetesConfigApplyConfiguration represents an declarative configuration of the IPv4OVNKubernetesConfig type for use
+// IPv4OVNKubernetesConfigApplyConfiguration represents a declarative configuration of the IPv4OVNKubernetesConfig type for use
 // with apply.
 type IPv4OVNKubernetesConfigApplyConfiguration struct {
 	InternalTransitSwitchSubnet *string `json:"internalTransitSwitchSubnet,omitempty"`
 	InternalJoinSubnet          *string `json:"internalJoinSubnet,omitempty"`
 }
 
-// IPv4OVNKubernetesConfigApplyConfiguration constructs an declarative configuration of the IPv4OVNKubernetesConfig type for use with
+// IPv4OVNKubernetesConfigApplyConfiguration constructs a declarative configuration of the IPv4OVNKubernetesConfig type for use with
 // apply.
 func IPv4OVNKubernetesConfig() *IPv4OVNKubernetesConfigApplyConfiguration {
 	return &IPv4OVNKubernetesConfigApplyConfiguration{}

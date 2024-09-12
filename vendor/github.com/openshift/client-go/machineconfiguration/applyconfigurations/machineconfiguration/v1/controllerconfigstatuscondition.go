@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ControllerConfigStatusConditionApplyConfiguration represents an declarative configuration of the ControllerConfigStatusCondition type for use
+// ControllerConfigStatusConditionApplyConfiguration represents a declarative configuration of the ControllerConfigStatusCondition type for use
 // with apply.
 type ControllerConfigStatusConditionApplyConfiguration struct {
 	Type               *v1.ControllerConfigStatusConditionType `json:"type,omitempty"`
@@ -18,7 +18,7 @@ type ControllerConfigStatusConditionApplyConfiguration struct {
 	Message            *string                                 `json:"message,omitempty"`
 }
 
-// ControllerConfigStatusConditionApplyConfiguration constructs an declarative configuration of the ControllerConfigStatusCondition type for use with
+// ControllerConfigStatusConditionApplyConfiguration constructs a declarative configuration of the ControllerConfigStatusCondition type for use with
 // apply.
 func ControllerConfigStatusCondition() *ControllerConfigStatusConditionApplyConfiguration {
 	return &ControllerConfigStatusConditionApplyConfiguration{}

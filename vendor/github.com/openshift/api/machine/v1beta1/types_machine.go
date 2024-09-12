@@ -267,8 +267,8 @@ type MachineSpec struct {
 	// Currently the authoritative API determines which controller will manage the resource, this will change in a future release.
 	// To ensure the change has been accepted, please verify that the `status.authoritativeAPI` field has been updated to the desired value and that the `Synchronized` condition is present and set to `True`.
 	// +kubebuilder:validation:Enum=MachineAPI;ClusterAPI
-	// +kubebuilder:validation:Default:=MachineAPI
-	// +default:=MachineAPI
+	// +kubebuilder:validation:Default=MachineAPI
+	// +default="MachineAPI"
 	// +openshift:enable:FeatureGate=MachineAPIMigration
 	// +optional
 	AuthoritativeAPI MachineAuthority `json:"authoritativeAPI,omitempty"`
@@ -299,8 +299,8 @@ type LifecycleHook struct {
 	// it may be namespaced, eg. foo.example.com/CamelCase.
 	// Names must be unique and should only be managed by a single entity.
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
-	// +kubebuilder:validation:MinLength:=3
-	// +kubebuilder:validation:MaxLength:=256
+	// +kubebuilder:validation:MinLength=3
+	// +kubebuilder:validation:MaxLength=256
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
 
@@ -309,8 +309,8 @@ type LifecycleHook struct {
 	// who/what is responsible for blocking the lifecycle.
 	// This could be the name of a controller (e.g. clusteroperator/etcd)
 	// or an administrator managing the hook.
-	// +kubebuilder:validation:MinLength:=3
-	// +kubebuilder:validation:MaxLength:=512
+	// +kubebuilder:validation:MinLength=3
+	// +kubebuilder:validation:MaxLength=512
 	// +kubebuilder:validation:Required
 	Owner string `json:"owner"`
 }

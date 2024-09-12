@@ -2,14 +2,14 @@
 
 package v1
 
-// StaticIPAMRoutesApplyConfiguration represents an declarative configuration of the StaticIPAMRoutes type for use
+// StaticIPAMRoutesApplyConfiguration represents a declarative configuration of the StaticIPAMRoutes type for use
 // with apply.
 type StaticIPAMRoutesApplyConfiguration struct {
 	Destination *string `json:"destination,omitempty"`
 	Gateway     *string `json:"gateway,omitempty"`
 }
 
-// StaticIPAMRoutesApplyConfiguration constructs an declarative configuration of the StaticIPAMRoutes type for use with
+// StaticIPAMRoutesApplyConfiguration constructs a declarative configuration of the StaticIPAMRoutes type for use with
 // apply.
 func StaticIPAMRoutes() *StaticIPAMRoutesApplyConfiguration {
 	return &StaticIPAMRoutesApplyConfiguration{}

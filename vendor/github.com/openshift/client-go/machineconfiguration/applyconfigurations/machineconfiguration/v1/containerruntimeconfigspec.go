@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ContainerRuntimeConfigSpecApplyConfiguration represents an declarative configuration of the ContainerRuntimeConfigSpec type for use
+// ContainerRuntimeConfigSpecApplyConfiguration represents a declarative configuration of the ContainerRuntimeConfigSpec type for use
 // with apply.
 type ContainerRuntimeConfigSpecApplyConfiguration struct {
 	MachineConfigPoolSelector *v1.LabelSelectorApplyConfiguration              `json:"machineConfigPoolSelector,omitempty"`
 	ContainerRuntimeConfig    *ContainerRuntimeConfigurationApplyConfiguration `json:"containerRuntimeConfig,omitempty"`
 }
 
-// ContainerRuntimeConfigSpecApplyConfiguration constructs an declarative configuration of the ContainerRuntimeConfigSpec type for use with
+// ContainerRuntimeConfigSpecApplyConfiguration constructs a declarative configuration of the ContainerRuntimeConfigSpec type for use with
 // apply.
 func ContainerRuntimeConfigSpec() *ContainerRuntimeConfigSpecApplyConfiguration {
 	return &ContainerRuntimeConfigSpecApplyConfiguration{}

@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MachineConfigPoolConditionApplyConfiguration represents an declarative configuration of the MachineConfigPoolCondition type for use
+// MachineConfigPoolConditionApplyConfiguration represents a declarative configuration of the MachineConfigPoolCondition type for use
 // with apply.
 type MachineConfigPoolConditionApplyConfiguration struct {
 	Type               *v1.MachineConfigPoolConditionType `json:"type,omitempty"`
@@ -18,7 +18,7 @@ type MachineConfigPoolConditionApplyConfiguration struct {
 	Message            *string                            `json:"message,omitempty"`
 }
 
-// MachineConfigPoolConditionApplyConfiguration constructs an declarative configuration of the MachineConfigPoolCondition type for use with
+// MachineConfigPoolConditionApplyConfiguration constructs a declarative configuration of the MachineConfigPoolCondition type for use with
 // apply.
 func MachineConfigPoolCondition() *MachineConfigPoolConditionApplyConfiguration {
 	return &MachineConfigPoolConditionApplyConfiguration{}

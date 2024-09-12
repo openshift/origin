@@ -7,7 +7,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// MachineOSBuildStatusApplyConfiguration represents an declarative configuration of the MachineOSBuildStatus type for use
+// MachineOSBuildStatusApplyConfiguration represents a declarative configuration of the MachineOSBuildStatus type for use
 // with apply.
 type MachineOSBuildStatusApplyConfiguration struct {
 	Conditions         []v1.ConditionApplyConfiguration             `json:"conditions,omitempty"`
@@ -18,7 +18,7 @@ type MachineOSBuildStatusApplyConfiguration struct {
 	FinalImagePushspec *string                                      `json:"finalImagePullspec,omitempty"`
 }
 
-// MachineOSBuildStatusApplyConfiguration constructs an declarative configuration of the MachineOSBuildStatus type for use with
+// MachineOSBuildStatusApplyConfiguration constructs a declarative configuration of the MachineOSBuildStatus type for use with
 // apply.
 func MachineOSBuildStatus() *MachineOSBuildStatusApplyConfiguration {
 	return &MachineOSBuildStatusApplyConfiguration{}

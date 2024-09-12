@@ -2,7 +2,7 @@
 
 package v1beta1
 
-// MachineHealthCheckStatusApplyConfiguration represents an declarative configuration of the MachineHealthCheckStatus type for use
+// MachineHealthCheckStatusApplyConfiguration represents a declarative configuration of the MachineHealthCheckStatus type for use
 // with apply.
 type MachineHealthCheckStatusApplyConfiguration struct {
 	ExpectedMachines    *int                          `json:"expectedMachines,omitempty"`
@@ -11,7 +11,7 @@ type MachineHealthCheckStatusApplyConfiguration struct {
 	Conditions          []ConditionApplyConfiguration `json:"conditions,omitempty"`
 }
 
-// MachineHealthCheckStatusApplyConfiguration constructs an declarative configuration of the MachineHealthCheckStatus type for use with
+// MachineHealthCheckStatusApplyConfiguration constructs a declarative configuration of the MachineHealthCheckStatus type for use with
 // apply.
 func MachineHealthCheckStatus() *MachineHealthCheckStatusApplyConfiguration {
 	return &MachineHealthCheckStatusApplyConfiguration{}

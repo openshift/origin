@@ -2,13 +2,13 @@
 
 package v1
 
-// CloudCredentialStatusApplyConfiguration represents an declarative configuration of the CloudCredentialStatus type for use
+// CloudCredentialStatusApplyConfiguration represents a declarative configuration of the CloudCredentialStatus type for use
 // with apply.
 type CloudCredentialStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// CloudCredentialStatusApplyConfiguration constructs an declarative configuration of the CloudCredentialStatus type for use with
+// CloudCredentialStatusApplyConfiguration constructs a declarative configuration of the CloudCredentialStatus type for use with
 // apply.
 func CloudCredentialStatus() *CloudCredentialStatusApplyConfiguration {
 	return &CloudCredentialStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *CloudCredentialStatusApplyConfiguration) WithVersion(value string) *Clo
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *CloudCredentialStatusApplyConfiguration) WithReadyReplicas(value int32) *CloudCredentialStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *CloudCredentialStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *CloudCredentialStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

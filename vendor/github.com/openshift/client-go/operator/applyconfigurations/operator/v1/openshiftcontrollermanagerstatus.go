@@ -2,13 +2,13 @@
 
 package v1
 
-// OpenShiftControllerManagerStatusApplyConfiguration represents an declarative configuration of the OpenShiftControllerManagerStatus type for use
+// OpenShiftControllerManagerStatusApplyConfiguration represents a declarative configuration of the OpenShiftControllerManagerStatus type for use
 // with apply.
 type OpenShiftControllerManagerStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// OpenShiftControllerManagerStatusApplyConfiguration constructs an declarative configuration of the OpenShiftControllerManagerStatus type for use with
+// OpenShiftControllerManagerStatusApplyConfiguration constructs a declarative configuration of the OpenShiftControllerManagerStatus type for use with
 // apply.
 func OpenShiftControllerManagerStatus() *OpenShiftControllerManagerStatusApplyConfiguration {
 	return &OpenShiftControllerManagerStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *OpenShiftControllerManagerStatusApplyConfiguration) WithVersion(value s
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *OpenShiftControllerManagerStatusApplyConfiguration) WithReadyReplicas(value int32) *OpenShiftControllerManagerStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *OpenShiftControllerManagerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *OpenShiftControllerManagerStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

@@ -2,13 +2,13 @@
 
 package v1
 
-// QuickStartsApplyConfiguration represents an declarative configuration of the QuickStarts type for use
+// QuickStartsApplyConfiguration represents a declarative configuration of the QuickStarts type for use
 // with apply.
 type QuickStartsApplyConfiguration struct {
 	Disabled []string `json:"disabled,omitempty"`
 }
 
-// QuickStartsApplyConfiguration constructs an declarative configuration of the QuickStarts type for use with
+// QuickStartsApplyConfiguration constructs a declarative configuration of the QuickStarts type for use with
 // apply.
 func QuickStarts() *QuickStartsApplyConfiguration {
 	return &QuickStartsApplyConfiguration{}

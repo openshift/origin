@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// ServiceCatalogAPIServerSpecApplyConfiguration represents an declarative configuration of the ServiceCatalogAPIServerSpec type for use
+// ServiceCatalogAPIServerSpecApplyConfiguration represents a declarative configuration of the ServiceCatalogAPIServerSpec type for use
 // with apply.
 type ServiceCatalogAPIServerSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// ServiceCatalogAPIServerSpecApplyConfiguration constructs an declarative configuration of the ServiceCatalogAPIServerSpec type for use with
+// ServiceCatalogAPIServerSpecApplyConfiguration constructs a declarative configuration of the ServiceCatalogAPIServerSpec type for use with
 // apply.
 func ServiceCatalogAPIServerSpec() *ServiceCatalogAPIServerSpecApplyConfiguration {
 	return &ServiceCatalogAPIServerSpecApplyConfiguration{}

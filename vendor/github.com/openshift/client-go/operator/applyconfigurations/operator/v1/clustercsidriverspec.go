@@ -7,7 +7,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// ClusterCSIDriverSpecApplyConfiguration represents an declarative configuration of the ClusterCSIDriverSpec type for use
+// ClusterCSIDriverSpecApplyConfiguration represents a declarative configuration of the ClusterCSIDriverSpec type for use
 // with apply.
 type ClusterCSIDriverSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
@@ -15,7 +15,7 @@ type ClusterCSIDriverSpecApplyConfiguration struct {
 	DriverConfig                   *CSIDriverConfigSpecApplyConfiguration `json:"driverConfig,omitempty"`
 }
 
-// ClusterCSIDriverSpecApplyConfiguration constructs an declarative configuration of the ClusterCSIDriverSpec type for use with
+// ClusterCSIDriverSpecApplyConfiguration constructs a declarative configuration of the ClusterCSIDriverSpec type for use with
 // apply.
 func ClusterCSIDriverSpec() *ClusterCSIDriverSpecApplyConfiguration {
 	return &ClusterCSIDriverSpecApplyConfiguration{}

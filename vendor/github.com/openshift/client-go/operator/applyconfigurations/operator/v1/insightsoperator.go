@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// InsightsOperatorApplyConfiguration represents an declarative configuration of the InsightsOperator type for use
+// InsightsOperatorApplyConfiguration represents a declarative configuration of the InsightsOperator type for use
 // with apply.
 type InsightsOperatorApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type InsightsOperatorApplyConfiguration struct {
 	Status                           *InsightsOperatorStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// InsightsOperator constructs an declarative configuration of the InsightsOperator type for use with
+// InsightsOperator constructs a declarative configuration of the InsightsOperator type for use with
 // apply.
 func InsightsOperator(name string) *InsightsOperatorApplyConfiguration {
 	b := &InsightsOperatorApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *InsightsOperatorApplyConfiguration) WithSpec(value *InsightsOperatorSpe
 func (b *InsightsOperatorApplyConfiguration) WithStatus(value *InsightsOperatorStatusApplyConfiguration) *InsightsOperatorApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *InsightsOperatorApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

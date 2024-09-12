@@ -10,7 +10,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ImagePrunerSpecApplyConfiguration represents an declarative configuration of the ImagePrunerSpec type for use
+// ImagePrunerSpecApplyConfiguration represents a declarative configuration of the ImagePrunerSpec type for use
 // with apply.
 type ImagePrunerSpecApplyConfiguration struct {
 	Schedule                     *string                      `json:"schedule,omitempty"`
@@ -28,7 +28,7 @@ type ImagePrunerSpecApplyConfiguration struct {
 	LogLevel                     *operatorv1.LogLevel         `json:"logLevel,omitempty"`
 }
 
-// ImagePrunerSpecApplyConfiguration constructs an declarative configuration of the ImagePrunerSpec type for use with
+// ImagePrunerSpecApplyConfiguration constructs a declarative configuration of the ImagePrunerSpec type for use with
 // apply.
 func ImagePrunerSpec() *ImagePrunerSpecApplyConfiguration {
 	return &ImagePrunerSpecApplyConfiguration{}

@@ -2,7 +2,7 @@
 
 package v1
 
-// StaticIPAMDNSApplyConfiguration represents an declarative configuration of the StaticIPAMDNS type for use
+// StaticIPAMDNSApplyConfiguration represents a declarative configuration of the StaticIPAMDNS type for use
 // with apply.
 type StaticIPAMDNSApplyConfiguration struct {
 	Nameservers []string `json:"nameservers,omitempty"`
@@ -10,7 +10,7 @@ type StaticIPAMDNSApplyConfiguration struct {
 	Search      []string `json:"search,omitempty"`
 }
 
-// StaticIPAMDNSApplyConfiguration constructs an declarative configuration of the StaticIPAMDNS type for use with
+// StaticIPAMDNSApplyConfiguration constructs a declarative configuration of the StaticIPAMDNS type for use with
 // apply.
 func StaticIPAMDNS() *StaticIPAMDNSApplyConfiguration {
 	return &StaticIPAMDNSApplyConfiguration{}

@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// MachineConfigPoolReferenceApplyConfiguration represents an declarative configuration of the MachineConfigPoolReference type for use
+// MachineConfigPoolReferenceApplyConfiguration represents a declarative configuration of the MachineConfigPoolReference type for use
 // with apply.
 type MachineConfigPoolReferenceApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// MachineConfigPoolReferenceApplyConfiguration constructs an declarative configuration of the MachineConfigPoolReference type for use with
+// MachineConfigPoolReferenceApplyConfiguration constructs a declarative configuration of the MachineConfigPoolReference type for use with
 // apply.
 func MachineConfigPoolReference() *MachineConfigPoolReferenceApplyConfiguration {
 	return &MachineConfigPoolReferenceApplyConfiguration{}

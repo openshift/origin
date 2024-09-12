@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// PinnedImageSetApplyConfiguration represents an declarative configuration of the PinnedImageSet type for use
+// PinnedImageSetApplyConfiguration represents a declarative configuration of the PinnedImageSet type for use
 // with apply.
 type PinnedImageSetApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type PinnedImageSetApplyConfiguration struct {
 	Status                           *PinnedImageSetStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// PinnedImageSet constructs an declarative configuration of the PinnedImageSet type for use with
+// PinnedImageSet constructs a declarative configuration of the PinnedImageSet type for use with
 // apply.
 func PinnedImageSet(name string) *PinnedImageSetApplyConfiguration {
 	b := &PinnedImageSetApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *PinnedImageSetApplyConfiguration) WithSpec(value *PinnedImageSetSpecApp
 func (b *PinnedImageSetApplyConfiguration) WithStatus(value *PinnedImageSetStatusApplyConfiguration) *PinnedImageSetApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *PinnedImageSetApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

@@ -2,13 +2,13 @@
 
 package v1
 
-// IPv4GatewayConfigApplyConfiguration represents an declarative configuration of the IPv4GatewayConfig type for use
+// IPv4GatewayConfigApplyConfiguration represents a declarative configuration of the IPv4GatewayConfig type for use
 // with apply.
 type IPv4GatewayConfigApplyConfiguration struct {
 	InternalMasqueradeSubnet *string `json:"internalMasqueradeSubnet,omitempty"`
 }
 
-// IPv4GatewayConfigApplyConfiguration constructs an declarative configuration of the IPv4GatewayConfig type for use with
+// IPv4GatewayConfigApplyConfiguration constructs a declarative configuration of the IPv4GatewayConfig type for use with
 // apply.
 func IPv4GatewayConfig() *IPv4GatewayConfigApplyConfiguration {
 	return &IPv4GatewayConfigApplyConfiguration{}

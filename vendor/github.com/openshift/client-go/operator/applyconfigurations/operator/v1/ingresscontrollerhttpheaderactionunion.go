@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// IngressControllerHTTPHeaderActionUnionApplyConfiguration represents an declarative configuration of the IngressControllerHTTPHeaderActionUnion type for use
+// IngressControllerHTTPHeaderActionUnionApplyConfiguration represents a declarative configuration of the IngressControllerHTTPHeaderActionUnion type for use
 // with apply.
 type IngressControllerHTTPHeaderActionUnionApplyConfiguration struct {
 	Type *v1.IngressControllerHTTPHeaderActionType         `json:"type,omitempty"`
 	Set  *IngressControllerSetHTTPHeaderApplyConfiguration `json:"set,omitempty"`
 }
 
-// IngressControllerHTTPHeaderActionUnionApplyConfiguration constructs an declarative configuration of the IngressControllerHTTPHeaderActionUnion type for use with
+// IngressControllerHTTPHeaderActionUnionApplyConfiguration constructs a declarative configuration of the IngressControllerHTTPHeaderActionUnion type for use with
 // apply.
 func IngressControllerHTTPHeaderActionUnion() *IngressControllerHTTPHeaderActionUnionApplyConfiguration {
 	return &IngressControllerHTTPHeaderActionUnionApplyConfiguration{}
