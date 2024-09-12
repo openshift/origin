@@ -62,6 +62,9 @@ spec:
         set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]'
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
         set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]'
+  - featureGate: AutomatedEtcdBackup
+    tests:
+    - testName: '[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Serial] etcd is able to apply the no-config backup configuration [Timeout:50m][apigroup:config.openshift.io]'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
