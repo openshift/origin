@@ -122,7 +122,8 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 		}
 	}
 	switch {
-	case strings.Contains(logLine.Line, "attempting to acquire leader lease"):
+	case strings.Contains(logLine.Line, "attempting to acquire leader lease") &&
+		!strings.Contains(logLine.Line, "Degraded"): // need to exclude lines that re-embed the kube-controller-manager log
 		g.recorder.AddIntervals(
 			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
 				Locator(logLine.Locator).
@@ -132,7 +133,8 @@ func (g operatorLogHandler) HandleLogLine(logLine podaccess.LogLineContent) {
 				).
 				Build(logLine.Instant, logLine.Instant),
 		)
-	case strings.Contains(logLine.Line, "successfully acquired lease"):
+	case strings.Contains(logLine.Line, "successfully acquired lease") &&
+		!strings.Contains(logLine.Line, "Degraded"): // need to exclude lines that re-embed the kube-controller-manager log
 		g.recorder.AddIntervals(
 			monitorapi.NewInterval(monitorapi.SourcePodLog, monitorapi.Info).
 				Locator(logLine.Locator).
