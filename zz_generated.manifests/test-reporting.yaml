@@ -49,6 +49,11 @@ spec:
         Image Registry Config ChunkSizeMiB should set maximum valid ChunkSizeMiB value'
     - testName: '[sig-imageregistry][OCPFeatureGate:ChunkSizeMiB][Serial][apigroup:imageregistry.operator.openshift.io]
         Image Registry Config ChunkSizeMiB should set minimum valid ChunkSizeMiB value'
+  - featureGate: CustomResourceFieldSelectors
+    tests:
+    - testName: '[sig-api-machinery] CustomResourceFieldSelectors [Privileged:ClusterAdmin]
+        [FeatureGate:CustomResourceFieldSelectors] [Beta] CustomResourceFieldSelectors
+        MUST list and watch custom resources matching the field selector'
   - featureGate: DNSNameResolver
     tests:
     - testName: '[sig-network][OCPFeatureGate:DNSNameResolver][Feature:EgressFirewall]
@@ -66,6 +71,20 @@ spec:
         set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]'
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
         set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]'
+  - featureGate: HonorPVReclaimPolicy
+    tests:
+    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
+        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
+        mock driver Dynamic provisioning should honor pv delete reclaim policy'
+    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
+        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
+        mock driver Dynamic provisioning should honor pv retain reclaim policy'
+    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
+        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
+        mock driver Static provisioning should honor pv delete reclaim policy'
+    - testName: '[sig-storage] CSI Mock honor pv reclaim policy [Feature:HonorPVReclaimPolicy]
+        [FeatureGate:HonorPVReclaimPolicy] [Beta] CSI honor pv reclaim policy using
+        mock driver Static provisioning should honor pv retain reclaim policy'
   - featureGate: ManagedBootImages
     tests:
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade
@@ -241,4 +260,75 @@ spec:
     - testName: '[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io]
         vSphere CSI Driver Configuration snapshot options in clusterCSIDriver should
         use default when unset'
+  - featureGate: VolumeAttributesClass
+    tests:
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should modify volume that already has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (block volmode)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should modify volume that already has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (default fs)] volume-modify [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
+        has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic
+        PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
+        has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (block volmode)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
+        has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (default fs)] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should create a volume with VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume that already
+        has a VAC'
+    - testName: '[sig-storage] CSI Volumes [Driver: pd.csi.storage.gke.io] [Serial]
+        [Testpattern: Dynamic PV (ntfs)] [Feature:Windows] volume-modify [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should modify volume with no VAC'
+    - testName: '[sig-storage] VolumeAttributesClass [Feature:VolumeAttributesClass]
+        [FeatureGate:VolumeAttributesClass] [Beta] should run through the lifecycle
+        of a VolumeAttributesClass'
+    - testName: '[sig-storage] [Serial] Volume metrics PVController should create
+        bound pv/pvc count metrics for pvc controller with volume attributes class
+        dimension after creating both pv and pvc [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta]'
+    - testName: '[sig-storage] [Serial] Volume metrics PVController should create
+        unbound pvc count metrics for pvc controller with volume attributes class
+        dimension after creating pvc only [Feature:VolumeAttributesClass] [FeatureGate:VolumeAttributesClass]
+        [Beta]'
 status: {}
