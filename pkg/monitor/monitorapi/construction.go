@@ -116,6 +116,14 @@ func (b *LocatorBuilder) MachineFromName(machineName string) Locator {
 		Build()
 }
 
+func (b *LocatorBuilder) APIService(apiServiceName, serviceNamespace string) Locator {
+	return b.
+		withTargetType(LocatorTypeAPIService).
+		withAPIService(apiServiceName).
+		withNamespace(serviceNamespace).
+		Build()
+}
+
 func (b *LocatorBuilder) NodeFromNameWithRow(nodeName, row string) Locator {
 	return b.
 		withTargetType(LocatorTypeNode).
@@ -254,6 +262,11 @@ func (b *LocatorBuilder) withNode(nodeName string) *LocatorBuilder {
 
 func (b *LocatorBuilder) withMachine(machineName string) *LocatorBuilder {
 	b.annotations[LocatorMachineKey] = machineName
+	return b
+}
+
+func (b *LocatorBuilder) withAPIService(apiService string) *LocatorBuilder {
+	b.annotations[LocatorAPIServiceKey] = apiService
 	return b
 }
 
