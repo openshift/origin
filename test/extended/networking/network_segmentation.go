@@ -28,7 +28,6 @@ import (
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2ekubectl "k8s.io/kubernetes/test/e2e/framework/kubectl"
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
-	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	admissionapi "k8s.io/pod-security-admission/api"
 	utilnet "k8s.io/utils/net"
 	"k8s.io/utils/pointer"
@@ -78,9 +77,6 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						clientPodConfig podConfiguration,
 						serverPodConfig podConfiguration,
 					) {
-						if netConfig.topology == "layer3" {
-							e2eskipper.Skipf("IPv6 routes are not configured on the tech-preview lane since the cluster config is single-stack IPv4")
-						}
 						var err error
 
 						netConfig.namespace = f.Namespace.Name
