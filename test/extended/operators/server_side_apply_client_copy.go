@@ -93,7 +93,7 @@ func (c dynamicOperatorClient) applyOperatorSpec(ctx context.Context, fieldManag
 			return fmt.Errorf("unable to extract spec for %q: %w", fieldManager, err)
 		}
 		currentApplyConfiguration := &applyoperatorv1.StaticPodOperatorSpecApplyConfiguration{}
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(applyUnstructured.Object, applyUnstructured); err != nil {
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(applyMap, applyUnstructured); err != nil {
 			return fmt.Errorf("unable to convert to staticpodoperatorspec: %w", err)
 		}
 		if equality.Semantic.DeepEqual(previouslySetFields, currentApplyConfiguration) {
@@ -114,14 +114,19 @@ func (c dynamicOperatorClient) applyOperatorSpec(ctx context.Context, fieldManag
 }
 
 func (c dynamicOperatorClient) ApplyOperatorStatus(ctx context.Context, fieldManager string, applyConfiguration *applyoperatorv1.OperatorStatusApplyConfiguration) (string, error) {
-	applyMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(applyConfiguration)
+	if applyConfiguration == nil {
+		return "no input", fmt.Errorf("desired status must have value")
+	}
+	desiredConfiguration := applyoperatorv1.StaticPodOperatorStatus()
+	desiredConfiguration.OperatorStatusApplyConfiguration = *applyConfiguration
+	return c.applyOperatorStatus(ctx, fieldManager, desiredConfiguration)
+}
+
+func (c dynamicOperatorClient) applyOperatorStatus(ctx context.Context, fieldManager string, desiredConfiguration *applyoperatorv1.StaticPodOperatorStatusApplyConfiguration) (string, error) {
+	applyMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(desiredConfiguration)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert to unstructured: %w", err)
 	}
-	return c.applyOperatorStatus(ctx, fieldManager, applyMap)
-}
-
-func (c dynamicOperatorClient) applyOperatorStatus(ctx context.Context, fieldManager string, applyMap map[string]interface{}) (string, error) {
 	applyUnstructured := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"status": applyMap,
@@ -144,11 +149,7 @@ func (c dynamicOperatorClient) applyOperatorStatus(ctx context.Context, fieldMan
 		if err != nil {
 			return "", fmt.Errorf("unable to extract status for %q: %w", fieldManager, err)
 		}
-		currentApplyConfiguration := &applyoperatorv1.StaticPodOperatorStatusApplyConfiguration{}
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(applyUnstructured.Object, applyUnstructured); err != nil {
-			return "", fmt.Errorf("unable to convert to staticpodoperatorstatus: %w", err)
-		}
-		if equality.Semantic.DeepEqual(previouslySetFields, currentApplyConfiguration) {
+		if equality.Semantic.DeepEqual(previouslySetFields, desiredConfiguration) {
 			// nothing to apply, so return early
 			return "nothing to apply", nil
 		}
@@ -185,10 +186,11 @@ func extractOperatorStatus(obj *unstructured.Unstructured, fieldManager string) 
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, castObj); err != nil {
 		return nil, fmt.Errorf("unable to convert to OpenShiftAPIServer: %w", err)
 	}
-	ret, err := applyoperatorv1.ExtractOpenShiftAPIServer(castObj, fieldManager)
+	ret, err := applyoperatorv1.ExtractOpenShiftAPIServerStatus(castObj, fieldManager)
 	if err != nil {
 		return nil, fmt.Errorf("unable to extract fields for %q: %w", fieldManager, err)
 	}
+
 	if ret.Status == nil {
 		return nil, nil
 	}
