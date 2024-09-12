@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -45,10 +47,6 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 
 		g.Describe("Rails example", func() {
 			g.It(fmt.Sprintf("should work with hot deploy [apigroup:image.openshift.io][apigroup:operator.openshift.io][apigroup:config.openshift.io][apigroup:build.openshift.io]"), func() {
-				// The rails sample is not supported in the Samples operator and has bitrotten. Let's skip the test but keep the test code around
-				// just in case the sample gets resurrected in the future.
-				g.Skip("The rails-postgresql-example is not working anymore and is not supported by the samples operator (since OCP 4.16) so let's not use it for tests.")
-
 				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app %q", railsTemplate))
 				err := oc.Run("new-app").Args(railsTemplate).Execute()
@@ -59,9 +57,13 @@ var _ = g.Describe("[sig-devex][Feature:ImageEcosystem][ruby][Slow] hot deploy f
 				if err != nil {
 					exutil.DumpBuildLogs(dcName, oc)
 				}
+
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), dcName, 1, true, oc)
+				if errors.IsNotFound(err) {
+					err = exutil.WaitForDeploymentReady(oc, dcName, oc.Namespace())
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("waiting for endpoint")

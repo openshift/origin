@@ -10,6 +10,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -77,11 +79,19 @@ func NewSampleRepoTest(c sampleRepoConfig) func() {
 
 					g.By("expecting the app deployment to be complete")
 					err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), c.deploymentConfigName, 1, true, oc)
+					if errors.IsNotFound(err) {
+						// ok, this is template is not using DeploymentConfig. Let's try with Deployment instead.
+						err = exutil.WaitForDeploymentReady(oc, c.deploymentConfigName, oc.Namespace())
+					}
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					if len(c.dbDeploymentConfigName) > 0 {
 						g.By("expecting the db deployment to be complete")
 						err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().AppsV1(), oc.Namespace(), c.dbDeploymentConfigName, 1, true, oc)
+						if errors.IsNotFound(err) {
+							// ok, this template is most probably not using DeploymentConfig. Let's try with Deployment instead.
+							err = exutil.WaitForDeploymentReady(oc, c.dbDeploymentConfigName, oc.Namespace())
+						}
 						o.Expect(err).NotTo(o.HaveOccurred())
 
 						g.By("expecting the db service is available")

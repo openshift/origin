@@ -41,6 +41,7 @@ func WaitForDeploymentReady(oc *CLI, deployName, namespace string) error {
 		deployment, getErr = oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(context.Background(), deployName, metav1.GetOptions{})
 		if getErr != nil {
 			e2e.Logf("Unable to retrieve deployment %q:\n%v", deployName, getErr)
+			return false, nil
 		}
 		if deployment.Status.AvailableReplicas == *deployment.Spec.Replicas {
 			e2e.Logf("Deployment %q is ready", deployName)
