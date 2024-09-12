@@ -527,7 +527,6 @@ func DumpSampleOperator(oc *CLI) {
 		e2e.Logf("\n  error on getting samples operator CR: %+v\n%#v\n", err, out)
 	}
 	DumpPodLogsStartingWithInNamespace("cluster-samples-operator", "openshift-cluster-samples-operator", oc)
-
 }
 
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
@@ -1058,6 +1057,11 @@ func WaitForBuildResult(c buildv1clienttyped.BuildInterface, result *BuildResult
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
 func WaitForABuild(c buildv1clienttyped.BuildInterface, name string, isOK, isFailed, isCanceled func(*buildv1.Build) bool) error {
+	return WaitForABuildWithTimeout(c, name, 2*time.Minute, 10*time.Minute, isOK, isFailed, isCanceled)
+}
+
+// WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
+func WaitForABuildWithTimeout(c buildv1clienttyped.BuildInterface, name string, createTimeout, completeTimeout time.Duration, isOK, isFailed, isCanceled func(*buildv1.Build) bool) error {
 	if isOK == nil {
 		isOK = CheckBuildSuccess
 	}
@@ -1069,8 +1073,9 @@ func WaitForABuild(c buildv1clienttyped.BuildInterface, name string, isOK, isFai
 	}
 
 	// wait 2 minutes for build to exist
-	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+	err := wait.Poll(1*time.Second, createTimeout, func() (bool, error) {
 		if _, err := c.Get(context.Background(), name, metav1.GetOptions{}); err != nil {
+			e2e.Logf("attempt to get buildconfig %s failed with error: %s", name, err.Error())
 			return false, nil
 		}
 		return true, nil
@@ -1082,7 +1087,7 @@ func WaitForABuild(c buildv1clienttyped.BuildInterface, name string, isOK, isFai
 		return err
 	}
 	// wait longer for the build to run to completion
-	err = wait.Poll(5*time.Second, 10*time.Minute, func() (bool, error) {
+	err = wait.Poll(5*time.Second, completeTimeout, func() (bool, error) {
 		list, err := c.List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 		if err != nil {
 			e2e.Logf("error listing builds: %v", err)
@@ -1220,7 +1225,8 @@ func WaitForNamespaceSCCAnnotations(c corev1client.CoreV1Interface, name string)
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
 func WaitForAnImageStream(client imagev1typedclient.ImageStreamInterface,
 	name string,
-	isOK, isFailed func(*imagev1.ImageStream) bool) error {
+	isOK, isFailed func(*imagev1.ImageStream) bool,
+) error {
 	for {
 		list, err := client.List(context.Background(), metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 		if err != nil {
@@ -1336,7 +1342,6 @@ func WaitForResourceQuotaSync(
 	expectedIsUpperLimit bool,
 	timeout time.Duration,
 ) (corev1.ResourceList, error) {
-
 	startTime := time.Now()
 	endTime := startTime.Add(timeout)
 
@@ -1610,7 +1615,6 @@ func FixturePath(elem ...string) string {
 		if err := restoreFixtureAssets(fixtureDir, relativePath); err != nil {
 			panic(err)
 		}
-
 	} else {
 		// defer extraction of content to a BeforeEach when called before tests start
 		g.BeforeEach(func() {
@@ -1689,7 +1693,7 @@ func FetchURL(oc *CLI, url string, retryTimeout time.Duration) (string, error) {
 	var response string
 	waitFn := func() (bool, error) {
 		e2e.Logf("Waiting up to %v to wget %s", retryTimeout, url)
-		//cmd := fmt.Sprintf("wget -T 30 -O- %s", url)
+		// cmd := fmt.Sprintf("wget -T 30 -O- %s", url)
 		cmd := fmt.Sprintf("curl -vvv %s", url)
 		response, err = e2eoutput.RunHostCmd(execPod.Namespace, execPod.Name, cmd)
 		if err != nil {
@@ -1937,7 +1941,8 @@ func getPodLogs(oc *CLI, pod *corev1.Pod) (string, error) {
 }
 
 func newCommandPod(name, image, command string, args []string, volumeMounts []corev1.VolumeMount,
-	volumes []corev1.Volume, env []corev1.EnvVar) *corev1.Pod {
+	volumes []corev1.Volume, env []corev1.EnvVar,
+) *corev1.Pod {
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
