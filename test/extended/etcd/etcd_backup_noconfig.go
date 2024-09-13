@@ -45,15 +45,13 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-backup-no-config").AsAdmin()
 
-	g.GinkgoT().Log("applying Backup CR")
+	g.GinkgoT().Log("creating Backup CR")
 	backupCR := createDefaultBackupCR(testSchedule, testTimeZone, testRetentionNumber)
-	_, err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Create(context.Background(), backupCR, metav1.CreateOptions{})
-	o.Expect(err).ToNot(o.HaveOccurred())
 
 	// clean up
 	g.AfterEach(func(ctx context.Context) {
 		g.GinkgoT().Log("deleting Backup CR")
-		err = oc.AdminConfigClient().ConfigV1alpha1().Backups().Delete(context.Background(), backupCR.Name, metav1.DeleteOptions{})
+		err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Delete(context.Background(), backupCR.Name, metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
@@ -76,6 +74,10 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 	// It verifies that etcd-backup-server container has been enabled with correct args.
 	// It verifies that backups are being taken according to the specified schedule and retention policy.
 	g.It("is able to apply the no-config backup configuration [Timeout:50m][apigroup:config.openshift.io/v1alpha1]", func(ctx context.Context) {
+
+		g.GinkgoT().Log("applying Backup CR")
+		_, err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Create(context.Background(), backupCR, metav1.CreateOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
 		err = waitForEtcdToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
