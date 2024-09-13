@@ -41,7 +41,7 @@ const (
 	ShellImage = "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
 )
 
-var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Serial] etcd", func() {
+var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-backup-no-config").AsAdmin()
 
