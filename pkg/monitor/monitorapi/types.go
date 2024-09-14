@@ -200,6 +200,8 @@ const (
 	NodeUnexpectedReadyReason       IntervalReason = "UnexpectedNotReady"
 	NodeUnexpectedUnreachableReason IntervalReason = "UnexpectedUnreachable"
 	NodeUnreachable                 IntervalReason = "Unreachable"
+	// Kubelet tries to get lease five times and then gives up
+	NodeFailedLeaseBackoff IntervalReason = "FailedToUpdateLeaseInBackoff"
 
 	MachineConfigChangeReason  IntervalReason = "MachineConfigChange"
 	MachineConfigReachedReason IntervalReason = "MachineConfigReached"
@@ -687,6 +689,11 @@ func EndedAfter(limit time.Time) EventIntervalMatchesFunc {
 func NodeUpdate(eventInterval Interval) bool {
 	reason := eventInterval.Message.Reason
 	return NodeUpdateReason == reason
+}
+
+func NodeLeaseBackoff(eventInterval Interval) bool {
+	reason := eventInterval.Message.Reason
+	return NodeFailedLeaseBackoff == reason
 }
 
 func AlertFiring() EventIntervalMatchesFunc {
