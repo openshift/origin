@@ -7,8 +7,8 @@ spec:
   testsForFeatureGates:
   - featureGate: AutomatedEtcdBackup
     tests:
-    - testName: '[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery]
-        etcd is able to apply the no-config backup configuration [Timeout:50m][apigroup:config.openshift.io/v1alpha1]'
+    - testName: '[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Serial] etcd is able
+        to apply the no-config backup configuration [Timeout:50m][apigroup:config.openshift.io/v1alpha1]'
   - featureGate: CRDValidationRatcheting
     tests:
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]
