@@ -1145,8 +1145,24 @@ func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) 
 }
 
 // WaitForServiceAccountWithSecret waits until the named service account gets fully
-// provisioned, including dockercfg secrets
-func WaitForServiceAccountWithSecret(c corev1client.ServiceAccountInterface, name string) error {
+// provisioned, including dockercfg secrets. We also check if image registry is not enabled,
+// the SA will not contain the docker secret and we simply return nil.
+func WaitForServiceAccountWithSecret(config configclient.ClusterVersionInterface, c corev1client.ServiceAccountInterface, name string) error {
+	cv, err := config.Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	var found bool
+	for _, capability := range cv.Status.Capabilities.EnabledCapabilities {
+		if capability == configv1.ClusterVersionCapabilityImageRegistry {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+
 	waitFn := func() (bool, error) {
 		sa, err := c.Get(context.Background(), name, metav1.GetOptions{})
 		if err != nil {
