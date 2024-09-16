@@ -424,7 +424,7 @@
 			"name": "PERL_VERSION",
 			"displayName": "Version of Perl Image",
 			"description": "Version of Perl image to be used (5.30-el7, 5.30-ubi8, or latest).",
-			"value": "5.32-ubi8",
+			"value": "5.30-ubi8",
 			"required": true
 		},
 		{
