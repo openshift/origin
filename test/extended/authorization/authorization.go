@@ -1249,7 +1249,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 	oc := exutil.NewCLI("bootstrap-policy")
 
 	g.Context("", func() {
-		g.Describe("ROSA-OSD_CCS-ARO-Author:jitli-LEVEL0-Critical-48959-Should be able to get public images connect to the server and have basic auth credentials", func() {
+		g.Describe("PublicImageAccessWithBasicAuthShouldSucceed", func() {
 			g.It("should succeed [apigroup:image.openshift.io]", func() {
 				// Skip Hypershift external OIDC clusters
 				isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
