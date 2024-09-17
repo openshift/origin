@@ -41,7 +41,7 @@ const (
 	ShellImage = "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
 )
 
-var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/scaling] etcd", func() {
+var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery] etcd", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("etcd-backup-no-config").AsAdmin()
 
@@ -73,7 +73,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 	// It waits for a new revision of static pods to be deployed.
 	// It verifies that etcd-backup-server container has been enabled with correct args.
 	// It verifies that backups are being taken according to the specified schedule and retention policy.
-	g.It("is able to apply the no-config backup configuration [Timeout:50m][apigroup:config.openshift.io/v1alpha1]", func(ctx context.Context) {
+	g.It("is able to apply automated backup no-config configuration [Timeout:50m][apigroup:config.openshift.io]", func(ctx context.Context) {
 
 		g.GinkgoT().Log("applying Backup CR")
 		_, err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Create(context.Background(), backupCR, metav1.CreateOptions{})
