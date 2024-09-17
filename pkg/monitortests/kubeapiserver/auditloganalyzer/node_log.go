@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface, beginning, end *time.Time) (*AuditLogSummary, error) {
+func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface, beginning, end *time.Time, auditLogHandlers []AuditEventHandler) error {
 	masterOnly, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Exists, nil)
 	if err != nil {
 		panic(err)
@@ -30,10 +30,9 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	ret := NewAuditLogSummary()
 	lock := sync.Mutex{}
 	errCh := make(chan error, len(allNodes.Items))
 	wg := sync.WaitGroup{}
@@ -50,7 +49,7 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 				micro := metav1.NewMicroTime(*end)
 				microEnd = &micro
 			}
-			auditLogSummary, err := getNodeKubeAuditLogSummary(ctx, kubeClient, nodeName, microBeginning, microEnd)
+			err := getNodeKubeAuditLogSummary(ctx, kubeClient, nodeName, microBeginning, microEnd, auditLogHandlers)
 			if err != nil {
 				errCh <- err
 				return
@@ -58,7 +57,6 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 
 			lock.Lock()
 			defer lock.Unlock()
-			ret.AddSummary(auditLogSummary)
 		}(ctx, node.Name)
 	}
 	wg.Wait()
@@ -69,16 +67,20 @@ func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface
 		errs = append(errs, err)
 	}
 
-	return ret, utilerrors.NewAggregate(errs)
+	return utilerrors.NewAggregate(errs)
 }
 
-func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string, beginning, end *metav1.MicroTime) (*AuditLogSummary, error) {
-	return getAuditLogSummary(ctx, client, nodeName, "kube-apiserver", beginning, end)
+type AuditEventHandler interface {
+	HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime)
 }
-func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName, apiserver string, beginning, end *metav1.MicroTime) (*AuditLogSummary, error) {
+
+func getNodeKubeAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName string, beginning, end *metav1.MicroTime, auditLogHandlers []AuditEventHandler) error {
+	return getAuditLogSummary(ctx, client, nodeName, "kube-apiserver", beginning, end, auditLogHandlers)
+}
+func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeName, apiserver string, beginning, end *metav1.MicroTime, auditLogHandlers []AuditEventHandler) error {
 	auditLogFilenames, err := getAuditLogFilenames(ctx, client, nodeName, apiserver)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// we do not have enough memory to read all the content and then navigate it all in memory.
@@ -88,7 +90,6 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 	wg := sync.WaitGroup{}
 
 	errCh := make(chan error, len(auditLogFilenames))
-	auditLogSummaries := make(chan *AuditLogSummary, len(auditLogFilenames))
 	for _, auditLogFilename := range auditLogFilenames {
 		if !strings.HasPrefix(auditLogFilename, "audit") {
 			continue
@@ -107,7 +108,6 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 				return
 			}
 
-			auditLogSummary := NewAuditLogSummary()
 			scanner := bufio.NewScanner(auditStream)
 			line := 0
 			for scanner.Scan() {
@@ -120,36 +120,26 @@ func getAuditLogSummary(ctx context.Context, client kubernetes.Interface, nodeNa
 
 				auditEvent := &auditv1.Event{}
 				if err := json.Unmarshal(auditLine, auditEvent); err != nil {
-					auditLogSummary.lineReadFailureCount++
 					fmt.Printf("unable to decode %q line %d: %s to audit event: %v\n", auditLogFilename, line, string(auditLine), err)
 					continue
 				}
 
-				if beginning != nil && auditEvent.RequestReceivedTimestamp.Before(beginning) || end != nil && end.Before(&auditEvent.RequestReceivedTimestamp) {
-					continue
+				for _, auditLogHandler := range auditLogHandlers {
+					auditLogHandler.HandleAuditLogEvent(auditEvent, beginning, end)
 				}
-
-				auditLogSummary.Add(auditEvent, auditEventInfo{})
 			}
-			auditLogSummaries <- auditLogSummary
 
 		}(ctx, auditLogFilename)
 	}
 	wg.Wait()
 	close(errCh)
-	close(auditLogSummaries)
 
 	errs := []error{}
 	for err := range errCh {
 		errs = append(errs, err)
 	}
 
-	fullSummary := NewAuditLogSummary()
-	for auditLogSummary := range auditLogSummaries {
-		fullSummary.AddSummary(auditLogSummary)
-	}
-
-	return fullSummary, utilerrors.NewAggregate(errs)
+	return utilerrors.NewAggregate(errs)
 }
 
 func getAuditLogFilenames(ctx context.Context, client kubernetes.Interface, nodeName, apiserverName string) ([]string, error) {
