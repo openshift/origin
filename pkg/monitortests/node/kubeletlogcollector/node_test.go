@@ -657,7 +657,7 @@ func TestNodeLeaseClusters(t *testing.T) {
 						},
 						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							HumanMessage: "first lease failure; testName",
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationReason: "FailedToUpdateLease",
 							},
@@ -677,7 +677,7 @@ func TestNodeLeaseClusters(t *testing.T) {
 						},
 						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							HumanMessage: "second lease failure; testName",
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationReason: "FailedToUpdateLease",
 							},
@@ -697,27 +697,7 @@ func TestNodeLeaseClusters(t *testing.T) {
 						},
 						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
-							Annotations: map[monitorapi.AnnotationKey]string{
-								monitorapi.AnnotationReason: "FailedToUpdateLease",
-							},
-						},
-					},
-					From: systemdJournalLogTime("May 19 19:10:17.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:18.753983"),
-				},
-				{
-					Condition: monitorapi.Condition{
-						Level: monitorapi.Info,
-						Locator: monitorapi.Locator{
-							Type: monitorapi.LocatorTypeNode,
-							Keys: map[monitorapi.LocatorKey]string{
-								"node": "testName",
-							},
-						},
-						Message: monitorapi.Message{
-							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							HumanMessage: "separate lease failure; not significant",
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationReason: "FailedToUpdateLease",
 							},
@@ -739,7 +719,7 @@ func TestNodeLeaseClusters(t *testing.T) {
 						},
 						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							HumanMessage: "first lease failure; testName",
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationReason: "FailedToUpdateLease",
 							},
@@ -804,26 +784,6 @@ func TestNodeLeaseClusters(t *testing.T) {
 						},
 						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "node 1; cluster 1; third lease error",
-							Annotations: map[monitorapi.AnnotationKey]string{
-								monitorapi.AnnotationReason: "FailedToUpdateLease",
-							},
-						},
-					},
-					From: systemdJournalLogTime("May 19 19:10:17.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:18.753983"),
-				},
-				{
-					Condition: monitorapi.Condition{
-						Level: monitorapi.Info,
-						Locator: monitorapi.Locator{
-							Type: monitorapi.LocatorTypeNode,
-							Keys: map[monitorapi.LocatorKey]string{
-								"node": "node1",
-							},
-						},
-						Message: monitorapi.Message{
-							Reason:       monitorapi.NodeFailedLeaseBackoff,
 							HumanMessage: "insigificant lease error",
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationReason: "FailedToUpdateLease",
@@ -864,27 +824,7 @@ func TestNodeLeaseClusters(t *testing.T) {
 						},
 						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
-							Annotations: map[monitorapi.AnnotationKey]string{
-								monitorapi.AnnotationReason: "FailedToUpdateLease",
-							},
-						},
-					},
-					From: systemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
-				},
-				{
-					Condition: monitorapi.Condition{
-						Level: monitorapi.Info,
-						Locator: monitorapi.Locator{
-							Type: monitorapi.LocatorTypeNode,
-							Keys: map[monitorapi.LocatorKey]string{
-								"node": "node2",
-							},
-						},
-						Message: monitorapi.Message{
-							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							HumanMessage: "node 2; cluster 1; second lease error",
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationReason: "FailedToUpdateLease",
 							},
@@ -904,7 +844,7 @@ func TestNodeLeaseClusters(t *testing.T) {
 						},
 						Message: monitorapi.Message{
 							Reason:       monitorapi.NodeFailedLeaseBackoff,
-							HumanMessage: "https://api-int.ci-op-6clh576g-0dd98.ci2.azure.devcluster.openshift.com:6443/apis/coordination.k8s.io/v1/namespaces/kube-node-lease/leases/ci-op-6clh576g-0dd98-xz4pt-master-2?timeout=10s - net/http: request canceled (Client.Timeout exceeded while awaiting headers)",
+							HumanMessage: "node 2; cluster 1; separate lease error; insigificant",
 							Annotations: map[monitorapi.AnnotationKey]string{
 								monitorapi.AnnotationReason: "FailedToUpdateLease",
 							},
@@ -1029,12 +969,12 @@ func TestNodeLeaseClusters(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := findLeaseIntervalsImportant(tc.rawIntervals)
 			assert.Equal(t, len(tc.want), len(got))
-			if len(tc.want) > 0 {
-				assert.Equal(t, tc.want[0].Locator, got[0].Locator)
-				assert.Equal(t, tc.want[0].Message, got[0].Message)
-				assert.Equal(t, tc.want[0].Level, got[0].Level)
-				assert.Equal(t, tc.want[0].From, got[0].From)
-				assert.Equal(t, tc.want[0].To, got[0].To)
+			for i := range tc.want {
+				assert.Equal(t, tc.want[i].Locator, got[i].Locator)
+				assert.Equal(t, tc.want[i].Message, got[i].Message)
+				assert.Equal(t, tc.want[i].Level, got[i].Level)
+				assert.Equal(t, tc.want[i].From, got[i].From)
+				assert.Equal(t, tc.want[i].To, got[i].To)
 			}
 		})
 	}

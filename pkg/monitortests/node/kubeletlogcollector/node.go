@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -552,21 +553,36 @@ func findLeaseIntervalsImportant(intervals monitorapi.Intervals) monitorapi.Inte
 			intervalsByNode[nodeName] = append(intervalsByNode[nodeName], val)
 		}
 	}
+	// Let's sort by node name so this is deterministic.
+	var keys []string
+	for node := range intervalsByNode {
+		keys = append(keys, node)
+	}
+	sort.Strings(keys)
 	importantIntervals := monitorapi.Intervals(nil)
-	for _, val := range intervalsByNode {
-		if len(val) < 3 {
+	for _, node := range keys {
+		nodeInterval := intervalsByNode[node]
+		if len(nodeInterval) < 2 {
 			continue
 		}
-		for i, interval := range val {
-			if i >= len(val)-2 {
+		for i, interval := range nodeInterval {
+			if i >= len(nodeInterval)-1 {
 				continue
 			}
-			if val[i+2].To.Before(interval.To.Add(leaseInterval)) {
+			if nodeInterval[i+1].To.Before(interval.To.Add(leaseInterval)) {
 				importantIntervals = append(importantIntervals, interval)
 			}
 		}
 	}
 	return importantIntervals
+}
+
+func findLeaseBackOffs(intervals monitorapi.Intervals) monitorapi.Intervals {
+	nodeLeaseIntervals := intervals.Filter(monitorapi.NodeLeaseBackoff)
+	if len(nodeLeaseIntervals) == 0 {
+		return monitorapi.Intervals(nil)
+	}
+	return nodeLeaseIntervals
 }
 
 var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
