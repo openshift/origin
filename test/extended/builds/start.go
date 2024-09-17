@@ -54,17 +54,17 @@ var _ = g.Describe("[sig-builds][Feature:Builds][Slow] starting a build using CL
 					continue
 				}
 				o.Expect(initContainer.SecurityContext).NotTo(o.BeNil(), "git-clone container should have a security context")
-				o.Expect(initContainer.SecurityContext.Privileged).NotTo(o.BeTrue(), "git-clone container should not be privileged")
-				o.Expect(initContainer.SecurityContext.SeccompProfile).To(o.Or(o.BeNil(), o.Equal(corev1.SeccompProfileRuntimeDefault)),
+				o.Expect(initContainer.SecurityContext.Privileged).To(o.Or(o.BeNil(), o.BeEquivalentTo(false)), "git-clone container should not be privileged")
+				o.Expect(initContainer.SecurityContext.SeccompProfile).To(o.Or(o.BeNil(), o.BeEquivalentTo(corev1.SeccompProfileRuntimeDefault)),
 					"git-clone container should have the runtime default seccomp profile")
 				capabilities := initContainer.SecurityContext.Capabilities
 				o.Expect(capabilities).NotTo(o.BeNil(), "git-clone container should have capabilities defined")
 				o.Expect(capabilities.Drop).NotTo(o.BeEmpty(), "git-clone container should drop ALL capabilities")
 				for _, cap := range capabilities.Drop {
-					o.Expect(cap).To(o.Equal("ALL"), "git-clone container should only drop the ALL capability")
+					o.Expect(cap).To(o.BeEquivalentTo("ALL"), "git-clone container should only drop the ALL capability")
 				}
 				for _, cap := range capabilities.Add {
-					o.Expect(cap).To(o.Or(o.Equal("CHOWN"), o.Equal("DAC_OVERRIDE")),
+					o.Expect(cap).To(o.Or(o.BeEquivalentTo("CHOWN"), o.BeEquivalentTo("DAC_OVERRIDE")),
 						"git-clone is only allowed to have the following capabilities: %s",
 						[]string{"CHOWN", "DAC_OVERRIDE"})
 				}
