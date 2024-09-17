@@ -305,6 +305,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy should have correct RBAC rules": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:OpenShiftAuthorization] authorization PublicImageAccessWithBasicAuthShouldSucceed should succeed [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestAuthorizationSubjectAccessReview should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestAuthorizationSubjectAccessReviewAPIGroup should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
