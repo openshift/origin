@@ -3,18 +3,19 @@ package auditloganalyzer
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"strings"
 	"sync"
 )
 
 type excessiveApplies struct {
-	lock                  sync.Mutex
-	userToNumberOfApplies map[string]int
+	lock                              sync.Mutex
+	namespacesToUserToNumberOfApplies map[string]map[string]int
 }
 
 func CheckForExcessiveApplies() *excessiveApplies {
 	return &excessiveApplies{
-		userToNumberOfApplies: map[string]int{},
+		namespacesToUserToNumberOfApplies: map[string]map[string]int{},
 	}
 }
 
@@ -35,9 +36,15 @@ func (s *excessiveApplies) HandleAuditLogEvent(auditEvent *auditv1.Event, beginn
 	if !strings.Contains(auditEvent.RequestURI, "fieldManager=") {
 		return
 	}
+	nsName, _, _ := serviceaccount.SplitUsername(auditEvent.User.Username)
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.userToNumberOfApplies[auditEvent.User.Username] = s.userToNumberOfApplies[auditEvent.User.Username] + 1
+	users, ok := s.namespacesToUserToNumberOfApplies[nsName]
+	if !ok {
+		users = map[string]int{}
+	}
+	users[auditEvent.User.Username] = users[auditEvent.User.Username] + 1
+	s.namespacesToUserToNumberOfApplies[nsName] = users
 }

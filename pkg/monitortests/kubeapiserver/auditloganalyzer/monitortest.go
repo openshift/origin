@@ -3,12 +3,12 @@ package auditloganalyzer
 import (
 	"context"
 	"fmt"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/monitortestframework"
-
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -55,42 +55,70 @@ func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startin
 func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	ret := []*junitapi.JUnitTestCase{}
 
-	for username, numberOfApplies := range w.excessiveApplyChecker.userToNumberOfApplies {
-		namespace, _, _ := serviceaccount.SplitUsername(username)
-		testName := fmt.Sprintf("user %v in ns/%s must not produce too many applies", username, namespace)
+	allPlatformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
+	if err != nil {
+		return nil, fmt.Errorf("problem getting platform namespaces: %w", err)
+	}
 
-		if numberOfApplies > 200 {
+	for _, namespace := range allPlatformNamespaces {
+		testName := fmt.Sprintf("users in ns/%s must not produce too many applies", namespace)
+		usersToApplies := w.excessiveApplyChecker.namespacesToUserToNumberOfApplies[namespace]
+
+		failures := []string{}
+		flakes := []string{}
+		for username, numberOfApplies := range usersToApplies {
+			if numberOfApplies > 200 {
+				switch username {
+				case "system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller",
+					"system:serviceaccount:openshift-network-operator:cluster-network-operator",
+					"system:serviceaccount:openshift-infra:podsecurity-admission-label-syncer-controller",
+					"system:serviceaccount:openshift-monitoring:prometheus-operator":
+
+					// These usernames are already creating more than 200 applies, so flake instead of fail.
+					// We really want to find a way to track namespaces created by the payload versus everything else.
+					flakes = append(flakes, fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies))
+				default:
+					failures = append(failures, fmt.Sprintf("user %v had %d applies, check the audit log and operator log to figure out why", username, numberOfApplies))
+				}
+			}
+		}
+
+		switch {
+		case len(failures) > 1:
 			ret = append(ret,
 				&junitapi.JUnitTestCase{
 					Name: testName,
 					FailureOutput: &junitapi.FailureOutput{
-						Message: fmt.Sprintf("had %d applies, check the audit log and operator log to figure out why", numberOfApplies),
+						Message: strings.Join(failures, "\n"),
 						Output:  "details in audit log",
 					},
 				},
 			)
-			switch username {
-			case "system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller",
-				"system:serviceaccount:openshift-network-operator:cluster-network-operator",
-				"system:serviceaccount:openshift-infra:podsecurity-admission-label-syncer-controller",
-				"system:serviceaccount:openshift-monitoring:prometheus-operator":
 
-				// These usernames are already creating more than 200 applies, so flake instead of fail.
-				// We really want to find a way to track namespaces created by the payload versus everything else.
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
+		case len(flakes) > 1:
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+					FailureOutput: &junitapi.FailureOutput{
+						Message: strings.Join(failures, "\n"),
+						Output:  "details in audit log",
 					},
-				)
-			}
+				},
+			)
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+				},
+			)
 
-		} else {
+		default:
 			ret = append(ret,
 				&junitapi.JUnitTestCase{
 					Name: testName,
 				},
 			)
 		}
+
 	}
 
 	return ret, nil
