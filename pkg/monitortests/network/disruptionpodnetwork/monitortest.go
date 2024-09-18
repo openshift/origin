@@ -188,7 +188,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	}
 
 	// we need to have the service network pollers wait until we have at least one healthy endpoint before starting.
-	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 120*time.Second, true, pna.serviceHasEndpoints)
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 300*time.Second, true, pna.serviceHasEndpoints)
 	if err != nil {
 		return err
 	}
