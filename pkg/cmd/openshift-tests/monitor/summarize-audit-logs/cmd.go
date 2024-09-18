@@ -55,13 +55,12 @@ func (o auditLogSummaryOptions) Run(ctx context.Context) error {
 		return err
 	}
 
-	summarizer := auditloganalyzer2.NewAuditLogSummarizer()
-	err = auditloganalyzer2.GetKubeAuditLogSummary(ctx, kubeClient, nil, nil, []auditloganalyzer2.AuditEventHandler{summarizer})
+	auditLogSummary, err := auditloganalyzer2.GetKubeAuditLogSummary(ctx, kubeClient, nil, nil)
 	if err != nil {
 		return err
 	}
 
-	if err := auditloganalyzer2.WriteAuditLogSummary(o.ArtifactDir, "", summarizer.GetAuditLogSummary()); err != nil {
+	if err := auditloganalyzer2.WriteAuditLogSummary(o.ArtifactDir, "", auditLogSummary); err != nil {
 		return err
 	}
 
