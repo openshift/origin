@@ -2,6 +2,8 @@ package auditloganalyzer
 
 import (
 	"context"
+	"fmt"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -15,12 +17,15 @@ import (
 type auditLogAnalyzer struct {
 	adminRESTConfig *rest.Config
 
-	// auditLogSummary is written during CollectData
-	auditLogSummary *AuditLogSummary
+	summarizer            *summarizer
+	excessiveApplyChecker *excessiveApplies
 }
 
 func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
-	return &auditLogAnalyzer{}
+	return &auditLogAnalyzer{
+		summarizer:            NewAuditLogSummarizer(),
+		excessiveApplyChecker: CheckForExcessiveApplies(),
+	}
 }
 
 func (w *auditLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
@@ -34,25 +39,66 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		return nil, nil, err
 	}
 
-	auditLogSummary, auditEvents, err := intervalsFromAuditLogs(ctx, kubeClient, beginning, end)
-	w.auditLogSummary = auditLogSummary
+	auditLogHandlers := []AuditEventHandler{
+		w.summarizer,
+		w.excessiveApplyChecker,
+	}
+	err = GetKubeAuditLogSummary(ctx, kubeClient, &beginning, &end, auditLogHandlers)
 
-	return auditEvents, nil, err
+	return nil, nil, err
 }
 
 func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
 	return nil, nil
 }
 
-func (*auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	ret := []*junitapi.JUnitTestCase{}
+
+	for username, numberOfApplies := range w.excessiveApplyChecker.userToNumberOfApplies {
+		namespace, _, _ := serviceaccount.SplitUsername(username)
+		testName := fmt.Sprintf("user %v in ns/%s must not produce too many applies", username, namespace)
+
+		if numberOfApplies > 200 {
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+					FailureOutput: &junitapi.FailureOutput{
+						Message: fmt.Sprintf("had %d applies, check the audit log and operator log to figure out why", numberOfApplies),
+						Output:  "details in audit log",
+					},
+				},
+			)
+			switch username {
+			case "system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller",
+				"system:serviceaccount:openshift-network-operator:cluster-network-operator",
+				"system:serviceaccount:openshift-infra:podsecurity-admission-label-syncer-controller",
+				"system:serviceaccount:openshift-monitoring:prometheus-operator":
+
+				// These usernames are already creating more than 200 applies, so flake instead of fail.
+				// We really want to find a way to track namespaces created by the payload versus everything else.
+				ret = append(ret,
+					&junitapi.JUnitTestCase{
+						Name: testName,
+					},
+				)
+			}
+
+		} else {
+			ret = append(ret,
+				&junitapi.JUnitTestCase{
+					Name: testName,
+				},
+			)
+		}
+	}
+
+	return ret, nil
 }
 
 func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
-	if w.auditLogSummary != nil {
-		if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.auditLogSummary); currErr != nil {
-			return currErr
-		}
+	if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.summarizer.auditLogSummary); currErr != nil {
+		return currErr
 	}
 	return nil
 }
@@ -60,15 +106,4 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 func (*auditLogAnalyzer) Cleanup(ctx context.Context) error {
 	// TODO wire up the start to a context we can kill here
 	return nil
-}
-
-func intervalsFromAuditLogs(ctx context.Context, kubeClient kubernetes.Interface, beginning, end time.Time) (*AuditLogSummary, monitorapi.Intervals, error) {
-	ret := monitorapi.Intervals{}
-	auditLogSummary, err := GetKubeAuditLogSummary(ctx, kubeClient, &beginning, &end)
-	if err != nil {
-		// TODO report the error AND the best possible summary we have
-		return auditLogSummary, nil, err
-	}
-
-	return auditLogSummary, ret, nil
 }
