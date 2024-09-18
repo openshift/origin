@@ -498,11 +498,36 @@ var (
 	}
 )
 
+func remove(slice []schema.GroupVersionResource, s int) []schema.GroupVersionResource {
+	if s > 0 || s > len(slice)-1 {
+		return slice
+	}
+	return append(slice[:s], slice[s+1:]...)
+}
+
 func getCrdTypes(oc *exutil.CLI) []schema.GroupVersionResource {
 	isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if isMicroShift {
 		return microshiftCRDTypes
+	}
+	isHypershift, _ := exutil.IsHypershift(context.TODO(), oc.AdminConfigClient())
+	if isHypershift {
+		etcdsResourceIndex := -1
+		for i := 0; i < len(baseCRDTypes); i++ {
+			if baseCRDTypes[i].Group != "operator.openshift.io" {
+				continue
+			}
+			if baseCRDTypes[i].Version != "v1" {
+				continue
+			}
+			if baseCRDTypes[i].Resource != "etcds" {
+				continue
+			}
+			etcdsResourceIndex = i
+			break
+		}
+		remove(baseCRDTypes, etcdsResourceIndex)
 	}
 	crdTypes := append(baseCRDTypes, mcoTypes...)
 	crdTypes = append(crdTypes, autoscalingTypes...)
