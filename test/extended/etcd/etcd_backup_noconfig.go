@@ -9,6 +9,7 @@ import (
 	"time"
 
 	configv1alpha1 "github.com/openshift/api/config/v1alpha1"
+	"github.com/openshift/library-go/test/library"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +36,7 @@ const (
 	OpenShiftEtcdNamespace    = "openshift-etcd"
 	backupVolume              = "/var/lib/etcd-auto-backup"
 	backupDirName             = "etcd-auto-backup-dir"
+	podLabelSelector          = "app=etcd"
 
 	// ShellImage allows us to have basic shell tooling, taken from origin:
 	// https://github.com/openshift/origin/blob/6ee9dc56a612a4c886d094571832ed47efa2e831/test/extended/util/image/image.go#L129-L141C2
@@ -73,14 +75,14 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 	// It waits for a new revision of static pods to be deployed.
 	// It verifies that etcd-backup-server container has been enabled with correct args.
 	// It verifies that backups are being taken according to the specified schedule and retention policy.
-	g.It("is able to apply automated backup no-config configuration [Timeout:50m][apigroup:config.openshift.io]", func(ctx context.Context) {
+	g.It("is able to apply automated backup no-config configuration [Timeout:70m][apigroup:config.openshift.io]", func(ctx context.Context) {
 
 		g.GinkgoT().Log("applying Backup CR")
 		_, err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Create(context.Background(), backupCR, metav1.CreateOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
-		err = waitForEtcdToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = ensureEtcdStabilizedOnTheSameRevision(g.GinkgoT(), oc)
 		err = errors.Wrap(err, "timed out waiting for etcd pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -96,8 +98,15 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 	})
 })
 
+func ensureEtcdStabilizedOnTheSameRevision(t library.LoggingT, oc *exutil.CLI) error {
+	podClient := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd")
+	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, podLabelSelector, 20, 1*time.Minute, 20*time.Second, 40*time.Minute)
+}
+
 func ensureBackupServerContainerEnabled(ctx context.Context, oc *exutil.CLI) error {
-	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(ctx, metav1.ListOptions{})
+	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(ctx, metav1.ListOptions{
+		LabelSelector: podLabelSelector,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to list etcd pods: %v", err)
 	}
@@ -110,21 +119,23 @@ func ensureBackupServerContainerEnabled(ctx context.Context, oc *exutil.CLI) err
 			}
 
 			if err := ensureEnabledBackupServerArgs(c); err != nil {
-				return fmt.Errorf("etcd-backup-server within etcd-pod %v has incorrect configurations %v", etcd.Name, err)
+				return fmt.Errorf("[etcd-backup-server] within etcd-pod [%v] has incorrect configurations %v", etcd.Name, err)
 			}
 			counter++
 		}
 	}
 
 	if counter < len(etcdPods.Items) {
-		return fmt.Errorf("expected %v etcd-backup-server containers, but found %v instead", len(etcdPods.Items), counter)
+		return fmt.Errorf("expected number of %v [etcd-backup-server] containers, but found %v instead", len(etcdPods.Items), counter)
 	}
 
 	return nil
 }
 
 func ensureBackupServerContainerDisabled(ctx context.Context, oc *exutil.CLI) error {
-	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(ctx, metav1.ListOptions{})
+	etcdPods, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(ctx, metav1.ListOptions{
+		LabelSelector: podLabelSelector,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to list etcd pods: %v", err)
 	}
@@ -137,14 +148,14 @@ func ensureBackupServerContainerDisabled(ctx context.Context, oc *exutil.CLI) er
 			}
 
 			if err := ensureDisabledBackupServerArgs(c); err != nil {
-				return fmt.Errorf("etcd-backup-server within etcd-pod %v has incorrect configurations %v", etcd.Name, err)
+				return fmt.Errorf("[etcd-backup-server] container within etcd-pod [%v] has incorrect configurations %v", etcd.Name, err)
 			}
 			counter++
 		}
 	}
 
 	if counter < len(etcdPods.Items) {
-		return fmt.Errorf("expected %v etcd-backup-server containers, but found %v instead", len(etcdPods.Items), counter)
+		return fmt.Errorf("expected number %v [etcd-backup-server] containers, but found %v instead", len(etcdPods.Items), counter)
 	}
 
 	return nil
@@ -161,12 +172,15 @@ func ensureEnabledBackupServerArgs(c corev1.Container) error {
 	for _, arg := range c.Args {
 		splits := strings.Split(arg, "=")
 		key, _ := strings.CutPrefix(splits[0], "--")
+		if key == "enabled" {
+			continue
+		}
 		argsMap[key] = splits[1]
 	}
 
 	// assert
 	if len(argsMap) != expSet.Len() {
-		return fmt.Errorf("expected etcd-backup-server to have number of %v args, but got %v instead: args [%v]", len(expSet), len(argsMap), c.Args)
+		return fmt.Errorf("expected [etcd-backup-server] container to have number of %v args, but got %v instead: args %v", expSet.Len(), len(argsMap), c.Args)
 	}
 
 	for k, v := range argsMap {
@@ -180,12 +194,12 @@ func ensureEnabledBackupServerArgs(c corev1.Container) error {
 
 func ensureDisabledBackupServerArgs(c corev1.Container) error {
 	if len(c.Args) > 1 {
-		return fmt.Errorf("expected disabled %v to have only [--enabled=false] arg, instead it has [%v]", backupServerContainerName, c.Args)
+		return fmt.Errorf("expected disabled %v to have only [--enabled=false] arg, instead it has %v", backupServerContainerName, c.Args)
 	}
 	splits := strings.Split(c.Args[0], "=")
 	key, _ := strings.CutPrefix(splits[0], "--")
 	if key != "enabled" || splits[1] != "false" {
-		return fmt.Errorf("expected disabled %v to have only [--enabled=false] arg, instead it has [%v]", backupServerContainerName, c.Args)
+		return fmt.Errorf("expected disabled %v to have only [--enabled=false] arg, instead it has %v", backupServerContainerName, c.Args)
 	}
 
 	return nil
