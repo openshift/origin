@@ -16,6 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imagev1 "github.com/openshift/api/image/v1"
+
 	"github.com/openshift/origin/test/extended/util"
 )
 
@@ -83,9 +84,17 @@ func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 		return "", fmt.Errorf("cannot determine release image from ClusterVersion resource")
 	}
 
-	if err := runImageExtract(releaseImage, "/release-manifests/image-references", tmpDir, ""); err != nil {
-		return "", fmt.Errorf("failed extracting image-references: %w", err)
+	err = runImageExtract(releaseImage, "/release-manifests/image-references", tmpDir, "")
+	if err != nil {
+		// Retry with the RELEASE_IMAGE_LATEST environment variable, if specified
+		if releaseImage = os.Getenv("RELEASE_IMAGE_LATEST"); releaseImage != "" {
+			err = runImageExtract(releaseImage, "/release-manifests/image-references", tmpDir, "")
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed extracting image-references: %w", err)
+		}
 	}
+
 	jsonFile, err := os.Open(filepath.Join(tmpDir, "image-references"))
 	if err != nil {
 		return "", fmt.Errorf("failed reading image-references: %w", err)
