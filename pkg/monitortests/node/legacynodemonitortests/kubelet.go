@@ -295,6 +295,10 @@ func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Inter
 				Output: fmt.Sprintf("%d containers with multiple restarts\n\n%s", len(excessiveExits), strings.Join(excessiveExits, "\n\n")),
 			},
 		})
+	} else {
+		testCases = append(testCases, &junitapi.JUnitTestCase{
+			Name: excessiveRestartTestName,
+		})
 	}
 	return testCases
 }
