@@ -36,7 +36,10 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 			topologyToExclude: "single",
 		},
 		{
-			containerName: "container/networking-console-plugin", // https://issues.redhat.com/browse/OCPBUGS-39316
+			containerName: "container/kube-multus", // https://issues.redhat.com/browse/OCPBUGS-42267
+		},
+		{
+			containerName: "container/ovn-acl-logging", // https://issues.redhat.com/browse/OCPBUGS-42344
 		},
 	}
 
@@ -54,11 +57,11 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 		if matched {
 			switch {
 			// if container matches but platform is different, this is a regression.
-			case val.platformsToExclude != "" && val.platformsToExclude == exclusion.clusterData.Platform:
-				return false
+			case val.platformsToExclude != "":
+				return val.platformsToExclude == exclusion.clusterData.Platform
 				// if container matches but topology is different, this is a regression.
-			case val.topologyToExclude != "" && val.topologyToExclude == exclusion.clusterData.Topology:
-				return false
+			case val.topologyToExclude != "":
+				return val.topologyToExclude == exclusion.clusterData.Topology
 			default:
 				return true
 			}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
@@ -223,20 +224,16 @@ func testKubeAPIServerGracefulTermination(events monitorapi.Intervals) []*junita
 	return tests
 }
 
-func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	openshiftNamespaces := sets.Set[string]{}
+func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+	openshiftNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
+	if err != nil {
+		// Should not happen
+		return nil, fmt.Errorf("unable to get platform namespaces %w", err)
+	}
 	containerExitsByNamespace := map[string]map[string][]string{}
 	failuresByNamespace := map[string][]string{}
 	for _, event := range events {
 		namespace := event.Locator.Keys[monitorapi.LocatorNamespaceKey]
-		if !strings.Contains(namespace, "openshift-") {
-			continue
-		}
-		// mustgather caused problems due to dynamic namespace
-		if strings.Contains(namespace, "openshift-must-gather-") {
-			continue
-		}
-		openshiftNamespaces.Insert(namespace)
 
 		reason := event.Message.Reason
 		code := event.Message.Annotations[monitorapi.AnnotationContainerExitCode]
@@ -294,7 +291,7 @@ func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Inter
 
 	var testCases []*junitapi.JUnitTestCase
 
-	for _, namespace := range sets.List(openshiftNamespaces) { // this ensures we create test case for every namespace, even in success cases
+	for _, namespace := range openshiftNamespaces { // this ensures we create test case for every namespace, even in success cases
 		failures := failuresByNamespace[namespace]
 		failToStartTestName := fmt.Sprintf("[sig-architecture] platform pods in ns/%s should not fail to start", namespace)
 		if len(failures) > 0 {
@@ -310,15 +307,11 @@ func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Inter
 		testCases = append(testCases, &junitapi.JUnitTestCase{Name: failToStartTestName})
 	}
 
-	// We want to deflake this test.
-	// Plan is to release this test and report any failures for pods
-	// that restart more than 3 times
-	// We will then build exclusion rules for those that we see
-	// and then make this test fail for any case that doesn't match the rules
-	// we have.
-	for _, namespace := range sets.List(openshiftNamespaces) { // this ensures we create test case for every namespace, even in success cases
+	// We have identified more than 3 restarts as an excessive amount
+	// This will not be tolerated anymore so the test will fail in this case.
+	for _, namespace := range openshiftNamespaces { // this ensures we create test case for every namespace, even in success cases
 		excessiveExits := excessiveExitsByNamespaceForFailedTests[namespace]
-		excessiveRestartTestName := fmt.Sprintf("[sig-architecture] platform pods in ns/%s should not exit more than %d with a non-zero exit code", namespace, maxRestartCountForFailures)
+		excessiveRestartTestName := fmt.Sprintf("[sig-architecture] platform pods in ns/%s should not exit an excessive amount of times", namespace)
 		if len(excessiveExits) > 0 {
 			testCases = append(testCases, &junitapi.JUnitTestCase{
 				Name:      excessiveRestartTestName,
@@ -331,9 +324,12 @@ func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Inter
 			testCases = append(testCases, &junitapi.JUnitTestCase{Name: excessiveRestartTestName})
 		}
 	}
-	for _, namespace := range sets.List(openshiftNamespaces) { // this ensures we create test case for every namespace, even in success cases
+
+	// We have indentified more than 2 restarts to be considered moderate.
+	// We will investigate these as flakes and potentially bring these up as bugs to fix.
+	for _, namespace := range openshiftNamespaces { // this ensures we create test case for every namespace, even in success cases
 		excessiveExits := excessiveExitsByNamespaceForFlakeTests[namespace]
-		excessiveRestartTestNameForFlakes := fmt.Sprintf("[sig-architecture] platform pods in ns/%s that restart more than %d is considered a flake for now", namespace, maxRestartCountForFlakes)
+		excessiveRestartTestNameForFlakes := fmt.Sprintf("[sig-architecture] platform pods in ns/%s should not exit a moderate amount of times", namespace)
 		if len(excessiveExits) > 0 {
 			testCases = append(testCases, &junitapi.JUnitTestCase{
 				Name:      excessiveRestartTestNameForFlakes,
@@ -346,7 +342,7 @@ func testContainerFailures(adminRestConfig *rest.Config, events monitorapi.Inter
 		testCases = append(testCases, &junitapi.JUnitTestCase{Name: excessiveRestartTestNameForFlakes})
 	}
 
-	return testCases
+	return testCases, nil
 }
 
 func testKubeApiserverProcessOverlap(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
