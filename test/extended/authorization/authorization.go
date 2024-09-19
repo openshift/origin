@@ -1244,7 +1244,7 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 	})
 })
 
-var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", func() {
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry access", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLI("bootstrap-policy")
 
@@ -1291,10 +1291,14 @@ func exposeRouteFromSVC(oc *exutil.CLI, rType, ns, route, service string) string
 }
 
 func waitRouteReady(route string) {
+	// Create a context with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
 	curlCmd := "curl -k https://" + route
 	var output []byte
 	var curlErr error
-	pollErr := wait.Poll(5*time.Second, 1*time.Minute, func() (bool, error) {
+	pollErr := wait.PollUntilContextTimeout(ctx, 5*time.Second, 1*time.Minute, true, func(ctx context.Context) (bool, error) {
 		output, curlErr = exec.Command("bash", "-c", curlCmd).CombinedOutput()
 		if curlErr != nil {
 			e2e.Logf("the route is not ready, go to next round")
