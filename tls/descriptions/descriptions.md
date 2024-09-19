@@ -2,7 +2,7 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (127)](#Items-Do-NOT-Meet-the-Requirement-127)
+  - [Items Do NOT Meet the Requirement (128)](#Items-Do-NOT-Meet-the-Requirement-128)
     - [Unknown Owner (4)](#Unknown-Owner-4)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -34,9 +34,9 @@
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [cluster-network-operator (1)](#cluster-network-operator-1)
       - [Certificate Authority Bundles (1)](#Certificate-Authority-Bundles-1)
-    - [kube-apiserver (45)](#kube-apiserver-45)
+    - [kube-apiserver (46)](#kube-apiserver-46)
       - [Certificates (25)](#Certificates-25)
-      - [Certificate Authority Bundles (20)](#Certificate-Authority-Bundles-20)
+      - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
     - [kube-controller-manager (12)](#kube-controller-manager-12)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
@@ -62,7 +62,7 @@ These descriptions must be in the style of API documentation and must include
 
 To create a description, set the `openshift.io/description` annotation to the markdown formatted string describing your TLS artifact. 
 
-## Items Do NOT Meet the Requirement (127)
+## Items Do NOT Meet the Requirement (128)
 ### Unknown Owner (4)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
@@ -500,7 +500,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-### kube-apiserver (45)
+### kube-apiserver (46)
 #### Certificates (25)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
@@ -705,7 +705,7 @@ To create a description, set the `openshift.io/description` annotation to the ma
 
 
 
-#### Certificate Authority Bundles (20)
+#### Certificate Authority Bundles (21)
 1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
       **Description:** 
@@ -872,7 +872,20 @@ To create a description, set the `openshift.io/description` annotation to the ma
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-20. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+20. file /etc/kubernetes/kubeconfig
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
+      
+
+21. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       

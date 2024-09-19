@@ -1627,6 +1627,18 @@
             "InClusterLocation": null,
             "OnDiskLocation": {
                 "onDiskLocation": {
+                    "Path": "/etc/kubernetes/kubeconfig"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "kube-apiserver",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
                     "Path": "/etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt"
                 },
                 "certificateAuthorityBundleInfo": {
