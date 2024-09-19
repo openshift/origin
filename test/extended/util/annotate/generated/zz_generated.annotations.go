@@ -293,6 +293,8 @@ var Annotations = map[string]string{
 
 	"[sig-auth][Feature:OAuthServer] well-known endpoint should be reachable [apigroup:route.openshift.io] [apigroup:oauth.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry access PublicImageAccessWithBasicAuthShouldSucceed should succeed [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleBindingEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyClusterRoleEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
@@ -304,8 +306,6 @@ var Annotations = map[string]string{
 	"[sig-auth][Feature:OpenShiftAuthorization] RBAC proxy for openshift authz RunLegacyLocalRoleEndpoint should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] The default cluster RBAC policy should have correct RBAC rules": " [Suite:openshift/conformance/parallel]",
-
-	"[sig-auth][Feature:OpenShiftAuthorization] authorization PublicImageAccessWithBasicAuthShouldSucceed should succeed [apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-auth][Feature:OpenShiftAuthorization] authorization TestAuthorizationSubjectAccessReview should succeed [apigroup:authorization.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
