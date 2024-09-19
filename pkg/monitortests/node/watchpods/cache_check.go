@@ -21,25 +21,32 @@ func checkCacheState(ctx context.Context, kubeClient kubernetes.Interface, podIn
 		return nil, fmt.Errorf("error listing cached pods: %w", err)
 	}
 
-	return checkCacheStateFromList(ctx, kubeClient, cachedPods)
+	return checkCacheStateFromList(ctx, kubeClient, cachedPods, 0)
 }
 
-func checkCacheStateFromList(ctx context.Context, kubeClient kubernetes.Interface, cachedPods []*corev1.Pod) ([]string, error) {
+func checkCacheStateFromList(ctx context.Context, kubeClient kubernetes.Interface, cachedPods []*corev1.Pod, actualResourceVersion int) ([]string, error) {
 	if len(cachedPods) == 0 {
 		return nil, fmt.Errorf("somehow the lister is missing pods")
 	}
 
+	// if we have a real resourceVersion we can enforce different tests
+	hasActualResourceVersion := actualResourceVersion > 0
+
 	biggestResourceVersion := -1
-	for _, cachedPod := range cachedPods {
-		if len(cachedPod.ResourceVersion) == 0 {
-			return nil, fmt.Errorf("encounted cached pod/%s -n %s without a resourceversion", cachedPod.Namespace, cachedPod.Name)
-		}
-		currRV, err := strconv.Atoi(cachedPod.ResourceVersion)
-		if err != nil {
-			return nil, fmt.Errorf("cached pod/%s -n %s has a non-integer RV %q: %w", cachedPod.Namespace, cachedPod.Name, cachedPod.ResourceVersion, err)
-		}
-		if currRV > biggestResourceVersion {
-			biggestResourceVersion = currRV
+	if hasActualResourceVersion {
+		biggestResourceVersion = actualResourceVersion
+	} else {
+		for _, cachedPod := range cachedPods {
+			if len(cachedPod.ResourceVersion) == 0 {
+				return nil, fmt.Errorf("encounted cached pod/%s -n %s without a resourceversion", cachedPod.Namespace, cachedPod.Name)
+			}
+			currRV, err := strconv.Atoi(cachedPod.ResourceVersion)
+			if err != nil {
+				return nil, fmt.Errorf("cached pod/%s -n %s has a non-integer RV %q: %w", cachedPod.Namespace, cachedPod.Name, cachedPod.ResourceVersion, err)
+			}
+			if currRV > biggestResourceVersion {
+				biggestResourceVersion = currRV
+			}
 		}
 	}
 
@@ -68,7 +75,7 @@ func checkCacheStateFromList(ctx context.Context, kubeClient kubernetes.Interfac
 			}
 		}
 		if !found {
-			// We cannot fail in this case because of a scenario like this
+			// We cannot fail in this case unless we have an actual resourceVersion because of a scenario like this
 			/*
 				rv-1: create a
 				rv-2: create b
@@ -80,7 +87,10 @@ func checkCacheStateFromList(ctx context.Context, kubeClient kubernetes.Interfac
 				To get this test off the ground and check the case where the cache has more items than the live list (the current failure
 				we're checking), we will exclude this case from the inital check.
 			*/
-			//failures = append(failures, "live pod/%s -n %s RV=%v is not present in the cached results", livePod.Name, livePod.Namespace, livePod.ResourceVersion)
+			// if we have the actual resoruceversion, then we can fail in this case.
+			if hasActualResourceVersion {
+				failures = append(failures, "live pod/%s -n %s RV=%v is not present in the cached results", livePod.Name, livePod.Namespace, livePod.ResourceVersion)
+			}
 		}
 	}
 	for _, cachedPod := range cachedPods {
