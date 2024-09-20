@@ -233,6 +233,7 @@ const (
 
 	OnPremHaproxyDetectsDown  IntervalReason = "OnPremHaproxyDetectsDown"
 	OnPremHaproxyStatusChange IntervalReason = "OnPremHaproxyStatusChange"
+	OnPremLBPriorityChange    IntervalReason = "OnPremLBPriorityChange"
 
 	Timeout IntervalReason = "Timeout"
 
@@ -295,12 +296,14 @@ const (
 	AnnotationPreviousPhase      AnnotationKey = "previousPhase"
 	AnnotationIsStaticPod        AnnotationKey = "mirrored"
 	// TODO this looks wrong. seems like it ought to be set in the to/from
-	AnnotationDuration       AnnotationKey = "duration"
-	AnnotationRequestAuditID AnnotationKey = "request-audit-id"
-	AnnotationRoles          AnnotationKey = "roles"
-	AnnotationStatus         AnnotationKey = "status"
-	AnnotationCondition      AnnotationKey = "condition"
-	AnnotationPercentage     AnnotationKey = "percentage"
+	AnnotationDuration         AnnotationKey = "duration"
+	AnnotationRequestAuditID   AnnotationKey = "request-audit-id"
+	AnnotationRoles            AnnotationKey = "roles"
+	AnnotationStatus           AnnotationKey = "status"
+	AnnotationCondition        AnnotationKey = "condition"
+	AnnotationPercentage       AnnotationKey = "percentage"
+	AnnotationPriority         AnnotationKey = "priority"
+	AnnotationPreviousPriority AnnotationKey = "prev-priority"
 )
 
 // ConstructionOwner was originally meant to signify that an interval was derived from other intervals.
