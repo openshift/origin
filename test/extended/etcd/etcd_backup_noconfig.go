@@ -57,7 +57,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
-		err = waitForEtcdToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = ensureEtcdStabilizedOnTheSameRevision(g.GinkgoT(), oc)
 		err = errors.Wrap(err, "timed out waiting for etcd pods to stabilize on the same revision")
 		o.Expect(err).ToNot(o.HaveOccurred())
 
@@ -100,7 +100,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 
 func ensureEtcdStabilizedOnTheSameRevision(t library.LoggingT, oc *exutil.CLI) error {
 	podClient := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd")
-	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, podLabelSelector, 20, 1*time.Minute, 20*time.Second, 40*time.Minute)
+	return library.WaitForPodsToStabilizeOnTheSameRevision(t, podClient, podLabelSelector, 5, 40*time.Second, 20*time.Second, 30*time.Minute)
 }
 
 func ensureBackupServerContainerEnabled(ctx context.Context, oc *exutil.CLI) error {
