@@ -78,13 +78,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		g.GinkgoT().Log("waiting for the etcd pod to be removed")
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), initialEtcdPodCount-1)
 
-		g.GinkgoT().Log("ensuring the quorum guard dependent controllers have degraded")
-		conditionTypes := []string{
-			"EtcdCertSignerControllerDegraded",
-			"EtcdEndpointsDegraded",
-			"TargetConfigControllerDegraded",
-		}
-		var notDegradedConditionTypes []string
+		g.GinkgoT().Log("ensuring the EtcdMembersDegraded condition type reports True")
 		o.Expect(wait.PollUntilContextTimeout(ctx, 10*time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
 			// retrieve the operator status
 			etcdCluster, err := oc.AdminOperatorClient().OperatorV1().Etcds().Get(ctx, "cluster", metav1.GetOptions{})
@@ -93,21 +87,11 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 				return false, nil
 			}
 
-			allDegraded := true
-			notDegradedConditionTypes = []string{}
-			for _, conditionType := range conditionTypes {
-				isConditionTrue := librarygov1helpers.IsOperatorConditionTrue(etcdCluster.Status.Conditions, conditionType)
-				if !isConditionTrue {
-					allDegraded = false
-					notDegradedConditionTypes = append(notDegradedConditionTypes, conditionType)
-				}
-			}
-			if !allDegraded {
+			if isConditionTrue := librarygov1helpers.IsOperatorConditionTrue(etcdCluster.Status.Conditions, "EtcdMembersDegraded"); !isConditionTrue {
 				return false, nil
 			}
-
 			return true, nil
-		})).ToNot(o.HaveOccurred(), fmt.Sprintf("expected the quorum guard dependent controllers to be degraded; however, the following indicated by their condition types have not: %v", notDegradedConditionTypes))
+		})).ToNot(o.HaveOccurred(), "expected the EtcdMembersDegraded condition type to report True")
 
 		// getting the count of installer pods before triggering a rollout
 		installerPodsPreRolloutTrigger, err := e2epod.GetPods(ctx, oc.AdminKubeClient(), etcdNamespace, map[string]string{"app": "installer"})
