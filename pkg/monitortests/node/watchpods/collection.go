@@ -10,11 +10,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
-func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderWriter, client kubernetes.Interface) {
+func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderWriter, client kubernetes.Interface) coreinformers.PodInformer {
 	podPendingFn := func(pod, oldPod *corev1.Pod) []monitorapi.Interval {
 		isCreate := oldPod == nil
 		oldPodIsPending := oldPod != nil && oldPod.Status.Phase == "Pending"
@@ -543,6 +544,7 @@ func startPodMonitoring(ctx context.Context, recorderWriter monitorapi.RecorderW
 	go podIPController.Run(ctx)
 	go sharedInformers.Start(ctx.Done())
 
+	return sharedInformers.Core().V1().Pods()
 }
 
 func toCreateFns(podCreateFns []func(pod *corev1.Pod) []monitorapi.Interval) []monitortestlibrary.ObjCreateFunc {
