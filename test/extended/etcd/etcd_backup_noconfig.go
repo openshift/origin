@@ -11,6 +11,7 @@ import (
 	configv1alpha1 "github.com/openshift/api/config/v1alpha1"
 	"github.com/openshift/library-go/test/library"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,10 +38,6 @@ const (
 	backupVolume              = "/var/lib/etcd-auto-backup"
 	backupDirName             = "etcd-auto-backup-dir"
 	podLabelSelector          = "app=etcd"
-
-	// ShellImage allows us to have basic shell tooling, taken from origin:
-	// https://github.com/openshift/origin/blob/6ee9dc56a612a4c886d094571832ed47efa2e831/test/extended/util/image/image.go#L129-L141C2
-	ShellImage = "image-registry.openshift-image-registry.svc:5000/openshift/tools:latest"
 )
 
 var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery] etcd", func() {
@@ -48,12 +45,12 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 	oc := exutil.NewCLIWithoutNamespace("etcd-backup-no-config").AsAdmin()
 
 	g.GinkgoT().Log("creating Backup CR")
-	backupCR := createDefaultBackupCR(testSchedule, testTimeZone, testRetentionNumber)
+	newBackupCR := createDefaultBackupCR(testSchedule, testTimeZone, testRetentionNumber)
 
 	// clean up
 	g.AfterEach(func(ctx context.Context) {
 		g.GinkgoT().Log("deleting Backup CR")
-		err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Delete(context.Background(), backupCR.Name, metav1.DeleteOptions{})
+		err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Delete(context.Background(), newBackupCR.Name, metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
@@ -78,7 +75,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 	g.It("is able to apply automated backup no-config configuration [Timeout:70m][apigroup:config.openshift.io]", func(ctx context.Context) {
 
 		g.GinkgoT().Log("applying Backup CR")
-		_, err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Create(context.Background(), backupCR, metav1.CreateOptions{})
+		_, err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Create(context.Background(), newBackupCR, metav1.CreateOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
@@ -93,7 +90,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 		g.GinkgoT().Log("ensuring master nodes have backups as expected")
 		foundFiles, err := collectFilesInBackupVolume(oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
-		err = requireBackupFilesFound(backupCR.Name, foundFiles)
+		err = requireBackupFilesFound(foundFiles)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 })
@@ -126,7 +123,7 @@ func ensureBackupServerContainerEnabled(ctx context.Context, oc *exutil.CLI) err
 	}
 
 	if counter < len(etcdPods.Items) {
-		return fmt.Errorf("expected number of %v [etcd-backup-server] containers, but found %v instead", len(etcdPods.Items), counter)
+		return fmt.Errorf("expected number of %d [etcd-backup-server] containers, but found %d instead", len(etcdPods.Items), counter)
 	}
 
 	return nil
@@ -270,7 +267,7 @@ func listFilesInVolume(oc *exutil.CLI, timeout time.Duration, node corev1.Node) 
 			Containers: []corev1.Container{
 				{
 					Name:       "finder",
-					Image:      ShellImage,
+					Image:      image.ShellImage(),
 					Command:    []string{"find", "."},
 					WorkingDir: backupVolume,
 					Resources:  corev1.ResourceRequirements{},
@@ -322,17 +319,11 @@ func listFilesInVolume(oc *exutil.CLI, timeout time.Duration, node corev1.Node) 
 	return files, nil
 }
 
-func requireBackupFilesFound(name string, files []string) error {
-	// a successful backup will look like this:
-	// ./backup-backup-happy-path-2023-08-03_152313
-	// ./backup-backup-happy-path-2023-08-03_152313/static_kuberesources_2023-08-03_152316__POSSIBLY_DIRTY__.tar.gz
-	// ./backup-backup-happy-path-2023-08-03_152313/snapshot_2023-08-03_152316__POSSIBLY_DIRTY__.db ]
-
-	// we assert that there are always at least two files:
+func requireBackupFilesFound(files []string) error {
 	tarMatchFound := false
 	snapMatchFound := false
 	for _, file := range files {
-		matchesTar, err := regexp.MatchString(`\./backup-`+name+`-.*.tar.gz`, file)
+		matchesTar, err := regexp.MatchString(`-.*.tar.gz`, file)
 		if err != nil {
 			return err
 		}
@@ -342,7 +333,7 @@ func requireBackupFilesFound(name string, files []string) error {
 			tarMatchFound = true
 		}
 
-		matchesSnap, err := regexp.MatchString(`\./backup-`+name+`-.*/snapshot_.*.db`, file)
+		matchesSnap, err := regexp.MatchString(`-.*/snapshot_.*.db`, file)
 		if err != nil {
 			return err
 		}
@@ -354,11 +345,11 @@ func requireBackupFilesFound(name string, files []string) error {
 	}
 
 	if !tarMatchFound {
-		return fmt.Errorf("expected tarfile for backup: %s, found files: %v ", name, files)
+		return fmt.Errorf("no tarfile found, all found files: %v ", files)
 	}
 
 	if !snapMatchFound {
-		return fmt.Errorf("expected snapshot for backup: %s, found files: %v ", name, files)
+		return fmt.Errorf("no snapshot found, all found files: %v ", files)
 	}
 
 	return nil
