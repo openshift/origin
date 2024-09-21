@@ -37,7 +37,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testPodNodeNameIsImmutable(finalIntervals)...)
 	junits = append(junits, testStaticPodLifecycleFailure(finalIntervals, w.adminRESTConfig)...)
 	junits = append(junits, testAPIServerIPTablesAccessDisruption(finalIntervals)...)
-	junits = append(junits, testEarlyE2EAPIServerDisruption(finalIntervals)...)
+	junits = append(junits, testEarlyE2EAPIServerDisruption(finalIntervals, w.adminRESTConfig)...)
 
 	return junits, nil
 }
