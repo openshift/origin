@@ -531,42 +531,12 @@ func leaseFailBackOff(nodeLocator monitorapi.Locator, logLine string) monitorapi
 // If that is the case, we will flag that lease failure as important and fail the test.
 // This will take all the intervals and return only the intervals that we want to report as a failure
 func findLeaseIntervalsImportant(intervals monitorapi.Intervals) monitorapi.Intervals {
-	const leaseInterval = 33 * time.Second
-	// Get all intervals that have NodeLease errors
+	// Get all intervals that have NodeLeaseBackOff errors
 	nodeLeaseIntervals := intervals.Filter(monitorapi.NodeLeaseBackoff)
 	if len(nodeLeaseIntervals) == 0 {
 		return monitorapi.Intervals(nil)
 	}
-	intervalsByNode := make(map[string]monitorapi.Intervals)
-
-	for _, val := range nodeLeaseIntervals {
-		nodeName := val.Condition.Locator.Keys["node"]
-		if len(intervalsByNode[nodeName]) == 0 {
-			intervalsByNode[nodeName] = append(intervalsByNode[nodeName], val)
-		}
-		// We have a lot of events that have the same To and From.
-		// We will assume that intervals that have the same node and occur at the same time
-		// are duplicated events.
-		previousInterval := intervalsByNode[nodeName][len(intervalsByNode[nodeName])-1]
-		if val.From != previousInterval.From && val.To != previousInterval.To {
-			intervalsByNode[nodeName] = append(intervalsByNode[nodeName], val)
-		}
-	}
-	importantIntervals := monitorapi.Intervals(nil)
-	for _, val := range intervalsByNode {
-		if len(val) < 3 {
-			continue
-		}
-		for i, interval := range val {
-			if i >= len(val)-2 {
-				continue
-			}
-			if val[i+2].To.Before(interval.To.Add(leaseInterval)) {
-				importantIntervals = append(importantIntervals, interval)
-			}
-		}
-	}
-	return importantIntervals
+	return nodeLeaseIntervals
 }
 
 var nodeRefRegex = regexp.MustCompile(`error getting node \\"(?P<NODEID>[a-z0-9.-]+)\\"`)
