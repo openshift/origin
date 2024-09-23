@@ -62,6 +62,26 @@ spec:
         set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]'
     - testName: '[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to
         set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]'
+  - featureGate: ManagedBootImages
+    tests:
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade
+        on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should not update
+        boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
+        boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
+        boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
+  - featureGate: ManagedBootImagesAWS
+    tests:
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should degrade
+        on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not
+        update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update
+        boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update
+        boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]'
   - featureGate: NetworkDiagnosticsConfig
     tests:
     - testName: '[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should
