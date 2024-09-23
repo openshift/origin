@@ -1,0 +1,10 @@
+This is a fork of go's encoding/json library. It adds the a third target for unmarshalling, json.Node.
+Unmarshalling to a Node behaves similarilarly to unmarshalling to an interface{}, except it also records
+the offsets for the start and end of the value that was unmarshalled and, if the value was part of a json
+object, it also records the offsets of the start and end of the object's key. The Value field of the Node
+will be unmarshalled to the same types as if it were an interface{}, except in the case of arrays and
+objects. In those case it will be unmarshalled to a []Node or map[string]Node instead []interface{} or
+map[string]interface{} for arrays and objects, respectively.
+
+There are two branchs, go15 and go16. go15 contains the modified go1.5 library and go16 contains the
+modified go1.6 library.
