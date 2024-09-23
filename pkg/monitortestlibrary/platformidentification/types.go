@@ -283,3 +283,21 @@ func getArchitecture(clientConfig *rest.Config) (string, error) {
 
 	return "amd64", errors.New("could not determine architecture from master nodes")
 }
+
+// IsPlatformNamespace is a utility to detect if the namespace is considered platform
+func IsPlatformNamespace(nsName string) bool {
+	switch {
+	case nsName == "default" || nsName == "kubernetes" || nsName == "openshift":
+		return true
+
+	case strings.HasPrefix(nsName, "openshift-must-gather-") || strings.HasPrefix(nsName, "openshift-debug-"):
+		// we skip these namespaces because the names vary by run and produce problems
+		return false
+	case strings.HasPrefix(nsName, "openshift-"):
+		return true
+	case strings.HasPrefix(nsName, "kube-"):
+		return true
+	default:
+		return false
+	}
+}
