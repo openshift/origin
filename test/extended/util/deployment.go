@@ -32,18 +32,30 @@ func GetDeploymentTemplateAnnotations(oc *CLI, deployName, namespace string) map
 
 // WaitForDeploymentReady waits for the deployment become ready
 func WaitForDeploymentReady(oc *CLI, deployName, namespace string) error {
+	return WaitForDeploymentReadyWithTimeout(oc, deployName, namespace, defaultMaxWaitingTime)
+}
+
+// WaitForDeploymentReadyWithTimeout waits for the deployment become ready with defined timeout
+func WaitForDeploymentReadyWithTimeout(oc *CLI, deployName, namespace string, timeout time.Duration) error {
 	var (
 		deployment    *v1.Deployment
 		labelSelector string
 		getErr        error
 	)
-	pollErr := wait.PollUntilContextTimeout(context.Background(), defaultPollingTime, defaultMaxWaitingTime, true, func(context.Context) (isReady bool, err error) {
+	pollErr := wait.PollUntilContextTimeout(context.Background(), defaultPollingTime, timeout, true, func(context.Context) (isReady bool, err error) {
 		deployment, getErr = oc.AdminKubeClient().AppsV1().Deployments(namespace).Get(context.Background(), deployName, metav1.GetOptions{})
 		if getErr != nil {
 			e2e.Logf("Unable to retrieve deployment %q:\n%v", deployName, getErr)
+			return false, nil
 		}
 		if deployment.Status.AvailableReplicas == *deployment.Spec.Replicas {
+			descOutput, err := oc.AsAdmin().Run("describe").WithoutNamespace().Args("deployment/"+deployment.Name, "-n", deployment.Namespace).Output()
 			e2e.Logf("Deployment %q is ready", deployName)
+			if err != nil {
+				e2e.Logf("Failed to describe the deployment %q", deployName)
+			} else {
+				e2e.Logf("Describing deployment %s/%s\n%s\n\n:", deployment.Name, deployment.Namespace, descOutput)
+			}
 			return true, nil
 		}
 		e2e.Logf("Deployment %q is still unready, available replicas %d/%d", deployName, deployment.Status.AvailableReplicas, *deployment.Spec.Replicas)
@@ -52,11 +64,13 @@ func WaitForDeploymentReady(oc *CLI, deployName, namespace string) error {
 
 	if pollErr != nil {
 		e2e.Logf("Waiting for deployment %s ready timeout", deployName)
-		for key, value := range deployment.Spec.Selector.MatchLabels {
-			labelSelector = fmt.Sprintf("%s=%s", key, value)
-			break
+		if deployment != nil && deployment.Spec.Selector != nil {
+			for key, value := range deployment.Spec.Selector.MatchLabels {
+				labelSelector = fmt.Sprintf("%s=%s", key, value)
+				break
+			}
+			DumpDeploymentPodsLogs(oc, deployName, namespace, labelSelector)
 		}
-		DumpDeploymentPodsLogs(oc, deployName, namespace, labelSelector)
 	}
 	return pollErr
 }
