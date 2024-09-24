@@ -14,7 +14,6 @@ import (
 	"path"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -23,13 +22,13 @@ type CountForSecond struct {
 	// That includes
 	// 1. requests that were started before this second and not completed until during or after this second
 	// 2. requests that were started this second
-	NumberOfConcurrentRequestsBeingHandled atomic.Int32
+	NumberOfConcurrentRequestsBeingHandled int
 
-	NumberOfRequestsReceived atomic.Int32
+	NumberOfRequestsReceived int
 
 	// NumberOfRequestsReceivedThatLaterGot500 is calculated based on when the request was received instead of completed
 	// because different requests have different timeouts, so it's more useful to categorize based on received time
-	NumberOfRequestsReceivedThatLaterGot500 atomic.Int32
+	NumberOfRequestsReceivedThatLaterGot500 int
 }
 
 type CountsForRun struct {
@@ -62,18 +61,21 @@ func CountsOverTime(estimatedStartOfCluster metav1.Time) *countTracking {
 }
 
 func (s *countTracking) HandleAuditLogEvent(auditEvent *auditv1.Event, beginning, end *metav1.MicroTime) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	receivedIndex, completionIndex, httpStatusCode, include := s.CountsForRun.countIndexesFromAuditTime(auditEvent)
 	if !include {
 		return
 	}
 
-	s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfRequestsReceived.Add(1)
+	s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfRequestsReceived++
 	if httpStatusCode == 500 {
-		s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfRequestsReceivedThatLaterGot500.Add(1)
+		s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfRequestsReceivedThatLaterGot500++
 	}
 
 	for i := receivedIndex; i <= completionIndex; i++ {
-		s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfConcurrentRequestsBeingHandled.Add(1)
+		s.CountsForRun.CountsForEachSecond[receivedIndex].NumberOfConcurrentRequestsBeingHandled++
 	}
 }
 
@@ -116,9 +118,9 @@ func (c *CountsForRun) ToCSV() ([]byte, error) {
 	for i, curr := range c.CountsForEachSecond {
 		record := []string{
 			strconv.Itoa(i),
-			strconv.Itoa(int(curr.NumberOfConcurrentRequestsBeingHandled.Load())),
-			strconv.Itoa(int(curr.NumberOfRequestsReceived.Load())),
-			strconv.Itoa(int(curr.NumberOfRequestsReceivedThatLaterGot500.Load())),
+			strconv.Itoa(curr.NumberOfConcurrentRequestsBeingHandled),
+			strconv.Itoa(curr.NumberOfRequestsReceived),
+			strconv.Itoa(curr.NumberOfRequestsReceivedThatLaterGot500),
 		}
 
 		if err := csvWriter.Write(record); err != nil {
@@ -133,13 +135,13 @@ func (c *CountsForRun) ToCSV() ([]byte, error) {
 func (c *CountsForRun) LastSecondWithData() int {
 	lastIndexWithData := len(c.CountsForEachSecond) - 1
 	for i := lastIndexWithData; i >= 0; i-- {
-		if c.CountsForEachSecond[i].NumberOfConcurrentRequestsBeingHandled.Load() != 0 {
+		if c.CountsForEachSecond[i].NumberOfConcurrentRequestsBeingHandled != 0 {
 			return lastIndexWithData
 		}
-		if c.CountsForEachSecond[i].NumberOfRequestsReceived.Load() != 0 {
+		if c.CountsForEachSecond[i].NumberOfRequestsReceived != 0 {
 			return lastIndexWithData
 		}
-		if c.CountsForEachSecond[i].NumberOfRequestsReceivedThatLaterGot500.Load() != 0 {
+		if c.CountsForEachSecond[i].NumberOfRequestsReceivedThatLaterGot500 != 0 {
 			return lastIndexWithData
 		}
 		lastIndexWithData = i
@@ -192,9 +194,9 @@ func (c *CountsForRun) ToLineChart() (*plot.Plot, error) {
 	requestReceived := plotter.XYs{}
 	requestReceivedThatResultsIn500 := plotter.XYs{}
 	for i, requestCounts := range c.CountsForEachSecond {
-		concurrentRequestsBeingHandled = append(concurrentRequestsBeingHandled, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfConcurrentRequestsBeingHandled.Load())})
-		requestReceived = append(requestReceived, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfRequestsReceived.Load())})
-		requestReceivedThatResultsIn500 = append(requestReceivedThatResultsIn500, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfRequestsReceivedThatLaterGot500.Load())})
+		concurrentRequestsBeingHandled = append(concurrentRequestsBeingHandled, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfConcurrentRequestsBeingHandled)})
+		requestReceived = append(requestReceived, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfRequestsReceived)})
+		requestReceivedThatResultsIn500 = append(requestReceivedThatResultsIn500, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfRequestsReceivedThatLaterGot500)})
 	}
 
 	lineOfConcurrentRequestsBeingHandled, err := plotter.NewLine(concurrentRequestsBeingHandled)

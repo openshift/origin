@@ -96,7 +96,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		outageTotalNumberOf500s := 0
 		outageTotalRequests := 0
 		for i, currSecondRequests := range w.requestCountTracking.CountsForRun.CountsForEachSecond {
-			currentNumberOf500s := int(currSecondRequests.NumberOfRequestsReceivedThatLaterGot500.Load())
+			currentNumberOf500s := currSecondRequests.NumberOfRequestsReceivedThatLaterGot500
 			if currentNumberOf500s == 0 {
 				if startOfCurrentProblems >= 0 { // we're at the end of a trouble period
 					from := w.requestCountTracking.CountsForRun.EstimatedStartOfCluster.Add(time.Duration(startOfCurrentProblems) * time.Second)
@@ -123,7 +123,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 			if startOfCurrentProblems < 0 {
 				startOfCurrentProblems = i
 				outageTotalNumberOf500s += currentNumberOf500s
-				outageTotalRequests += int(currSecondRequests.NumberOfRequestsReceived.Load())
+				outageTotalRequests += currSecondRequests.NumberOfRequestsReceived
 			}
 		}
 	}
