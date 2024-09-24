@@ -3,13 +3,18 @@ package auditloganalyzer
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
 	"strings"
 	"time"
 
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/monitortests/testframework/watchnamespaces"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -19,6 +24,7 @@ type auditLogAnalyzer struct {
 
 	summarizer            *summarizer
 	excessiveApplyChecker *excessiveApplies
+	requestCountTracking  *countTracking
 }
 
 func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
@@ -30,6 +36,20 @@ func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 
 func (w *auditLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig *rest.Config, recorder monitorapi.RecorderWriter) error {
 	w.adminRESTConfig = adminRESTConfig
+
+	configClient, err := configclient.NewForConfig(w.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+	switch {
+	case apierrors.IsNotFound(err):
+	// do nothing, microshift I think
+	case err != nil:
+		return err
+	default:
+		w.requestCountTracking = CountsOverTime(clusterVersion.CreationTimestamp)
+	}
 	return nil
 }
 
@@ -43,6 +63,10 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.summarizer,
 		w.excessiveApplyChecker,
 	}
+	if w.requestCountTracking != nil {
+		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
+	}
+
 	err = GetKubeAuditLogSummary(ctx, kubeClient, &beginning, &end, auditLogHandlers)
 
 	return nil, nil, err
@@ -129,6 +153,18 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 	if currErr := WriteAuditLogSummary(storageDir, timeSuffix, w.summarizer.auditLogSummary); currErr != nil {
 		return currErr
 	}
+
+	if w.requestCountTracking != nil {
+		csvContent, err := w.requestCountTracking.CountsForRun.ToCSV()
+		if err != nil {
+			return err
+		}
+		requestCountsByTimeFile := path.Join(storageDir, fmt.Sprintf("request-counts-by-second_%s.csv", timeSuffix))
+		if err := os.WriteFile(requestCountsByTimeFile, csvContent, 0644); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
