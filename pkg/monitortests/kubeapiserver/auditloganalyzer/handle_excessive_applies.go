@@ -1,11 +1,12 @@
 package auditloganalyzer
 
 import (
+	"strings"
+	"sync"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	"strings"
-	"sync"
 )
 
 type excessiveApplies struct {
