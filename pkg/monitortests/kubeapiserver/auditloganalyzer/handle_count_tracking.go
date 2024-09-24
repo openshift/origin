@@ -4,8 +4,14 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
+	"image/color"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
+	"os"
+	"path"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -122,4 +128,120 @@ func (c *CountsForRun) ToCSV() ([]byte, error) {
 	csvWriter.Flush()
 
 	return out.Bytes(), nil
+}
+
+func (c *CountsForRun) LastSecondWithData() int {
+	lastIndexWithData := len(c.CountsForEachSecond) - 1
+	for i := lastIndexWithData; i >= 0; i-- {
+		if c.CountsForEachSecond[i].NumberOfConcurrentRequestsBeingHandled.Load() != 0 {
+			return lastIndexWithData
+		}
+		if c.CountsForEachSecond[i].NumberOfRequestsReceived.Load() != 0 {
+			return lastIndexWithData
+		}
+		if c.CountsForEachSecond[i].NumberOfRequestsReceivedThatLaterGot500.Load() != 0 {
+			return lastIndexWithData
+		}
+		lastIndexWithData = i
+	}
+
+	return lastIndexWithData
+}
+
+func (c *CountsForRun) TruncateDataAfterLastValue() {
+	lastIndexWithData := c.LastSecondWithData()
+
+	c.NumberOfSeconds = lastIndexWithData + 1
+	c.LastAcceptedTime = metav1.Time{Time: c.EstimatedStartOfCluster.Add(time.Duration(lastIndexWithData) * time.Second)}
+	c.CountsForEachSecond = c.CountsForEachSecond[0:lastIndexWithData]
+}
+
+func (c *CountsForRun) SubsetDataAtTime(endTime metav1.Time) *CountsForRun {
+	if c == nil {
+		return nil
+	}
+	if !endTime.After(c.EstimatedStartOfCluster.Time) {
+		return nil
+	}
+	if endTime.After(c.LastAcceptedTime.Time) {
+		endTime = c.LastAcceptedTime
+	}
+	lastIndex := int(endTime.Sub(c.EstimatedStartOfCluster.Time).Round(time.Second).Seconds())
+	if lastIndex > c.NumberOfSeconds {
+		lastIndex = c.NumberOfSeconds
+	}
+
+	ret := &CountsForRun{
+		NumberOfSeconds:         lastIndex + 1,
+		CountsForEachSecond:     c.CountsForEachSecond[0:lastIndex],
+		EstimatedStartOfCluster: c.EstimatedStartOfCluster,
+		LastAcceptedTime:        endTime,
+	}
+
+	return ret
+}
+
+func (c *CountsForRun) ToLineChart() (*plot.Plot, error) {
+	p := plot.New()
+	p.Title.Text = "Requests by Second of Cluster Life"
+	p.X.Label.Text = "Seconds of Cluster Life"
+	p.Y.Label.Text = "Number of Requests in that Second"
+	plotter.DefaultLineStyle.Width = vg.Points(1)
+
+	concurrentRequestsBeingHandled := plotter.XYs{}
+	requestReceived := plotter.XYs{}
+	requestReceivedThatResultsIn500 := plotter.XYs{}
+	for i, requestCounts := range c.CountsForEachSecond {
+		concurrentRequestsBeingHandled = append(concurrentRequestsBeingHandled, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfConcurrentRequestsBeingHandled.Load())})
+		requestReceived = append(requestReceived, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfRequestsReceived.Load())})
+		requestReceivedThatResultsIn500 = append(requestReceivedThatResultsIn500, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfRequestsReceivedThatLaterGot500.Load())})
+	}
+
+	lineOfConcurrentRequestsBeingHandled, err := plotter.NewLine(concurrentRequestsBeingHandled)
+	if err != nil {
+		return nil, err
+	}
+	lineOfConcurrentRequestsBeingHandled.LineStyle.Color = color.RGBA{R: 0, G: 0, B: 255, A: 255}
+	p.Add(lineOfConcurrentRequestsBeingHandled)
+	p.Legend.Add("Concurrent Requests", lineOfConcurrentRequestsBeingHandled)
+
+	lineOfRequestReceived, err := plotter.NewLine(requestReceived)
+	if err != nil {
+		return nil, err
+	}
+	lineOfRequestReceived.LineStyle.Color = color.RGBA{R: 0, G: 255, B: 0, A: 255}
+	p.Add(lineOfRequestReceived)
+	p.Legend.Add("Requests Received", lineOfRequestReceived)
+
+	lineOfRequestReceivedThatResultsIn500, err := plotter.NewLine(requestReceivedThatResultsIn500)
+	if err != nil {
+		return nil, err
+	}
+	lineOfRequestReceivedThatResultsIn500.LineStyle.Color = color.RGBA{R: 255, G: 0, B: 0, A: 255}
+	p.Add(lineOfRequestReceivedThatResultsIn500)
+	p.Legend.Add("Requests Received Ending in 500", lineOfRequestReceivedThatResultsIn500)
+
+	return p, nil
+}
+
+func (c *CountsForRun) WriteContentToStorage(storageDir, name, timeSuffix string) error {
+	csvContent, err := c.ToCSV()
+	if err != nil {
+		return err
+	}
+	requestCountsByTimeFile := path.Join(storageDir, fmt.Sprintf("%s_%s.csv", name, timeSuffix))
+	if err := os.WriteFile(requestCountsByTimeFile, csvContent, 0644); err != nil {
+		return err
+	}
+	requestCountsForEntireRunPlot, err := c.ToLineChart()
+	if err != nil {
+		return err
+	}
+	requestCountsByTimeGraphFile := path.Join(storageDir, fmt.Sprintf("%s_%s.png", name, timeSuffix))
+	err = requestCountsForEntireRunPlot.Save(vg.Length(c.NumberOfSeconds), 500, requestCountsByTimeGraphFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

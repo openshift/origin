@@ -3,8 +3,7 @@ package auditloganalyzer
 import (
 	"context"
 	"fmt"
-	"os"
-	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +24,8 @@ type auditLogAnalyzer struct {
 	summarizer            *summarizer
 	excessiveApplyChecker *excessiveApplies
 	requestCountTracking  *countTracking
+
+	countsForInstall *CountsForRun
 }
 
 func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
@@ -69,7 +70,65 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 
 	err = GetKubeAuditLogSummary(ctx, kubeClient, &beginning, &end, auditLogHandlers)
 
-	return nil, nil, err
+	retIntervals := monitorapi.Intervals{}
+
+	if w.requestCountTracking != nil {
+		w.requestCountTracking.CountsForRun.TruncateDataAfterLastValue()
+
+		// now make a smaller line chart that only includes installation so the plot will be a little easier to read
+		configClient, err := configclient.NewForConfig(w.adminRESTConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+		clusterVersion, err := configClient.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
+		if err != nil {
+			return nil, nil, err
+		}
+		if len(clusterVersion.Status.History) > 0 {
+			installedLevel := clusterVersion.Status.History[len(clusterVersion.Status.History)-1]
+			if installedLevel.CompletionTime != nil {
+				w.countsForInstall = w.requestCountTracking.CountsForRun.SubsetDataAtTime(*installedLevel.CompletionTime)
+			}
+		}
+
+		// at this point we have the ability to create intervals for every period where there are more than zero requests resulting in 500s
+		startOfCurrentProblems := -1
+		outageTotalNumberOf500s := 0
+		outageTotalRequests := 0
+		for i, currSecondRequests := range w.requestCountTracking.CountsForRun.CountsForEachSecond {
+			currentNumberOf500s := int(currSecondRequests.NumberOfRequestsReceivedThatLaterGot500.Load())
+			if currentNumberOf500s == 0 {
+				if startOfCurrentProblems >= 0 { // we're at the end of a trouble period
+					from := w.requestCountTracking.CountsForRun.EstimatedStartOfCluster.Add(time.Duration(startOfCurrentProblems) * time.Second)
+					to := w.requestCountTracking.CountsForRun.EstimatedStartOfCluster.Add(time.Duration(i) * time.Second)
+					failurePercentage := int((float32(outageTotalNumberOf500s) / float32(outageTotalRequests)) * 100)
+					retIntervals = append(retIntervals,
+						monitorapi.NewInterval(monitorapi.SourceAuditLog, monitorapi.Error).
+							Locator(monitorapi.NewLocator().KubeAPIServerWithLB("any")).
+							Message(monitorapi.NewMessage().
+								Reason(monitorapi.ReasonKubeAPIServer500s).
+								WithAnnotation(monitorapi.AnnotationCount, strconv.Itoa(outageTotalNumberOf500s)).
+								WithAnnotation(monitorapi.AnnotationPercentage, strconv.Itoa(failurePercentage)).
+								HumanMessagef("%d requests made during this time failed out of %d total", outageTotalNumberOf500s, outageTotalRequests),
+							).
+							Display().
+							Build(from, to))
+
+					startOfCurrentProblems = -1
+					outageTotalNumberOf500s = 0
+					outageTotalRequests = 0
+				}
+				continue
+			}
+			if startOfCurrentProblems < 0 {
+				startOfCurrentProblems = i
+				outageTotalNumberOf500s += currentNumberOf500s
+				outageTotalRequests += int(currSecondRequests.NumberOfRequestsReceived.Load())
+			}
+		}
+	}
+
+	return retIntervals, nil, err
 }
 
 func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
@@ -155,12 +214,14 @@ func (w *auditLogAnalyzer) WriteContentToStorage(ctx context.Context, storageDir
 	}
 
 	if w.requestCountTracking != nil {
-		csvContent, err := w.requestCountTracking.CountsForRun.ToCSV()
+		err := w.requestCountTracking.CountsForRun.WriteContentToStorage(storageDir, "request-counts-by-second", timeSuffix)
 		if err != nil {
 			return err
 		}
-		requestCountsByTimeFile := path.Join(storageDir, fmt.Sprintf("request-counts-by-second_%s.csv", timeSuffix))
-		if err := os.WriteFile(requestCountsByTimeFile, csvContent, 0644); err != nil {
+	}
+	if w.countsForInstall != nil {
+		err := w.countsForInstall.WriteContentToStorage(storageDir, "request-counts-for-install", timeSuffix)
+		if err != nil {
 			return err
 		}
 	}
