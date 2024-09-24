@@ -235,6 +235,8 @@ const (
 	LeaseAcquiring        IntervalReason = "Acquiring"
 	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
 	LeaseAcquired         IntervalReason = "Acquired"
+
+	ReasonKubeAPIServer500s IntervalReason = "KubeAPIServer500s"
 )
 
 type AnnotationKey string
@@ -267,6 +269,7 @@ const (
 	AnnotationRoles          AnnotationKey = "roles"
 	AnnotationStatus         AnnotationKey = "status"
 	AnnotationCondition      AnnotationKey = "condition"
+	AnnotationPercentage     AnnotationKey = "percentage"
 )
 
 // ConstructionOwner was originally meant to signify that an interval was derived from other intervals.
@@ -319,6 +322,7 @@ const (
 	SourceMetricsEndpointDown       IntervalSource = "MetricsEndpointDown"
 	APIServerGracefulShutdown       IntervalSource = "APIServerGracefulShutdown"
 	APIServerClusterOperatorWatcher IntervalSource = "APIServerClusterOperatorWatcher"
+	SourceAuditLog                  IntervalSource = "AuditLog"
 
 	SourceTestData                IntervalSource = "TestData" // some tests have no real source to assign
 	SourceOVSVswitchdLog          IntervalSource = "OVSVswitchdLog"
