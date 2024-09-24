@@ -336,7 +336,7 @@ func testDeleteGracePeriodZero(events monitorapi.Intervals) []*junitapi.JUnitTes
 		if event.Message.Reason != "ForceDelete" {
 			continue
 		}
-		if !strings.Contains(event.Locator.Keys[monitorapi.LocatorNamespaceKey], "openshift-") {
+		if !platformidentification.IsPlatformNamespace(event.Locator.Keys[monitorapi.LocatorNamespaceKey]) {
 			continue
 		}
 		if event.Message.Annotations["mirrored"] == "true" {
