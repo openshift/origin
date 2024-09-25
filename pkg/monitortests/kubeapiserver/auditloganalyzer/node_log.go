@@ -13,61 +13,23 @@ import (
 
 	"github.com/openshift/origin/pkg/monitortestlibrary/nodeaccess"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	auditv1 "k8s.io/apiserver/pkg/apis/audit/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 func GetKubeAuditLogSummary(ctx context.Context, kubeClient kubernetes.Interface, beginning, end *time.Time, auditLogHandlers []AuditEventHandler) error {
-	masterOnly, err := labels.NewRequirement("node-role.kubernetes.io/master", selection.Exists, nil)
-	if err != nil {
-		panic(err)
-	}
-	allNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
-		LabelSelector: labels.NewSelector().Add(*masterOnly).String(),
-	})
-
+	events, err := GetEvents(`/home/deads/Downloads/audit-logs(13)/registry-build04-ci-openshift-org-ci-op-ywclgz0t-stable-sha256-1bcf20915cd7b01643a5555630e06be72e4fef84cd34d1bdd10242c9fcf6cfdf/audit_logs/kube-apiserver`)
 	if err != nil {
 		return err
 	}
 
-	lock := sync.Mutex{}
-	errCh := make(chan error, len(allNodes.Items))
-	wg := sync.WaitGroup{}
-	for _, node := range allNodes.Items {
-		wg.Add(1)
-		go func(ctx context.Context, nodeName string) {
-			defer wg.Done()
-			var microBeginning, microEnd *metav1.MicroTime
-			if nil != beginning {
-				micro := metav1.NewMicroTime(*beginning)
-				microBeginning = &micro
-			}
-			if nil != end {
-				micro := metav1.NewMicroTime(*end)
-				microEnd = &micro
-			}
-			err := getNodeKubeAuditLogSummary(ctx, kubeClient, nodeName, microBeginning, microEnd, auditLogHandlers)
-			if err != nil {
-				errCh <- err
-				return
-			}
-
-			lock.Lock()
-			defer lock.Unlock()
-		}(ctx, node.Name)
+	for _, auditEvent := range events {
+		for _, auditLogHandler := range auditLogHandlers {
+			auditLogHandler.HandleAuditLogEvent(auditEvent, nil, nil)
+		}
 	}
-	wg.Wait()
-
-	errs := []error{}
-	for len(errCh) > 0 {
-		err := <-errCh
-		errs = append(errs, err)
-	}
-
-	return utilerrors.NewAggregate(errs)
+	return nil
 }
 
 type AuditEventHandler interface {

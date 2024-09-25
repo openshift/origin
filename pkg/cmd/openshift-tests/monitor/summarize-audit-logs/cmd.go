@@ -2,11 +2,11 @@ package summarize_audit_logs
 
 import (
 	"context"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	"time"
 
 	auditloganalyzer2 "github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
-
-	"k8s.io/client-go/kubernetes"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -46,22 +46,28 @@ func AuditLogSummaryCommand() *cobra.Command {
 }
 
 func (o auditLogSummaryOptions) Run(ctx context.Context) error {
-	restConfig, err := o.ConfigFlags.ToRESTConfig()
+	start, err := time.Parse(time.RFC3339, "2024-09-23T22:23:50Z")
 	if err != nil {
 		return err
 	}
-	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	installEnd, err := time.Parse(time.RFC3339, "2024-09-23T22:27:24Z")
+	if err != nil {
+		return err
+	}
+	requestCountTracking := auditloganalyzer2.CountsOverTime(metav1.Time{start})
+
+	err = auditloganalyzer2.GetKubeAuditLogSummary(ctx, nil, nil, nil, []auditloganalyzer2.AuditEventHandler{requestCountTracking})
 	if err != nil {
 		return err
 	}
 
-	summarizer := auditloganalyzer2.NewAuditLogSummarizer()
-	err = auditloganalyzer2.GetKubeAuditLogSummary(ctx, kubeClient, nil, nil, []auditloganalyzer2.AuditEventHandler{summarizer})
-	if err != nil {
+	requestCountTracking.CountsForRun.TruncateDataAfterLastValue()
+	installCounts := requestCountTracking.CountsForRun.SubsetDataAtTime(metav1.Time{installEnd})
+
+	if err := requestCountTracking.CountsForRun.WriteContentToStorage("", "request-counts-for-all", "timeSuffix"); err != nil {
 		return err
 	}
-
-	if err := auditloganalyzer2.WriteAuditLogSummary(o.ArtifactDir, "", summarizer.GetAuditLogSummary()); err != nil {
+	if err := installCounts.WriteContentToStorage("", "request-counts-for-install", "timeSuffix"); err != nil {
 		return err
 	}
 
