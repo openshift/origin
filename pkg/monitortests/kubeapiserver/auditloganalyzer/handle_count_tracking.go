@@ -186,17 +186,19 @@ func (c *CountsForRun) SubsetDataAtTime(endTime metav1.Time) *CountsForRun {
 func (c *CountsForRun) ToLineChart() (*plot.Plot, error) {
 	p := plot.New()
 	p.Title.Text = "Requests by Second of Cluster Life"
-	p.X.Label.Text = "Seconds of Cluster Life"
 	p.Y.Label.Text = "Number of Requests in that Second"
+	p.X.Label.Text = "Seconds of Cluster Life"
+	p.X.Tick.Marker = plot.TimeTicks{}
 	plotter.DefaultLineStyle.Width = vg.Points(1)
 
 	concurrentRequestsBeingHandled := plotter.XYs{}
 	requestReceived := plotter.XYs{}
 	requestReceivedThatResultsIn500 := plotter.XYs{}
 	for i, requestCounts := range c.CountsForEachSecond {
-		concurrentRequestsBeingHandled = append(concurrentRequestsBeingHandled, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfConcurrentRequestsBeingHandled)})
-		requestReceived = append(requestReceived, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfRequestsReceived)})
-		requestReceivedThatResultsIn500 = append(requestReceivedThatResultsIn500, plotter.XY{X: float64(i), Y: float64(requestCounts.NumberOfRequestsReceivedThatLaterGot500)})
+		timeOfSecond := c.EstimatedStartOfCluster.Add(time.Duration(i) * time.Second)
+		concurrentRequestsBeingHandled = append(concurrentRequestsBeingHandled, plotter.XY{X: float64(timeOfSecond.Unix()), Y: float64(requestCounts.NumberOfConcurrentRequestsBeingHandled)})
+		requestReceived = append(requestReceived, plotter.XY{X: float64(timeOfSecond.Unix()), Y: float64(requestCounts.NumberOfRequestsReceived)})
+		requestReceivedThatResultsIn500 = append(requestReceivedThatResultsIn500, plotter.XY{X: float64(timeOfSecond.Unix()), Y: float64(requestCounts.NumberOfRequestsReceivedThatLaterGot500)})
 	}
 
 	lineOfConcurrentRequestsBeingHandled, err := plotter.NewLine(concurrentRequestsBeingHandled)

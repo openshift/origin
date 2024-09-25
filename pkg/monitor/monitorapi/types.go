@@ -236,7 +236,7 @@ const (
 	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
 	LeaseAcquired         IntervalReason = "Acquired"
 
-	ReasonBadOperatorApply IntervalReason = "BadOperatorApply"
+	ReasonBadOperatorApply  IntervalReason = "BadOperatorApply"
 	ReasonKubeAPIServer500s IntervalReason = "KubeAPIServer500s"
 )
 

@@ -138,6 +138,34 @@ func (*auditLogAnalyzer) ConstructComputedIntervals(ctx context.Context, startin
 func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	ret := []*junitapi.JUnitTestCase{}
 
+	fiveHundredsTestName := "[Jira:kube-apiserver] kube-apiserver should not have internal failures"
+	apiserver500s := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Message.Reason == monitorapi.ReasonKubeAPIServer500s
+	})
+	totalDurationOf500s := 0
+	fiveHundredsFailures := []string{}
+	for _, interval := range apiserver500s {
+		totalDurationOf500s += int(interval.To.Sub(interval.From).Seconds()) + 1
+		fiveHundredsFailures = append(fiveHundredsFailures, interval.String())
+	}
+	if totalDurationOf500s > 60 {
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: fiveHundredsTestName,
+			FailureOutput: &junitapi.FailureOutput{
+				Message: strings.Join(fiveHundredsFailures, "\n"),
+				Output:  fmt.Sprintf("kube-apiserver had internal errors for %v seconds total", totalDurationOf500s),
+			},
+		})
+		// flake for now
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: fiveHundredsTestName,
+		})
+	} else {
+		ret = append(ret, &junitapi.JUnitTestCase{
+			Name: fiveHundredsTestName,
+		})
+	}
+
 	allPlatformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
 	if err != nil {
 		return nil, fmt.Errorf("problem getting platform namespaces: %w", err)
