@@ -54,7 +54,8 @@ func (*kubeletLogCollector) ConstructComputedIntervals(ctx context.Context, star
 
 func (w *kubeletLogCollector) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
 	junits := []*junitapi.JUnitTestCase{}
-	junits = append(junits, nodeFailedLeaseErrors(w.startedAt, finalIntervals)...)
+	junits = append(junits, nodeFailedLeaseErrorsInRapidSuccession(w.startedAt, finalIntervals)...)
+	junits = append(junits, nodeFailedLeaseErrorsBackOff(w.startedAt, finalIntervals)...)
 	return junits, nil
 }
 
@@ -67,8 +68,8 @@ func (*kubeletLogCollector) Cleanup(ctx context.Context) error {
 	return nil
 }
 
-func nodeFailedLeaseErrors(startedAt time.Time, finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[sig-node] kubelet-log-collector detects node failed to lease events"
+func nodeFailedLeaseErrorsInRapidSuccession(startedAt time.Time, finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] kubelet-log-collector detects node failed to lease events in rapid succession"
 	var failures []string
 
 	intervalsToFailOn := findLeaseIntervalsImportant(finalIntervals)
@@ -86,6 +87,32 @@ func nodeFailedLeaseErrors(startedAt time.Time, finalIntervals monitorapi.Interv
 			SystemOut: strings.Join(failures, "\n"),
 			FailureOutput: &junitapi.FailureOutput{
 				Output: fmt.Sprintf("kubelet-log-collector reports %d node failed to lease events.\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+		return tests
+	} else {
+		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+		return tests
+	}
+}
+
+func nodeFailedLeaseErrorsBackOff(startedAt time.Time, finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[sig-node] kubelet-log-collector detected lease failures in backoff"
+	var failures []string
+	intervalsToFlake := findLeaseBackOffs(finalIntervals)
+	for _, event := range intervalsToFlake {
+		if event.From.After(startedAt) {
+			failures = append(failures, fmt.Sprintf("%s %v - %v", event.From.Format(time.RFC3339), event.Locator.OldLocator(), event.Message.OldMessage()))
+		}
+	}
+	// failures during a run always fail the test suite
+	var tests []*junitapi.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("kubelet-log-collector reports %d lease back off events.\n\n%v", len(failures), strings.Join(failures, "\n")),
 			},
 		})
 	}
