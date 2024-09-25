@@ -342,6 +342,7 @@ var (
 			"ResourceSyncControllerDegraded",
 			"RevisionControllerDegraded",
 			"UnsupportedConfigOverridesUpgradeable",
+			"Made to fail!",
 		},
 		{Group: "operator.openshift.io", Version: "v1", Resource: "openshiftcontrollermanagers"}: {
 			"Available",
