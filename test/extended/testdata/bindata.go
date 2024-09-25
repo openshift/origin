@@ -155,13 +155,6 @@
 // test/extended/testdata/builds/valuefrom/test-is.json
 // test/extended/testdata/builds/valuefrom/test-secret.yaml
 // test/extended/testdata/builds/volumes/configmap.yaml
-// test/extended/testdata/builds/volumes/csi-docker-buildconfig.yaml
-// test/extended/testdata/builds/volumes/csi-s2i-buildconfig.yaml
-// test/extended/testdata/builds/volumes/csi-sharedresourcerole.yaml
-// test/extended/testdata/builds/volumes/csi-sharedresourcerolebinding.yaml
-// test/extended/testdata/builds/volumes/csi-sharedsecret.yaml
-// test/extended/testdata/builds/volumes/csi-without-rr-docker-buildconfig.yaml
-// test/extended/testdata/builds/volumes/csi-without-rr-s2i-buildconfig.yaml
 // test/extended/testdata/builds/volumes/docker-buildconfig.yaml
 // test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml
 // test/extended/testdata/builds/volumes/docker-imagestream.yaml
@@ -469,10 +462,6 @@
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/stable-busybox.yaml
-// test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml
-// test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml
-// test/extended/testdata/storage/inline/csi-sharedsecret.yaml
-// test/extended/testdata/storage/inline/secret.yaml
 // test/extended/testdata/templates/crunchydata-pod.json
 // test/extended/testdata/templates/guestbook.json
 // test/extended/testdata/templates/guestbook_list.json
@@ -22459,327 +22448,6 @@ func testExtendedTestdataBuildsVolumesConfigmapYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mydockertest
-  labels:
-    name: test
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mydockerstream:latest
-  postCommit:
-    script: cat /var/run/secrets/some-secret/key
-  triggers: []
-  runPolicy: Serial
-  source:
-    dockerfile:
-      'FROM quay.io/redhat-developer/test-build-simples2i:1.2'
-  strategy:
-    type: Docker
-    dockerStrategy:
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-      volumes:
-      - mounts:
-        - destinationPath: "/var/run/secrets/some-secret"
-        name: my-csi-shared-secret
-        source:
-          csi:
-            driver: csi.sharedresource.openshift.io
-            readOnly: true
-            volumeAttributes:
-              sharedSecret: my-share
-          type: CSI
-  resources: {}
-  nodeSelector: null
-status: {}`)
-
-func testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-docker-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mys2itest
-  labels:
-    name: test
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mys2istream:latest
-  postCommit:
-    script: cat /var/run/secrets/some-secret/key
-  triggers: []
-  runPolicy: Serial
-  source:
-    type: Binary
-    binary: {}
-  strategy:
-    type: Source
-    sourceStrategy:
-      env:
-        - name: "BUILD_LOGLEVEL"
-          value: "2"
-      from:
-        kind: DockerImage
-        name: quay.io/redhat-developer/test-build-simples2i:1.2
-      volumes:
-      - mounts:
-        - destinationPath: "/var/run/secrets/some-secret"
-        name: my-csi-shared-secret
-        source:
-          csi:
-            driver: csi.sharedresource.openshift.io
-            readOnly: true
-            volumeAttributes:
-              sharedSecret: my-share
-          type: CSI
-  resources: {}
-  nodeSelector: null
-status: {}`)
-
-func testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-s2i-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml = []byte(`apiVersion: authorization.openshift.io/v1
-kind: Role
-metadata:
-  name: shared-resource-my-share
-rules:
-- apiGroups:
-    - sharedresource.openshift.io
-  resources:
-    - sharedsecrets
-  resourceNames:
-    - my-share
-  verbs:
-    - use
-  `)
-
-func testExtendedTestdataBuildsVolumesCsiSharedresourceroleYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiSharedresourceroleYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-sharedresourcerole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml = []byte(`kind: Template
-apiVersion: template.openshift.io/v1
-metadata:
-  name: "build-volume-csi-roles-template"
-labels:
-  createdBy: "build-volume-csi-roles-template"
-parameters:
-  - description: "The namespace to create roles in."
-    name: NAMESPACE
-    required: true
-objects:
-  - apiVersion: authorization.openshift.io/v1
-    kind: RoleBinding
-    metadata:
-      name: shared-resource-my-share
-      namespace: ${NAMESPACE}
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: shared-resource-my-share
-      namespace: ${NAMESPACE}
-    subjects:
-    - kind: ServiceAccount
-      name: builder
-      namespace: ${NAMESPACE}
-`)
-
-func testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-sharedresourcerolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiSharedsecretYaml = []byte(`apiVersion: sharedresource.openshift.io/v1alpha1
-kind: SharedSecret
-metadata:
-  name: my-share
-spec:
-  secretRef:
-    name: my-secret
-    namespace: default
-`)
-
-func testExtendedTestdataBuildsVolumesCsiSharedsecretYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiSharedsecretYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiSharedsecretYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiSharedsecretYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-sharedsecret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mydockertest
-  labels:
-    name: test
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mydockerstream:latest
-  postCommit:
-    script: cat /var/run/secrets/some-secret/key
-  triggers: []
-  runPolicy: Serial
-  source:
-    dockerfile:
-      'FROM quay.io/redhat-developer/test-build-simples2i:1.2'
-  strategy:
-    type: Docker
-    dockerStrategy:
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-      volumes:
-      - mounts:
-        - destinationPath: "/var/run/secrets/some-secret"
-        name: my-csi-shared-secret
-        source:
-          csi:
-            driver: csi.sharedresource.openshift.io
-            readOnly: true
-            volumeAttributes:
-              sharedSecret: my-share
-              refreshResource: "false"
-          type: CSI
-  resources: {}
-  nodeSelector: null
-status: {}`)
-
-func testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-without-rr-docker-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml = []byte(`apiVersion: build.openshift.io/v1
-kind: BuildConfig
-metadata:
-  name: mys2itest
-  labels:
-    name: test
-spec:
-  output:
-    to:
-      kind: ImageStreamTag
-      name: mys2istream:latest
-  postCommit:
-    script: cat /var/run/secrets/some-secret/key
-  triggers: []
-  runPolicy: Serial
-  source:
-    type: Binary
-    binary: {}
-  strategy:
-    type: Source
-    sourceStrategy:
-      env:
-        - name: BUILD_LOGLEVEL
-          value: "5"
-      from:
-        kind: DockerImage
-        name: quay.io/redhat-developer/test-build-simples2i:1.2
-      volumes:
-      - mounts:
-        - destinationPath: "/var/run/secrets/some-secret"
-        name: my-csi-shared-secret
-        source:
-          csi:
-            driver: csi.sharedresource.openshift.io
-            readOnly: true
-            volumeAttributes:
-              sharedSecret: my-share
-              refreshResource: "false"
-          type: CSI
-  resources: {}
-  nodeSelector: null
-status: {}`)
-
-func testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml, nil
-}
-
-func testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/csi-without-rr-s2i-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -51648,127 +51316,6 @@ func testExtendedTestdataStableBusyboxYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataStorageInlineCsiSharedresourceroleYaml = []byte(`apiVersion: authorization.openshift.io/v1
-kind: Role
-metadata:
-  name: shared-resource-my-share
-rules:
-- apiGroups:
-    - sharedresource.openshift.io
-  resources:
-    - sharedsecrets
-  resourceNames:
-    - my-share
-  verbs:
-    - use
-`)
-
-func testExtendedTestdataStorageInlineCsiSharedresourceroleYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStorageInlineCsiSharedresourceroleYaml, nil
-}
-
-func testExtendedTestdataStorageInlineCsiSharedresourceroleYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStorageInlineCsiSharedresourceroleYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml = []byte(`kind: Template
-apiVersion: template.openshift.io/v1
-metadata:
-  name: "inline-volume-csi-roles-template"
-labels:
-  createdBy: "inline-volume-csi-roles-template"
-parameters:
-  - description: "The namespace to create roles in."
-    name: NAMESPACE
-    required: true
-objects:
-  - apiVersion: authorization.openshift.io/v1
-    kind: RoleBinding
-    metadata:
-      name: shared-resource-my-share
-      namespace: ${NAMESPACE}
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: Role
-      name: shared-resource-my-share
-      namespace: ${NAMESPACE}
-    subjects:
-    - kind: ServiceAccount
-      name: default
-      namespace: ${NAMESPACE}
-`)
-
-func testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml, nil
-}
-
-func testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStorageInlineCsiSharedsecretYaml = []byte(`apiVersion: sharedresource.openshift.io/v1alpha1
-kind: SharedSecret
-metadata:
-  name: my-share
-spec:
-  secretRef:
-    name: my-secret
-    namespace: default
-`)
-
-func testExtendedTestdataStorageInlineCsiSharedsecretYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStorageInlineCsiSharedsecretYaml, nil
-}
-
-func testExtendedTestdataStorageInlineCsiSharedsecretYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStorageInlineCsiSharedsecretYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/csi-sharedsecret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataStorageInlineSecretYaml = []byte(`apiVersion: v1
-data:
-  key: bXktc2VjcmV0LXZhbHVl # my-secret-value
-kind: Secret
-metadata:
-  name: my-secret
-type: Opaque
-`)
-
-func testExtendedTestdataStorageInlineSecretYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStorageInlineSecretYaml, nil
-}
-
-func testExtendedTestdataStorageInlineSecretYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStorageInlineSecretYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/storage/inline/secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataTemplatesCrunchydataPodJson = []byte(`{
   "kind": "Template",
   "apiVersion": "template.openshift.io/v1",
@@ -55407,13 +54954,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/valuefrom/test-is.json":                                                   testExtendedTestdataBuildsValuefromTestIsJson,
 	"test/extended/testdata/builds/valuefrom/test-secret.yaml":                                               testExtendedTestdataBuildsValuefromTestSecretYaml,
 	"test/extended/testdata/builds/volumes/configmap.yaml":                                                   testExtendedTestdataBuildsVolumesConfigmapYaml,
-	"test/extended/testdata/builds/volumes/csi-docker-buildconfig.yaml":                                      testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/csi-s2i-buildconfig.yaml":                                         testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/csi-sharedresourcerole.yaml":                                      testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml,
-	"test/extended/testdata/builds/volumes/csi-sharedresourcerolebinding.yaml":                               testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml,
-	"test/extended/testdata/builds/volumes/csi-sharedsecret.yaml":                                            testExtendedTestdataBuildsVolumesCsiSharedsecretYaml,
-	"test/extended/testdata/builds/volumes/csi-without-rr-docker-buildconfig.yaml":                           testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/csi-without-rr-s2i-buildconfig.yaml":                              testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml,
 	"test/extended/testdata/builds/volumes/docker-buildconfig.yaml":                                          testExtendedTestdataBuildsVolumesDockerBuildconfigYaml,
 	"test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml":                                     testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml,
 	"test/extended/testdata/builds/volumes/docker-imagestream.yaml":                                          testExtendedTestdataBuildsVolumesDockerImagestreamYaml,
@@ -55721,10 +55261,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf":                                    testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml":                                                         testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/stable-busybox.yaml":                                                             testExtendedTestdataStableBusyboxYaml,
-	"test/extended/testdata/storage/inline/csi-sharedresourcerole.yaml":                                      testExtendedTestdataStorageInlineCsiSharedresourceroleYaml,
-	"test/extended/testdata/storage/inline/csi-sharedresourcerolebinding.yaml":                               testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml,
-	"test/extended/testdata/storage/inline/csi-sharedsecret.yaml":                                            testExtendedTestdataStorageInlineCsiSharedsecretYaml,
-	"test/extended/testdata/storage/inline/secret.yaml":                                                      testExtendedTestdataStorageInlineSecretYaml,
 	"test/extended/testdata/templates/crunchydata-pod.json":                                                  testExtendedTestdataTemplatesCrunchydataPodJson,
 	"test/extended/testdata/templates/guestbook.json":                                                        testExtendedTestdataTemplatesGuestbookJson,
 	"test/extended/testdata/templates/guestbook_list.json":                                                   testExtendedTestdataTemplatesGuestbook_listJson,
@@ -56027,21 +55563,14 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-secret.yaml":                               {testExtendedTestdataBuildsValuefromTestSecretYaml, map[string]*bintree{}},
 					}},
 					"volumes": {nil, map[string]*bintree{
-						"configmap.yaml":                         {testExtendedTestdataBuildsVolumesConfigmapYaml, map[string]*bintree{}},
-						"csi-docker-buildconfig.yaml":            {testExtendedTestdataBuildsVolumesCsiDockerBuildconfigYaml, map[string]*bintree{}},
-						"csi-s2i-buildconfig.yaml":               {testExtendedTestdataBuildsVolumesCsiS2iBuildconfigYaml, map[string]*bintree{}},
-						"csi-sharedresourcerole.yaml":            {testExtendedTestdataBuildsVolumesCsiSharedresourceroleYaml, map[string]*bintree{}},
-						"csi-sharedresourcerolebinding.yaml":     {testExtendedTestdataBuildsVolumesCsiSharedresourcerolebindingYaml, map[string]*bintree{}},
-						"csi-sharedsecret.yaml":                  {testExtendedTestdataBuildsVolumesCsiSharedsecretYaml, map[string]*bintree{}},
-						"csi-without-rr-docker-buildconfig.yaml": {testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml, map[string]*bintree{}},
-						"csi-without-rr-s2i-buildconfig.yaml":    {testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml, map[string]*bintree{}},
-						"docker-buildconfig.yaml":                {testExtendedTestdataBuildsVolumesDockerBuildconfigYaml, map[string]*bintree{}},
-						"docker-deploymentconfig.yaml":           {testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml, map[string]*bintree{}},
-						"docker-imagestream.yaml":                {testExtendedTestdataBuildsVolumesDockerImagestreamYaml, map[string]*bintree{}},
-						"s2i-buildconfig.yaml":                   {testExtendedTestdataBuildsVolumesS2iBuildconfigYaml, map[string]*bintree{}},
-						"s2i-deploymentconfig.yaml":              {testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml, map[string]*bintree{}},
-						"s2i-imagestream.yaml":                   {testExtendedTestdataBuildsVolumesS2iImagestreamYaml, map[string]*bintree{}},
-						"secret.yaml":                            {testExtendedTestdataBuildsVolumesSecretYaml, map[string]*bintree{}},
+						"configmap.yaml":               {testExtendedTestdataBuildsVolumesConfigmapYaml, map[string]*bintree{}},
+						"docker-buildconfig.yaml":      {testExtendedTestdataBuildsVolumesDockerBuildconfigYaml, map[string]*bintree{}},
+						"docker-deploymentconfig.yaml": {testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml, map[string]*bintree{}},
+						"docker-imagestream.yaml":      {testExtendedTestdataBuildsVolumesDockerImagestreamYaml, map[string]*bintree{}},
+						"s2i-buildconfig.yaml":         {testExtendedTestdataBuildsVolumesS2iBuildconfigYaml, map[string]*bintree{}},
+						"s2i-deploymentconfig.yaml":    {testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml, map[string]*bintree{}},
+						"s2i-imagestream.yaml":         {testExtendedTestdataBuildsVolumesS2iImagestreamYaml, map[string]*bintree{}},
+						"secret.yaml":                  {testExtendedTestdataBuildsVolumesSecretYaml, map[string]*bintree{}},
 					}},
 					"webhook": {nil, map[string]*bintree{
 						"bitbucket": {nil, map[string]*bintree{
@@ -56504,14 +56033,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"signer-buildconfig.yaml": {testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"stable-busybox.yaml":     {testExtendedTestdataStableBusyboxYaml, map[string]*bintree{}},
-				"storage": {nil, map[string]*bintree{
-					"inline": {nil, map[string]*bintree{
-						"csi-sharedresourcerole.yaml":        {testExtendedTestdataStorageInlineCsiSharedresourceroleYaml, map[string]*bintree{}},
-						"csi-sharedresourcerolebinding.yaml": {testExtendedTestdataStorageInlineCsiSharedresourcerolebindingYaml, map[string]*bintree{}},
-						"csi-sharedsecret.yaml":              {testExtendedTestdataStorageInlineCsiSharedsecretYaml, map[string]*bintree{}},
-						"secret.yaml":                        {testExtendedTestdataStorageInlineSecretYaml, map[string]*bintree{}},
-					}},
-				}},
 				"templates": {nil, map[string]*bintree{
 					"crunchydata-pod.json":              {testExtendedTestdataTemplatesCrunchydataPodJson, map[string]*bintree{}},
 					"guestbook.json":                    {testExtendedTestdataTemplatesGuestbookJson, map[string]*bintree{}},
