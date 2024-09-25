@@ -6,9 +6,9 @@ spec:
   tags:
   - from:
       kind: ImageStreamTag
-      name: "3.0"
+      name: "3.1"
     name: "latest"
   - from:
       kind: ImageStreamTag
-      name: ruby:3.0-ubi8
-    name: "3.0"
+      name: ruby:3.1-ubi8
+    name: "3.1"
