@@ -235,6 +235,8 @@ const (
 	LeaseAcquiring        IntervalReason = "Acquiring"
 	LeaseAcquiringStarted IntervalReason = "StartedAcquiring"
 	LeaseAcquired         IntervalReason = "Acquired"
+
+	ReasonBadOperatorApply IntervalReason = "BadOperatorApply"
 )
 
 type AnnotationKey string
