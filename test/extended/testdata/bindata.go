@@ -17865,7 +17865,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
         },
         "env": [
           {
@@ -19196,7 +19196,7 @@ spec:
         value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
@@ -19296,7 +19296,7 @@ spec:
     dockerStrategy:
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchimagecontentdockerYamlBytes() ([]byte, error) {
@@ -19330,7 +19330,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsourcedockerYamlBytes() ([]byte, error) {
@@ -19364,7 +19364,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
 `)
 
 func testExtendedTestdataBuildsStatusfailFetchsources2iYamlBytes() ([]byte, error) {
@@ -19396,7 +19396,7 @@ spec:
 
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
       scripts: "http://example.org/scripts"
       env:
         - name: http_proxy
@@ -19439,7 +19439,7 @@ spec:
           value: "2"
       from:
         kind: DockerImage
-        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+        name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
       forcePull: true
 `)
 
@@ -20165,7 +20165,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -20354,7 +20354,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -20383,7 +20383,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -20411,7 +20411,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -20440,7 +20440,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
   status:
     lastVersion: 0
@@ -20468,7 +20468,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8
+          name: image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -21260,7 +21260,7 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+          "name": "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
         }
       }
     },
@@ -21609,7 +21609,7 @@ items:
             value: "2"
         from:
           kind: ImageStreamTag
-          name: ruby:3.0-ubi8
+          name: ruby:3.1-ubi8
           namespace: openshift
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
@@ -51069,7 +51069,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
         resources: {}
       status:
         lastVersion: 0
@@ -51115,7 +51115,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
     -
       kind: "BuildConfig"
       apiVersion: "build.openshift.io/v1"
@@ -51136,7 +51136,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
@@ -51179,7 +51179,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
           sourceStrategy:
             from:
               kind: "DockerImage"
-              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.0-ubi8"
+              name: "image-registry.openshift-image-registry.svc:5000/openshift/ruby:3.1-ubi8"
         resources: {}
       status:
         lastVersion: 0
