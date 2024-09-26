@@ -85,7 +85,9 @@ var (
 			`\[sig-builds\]\[Feature:Builds\] oc new-app should succeed with a --name of 58 characters`,
 			`\[sig-arch\] Only known images used by tests`,
 		},
-		"[Skipped:SingleReplicaTopology]": {},
+		"[Skipped:SingleReplicaTopology]": {
+			`should be scheduled on different nodes`,
+		},
 
 		"[Feature:Networking-IPv4]": {
 			`\[sig-network\]\[Feature:Router\]\[apigroup:route.openshift.io\] when FIPS is disabled the HAProxy router should serve routes when configured with a 1024-bit RSA key`,
