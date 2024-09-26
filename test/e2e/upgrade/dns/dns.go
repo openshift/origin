@@ -132,17 +132,28 @@ func (t *UpgradeTest) validateDNSResults(f *framework.Framework) {
 
 		failureCount := 0.0
 		successCount := 0.0
+		totalLineCount := 0
 		scan := bufio.NewScanner(r)
+		var ipParseErrors []string
 		for scan.Scan() {
 			line := scan.Text()
+			totalLineCount++
 			if strings.Contains(line, "fail") {
 				failureCount++
 			} else if ip := net.ParseIP(line); ip != nil {
 				successCount++
+			} else {
+				ipParseErrors = append(ipParseErrors, fmt.Sprintf("line (%s) was not parsable by net.ParseIP", line))
 			}
 		}
+		if ipParseErrors != nil {
+			ginkgo.By(fmt.Sprintf("Found IP Parse Errors %s", ipParseErrors))
+		}
+		framework.ExpectNoError(scan.Err())
+		successRate := (successCount / (successCount + failureCount)) * 100
+		ginkgo.By(fmt.Sprintf("SuccessRate: %f SuccessCount: %f, FailureCount: %f | TotalLineCount: %d", successRate, successCount, failureCount, totalLineCount))
 
-		if successRate := (successCount / (successCount + failureCount)) * 100; successRate < 99 {
+		if successRate < 99 {
 			err = fmt.Errorf("success rate is less than 99%% on the node %s: [%0.2f]", pod.Spec.NodeName, successRate)
 		} else {
 			err = nil
