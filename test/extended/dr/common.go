@@ -473,7 +473,7 @@ EOF
 	return runPodAndWaitForSuccess(oc, pod)
 }
 
-func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node) error {
+func runSnapshotRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node) error {
 	const name = "etcd-restore-pod"
 	framework.Logf("running restore script on node: %v", restoreNode.Name)
 
@@ -499,7 +499,7 @@ func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNod
             rm -rf /var/lib/etcd
             mkdir -p /var/lib/etcd
             export ETCD_ETCDCTL_RESTORE=true
-            export ETCD_RESTORE_SKIP_MOVE_CP_STATIC_PODS=true
+
             /usr/local/bin/cluster-restore.sh /home/core/backup
             # from here on out, the member should come back through the static pod installer in CEO
 EOF
@@ -531,7 +531,7 @@ EOF
 	return runPodAndWaitForSuccess(oc, pod)
 }
 
-func runDeleteAndRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node, nonRecoveryNodes []*corev1.Node) error {
+func runClusterRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupNode *corev1.Node, nonRecoveryNodes []*corev1.Node) error {
 	const name = "bumping-etcd-restore-pod"
 	framework.Logf("running deletes and restore script on node: %v", restoreNode.Name)
 
@@ -556,8 +556,6 @@ func runDeleteAndRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupN
 		  ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${i} sudo rm -rf /etc/kubernetes/manifests/etcd-pod.yaml 
           echo "remove data dir on [$i]" 
           ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${i} sudo rm -rf /var/lib/etcd
-          echo "restarting kubelet on [$i]"
-		  ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${i} sudo systemctl restart kubelet.service
 		done
 
         TARGET_NODE_NAME=%s 
@@ -569,7 +567,7 @@ func runDeleteAndRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node, backupN
          mv \$SNAPSHOT /home/core/backup/snapshot.db
          sudo rm -rf /var/lib/etcd
          
-         sudo ETCD_ETCDCTL_RESTORE_ENABLE_BUMP=true /usr/local/bin/cluster-restore.sh /home/core/backup
+         sudo /usr/local/bin/cluster-restore.sh /home/core/backup
          # this will cause the pod to disappear effectively, must be the last statement
          sudo systemctl restart kubelet.service
 
@@ -599,126 +597,6 @@ EOF`, sshKeyDance, strings.Join(nonRecoveryIps, " "), restoreInternalIp, backupI
 	pod := applycorev1.Pod(name, openshiftEtcdNamespace).WithSpec(podSpec)
 	// we only run the pod and not wait for it, as it will not be tracked after the control plane comes back
 	return runPod(oc, pod)
-}
-
-// TODO(thomas): this shouldn't be necessary once we can bump the etcd revisions
-func runOVNRepairCommands(oc *exutil.CLI, restoreNode *corev1.Node, nonRecoveryNodes []*corev1.Node) error {
-	const name = "etcd-ovn-repair-pod"
-	framework.Logf("running ovn-repair script on node: %v", restoreNode.Name)
-
-	var nodeIPs []string
-	for _, n := range nonRecoveryNodes {
-		nodeIPs = append(nodeIPs, internalIP(n))
-	}
-	// adding the restore node last is important for kubelet restarts, as the ovn-repair pod runs on top of that node
-	nodeIPs = append(nodeIPs, internalIP(restoreNode))
-
-	ovnRepairScript := fmt.Sprintf(`
-		#!/bin/bash
-        set -exuo pipefail
-		
-		# ssh key dance
-		%s
-        NODE_IPS=( %s )
-		for i in "${NODE_IPS[@]}"; do
-		  echo "removing ovn etc on [$i]"
-		  ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${i} sudo rm -rf /var/lib/ovn/etc/ 
-          echo "restarting kubelet on [$i]"
-          # running this process async to get a chance to finish the pod gracefully
-          ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${i} sudo systemctl restart kubelet.service &
-        done
-        exit`, sshKeyDance, strings.Join(nodeIPs, " "))
-
-	podSpec := applycorev1.PodSpec().WithHostNetwork(true).WithRestartPolicy(corev1.RestartPolicyOnFailure)
-	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
-		*applycorev1.Container().
-			WithName("ovn-repair").
-			WithSecurityContext(applycorev1.SecurityContext().WithPrivileged(true)).
-			WithImage(image.ShellImage()).
-			WithVolumeMounts(
-				applycorev1.VolumeMount().WithName("keys").WithMountPath(sshPath),
-			).
-			WithCommand("/bin/bash", "-c", ovnRepairScript),
-	}
-	podSpec.NodeSelector = map[string]string{"kubernetes.io/hostname": restoreNode.Labels["kubernetes.io/hostname"]}
-	podSpec.Tolerations = []applycorev1.TolerationApplyConfiguration{
-		*applycorev1.Toleration().WithKey("node-role.kubernetes.io/master").WithOperator(corev1.TolerationOpExists).WithEffect(corev1.TaintEffectNoSchedule),
-	}
-
-	podSpec.Volumes = []applycorev1.VolumeApplyConfiguration{
-		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName("dr-ssh")),
-	}
-
-	pod := applycorev1.Pod(name, openshiftEtcdNamespace).WithSpec(podSpec)
-	err := runPodAndWaitForSuccess(oc, pod)
-	if err != nil {
-		return err
-	}
-
-	return wait.PollImmediate(5*time.Minute, 30*time.Minute, func() (bool, error) {
-		framework.Logf("attempting to delete all ovn pods...")
-		pods, err := getAllOvnPods(oc)
-		if err != nil {
-			framework.Logf("error while attempting to get OVN pods: %v", err)
-			return false, nil
-		}
-
-		numPods := len(pods)
-
-		err = e2epod.DeletePodsWithGracePeriod(context.TODO(), oc.AdminKubeClient(), pods, 0)
-		if err != nil {
-			framework.Logf("error while attempting to delete OVN pods: %v", err)
-			return false, nil
-		}
-		framework.Logf("all ovn pods were deleted successfully!")
-
-		err = wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
-			pods, err := getAllOvnPods(oc)
-			if err != nil {
-				framework.Logf("error while attempting to get OVN pods: %v", err)
-				return false, nil
-			}
-
-			if len(pods) != numPods {
-				framework.Logf("expected %d ovn pods, found only %d...", numPods, len(pods))
-				return false, nil
-			}
-
-			// wait for all the ovn pods to be running, looping through all of them for better logging
-			allRunning := true
-			for _, pod := range pods {
-				_, err := utils.PodRunningReady(&pod)
-				if err != nil {
-					framework.Logf("%v", err)
-					allRunning = false
-				}
-			}
-
-			return allRunning, nil
-		})
-
-		if err != nil {
-			framework.Logf("error while waiting for OVN pods to become ready: %v", err)
-			return false, nil
-		}
-
-		framework.Logf("all OVN pods are running, continuing")
-		return true, nil
-	})
-}
-
-func getAllOvnPods(oc *exutil.CLI) ([]corev1.Pod, error) {
-	ovnKubeMasters, err := e2epod.GetPods(context.TODO(), oc.AdminKubeClient(), "openshift-ovn-kubernetes", map[string]string{"app": "ovnkube-master"})
-	if err != nil {
-		return nil, err
-	}
-
-	ovnNodes, err := e2epod.GetPods(context.TODO(), oc.AdminKubeClient(), "openshift-ovn-kubernetes", map[string]string{"app": "ovnkube-node"})
-	if err != nil {
-		return nil, err
-	}
-
-	return append(ovnKubeMasters, ovnNodes...), nil
 }
 
 func runPodAndWaitForSuccess(oc *exutil.CLI, pod *applycorev1.PodApplyConfiguration) error {
