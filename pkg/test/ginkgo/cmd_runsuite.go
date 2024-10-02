@@ -590,7 +590,7 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 	}
 	// TODO: this version along with below exclusions lists needs to be updated
 	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "30") {
+	if !strings.HasPrefix(serverVersion.Minor, "32") {
 		return tests, nil
 	}
 
