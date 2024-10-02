@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,12 +28,12 @@ type serializedTest struct {
 	Labels string
 }
 
-// externalTestsForSuite reads tests available from external testing binaries
-// carried in the release payload.
-func externalTestsForSuite(ctx context.Context, releaseReferences *imagev1.ImageStream, tag string, binaryPath string) ([]*testCase, error) {
+// externalTestsForSuite extracts extension binaries from the release payload and
+// reads which tests it advertises.
+func externalTestsForSuite(ctx context.Context, logger *log.Logger, releaseReferences *imagev1.ImageStream, tag string, binaryPath string) ([]*testCase, error) {
 	var tests []*testCase
 
-	testBinary, err := extractBinaryFromReleaseImage(releaseReferences, tag, binaryPath)
+	testBinary, err := extractBinaryFromReleaseImage(logger, releaseReferences, tag, binaryPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to extract %q binary from tag %q: %w", binaryPath, tag, err)
 	}
@@ -78,10 +79,10 @@ func externalTestsForSuite(ctx context.Context, releaseReferences *imagev1.Image
 }
 
 // extractReleaseImageStream extracts image references from the current
-// cluster's release payload (or image specified by EXTERNAL_BINARY_RELEASE_OVERRIDE)
-// and returns an ImageStream object with tags associated with image-references
-// from that payload.
-func extractReleaseImageStream() (*imagev1.ImageStream, error) {
+// cluster's release payload (or image specified by EXTENSIONS_PAYLOAD_OVERRIDE
+// or RELEASE_IMAGE_LATEST which is used in OpenShift Test Platform CI) and returns
+// an ImageStream object with tags associated with image-references from that payload.
+func extractReleaseImageStream(logger *log.Logger) (*imagev1.ImageStream, error) {
 	tmpDir, err := os.MkdirTemp("", "release")
 	if err != nil {
 		return nil, fmt.Errorf("cannot create temporary directory for extracted binary: %w", err)
@@ -93,15 +94,32 @@ func extractReleaseImageStream() (*imagev1.ImageStream, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed reading ClusterVersion/version: %w", err)
 	}
-	releaseImage := cv.Status.Desired.Image
-	if len(releaseImage) == 0 {
-		return nil, fmt.Errorf("cannot determine release image from ClusterVersion resource")
+
+	var releaseImage string
+
+	// Highest priority override is EXTENSIONS_PAYLOAD_OVERRIDE
+	overrideReleaseImage := os.Getenv("EXTENSIONS_PAYLOAD_OVERRIDE")
+	if len(overrideReleaseImage) != 0 {
+		// if "cluster" is specified, prefer target cluster payload even if RELEASE_IMAGE_LATEST is set.
+		if overrideReleaseImage != "cluster" {
+			releaseImage = overrideReleaseImage
+			logger.Printf("Using env EXTENSIONS_PAYLOAD_OVERRIDE for release image %q", releaseImage)
+		}
+	} else {
+		// Allow testing using an overridden source for external tests.
+		envReleaseImage := os.Getenv("RELEASE_IMAGE_LATEST")
+		if len(envReleaseImage) != 0 {
+			releaseImage = envReleaseImage
+			logger.Printf("Using env RELEASE_IMAGE_LATEST for release image %q", releaseImage)
+		}
 	}
 
-	// Allow testing using an overridden source for external tests.
-	overrideReleaseImage := os.Getenv("EXTERNAL_BINARY_RELEASE_OVERRIDE")
-	if overrideReleaseImage != "" {
-		releaseImage = overrideReleaseImage
+	if len(releaseImage) == 0 {
+		releaseImage = cv.Status.Desired.Image
+		if len(releaseImage) == 0 {
+			return nil, fmt.Errorf("cannot determine release image from ClusterVersion resource")
+		}
+		logger.Printf("Using target cluster release image %q", releaseImage)
 	}
 
 	if err := runImageExtract(releaseImage, "/release-manifests/image-references", tmpDir, ""); err != nil {
@@ -124,12 +142,24 @@ func extractReleaseImageStream() (*imagev1.ImageStream, error) {
 		return nil, fmt.Errorf("unrecognized image-references in release payload %q", releaseImage)
 	}
 
+	logger.Printf("Targeting release image %q for default external binaries", releaseImage)
+
+	// Allow environmental overrides for individual component images.
+	for _, tag := range is.Spec.Tags {
+		componentEnvName := "EXTENSIONS_PAYLOAD_OVERRIDE_" + tag.Name
+		componentOverrideImage := os.Getenv(componentEnvName)
+		if len(componentOverrideImage) != 0 {
+			tag.From.Name = componentOverrideImage
+			logger.Printf("Overrode release image tag %q for with env %s value %q", tag.Name, componentEnvName, componentOverrideImage)
+		}
+	}
+
 	return is, nil
 }
 
 // extractBinaryFromReleaseImage is responsible for resolving the tag from
 // release image and extracting binary, returns path to the binary or error
-func extractBinaryFromReleaseImage(releaseImageReferences *imagev1.ImageStream, tag, binary string) (string, error) {
+func extractBinaryFromReleaseImage(logger *log.Logger, releaseImageReferences *imagev1.ImageStream, tag, binary string) (string, error) {
 
 	tmpDir, err := os.MkdirTemp("", "external-binary")
 
@@ -165,9 +195,12 @@ func extractBinaryFromReleaseImage(releaseImageReferences *imagev1.ImageStream, 
 	if len(image) == 0 {
 		return "", fmt.Errorf("%s not found", tag)
 	}
+
+	startTime := time.Now()
 	if err := runImageExtract(image, binary, tmpDir, dockerConfigJsonPath); err != nil {
 		return "", fmt.Errorf("failed extracting %q from %q: %w", binary, image, err)
 	}
+	extractDuration := time.Since(startTime)
 
 	extractedBinary := filepath.Join(tmpDir, filepath.Base(binary))
 	// Support gzipped external binaries as they will not be flagged by FIPS scan
@@ -178,8 +211,15 @@ func extractBinaryFromReleaseImage(releaseImageReferences *imagev1.ImageStream, 
 	}
 
 	if err := os.Chmod(extractedBinary, 0755); err != nil {
-		return "", fmt.Errorf("failed making the extracted binary executable: %w", err)
+		return "", fmt.Errorf("failed making the extracted binary %q executable: %w", extractedBinary, err)
 	}
+
+	fileInfo, err := os.Stat(extractedBinary)
+	if err != nil {
+		return "", fmt.Errorf("failed stat on extracted binary %q: %w", extractedBinary, err)
+	}
+
+	logger.Printf("Extracted %q for tag %q from %q (disk size %v, extraction duration %v)", binary, tag, image, fileInfo.Size(), extractDuration)
 	return extractedBinary, nil
 }
 

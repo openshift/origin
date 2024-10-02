@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/test/extended/util"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -164,8 +165,6 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		buf := &bytes.Buffer{}
-
 		// A registry of available external binaries and in which image
 		// they reside in the payload.
 		externalBinaries := []externalBinaryStruct{
@@ -193,7 +192,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			suite:   suite,
 		}
 
-		releaseImageReferences, err := extractReleaseImageStream()
+		// Lines logged to this logger will be included in the junit output for the
+		// external binary usage synthetic.
+		var extractDetailsBuffer bytes.Buffer
+		extractLogger := log.New(&extractDetailsBuffer, "", log.LstdFlags|log.Lmicroseconds)
+
+		releaseImageReferences, err := extractReleaseImageStream(extractLogger)
 		if err != nil {
 			return fmt.Errorf("unable to extract image references from release payload: %w", err)
 		}
@@ -211,8 +215,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 				var tagTestSet []*testCase
 				var tagErr error
-				if skipReason == "" {
-					tagTestSet, tagErr = externalTestsForSuite(ctx, releaseImageReferences, externalBinary.imageTag, externalBinary.binaryPath)
+				if len(skipReason) == 0 {
+					tagTestSet, tagErr = externalTestsForSuite(ctx, extractLogger, releaseImageReferences, externalBinary.imageTag, externalBinary.binaryPath)
 				}
 
 				resultCh <- externalBinaryResult{
@@ -230,12 +234,12 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 		for result := range resultCh {
 			if result.skipReason != "" {
-				fmt.Fprintf(buf, "Skipping test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.skipReason)
+				extractLogger.Printf("Skipping test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.skipReason)
 			} else if result.err != nil {
-				fmt.Fprintf(buf, "Error during test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.err)
+				extractLogger.Printf("Error during test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.err)
 				err = result.err
 			} else {
-				fmt.Fprintf(buf, "Discovered %v tests from image %q and binary %q\n", len(result.externalTests), result.externalBinary.imageTag, result.externalBinary.binaryPath)
+				extractLogger.Printf("Discovered %v tests from image %q and binary %q\n", len(result.externalTests), result.externalBinary.imageTag, result.externalBinary.binaryPath)
 				externalTests = append(externalTests, result.externalTests...)
 			}
 		}
@@ -254,23 +258,23 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 				}
 			}
 			tests = append(filteredTests, externalTests...)
-			fmt.Fprintf(buf, "Discovered a total of %v external tests and will run a total of %v\n", len(externalTests), len(tests))
+			extractLogger.Printf("Discovered a total of %v external tests and will run a total of %v\n", len(externalTests), len(tests))
 		} else {
-			fmt.Fprintf(buf, "Errors encountered while extracting one or more external test suites; Falling back to built-in suite: %v\n", err)
+			extractLogger.Printf("Errors encountered while extracting one or more external test suites; Falling back to built-in suite: %v\n", err)
 			// adding this test twice (one failure here, and success below) will
 			// ensure it gets picked as flake further down in synthetic tests processing
 			fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
 				Name:      "[sig-arch] External binary usage",
-				SystemOut: buf.String(),
+				SystemOut: extractDetailsBuffer.String(),
 				FailureOutput: &junitapi.FailureOutput{
-					Output: buf.String(),
+					Output: extractDetailsBuffer.String(),
 				},
 			})
 		}
-		fmt.Fprintf(o.Out, buf.String())
+		fmt.Fprintf(o.Out, extractDetailsBuffer.String())
 		fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
 			Name:      "[sig-arch] External binary usage",
-			SystemOut: buf.String(),
+			SystemOut: extractDetailsBuffer.String(),
 		})
 	} else {
 		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
