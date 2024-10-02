@@ -590,16 +590,13 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 	}
 	// TODO: this version along with below exclusions lists needs to be updated
 	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "31") {
+	if !strings.HasPrefix(serverVersion.Minor, "30") {
 		return tests, nil
 	}
 
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
-	exclusions := []string{
-		// affected by the available controller split https://github.com/kubernetes/kubernetes/pull/126149
-		`[sig-api-machinery] health handlers should contain necessary checks`,
-	}
+	exclusions := []string{}
 
 	matches := make([]*testCase, 0, len(tests))
 outerLoop:
