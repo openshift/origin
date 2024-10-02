@@ -83,11 +83,6 @@ func NewImagesCommand() *cobra.Command {
 			for _, line := range lines {
 				fmt.Fprintln(os.Stdout, line)
 			}
-			// TODO: these should be removed when landing k8s 1.31:
-			newImages := injectNewImages(ref, o.Upstream)
-			for _, line := range newImages {
-				fmt.Fprintln(os.Stdout, line)
-			}
 			return nil
 		},
 	}
@@ -97,33 +92,6 @@ func NewImagesCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&o.Verify, "verify", o.Verify, "Verify the contents of the image mappings")
 	cmd.Flags().MarkHidden("verify")
 	return cmd
-}
-
-func injectNewImages(ref reference.DockerImageReference, upstream bool) []string {
-	lines := []string{}
-	for original, mirror := range map[string]string{
-		"registry.k8s.io/etcd:3.5.15-0":                                 "e2e-11-registry-k8s-io-etcd-3-5-15-0-W7c5qq4cz4EE20EQ",
-		"registry.k8s.io/e2e-test-images/agnhost:2.52":                  "e2e-1-registry-k8s-io-e2e-test-images-agnhost-2-52-vo_U710PrYLetnfE",
-		"registry.k8s.io/pause:3.10":                                    "e2e-27-registry-k8s-io-pause-3-10-b3MYAwZ_MelO9baY",
-		"registry.k8s.io/e2e-test-images/regression-issue-74839:1.2":    "e2e-30-registry-k8s-io-e2e-test-images-regression-issue-74839-1-2-pZ_RxNuqvcwEiCKE",
-		"registry.k8s.io/e2e-test-images/resource-consumer:1.13":        "e2e-31-registry-k8s-io-e2e-test-images-resource-consumer-1-13-LT0C2W4wMzShSeGS",
-		"registry.k8s.io/e2e-test-images/volume/nfs:1.4":                "e2e-32-registry-k8s-io-e2e-test-images-volume-nfs-1-4-u7V8iW5QIcWM2i6h",
-		"registry.k8s.io/sig-storage/hostpathplugin:v1.14.0":            "e2e-43-registry-k8s-io-sig-storage-hostpathplugin-v1-14-0-LWjla55lyZB4CQu0",
-		"registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.10.1": "e2e-45-registry-k8s-io-sig-storage-csi-node-driver-registrar-v2-10-1-bVz-v06gRSvh6Rp3",
-		"registry.k8s.io/sig-storage/csi-attacher:v4.6.1":               "e2e-47-registry-k8s-io-sig-storage-csi-attacher-v4-6-1-NP4z4EcSo-N1xk_4",
-		"registry.k8s.io/sig-storage/csi-provisioner:v5.0.1":            "e2e-48-registry-k8s-io-sig-storage-csi-provisioner-v5-0-1-wPw2vjyYX1LWVmkn",
-		"registry.k8s.io/sig-storage/csi-resizer:v1.11.1":               "e2e-49-registry-k8s-io-sig-storage-csi-resizer-v1-11-1-6jB55ZThgstz1GrW",
-		"registry.k8s.io/sig-storage/csi-snapshotter:v8.0.1":            "e2e-50-registry-k8s-io-sig-storage-csi-snapshotter-v8-0-1-vAVT_GHf7Vm-TXyx",
-		"registry.k8s.io/e2e-test-images/busybox:1.29-2":                "e2e-51-registry-k8s-io-e2e-test-images-busybox-1-29-2-ZYWRth-o9U_JR2ZE",
-	} {
-		if upstream {
-			lines = append(lines, fmt.Sprintf("%s %s:%s", original, ref.Exact(), mirror))
-		} else {
-			lines = append(lines, fmt.Sprintf("quay.io/openshift/community-e2e-images:%s %s:%s", mirror, ref.Exact(), mirror))
-		}
-	}
-	sort.Strings(lines)
-	return lines
 }
 
 type imagesOptions struct {
