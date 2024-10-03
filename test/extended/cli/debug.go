@@ -27,7 +27,7 @@ var _ = g.Describe("[sig-cli] oc debug", func() {
 	testDeploymentConfig := exutil.FixturePath("testdata", "test-deployment-config.yaml")
 	testDeployment := exutil.FixturePath("testdata", "test-deployment.yaml")
 	testReplicationController := exutil.FixturePath("testdata", "test-replication-controller.yaml")
-	helloPod := exutil.FixturePath("..", "..", "examples", "hello-openshift", "hello-pod.json")
+	helloPod := exutil.FixturePath("testdata", "hello-openshift", "hello-pod.json")
 	imageStreamsCentos := exutil.FixturePath("..", "..", "examples", "image-streams", "image-streams-centos7.json")
 
 	g.It("deployment configs from a build [apigroup:image.openshift.io][apigroup:apps.openshift.io]", func() {

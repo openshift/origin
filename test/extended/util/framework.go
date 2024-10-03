@@ -1637,19 +1637,11 @@ func restoreFixtureAsset(dir, name string) error {
 	if err != nil {
 		return err
 	}
-	info, err := testdata.AssetInfo(name)
-	if err != nil {
-		return err
-	}
 	err = os.MkdirAll(assetFilePath(dir, filepath.Dir(name)), os.FileMode(0755))
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(assetFilePath(dir, name), data, 0640)
-	if err != nil {
-		return err
-	}
-	err = os.Chtimes(assetFilePath(dir, name), info.ModTime(), info.ModTime())
+	err = os.WriteFile(assetFilePath(dir, name), data, 0640)
 	if err != nil {
 		return err
 	}
