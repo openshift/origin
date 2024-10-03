@@ -381,6 +381,9 @@ var _ = g.Describe("[sig-arch][Early] Operators", func() {
 			if ok, _ := exutil.IsMicroShiftCluster(oc.AdminKubeClient()); ok {
 				g.Skip("microshift does not have operators.")
 			}
+			if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+				g.Skip("hypershift does not have operators.")
+			}
 
 			// this test is ensuring that we don't accidentally lose a condition
 			failures := []string{}
