@@ -225,6 +225,8 @@ var Annotations = map[string]string{
 
 	"[sig-arch][Early] Managed cluster should [apigroup:config.openshift.io] start all core operators": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
+	"[sig-arch][Early] Operators low level operators should have at least the conditions we had in 4.17": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-arch][Feature:ClusterUpgrade] All nodes should be in ready state [Early][Suite:upgrade]": "",
 
 	"[sig-arch][Feature:ClusterUpgrade] Cluster should be upgradeable after finishing upgrade [Late][Suite:upgrade]": "",
