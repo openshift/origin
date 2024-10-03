@@ -24,13 +24,16 @@ var _ = ginkgo.Describe("[sig-api-machinery] API health endpoints", func() {
 	oc := exutil.NewCLIWithoutNamespace("api-health-endpoints").AsAdmin()
 
 	ginkgo.It("should contain the required checks for the openshift-apiserver APIs", func() {
+		ctx := context.Background()
 		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
 		framework.ExpectNoError(err)
 		if isMicroShift {
 			ginkgo.Skip("MicroShift does not have the openshift-apiserver")
 		}
+		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+			ginkgo.Skip("MicroShift does not have the openshift-apiserver in the same spot")
+		}
 
-		ctx := context.Background()
 		requiredReadyzChecks := sets.New[string](
 			"[+]ping ok",
 			"[+]log ok",
