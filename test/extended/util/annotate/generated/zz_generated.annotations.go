@@ -23,8 +23,6 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] API data in etcd should be stored at the correct location and version for all resources [Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-api-machinery] API health endpoints should contain the required checks for the openshift-apiserver APIs": " [Suite:openshift/conformance/parallel]",
-
 	"[sig-api-machinery] APIServer CR fields validation additionalCORSAllowedOrigins [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer] TestTLSDefaults": " [Suite:openshift/conformance/parallel]",
