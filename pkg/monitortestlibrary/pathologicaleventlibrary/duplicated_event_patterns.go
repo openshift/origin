@@ -453,6 +453,7 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 	registry.AddPathologicalEventMatcherOrDie(ErrorUpdatingEndpointSlices)
 	registry.AddPathologicalEventMatcherOrDie(MarketplaceStartupProbeFailure)
 	registry.AddPathologicalEventMatcherOrDie(CertificateRotation)
+	registry.AddPathologicalEventMatcherOrDie(KubeAPIServerAvoids500s)
 
 	// Inject the dynamic allowance for etcd readiness probe failures based on the number of
 	// etcd revisions the cluster went through.
@@ -674,6 +675,12 @@ var MarketplaceStartupProbeFailure = &SimplePathologicalEventMatcher{
 		monitorapi.LocatorPodKey:       regexp.MustCompile(`(community-operators|redhat-operators)-[a-z0-9-]+`),
 	},
 	messageHumanRegex: regexp.MustCompile(`Startup probe failed`),
+}
+
+// Separated out in auditloganalyzer
+var KubeAPIServerAvoids500s = &SimplePathologicalEventMatcher{
+	name:               "KubeAPIServerAvoids500s",
+	messageReasonRegex: regexp.MustCompile(fmt.Sprintf("^%s$", monitorapi.ReasonKubeAPIServer500s)),
 }
 
 var CertificateRotation = &SimplePathologicalEventMatcher{
