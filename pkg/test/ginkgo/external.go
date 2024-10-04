@@ -90,11 +90,6 @@ func extractReleaseImageStream(logger *log.Logger) (*imagev1.ImageStream, error)
 
 	oc := util.NewCLIWithoutNamespace("default")
 
-	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed reading ClusterVersion/version: %w", err)
-	}
-
 	var releaseImage string
 
 	// Highest priority override is EXTENSIONS_PAYLOAD_OVERRIDE
@@ -115,6 +110,12 @@ func extractReleaseImageStream(logger *log.Logger) (*imagev1.ImageStream, error)
 	}
 
 	if len(releaseImage) == 0 {
+		// Note that MicroShift does not have this resource. The test driver must use ENV vars.
+		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed reading ClusterVersion/version: %w", err)
+		}
+
 		releaseImage = cv.Status.Desired.Image
 		if len(releaseImage) == 0 {
 			return nil, fmt.Errorf("cannot determine release image from ClusterVersion resource")

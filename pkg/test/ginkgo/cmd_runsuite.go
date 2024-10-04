@@ -128,7 +128,9 @@ func max(a, b int) int {
 type RunMatchFunc func(run *RunInformation) bool
 
 type RunInformation struct {
-	platformidentification.JobType
+	// jobType may be nil for topologies without
+	// platform identification.
+	*platformidentification.JobType
 	suite *TestSuite
 }
 
@@ -181,21 +183,23 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 			err           error
 		)
 
-		oc := util.NewCLIWithoutNamespace("default")
-		jobType, err := platformidentification.GetJobType(context.Background(), oc.AdminConfig())
-		if err != nil {
-			return fmt.Errorf("failed determining job type: %w", err)
-		}
-
-		runInformation := &RunInformation{
-			JobType: *jobType,
-			suite:   suite,
-		}
-
 		// Lines logged to this logger will be included in the junit output for the
 		// external binary usage synthetic.
 		var extractDetailsBuffer bytes.Buffer
 		extractLogger := log.New(&extractDetailsBuffer, "", log.LstdFlags|log.Lmicroseconds)
+
+		oc := util.NewCLIWithoutNamespace("default")
+		jobType, err := platformidentification.GetJobType(context.Background(), oc.AdminConfig())
+		if err != nil {
+			// Microshift does not permit identification. External binaries must
+			// tolerate nil jobType.
+			extractLogger.Printf("Failed determining job type: %v", err)
+		}
+
+		runInformation := &RunInformation{
+			JobType: jobType,
+			suite:   suite,
+		}
 
 		releaseImageReferences, err := extractReleaseImageStream(extractLogger)
 		if err != nil {
