@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -85,6 +86,9 @@ func (c *CountsForRun) countIndexesFromAuditTime(in *auditv1.Event) (int, int, i
 		return -1, -1, -1, false
 	}
 	if in.Verb == "watch" {
+		return -1, -1, -1, false
+	}
+	if !strings.HasPrefix(in.RequestURI, "/api/") && !strings.HasPrefix(in.RequestURI, "/apis/") {
 		return -1, -1, -1, false
 	}
 	if in.RequestReceivedTimestamp.BeforeTime(&c.EstimatedStartOfCluster) {
