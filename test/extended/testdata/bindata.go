@@ -45794,7 +45794,6 @@ metadata:
     pod-security.kubernetes.io/warn: privileged
   annotations:
     workload.openshift.io/allowed: management
-    openshift.io/node-selector: "node-role.kubernetes.io/worker="
 spec: {}
 
 ---
