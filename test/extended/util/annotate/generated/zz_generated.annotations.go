@@ -1557,25 +1557,61 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkDiagnosticsConfig][Serial] Should set the condition to false if there are no nodes able to host the source pods": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror EndpointSlices in namespaces not using user defined primary networks L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces not using user defined primary networks L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes does not mirror EndpointSlices in namespaces not using user defined primary networks L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions does not mirror EndpointSlices in namespaces not using user defined primary networks L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 dualstack primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 dualstack primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 dualstack primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 dualstack primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes can perform east/west traffic between nodes for two pods connected over a L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork does not mirror EndpointSlices in namespaces not using user defined primary networks L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes can perform east/west traffic between nodes two pods connected over a L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork does not mirror EndpointSlices in namespaces not using user defined primary networks L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes is isolated from the default network with L2 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes is isolated from the default network with L3 dualstack primary UDN": " [Suite:openshift/conformance/parallel]",
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L2 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, cluster-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] EndpointSlices mirroring when using openshift ovn-kubernetes created using UserDefinedNetwork mirrors EndpointSlices managed by the default controller for namespaces with user defined primary networks L3 primary UDN, host-networked pods": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork pod connected to UserDefinedNetwork cannot be deleted when being used": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork should create NetworkAttachmentDefinition according to spec": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork should delete NetworkAttachmentDefinition when UserDefinedNetwork is deleted": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions can perform east/west traffic between nodes for two pods connected over a L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions can perform east/west traffic between nodes two pods connected over a L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions is isolated from the default network with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions is isolated from the default network with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions isolates overlapping CIDRs with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions isolates overlapping CIDRs with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork can perform east/west traffic between nodes for two pods connected over a L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork can perform east/west traffic between nodes two pods connected over a L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated from the default network with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork is isolated from the default network with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork isolates overlapping CIDRs with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using UserDefinedNetwork isolates overlapping CIDRs with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes when primary network exist, UserDefinedNetwork status should report not-ready": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][endpoints] admission [apigroup:config.openshift.io] blocks manual creation of EndpointSlices pointing to the cluster or service network": " [Suite:openshift/conformance/parallel]",
 
