@@ -109,6 +109,9 @@ const (
 	LocatorTypeClusterVersion  LocatorType = "ClusterVersion"
 	LocatorTypeKind            LocatorType = "Kind"
 	LocatorTypeCloudMetrics    LocatorType = "CloudMetrics"
+	LocatorTypeDeployment      LocatorType = "Deployment"
+	LocatorTypeDaemonSet       LocatorType = "DaemonSet"
+	LocatorTypeStatefulSet     LocatorType = "StatefulSet"
 
 	LocatorTypeAPIUnreachableFromClient LocatorType = "APIUnreachableFromClient"
 )
@@ -238,6 +241,8 @@ const (
 
 	ReasonBadOperatorApply  IntervalReason = "BadOperatorApply"
 	ReasonKubeAPIServer500s IntervalReason = "KubeAPIServer500s"
+
+	ReasonHighGeneration IntervalReason = "HighGeneration"
 )
 
 type AnnotationKey string
@@ -336,6 +341,8 @@ const (
 
 	SourceAPIUnreachableFromClient IntervalSource = "APIUnreachableFromClient"
 	SourceMachine                  IntervalSource = "MachineMonitor"
+
+	SourceGenerationMonitor IntervalSource = "GenerationMonitor"
 )
 
 type Interval struct {
