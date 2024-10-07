@@ -25,11 +25,15 @@ func (s *excessiveApplies) HandleAuditLogEvent(auditEvent *auditv1.Event, beginn
 	}
 
 	// only SSA
-	if !isApply(auditEvent) {
+	if auditEvent.Verb != "patch" {
 		return
 	}
 	// only platform serviceaccounts
 	if !strings.Contains(auditEvent.User.Username, ":openshift-") {
+		return
+	}
+	// SSA requires a field manager
+	if !strings.Contains(auditEvent.RequestURI, "fieldManager=") {
 		return
 	}
 	nsName, _, _ := serviceaccount.SplitUsername(auditEvent.User.Username)

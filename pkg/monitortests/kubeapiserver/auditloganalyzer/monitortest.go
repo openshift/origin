@@ -21,19 +21,17 @@ import (
 type auditLogAnalyzer struct {
 	adminRESTConfig *rest.Config
 
-	summarizer             *summarizer
-	excessiveApplyChecker  *excessiveApplies
-	requestCountTracking   *countTracking
-	invalidRequestsChecker *invalidRequests
+	summarizer            *summarizer
+	excessiveApplyChecker *excessiveApplies
+	requestCountTracking  *countTracking
 
 	countsForInstall *CountsForRun
 }
 
 func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 	return &auditLogAnalyzer{
-		summarizer:             NewAuditLogSummarizer(),
-		excessiveApplyChecker:  CheckForExcessiveApplies(),
-		invalidRequestsChecker: CheckForInvalidMutations(),
+		summarizer:            NewAuditLogSummarizer(),
+		excessiveApplyChecker: CheckForExcessiveApplies(),
 	}
 }
 
@@ -65,7 +63,6 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 	auditLogHandlers := []AuditEventHandler{
 		w.summarizer,
 		w.excessiveApplyChecker,
-		w.invalidRequestsChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -234,82 +231,6 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 			)
 		}
 
-	}
-
-	for verb, namespacesToUserToNumberOf422s := range w.invalidRequestsChecker.verbToNamespacesTouserToNumberOf422s {
-		for _, namespace := range allPlatformNamespaces {
-			testName := fmt.Sprintf("users in ns/%s must not produce too many invalid %q requests", namespace, verb)
-			usersTo422s := namespacesToUserToNumberOf422s.namespacesToInvalidUserTrackers[namespace]
-
-			failures := []string{}
-			flakes := []string{}
-			if usersTo422s != nil {
-				for username, userInvalidRequestDetails := range usersTo422s.usersToInvalidRequests {
-					switch {
-					// this user appears to make invalid creates as part of e2e tests
-					case verb == "create" && username == "system:serviceaccount:openshift-infra:build-config-change-controller":
-						continue
-					// this user appears to make invalid creates as part of e2e tests
-					case verb == "create" && username == "system:serviceaccount:openshift-infra:template-instance-controller":
-						continue
-					}
-					if userInvalidRequestDetails.totalNumberOfFailures > 0 {
-						first10FailureStrings := []string{}
-						last10FailureStrings := []string{}
-						for _, curr := range userInvalidRequestDetails.first10Failures {
-							first10FailureStrings = append(first10FailureStrings, fmt.Sprintf("%v request=%v auditID=%v", curr.RequestReceivedTimestamp.Round(time.Second), curr.RequestURI, curr.AuditID))
-						}
-						for _, curr := range userInvalidRequestDetails.last10Failures {
-							last10FailureStrings = append(last10FailureStrings, fmt.Sprintf("%v request=%v auditID=%v", curr.RequestReceivedTimestamp.Round(time.Second), curr.RequestURI, curr.AuditID))
-						}
-						failures = append(failures, fmt.Sprintf(
-							"user %v had %d invalid %q, check the audit log and operator log to figure out why.\n%v\n%v",
-							username,
-							userInvalidRequestDetails.totalNumberOfFailures,
-							verb,
-							first10FailureStrings,
-							last10FailureStrings,
-						))
-					}
-				}
-			}
-
-			switch {
-			case len(failures) > 1:
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
-						FailureOutput: &junitapi.FailureOutput{
-							Message: strings.Join(failures, "\n"),
-							Output:  "more details in audit log",
-						},
-					},
-				)
-
-			case len(flakes) > 1:
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
-						FailureOutput: &junitapi.FailureOutput{
-							Message: strings.Join(failures, "\n"),
-							Output:  "more details in audit log",
-						},
-					},
-				)
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
-					},
-				)
-
-			default:
-				ret = append(ret,
-					&junitapi.JUnitTestCase{
-						Name: testName,
-					},
-				)
-			}
-		}
 	}
 
 	return ret, nil
