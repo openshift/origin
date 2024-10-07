@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	exutil "github.com/openshift/origin/test/extended/util"
+
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -20,6 +22,8 @@ import (
 
 type auditLogAnalyzer struct {
 	adminRESTConfig *rest.Config
+
+	isTechPreview bool
 
 	summarizer             *summarizer
 	excessiveApplyChecker  *excessiveApplies
@@ -53,6 +57,15 @@ func (w *auditLogAnalyzer) StartCollection(ctx context.Context, adminRESTConfig 
 	default:
 		w.requestCountTracking = CountsOverTime(clusterVersion.CreationTimestamp)
 	}
+
+	kubeClient, err := kubernetes.NewForConfig(w.adminRESTConfig)
+	if err != nil {
+		return err
+	}
+	if isMicroshift, _ := exutil.IsMicroShiftCluster(kubeClient); !isMicroshift {
+		w.isTechPreview = exutil.IsTechPreviewNoUpgrade(ctx, configClient)
+	}
+
 	return nil
 }
 
@@ -253,6 +266,20 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 					case verb == "create" && username == "system:serviceaccount:openshift-infra:template-instance-controller":
 						continue
 					}
+
+					if w.isTechPreview {
+						switch {
+						// this user is bugged: https://issues.redhat.com/browse/OCPBUGS-42816
+						// we must not allow this bug to be promoted to default. we'd make the exclusion even tighter if we could do so easily.
+						case verb == "apply" && username == "system:serviceaccount:openshift-machine-config-operator:machine-config-daemon":
+							continue
+						// this user is bugged: https://issues.redhat.com/browse/OCPBUGS-42816
+						// we must not allow this bug to be promoted to default. we'd make the exclusion even tighter if we could do so easily.
+						case verb == "apply" && username == "system:serviceaccount:openshift-machine-config-operator:machine-config-operator":
+							continue
+						}
+					}
+
 					if userInvalidRequestDetails.totalNumberOfFailures > 0 {
 						first10FailureStrings := []string{}
 						last10FailureStrings := []string{}

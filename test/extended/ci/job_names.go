@@ -38,7 +38,7 @@ var _ = g.Describe("[sig-ci] [Early] prow job name", func() {
 			e2eskipper.Skipf("JOB_NAME env var not set, skipping")
 		}
 
-		isTechPreview := exutil.IsTechPreviewNoUpgrade(oc)
+		isTechPreview := exutil.IsTechPreviewNoUpgrade(context.TODO(), oc.AdminConfigClient())
 		if strings.Contains(jobName, "-techpreview") && !isTechPreview {
 			e2e.Failf("job name %q has mismatched feature set in name (expected techpreview in cluster feature set)", jobName)
 		}
