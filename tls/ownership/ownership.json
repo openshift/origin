@@ -1579,6 +1579,30 @@
             "InClusterLocation": null,
             "OnDiskLocation": {
                 "onDiskLocation": {
+                    "Path": "/etc/docker/certs.d/image-registry.openshift-image-registry.svc.cluster.local:5000/ca.crt"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "Image Registry",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
+                    "Path": "/etc/docker/certs.d/image-registry.openshift-image-registry.svc:5000/ca.crt"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "Image Registry",
+                    "description": ""
+                }
+            }
+        },
+        {
+            "InClusterLocation": null,
+            "OnDiskLocation": {
+                "onDiskLocation": {
                     "Path": "/etc/kubernetes/ca.crt"
                 },
                 "certificateAuthorityBundleInfo": {
