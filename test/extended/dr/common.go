@@ -599,6 +599,51 @@ EOF`, sshKeyDance, strings.Join(nonRecoveryIps, " "), restoreInternalIp, backupI
 	return runPod(oc, pod)
 }
 
+func runQuorumRestoreScript(oc *exutil.CLI, restoreNode *corev1.Node) error {
+	const name = "quorum-repair-etcd-pod"
+	framework.Logf("running quorum restore script on node: %v", restoreNode.Name)
+
+	restoreScript := fmt.Sprintf(`
+        #!/bin/bash
+        set -exuo pipefail
+        
+        # ssh key dance
+        %s
+
+        TARGET_NODE_NAME=%s 
+        ssh -i $P_KEY -o StrictHostKeyChecking=no -q core@${TARGET_NODE_NAME} <<EOF
+        sudo /usr/local/bin/quorum-restore.sh
+        # this will cause the pod to disappear effectively, must be the last statement
+        sudo systemctl restart kubelet.service
+
+EOF`, sshKeyDance, internalIP(restoreNode))
+
+	podSpec := applycorev1.PodSpec().WithHostNetwork(true).WithRestartPolicy(corev1.RestartPolicyOnFailure)
+	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
+		*applycorev1.Container().
+			WithName("cluster-restore").
+			WithSecurityContext(applycorev1.SecurityContext().WithPrivileged(true)).
+			WithImage(image.ShellImage()).
+			WithVolumeMounts(
+				applycorev1.VolumeMount().WithName("keys").WithMountPath(sshPath),
+			).
+			WithCommand("/bin/bash", "-c", restoreScript),
+	}
+
+	podSpec.NodeSelector = map[string]string{"kubernetes.io/hostname": restoreNode.Labels["kubernetes.io/hostname"]}
+	podSpec.Tolerations = []applycorev1.TolerationApplyConfiguration{
+		*applycorev1.Toleration().WithKey("node-role.kubernetes.io/master").WithOperator(corev1.TolerationOpExists).WithEffect(corev1.TaintEffectNoSchedule),
+	}
+
+	podSpec.Volumes = []applycorev1.VolumeApplyConfiguration{
+		*applycorev1.Volume().WithName("keys").WithSecret(applycorev1.SecretVolumeSource().WithSecretName("dr-ssh")),
+	}
+
+	pod := applycorev1.Pod(name, openshiftEtcdNamespace).WithSpec(podSpec)
+	// we only run the pod and not wait for it, as it will not be tracked after the control plane comes back
+	return runPod(oc, pod)
+}
+
 func runPodAndWaitForSuccess(oc *exutil.CLI, pod *applycorev1.PodApplyConfiguration) error {
 	err := runPod(oc, pod)
 	if err != nil {
@@ -663,7 +708,7 @@ func removeMember(oc *exutil.CLI, memberID string) {
 		_, err = utils.PodRunningReady(&pod)
 		if err == nil {
 			framework.Logf("found running etcd pod to exec member removal: %s", pod.Name)
-			member, err := oc.AsAdmin().Run("exec").Args("-n", openshiftEtcdNamespace, pod.Name, "--", "etcdctl", "etcdctl", "member", "remove", memberID).Output()
+			member, err := oc.AsAdmin().Run("exec").Args("-n", openshiftEtcdNamespace, pod.Name, "-c", "etcdctl", "--", "etcdctl", "member", "remove", memberID).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(member).To(o.ContainSubstring("removed from cluster"))
 			return
