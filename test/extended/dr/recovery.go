@@ -63,7 +63,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		err = removeMemberOfNode(oc, recoveryNode)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		err = runClusterRestoreScript(oc, recoveryNode, backupNode)
+		err = runSnapshotRestoreScript(oc, recoveryNode, backupNode)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
@@ -146,7 +146,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		// - copying the snapshot tarball from the backup node to the recovery node
 		// - run the restore script, which results in running a single node etcd cluster from backup
 		// During the whole time, the API won't be responsive, and we're just waiting for the apiserver to come back up.
-		err = runDeleteAndRestoreScript(oc, recoveryNode, backupNode, nonRecoveryNodes)
+		err = runClusterRestoreScript(oc, recoveryNode, backupNode, nonRecoveryNodes)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// we should come back with a single etcd static pod
