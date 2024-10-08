@@ -21,7 +21,7 @@ import (
 	"github.com/ghodss/yaml"
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
+	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	authorizationapi "k8s.io/api/authorization/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -2182,8 +2182,8 @@ func SkipIfExternalControlplaneTopology(oc *CLI, reason string) {
 }
 
 // IsTechPreviewNoUpgrade checks if a cluster is a TechPreviewNoUpgrade cluster
-func IsTechPreviewNoUpgrade(oc *CLI) bool {
-	featureGate, err := oc.AdminConfigClient().ConfigV1().FeatureGates().Get(context.Background(), "cluster", metav1.GetOptions{})
+func IsTechPreviewNoUpgrade(ctx context.Context, configClient configv1client.Interface) bool {
+	featureGate, err := configClient.ConfigV1().FeatureGates().Get(ctx, "cluster", metav1.GetOptions{})
 	if err != nil {
 		if kapierrs.IsNotFound(err) {
 			return false
