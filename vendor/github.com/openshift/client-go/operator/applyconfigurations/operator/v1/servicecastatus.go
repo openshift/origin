@@ -2,13 +2,13 @@
 
 package v1
 
-// ServiceCAStatusApplyConfiguration represents an declarative configuration of the ServiceCAStatus type for use
+// ServiceCAStatusApplyConfiguration represents a declarative configuration of the ServiceCAStatus type for use
 // with apply.
 type ServiceCAStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// ServiceCAStatusApplyConfiguration constructs an declarative configuration of the ServiceCAStatus type for use with
+// ServiceCAStatusApplyConfiguration constructs a declarative configuration of the ServiceCAStatus type for use with
 // apply.
 func ServiceCAStatus() *ServiceCAStatusApplyConfiguration {
 	return &ServiceCAStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *ServiceCAStatusApplyConfiguration) WithVersion(value string) *ServiceCA
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *ServiceCAStatusApplyConfiguration) WithReadyReplicas(value int32) *ServiceCAStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *ServiceCAStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *ServiceCAStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// OpenShiftSDNConfigApplyConfiguration represents an declarative configuration of the OpenShiftSDNConfig type for use
+// OpenShiftSDNConfigApplyConfiguration represents a declarative configuration of the OpenShiftSDNConfig type for use
 // with apply.
 type OpenShiftSDNConfigApplyConfiguration struct {
 	Mode                   *v1.SDNMode `json:"mode,omitempty"`
@@ -16,7 +16,7 @@ type OpenShiftSDNConfigApplyConfiguration struct {
 	EnableUnidling         *bool       `json:"enableUnidling,omitempty"`
 }
 
-// OpenShiftSDNConfigApplyConfiguration constructs an declarative configuration of the OpenShiftSDNConfig type for use with
+// OpenShiftSDNConfigApplyConfiguration constructs a declarative configuration of the OpenShiftSDNConfig type for use with
 // apply.
 func OpenShiftSDNConfig() *OpenShiftSDNConfigApplyConfiguration {
 	return &OpenShiftSDNConfigApplyConfiguration{}

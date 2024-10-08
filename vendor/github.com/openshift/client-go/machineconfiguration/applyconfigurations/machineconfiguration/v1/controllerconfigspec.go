@@ -8,7 +8,7 @@ import (
 	corev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-// ControllerConfigSpecApplyConfiguration represents an declarative configuration of the ControllerConfigSpec type for use
+// ControllerConfigSpecApplyConfiguration represents a declarative configuration of the ControllerConfigSpec type for use
 // with apply.
 type ControllerConfigSpecApplyConfiguration struct {
 	ClusterDNSIP                   *string                                   `json:"clusterDNSIP,omitempty"`
@@ -36,7 +36,7 @@ type ControllerConfigSpecApplyConfiguration struct {
 	Network                        *NetworkInfoApplyConfiguration            `json:"network,omitempty"`
 }
 
-// ControllerConfigSpecApplyConfiguration constructs an declarative configuration of the ControllerConfigSpec type for use with
+// ControllerConfigSpecApplyConfiguration constructs a declarative configuration of the ControllerConfigSpec type for use with
 // apply.
 func ControllerConfigSpec() *ControllerConfigSpecApplyConfiguration {
 	return &ControllerConfigSpecApplyConfiguration{}

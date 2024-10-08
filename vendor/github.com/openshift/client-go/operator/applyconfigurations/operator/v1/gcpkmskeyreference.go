@@ -2,7 +2,7 @@
 
 package v1
 
-// GCPKMSKeyReferenceApplyConfiguration represents an declarative configuration of the GCPKMSKeyReference type for use
+// GCPKMSKeyReferenceApplyConfiguration represents a declarative configuration of the GCPKMSKeyReference type for use
 // with apply.
 type GCPKMSKeyReferenceApplyConfiguration struct {
 	Name      *string `json:"name,omitempty"`
@@ -11,7 +11,7 @@ type GCPKMSKeyReferenceApplyConfiguration struct {
 	Location  *string `json:"location,omitempty"`
 }
 
-// GCPKMSKeyReferenceApplyConfiguration constructs an declarative configuration of the GCPKMSKeyReference type for use with
+// GCPKMSKeyReferenceApplyConfiguration constructs a declarative configuration of the GCPKMSKeyReference type for use with
 // apply.
 func GCPKMSKeyReference() *GCPKMSKeyReferenceApplyConfiguration {
 	return &GCPKMSKeyReferenceApplyConfiguration{}

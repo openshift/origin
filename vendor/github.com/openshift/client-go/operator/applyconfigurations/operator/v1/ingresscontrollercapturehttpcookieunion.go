@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// IngressControllerCaptureHTTPCookieUnionApplyConfiguration represents an declarative configuration of the IngressControllerCaptureHTTPCookieUnion type for use
+// IngressControllerCaptureHTTPCookieUnionApplyConfiguration represents a declarative configuration of the IngressControllerCaptureHTTPCookieUnion type for use
 // with apply.
 type IngressControllerCaptureHTTPCookieUnionApplyConfiguration struct {
 	MatchType  *v1.CookieMatchType `json:"matchType,omitempty"`
@@ -14,7 +14,7 @@ type IngressControllerCaptureHTTPCookieUnionApplyConfiguration struct {
 	NamePrefix *string             `json:"namePrefix,omitempty"`
 }
 
-// IngressControllerCaptureHTTPCookieUnionApplyConfiguration constructs an declarative configuration of the IngressControllerCaptureHTTPCookieUnion type for use with
+// IngressControllerCaptureHTTPCookieUnionApplyConfiguration constructs a declarative configuration of the IngressControllerCaptureHTTPCookieUnion type for use with
 // apply.
 func IngressControllerCaptureHTTPCookieUnion() *IngressControllerCaptureHTTPCookieUnionApplyConfiguration {
 	return &IngressControllerCaptureHTTPCookieUnionApplyConfiguration{}

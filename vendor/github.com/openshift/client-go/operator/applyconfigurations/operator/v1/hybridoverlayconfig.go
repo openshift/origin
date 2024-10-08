@@ -2,14 +2,14 @@
 
 package v1
 
-// HybridOverlayConfigApplyConfiguration represents an declarative configuration of the HybridOverlayConfig type for use
+// HybridOverlayConfigApplyConfiguration represents a declarative configuration of the HybridOverlayConfig type for use
 // with apply.
 type HybridOverlayConfigApplyConfiguration struct {
 	HybridClusterNetwork   []ClusterNetworkEntryApplyConfiguration `json:"hybridClusterNetwork,omitempty"`
 	HybridOverlayVXLANPort *uint32                                 `json:"hybridOverlayVXLANPort,omitempty"`
 }
 
-// HybridOverlayConfigApplyConfiguration constructs an declarative configuration of the HybridOverlayConfig type for use with
+// HybridOverlayConfigApplyConfiguration constructs a declarative configuration of the HybridOverlayConfig type for use with
 // apply.
 func HybridOverlayConfig() *HybridOverlayConfigApplyConfiguration {
 	return &HybridOverlayConfigApplyConfiguration{}

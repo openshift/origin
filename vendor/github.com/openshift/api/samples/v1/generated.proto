@@ -28,7 +28,7 @@ option go_package = "github.com/openshift/api/samples/v1";
 message Config {
   // metadata is the standard object's metadata.
   // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // +kubebuilder:validation:Required
   // +required
@@ -48,10 +48,10 @@ message ConfigCondition {
   optional string status = 2;
 
   // lastUpdateTime is the last time this condition was updated.
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastUpdateTime = 3;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.Time lastUpdateTime = 3;
 
   // lastTransitionTime is the last time the condition transitioned from one status to another.
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 4;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 4;
 
   // reason is what caused the condition's last transition.
   optional string reason = 5;
@@ -65,7 +65,7 @@ message ConfigCondition {
 message ConfigList {
   // metadata is the standard list's metadata.
   // More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
+  optional .k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   repeated Config items = 2;
 }

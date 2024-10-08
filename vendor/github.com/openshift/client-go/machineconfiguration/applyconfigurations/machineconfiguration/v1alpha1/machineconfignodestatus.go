@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// MachineConfigNodeStatusApplyConfiguration represents an declarative configuration of the MachineConfigNodeStatus type for use
+// MachineConfigNodeStatusApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatus type for use
 // with apply.
 type MachineConfigNodeStatusApplyConfiguration struct {
 	Conditions         []v1.ConditionApplyConfiguration                               `json:"conditions,omitempty"`
@@ -15,7 +15,7 @@ type MachineConfigNodeStatusApplyConfiguration struct {
 	PinnedImageSets    []MachineConfigNodeStatusPinnedImageSetApplyConfiguration      `json:"pinnedImageSets,omitempty"`
 }
 
-// MachineConfigNodeStatusApplyConfiguration constructs an declarative configuration of the MachineConfigNodeStatus type for use with
+// MachineConfigNodeStatusApplyConfiguration constructs a declarative configuration of the MachineConfigNodeStatus type for use with
 // apply.
 func MachineConfigNodeStatus() *MachineConfigNodeStatusApplyConfiguration {
 	return &MachineConfigNodeStatusApplyConfiguration{}

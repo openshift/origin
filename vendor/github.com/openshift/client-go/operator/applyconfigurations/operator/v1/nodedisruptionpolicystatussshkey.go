@@ -2,13 +2,13 @@
 
 package v1
 
-// NodeDisruptionPolicyStatusSSHKeyApplyConfiguration represents an declarative configuration of the NodeDisruptionPolicyStatusSSHKey type for use
+// NodeDisruptionPolicyStatusSSHKeyApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyStatusSSHKey type for use
 // with apply.
 type NodeDisruptionPolicyStatusSSHKeyApplyConfiguration struct {
 	Actions []NodeDisruptionPolicyStatusActionApplyConfiguration `json:"actions,omitempty"`
 }
 
-// NodeDisruptionPolicyStatusSSHKeyApplyConfiguration constructs an declarative configuration of the NodeDisruptionPolicyStatusSSHKey type for use with
+// NodeDisruptionPolicyStatusSSHKeyApplyConfiguration constructs a declarative configuration of the NodeDisruptionPolicyStatusSSHKey type for use with
 // apply.
 func NodeDisruptionPolicyStatusSSHKey() *NodeDisruptionPolicyStatusSSHKeyApplyConfiguration {
 	return &NodeDisruptionPolicyStatusSSHKeyApplyConfiguration{}

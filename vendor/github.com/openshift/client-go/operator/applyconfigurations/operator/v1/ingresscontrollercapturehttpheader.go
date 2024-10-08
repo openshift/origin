@@ -2,14 +2,14 @@
 
 package v1
 
-// IngressControllerCaptureHTTPHeaderApplyConfiguration represents an declarative configuration of the IngressControllerCaptureHTTPHeader type for use
+// IngressControllerCaptureHTTPHeaderApplyConfiguration represents a declarative configuration of the IngressControllerCaptureHTTPHeader type for use
 // with apply.
 type IngressControllerCaptureHTTPHeaderApplyConfiguration struct {
 	Name      *string `json:"name,omitempty"`
 	MaxLength *int    `json:"maxLength,omitempty"`
 }
 
-// IngressControllerCaptureHTTPHeaderApplyConfiguration constructs an declarative configuration of the IngressControllerCaptureHTTPHeader type for use with
+// IngressControllerCaptureHTTPHeaderApplyConfiguration constructs a declarative configuration of the IngressControllerCaptureHTTPHeader type for use with
 // apply.
 func IngressControllerCaptureHTTPHeader() *IngressControllerCaptureHTTPHeaderApplyConfiguration {
 	return &IngressControllerCaptureHTTPHeaderApplyConfiguration{}

@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ControllerConfigApplyConfiguration represents an declarative configuration of the ControllerConfig type for use
+// ControllerConfigApplyConfiguration represents a declarative configuration of the ControllerConfig type for use
 // with apply.
 type ControllerConfigApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type ControllerConfigApplyConfiguration struct {
 	Status                           *ControllerConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// ControllerConfig constructs an declarative configuration of the ControllerConfig type for use with
+// ControllerConfig constructs a declarative configuration of the ControllerConfig type for use with
 // apply.
 func ControllerConfig(name string) *ControllerConfigApplyConfiguration {
 	b := &ControllerConfigApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *ControllerConfigApplyConfiguration) WithSpec(value *ControllerConfigSpe
 func (b *ControllerConfigApplyConfiguration) WithStatus(value *ControllerConfigStatusApplyConfiguration) *ControllerConfigApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *ControllerConfigApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

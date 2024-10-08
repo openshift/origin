@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// KubeSchedulerApplyConfiguration represents an declarative configuration of the KubeScheduler type for use
+// KubeSchedulerApplyConfiguration represents a declarative configuration of the KubeScheduler type for use
 // with apply.
 type KubeSchedulerApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type KubeSchedulerApplyConfiguration struct {
 	Status                           *KubeSchedulerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// KubeScheduler constructs an declarative configuration of the KubeScheduler type for use with
+// KubeScheduler constructs a declarative configuration of the KubeScheduler type for use with
 // apply.
 func KubeScheduler(name string) *KubeSchedulerApplyConfiguration {
 	b := &KubeSchedulerApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *KubeSchedulerApplyConfiguration) WithSpec(value *KubeSchedulerSpecApply
 func (b *KubeSchedulerApplyConfiguration) WithStatus(value *KubeSchedulerStatusApplyConfiguration) *KubeSchedulerApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *KubeSchedulerApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

@@ -2,7 +2,7 @@
 
 package v1
 
-// NodeDisruptionPolicyClusterStatusApplyConfiguration represents an declarative configuration of the NodeDisruptionPolicyClusterStatus type for use
+// NodeDisruptionPolicyClusterStatusApplyConfiguration represents a declarative configuration of the NodeDisruptionPolicyClusterStatus type for use
 // with apply.
 type NodeDisruptionPolicyClusterStatusApplyConfiguration struct {
 	Files  []NodeDisruptionPolicyStatusFileApplyConfiguration  `json:"files,omitempty"`
@@ -10,7 +10,7 @@ type NodeDisruptionPolicyClusterStatusApplyConfiguration struct {
 	SSHKey *NodeDisruptionPolicyStatusSSHKeyApplyConfiguration `json:"sshkey,omitempty"`
 }
 
-// NodeDisruptionPolicyClusterStatusApplyConfiguration constructs an declarative configuration of the NodeDisruptionPolicyClusterStatus type for use with
+// NodeDisruptionPolicyClusterStatusApplyConfiguration constructs a declarative configuration of the NodeDisruptionPolicyClusterStatus type for use with
 // apply.
 func NodeDisruptionPolicyClusterStatus() *NodeDisruptionPolicyClusterStatusApplyConfiguration {
 	return &NodeDisruptionPolicyClusterStatusApplyConfiguration{}

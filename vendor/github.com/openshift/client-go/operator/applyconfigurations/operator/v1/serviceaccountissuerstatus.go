@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ServiceAccountIssuerStatusApplyConfiguration represents an declarative configuration of the ServiceAccountIssuerStatus type for use
+// ServiceAccountIssuerStatusApplyConfiguration represents a declarative configuration of the ServiceAccountIssuerStatus type for use
 // with apply.
 type ServiceAccountIssuerStatusApplyConfiguration struct {
 	Name           *string  `json:"name,omitempty"`
 	ExpirationTime *v1.Time `json:"expirationTime,omitempty"`
 }
 
-// ServiceAccountIssuerStatusApplyConfiguration constructs an declarative configuration of the ServiceAccountIssuerStatus type for use with
+// ServiceAccountIssuerStatusApplyConfiguration constructs a declarative configuration of the ServiceAccountIssuerStatus type for use with
 // apply.
 func ServiceAccountIssuerStatus() *ServiceAccountIssuerStatusApplyConfiguration {
 	return &ServiceAccountIssuerStatusApplyConfiguration{}

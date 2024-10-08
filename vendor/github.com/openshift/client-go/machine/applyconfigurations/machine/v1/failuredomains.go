@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 )
 
-// FailureDomainsApplyConfiguration represents an declarative configuration of the FailureDomains type for use
+// FailureDomainsApplyConfiguration represents a declarative configuration of the FailureDomains type for use
 // with apply.
 type FailureDomainsApplyConfiguration struct {
 	Platform  *v1.PlatformType                                  `json:"platform,omitempty"`
@@ -18,7 +18,7 @@ type FailureDomainsApplyConfiguration struct {
 	Nutanix   []NutanixFailureDomainReferenceApplyConfiguration `json:"nutanix,omitempty"`
 }
 
-// FailureDomainsApplyConfiguration constructs an declarative configuration of the FailureDomains type for use with
+// FailureDomainsApplyConfiguration constructs a declarative configuration of the FailureDomains type for use with
 // apply.
 func FailureDomains() *FailureDomainsApplyConfiguration {
 	return &FailureDomainsApplyConfiguration{}

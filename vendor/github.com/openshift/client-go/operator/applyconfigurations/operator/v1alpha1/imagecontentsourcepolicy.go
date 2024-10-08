@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ImageContentSourcePolicyApplyConfiguration represents an declarative configuration of the ImageContentSourcePolicy type for use
+// ImageContentSourcePolicyApplyConfiguration represents a declarative configuration of the ImageContentSourcePolicy type for use
 // with apply.
 type ImageContentSourcePolicyApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -19,7 +19,7 @@ type ImageContentSourcePolicyApplyConfiguration struct {
 	Spec                             *ImageContentSourcePolicySpecApplyConfiguration `json:"spec,omitempty"`
 }
 
-// ImageContentSourcePolicy constructs an declarative configuration of the ImageContentSourcePolicy type for use with
+// ImageContentSourcePolicy constructs a declarative configuration of the ImageContentSourcePolicy type for use with
 // apply.
 func ImageContentSourcePolicy(name string) *ImageContentSourcePolicyApplyConfiguration {
 	b := &ImageContentSourcePolicyApplyConfiguration{}
@@ -228,4 +228,10 @@ func (b *ImageContentSourcePolicyApplyConfiguration) ensureObjectMetaApplyConfig
 func (b *ImageContentSourcePolicyApplyConfiguration) WithSpec(value *ImageContentSourcePolicySpecApplyConfiguration) *ImageContentSourcePolicyApplyConfiguration {
 	b.Spec = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *ImageContentSourcePolicyApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

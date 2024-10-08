@@ -9,7 +9,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// MachineStatusApplyConfiguration represents an declarative configuration of the MachineStatus type for use
+// MachineStatusApplyConfiguration represents a declarative configuration of the MachineStatus type for use
 // with apply.
 type MachineStatusApplyConfiguration struct {
 	NodeRef                *v1.ObjectReference              `json:"nodeRef,omitempty"`
@@ -25,7 +25,7 @@ type MachineStatusApplyConfiguration struct {
 	SynchronizedGeneration *int64                           `json:"synchronizedGeneration,omitempty"`
 }
 
-// MachineStatusApplyConfiguration constructs an declarative configuration of the MachineStatus type for use with
+// MachineStatusApplyConfiguration constructs a declarative configuration of the MachineStatus type for use with
 // apply.
 func MachineStatus() *MachineStatusApplyConfiguration {
 	return &MachineStatusApplyConfiguration{}

@@ -2,7 +2,7 @@
 
 package v1alpha1
 
-// MachineConfigNodeSpecApplyConfiguration represents an declarative configuration of the MachineConfigNodeSpec type for use
+// MachineConfigNodeSpecApplyConfiguration represents a declarative configuration of the MachineConfigNodeSpec type for use
 // with apply.
 type MachineConfigNodeSpecApplyConfiguration struct {
 	Node            *MCOObjectReferenceApplyConfiguration                        `json:"node,omitempty"`
@@ -11,7 +11,7 @@ type MachineConfigNodeSpecApplyConfiguration struct {
 	PinnedImageSets []MachineConfigNodeSpecPinnedImageSetApplyConfiguration      `json:"pinnedImageSets,omitempty"`
 }
 
-// MachineConfigNodeSpecApplyConfiguration constructs an declarative configuration of the MachineConfigNodeSpec type for use with
+// MachineConfigNodeSpecApplyConfiguration constructs a declarative configuration of the MachineConfigNodeSpec type for use with
 // apply.
 func MachineConfigNodeSpec() *MachineConfigNodeSpecApplyConfiguration {
 	return &MachineConfigNodeSpecApplyConfiguration{}

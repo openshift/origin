@@ -2,7 +2,7 @@
 
 package v1
 
-// ImageRegistryConfigRouteApplyConfiguration represents an declarative configuration of the ImageRegistryConfigRoute type for use
+// ImageRegistryConfigRouteApplyConfiguration represents a declarative configuration of the ImageRegistryConfigRoute type for use
 // with apply.
 type ImageRegistryConfigRouteApplyConfiguration struct {
 	Name       *string `json:"name,omitempty"`
@@ -10,7 +10,7 @@ type ImageRegistryConfigRouteApplyConfiguration struct {
 	SecretName *string `json:"secretName,omitempty"`
 }
 
-// ImageRegistryConfigRouteApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigRoute type for use with
+// ImageRegistryConfigRouteApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigRoute type for use with
 // apply.
 func ImageRegistryConfigRoute() *ImageRegistryConfigRouteApplyConfiguration {
 	return &ImageRegistryConfigRouteApplyConfiguration{}

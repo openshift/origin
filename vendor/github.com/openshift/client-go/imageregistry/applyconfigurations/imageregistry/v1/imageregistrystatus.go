@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 )
 
-// ImageRegistryStatusApplyConfiguration represents an declarative configuration of the ImageRegistryStatus type for use
+// ImageRegistryStatusApplyConfiguration represents a declarative configuration of the ImageRegistryStatus type for use
 // with apply.
 type ImageRegistryStatusApplyConfiguration struct {
 	v1.OperatorStatusApplyConfiguration `json:",inline"`
@@ -14,7 +14,7 @@ type ImageRegistryStatusApplyConfiguration struct {
 	Storage                             *ImageRegistryConfigStorageApplyConfiguration `json:"storage,omitempty"`
 }
 
-// ImageRegistryStatusApplyConfiguration constructs an declarative configuration of the ImageRegistryStatus type for use with
+// ImageRegistryStatusApplyConfiguration constructs a declarative configuration of the ImageRegistryStatus type for use with
 // apply.
 func ImageRegistryStatus() *ImageRegistryStatusApplyConfiguration {
 	return &ImageRegistryStatusApplyConfiguration{}
@@ -54,6 +54,14 @@ func (b *ImageRegistryStatusApplyConfiguration) WithVersion(value string) *Image
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *ImageRegistryStatusApplyConfiguration) WithReadyReplicas(value int32) *ImageRegistryStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *ImageRegistryStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *ImageRegistryStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

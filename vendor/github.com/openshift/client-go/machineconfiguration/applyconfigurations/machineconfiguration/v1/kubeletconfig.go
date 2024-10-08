@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// KubeletConfigApplyConfiguration represents an declarative configuration of the KubeletConfig type for use
+// KubeletConfigApplyConfiguration represents a declarative configuration of the KubeletConfig type for use
 // with apply.
 type KubeletConfigApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type KubeletConfigApplyConfiguration struct {
 	Status                           *KubeletConfigStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// KubeletConfig constructs an declarative configuration of the KubeletConfig type for use with
+// KubeletConfig constructs a declarative configuration of the KubeletConfig type for use with
 // apply.
 func KubeletConfig(name string) *KubeletConfigApplyConfiguration {
 	b := &KubeletConfigApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *KubeletConfigApplyConfiguration) WithSpec(value *KubeletConfigSpecApply
 func (b *KubeletConfigApplyConfiguration) WithStatus(value *KubeletConfigStatusApplyConfiguration) *KubeletConfigApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *KubeletConfigApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

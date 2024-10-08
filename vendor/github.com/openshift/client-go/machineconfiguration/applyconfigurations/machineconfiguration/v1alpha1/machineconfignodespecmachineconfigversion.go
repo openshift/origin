@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// MachineConfigNodeSpecMachineConfigVersionApplyConfiguration represents an declarative configuration of the MachineConfigNodeSpecMachineConfigVersion type for use
+// MachineConfigNodeSpecMachineConfigVersionApplyConfiguration represents a declarative configuration of the MachineConfigNodeSpecMachineConfigVersion type for use
 // with apply.
 type MachineConfigNodeSpecMachineConfigVersionApplyConfiguration struct {
 	Desired *string `json:"desired,omitempty"`
 }
 
-// MachineConfigNodeSpecMachineConfigVersionApplyConfiguration constructs an declarative configuration of the MachineConfigNodeSpecMachineConfigVersion type for use with
+// MachineConfigNodeSpecMachineConfigVersionApplyConfiguration constructs a declarative configuration of the MachineConfigNodeSpecMachineConfigVersion type for use with
 // apply.
 func MachineConfigNodeSpecMachineConfigVersion() *MachineConfigNodeSpecMachineConfigVersionApplyConfiguration {
 	return &MachineConfigNodeSpecMachineConfigVersionApplyConfiguration{}

@@ -2,13 +2,13 @@
 
 package v1
 
-// StorageStatusApplyConfiguration represents an declarative configuration of the StorageStatus type for use
+// StorageStatusApplyConfiguration represents a declarative configuration of the StorageStatus type for use
 // with apply.
 type StorageStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// StorageStatusApplyConfiguration constructs an declarative configuration of the StorageStatus type for use with
+// StorageStatusApplyConfiguration constructs a declarative configuration of the StorageStatus type for use with
 // apply.
 func StorageStatus() *StorageStatusApplyConfiguration {
 	return &StorageStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *StorageStatusApplyConfiguration) WithVersion(value string) *StorageStat
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *StorageStatusApplyConfiguration) WithReadyReplicas(value int32) *StorageStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *StorageStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *StorageStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

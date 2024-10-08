@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// MachineHealthCheckApplyConfiguration represents an declarative configuration of the MachineHealthCheck type for use
+// MachineHealthCheckApplyConfiguration represents a declarative configuration of the MachineHealthCheck type for use
 // with apply.
 type MachineHealthCheckApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type MachineHealthCheckApplyConfiguration struct {
 	Status                           *MachineHealthCheckStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// MachineHealthCheck constructs an declarative configuration of the MachineHealthCheck type for use with
+// MachineHealthCheck constructs a declarative configuration of the MachineHealthCheck type for use with
 // apply.
 func MachineHealthCheck(name, namespace string) *MachineHealthCheckApplyConfiguration {
 	b := &MachineHealthCheckApplyConfiguration{}
@@ -239,4 +239,10 @@ func (b *MachineHealthCheckApplyConfiguration) WithSpec(value *MachineHealthChec
 func (b *MachineHealthCheckApplyConfiguration) WithStatus(value *MachineHealthCheckStatusApplyConfiguration) *MachineHealthCheckApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *MachineHealthCheckApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

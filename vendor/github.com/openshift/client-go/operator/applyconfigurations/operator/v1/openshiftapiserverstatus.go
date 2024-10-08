@@ -2,14 +2,13 @@
 
 package v1
 
-// OpenShiftAPIServerStatusApplyConfiguration represents an declarative configuration of the OpenShiftAPIServerStatus type for use
+// OpenShiftAPIServerStatusApplyConfiguration represents a declarative configuration of the OpenShiftAPIServerStatus type for use
 // with apply.
 type OpenShiftAPIServerStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
-	LatestAvailableRevision          *int32 `json:"latestAvailableRevision,omitempty"`
 }
 
-// OpenShiftAPIServerStatusApplyConfiguration constructs an declarative configuration of the OpenShiftAPIServerStatus type for use with
+// OpenShiftAPIServerStatusApplyConfiguration constructs a declarative configuration of the OpenShiftAPIServerStatus type for use with
 // apply.
 func OpenShiftAPIServerStatus() *OpenShiftAPIServerStatusApplyConfiguration {
 	return &OpenShiftAPIServerStatusApplyConfiguration{}
@@ -52,6 +51,14 @@ func (b *OpenShiftAPIServerStatusApplyConfiguration) WithReadyReplicas(value int
 	return b
 }
 
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *OpenShiftAPIServerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *OpenShiftAPIServerStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
+	return b
+}
+
 // WithGenerations adds the given value to the Generations field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Generations field.
@@ -62,13 +69,5 @@ func (b *OpenShiftAPIServerStatusApplyConfiguration) WithGenerations(values ...*
 		}
 		b.Generations = append(b.Generations, *values[i])
 	}
-	return b
-}
-
-// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
-func (b *OpenShiftAPIServerStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *OpenShiftAPIServerStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
 	return b
 }

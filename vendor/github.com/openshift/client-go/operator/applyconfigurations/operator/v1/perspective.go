@@ -2,7 +2,7 @@
 
 package v1
 
-// PerspectiveApplyConfiguration represents an declarative configuration of the Perspective type for use
+// PerspectiveApplyConfiguration represents a declarative configuration of the Perspective type for use
 // with apply.
 type PerspectiveApplyConfiguration struct {
 	ID              *string                                      `json:"id,omitempty"`
@@ -10,7 +10,7 @@ type PerspectiveApplyConfiguration struct {
 	PinnedResources *[]PinnedResourceReferenceApplyConfiguration `json:"pinnedResources,omitempty"`
 }
 
-// PerspectiveApplyConfiguration constructs an declarative configuration of the Perspective type for use with
+// PerspectiveApplyConfiguration constructs a declarative configuration of the Perspective type for use with
 // apply.
 func Perspective() *PerspectiveApplyConfiguration {
 	return &PerspectiveApplyConfiguration{}

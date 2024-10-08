@@ -2,13 +2,13 @@
 
 package v1
 
-// IngressControllerLoggingApplyConfiguration represents an declarative configuration of the IngressControllerLogging type for use
+// IngressControllerLoggingApplyConfiguration represents a declarative configuration of the IngressControllerLogging type for use
 // with apply.
 type IngressControllerLoggingApplyConfiguration struct {
 	Access *AccessLoggingApplyConfiguration `json:"access,omitempty"`
 }
 
-// IngressControllerLoggingApplyConfiguration constructs an declarative configuration of the IngressControllerLogging type for use with
+// IngressControllerLoggingApplyConfiguration constructs a declarative configuration of the IngressControllerLogging type for use with
 // apply.
 func IngressControllerLogging() *IngressControllerLoggingApplyConfiguration {
 	return &IngressControllerLoggingApplyConfiguration{}

@@ -2,7 +2,7 @@
 
 package v1
 
-// ImageRegistryConfigStorageS3ApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorageS3 type for use
+// ImageRegistryConfigStorageS3ApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageS3 type for use
 // with apply.
 type ImageRegistryConfigStorageS3ApplyConfiguration struct {
 	Bucket             *string                                                   `json:"bucket,omitempty"`
@@ -16,7 +16,7 @@ type ImageRegistryConfigStorageS3ApplyConfiguration struct {
 	TrustedCA          *S3TrustedCASourceApplyConfiguration                      `json:"trustedCA,omitempty"`
 }
 
-// ImageRegistryConfigStorageS3ApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorageS3 type for use with
+// ImageRegistryConfigStorageS3ApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageS3 type for use with
 // apply.
 func ImageRegistryConfigStorageS3() *ImageRegistryConfigStorageS3ApplyConfiguration {
 	return &ImageRegistryConfigStorageS3ApplyConfiguration{}

@@ -4,13 +4,14 @@ package v1
 
 import (
 	configv1 "github.com/openshift/api/config/v1"
-	v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// ConsoleCustomizationApplyConfiguration represents an declarative configuration of the ConsoleCustomization type for use
+// ConsoleCustomizationApplyConfiguration represents a declarative configuration of the ConsoleCustomization type for use
 // with apply.
 type ConsoleCustomizationApplyConfiguration struct {
-	Brand                *v1.Brand                                               `json:"brand,omitempty"`
+	Capabilities         []CapabilityApplyConfiguration                          `json:"capabilities,omitempty"`
+	Brand                *operatorv1.Brand                                       `json:"brand,omitempty"`
 	DocumentationBaseURL *string                                                 `json:"documentationBaseURL,omitempty"`
 	CustomProductName    *string                                                 `json:"customProductName,omitempty"`
 	CustomLogoFile       *configv1.ConfigMapFileReference                        `json:"customLogoFile,omitempty"`
@@ -21,16 +22,29 @@ type ConsoleCustomizationApplyConfiguration struct {
 	Perspectives         []PerspectiveApplyConfiguration                         `json:"perspectives,omitempty"`
 }
 
-// ConsoleCustomizationApplyConfiguration constructs an declarative configuration of the ConsoleCustomization type for use with
+// ConsoleCustomizationApplyConfiguration constructs a declarative configuration of the ConsoleCustomization type for use with
 // apply.
 func ConsoleCustomization() *ConsoleCustomizationApplyConfiguration {
 	return &ConsoleCustomizationApplyConfiguration{}
 }
 
+// WithCapabilities adds the given value to the Capabilities field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Capabilities field.
+func (b *ConsoleCustomizationApplyConfiguration) WithCapabilities(values ...*CapabilityApplyConfiguration) *ConsoleCustomizationApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithCapabilities")
+		}
+		b.Capabilities = append(b.Capabilities, *values[i])
+	}
+	return b
+}
+
 // WithBrand sets the Brand field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Brand field is set to the value of the last call.
-func (b *ConsoleCustomizationApplyConfiguration) WithBrand(value v1.Brand) *ConsoleCustomizationApplyConfiguration {
+func (b *ConsoleCustomizationApplyConfiguration) WithBrand(value operatorv1.Brand) *ConsoleCustomizationApplyConfiguration {
 	b.Brand = &value
 	return b
 }

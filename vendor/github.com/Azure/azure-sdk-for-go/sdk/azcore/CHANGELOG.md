@@ -1,5 +1,21 @@
 # Release History
 
+## 1.14.0 (2024-08-07)
+
+### Features Added
+
+* Added field `Attributes` to `runtime.StartSpanOptions` to simplify creating spans with attributes.
+
+### Other Changes
+
+* Include the HTTP verb and URL in `log.EventRetryPolicy` log entries so it's clear which operation is being retried.
+
+## 1.13.0 (2024-07-16)
+
+### Features Added
+
+- Added runtime.NewRequestFromRequest(), allowing for a policy.Request to be created from an existing *http.Request.
+
 ## 1.12.0 (2024-06-06)
 
 ### Features Added

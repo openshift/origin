@@ -6,13 +6,13 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// ProjectSpecApplyConfiguration represents an declarative configuration of the ProjectSpec type for use
+// ProjectSpecApplyConfiguration represents a declarative configuration of the ProjectSpec type for use
 // with apply.
 type ProjectSpecApplyConfiguration struct {
 	Finalizers []v1.FinalizerName `json:"finalizers,omitempty"`
 }
 
-// ProjectSpecApplyConfiguration constructs an declarative configuration of the ProjectSpec type for use with
+// ProjectSpecApplyConfiguration constructs a declarative configuration of the ProjectSpec type for use with
 // apply.
 func ProjectSpec() *ProjectSpecApplyConfiguration {
 	return &ProjectSpecApplyConfiguration{}

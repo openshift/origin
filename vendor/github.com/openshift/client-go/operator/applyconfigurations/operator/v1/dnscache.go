@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DNSCacheApplyConfiguration represents an declarative configuration of the DNSCache type for use
+// DNSCacheApplyConfiguration represents a declarative configuration of the DNSCache type for use
 // with apply.
 type DNSCacheApplyConfiguration struct {
 	PositiveTTL *v1.Duration `json:"positiveTTL,omitempty"`
 	NegativeTTL *v1.Duration `json:"negativeTTL,omitempty"`
 }
 
-// DNSCacheApplyConfiguration constructs an declarative configuration of the DNSCache type for use with
+// DNSCacheApplyConfiguration constructs a declarative configuration of the DNSCache type for use with
 // apply.
 func DNSCache() *DNSCacheApplyConfiguration {
 	return &DNSCacheApplyConfiguration{}

@@ -7,7 +7,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// ConsoleSpecApplyConfiguration represents an declarative configuration of the ConsoleSpec type for use
+// ConsoleSpecApplyConfiguration represents a declarative configuration of the ConsoleSpec type for use
 // with apply.
 type ConsoleSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
@@ -18,7 +18,7 @@ type ConsoleSpecApplyConfiguration struct {
 	Ingress                        *IngressApplyConfiguration              `json:"ingress,omitempty"`
 }
 
-// ConsoleSpecApplyConfiguration constructs an declarative configuration of the ConsoleSpec type for use with
+// ConsoleSpecApplyConfiguration constructs a declarative configuration of the ConsoleSpec type for use with
 // apply.
 func ConsoleSpec() *ConsoleSpecApplyConfiguration {
 	return &ConsoleSpecApplyConfiguration{}

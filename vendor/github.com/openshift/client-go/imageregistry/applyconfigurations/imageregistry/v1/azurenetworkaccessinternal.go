@@ -2,7 +2,7 @@
 
 package v1
 
-// AzureNetworkAccessInternalApplyConfiguration represents an declarative configuration of the AzureNetworkAccessInternal type for use
+// AzureNetworkAccessInternalApplyConfiguration represents a declarative configuration of the AzureNetworkAccessInternal type for use
 // with apply.
 type AzureNetworkAccessInternalApplyConfiguration struct {
 	NetworkResourceGroupName *string `json:"networkResourceGroupName,omitempty"`
@@ -11,7 +11,7 @@ type AzureNetworkAccessInternalApplyConfiguration struct {
 	PrivateEndpointName      *string `json:"privateEndpointName,omitempty"`
 }
 
-// AzureNetworkAccessInternalApplyConfiguration constructs an declarative configuration of the AzureNetworkAccessInternal type for use with
+// AzureNetworkAccessInternalApplyConfiguration constructs a declarative configuration of the AzureNetworkAccessInternal type for use with
 // apply.
 func AzureNetworkAccessInternal() *AzureNetworkAccessInternalApplyConfiguration {
 	return &AzureNetworkAccessInternalApplyConfiguration{}

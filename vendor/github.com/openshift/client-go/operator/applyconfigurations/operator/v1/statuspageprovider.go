@@ -2,13 +2,13 @@
 
 package v1
 
-// StatuspageProviderApplyConfiguration represents an declarative configuration of the StatuspageProvider type for use
+// StatuspageProviderApplyConfiguration represents a declarative configuration of the StatuspageProvider type for use
 // with apply.
 type StatuspageProviderApplyConfiguration struct {
 	PageID *string `json:"pageID,omitempty"`
 }
 
-// StatuspageProviderApplyConfiguration constructs an declarative configuration of the StatuspageProvider type for use with
+// StatuspageProviderApplyConfiguration constructs a declarative configuration of the StatuspageProvider type for use with
 // apply.
 func StatuspageProvider() *StatuspageProviderApplyConfiguration {
 	return &StatuspageProviderApplyConfiguration{}

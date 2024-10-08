@@ -117,6 +117,23 @@ type RoutingConfig struct {
 	Subdomain string `json:"subdomain"`
 }
 
+// ImportModeType describes how to import an image manifest.
+// +enum
+// +kubebuilder:validation:Enum:="";Legacy;PreserveOriginal
+type ImportModeType string
+
+const (
+        // ImportModeLegacy indicates that the legacy behaviour should be used.
+        // For manifest lists, the legacy behaviour will discard the manifest list and import a single
+        // sub-manifest. In this case, the platform is chosen in the following order of priority:
+        // 1. tag annotations; 2. control plane arch/os; 3. linux/amd64; 4. the first manifest in the list.
+        // This mode is the default.
+        ImportModeLegacy ImportModeType = "Legacy"
+        // ImportModePreserveOriginal indicates that the original manifest will be preserved.
+        // For manifest lists, the manifest list and all its sub-manifests will be imported.
+        ImportModePreserveOriginal ImportModeType = "PreserveOriginal"
+)
+
 type ImagePolicyConfig struct {
 	// maxImagesBulkImportedPerRepository controls the number of images that are imported when a user
 	// does a bulk import of a container repository. This number is set low to prevent users from
@@ -142,6 +159,19 @@ type ImagePolicyConfig struct {
 	// additionalTrustedCA is a path to a pem bundle file containing additional CAs that
 	// should be trusted during imagestream import.
 	AdditionalTrustedCA string `json:"additionalTrustedCA"`
+
+	// imageStreamImportMode provides the import mode value for  imagestreams.
+	// It can be `Legacy` or `PreserveOriginal`. `Legacy` indicates that the legacy behaviour
+	// should be used. For manifest lists, the legacy behaviour will discard the manifest list
+	// and import a single sub-manifest. In this case, the platform is chosen in the following
+	// order of priority: 1. tag annotations; 2. control plane arch/os; 3. linux/amd64; 4. the first
+	// manifest in the list. `PreserveOriginal` indicates that the original manifest will be preserved.
+	// For manifest lists, the manifest list and all its sub-manifests will be imported.If this value
+	// is specified, this setting is applied to all newly created imagestreams which do not have the
+	// value set.
+	// +openshift:enable:FeatureGate=ImageStreamImportMode
+	// +optional
+	ImageStreamImportMode ImportModeType `json:"imageStreamImportMode"`
 }
 
 // AllowedRegistries represents a list of registries allowed for the image import.

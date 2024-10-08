@@ -2,13 +2,13 @@
 
 package v1
 
-// ClusterCSIDriverStatusApplyConfiguration represents an declarative configuration of the ClusterCSIDriverStatus type for use
+// ClusterCSIDriverStatusApplyConfiguration represents a declarative configuration of the ClusterCSIDriverStatus type for use
 // with apply.
 type ClusterCSIDriverStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// ClusterCSIDriverStatusApplyConfiguration constructs an declarative configuration of the ClusterCSIDriverStatus type for use with
+// ClusterCSIDriverStatusApplyConfiguration constructs a declarative configuration of the ClusterCSIDriverStatus type for use with
 // apply.
 func ClusterCSIDriverStatus() *ClusterCSIDriverStatusApplyConfiguration {
 	return &ClusterCSIDriverStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *ClusterCSIDriverStatusApplyConfiguration) WithVersion(value string) *Cl
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *ClusterCSIDriverStatusApplyConfiguration) WithReadyReplicas(value int32) *ClusterCSIDriverStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *ClusterCSIDriverStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *ClusterCSIDriverStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 

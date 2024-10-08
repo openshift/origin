@@ -7,7 +7,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// ClientTLSApplyConfiguration represents an declarative configuration of the ClientTLS type for use
+// ClientTLSApplyConfiguration represents a declarative configuration of the ClientTLS type for use
 // with apply.
 type ClientTLSApplyConfiguration struct {
 	ClientCertificatePolicy *v1.ClientCertificatePolicy      `json:"clientCertificatePolicy,omitempty"`
@@ -15,7 +15,7 @@ type ClientTLSApplyConfiguration struct {
 	AllowedSubjectPatterns  []string                         `json:"allowedSubjectPatterns,omitempty"`
 }
 
-// ClientTLSApplyConfiguration constructs an declarative configuration of the ClientTLS type for use with
+// ClientTLSApplyConfiguration constructs a declarative configuration of the ClientTLS type for use with
 // apply.
 func ClientTLS() *ClientTLSApplyConfiguration {
 	return &ClientTLSApplyConfiguration{}

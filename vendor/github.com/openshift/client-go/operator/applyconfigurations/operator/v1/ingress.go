@@ -2,14 +2,14 @@
 
 package v1
 
-// IngressApplyConfiguration represents an declarative configuration of the Ingress type for use
+// IngressApplyConfiguration represents a declarative configuration of the Ingress type for use
 // with apply.
 type IngressApplyConfiguration struct {
 	ConsoleURL         *string `json:"consoleURL,omitempty"`
 	ClientDownloadsURL *string `json:"clientDownloadsURL,omitempty"`
 }
 
-// IngressApplyConfiguration constructs an declarative configuration of the Ingress type for use with
+// IngressApplyConfiguration constructs a declarative configuration of the Ingress type for use with
 // apply.
 func Ingress() *IngressApplyConfiguration {
 	return &IngressApplyConfiguration{}

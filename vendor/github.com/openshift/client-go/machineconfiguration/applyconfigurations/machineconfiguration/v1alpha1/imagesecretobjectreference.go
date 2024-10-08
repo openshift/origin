@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// ImageSecretObjectReferenceApplyConfiguration represents an declarative configuration of the ImageSecretObjectReference type for use
+// ImageSecretObjectReferenceApplyConfiguration represents a declarative configuration of the ImageSecretObjectReference type for use
 // with apply.
 type ImageSecretObjectReferenceApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// ImageSecretObjectReferenceApplyConfiguration constructs an declarative configuration of the ImageSecretObjectReference type for use with
+// ImageSecretObjectReferenceApplyConfiguration constructs a declarative configuration of the ImageSecretObjectReference type for use with
 // apply.
 func ImageSecretObjectReference() *ImageSecretObjectReferenceApplyConfiguration {
 	return &ImageSecretObjectReferenceApplyConfiguration{}

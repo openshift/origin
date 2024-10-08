@@ -2,13 +2,13 @@
 
 package v1
 
-// KMSEncryptionAlibabaApplyConfiguration represents an declarative configuration of the KMSEncryptionAlibaba type for use
+// KMSEncryptionAlibabaApplyConfiguration represents a declarative configuration of the KMSEncryptionAlibaba type for use
 // with apply.
 type KMSEncryptionAlibabaApplyConfiguration struct {
 	KeyID *string `json:"keyID,omitempty"`
 }
 
-// KMSEncryptionAlibabaApplyConfiguration constructs an declarative configuration of the KMSEncryptionAlibaba type for use with
+// KMSEncryptionAlibabaApplyConfiguration constructs a declarative configuration of the KMSEncryptionAlibaba type for use with
 // apply.
 func KMSEncryptionAlibaba() *KMSEncryptionAlibabaApplyConfiguration {
 	return &KMSEncryptionAlibabaApplyConfiguration{}

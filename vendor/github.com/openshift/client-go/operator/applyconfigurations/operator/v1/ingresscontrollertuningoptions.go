@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// IngressControllerTuningOptionsApplyConfiguration represents an declarative configuration of the IngressControllerTuningOptions type for use
+// IngressControllerTuningOptionsApplyConfiguration represents a declarative configuration of the IngressControllerTuningOptions type for use
 // with apply.
 type IngressControllerTuningOptionsApplyConfiguration struct {
 	HeaderBufferBytes           *int32       `json:"headerBufferBytes,omitempty"`
@@ -24,7 +24,7 @@ type IngressControllerTuningOptionsApplyConfiguration struct {
 	ReloadInterval              *v1.Duration `json:"reloadInterval,omitempty"`
 }
 
-// IngressControllerTuningOptionsApplyConfiguration constructs an declarative configuration of the IngressControllerTuningOptions type for use with
+// IngressControllerTuningOptionsApplyConfiguration constructs a declarative configuration of the IngressControllerTuningOptions type for use with
 // apply.
 func IngressControllerTuningOptions() *IngressControllerTuningOptionsApplyConfiguration {
 	return &IngressControllerTuningOptionsApplyConfiguration{}

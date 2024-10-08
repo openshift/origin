@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// EtcdBackupStatusApplyConfiguration represents an declarative configuration of the EtcdBackupStatus type for use
+// EtcdBackupStatusApplyConfiguration represents a declarative configuration of the EtcdBackupStatus type for use
 // with apply.
 type EtcdBackupStatusApplyConfiguration struct {
 	Conditions []v1.ConditionApplyConfiguration      `json:"conditions,omitempty"`
 	BackupJob  *BackupJobReferenceApplyConfiguration `json:"backupJob,omitempty"`
 }
 
-// EtcdBackupStatusApplyConfiguration constructs an declarative configuration of the EtcdBackupStatus type for use with
+// EtcdBackupStatusApplyConfiguration constructs a declarative configuration of the EtcdBackupStatus type for use with
 // apply.
 func EtcdBackupStatus() *EtcdBackupStatusApplyConfiguration {
 	return &EtcdBackupStatusApplyConfiguration{}

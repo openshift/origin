@@ -2,7 +2,7 @@
 
 package v1alpha1
 
-// MachineOSConfigSpecApplyConfiguration represents an declarative configuration of the MachineOSConfigSpec type for use
+// MachineOSConfigSpecApplyConfiguration represents a declarative configuration of the MachineOSConfigSpec type for use
 // with apply.
 type MachineOSConfigSpecApplyConfiguration struct {
 	MachineConfigPool *MachineConfigPoolReferenceApplyConfiguration `json:"machineConfigPool,omitempty"`
@@ -10,7 +10,7 @@ type MachineOSConfigSpecApplyConfiguration struct {
 	BuildOutputs      *BuildOutputsApplyConfiguration               `json:"buildOutputs,omitempty"`
 }
 
-// MachineOSConfigSpecApplyConfiguration constructs an declarative configuration of the MachineOSConfigSpec type for use with
+// MachineOSConfigSpecApplyConfiguration constructs a declarative configuration of the MachineOSConfigSpec type for use with
 // apply.
 func MachineOSConfigSpec() *MachineOSConfigSpecApplyConfiguration {
 	return &MachineOSConfigSpecApplyConfiguration{}

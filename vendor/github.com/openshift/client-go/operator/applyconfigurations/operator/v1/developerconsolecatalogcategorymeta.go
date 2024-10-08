@@ -2,7 +2,7 @@
 
 package v1
 
-// DeveloperConsoleCatalogCategoryMetaApplyConfiguration represents an declarative configuration of the DeveloperConsoleCatalogCategoryMeta type for use
+// DeveloperConsoleCatalogCategoryMetaApplyConfiguration represents a declarative configuration of the DeveloperConsoleCatalogCategoryMeta type for use
 // with apply.
 type DeveloperConsoleCatalogCategoryMetaApplyConfiguration struct {
 	ID    *string  `json:"id,omitempty"`
@@ -10,7 +10,7 @@ type DeveloperConsoleCatalogCategoryMetaApplyConfiguration struct {
 	Tags  []string `json:"tags,omitempty"`
 }
 
-// DeveloperConsoleCatalogCategoryMetaApplyConfiguration constructs an declarative configuration of the DeveloperConsoleCatalogCategoryMeta type for use with
+// DeveloperConsoleCatalogCategoryMetaApplyConfiguration constructs a declarative configuration of the DeveloperConsoleCatalogCategoryMeta type for use with
 // apply.
 func DeveloperConsoleCatalogCategoryMeta() *DeveloperConsoleCatalogCategoryMetaApplyConfiguration {
 	return &DeveloperConsoleCatalogCategoryMetaApplyConfiguration{}

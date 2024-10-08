@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// MachineManagerApplyConfiguration represents an declarative configuration of the MachineManager type for use
+// MachineManagerApplyConfiguration represents a declarative configuration of the MachineManager type for use
 // with apply.
 type MachineManagerApplyConfiguration struct {
 	Resource  *v1.MachineManagerMachineSetsResourceType `json:"resource,omitempty"`
@@ -14,7 +14,7 @@ type MachineManagerApplyConfiguration struct {
 	Selection *MachineManagerSelectorApplyConfiguration `json:"selection,omitempty"`
 }
 
-// MachineManagerApplyConfiguration constructs an declarative configuration of the MachineManager type for use with
+// MachineManagerApplyConfiguration constructs a declarative configuration of the MachineManager type for use with
 // apply.
 func MachineManager() *MachineManagerApplyConfiguration {
 	return &MachineManagerApplyConfiguration{}

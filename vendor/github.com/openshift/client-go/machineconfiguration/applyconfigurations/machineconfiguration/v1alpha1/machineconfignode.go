@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// MachineConfigNodeApplyConfiguration represents an declarative configuration of the MachineConfigNode type for use
+// MachineConfigNodeApplyConfiguration represents a declarative configuration of the MachineConfigNode type for use
 // with apply.
 type MachineConfigNodeApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type MachineConfigNodeApplyConfiguration struct {
 	Status                           *MachineConfigNodeStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// MachineConfigNode constructs an declarative configuration of the MachineConfigNode type for use with
+// MachineConfigNode constructs a declarative configuration of the MachineConfigNode type for use with
 // apply.
 func MachineConfigNode(name string) *MachineConfigNodeApplyConfiguration {
 	b := &MachineConfigNodeApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *MachineConfigNodeApplyConfiguration) WithSpec(value *MachineConfigNodeS
 func (b *MachineConfigNodeApplyConfiguration) WithStatus(value *MachineConfigNodeStatusApplyConfiguration) *MachineConfigNodeApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *MachineConfigNodeApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

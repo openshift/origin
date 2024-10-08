@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// RenderedMachineConfigReferenceApplyConfiguration represents an declarative configuration of the RenderedMachineConfigReference type for use
+// RenderedMachineConfigReferenceApplyConfiguration represents a declarative configuration of the RenderedMachineConfigReference type for use
 // with apply.
 type RenderedMachineConfigReferenceApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// RenderedMachineConfigReferenceApplyConfiguration constructs an declarative configuration of the RenderedMachineConfigReference type for use with
+// RenderedMachineConfigReferenceApplyConfiguration constructs a declarative configuration of the RenderedMachineConfigReference type for use with
 // apply.
 func RenderedMachineConfigReference() *RenderedMachineConfigReferenceApplyConfiguration {
 	return &RenderedMachineConfigReferenceApplyConfiguration{}

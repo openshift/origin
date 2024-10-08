@@ -2,7 +2,7 @@
 
 package v1alpha1
 
-// MachineOSBuildSpecApplyConfiguration represents an declarative configuration of the MachineOSBuildSpec type for use
+// MachineOSBuildSpecApplyConfiguration represents a declarative configuration of the MachineOSBuildSpec type for use
 // with apply.
 type MachineOSBuildSpecApplyConfiguration struct {
 	ConfigGeneration      *int64                                            `json:"configGeneration,omitempty"`
@@ -12,7 +12,7 @@ type MachineOSBuildSpecApplyConfiguration struct {
 	RenderedImagePushspec *string                                           `json:"renderedImagePushspec,omitempty"`
 }
 
-// MachineOSBuildSpecApplyConfiguration constructs an declarative configuration of the MachineOSBuildSpec type for use with
+// MachineOSBuildSpecApplyConfiguration constructs a declarative configuration of the MachineOSBuildSpec type for use with
 // apply.
 func MachineOSBuildSpec() *MachineOSBuildSpecApplyConfiguration {
 	return &MachineOSBuildSpecApplyConfiguration{}

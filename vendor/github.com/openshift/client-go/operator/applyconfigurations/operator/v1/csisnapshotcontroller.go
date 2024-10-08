@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// CSISnapshotControllerApplyConfiguration represents an declarative configuration of the CSISnapshotController type for use
+// CSISnapshotControllerApplyConfiguration represents a declarative configuration of the CSISnapshotController type for use
 // with apply.
 type CSISnapshotControllerApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type CSISnapshotControllerApplyConfiguration struct {
 	Status                           *CSISnapshotControllerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// CSISnapshotController constructs an declarative configuration of the CSISnapshotController type for use with
+// CSISnapshotController constructs a declarative configuration of the CSISnapshotController type for use with
 // apply.
 func CSISnapshotController(name string) *CSISnapshotControllerApplyConfiguration {
 	b := &CSISnapshotControllerApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *CSISnapshotControllerApplyConfiguration) WithSpec(value *CSISnapshotCon
 func (b *CSISnapshotControllerApplyConfiguration) WithStatus(value *CSISnapshotControllerStatusApplyConfiguration) *CSISnapshotControllerApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *CSISnapshotControllerApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

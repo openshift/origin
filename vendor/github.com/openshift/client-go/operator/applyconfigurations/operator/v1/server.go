@@ -2,7 +2,7 @@
 
 package v1
 
-// ServerApplyConfiguration represents an declarative configuration of the Server type for use
+// ServerApplyConfiguration represents a declarative configuration of the Server type for use
 // with apply.
 type ServerApplyConfiguration struct {
 	Name          *string                          `json:"name,omitempty"`
@@ -10,7 +10,7 @@ type ServerApplyConfiguration struct {
 	ForwardPlugin *ForwardPluginApplyConfiguration `json:"forwardPlugin,omitempty"`
 }
 
-// ServerApplyConfiguration constructs an declarative configuration of the Server type for use with
+// ServerApplyConfiguration constructs a declarative configuration of the Server type for use with
 // apply.
 func Server() *ServerApplyConfiguration {
 	return &ServerApplyConfiguration{}

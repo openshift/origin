@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/machine/v1"
 )
 
-// ControlPlaneMachineSetStrategyApplyConfiguration represents an declarative configuration of the ControlPlaneMachineSetStrategy type for use
+// ControlPlaneMachineSetStrategyApplyConfiguration represents a declarative configuration of the ControlPlaneMachineSetStrategy type for use
 // with apply.
 type ControlPlaneMachineSetStrategyApplyConfiguration struct {
 	Type *v1.ControlPlaneMachineSetStrategyType `json:"type,omitempty"`
 }
 
-// ControlPlaneMachineSetStrategyApplyConfiguration constructs an declarative configuration of the ControlPlaneMachineSetStrategy type for use with
+// ControlPlaneMachineSetStrategyApplyConfiguration constructs a declarative configuration of the ControlPlaneMachineSetStrategy type for use with
 // apply.
 func ControlPlaneMachineSetStrategy() *ControlPlaneMachineSetStrategyApplyConfiguration {
 	return &ControlPlaneMachineSetStrategyApplyConfiguration{}

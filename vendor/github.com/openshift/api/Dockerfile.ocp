@@ -1,0 +1,23 @@
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.22-openshift-4.18 AS builder
+WORKDIR /go/src/github.com/openshift/api
+COPY . .
+ENV GO_PACKAGE github.com/openshift/api
+RUN make build --warn-undefined-variables
+
+FROM registry.ci.openshift.org/ocp/4.18:base-rhel9
+
+# copy the built binaries to /usr/bin
+COPY --from=builder /go/src/github.com/openshift/api/render /usr/bin/
+COPY --from=builder /go/src/github.com/openshift/api/write-available-featuresets /usr/bin/
+
+# this directory is used to produce rendered manifests that the installer applies (but does not maintain) in bootkube
+RUN mkdir -p /usr/share/bootkube/manifests/manifests
+COPY payload-manifests/crds/* /usr/share/bootkube/manifests/manifests
+
+# these are applied by the CVO
+COPY manifests /manifests
+COPY payload-manifests/crds/* /manifests
+COPY payload-manifests/featuregates/* /manifests
+COPY payload-command/empty-resources /manifests
+
+LABEL io.openshift.release.operator true

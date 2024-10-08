@@ -2,7 +2,7 @@
 
 package v1alpha1
 
-// MachineConfigNodeStatusPinnedImageSetApplyConfiguration represents an declarative configuration of the MachineConfigNodeStatusPinnedImageSet type for use
+// MachineConfigNodeStatusPinnedImageSetApplyConfiguration represents a declarative configuration of the MachineConfigNodeStatusPinnedImageSet type for use
 // with apply.
 type MachineConfigNodeStatusPinnedImageSetApplyConfiguration struct {
 	Name                       *string  `json:"name,omitempty"`
@@ -12,7 +12,7 @@ type MachineConfigNodeStatusPinnedImageSetApplyConfiguration struct {
 	LastFailedGenerationErrors []string `json:"lastFailedGenerationErrors,omitempty"`
 }
 
-// MachineConfigNodeStatusPinnedImageSetApplyConfiguration constructs an declarative configuration of the MachineConfigNodeStatusPinnedImageSet type for use with
+// MachineConfigNodeStatusPinnedImageSetApplyConfiguration constructs a declarative configuration of the MachineConfigNodeStatusPinnedImageSet type for use with
 // apply.
 func MachineConfigNodeStatusPinnedImageSet() *MachineConfigNodeStatusPinnedImageSetApplyConfiguration {
 	return &MachineConfigNodeStatusPinnedImageSetApplyConfiguration{}

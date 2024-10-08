@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// IPAMConfigApplyConfiguration represents an declarative configuration of the IPAMConfig type for use
+// IPAMConfigApplyConfiguration represents a declarative configuration of the IPAMConfig type for use
 // with apply.
 type IPAMConfigApplyConfiguration struct {
 	Type             *v1.IPAMType                        `json:"type,omitempty"`
 	StaticIPAMConfig *StaticIPAMConfigApplyConfiguration `json:"staticIPAMConfig,omitempty"`
 }
 
-// IPAMConfigApplyConfiguration constructs an declarative configuration of the IPAMConfig type for use with
+// IPAMConfigApplyConfiguration constructs a declarative configuration of the IPAMConfig type for use with
 // apply.
 func IPAMConfig() *IPAMConfigApplyConfiguration {
 	return &IPAMConfigApplyConfiguration{}

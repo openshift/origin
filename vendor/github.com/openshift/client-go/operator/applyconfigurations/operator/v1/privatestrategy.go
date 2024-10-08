@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// PrivateStrategyApplyConfiguration represents an declarative configuration of the PrivateStrategy type for use
+// PrivateStrategyApplyConfiguration represents a declarative configuration of the PrivateStrategy type for use
 // with apply.
 type PrivateStrategyApplyConfiguration struct {
 	Protocol *v1.IngressControllerProtocol `json:"protocol,omitempty"`
 }
 
-// PrivateStrategyApplyConfiguration constructs an declarative configuration of the PrivateStrategy type for use with
+// PrivateStrategyApplyConfiguration constructs a declarative configuration of the PrivateStrategy type for use with
 // apply.
 func PrivateStrategy() *PrivateStrategyApplyConfiguration {
 	return &PrivateStrategyApplyConfiguration{}

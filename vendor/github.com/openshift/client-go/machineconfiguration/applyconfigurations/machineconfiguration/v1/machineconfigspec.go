@@ -6,7 +6,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// MachineConfigSpecApplyConfiguration represents an declarative configuration of the MachineConfigSpec type for use
+// MachineConfigSpecApplyConfiguration represents a declarative configuration of the MachineConfigSpec type for use
 // with apply.
 type MachineConfigSpecApplyConfiguration struct {
 	OSImageURL                     *string               `json:"osImageURL,omitempty"`
@@ -18,7 +18,7 @@ type MachineConfigSpecApplyConfiguration struct {
 	KernelType                     *string               `json:"kernelType,omitempty"`
 }
 
-// MachineConfigSpecApplyConfiguration constructs an declarative configuration of the MachineConfigSpec type for use with
+// MachineConfigSpecApplyConfiguration constructs a declarative configuration of the MachineConfigSpec type for use with
 // apply.
 func MachineConfigSpec() *MachineConfigSpecApplyConfiguration {
 	return &MachineConfigSpecApplyConfiguration{}

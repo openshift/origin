@@ -2,16 +2,15 @@
 
 package v1
 
-// StaticPodOperatorStatusApplyConfiguration represents an declarative configuration of the StaticPodOperatorStatus type for use
+// StaticPodOperatorStatusApplyConfiguration represents a declarative configuration of the StaticPodOperatorStatus type for use
 // with apply.
 type StaticPodOperatorStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
-	LatestAvailableRevision          *int32                         `json:"latestAvailableRevision,omitempty"`
 	LatestAvailableRevisionReason    *string                        `json:"latestAvailableRevisionReason,omitempty"`
 	NodeStatuses                     []NodeStatusApplyConfiguration `json:"nodeStatuses,omitempty"`
 }
 
-// StaticPodOperatorStatusApplyConfiguration constructs an declarative configuration of the StaticPodOperatorStatus type for use with
+// StaticPodOperatorStatusApplyConfiguration constructs a declarative configuration of the StaticPodOperatorStatus type for use with
 // apply.
 func StaticPodOperatorStatus() *StaticPodOperatorStatusApplyConfiguration {
 	return &StaticPodOperatorStatusApplyConfiguration{}
@@ -54,6 +53,14 @@ func (b *StaticPodOperatorStatusApplyConfiguration) WithReadyReplicas(value int3
 	return b
 }
 
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *StaticPodOperatorStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *StaticPodOperatorStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
+	return b
+}
+
 // WithGenerations adds the given value to the Generations field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Generations field.
@@ -64,14 +71,6 @@ func (b *StaticPodOperatorStatusApplyConfiguration) WithGenerations(values ...*G
 		}
 		b.Generations = append(b.Generations, *values[i])
 	}
-	return b
-}
-
-// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
-// and returns the receiver, so that objects can be built by chaining "With" function invocations.
-// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
-func (b *StaticPodOperatorStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *StaticPodOperatorStatusApplyConfiguration {
-	b.LatestAvailableRevision = &value
 	return b
 }
 

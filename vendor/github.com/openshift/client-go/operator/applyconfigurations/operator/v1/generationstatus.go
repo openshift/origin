@@ -2,7 +2,7 @@
 
 package v1
 
-// GenerationStatusApplyConfiguration represents an declarative configuration of the GenerationStatus type for use
+// GenerationStatusApplyConfiguration represents a declarative configuration of the GenerationStatus type for use
 // with apply.
 type GenerationStatusApplyConfiguration struct {
 	Group          *string `json:"group,omitempty"`
@@ -13,7 +13,7 @@ type GenerationStatusApplyConfiguration struct {
 	Hash           *string `json:"hash,omitempty"`
 }
 
-// GenerationStatusApplyConfiguration constructs an declarative configuration of the GenerationStatus type for use with
+// GenerationStatusApplyConfiguration constructs a declarative configuration of the GenerationStatus type for use with
 // apply.
 func GenerationStatus() *GenerationStatusApplyConfiguration {
 	return &GenerationStatusApplyConfiguration{}

@@ -6,7 +6,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ImageRegistryConfigRequestsLimitsApplyConfiguration represents an declarative configuration of the ImageRegistryConfigRequestsLimits type for use
+// ImageRegistryConfigRequestsLimitsApplyConfiguration represents a declarative configuration of the ImageRegistryConfigRequestsLimits type for use
 // with apply.
 type ImageRegistryConfigRequestsLimitsApplyConfiguration struct {
 	MaxRunning     *int         `json:"maxRunning,omitempty"`
@@ -14,7 +14,7 @@ type ImageRegistryConfigRequestsLimitsApplyConfiguration struct {
 	MaxWaitInQueue *v1.Duration `json:"maxWaitInQueue,omitempty"`
 }
 
-// ImageRegistryConfigRequestsLimitsApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigRequestsLimits type for use with
+// ImageRegistryConfigRequestsLimitsApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigRequestsLimits type for use with
 // apply.
 func ImageRegistryConfigRequestsLimits() *ImageRegistryConfigRequestsLimitsApplyConfiguration {
 	return &ImageRegistryConfigRequestsLimitsApplyConfiguration{}

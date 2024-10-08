@@ -53,7 +53,7 @@ var (
 
 		// allowed upstream kube images - index and value must match upstream or
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
-		"registry.k8s.io/e2e-test-images/agnhost:2.47": 1,
+		"registry.k8s.io/e2e-test-images/agnhost:2.52": 1,
 		"registry.k8s.io/e2e-test-images/nginx:1.15-4": 21,
 	}
 )
@@ -217,7 +217,7 @@ var Exceptions = sets.NewString(
 	// this image has 2 windows/amd64 manifests, where layers are not compressed,
 	// ie. application/vnd.docker.image.rootfs.diff.tar which are not accepted
 	// by quay.io, this has to be manually mirrored with --filter-by-os=linux.*
-	"registry.k8s.io/pause:3.9",
+	"registry.k8s.io/pause:3.10",
 )
 
 // GetMappedImages returns the images if they were mapped to the provided

@@ -2,14 +2,14 @@
 
 package v1
 
-// ImageRegistryConfigRequestsApplyConfiguration represents an declarative configuration of the ImageRegistryConfigRequests type for use
+// ImageRegistryConfigRequestsApplyConfiguration represents a declarative configuration of the ImageRegistryConfigRequests type for use
 // with apply.
 type ImageRegistryConfigRequestsApplyConfiguration struct {
 	Read  *ImageRegistryConfigRequestsLimitsApplyConfiguration `json:"read,omitempty"`
 	Write *ImageRegistryConfigRequestsLimitsApplyConfiguration `json:"write,omitempty"`
 }
 
-// ImageRegistryConfigRequestsApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigRequests type for use with
+// ImageRegistryConfigRequestsApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigRequests type for use with
 // apply.
 func ImageRegistryConfigRequests() *ImageRegistryConfigRequestsApplyConfiguration {
 	return &ImageRegistryConfigRequestsApplyConfiguration{}

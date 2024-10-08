@@ -27,9 +27,11 @@ test-unit:
 ##################################################################################
 
 # Ensure update-scripts are run before crd-gen so updates to Godoc are included in CRDs.
+# Run update-payload-crds after update-codegen-crds to copy any newly created crds
 .PHONY: update-codegen-crds
 update-codegen-crds: update-scripts
 	hack/update-codegen-crds.sh
+	hack/update-payload-crds.sh
 
 #####################
 #
@@ -79,7 +81,7 @@ verify-%:
 ################################################################################################
 
 .PHONY: update-scripts
-update-scripts: update-compatibility update-openapi update-deepcopy update-protobuf update-swagger-docs tests-vendor update-prerelease-lifecycle-gen update-payload-crds update-payload-featuregates
+update-scripts: update-compatibility update-openapi update-deepcopy update-protobuf update-swagger-docs tests-vendor update-prerelease-lifecycle-gen update-payload-featuregates
 
 .PHONY: update-compatibility
 update-compatibility:

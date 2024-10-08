@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// IngressControllerSpecApplyConfiguration represents an declarative configuration of the IngressControllerSpec type for use
+// IngressControllerSpecApplyConfiguration represents a declarative configuration of the IngressControllerSpec type for use
 // with apply.
 type IngressControllerSpecApplyConfiguration struct {
 	Domain                     *string                                           `json:"domain,omitempty"`
@@ -32,7 +32,7 @@ type IngressControllerSpecApplyConfiguration struct {
 	HTTPCompression            *HTTPCompressionPolicyApplyConfiguration          `json:"httpCompression,omitempty"`
 }
 
-// IngressControllerSpecApplyConfiguration constructs an declarative configuration of the IngressControllerSpec type for use with
+// IngressControllerSpecApplyConfiguration constructs a declarative configuration of the IngressControllerSpec type for use with
 // apply.
 func IngressControllerSpec() *IngressControllerSpecApplyConfiguration {
 	return &IngressControllerSpecApplyConfiguration{}

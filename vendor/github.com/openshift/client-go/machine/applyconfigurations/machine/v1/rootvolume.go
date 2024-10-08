@@ -2,14 +2,14 @@
 
 package v1
 
-// RootVolumeApplyConfiguration represents an declarative configuration of the RootVolume type for use
+// RootVolumeApplyConfiguration represents a declarative configuration of the RootVolume type for use
 // with apply.
 type RootVolumeApplyConfiguration struct {
 	AvailabilityZone *string `json:"availabilityZone,omitempty"`
 	VolumeType       *string `json:"volumeType,omitempty"`
 }
 
-// RootVolumeApplyConfiguration constructs an declarative configuration of the RootVolume type for use with
+// RootVolumeApplyConfiguration constructs a declarative configuration of the RootVolume type for use with
 // apply.
 func RootVolume() *RootVolumeApplyConfiguration {
 	return &RootVolumeApplyConfiguration{}

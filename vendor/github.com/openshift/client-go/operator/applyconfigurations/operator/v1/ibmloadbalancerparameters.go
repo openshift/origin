@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// IBMLoadBalancerParametersApplyConfiguration represents an declarative configuration of the IBMLoadBalancerParameters type for use
+// IBMLoadBalancerParametersApplyConfiguration represents a declarative configuration of the IBMLoadBalancerParameters type for use
 // with apply.
 type IBMLoadBalancerParametersApplyConfiguration struct {
 	Protocol *v1.IngressControllerProtocol `json:"protocol,omitempty"`
 }
 
-// IBMLoadBalancerParametersApplyConfiguration constructs an declarative configuration of the IBMLoadBalancerParameters type for use with
+// IBMLoadBalancerParametersApplyConfiguration constructs a declarative configuration of the IBMLoadBalancerParameters type for use with
 // apply.
 func IBMLoadBalancerParameters() *IBMLoadBalancerParametersApplyConfiguration {
 	return &IBMLoadBalancerParametersApplyConfiguration{}

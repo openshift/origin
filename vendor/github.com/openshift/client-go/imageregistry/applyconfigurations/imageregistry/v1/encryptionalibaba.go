@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/imageregistry/v1"
 )
 
-// EncryptionAlibabaApplyConfiguration represents an declarative configuration of the EncryptionAlibaba type for use
+// EncryptionAlibabaApplyConfiguration represents a declarative configuration of the EncryptionAlibaba type for use
 // with apply.
 type EncryptionAlibabaApplyConfiguration struct {
 	Method *v1.AlibabaEncryptionMethod             `json:"method,omitempty"`
 	KMS    *KMSEncryptionAlibabaApplyConfiguration `json:"kms,omitempty"`
 }
 
-// EncryptionAlibabaApplyConfiguration constructs an declarative configuration of the EncryptionAlibaba type for use with
+// EncryptionAlibabaApplyConfiguration constructs a declarative configuration of the EncryptionAlibaba type for use with
 // apply.
 func EncryptionAlibaba() *EncryptionAlibabaApplyConfiguration {
 	return &EncryptionAlibabaApplyConfiguration{}

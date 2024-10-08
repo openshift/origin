@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// CloudCredentialApplyConfiguration represents an declarative configuration of the CloudCredential type for use
+// CloudCredentialApplyConfiguration represents a declarative configuration of the CloudCredential type for use
 // with apply.
 type CloudCredentialApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type CloudCredentialApplyConfiguration struct {
 	Status                           *CloudCredentialStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// CloudCredential constructs an declarative configuration of the CloudCredential type for use with
+// CloudCredential constructs a declarative configuration of the CloudCredential type for use with
 // apply.
 func CloudCredential(name string) *CloudCredentialApplyConfiguration {
 	b := &CloudCredentialApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *CloudCredentialApplyConfiguration) WithSpec(value *CloudCredentialSpecA
 func (b *CloudCredentialApplyConfiguration) WithStatus(value *CloudCredentialStatusApplyConfiguration) *CloudCredentialApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *CloudCredentialApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

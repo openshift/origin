@@ -6,7 +6,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// AccessLoggingApplyConfiguration represents an declarative configuration of the AccessLogging type for use
+// AccessLoggingApplyConfiguration represents a declarative configuration of the AccessLogging type for use
 // with apply.
 type AccessLoggingApplyConfiguration struct {
 	Destination        *LoggingDestinationApplyConfiguration                  `json:"destination,omitempty"`
@@ -16,7 +16,7 @@ type AccessLoggingApplyConfiguration struct {
 	LogEmptyRequests   *operatorv1.LoggingPolicy                              `json:"logEmptyRequests,omitempty"`
 }
 
-// AccessLoggingApplyConfiguration constructs an declarative configuration of the AccessLogging type for use with
+// AccessLoggingApplyConfiguration constructs a declarative configuration of the AccessLogging type for use with
 // apply.
 func AccessLogging() *AccessLoggingApplyConfiguration {
 	return &AccessLoggingApplyConfiguration{}

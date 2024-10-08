@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// ProjectStatusApplyConfiguration represents an declarative configuration of the ProjectStatus type for use
+// ProjectStatusApplyConfiguration represents a declarative configuration of the ProjectStatus type for use
 // with apply.
 type ProjectStatusApplyConfiguration struct {
 	Phase      *v1.NamespacePhase      `json:"phase,omitempty"`
 	Conditions []v1.NamespaceCondition `json:"conditions,omitempty"`
 }
 
-// ProjectStatusApplyConfiguration constructs an declarative configuration of the ProjectStatus type for use with
+// ProjectStatusApplyConfiguration constructs a declarative configuration of the ProjectStatus type for use with
 // apply.
 func ProjectStatus() *ProjectStatusApplyConfiguration {
 	return &ProjectStatusApplyConfiguration{}

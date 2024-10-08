@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ServiceCatalogAPIServerApplyConfiguration represents an declarative configuration of the ServiceCatalogAPIServer type for use
+// ServiceCatalogAPIServerApplyConfiguration represents a declarative configuration of the ServiceCatalogAPIServer type for use
 // with apply.
 type ServiceCatalogAPIServerApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type ServiceCatalogAPIServerApplyConfiguration struct {
 	Status                           *ServiceCatalogAPIServerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// ServiceCatalogAPIServer constructs an declarative configuration of the ServiceCatalogAPIServer type for use with
+// ServiceCatalogAPIServer constructs a declarative configuration of the ServiceCatalogAPIServer type for use with
 // apply.
 func ServiceCatalogAPIServer(name string) *ServiceCatalogAPIServerApplyConfiguration {
 	b := &ServiceCatalogAPIServerApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *ServiceCatalogAPIServerApplyConfiguration) WithSpec(value *ServiceCatal
 func (b *ServiceCatalogAPIServerApplyConfiguration) WithStatus(value *ServiceCatalogAPIServerStatusApplyConfiguration) *ServiceCatalogAPIServerApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *ServiceCatalogAPIServerApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

@@ -6,13 +6,13 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// HTTPCompressionPolicyApplyConfiguration represents an declarative configuration of the HTTPCompressionPolicy type for use
+// HTTPCompressionPolicyApplyConfiguration represents a declarative configuration of the HTTPCompressionPolicy type for use
 // with apply.
 type HTTPCompressionPolicyApplyConfiguration struct {
 	MimeTypes []v1.CompressionMIMEType `json:"mimeTypes,omitempty"`
 }
 
-// HTTPCompressionPolicyApplyConfiguration constructs an declarative configuration of the HTTPCompressionPolicy type for use with
+// HTTPCompressionPolicyApplyConfiguration constructs a declarative configuration of the HTTPCompressionPolicy type for use with
 // apply.
 func HTTPCompressionPolicy() *HTTPCompressionPolicyApplyConfiguration {
 	return &HTTPCompressionPolicyApplyConfiguration{}

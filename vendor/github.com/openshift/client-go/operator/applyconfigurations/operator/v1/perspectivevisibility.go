@@ -6,14 +6,14 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// PerspectiveVisibilityApplyConfiguration represents an declarative configuration of the PerspectiveVisibility type for use
+// PerspectiveVisibilityApplyConfiguration represents a declarative configuration of the PerspectiveVisibility type for use
 // with apply.
 type PerspectiveVisibilityApplyConfiguration struct {
 	State        *v1.PerspectiveState                              `json:"state,omitempty"`
 	AccessReview *ResourceAttributesAccessReviewApplyConfiguration `json:"accessReview,omitempty"`
 }
 
-// PerspectiveVisibilityApplyConfiguration constructs an declarative configuration of the PerspectiveVisibility type for use with
+// PerspectiveVisibilityApplyConfiguration constructs a declarative configuration of the PerspectiveVisibility type for use with
 // apply.
 func PerspectiveVisibility() *PerspectiveVisibilityApplyConfiguration {
 	return &PerspectiveVisibilityApplyConfiguration{}

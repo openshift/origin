@@ -6,14 +6,14 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-// IngressControllerCaptureHTTPCookieApplyConfiguration represents an declarative configuration of the IngressControllerCaptureHTTPCookie type for use
+// IngressControllerCaptureHTTPCookieApplyConfiguration represents a declarative configuration of the IngressControllerCaptureHTTPCookie type for use
 // with apply.
 type IngressControllerCaptureHTTPCookieApplyConfiguration struct {
 	IngressControllerCaptureHTTPCookieUnionApplyConfiguration `json:",inline"`
 	MaxLength                                                 *int `json:"maxLength,omitempty"`
 }
 
-// IngressControllerCaptureHTTPCookieApplyConfiguration constructs an declarative configuration of the IngressControllerCaptureHTTPCookie type for use with
+// IngressControllerCaptureHTTPCookieApplyConfiguration constructs a declarative configuration of the IngressControllerCaptureHTTPCookie type for use with
 // apply.
 func IngressControllerCaptureHTTPCookie() *IngressControllerCaptureHTTPCookieApplyConfiguration {
 	return &IngressControllerCaptureHTTPCookieApplyConfiguration{}

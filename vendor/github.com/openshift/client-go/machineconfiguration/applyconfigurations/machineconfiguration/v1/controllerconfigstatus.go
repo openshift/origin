@@ -2,7 +2,7 @@
 
 package v1
 
-// ControllerConfigStatusApplyConfiguration represents an declarative configuration of the ControllerConfigStatus type for use
+// ControllerConfigStatusApplyConfiguration represents a declarative configuration of the ControllerConfigStatus type for use
 // with apply.
 type ControllerConfigStatusApplyConfiguration struct {
 	ObservedGeneration     *int64                                              `json:"observedGeneration,omitempty"`
@@ -10,7 +10,7 @@ type ControllerConfigStatusApplyConfiguration struct {
 	ControllerCertificates []ControllerCertificateApplyConfiguration           `json:"controllerCertificates,omitempty"`
 }
 
-// ControllerConfigStatusApplyConfiguration constructs an declarative configuration of the ControllerConfigStatus type for use with
+// ControllerConfigStatusApplyConfiguration constructs a declarative configuration of the ControllerConfigStatus type for use with
 // apply.
 func ControllerConfigStatus() *ControllerConfigStatusApplyConfiguration {
 	return &ControllerConfigStatusApplyConfiguration{}

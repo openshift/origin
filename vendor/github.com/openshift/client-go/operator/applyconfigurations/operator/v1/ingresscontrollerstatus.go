@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// IngressControllerStatusApplyConfiguration represents an declarative configuration of the IngressControllerStatus type for use
+// IngressControllerStatusApplyConfiguration represents a declarative configuration of the IngressControllerStatus type for use
 // with apply.
 type IngressControllerStatusApplyConfiguration struct {
 	AvailableReplicas          *int32                                        `json:"availableReplicas,omitempty"`
@@ -21,7 +21,7 @@ type IngressControllerStatusApplyConfiguration struct {
 	RouteSelector              *metav1.LabelSelectorApplyConfiguration       `json:"routeSelector,omitempty"`
 }
 
-// IngressControllerStatusApplyConfiguration constructs an declarative configuration of the IngressControllerStatus type for use with
+// IngressControllerStatusApplyConfiguration constructs a declarative configuration of the IngressControllerStatus type for use with
 // apply.
 func IngressControllerStatus() *IngressControllerStatusApplyConfiguration {
 	return &IngressControllerStatusApplyConfiguration{}

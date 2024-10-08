@@ -2,13 +2,13 @@
 
 package v1
 
-// ManagedBootImagesApplyConfiguration represents an declarative configuration of the ManagedBootImages type for use
+// ManagedBootImagesApplyConfiguration represents a declarative configuration of the ManagedBootImages type for use
 // with apply.
 type ManagedBootImagesApplyConfiguration struct {
 	MachineManagers []MachineManagerApplyConfiguration `json:"machineManagers,omitempty"`
 }
 
-// ManagedBootImagesApplyConfiguration constructs an declarative configuration of the ManagedBootImages type for use with
+// ManagedBootImagesApplyConfiguration constructs a declarative configuration of the ManagedBootImages type for use with
 // apply.
 func ManagedBootImages() *ManagedBootImagesApplyConfiguration {
 	return &ManagedBootImagesApplyConfiguration{}

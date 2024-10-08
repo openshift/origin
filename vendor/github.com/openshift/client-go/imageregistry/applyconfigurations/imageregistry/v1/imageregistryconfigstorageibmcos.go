@@ -2,7 +2,7 @@
 
 package v1
 
-// ImageRegistryConfigStorageIBMCOSApplyConfiguration represents an declarative configuration of the ImageRegistryConfigStorageIBMCOS type for use
+// ImageRegistryConfigStorageIBMCOSApplyConfiguration represents a declarative configuration of the ImageRegistryConfigStorageIBMCOS type for use
 // with apply.
 type ImageRegistryConfigStorageIBMCOSApplyConfiguration struct {
 	Bucket             *string `json:"bucket,omitempty"`
@@ -12,7 +12,7 @@ type ImageRegistryConfigStorageIBMCOSApplyConfiguration struct {
 	ServiceInstanceCRN *string `json:"serviceInstanceCRN,omitempty"`
 }
 
-// ImageRegistryConfigStorageIBMCOSApplyConfiguration constructs an declarative configuration of the ImageRegistryConfigStorageIBMCOS type for use with
+// ImageRegistryConfigStorageIBMCOSApplyConfiguration constructs a declarative configuration of the ImageRegistryConfigStorageIBMCOS type for use with
 // apply.
 func ImageRegistryConfigStorageIBMCOS() *ImageRegistryConfigStorageIBMCOSApplyConfiguration {
 	return &ImageRegistryConfigStorageIBMCOSApplyConfiguration{}

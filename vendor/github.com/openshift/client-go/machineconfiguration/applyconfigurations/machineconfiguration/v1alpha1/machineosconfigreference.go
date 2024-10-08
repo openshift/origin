@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// MachineOSConfigReferenceApplyConfiguration represents an declarative configuration of the MachineOSConfigReference type for use
+// MachineOSConfigReferenceApplyConfiguration represents a declarative configuration of the MachineOSConfigReference type for use
 // with apply.
 type MachineOSConfigReferenceApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// MachineOSConfigReferenceApplyConfiguration constructs an declarative configuration of the MachineOSConfigReference type for use with
+// MachineOSConfigReferenceApplyConfiguration constructs a declarative configuration of the MachineOSConfigReference type for use with
 // apply.
 func MachineOSConfigReference() *MachineOSConfigReferenceApplyConfiguration {
 	return &MachineOSConfigReferenceApplyConfiguration{}

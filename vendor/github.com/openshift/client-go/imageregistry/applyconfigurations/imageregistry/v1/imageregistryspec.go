@@ -9,7 +9,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// ImageRegistrySpecApplyConfiguration represents an declarative configuration of the ImageRegistrySpec type for use
+// ImageRegistrySpecApplyConfiguration represents a declarative configuration of the ImageRegistrySpec type for use
 // with apply.
 type ImageRegistrySpecApplyConfiguration struct {
 	v1.OperatorSpecApplyConfiguration `json:",inline"`
@@ -31,7 +31,7 @@ type ImageRegistrySpecApplyConfiguration struct {
 	TopologySpreadConstraints         []corev1.TopologySpreadConstraint              `json:"topologySpreadConstraints,omitempty"`
 }
 
-// ImageRegistrySpecApplyConfiguration constructs an declarative configuration of the ImageRegistrySpec type for use with
+// ImageRegistrySpecApplyConfiguration constructs a declarative configuration of the ImageRegistrySpec type for use with
 // apply.
 func ImageRegistrySpec() *ImageRegistrySpecApplyConfiguration {
 	return &ImageRegistrySpecApplyConfiguration{}

@@ -2,13 +2,13 @@
 
 package v1alpha1
 
-// MachineConfigNodeSpecPinnedImageSetApplyConfiguration represents an declarative configuration of the MachineConfigNodeSpecPinnedImageSet type for use
+// MachineConfigNodeSpecPinnedImageSetApplyConfiguration represents a declarative configuration of the MachineConfigNodeSpecPinnedImageSet type for use
 // with apply.
 type MachineConfigNodeSpecPinnedImageSetApplyConfiguration struct {
 	Name *string `json:"name,omitempty"`
 }
 
-// MachineConfigNodeSpecPinnedImageSetApplyConfiguration constructs an declarative configuration of the MachineConfigNodeSpecPinnedImageSet type for use with
+// MachineConfigNodeSpecPinnedImageSetApplyConfiguration constructs a declarative configuration of the MachineConfigNodeSpecPinnedImageSet type for use with
 // apply.
 func MachineConfigNodeSpecPinnedImageSet() *MachineConfigNodeSpecPinnedImageSetApplyConfiguration {
 	return &MachineConfigNodeSpecPinnedImageSetApplyConfiguration{}

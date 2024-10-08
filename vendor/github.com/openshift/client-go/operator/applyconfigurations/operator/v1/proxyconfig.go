@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// ProxyConfigApplyConfiguration represents an declarative configuration of the ProxyConfig type for use
+// ProxyConfigApplyConfiguration represents a declarative configuration of the ProxyConfig type for use
 // with apply.
 type ProxyConfigApplyConfiguration struct {
 	IptablesSyncPeriod *string                         `json:"iptablesSyncPeriod,omitempty"`
@@ -14,7 +14,7 @@ type ProxyConfigApplyConfiguration struct {
 	ProxyArguments     map[string]v1.ProxyArgumentList `json:"proxyArguments,omitempty"`
 }
 
-// ProxyConfigApplyConfiguration constructs an declarative configuration of the ProxyConfig type for use with
+// ProxyConfigApplyConfiguration constructs a declarative configuration of the ProxyConfig type for use with
 // apply.
 func ProxyConfig() *ProxyConfigApplyConfiguration {
 	return &ProxyConfigApplyConfiguration{}

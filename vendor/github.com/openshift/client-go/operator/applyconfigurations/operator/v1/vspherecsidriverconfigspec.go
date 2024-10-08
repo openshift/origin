@@ -2,7 +2,7 @@
 
 package v1
 
-// VSphereCSIDriverConfigSpecApplyConfiguration represents an declarative configuration of the VSphereCSIDriverConfigSpec type for use
+// VSphereCSIDriverConfigSpecApplyConfiguration represents a declarative configuration of the VSphereCSIDriverConfigSpec type for use
 // with apply.
 type VSphereCSIDriverConfigSpecApplyConfiguration struct {
 	TopologyCategories                       []string `json:"topologyCategories,omitempty"`
@@ -11,7 +11,7 @@ type VSphereCSIDriverConfigSpecApplyConfiguration struct {
 	GranularMaxSnapshotsPerBlockVolumeInVVOL *uint32  `json:"granularMaxSnapshotsPerBlockVolumeInVVOL,omitempty"`
 }
 
-// VSphereCSIDriverConfigSpecApplyConfiguration constructs an declarative configuration of the VSphereCSIDriverConfigSpec type for use with
+// VSphereCSIDriverConfigSpecApplyConfiguration constructs a declarative configuration of the VSphereCSIDriverConfigSpec type for use with
 // apply.
 func VSphereCSIDriverConfigSpec() *VSphereCSIDriverConfigSpecApplyConfiguration {
 	return &VSphereCSIDriverConfigSpecApplyConfiguration{}

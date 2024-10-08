@@ -4,9 +4,6 @@ package v1alpha1
 
 import (
 	"context"
-	json "encoding/json"
-	"fmt"
-	"time"
 
 	v1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	machineconfigurationv1alpha1 "github.com/openshift/client-go/machineconfiguration/applyconfigurations/machineconfiguration/v1alpha1"
@@ -14,7 +11,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // MachineOSBuildsGetter has a method to return a MachineOSBuildInterface.
@@ -27,6 +24,7 @@ type MachineOSBuildsGetter interface {
 type MachineOSBuildInterface interface {
 	Create(ctx context.Context, machineOSBuild *v1alpha1.MachineOSBuild, opts v1.CreateOptions) (*v1alpha1.MachineOSBuild, error)
 	Update(ctx context.Context, machineOSBuild *v1alpha1.MachineOSBuild, opts v1.UpdateOptions) (*v1alpha1.MachineOSBuild, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 	UpdateStatus(ctx context.Context, machineOSBuild *v1alpha1.MachineOSBuild, opts v1.UpdateOptions) (*v1alpha1.MachineOSBuild, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
@@ -35,193 +33,25 @@ type MachineOSBuildInterface interface {
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.MachineOSBuild, err error)
 	Apply(ctx context.Context, machineOSBuild *machineconfigurationv1alpha1.MachineOSBuildApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.MachineOSBuild, err error)
+	// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
 	ApplyStatus(ctx context.Context, machineOSBuild *machineconfigurationv1alpha1.MachineOSBuildApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.MachineOSBuild, err error)
 	MachineOSBuildExpansion
 }
 
 // machineOSBuilds implements MachineOSBuildInterface
 type machineOSBuilds struct {
-	client rest.Interface
+	*gentype.ClientWithListAndApply[*v1alpha1.MachineOSBuild, *v1alpha1.MachineOSBuildList, *machineconfigurationv1alpha1.MachineOSBuildApplyConfiguration]
 }
 
 // newMachineOSBuilds returns a MachineOSBuilds
 func newMachineOSBuilds(c *MachineconfigurationV1alpha1Client) *machineOSBuilds {
 	return &machineOSBuilds{
-		client: c.RESTClient(),
+		gentype.NewClientWithListAndApply[*v1alpha1.MachineOSBuild, *v1alpha1.MachineOSBuildList, *machineconfigurationv1alpha1.MachineOSBuildApplyConfiguration](
+			"machineosbuilds",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			"",
+			func() *v1alpha1.MachineOSBuild { return &v1alpha1.MachineOSBuild{} },
+			func() *v1alpha1.MachineOSBuildList { return &v1alpha1.MachineOSBuildList{} }),
 	}
-}
-
-// Get takes name of the machineOSBuild, and returns the corresponding machineOSBuild object, and an error if there is any.
-func (c *machineOSBuilds) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.MachineOSBuild, err error) {
-	result = &v1alpha1.MachineOSBuild{}
-	err = c.client.Get().
-		Resource("machineosbuilds").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of MachineOSBuilds that match those selectors.
-func (c *machineOSBuilds) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.MachineOSBuildList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1alpha1.MachineOSBuildList{}
-	err = c.client.Get().
-		Resource("machineosbuilds").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested machineOSBuilds.
-func (c *machineOSBuilds) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Resource("machineosbuilds").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a machineOSBuild and creates it.  Returns the server's representation of the machineOSBuild, and an error, if there is any.
-func (c *machineOSBuilds) Create(ctx context.Context, machineOSBuild *v1alpha1.MachineOSBuild, opts v1.CreateOptions) (result *v1alpha1.MachineOSBuild, err error) {
-	result = &v1alpha1.MachineOSBuild{}
-	err = c.client.Post().
-		Resource("machineosbuilds").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(machineOSBuild).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a machineOSBuild and updates it. Returns the server's representation of the machineOSBuild, and an error, if there is any.
-func (c *machineOSBuilds) Update(ctx context.Context, machineOSBuild *v1alpha1.MachineOSBuild, opts v1.UpdateOptions) (result *v1alpha1.MachineOSBuild, err error) {
-	result = &v1alpha1.MachineOSBuild{}
-	err = c.client.Put().
-		Resource("machineosbuilds").
-		Name(machineOSBuild.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(machineOSBuild).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *machineOSBuilds) UpdateStatus(ctx context.Context, machineOSBuild *v1alpha1.MachineOSBuild, opts v1.UpdateOptions) (result *v1alpha1.MachineOSBuild, err error) {
-	result = &v1alpha1.MachineOSBuild{}
-	err = c.client.Put().
-		Resource("machineosbuilds").
-		Name(machineOSBuild.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(machineOSBuild).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the machineOSBuild and deletes it. Returns an error if one occurs.
-func (c *machineOSBuilds) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	return c.client.Delete().
-		Resource("machineosbuilds").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *machineOSBuilds) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Resource("machineosbuilds").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched machineOSBuild.
-func (c *machineOSBuilds) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.MachineOSBuild, err error) {
-	result = &v1alpha1.MachineOSBuild{}
-	err = c.client.Patch(pt).
-		Resource("machineosbuilds").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Apply takes the given apply declarative configuration, applies it and returns the applied machineOSBuild.
-func (c *machineOSBuilds) Apply(ctx context.Context, machineOSBuild *machineconfigurationv1alpha1.MachineOSBuildApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.MachineOSBuild, err error) {
-	if machineOSBuild == nil {
-		return nil, fmt.Errorf("machineOSBuild provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(machineOSBuild)
-	if err != nil {
-		return nil, err
-	}
-	name := machineOSBuild.Name
-	if name == nil {
-		return nil, fmt.Errorf("machineOSBuild.Name must be provided to Apply")
-	}
-	result = &v1alpha1.MachineOSBuild{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Resource("machineosbuilds").
-		Name(*name).
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// ApplyStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating ApplyStatus().
-func (c *machineOSBuilds) ApplyStatus(ctx context.Context, machineOSBuild *machineconfigurationv1alpha1.MachineOSBuildApplyConfiguration, opts v1.ApplyOptions) (result *v1alpha1.MachineOSBuild, err error) {
-	if machineOSBuild == nil {
-		return nil, fmt.Errorf("machineOSBuild provided to Apply must not be nil")
-	}
-	patchOpts := opts.ToPatchOptions()
-	data, err := json.Marshal(machineOSBuild)
-	if err != nil {
-		return nil, err
-	}
-
-	name := machineOSBuild.Name
-	if name == nil {
-		return nil, fmt.Errorf("machineOSBuild.Name must be provided to Apply")
-	}
-
-	result = &v1alpha1.MachineOSBuild{}
-	err = c.client.Patch(types.ApplyPatchType).
-		Resource("machineosbuilds").
-		Name(*name).
-		SubResource("status").
-		VersionedParams(&patchOpts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }

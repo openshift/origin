@@ -7,13 +7,13 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-// OpenShiftControllerManagerSpecApplyConfiguration represents an declarative configuration of the OpenShiftControllerManagerSpec type for use
+// OpenShiftControllerManagerSpecApplyConfiguration represents a declarative configuration of the OpenShiftControllerManagerSpec type for use
 // with apply.
 type OpenShiftControllerManagerSpecApplyConfiguration struct {
 	OperatorSpecApplyConfiguration `json:",inline"`
 }
 
-// OpenShiftControllerManagerSpecApplyConfiguration constructs an declarative configuration of the OpenShiftControllerManagerSpec type for use with
+// OpenShiftControllerManagerSpecApplyConfiguration constructs a declarative configuration of the OpenShiftControllerManagerSpec type for use with
 // apply.
 func OpenShiftControllerManagerSpec() *OpenShiftControllerManagerSpecApplyConfiguration {
 	return &OpenShiftControllerManagerSpecApplyConfiguration{}

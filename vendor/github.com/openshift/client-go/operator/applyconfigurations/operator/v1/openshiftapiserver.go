@@ -11,7 +11,7 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// OpenShiftAPIServerApplyConfiguration represents an declarative configuration of the OpenShiftAPIServer type for use
+// OpenShiftAPIServerApplyConfiguration represents a declarative configuration of the OpenShiftAPIServer type for use
 // with apply.
 type OpenShiftAPIServerApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration    `json:",inline"`
@@ -20,7 +20,7 @@ type OpenShiftAPIServerApplyConfiguration struct {
 	Status                           *OpenShiftAPIServerStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// OpenShiftAPIServer constructs an declarative configuration of the OpenShiftAPIServer type for use with
+// OpenShiftAPIServer constructs a declarative configuration of the OpenShiftAPIServer type for use with
 // apply.
 func OpenShiftAPIServer(name string) *OpenShiftAPIServerApplyConfiguration {
 	b := &OpenShiftAPIServerApplyConfiguration{}
@@ -237,4 +237,10 @@ func (b *OpenShiftAPIServerApplyConfiguration) WithSpec(value *OpenShiftAPIServe
 func (b *OpenShiftAPIServerApplyConfiguration) WithStatus(value *OpenShiftAPIServerStatusApplyConfiguration) *OpenShiftAPIServerApplyConfiguration {
 	b.Status = value
 	return b
+}
+
+// GetName retrieves the value of the Name field in the declarative configuration.
+func (b *OpenShiftAPIServerApplyConfiguration) GetName() *string {
+	b.ensureObjectMetaApplyConfigurationExists()
+	return b.Name
 }

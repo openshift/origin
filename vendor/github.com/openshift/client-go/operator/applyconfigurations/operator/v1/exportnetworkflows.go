@@ -2,7 +2,7 @@
 
 package v1
 
-// ExportNetworkFlowsApplyConfiguration represents an declarative configuration of the ExportNetworkFlows type for use
+// ExportNetworkFlowsApplyConfiguration represents a declarative configuration of the ExportNetworkFlows type for use
 // with apply.
 type ExportNetworkFlowsApplyConfiguration struct {
 	NetFlow *NetFlowConfigApplyConfiguration `json:"netFlow,omitempty"`
@@ -10,7 +10,7 @@ type ExportNetworkFlowsApplyConfiguration struct {
 	IPFIX   *IPFIXConfigApplyConfiguration   `json:"ipfix,omitempty"`
 }
 
-// ExportNetworkFlowsApplyConfiguration constructs an declarative configuration of the ExportNetworkFlows type for use with
+// ExportNetworkFlowsApplyConfiguration constructs a declarative configuration of the ExportNetworkFlows type for use with
 // apply.
 func ExportNetworkFlows() *ExportNetworkFlowsApplyConfiguration {
 	return &ExportNetworkFlowsApplyConfiguration{}

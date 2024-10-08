@@ -2,14 +2,14 @@
 
 package v1
 
-// StaticIPAMAddressesApplyConfiguration represents an declarative configuration of the StaticIPAMAddresses type for use
+// StaticIPAMAddressesApplyConfiguration represents a declarative configuration of the StaticIPAMAddresses type for use
 // with apply.
 type StaticIPAMAddressesApplyConfiguration struct {
 	Address *string `json:"address,omitempty"`
 	Gateway *string `json:"gateway,omitempty"`
 }
 
-// StaticIPAMAddressesApplyConfiguration constructs an declarative configuration of the StaticIPAMAddresses type for use with
+// StaticIPAMAddressesApplyConfiguration constructs a declarative configuration of the StaticIPAMAddresses type for use with
 // apply.
 func StaticIPAMAddresses() *StaticIPAMAddressesApplyConfiguration {
 	return &StaticIPAMAddressesApplyConfiguration{}

@@ -7,14 +7,14 @@ import (
 	v1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-// MachineConfigPoolStatusConfigurationApplyConfiguration represents an declarative configuration of the MachineConfigPoolStatusConfiguration type for use
+// MachineConfigPoolStatusConfigurationApplyConfiguration represents a declarative configuration of the MachineConfigPoolStatusConfiguration type for use
 // with apply.
 type MachineConfigPoolStatusConfigurationApplyConfiguration struct {
 	v1.ObjectReferenceApplyConfiguration `json:",inline"`
 	Source                               []v1.ObjectReferenceApplyConfiguration `json:"source,omitempty"`
 }
 
-// MachineConfigPoolStatusConfigurationApplyConfiguration constructs an declarative configuration of the MachineConfigPoolStatusConfiguration type for use with
+// MachineConfigPoolStatusConfigurationApplyConfiguration constructs a declarative configuration of the MachineConfigPoolStatusConfiguration type for use with
 // apply.
 func MachineConfigPoolStatusConfiguration() *MachineConfigPoolStatusConfigurationApplyConfiguration {
 	return &MachineConfigPoolStatusConfigurationApplyConfiguration{}

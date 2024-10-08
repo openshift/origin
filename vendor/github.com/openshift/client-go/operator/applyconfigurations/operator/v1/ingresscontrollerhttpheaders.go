@@ -6,7 +6,7 @@ import (
 	v1 "github.com/openshift/api/operator/v1"
 )
 
-// IngressControllerHTTPHeadersApplyConfiguration represents an declarative configuration of the IngressControllerHTTPHeaders type for use
+// IngressControllerHTTPHeadersApplyConfiguration represents a declarative configuration of the IngressControllerHTTPHeaders type for use
 // with apply.
 type IngressControllerHTTPHeadersApplyConfiguration struct {
 	ForwardedHeaderPolicy     *v1.IngressControllerHTTPHeaderPolicy                        `json:"forwardedHeaderPolicy,omitempty"`
@@ -15,7 +15,7 @@ type IngressControllerHTTPHeadersApplyConfiguration struct {
 	Actions                   *IngressControllerHTTPHeaderActionsApplyConfiguration        `json:"actions,omitempty"`
 }
 
-// IngressControllerHTTPHeadersApplyConfiguration constructs an declarative configuration of the IngressControllerHTTPHeaders type for use with
+// IngressControllerHTTPHeadersApplyConfiguration constructs a declarative configuration of the IngressControllerHTTPHeaders type for use with
 // apply.
 func IngressControllerHTTPHeaders() *IngressControllerHTTPHeadersApplyConfiguration {
 	return &IngressControllerHTTPHeadersApplyConfiguration{}

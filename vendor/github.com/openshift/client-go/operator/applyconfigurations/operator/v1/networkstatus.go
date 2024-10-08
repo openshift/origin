@@ -2,13 +2,13 @@
 
 package v1
 
-// NetworkStatusApplyConfiguration represents an declarative configuration of the NetworkStatus type for use
+// NetworkStatusApplyConfiguration represents a declarative configuration of the NetworkStatus type for use
 // with apply.
 type NetworkStatusApplyConfiguration struct {
 	OperatorStatusApplyConfiguration `json:",inline"`
 }
 
-// NetworkStatusApplyConfiguration constructs an declarative configuration of the NetworkStatus type for use with
+// NetworkStatusApplyConfiguration constructs a declarative configuration of the NetworkStatus type for use with
 // apply.
 func NetworkStatus() *NetworkStatusApplyConfiguration {
 	return &NetworkStatusApplyConfiguration{}
@@ -48,6 +48,14 @@ func (b *NetworkStatusApplyConfiguration) WithVersion(value string) *NetworkStat
 // If called multiple times, the ReadyReplicas field is set to the value of the last call.
 func (b *NetworkStatusApplyConfiguration) WithReadyReplicas(value int32) *NetworkStatusApplyConfiguration {
 	b.ReadyReplicas = &value
+	return b
+}
+
+// WithLatestAvailableRevision sets the LatestAvailableRevision field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LatestAvailableRevision field is set to the value of the last call.
+func (b *NetworkStatusApplyConfiguration) WithLatestAvailableRevision(value int32) *NetworkStatusApplyConfiguration {
+	b.LatestAvailableRevision = &value
 	return b
 }
 
