@@ -385,7 +385,7 @@ func createPods(ctx context.Context, kubeClient kubernetes.Interface, namespace 
 			return podOnNode, fmt.Errorf("error creating pod on node %s: %v", node.Name, err)
 		}
 
-		timeLimitedCtx, cancel := context.WithTimeout(ctx, time.Minute)
+		timeLimitedCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
 		if _, watchErr := watchtools.UntilWithSync(timeLimitedCtx,
