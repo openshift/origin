@@ -2,18 +2,14 @@ package ginkgo
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
-	"debug/elf"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -28,23 +24,15 @@ type serializedTest struct {
 	Labels string
 }
 
-// externalTestsForSuite extracts extension binaries from the release payload and
-// reads which tests it advertises.
-func externalTestsForSuite(ctx context.Context, logger *log.Logger, releaseReferences *imagev1.ImageStream, tag string, binaryPath string) ([]*testCase, error) {
+// externalTestsForSuite reads tests from external binary, currently only
+// k8s-tests is supported
+func externalTestsForSuite(ctx context.Context) ([]*testCase, error) {
 	var tests []*testCase
 
-	testBinary, err := extractBinaryFromReleaseImage(logger, releaseReferences, tag, binaryPath)
+	// TODO: add support for binaries from other images
+	testBinary, err := extractBinaryFromReleaseImage("hyperkube", "/usr/bin/k8s-tests")
 	if err != nil {
-		return nil, fmt.Errorf("unable to extract %q binary from tag %q: %w", binaryPath, tag, err)
-	}
-
-	compat, err := checkCompatibleArchitecture(testBinary)
-	if err != nil {
-		return nil, fmt.Errorf("unable to check compatibility external binary %q from tag %q: %w", binaryPath, tag, err)
-	}
-
-	if !compat {
-		return nil, fmt.Errorf("external binary %q from tag %q was compiled for incompatible architecture", binaryPath, tag)
+		return nil, fmt.Errorf("unable to extract k8s-tests binary: %w", err)
 	}
 
 	command := exec.Command(testBinary, "list")
@@ -61,8 +49,7 @@ func externalTestsForSuite(ctx context.Context, logger *log.Logger, releaseRefer
 		if !strings.HasPrefix(line, "[{") {
 			continue
 		}
-
-		var serializedTests []serializedTest
+		serializedTests := []serializedTest{}
 		err = json.Unmarshal([]byte(line), &serializedTests)
 		if err != nil {
 			return nil, err
@@ -78,101 +65,51 @@ func externalTestsForSuite(ctx context.Context, logger *log.Logger, releaseRefer
 	return tests, nil
 }
 
-// extractReleaseImageStream extracts image references from the current
-// cluster's release payload (or image specified by EXTENSIONS_PAYLOAD_OVERRIDE
-// or RELEASE_IMAGE_LATEST which is used in OpenShift Test Platform CI) and returns
-// an ImageStream object with tags associated with image-references from that payload.
-func extractReleaseImageStream(logger *log.Logger) (*imagev1.ImageStream, error) {
+// extractBinaryFromReleaseImage is responsible for resolving the tag from
+// release image and extracting binary, returns path to the binary or error
+func extractBinaryFromReleaseImage(tag, binary string) (string, error) {
 	tmpDir, err := os.MkdirTemp("", "release")
 	if err != nil {
-		return nil, fmt.Errorf("cannot create temporary directory for extracted binary: %w", err)
+		return "", fmt.Errorf("cannot create temporary directory for extracted binary: %w", err)
 	}
 
 	oc := util.NewCLIWithoutNamespace("default")
-
-	var releaseImage string
-
-	// Highest priority override is EXTENSIONS_PAYLOAD_OVERRIDE
-	overrideReleaseImage := os.Getenv("EXTENSIONS_PAYLOAD_OVERRIDE")
-	if len(overrideReleaseImage) != 0 {
-		// if "cluster" is specified, prefer target cluster payload even if RELEASE_IMAGE_LATEST is set.
-		if overrideReleaseImage != "cluster" {
-			releaseImage = overrideReleaseImage
-			logger.Printf("Using env EXTENSIONS_PAYLOAD_OVERRIDE for release image %q", releaseImage)
-		}
-	} else {
-		// Allow testing using an overridden source for external tests.
-		envReleaseImage := os.Getenv("RELEASE_IMAGE_LATEST")
-		if len(envReleaseImage) != 0 {
-			releaseImage = envReleaseImage
-			logger.Printf("Using env RELEASE_IMAGE_LATEST for release image %q", releaseImage)
-		}
+	cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed reading ClusterVersion/version: %w", err)
 	}
-
+	releaseImage := cv.Status.Desired.Image
 	if len(releaseImage) == 0 {
-		// Note that MicroShift does not have this resource. The test driver must use ENV vars.
-		cv, err := oc.AdminConfigClient().ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed reading ClusterVersion/version: %w", err)
-		}
-
-		releaseImage = cv.Status.Desired.Image
-		if len(releaseImage) == 0 {
-			return nil, fmt.Errorf("cannot determine release image from ClusterVersion resource")
-		}
-		logger.Printf("Using target cluster release image %q", releaseImage)
+		return "", fmt.Errorf("cannot determine release image from ClusterVersion resource")
 	}
 
 	if err := runImageExtract(releaseImage, "/release-manifests/image-references", tmpDir, ""); err != nil {
-		return nil, fmt.Errorf("failed extracting image-references from %q: %w", releaseImage, err)
+		return "", fmt.Errorf("failed extracting image-references: %w", err)
 	}
 	jsonFile, err := os.Open(filepath.Join(tmpDir, "image-references"))
 	if err != nil {
-		return nil, fmt.Errorf("failed reading image-references from %q: %w", releaseImage, err)
+		return "", fmt.Errorf("failed reading image-references: %w", err)
 	}
 	defer jsonFile.Close()
 	data, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load release image-references from %q: %w", releaseImage, err)
+		return "", fmt.Errorf("unable to load release image-references: %w", err)
 	}
 	is := &imagev1.ImageStream{}
 	if err := json.Unmarshal(data, &is); err != nil {
-		return nil, fmt.Errorf("unable to load release image-references from %q: %w", releaseImage, err)
+		return "", fmt.Errorf("unable to load release image-references: %w", err)
 	}
 	if is.Kind != "ImageStream" || is.APIVersion != "image.openshift.io/v1" {
-		return nil, fmt.Errorf("unrecognized image-references in release payload %q", releaseImage)
+		return "", fmt.Errorf("unrecognized image-references in release payload")
 	}
-
-	logger.Printf("Targeting release image %q for default external binaries", releaseImage)
-
-	// Allow environmental overrides for individual component images.
-	for _, tag := range is.Spec.Tags {
-		componentEnvName := "EXTENSIONS_PAYLOAD_OVERRIDE_" + tag.Name
-		componentOverrideImage := os.Getenv(componentEnvName)
-		if len(componentOverrideImage) != 0 {
-			tag.From.Name = componentOverrideImage
-			logger.Printf("Overrode release image tag %q for with env %s value %q", tag.Name, componentEnvName, componentOverrideImage)
-		}
-	}
-
-	return is, nil
-}
-
-// extractBinaryFromReleaseImage is responsible for resolving the tag from
-// release image and extracting binary, returns path to the binary or error
-func extractBinaryFromReleaseImage(logger *log.Logger, releaseImageReferences *imagev1.ImageStream, tag, binary string) (string, error) {
-
-	tmpDir, err := os.MkdirTemp("", "external-binary")
 
 	image := ""
-	for _, t := range releaseImageReferences.Spec.Tags {
+	for _, t := range is.Spec.Tags {
 		if t.Name == tag {
 			image = t.From.Name
 			break
 		}
 	}
-
-	oc := util.NewCLIWithoutNamespace("default")
 
 	// The preceding runImageExtract was against a release payload that was created in the local
 	// ci-operator namespace. Our process was free to access it. The release payload, however,
@@ -183,44 +120,27 @@ func extractBinaryFromReleaseImage(logger *log.Logger, releaseImageReferences *i
 	// from images referenced by the release payload.
 	clusterPullSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("unable to read ephemeral cluster pull secret: %w", err)
+		return "", fmt.Errorf("unable to read ephemeral cluster pull secret: %v", err)
 	}
 
 	clusterDockerConfig := clusterPullSecret.Data[".dockerconfigjson"]
 	dockerConfigJsonPath := filepath.Join(tmpDir, ".dockerconfigjson")
 	err = os.WriteFile(dockerConfigJsonPath, clusterDockerConfig, 0644)
 	if err != nil {
-		return "", fmt.Errorf("unable to serialize ephemeral cluster pull secret locally: %w", err)
+		return "", fmt.Errorf("unable to serialize ephemeral cluster pull secret locally: %v", err)
 	}
 
 	if len(image) == 0 {
 		return "", fmt.Errorf("%s not found", tag)
 	}
-
-	startTime := time.Now()
 	if err := runImageExtract(image, binary, tmpDir, dockerConfigJsonPath); err != nil {
 		return "", fmt.Errorf("failed extracting %q from %q: %w", binary, image, err)
 	}
-	extractDuration := time.Since(startTime)
 
 	extractedBinary := filepath.Join(tmpDir, filepath.Base(binary))
-	// Support gzipped external binaries as they will not be flagged by FIPS scan
-	// for being statically compiled.
-	extractedBinary, err = ungzipFile(extractedBinary)
-	if err != nil {
-		return "", fmt.Errorf("failed to decompress external binary %q: %w", binary, err)
-	}
-
 	if err := os.Chmod(extractedBinary, 0755); err != nil {
-		return "", fmt.Errorf("failed making the extracted binary %q executable: %w", extractedBinary, err)
+		return "", fmt.Errorf("failed making the extracted binary executable: %w", err)
 	}
-
-	fileInfo, err := os.Stat(extractedBinary)
-	if err != nil {
-		return "", fmt.Errorf("failed stat on extracted binary %q: %w", extractedBinary, err)
-	}
-
-	logger.Printf("Extracted %q for tag %q from %q (disk size %v, extraction duration %v)", binary, tag, image, fileInfo.Size(), extractDuration)
 	return extractedBinary, nil
 }
 
@@ -236,85 +156,4 @@ func runImageExtract(image, src, dst string, dockerConfigJsonPath string) error 
 		return fmt.Errorf("error during image extract: %w (%v)", err, string(out))
 	}
 	return nil
-}
-
-// ungzipFile checks if a binary is gzipped (ends with .gz) and decompresses it.
-// Returns the new filename of the decompressed file (original is deleted), or original filename if it was not gzipped.
-func ungzipFile(extractedBinary string) (string, error) {
-
-	if strings.HasSuffix(extractedBinary, ".gz") {
-
-		gzFile, err := os.Open(extractedBinary)
-		if err != nil {
-			return "", fmt.Errorf("failed to open gzip file: %w", err)
-		}
-		defer gzFile.Close()
-
-		gzipReader, err := gzip.NewReader(gzFile)
-		if err != nil {
-			return "", fmt.Errorf("failed to create gzip reader: %w", err)
-		}
-		defer gzipReader.Close()
-
-		newFilePath := strings.TrimSuffix(extractedBinary, ".gz")
-		outFile, err := os.Create(newFilePath)
-		if err != nil {
-			return "", fmt.Errorf("failed to create output file: %w", err)
-		}
-		defer outFile.Close()
-
-		if _, err := io.Copy(outFile, gzipReader); err != nil {
-			return "", fmt.Errorf("failed to write to output file: %w", err)
-		}
-
-		// Attempt to delete the original .gz file
-		if err := os.Remove(extractedBinary); err != nil {
-			return "", fmt.Errorf("failed to delete original .gz file: %w", err)
-		}
-
-		return newFilePath, nil
-	}
-
-	// Return the original path if the file was not decompressed
-	return extractedBinary, nil
-}
-
-// Checks whether the binary has a compatible CPU architecture  to the
-// host.
-func checkCompatibleArchitecture(executablePath string) (bool, error) {
-
-	file, err := os.Open(executablePath)
-	if err != nil {
-		return false, fmt.Errorf("failed to open ELF file: %w", err)
-	}
-	defer file.Close()
-
-	elfFile, err := elf.NewFile(file)
-	if err != nil {
-		return false, fmt.Errorf("failed to parse ELF file: %w", err)
-	}
-
-	// Determine the architecture of the ELF file
-	elfArch := elfFile.Machine
-	var expectedArch elf.Machine
-
-	// Determine the host architecture
-	switch runtime.GOARCH {
-	case "amd64":
-		expectedArch = elf.EM_X86_64
-	case "arm64":
-		expectedArch = elf.EM_AARCH64
-	case "s390x":
-		expectedArch = elf.EM_S390
-	case "ppc64le":
-		expectedArch = elf.EM_PPC64
-	default:
-		return false, fmt.Errorf("unsupported host architecture: %s", runtime.GOARCH)
-	}
-
-	if elfArch == expectedArch {
-		return true, nil
-	}
-
-	return false, nil
 }
