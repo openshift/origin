@@ -146,7 +146,8 @@ const (
 	LocatorServerKey                LocatorKey = "server"
 	LocatorMetricKey                LocatorKey = "metric"
 
-	LocatorAPIUnreachableHostKey LocatorKey = "host"
+	LocatorAPIUnreachableHostKey                  LocatorKey = "host"
+	LocatorOnPremKubeapiUnreachableFromHaproxyKey LocatorKey = "onprem-haproxy"
 )
 
 type Locator struct {
@@ -210,6 +211,9 @@ const (
 	MachineDeletedInAPI IntervalReason = "MachineDeletedInAPI"
 	MachinePhaseChanged IntervalReason = "MachinePhaseChange"
 	MachinePhase        IntervalReason = "MachinePhase"
+
+	OnPremHaproxyDetectsDown  IntervalReason = "OnPremHaproxyDetectsDown"
+	OnPremHaproxyStatusChange IntervalReason = "OnPremHaproxyStatusChange"
 
 	Timeout IntervalReason = "Timeout"
 
@@ -288,6 +292,7 @@ const (
 	ConstructionOwnerEtcdLifecycle    = "etcd-lifecycle-constructor"
 	ConstructionOwnerMachineLifecycle = "machine-lifecycle-constructor"
 	ConstructionOwnerLeaseChecker     = "lease-checker"
+	ConstructionOwnerOnPremHaproxy    = "on-prem-haproxy-constructor"
 )
 
 type Message struct {
@@ -313,6 +318,7 @@ const (
 	SourceKubeEvent                 IntervalSource = "KubeEvent"
 	SourceNetworkManagerLog         IntervalSource = "NetworkMangerLog"
 	SourceNodeMonitor               IntervalSource = "NodeMonitor"
+	SourceHaproxyMonitor            IntervalSource = "OnPremHaproxyMonitor"
 	SourceUnexpectedReady           IntervalSource = "NodeUnexpectedNotReady"
 	SourceUnreachable               IntervalSource = "NodeUnreachable"
 	SourceKubeletLog                IntervalSource = "KubeletLog"
