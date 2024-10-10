@@ -25,13 +25,9 @@ var _ = ginkgo.Describe("[sig-api-machinery] API health endpoints", func() {
 
 	ginkgo.It("should contain the required checks for the openshift-apiserver APIs", func() {
 		ctx := context.Background()
-		isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
-		framework.ExpectNoError(err)
-		if isMicroShift {
-			ginkgo.Skip("MicroShift does not have the openshift-apiserver")
-		}
-		if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
-			ginkgo.Skip("MicroShift does not have the openshift-apiserver in the same spot")
+		err := checkFlatform(ctx, "openshift-apiserver", oc)
+		if err != nil {
+			ginkgo.Skip(err.Error())
 		}
 
 		requiredReadyzChecks := sets.New[string](
@@ -89,6 +85,59 @@ var _ = ginkgo.Describe("[sig-api-machinery] API health endpoints", func() {
 		framework.ExpectNoError(err)
 		return
 	})
+
+	ginkgo.It("should contain the required checks for the oauth-apiserver APIs", func() {
+		ctx := context.Background()
+		err := checkFlatform(ctx, "oauth-apiserver", oc)
+		if err != nil {
+			ginkgo.Skip(err.Error())
+		}
+
+		requiredReadyzChecks := sets.New[string](
+			"[+]ping ok",
+			"[+]log ok",
+			"[+]etcd ok",
+			"[+]etcd-readiness ok",
+			"[+]informer-sync ok",
+			"[+]poststarthook/generic-apiserver-start-informers ok",
+			"[+]poststarthook/max-in-flight-filter ok",
+			"[+]poststarthook/storage-object-count-tracker-hook ok",
+			"[+]poststarthook/openshift.io-StartUserInformer ok",
+			"[+]poststarthook/openshift.io-StartOAuthInformer ok",
+			"[+]poststarthook/openshift.io-StartTokenTimeoutUpdater ok",
+			"[+]shutdown ok",
+		)
+		requiredLivezChecks := sets.New[string](
+			"[+]ping ok",
+			"[+]log ok",
+			"[+]etcd ok",
+			"[+]poststarthook/generic-apiserver-start-informers ok",
+			"[+]poststarthook/max-in-flight-filter ok",
+			"[+]poststarthook/storage-object-count-tracker-hook ok",
+			"[+]poststarthook/openshift.io-StartUserInformer ok",
+			"[+]poststarthook/openshift.io-StartOAuthInformer ok",
+			"[+]poststarthook/openshift.io-StartTokenTimeoutUpdater ok",
+		)
+
+		// ensure the service exists and hit the well-known endpoint
+		_, err = f.ClientSet.CoreV1().Services("openshift-oauth-apiserver").Get(ctx, "api", metav1.GetOptions{})
+		framework.ExpectNoError(err)
+
+		transport, err := restclient.TransportFor(oc.AdminConfig())
+		framework.ExpectNoError(err)
+		basePath := oc.AdminConfig().Host + "/api/v1/namespaces/openshift-oauth-apiserver/services/https:api:443/proxy/"
+
+		readyzPath := basePath + "readyz?verbose=true"
+		ginkgo.By(readyzPath)
+		err = testPath(transport, readyzPath, requiredReadyzChecks)
+		framework.ExpectNoError(err)
+
+		livezPath := basePath + "livez?verbose=true"
+		ginkgo.By(livezPath)
+		err = testPath(transport, livezPath, requiredLivezChecks)
+		framework.ExpectNoError(err)
+		return
+	})
 })
 
 func testPath(transport http.RoundTripper, path string, requiredChecks sets.Set[string]) error {
@@ -112,6 +161,18 @@ func testPath(transport http.RoundTripper, path string, requiredChecks sets.Set[
 	checks := sets.New[string](strings.Split(string(rawBody), "\n")...)
 	if missing := requiredChecks.Difference(checks); missing.Len() > 0 {
 		return fmt.Errorf("missing required checks: %s, for path: %s in: %s", missing, path, string(rawBody))
+	}
+	return nil
+}
+
+func checkFlatform(ctx context.Context, name string, oc *exutil.CLI) error {
+	isMicroShift, err := exutil.IsMicroShiftCluster(oc.AdminKubeClient())
+	framework.ExpectNoError(err)
+	if isMicroShift {
+		return fmt.Errorf("MicroShift does not have this component %s", name)
+	}
+	if ok, _ := exutil.IsHypershift(ctx, oc.AdminConfigClient()); ok {
+		return fmt.Errorf("HyperShift does not have this component %s in the same spot", name)
 	}
 	return nil
 }
