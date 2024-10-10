@@ -159,9 +159,24 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				if len(findGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
-					if findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0] >= float64(times) {
-						return true, nil
+				// The Dynamic Configuration Manager (DCM) adds dynamic server slots and
+				// uses both these slots and the servers added during HAProxy config rendering.
+				// When DCM is enabled, not all server slots are always in the UP state,
+				// unlike the behavior without DCM where all slots are UP by default.
+				// As a result, we filter out servers where the gauge is set to 0 (== DOWN).
+				upServersCount := 0
+				for _, g := range findGaugesWithLabels(metrics["haproxy_server_up"], serverLabels) {
+					if g != float64(0) {
+						upServersCount++
+					}
+				}
+				if upServersCount == 2 {
+					for _, g := range findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels) {
+						// Skipping gauges with 0 value to avoid false negatives
+						// from the server slots which are DOWN.
+						if g != float64(0) && g >= float64(times) {
+							return true, nil
+						}
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
@@ -237,7 +252,17 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			// max_sessions should reset after a reload, it is not possible to deterministically ensure max sessions is captured due to the
 			// 30s scrape interval of router + the likelihood the router is being reloaded is high. Just verify that the value is reset
 			// because no one else should be hitting this server.
-			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels)[0]).To(o.Equal(float64(0)))
+
+			maxSessions := 0
+			dynamicServerLabels := promLabels{"namespace": ns, "route": "weightedroute", "server": "_dynamic-pod-1"}
+			// Dynamic Configuration Manager (DCM) is enabled if there is a dynamic server.
+			dcmEnabled := len(findMetricsWithLabels(updatedMetrics["haproxy_server_up"], dynamicServerLabels)) != 0
+			if dcmEnabled {
+				// If DCM is enabled, chances the router was reloaded are low (or not existent).
+				// So, there should be some sessions.
+				maxSessions = 1
+			}
+			o.Expect(findGaugesWithLabels(updatedMetrics["haproxy_server_max_sessions"], serverLabels)[0]).To(o.Equal(float64(maxSessions)))
 		})
 
 		g.It("should expose the profiling endpoints", func() {
@@ -352,7 +377,6 @@ func findMetricsWithLabels(f *dto.MetricFamily, promLabels map[string]string) []
 		if len(matched) != len(promLabels) {
 			continue
 		}
-		result = append(result, m)
 	}
 	return result
 }
