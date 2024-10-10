@@ -3,6 +3,7 @@ package authorization
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"reflect"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ import (
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
+	util "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/ibmcloud"
 )
 
@@ -1241,3 +1243,71 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] authorization", f
 		})
 	})
 })
+
+var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry access", func() {
+	defer g.GinkgoRecover()
+	oc := exutil.NewCLI("bootstrap-policy")
+
+	g.Context("", func() {
+		g.Describe("PublicImageAccessWithBasicAuthShouldSucceed", func() {
+			g.It("should succeed [apigroup:image.openshift.io]", func() {
+				// Skip Hypershift external OIDC clusters
+				isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				if isExternalOIDCCluster {
+					g.Skip("Skipping the test as we are running against a Hypershift external OIDC cluster")
+				}
+
+				g.By("Create route to expose the registry")
+
+				routeName := util.GetRandomString()
+				defer oc.AsAdmin().WithoutNamespace().Run("delete").Args("route", routeName, "-n", "openshift-image-registry").Execute()
+				host := exposeRouteFromSVC(oc, "reencrypt", "openshift-image-registry", routeName, "image-registry")
+				waitRouteReady(host)
+
+				g.By("Grant public access to the openshift namespace")
+				defer oc.AsAdmin().WithoutNamespace().Run("policy").Args("remove-role-from-group", "system:image-puller", "system:unauthenticated", "--namespace", "openshift").Execute()
+				output, err := oc.AsAdmin().WithoutNamespace().Run("policy").Args("add-role-to-group", "system:image-puller", "system:unauthenticated", "--namespace", "openshift").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).To(o.ContainSubstring("clusterrole.rbac.authorization.k8s.io/system:image-puller added: \"system:unauthenticated\""))
+
+				g.By("Try to fetch image metadata")
+				output, err = oc.AsAdmin().Run("image").Args("info", "--insecure", host+"/openshift/tools:latest", "--show-multiarch").Output()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(output).NotTo(o.ContainSubstring("error: unauthorized: authentication required"))
+				o.Expect(output).NotTo(o.ContainSubstring("Unable to connect to the server: no basic auth credentials"))
+				o.Expect(output).To(o.ContainSubstring(host + "/openshift/tools:latest"))
+			})
+		})
+	})
+})
+
+func exposeRouteFromSVC(oc *exutil.CLI, rType, ns, route, service string) string {
+	err := oc.AsAdmin().WithoutNamespace().Run("create").Args("route", rType, route, "--service="+service, "-n", ns).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	regRoute, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("route", route, "-n", ns, "-o=jsonpath={.spec.host}").Output()
+	o.Expect(err).NotTo(o.HaveOccurred())
+	return regRoute
+}
+
+func waitRouteReady(route string) {
+	// Create a context with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	curlCmd := "curl -k https://" + route
+	var output []byte
+	var curlErr error
+	pollErr := wait.PollUntilContextTimeout(ctx, 5*time.Second, 1*time.Minute, true, func(ctx context.Context) (bool, error) {
+		output, curlErr = exec.Command("bash", "-c", curlCmd).CombinedOutput()
+		if curlErr != nil {
+			e2e.Logf("the route is not ready, go to next round")
+			return false, nil
+		}
+		return true, nil
+	})
+	if pollErr != nil {
+		e2e.Logf("output is: %v with error %v", string(output), curlErr.Error())
+	}
+	exutil.AssertWaitPollNoErr(pollErr, "The route can't be used")
+}
