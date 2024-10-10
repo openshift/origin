@@ -109,6 +109,27 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 		Build()
 }
 
+func (b *LocatorBuilder) DeploymentFromName(deploymentName string) Locator {
+	return b.
+		withTargetType(LocatorTypeDeployment).
+		withMachine(deploymentName).
+		Build()
+}
+
+func (b *LocatorBuilder) DaemonSetFromName(daemonSetName string) Locator {
+	return b.
+		withTargetType(LocatorTypeDaemonSet).
+		withMachine(daemonSetName).
+		Build()
+}
+
+func (b *LocatorBuilder) StatefulSetFromName(statefulSetName string) Locator {
+	return b.
+		withTargetType(LocatorTypeStatefulSet).
+		withMachine(statefulSetName).
+		Build()
+}
+
 func (b *LocatorBuilder) MachineFromName(machineName string) Locator {
 	return b.
 		withTargetType(LocatorTypeMachine).
