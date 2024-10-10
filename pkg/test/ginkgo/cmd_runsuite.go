@@ -4,7 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/test/extended/util"
 	"io/ioutil"
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -122,6 +127,36 @@ func max(a, b int) int {
 	return b
 }
 
+type RunMatchFunc func(run *RunInformation) bool
+
+type RunInformation struct {
+	// jobType may be nil for topologies without
+	// platform identification.
+	*platformidentification.JobType
+	suite *TestSuite
+}
+
+type externalBinaryStruct struct {
+	// The payload image tag in which an external binary path can be found
+	imageTag string
+	// The binary path to extract from the image
+	binaryPath string
+
+	// nil, nil - run for all suites
+	// (), nil, - run for only those matched by include
+	// nil, () - run for all except excluded
+	// (), () - include overridden by exclude
+	includeForRun RunMatchFunc
+	excludeForRun RunMatchFunc
+}
+
+type externalBinaryResult struct {
+	err            error
+	skipReason     string
+	externalBinary *externalBinaryStruct
+	externalTests  []*testCase
+}
+
 func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, monitorTestInfo monitortestframework.MonitorTestInitializationInfo, upgrade bool) error {
 	ctx := context.Background()
 
@@ -130,17 +165,160 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		return fmt.Errorf("failed reading origin test suites: %w", err)
 	}
 
-	fmt.Fprintf(o.Out, "found %d tests for suite\n", len(tests))
+	fmt.Fprintf(o.Out, "Found %d tests for in openshift-tests binary for suite %q\n", len(tests), suite.Name)
 
 	var fallbackSyntheticTestResult []*junitapi.JUnitTestCase
 	if len(os.Getenv("OPENSHIFT_SKIP_EXTERNAL_TESTS")) == 0 {
-		buf := &bytes.Buffer{}
-		fmt.Fprintf(buf, "Attempting to pull tests from external binary...\n")
-		externalTests, err := externalTestsForSuite(ctx)
+		// A registry of available external binaries and in which image
+		// they reside in the payload.
+		externalBinaries := []externalBinaryStruct{
+			{
+				imageTag:   "hyperkube",
+				binaryPath: "/usr/bin/k8s-tests",
+			},
+		}
+
+		var (
+			externalTests []*testCase
+			wg            sync.WaitGroup
+			resultCh      = make(chan externalBinaryResult, len(externalBinaries))
+			err           error
+		)
+
+		// Lines logged to this logger will be included in the junit output for the
+		// external binary usage synthetic.
+		var extractDetailsBuffer bytes.Buffer
+		extractLogger := log.New(&extractDetailsBuffer, "", log.LstdFlags|log.Lmicroseconds)
+
+		oc := util.NewCLIWithoutNamespace("default")
+		jobType, err := platformidentification.GetJobType(context.Background(), oc.AdminConfig())
+		if err != nil {
+			// Microshift does not permit identification. External binaries must
+			// tolerate nil jobType.
+			extractLogger.Printf("Failed determining job type: %v", err)
+		}
+
+		runInformation := &RunInformation{
+			JobType: jobType,
+			suite:   suite,
+		}
+
+		// To extract binaries bearing external tests, we must inspect the release
+		// payload under tests as well as extract content from component images
+		// referenced by that payload.
+		// openshift-tests is frequently run in the context of a CI job, within a pod.
+		// CI sets $RELEASE_IMAGE_LATEST to a pullspec for the release payload under test. This
+		// pull spec resolve to:
+		// 1. A build farm ci-op-* namespace / imagestream location (anonymous access permitted).
+		// 2. A quay.io/openshift-release-dev location (for tests against promoted ART payloads -- anonymous access permitted).
+		// 3. A registry.ci.openshift.org/ocp-<arch>/release:<tag> (request registry.ci.openshift.org token).
+		// Within the pod, we don't necessarily have a pull-secret for #3 OR the component images
+		// a payload references (which are private, unless in a ci-op-* imagestream).
+		// For CI runs, conventionally, the cluster under test will possess a pull-secret
+		// with access to both the payload and component images. While it is technically
+		// possible to circumvent this convention (CI steps which mirror the images to
+		// another private registry and alter the conventional secret used in the install-config),
+		// we assume that most jobs will follow the convention.
+		// The convention will also generally be true for human users running e2e tests
+		// on a cluster.
+		// For any situation in which the convention is violated (e.g. Microshift, which
+		// has no openshift-config/pull-secret object), they must have one of the following:
+		// 1. Set the REGISTRY_AUTH_FILE environment variable to an auths file with
+		//    pull secrets capable of reading appropriate payload & component image
+		//    information.
+		// 2. A file /run/secrets/ci.openshift.io/cluster-profile/pull-secret file
+		//    (conventional location for pull-secret information for CI cluster profile).
+		// 3. No authentication required to access the release payload / component images.
+
+		registryAuthFilePath := os.Getenv("REGISTRY_AUTH_FILE")
+
+		// if the environment variable is not set, extract the target cluster's
+		// platform pull secret.
+		if len(registryAuthFilePath) != 0 {
+			extractLogger.Printf("Using registry auth file: %v", registryAuthFilePath)
+		} else {
+			// Read its dockerconfigjson value and use it when extracting external test binaries
+			// from images referenced by the release payload.
+			clusterPullSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
+			if err != nil {
+				if kapierrs.IsNotFound(err) {
+					extractLogger.Printf("Cluster has no openshift-config secret/pull-secret")
+					ciProfilePullSecretPath := "/run/secrets/ci.openshift.io/cluster-profile/pull-secret"
+					_, err = os.Stat(ciProfilePullSecretPath)
+					if os.IsNotExist(err) {
+						extractLogger.Printf("No %v; falling back to unauthenticated image access", ciProfilePullSecretPath)
+					} else {
+						extractLogger.Printf("Detected %v; using cluster profile for image access", ciProfilePullSecretPath)
+						registryAuthFilePath = ciProfilePullSecretPath
+					}
+				} else {
+					return fmt.Errorf("unable to read ephemeral cluster pull secret: %w", err)
+				}
+			} else {
+				tmpDir, err := os.MkdirTemp("", "external-binary")
+				clusterDockerConfig := clusterPullSecret.Data[".dockerconfigjson"]
+				registryAuthFilePath = filepath.Join(tmpDir, ".dockerconfigjson")
+				err = os.WriteFile(registryAuthFilePath, clusterDockerConfig, 0600)
+				if err != nil {
+					return fmt.Errorf("unable to serialize ephemeral cluster pull secret locally: %w", err)
+				}
+
+				defer os.Remove(registryAuthFilePath)
+				extractLogger.Printf("Using target cluster pull-secrets for registry auth")
+			}
+		}
+
+		releaseImageReferences, err := extractReleaseImageStream(extractLogger, registryAuthFilePath)
+		if err != nil {
+			return fmt.Errorf("unable to extract image references from release payload: %w", err)
+		}
+
+		for _, externalBinary := range externalBinaries {
+			wg.Add(1)
+			go func(externalBinary externalBinaryStruct) {
+				defer wg.Done()
+
+				var skipReason string
+				if (externalBinary.includeForRun != nil && !externalBinary.includeForRun(runInformation)) ||
+					(externalBinary.excludeForRun != nil && externalBinary.excludeForRun(runInformation)) {
+					skipReason = "excluded by suite selection functions"
+				}
+
+				var tagTestSet []*testCase
+				var tagErr error
+				if len(skipReason) == 0 {
+					tagTestSet, tagErr = externalTestsForSuite(ctx, extractLogger, releaseImageReferences, externalBinary.imageTag, externalBinary.binaryPath, registryAuthFilePath)
+				}
+
+				resultCh <- externalBinaryResult{
+					err:            tagErr,
+					skipReason:     skipReason,
+					externalBinary: &externalBinary,
+					externalTests:  tagTestSet,
+				}
+
+			}(externalBinary)
+		}
+
+		wg.Wait()
+		close(resultCh)
+
+		for result := range resultCh {
+			if result.skipReason != "" {
+				extractLogger.Printf("Skipping test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.skipReason)
+			} else if result.err != nil {
+				extractLogger.Printf("Error during test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.err)
+				err = result.err
+			} else {
+				extractLogger.Printf("Discovered %v tests from image %q and binary %q\n", len(result.externalTests), result.externalBinary.imageTag, result.externalBinary.binaryPath)
+				externalTests = append(externalTests, result.externalTests...)
+			}
+		}
+
 		if err == nil {
-			filteredTests := []*testCase{}
+			var filteredTests []*testCase
 			for _, test := range tests {
-				// tests contains all the tests "registered" in openshif-tests binary,
+				// tests contains all the tests "registered" in openshift-tests binary,
 				// this also includes vendored k8s tests, since this path assumes we're
 				// using external binary to run these tests we need to remove them
 				// from the final lists, which contains:
@@ -151,29 +329,29 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 				}
 			}
 			tests = append(filteredTests, externalTests...)
-			fmt.Fprintf(buf, "Got %d tests from external binary\n", len(externalTests))
+			extractLogger.Printf("Discovered a total of %v external tests and will run a total of %v\n", len(externalTests), len(tests))
 		} else {
-			fmt.Fprintf(buf, "Falling back to built-in suite, failed reading external test suites: %v\n", err)
+			extractLogger.Printf("Errors encountered while extracting one or more external test suites; Falling back to built-in suite: %v\n", err)
 			// adding this test twice (one failure here, and success below) will
 			// ensure it gets picked as flake further down in synthetic tests processing
 			fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
 				Name:      "[sig-arch] External binary usage",
-				SystemOut: buf.String(),
+				SystemOut: extractDetailsBuffer.String(),
 				FailureOutput: &junitapi.FailureOutput{
-					Output: buf.String(),
+					Output: extractDetailsBuffer.String(),
 				},
 			})
 		}
-		fmt.Fprintf(o.Out, buf.String())
+		fmt.Fprintf(o.Out, extractDetailsBuffer.String())
 		fallbackSyntheticTestResult = append(fallbackSyntheticTestResult, &junitapi.JUnitTestCase{
 			Name:      "[sig-arch] External binary usage",
-			SystemOut: buf.String(),
+			SystemOut: extractDetailsBuffer.String(),
 		})
 	} else {
 		fmt.Fprintf(o.Out, "Using built-in tests only due to OPENSHIFT_SKIP_EXTERNAL_TESTS being set\n")
 	}
 
-	fmt.Fprintf(o.Out, "found %d tests (incl externals)\n", len(tests))
+	fmt.Fprintf(o.Out, "Found %d tests (including externals)\n", len(tests))
 
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
@@ -590,13 +768,16 @@ func (o *GinkgoRunSuiteOptions) filterOutRebaseTests(restConfig *rest.Config, te
 	}
 	// TODO: this version along with below exclusions lists needs to be updated
 	// for the rebase in-progress.
-	if !strings.HasPrefix(serverVersion.Minor, "32") {
+	if !strings.HasPrefix(serverVersion.Minor, "31") {
 		return tests, nil
 	}
 
 	// Below list should only be filled in when we're trying to land k8s rebase.
 	// Don't pile them up!
-	exclusions := []string{}
+	exclusions := []string{
+		// affected by the available controller split https://github.com/kubernetes/kubernetes/pull/126149
+		`[sig-api-machinery] health handlers should contain necessary checks`,
+	}
 
 	matches := make([]*testCase, 0, len(tests))
 outerLoop:
