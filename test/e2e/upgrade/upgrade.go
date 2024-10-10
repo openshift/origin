@@ -413,6 +413,21 @@ func clusterUpgrade(f *framework.Framework, c configv1client.Interface, dc dynam
 			upgradeDurationLimit = time.Duration(limit) * time.Minute
 		}
 	}
+
+	// If we are running single node on an AWS metal instance, we need to use a higher timeout because metal instances take significantly longer
+	if infra.Status.InfrastructureTopology == configv1.SingleReplicaTopologyMode && infra.Status.PlatformStatus.Type == configv1.AWSPlatformType {
+		nodes, err := kubeClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+		framework.ExpectNoError(err)
+
+		// If any nodes are AWS metal instances, override the SNO time limit with the AWS Metal limit
+		for _, node := range nodes.Items {
+			if strings.Contains(node.Labels["node.kubernetes.io/instance-type"], "metal") {
+				upgradeDurationLimit = 95 * time.Minute
+				break
+			}
+		}
+	}
+
 	framework.Logf("Upgrade time limit set as %0.2f", upgradeDurationLimit.Minutes())
 
 	framework.Logf("Starting upgrade to version=%s image=%s attempt=%s", version.Version.String(), version.NodeImage, uid)
