@@ -519,7 +519,9 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								"2",
 								net.JoinHostPort(ip, fmt.Sprintf("%d", port)),
 							)
-							Expect(strings.Contains(err.Error(), "Connection timeout")).To(Equal(true))
+							if err == nil {
+								framework.Failf("connection succeeded but expected timeout")
+							}
 						}
 					},
 					// can completely fill the L2 topology because it does not depend on the size of the clusters hostsubnet
