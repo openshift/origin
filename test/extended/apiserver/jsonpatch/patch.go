@@ -42,9 +42,14 @@ func (p *PatchSet) Marshal() ([]byte, error) {
 }
 
 func (p *PatchSet) addOperation(op, path string, value interface{}) {
-	p.patches = append(p.patches, PatchOperation{
+	patch := PatchOperation{
 		Op:    op,
 		Path:  path,
 		Value: value,
-	})
+	}
+	if op == patchTestOperation {
+		p.patches = append([]PatchOperation{patch}, p.patches...)
+		return
+	}
+	p.patches = append(p.patches, patch)
 }
