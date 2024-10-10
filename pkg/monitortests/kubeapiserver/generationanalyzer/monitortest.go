@@ -11,8 +11,6 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -48,97 +46,42 @@ func (w *generationWatcher) ConstructComputedIntervals(ctx context.Context, star
 }
 
 func (w *generationWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	ret := []*junitapi.JUnitTestCase{}
+	platformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
+	if err != nil {
+		return nil, err
+	}
 
-	intervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+	intervalFailures := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		return eventInterval.Message.Reason == monitorapi.ReasonHighGeneration
 	})
 
-	highGenerationFailures := []string{}
-	for _, interval := range intervals {
-		highGenerationFailures = append(highGenerationFailures, interval.String())
+	namespaceToFailure := map[string][]string{}
+	for _, failure := range intervalFailures {
+		namespace := failure.Locator.Keys[monitorapi.LocatorNamespaceKey]
+		namespaceToFailure[namespace] = append(namespaceToFailure[namespace], failure.String())
 	}
 
-	// This test flag objects that have been created/updated/deleted and had a high generation value
-	testName := fmt.Sprintf("[Jira:kube-apiserver] manipulated objects should not have a generation greater than %d", maxGenerationAllowed)
-	if len(highGenerationFailures) > 0 {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testName,
-			FailureOutput: &junitapi.FailureOutput{
-				Message: strings.Join(highGenerationFailures, "\n"),
-				Output:  fmt.Sprintf("Objects had a metadata.Generation higher than %d", maxGenerationAllowed),
-			},
-		})
-		// flake for now
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testName,
-		})
-	} else {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testName,
-		})
-	}
-
-	// Now check objects in all platform namespaces. It's possible that objects with high
-	// generation existed beforetests ran, so they were not caught by the previous test.
-	// This may catch the same failures as the previous test.
-	allPlatformNamespaces, err := watchnamespaces.GetAllPlatformNamespaces()
-	if err != nil {
-		return nil, fmt.Errorf("problem getting platform namespaces: %w", err)
-	}
-
-	failures := []string{}
-	for _, namespace := range allPlatformNamespaces {
-		allDeployments, err := w.kubeClient.AppsV1().Deployments(namespace).List(context.TODO(), v1.ListOptions{})
-		if err != nil {
-			return ret, err
+	ret := []*junitapi.JUnitTestCase{}
+	for _, namespace := range platformNamespaces {
+		testName := fmt.Sprintf("objects in ns/%s should not have a generation greater than %d", namespace, maxGenerationAllowed)
+		nsFailures := namespaceToFailure[namespace]
+		if len(nsFailures) > 0 {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: strings.Join(nsFailures, "\n"),
+					Output:  fmt.Sprintf("objects had a metadata.Generation higher than %d", maxGenerationAllowed),
+				},
+			})
+			// Flake for now
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
+		} else {
+			ret = append(ret, &junitapi.JUnitTestCase{
+				Name: testName,
+			})
 		}
-
-		allDaemonSets, err := w.kubeClient.AppsV1().DaemonSets(namespace).List(context.TODO(), v1.ListOptions{})
-		if err != nil {
-			return ret, err
-		}
-
-		allStatefulSets, err := w.kubeClient.AppsV1().StatefulSets(namespace).List(context.TODO(), v1.ListOptions{})
-		if err != nil {
-			return ret, err
-		}
-
-		allObjs := []metav1.Object{}
-		for _, deploy := range allDeployments.Items {
-			allObjs = append(allObjs, &deploy)
-		}
-		for _, ds := range allDaemonSets.Items {
-			allObjs = append(allObjs, &ds)
-		}
-		for _, sts := range allStatefulSets.Items {
-			allObjs = append(allObjs, &sts)
-		}
-
-		for _, obj := range allObjs {
-			if obj.GetGeneration() > maxGenerationAllowed {
-				failures = append(failures, fmt.Sprintf("object %s/%s of type %T had generation %d", obj.GetNamespace(), obj.GetName(), obj, obj.GetGeneration()))
-			}
-		}
-	}
-
-	testName = fmt.Sprintf("[Jira:kube-apiserver] namespaces should not have objects with a generation greater than %d", maxGenerationAllowed)
-	if len(failures) > 0 {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testName,
-			FailureOutput: &junitapi.FailureOutput{
-				Message: strings.Join(failures, "\n"),
-				Output:  fmt.Sprintf("Objects had a metadata.Generation higher than %d", maxGenerationAllowed),
-			},
-		})
-		// Flake for now
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testName,
-		})
-	} else {
-		ret = append(ret, &junitapi.JUnitTestCase{
-			Name: testName,
-		})
 	}
 
 	return ret, nil
