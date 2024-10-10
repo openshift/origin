@@ -433,6 +433,19 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		neverAllow:        true,
 	})
 
+	// Repeating events about pod creation are expected for snapshot options tests in vsphere csi driver.
+	// The tests change clusterCSIDriver object and have to rollout new pods to load new configuration.
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "VsphereConfigurationTestsRollOutTooOften",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-cluster-csi-drivers$`),
+			monitorapi.LocatorE2ETestKey:   regexp.MustCompile(`.*snapshot options in clusterCSIDriver.*`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^SuccessfulCreate$`),
+		messageHumanRegex:  regexp.MustCompile(`^Created pod.*vmware-vsphere-csi-driver.*`),
+		jira:               "https://issues.redhat.com/browse/OCPBUGS-42610",
+	})
+
 	registry.AddPathologicalEventMatcherOrDie(AllowBackOffRestartingFailedContainer)
 
 	registry.AddPathologicalEventMatcherOrDie(AllowOVNReadiness)
