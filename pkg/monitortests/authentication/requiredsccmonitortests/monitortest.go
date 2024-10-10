@@ -31,6 +31,11 @@ var defaultSCCs = sets.NewString(
 	"restricted-v2",
 )
 
+var nonStandardSCCNamespaces = map[string]sets.Set[string]{
+	"node-exporter":                   sets.New("openshift-monitoring"),
+	"machine-api-termination-handler": sets.New("openshift-machine-api"),
+}
+
 type requiredSCCAnnotationChecker struct {
 	kubeClient kubernetes.Interface
 }
@@ -75,12 +80,23 @@ func (w *requiredSCCAnnotationChecker) CollectData(ctx context.Context, storageD
 
 		failures := make([]string, 0)
 		for _, pod := range pods.Items {
+			validatedSCC := pod.Annotations[securityv1.ValidatedSCCAnnotation]
+
 			if _, exists := pod.Annotations[securityv1.RequiredSCCAnnotation]; exists {
+				if allowedNamespaces, isNonStandard := nonStandardSCCNamespaces[pod.Annotations[securityv1.ValidatedSCCAnnotation]]; isNonStandard && !allowedNamespaces.Has(ns.Name) {
+					failures = append(failures, fmt.Sprintf("pod '%s' has a non-standard SCC '%s' that is not allowed in namespace '%s'", pod.Name, validatedSCC, ns.Name))
+				}
 				continue
 			}
 
 			suggestedSCC := suggestSCC(&pod)
 			owners := ownerReferences(&pod)
+
+			if allowedNamespaces, isNonStandard := nonStandardSCCNamespaces[validatedSCC]; isNonStandard && !allowedNamespaces.Has(ns.Name) {
+				failures = append(failures, fmt.Sprintf("annotation missing from pod '%s'%s; pod is using non-standard SCC '%s' not allowed in namespace '%s'; %s", pod.Name, owners, validatedSCC, ns.Name, suggestedSCC))
+				continue
+			}
+
 			failures = append(failures, fmt.Sprintf("annotation missing from pod '%s'%s; %s", pod.Name, owners, suggestedSCC))
 		}
 
@@ -127,15 +143,20 @@ func (w *requiredSCCAnnotationChecker) Cleanup(ctx context.Context) error {
 // suggestSCC suggests the assigned SCC only if it belongs to the default set of SCCs
 // pods in runlevel 0/1 namespaces won't have any assigned SCC as SCC admission is disabled
 func suggestSCC(pod *v1.Pod) string {
-	if len(pod.Annotations[securityv1.ValidatedSCCAnnotation]) == 0 {
+	validatedSCC := pod.Annotations[securityv1.ValidatedSCCAnnotation]
+	if len(validatedSCC) == 0 {
 		return "cannot suggest required-scc, no validated SCC on pod"
 	}
 
-	if defaultSCCs.Has(pod.Annotations[securityv1.ValidatedSCCAnnotation]) {
-		return fmt.Sprintf("suggested required-scc: '%s'", pod.Annotations[securityv1.ValidatedSCCAnnotation])
+	if defaultSCCs.Has(validatedSCC) {
+		return fmt.Sprintf("suggested required-scc: '%s'", validatedSCC)
 	}
 
-	return "cannot suggest required-scc, validated SCC is custom"
+	if _, isNonStandard := nonStandardSCCNamespaces[validatedSCC]; isNonStandard {
+		return fmt.Sprintf("suggested required-scc: '%s', this is a non-standard SCC", validatedSCC)
+	}
+
+	return "cannot suggest required-scc, validated SCC is a custom SCC"
 }
 
 func ownerReferences(pod *v1.Pod) string {
