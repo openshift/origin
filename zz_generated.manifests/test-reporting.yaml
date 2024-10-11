@@ -227,6 +227,10 @@ spec:
     - testName: '[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks]
         when using openshift ovn-kubernetes when primary network exist, UserDefinedNetwork
         status should report not-ready'
+  - featureGate: PersistentIPsForVirtualization
+    tests:
+    - testName: '[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration]
+        when using openshift ovn-kubernetes dummy test [Suite:openshift/network/virtualization]'
   - featureGate: SELinuxMount
     tests:
     - testName: '[sig-storage] CSI Mock selinux on mount SELinuxMount [LinuxOnly]

@@ -313,6 +313,18 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 	},
 	{
+		Name: "openshift/network/virtualization",
+		Description: templates.LongDesc(`
+		The conformance testing suite for virtualization related features.
+		`),
+		Matches: func(name string) bool {
+			if isDisabled(name) {
+				return false
+			}
+			return strings.Contains(name, "[Suite:openshift/network/virtualization")
+		},
+	},
+	{
 		Name: "experimental/reliability/minimal",
 		Description: templates.LongDesc(`
 		Set of highly reliable tests.
