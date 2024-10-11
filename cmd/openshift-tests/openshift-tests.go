@@ -38,6 +38,8 @@ import (
 )
 
 func main() {
+	os.Exit(1)
+
 	// KUBE_TEST_REPO_LIST is calculated during package initialization and prevents
 	// proper mirroring of images referenced by tests. Clear the value and re-exec the
 	// current process to ensure we can verify from a known state.
