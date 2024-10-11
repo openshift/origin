@@ -36,6 +36,12 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 			topologyToExclude: "single",
 		},
 		{
+			// snapshot controller operator seems to fail on SNO during kube api upgrades
+			// the error from the pod is the inability to connect to the kas to get volumesnapshots on startup.
+			containerName:     "container/snapshot-controller", // https://issues.redhat.com/browse/OCPBUGS-43113
+			topologyToExclude: "single",
+		},
+		{
 			containerName: "container/kube-multus", // https://issues.redhat.com/browse/OCPBUGS-42267
 		},
 		{
