@@ -10,6 +10,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	exutil "github.com/openshift/origin/test/extended/util"
 	kappsv1 "k8s.io/api/apps/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,6 +64,13 @@ func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-c
 
 	ginkgo.By("Sleeping for a minute to give it time for verifying DNS after upgrade")
 	time.Sleep(1 * time.Minute)
+
+	// TODO: Remove once OCPBUGS-42777 is resolved
+	ex := exutil.NewCLIWithFramework(f)
+	if isSNO, err := exutil.IsSingleNode(ctx, ex.AdminConfigClient()); err == nil && isSNO {
+		// Add one minute for more data to be collected for validation
+		time.Sleep(1 * time.Minute)
+	}
 
 	ginkgo.By("Validating DNS results after upgrade")
 	t.validateDNSResults(f)
