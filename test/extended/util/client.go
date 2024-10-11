@@ -356,6 +356,7 @@ func (c *CLI) setupProject() string {
 		"builder",
 	}
 	defaultRoleBindings := []string{"system:image-pullers", "system:image-builders"}
+
 	dcEnabled, err := IsCapabilityEnabled(c, configv1.ClusterVersionCapabilityDeploymentConfig)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if dcEnabled {
@@ -363,9 +364,19 @@ func (c *CLI) setupProject() string {
 		DefaultServiceAccounts = append(DefaultServiceAccounts, "deployer")
 		defaultRoleBindings = append(defaultRoleBindings, "system:deployers")
 	}
+
+	// If image registry is not enabled set default service account and default role bindings to empty slice,
+	// the SA will not contain the docker secret and the role binding is not expected to be present.
+	imageRegistryEnabled, err := IsCapabilityEnabled(c, configv1.ClusterVersionCapabilityImageRegistry)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if !imageRegistryEnabled {
+		DefaultServiceAccounts = []string{}
+		defaultRoleBindings = []string{}
+	}
+
 	for _, sa := range DefaultServiceAccounts {
 		framework.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
-		err = WaitForServiceAccountWithSecret(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
+		err = WaitForServiceAccountWithSecret(c.AdminConfigClient().ConfigV1().ClusterVersions(), c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
