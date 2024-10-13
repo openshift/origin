@@ -29,11 +29,11 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("ensuring backup-server-daemon-set has been deleted")
-		err = ensureBackupServerDaemonSetDeleted(ctx, oc)
+		err = ensureBackupServerDaemonSetDeleted(ctx, g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("ensuring all backup finder pods have been removed")
-		err = ensureAllBackupPodsAreRemoved(oc)
+		err = ensureAllBackupPodsAreRemoved(g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
@@ -48,45 +48,59 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("ensuring backup-server-daemon-set has been created")
-		err = ensureBackupServerDaemonSetCreated(ctx, oc)
+		err = ensureBackupServerDaemonSetCreated(ctx, g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("ensuring master nodes have backups as expected")
-		foundFiles, err := collectFilesInBackupVolume(oc)
+		foundFiles, err := collectFilesInBackupVolume(g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		err = requireBackupFilesFound(foundFiles)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 })
 
-func ensureBackupServerDaemonSetDeleted(ctx context.Context, oc *exutil.CLI) error {
+type TestingT interface {
+	Logf(format string, args ...interface{})
+}
+
+func ensureBackupServerDaemonSetDeleted(ctx context.Context, t TestingT, oc *exutil.CLI) error {
 	waitPollInterval := 5 * time.Second
 	waitPollTimeout := 1 * time.Minute
 
+	t.Logf("attempting to ensureBackupServerDaemonSetDeleted()")
 	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		t.Logf("retrieving DS to ensureBackupServerDaemonSetDeleted()")
 		_, err = oc.AdminKubeClient().AppsV1().DaemonSets("openshift-etcd").Get(ctx, backupServerDaemonSet, metav1.GetOptions{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
+				t.Logf("retrieving DS to ensureBackupServerDaemonSetDeleted() - IsNotFound() - [%v]", err)
 				return true, nil
 			}
+			t.Logf("retrieving DS to ensureBackupServerDaemonSetDeleted() - err is [%v]", err)
 			return false, fmt.Errorf("failed to retrieve [%v]: [%v]", backupServerDaemonSet, err)
 		}
+		t.Logf("success to ensureBackupServerDaemonSetDeleted()")
 		return true, nil
 	})
 }
 
-func ensureBackupServerDaemonSetCreated(ctx context.Context, oc *exutil.CLI) error {
+func ensureBackupServerDaemonSetCreated(ctx context.Context, t TestingT, oc *exutil.CLI) error {
 	waitPollInterval := 5 * time.Second
 	waitPollTimeout := 1 * time.Minute
 
+	t.Logf("attempting to ensureBackupServerDaemonSetCreated()")
 	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		t.Logf("retrieving DS to ensureBackupServerDaemonSetCreated()")
 		_, err = oc.AdminKubeClient().AppsV1().DaemonSets("openshift-etcd").Get(ctx, backupServerDaemonSet, metav1.GetOptions{})
 		if err != nil {
+			t.Logf("retrieving DS to ensureBackupServerDaemonSetCreated() - IsNotFound() - [%v]", err)
 			if apierrors.IsNotFound(err) {
 				return false, nil
 			}
+			t.Logf("success to ensureBackupServerDaemonSetCreated()")
 			return false, fmt.Errorf("failed to retrieve [%v]: [%v]", backupServerDaemonSet, err)
 		}
+		t.Logf("success to ensureBackupServerDaemonSetCreated()")
 		return true, nil
 	})
 }

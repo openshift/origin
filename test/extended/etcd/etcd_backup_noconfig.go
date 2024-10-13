@@ -28,7 +28,7 @@ import (
 
 const (
 	defaultBackupCRName       = "default"
-	testSchedule              = "*/5 * * * *"
+	testSchedule              = "* * * * *"
 	testTimeZone              = "UTC"
 	testRetentionType         = configv1alpha1.RetentionTypeNumber
 	testRetentionNumber       = 3
@@ -63,7 +63,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("ensuring all backup finder pods have been removed")
-		err = ensureAllBackupPodsAreRemoved(oc)
+		err = ensureAllBackupPodsAreRemoved(g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
 
@@ -88,7 +88,7 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		g.GinkgoT().Log("ensuring master nodes have backups as expected")
-		foundFiles, err := collectFilesInBackupVolume(oc)
+		foundFiles, err := collectFilesInBackupVolume(g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		err = requireBackupFilesFound(foundFiles)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -220,7 +220,7 @@ func createDefaultBackupCR(schedule, timeZone string, retentionNumber int) *conf
 	}
 }
 
-func collectFilesInBackupVolume(oc *exutil.CLI) ([]string, error) {
+func collectFilesInBackupVolume(t TestingT, oc *exutil.CLI) ([]string, error) {
 	masterNodes, err := oc.AdminKubeClient().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{LabelSelector: masterNodeLabel})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list master nodes: %v", err)
@@ -242,6 +242,7 @@ func collectFilesInBackupVolume(oc *exutil.CLI) ([]string, error) {
 			}
 		}
 	}
+	t.Logf("found files are [%v]", lines)
 	return lines, nil
 }
 
@@ -355,12 +356,15 @@ func requireBackupFilesFound(files []string) error {
 	return nil
 }
 
-func ensureAllBackupPodsAreRemoved(oc *exutil.CLI) error {
+func ensureAllBackupPodsAreRemoved(t TestingT, oc *exutil.CLI) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
+	t.Logf("attempting to ensureAllBackupPodsAreRemoved()")
 	err := wait.PollUntilContextCancel(ctx, 10*time.Second, false, func(ctx context.Context) (bool, error) {
+		t.Logf("retrieving Pod to ensureAllBackupPodsAreRemoved()")
 		podList, err := oc.AdminKubeClient().CoreV1().Pods(OpenShiftEtcdNamespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
+			t.Logf("retrieving Pod to ensureAllBackupPodsAreRemoved() - error - [%v]", err)
 			klog.Infof("error while getting pods, waiting for its deletion: %v", err)
 			return false, nil
 		}
