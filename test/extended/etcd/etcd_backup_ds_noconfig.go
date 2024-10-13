@@ -17,22 +17,22 @@ const backupServerDaemonSet = "backup-server-daemon-set"
 
 var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery] etcd", func() {
 	defer g.GinkgoRecover()
-	oc := exutil.NewCLIWithoutNamespace("etcd-backup-ds-no-config").AsAdmin()
+	oc := exutil.NewCLIWithoutNamespace("etcd-backup-no-config").AsAdmin()
 
-	g.GinkgoT().Log("creating Backup CR")
+	g.GinkgoT().Log("@MUstafa - creating Backup CR")
 	newBackupCR := createDefaultBackupCR(testSchedule, testTimeZone, testRetentionNumber)
 
 	// clean up
 	g.AfterEach(func(ctx context.Context) {
-		g.GinkgoT().Log("deleting Backup CR")
+		g.GinkgoT().Log("@Mustafa - deleting Backup CR")
 		err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Delete(context.Background(), newBackupCR.Name, metav1.DeleteOptions{})
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		g.GinkgoT().Log("ensuring backup-server-daemon-set has been deleted")
+		g.GinkgoT().Log("@Mustafa - ensuring backup-server-daemon-set has been deleted")
 		err = ensureBackupServerDaemonSetDeleted(ctx, g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		g.GinkgoT().Log("ensuring all backup finder pods have been removed")
+		g.GinkgoT().Log("@Mustafa - ensuring all backup finder pods have been removed")
 		err = ensureAllBackupPodsAreRemoved(g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 	})
@@ -41,17 +41,18 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 	// It starts by applying the a config.openshift.io/v1alpha1/Backup CR.
 	// It verifies that backup-server-daemon-set DaemonSet has been created with namespace openshift-etcd.
 	// It verifies that backups are being taken according to the specified schedule and retention policy.
-	g.It("is able to apply automated backup daemonSet no-config configuration [Timeout:70m][apigroup:config.openshift.io]", func(ctx context.Context) {
+	g.It("@Mustafa - is able to apply automated backup daemonSet no-config configuration [Timeout:70m][apigroup:config.openshift.io]", func(ctx context.Context) {
 
-		g.GinkgoT().Log("applying Backup CR")
-		_, err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Create(context.Background(), newBackupCR, metav1.CreateOptions{})
+		g.GinkgoT().Log("@Mustafa - applying Backup CR")
+		_, err := oc.AdminConfigClient().ConfigV1alpha1().Backups().Create(ctx, newBackupCR, metav1.CreateOptions{})
+		g.GinkgoT().Logf("@Mustafa - applied BackupCR err is [%v]", err)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		g.GinkgoT().Log("ensuring backup-server-daemon-set has been created")
+		g.GinkgoT().Log("@Mustafa - ensuring backup-server-daemon-set has been created")
 		err = ensureBackupServerDaemonSetCreated(ctx, g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
-		g.GinkgoT().Log("ensuring master nodes have backups as expected")
+		g.GinkgoT().Log("@Mustafa - ensuring master nodes have backups as expected")
 		foundFiles, err := collectFilesInBackupVolume(g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		err = requireBackupFilesFound(foundFiles)
@@ -67,19 +68,19 @@ func ensureBackupServerDaemonSetDeleted(ctx context.Context, t TestingT, oc *exu
 	waitPollInterval := 5 * time.Second
 	waitPollTimeout := 1 * time.Minute
 
-	t.Logf("attempting to ensureBackupServerDaemonSetDeleted()")
+	t.Logf("@Mustafa - attempting to ensureBackupServerDaemonSetDeleted()")
 	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
-		t.Logf("retrieving DS to ensureBackupServerDaemonSetDeleted()")
+		t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetDeleted()")
 		_, err = oc.AdminKubeClient().AppsV1().DaemonSets("openshift-etcd").Get(ctx, backupServerDaemonSet, metav1.GetOptions{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				t.Logf("retrieving DS to ensureBackupServerDaemonSetDeleted() - IsNotFound() - [%v]", err)
+				t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetDeleted() - IsNotFound() - [%v]", err)
 				return true, nil
 			}
-			t.Logf("retrieving DS to ensureBackupServerDaemonSetDeleted() - err is [%v]", err)
+			t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetDeleted() - err is [%v]", err)
 			return false, fmt.Errorf("failed to retrieve [%v]: [%v]", backupServerDaemonSet, err)
 		}
-		t.Logf("success to ensureBackupServerDaemonSetDeleted()")
+		t.Logf("@Mustafa - success to ensureBackupServerDaemonSetDeleted()")
 		return true, nil
 	})
 }
@@ -88,19 +89,19 @@ func ensureBackupServerDaemonSetCreated(ctx context.Context, t TestingT, oc *exu
 	waitPollInterval := 5 * time.Second
 	waitPollTimeout := 1 * time.Minute
 
-	t.Logf("attempting to ensureBackupServerDaemonSetCreated()")
+	t.Logf("@Mustafa - attempting to ensureBackupServerDaemonSetCreated()")
 	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
-		t.Logf("retrieving DS to ensureBackupServerDaemonSetCreated()")
+		t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetCreated()")
 		_, err = oc.AdminKubeClient().AppsV1().DaemonSets("openshift-etcd").Get(ctx, backupServerDaemonSet, metav1.GetOptions{})
 		if err != nil {
-			t.Logf("retrieving DS to ensureBackupServerDaemonSetCreated() - IsNotFound() - [%v]", err)
+			t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetCreated() - IsNotFound() - [%v]", err)
 			if apierrors.IsNotFound(err) {
 				return false, nil
 			}
-			t.Logf("success to ensureBackupServerDaemonSetCreated()")
+			t.Logf("@Mustafa - success to ensureBackupServerDaemonSetCreated()")
 			return false, fmt.Errorf("failed to retrieve [%v]: [%v]", backupServerDaemonSet, err)
 		}
-		t.Logf("success to ensureBackupServerDaemonSetCreated()")
+		t.Logf("@Mustafa - success to ensureBackupServerDaemonSetCreated()")
 		return true, nil
 	})
 }
