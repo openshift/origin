@@ -1754,6 +1754,8 @@ var Annotations = map[string]string{
 	"[sig-storage][Late] Metrics should report short attach times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
 	"[sig-storage][Late] Metrics should report short mount times": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
+
+	"[sig-windows] Nodes should fail with invalid version annotation": " [Suite:openshift/conformance/parallel]",
 }
 
 func init() {

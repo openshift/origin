@@ -1,0 +1,9 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+# Follows https://github.com/openshift/windows-machine-config-operator root OWNERS
+
+reviewers:
+  - sebsoto
+  - mansikulkarni96
+approvers:
+  - sebsoto
+  - mansikulkarni96
