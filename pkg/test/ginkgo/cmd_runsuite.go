@@ -214,57 +214,50 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		// 3. A registry.ci.openshift.org/ocp-<arch>/release:<tag> (request registry.ci.openshift.org token).
 		// Within the pod, we don't necessarily have a pull-secret for #3 OR the component images
 		// a payload references (which are private, unless in a ci-op-* imagestream).
-		// For CI runs, conventionally, the cluster under test will possess a pull-secret
-		// with access to both the payload and component images. While it is technically
-		// possible to circumvent this convention (CI steps which mirror the images to
-		// another private registry and alter the conventional secret used in the install-config),
-		// we assume that most jobs will follow the convention.
-		// The convention will also generally be true for human users running e2e tests
-		// on a cluster.
-		// For any situation in which the convention is violated (e.g. Microshift, which
-		// has no openshift-config/pull-secret object), they must have one of the following:
-		// 1. Set the REGISTRY_AUTH_FILE environment variable to an auths file with
+		// We try the following options:
+		// 1. If set, use the REGISTRY_AUTH_FILE environment variable to an auths file with
 		//    pull secrets capable of reading appropriate payload & component image
 		//    information.
-		// 2. A file /run/secrets/ci.openshift.io/cluster-profile/pull-secret file
+		// 2. If it exists, use a file /run/secrets/ci.openshift.io/cluster-profile/pull-secret
 		//    (conventional location for pull-secret information for CI cluster profile).
-		// 3. No authentication required to access the release payload / component images.
-
+		// 3. Use openshift-config secret/pull-secret from the cluster-under-test, if it exists
+		//    (Microshift does not).
+		// 4. Use unauthenticated access to the payload image and component images.
 		registryAuthFilePath := os.Getenv("REGISTRY_AUTH_FILE")
 
 		// if the environment variable is not set, extract the target cluster's
 		// platform pull secret.
 		if len(registryAuthFilePath) != 0 {
-			extractLogger.Printf("Using registry auth file: %v", registryAuthFilePath)
+			extractLogger.Printf("Using REGISTRY_AUTH_FILE environment variable: %v", registryAuthFilePath)
 		} else {
-			// Read its dockerconfigjson value and use it when extracting external test binaries
-			// from images referenced by the release payload.
-			clusterPullSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
-			if err != nil {
-				if kapierrs.IsNotFound(err) {
-					extractLogger.Printf("Cluster has no openshift-config secret/pull-secret")
-					ciProfilePullSecretPath := "/run/secrets/ci.openshift.io/cluster-profile/pull-secret"
-					_, err = os.Stat(ciProfilePullSecretPath)
-					if os.IsNotExist(err) {
-						extractLogger.Printf("No %v; falling back to unauthenticated image access", ciProfilePullSecretPath)
+
+			// See if the cluster-profile has stored a pull-secret at the conventional location.
+			ciProfilePullSecretPath := "/run/secrets/ci.openshift.io/cluster-profile/pull-secret"
+			_, err = os.Stat(ciProfilePullSecretPath)
+			if !os.IsNotExist(err) {
+				extractLogger.Printf("Detected %v; using cluster profile for image access", ciProfilePullSecretPath)
+				registryAuthFilePath = ciProfilePullSecretPath
+			} else {
+				// Inspect the cluster-under-test and read its cluster pull-secret dockerconfigjson value.
+				clusterPullSecret, err := oc.AdminKubeClient().CoreV1().Secrets("openshift-config").Get(context.Background(), "pull-secret", metav1.GetOptions{})
+				if err != nil {
+					if kapierrs.IsNotFound(err) {
+						extractLogger.Printf("Cluster has no openshift-config secret/pull-secret; falling back to unauthenticated image access")
 					} else {
-						extractLogger.Printf("Detected %v; using cluster profile for image access", ciProfilePullSecretPath)
-						registryAuthFilePath = ciProfilePullSecretPath
+						return fmt.Errorf("unable to read ephemeral cluster pull secret: %w", err)
 					}
 				} else {
-					return fmt.Errorf("unable to read ephemeral cluster pull secret: %w", err)
-				}
-			} else {
-				tmpDir, err := os.MkdirTemp("", "external-binary")
-				clusterDockerConfig := clusterPullSecret.Data[".dockerconfigjson"]
-				registryAuthFilePath = filepath.Join(tmpDir, ".dockerconfigjson")
-				err = os.WriteFile(registryAuthFilePath, clusterDockerConfig, 0600)
-				if err != nil {
-					return fmt.Errorf("unable to serialize ephemeral cluster pull secret locally: %w", err)
-				}
+					tmpDir, err := os.MkdirTemp("", "external-binary")
+					clusterDockerConfig := clusterPullSecret.Data[".dockerconfigjson"]
+					registryAuthFilePath = filepath.Join(tmpDir, ".dockerconfigjson")
+					err = os.WriteFile(registryAuthFilePath, clusterDockerConfig, 0600)
+					if err != nil {
+						return fmt.Errorf("unable to serialize ephemeral cluster pull secret locally: %w", err)
+					}
 
-				defer os.Remove(registryAuthFilePath)
-				extractLogger.Printf("Using target cluster pull-secrets for registry auth")
+					defer os.Remove(registryAuthFilePath)
+					extractLogger.Printf("Using target cluster pull-secrets for registry auth")
+				}
 			}
 		}
 

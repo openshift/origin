@@ -94,7 +94,7 @@ func extractReleaseImageStream(logger *log.Logger, registryAuthFilePath string) 
 
 	// Highest priority override is EXTENSIONS_PAYLOAD_OVERRIDE
 	// overrideReleaseImage := os.Getenv("EXTENSIONS_PAYLOAD_OVERRIDE")
-	overrideReleaseImage := "registry.ci.openshift.org/ocp/release:4.18.0-0.ci-2024-10-11-065556"
+	overrideReleaseImage := "registry.ci.openshift.org/ocp/release:4.18.0-0.nightly-2024-10-15-075233"
 	if len(overrideReleaseImage) != 0 {
 		// if "cluster" is specified, prefer target cluster payload even if RELEASE_IMAGE_LATEST is set.
 		if overrideReleaseImage != "cluster" {
