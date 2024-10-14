@@ -243,7 +243,7 @@ func collectFilesInBackupVolume(t TestingT, oc *exutil.CLI) ([]string, error) {
 			}
 		}
 	}
-	t.Logf("@Mustafa - found files are [%v]", lines)
+	t.Logf("found files are [%v]", lines)
 	return lines, nil
 }
 
@@ -317,7 +317,7 @@ func listFilesInVolume(oc *exutil.CLI, timeout time.Duration, node corev1.Node) 
 
 	logBytes, err := oc.AdminKubeClient().CoreV1().Pods(OpenShiftEtcdNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).Do(ctx).Raw()
 	files := strings.Split(string(logBytes), "\n")
-	klog.Infof("@Mustafa - found files on node [%s]: %v", node.Name, files)
+	klog.Infof("found files on node [%s]: %v", node.Name, files)
 	return files, nil
 }
 
@@ -360,13 +360,13 @@ func requireBackupFilesFound(files []string) error {
 func ensureAllBackupPodsAreRemoved(t TestingT, oc *exutil.CLI) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	t.Logf("@Mustafa - attempting to ensureAllBackupPodsAreRemoved()")
+	t.Logf("attempting to ensureAllBackupPodsAreRemoved()")
 	err := wait.PollUntilContextCancel(ctx, 10*time.Second, false, func(ctx context.Context) (bool, error) {
 		t.Logf("retrieving Pod to ensureAllBackupPodsAreRemoved()")
 		podList, err := oc.AdminKubeClient().CoreV1().Pods(OpenShiftEtcdNamespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			t.Logf("@Mustafa - retrieving Pod to ensureAllBackupPodsAreRemoved() - error - [%v]", err)
-			klog.Infof("@Mustafa - error while getting pods, waiting for its deletion: %v", err)
+			t.Logf("retrieving Pod to ensureAllBackupPodsAreRemoved() - error - [%v]", err)
+			klog.Infof("error while getting pods, waiting for its deletion: %v", err)
 			return false, nil
 		}
 
