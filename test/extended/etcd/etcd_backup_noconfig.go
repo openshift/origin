@@ -3,6 +3,7 @@ package etcd
 import (
 	"context"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"regexp"
 	"strconv"
 	"strings"
@@ -370,12 +371,18 @@ func ensureAllBackupPodsAreRemoved(t TestingT, oc *exutil.CLI) error {
 		}
 
 		for _, p := range podList.Items {
-			if strings.Contains(p.Name, "cluster-backup-job") {
+			if strings.Contains(p.Name, "backup-finder-pod") {
 				klog.Infof("EnsureBackupPodRemoval found pod with name: %s", p.Name)
-				return false, nil
+				err = oc.AdminKubeClient().CoreV1().Pods(OpenShiftEtcdNamespace).Delete(ctx, p.Name, metav1.DeleteOptions{})
+				if err != nil {
+					if !apierrors.IsNotFound(err) {
+						klog.Infof("EnsureBackupPodRemoval failed to delete  backup-pod with name: %s: [%v]", p.Name, err)
+						return false, nil
+					}
+				}
+				klog.Infof("EnsureBackupPodRemoval successfully deleted  backup-pod with name: %s", p.Name)
 			}
 		}
-
 		return true, nil
 	})
 

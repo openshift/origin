@@ -3,6 +3,8 @@ package etcd
 import (
 	"context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -52,6 +54,13 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 		err = ensureBackupServerDaemonSetCreated(ctx, g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
+		g.GinkgoT().Log("@Mustafa - ensuring backup-server-pods are running")
+		err = ensureBackupPodsRunning(ctx, oc)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.GinkgoT().Log("waiting 3 minutes for backups to be taken")
+		time.Sleep(3 * time.Minute)
+
 		g.GinkgoT().Log("@Mustafa - ensuring master nodes have backups as expected")
 		foundFiles, err := collectFilesInBackupVolume(g.GinkgoT(), oc)
 		o.Expect(err).ToNot(o.HaveOccurred())
@@ -62,6 +71,50 @@ var _ = g.Describe("[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshi
 
 type TestingT interface {
 	Logf(format string, args ...interface{})
+}
+
+func ensureBackupServerDaemonSetCreated(ctx context.Context, t TestingT, oc *exutil.CLI) error {
+	waitPollInterval := 5 * time.Second
+	waitPollTimeout := 1 * time.Minute
+
+	t.Logf("@Mustafa - attempting to ensureBackupServerDaemonSetCreated()")
+	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetCreated()")
+		_, err = oc.AdminKubeClient().AppsV1().DaemonSets("openshift-etcd").Get(ctx, backupServerDaemonSet, metav1.GetOptions{})
+		if err != nil {
+			t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetCreated() - IsNotFound() - [%v]", err)
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			t.Logf("@Mustafa - failed to ensureBackupServerDaemonSetCreated()")
+			return false, fmt.Errorf("failed to retrieve [%v]: [%v]", backupServerDaemonSet, err)
+		}
+		t.Logf("@Mustafa - success to ensureBackupServerDaemonSetCreated()")
+		return true, nil
+	})
+}
+
+func ensureBackupPodsRunning(ctx context.Context, oc *exutil.CLI) error {
+	waitPollInterval := 5 * time.Second
+	waitPollTimeout := 1 * time.Minute
+
+	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
+		podList, err := oc.AdminKubeClient().CoreV1().Pods("openshift-etcd").List(ctx, metav1.ListOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, fmt.Errorf("failed to backup pods : [%v]", err)
+		}
+
+		for _, p := range podList.Items {
+			if strings.Contains(p.Name, "backup-server-daemon-set") && p.Status.Phase != v1.PodRunning {
+				return false, nil
+			}
+		}
+
+		return true, nil
+	})
 }
 
 func ensureBackupServerDaemonSetDeleted(ctx context.Context, t TestingT, oc *exutil.CLI) error {
@@ -81,27 +134,6 @@ func ensureBackupServerDaemonSetDeleted(ctx context.Context, t TestingT, oc *exu
 			return false, fmt.Errorf("failed to retrieve [%v]: [%v]", backupServerDaemonSet, err)
 		}
 		t.Logf("@Mustafa - success to ensureBackupServerDaemonSetDeleted()")
-		return true, nil
-	})
-}
-
-func ensureBackupServerDaemonSetCreated(ctx context.Context, t TestingT, oc *exutil.CLI) error {
-	waitPollInterval := 5 * time.Second
-	waitPollTimeout := 1 * time.Minute
-
-	t.Logf("@Mustafa - attempting to ensureBackupServerDaemonSetCreated()")
-	return wait.PollUntilContextTimeout(ctx, waitPollInterval, waitPollTimeout, true, func(ctx context.Context) (done bool, err error) {
-		t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetCreated()")
-		_, err = oc.AdminKubeClient().AppsV1().DaemonSets("openshift-etcd").Get(ctx, backupServerDaemonSet, metav1.GetOptions{})
-		if err != nil {
-			t.Logf("@Mustafa - retrieving DS to ensureBackupServerDaemonSetCreated() - IsNotFound() - [%v]", err)
-			if apierrors.IsNotFound(err) {
-				return false, nil
-			}
-			t.Logf("@Mustafa - success to ensureBackupServerDaemonSetCreated()")
-			return false, fmt.Errorf("failed to retrieve [%v]: [%v]", backupServerDaemonSet, err)
-		}
-		t.Logf("@Mustafa - success to ensureBackupServerDaemonSetCreated()")
 		return true, nil
 	})
 }
