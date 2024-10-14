@@ -1251,12 +1251,6 @@ var _ = g.Describe("[sig-auth][Feature:OpenShiftAuthorization] ImageRegistry acc
 	g.Context("", func() {
 		g.Describe("PublicImageAccessWithBasicAuthShouldSucceed", func() {
 			g.It("should succeed [apigroup:image.openshift.io]", func() {
-				// Skip Hypershift external OIDC clusters
-				isExternalOIDCCluster, err := exutil.IsExternalOIDCCluster(oc)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				if isExternalOIDCCluster {
-					g.Skip("Skipping the test as we are running against a Hypershift external OIDC cluster")
-				}
 
 				g.By("Create route to expose the registry")
 
