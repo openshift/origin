@@ -27,6 +27,12 @@ var Annotations = map[string]string{
 
 	"[sig-api-machinery] APIServer CR fields validation additionalCORSAllowedOrigins [apigroup:config.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-api-machinery] JSON Patch [apigroup:operator.openshift.io] should delete an entry from an array with a test precondition provided": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery] JSON Patch [apigroup:operator.openshift.io] should delete an entry from an array with multiple field owners": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-api-machinery] JSON Patch [apigroup:operator.openshift.io] should error when the test precondition provided doesn't match": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-api-machinery][Feature:APIServer] TestTLSDefaults": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-api-machinery][Feature:APIServer] anonymous browsers should get a 403 from /": " [Suite:openshift/conformance/parallel]",
