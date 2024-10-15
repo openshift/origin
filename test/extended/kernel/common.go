@@ -2,6 +2,8 @@ package kernel
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -97,4 +99,15 @@ func cleanupRtTestPod(oc *exutil.CLI) {
 	// Wait for the container to be ready to go
 	err = exutil.WaitForNoPodsRunning(oc.SetNamespace(rtNamespace))
 	o.Expect(err).NotTo(o.HaveOccurred(), "test pod for rt-tests never became ready")
+}
+
+// Write out test artifacts
+func writeTestArtifacts(fname string, content string) {
+	// Create the artifact dir for rt-tests if it does not exist
+	artifactDir := filepath.Join(exutil.ArtifactDirPath(), "rt-tests")
+	err := os.MkdirAll(artifactDir, 0755)
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = os.WriteFile(filepath.Join(artifactDir, fname), []byte(content), 0644)
+	o.Expect(err).NotTo(o.HaveOccurred())
 }

@@ -22,7 +22,6 @@ const (
 	hwlatdetectThresholdusec = 7500
 	oslatThresholdusec       = 7500
 	cyclictestThresholdusec  = 7500
-	rtevalThresholdusec      = 7500
 )
 
 func runPiStressFifo(oc *exutil.CLI) error {
@@ -71,7 +70,13 @@ func runOslat(cpuCount int, oc *exutil.CLI) error {
 	}
 
 	// Run the test
-	args := []string{rtPodName, "--", "oslat", "--cpu-list", fmt.Sprintf("%d-%d", reservedCores+1, cpuCount-1), "--rtprio", "1", "--duration", "600", "--json", oslatReportFile}
+	args := []string{rtPodName, "--",
+		"oslat",
+		"--cpu-list", fmt.Sprintf("%d-%d", reservedCores+1, cpuCount-1),
+		"--cpu-main-thread", fmt.Sprint(reservedCores + 1),
+		"--rtprio", "1",
+		"--duration", "600",
+		"--json", oslatReportFile}
 	_, err = oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
 	if err != nil {
 		return errors.Wrap(err, "error running oslat")
@@ -83,6 +88,8 @@ func runOslat(cpuCount int, oc *exutil.CLI) error {
 	if err != nil {
 		return errors.Wrap(err, "error retrieving oslat results")
 	}
+
+	writeTestArtifacts("oslat_results.json", report)
 
 	// Parse the results and return any errors detected
 	if err = parseOslatResults(report, oslatThresholdusec); err != nil {
@@ -144,6 +151,8 @@ func runCyclictest(cpuCount int, oc *exutil.CLI) error {
 	if err != nil {
 		return errors.Wrap(err, "error retrieving cyclictest results")
 	}
+
+	writeTestArtifacts("cyclictest_results.json", report)
 
 	// Parse the results and return any errors detected
 	if err = parseCyclictestResults(report, cyclictestThresholdusec); err != nil {
