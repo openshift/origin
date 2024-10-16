@@ -12,6 +12,19 @@ import (
 	"k8s.io/kube-openapi/pkg/util/sets"
 )
 
+// ClusterInfoResolver is a convenient abstraction to retrieve relevant cluster
+// information, since we want to keep locator construction logic in a single
+// location here.
+type ClusterInfoResolver interface {
+	// GetKubernetesServiceClusterIP returns the cluster IP of
+	// the 'kubernetes.default.svc' service object in default namespace
+	GetKubernetesServiceClusterIP() string
+
+	// GetNodeNameAndRoleFromInstance returns the node name
+	// and role from the given instance
+	GetNodeNameAndRoleFromInstance(instance string) (string, string, error)
+}
+
 type IntervalBuilder struct {
 	level             IntervalLevel
 	source            IntervalSource
@@ -326,7 +339,7 @@ func (b *LocatorBuilder) KubeAPIServerWithLB(loadBalancer string) Locator {
 	return b.Build()
 }
 
-func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, serviceNetworkIP string) Locator {
+func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, resolver ClusterInfoResolver) Locator {
 	// the label 'host' is the endpoint used to contact the kube-apiserver
 	getHost := func(metric model.Metric, serviceNetworkIP string) string {
 		host := string(metric["host"])
@@ -347,7 +360,18 @@ func (b *LocatorBuilder) WithAPIUnreachableFromClient(metric model.Metric, servi
 	}
 
 	b.targetType = LocatorTypeAPIUnreachableFromClient
-	b.annotations[LocatorAPIUnreachableHostKey] = getHost(metric, serviceNetworkIP)
+	if host := getHost(metric, resolver.GetKubernetesServiceClusterIP()); len(host) > 0 {
+		b.annotations[LocatorAPIUnreachableHostKey] = host
+	}
+	if job := string(metric["job"]); len(job) > 0 {
+		b.annotations[LocatorAPIUnreachableComponentKey] = job
+	}
+
+	// we try to get the node name from the instance label
+	if nodeName, nodeRole, err := resolver.GetNodeNameAndRoleFromInstance(string(metric["instance"])); err == nil {
+		b.annotations[LocatorNodeKey] = nodeName
+		b.annotations[LocatorNodeRoleKey] = nodeRole
+	}
 	return b.Build()
 }
 

@@ -122,6 +122,7 @@ const (
 	LocatorDeploymentKey      LocatorKey = "deployment"
 	LocatorNodeKey            LocatorKey = "node"
 	LocatorMachineKey         LocatorKey = "machine"
+	LocatorNodeRoleKey        LocatorKey = "node-role"
 	LocatorEtcdMemberKey      LocatorKey = "etcd-member"
 	LocatorNameKey            LocatorKey = "name"
 	LocatorHmsgKey            LocatorKey = "hmsg"
@@ -146,7 +147,8 @@ const (
 	LocatorServerKey                LocatorKey = "server"
 	LocatorMetricKey                LocatorKey = "metric"
 
-	LocatorAPIUnreachableHostKey LocatorKey = "host"
+	LocatorAPIUnreachableHostKey      LocatorKey = "host"
+	LocatorAPIUnreachableComponentKey LocatorKey = "component"
 )
 
 type Locator struct {
