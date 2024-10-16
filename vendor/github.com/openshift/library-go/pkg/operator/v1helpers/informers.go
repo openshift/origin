@@ -2,6 +2,7 @@ package v1helpers
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +18,10 @@ type KubeInformersForNamespaces interface {
 	Start(stopCh <-chan struct{})
 	InformersFor(namespace string) informers.SharedInformerFactory
 	Namespaces() sets.Set[string]
+
+	// WaitForCacheSync blocks until all started informers' caches were synced
+	// or the stop channel gets closed.
+	WaitForCacheSync(stopCh <-chan struct{}) map[string]map[reflect.Type]bool
 
 	ConfigMapLister() corev1listers.ConfigMapLister
 	SecretLister() corev1listers.SecretLister
@@ -41,6 +46,16 @@ func NewKubeInformersForNamespaces(kubeClient kubernetes.Interface, namespaces .
 }
 
 type kubeInformersForNamespaces map[string]informers.SharedInformerFactory
+
+// WaitForCacheSync waits for all started informers' cache were synced.
+func (i kubeInformersForNamespaces) WaitForCacheSync(stopCh <-chan struct{}) map[string]map[reflect.Type]bool {
+	ret := map[string]map[reflect.Type]bool{}
+	for namespace, informerFactory := range i {
+		ret[namespace] = informerFactory.WaitForCacheSync(stopCh)
+	}
+
+	return ret
+}
 
 func (i kubeInformersForNamespaces) Start(stopCh <-chan struct{}) {
 	for _, informer := range i {
