@@ -688,6 +688,12 @@ var CertificateRotation = &SimplePathologicalEventMatcher{
 	messageReasonRegex: regexp.MustCompile(`^(CABundleUpdateRequired|SignerUpdateRequired|TargetUpdateRequired|CertificateUpdated|CertificateRemoved|CertificateUpdateFailed)$`),
 }
 
+var LateConnectionDuringAPIServerShutdown = &SimplePathologicalEventMatcher{
+	name:               "LateConnectionDuringAPIServerShutdown",
+	messageReasonRegex: regexp.MustCompile(`^GracefulAPIServerShutdown$`),
+	messageHumanRegex:  regexp.MustCompile(`connection created very late in the graceful termination process`),
+}
+
 // IsEventAfterInstallation returns true if the monitorEvent represents an event that happened after installation.
 func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig *rest.Config) (bool, error) {
 	if kubeClientConfig == nil {

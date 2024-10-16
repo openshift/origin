@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
@@ -38,7 +39,12 @@ func (w *apiserverGracefulShutdownAnalyzer) CollectData(ctx context.Context, sto
 func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context.Context, startingIntervals monitorapi.Intervals, recordedResources monitorapi.ResourcesMap, beginning, end time.Time) (monitorapi.Intervals, error) {
 	computedIntervals := monitorapi.Intervals{}
 
-	startedIntervals := map[string]time.Time{}
+	type shutdownWindow struct {
+		startedAt      time.Time
+		lateConnection string
+	}
+
+	startedIntervals := map[string]shutdownWindow{}
 	for _, currInterval := range startingIntervals {
 		reason, isInteresting := interesting(currInterval)
 		if !isInteresting {
@@ -77,32 +83,42 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 		switch reason {
 		case "ShutdownInitiated", "TerminationStart":
 			if _, ok := startedIntervals[key]; !ok {
-				startedIntervals[key] = currInterval.From
+				startedIntervals[key] = shutdownWindow{startedAt: currInterval.From}
 			}
 		case "TerminationGracefulTerminationFinished":
 			startTime := beginning
-			if prevStart, ok := startedIntervals[key]; ok {
-				startTime = prevStart
+			sw, ok := startedIntervals[key]
+			if ok {
+				startTime = sw.startedAt
 				delete(startedIntervals, key)
+			}
+			level := monitorapi.Info
+			if len(sw.lateConnection) > 0 {
+				level = monitorapi.Error
 			}
 
 			computedIntervals = append(computedIntervals,
-				monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, monitorapi.Info).
+				monitorapi.NewInterval(monitorapi.APIServerGracefulShutdown, level).
 					Locator(monitorapi.NewLocator().
 						LocateServer(namespaceToServer[podRef.Namespace], nodeName, podRef.Namespace, podRef.Name),
 					).
 					Message(monitorapi.NewMessage().
 						Constructed("graceful-shutdown-analyzer").
-						Reason(monitorapi.GracefulAPIServerShutdown),
+						Reason(monitorapi.GracefulAPIServerShutdown).
+						HumanMessage(sw.lateConnection),
 					).
 					Display().
 					Build(startTime, currInterval.To),
 			)
+		case "LateConnections":
+			if sw, ok := startedIntervals[key]; ok {
+				sw.lateConnection = currInterval.Message.HumanMessage
+			}
 		}
 	}
 
 	// and now close everything still open with a warning
-	for fakeLocator, startTime := range startedIntervals {
+	for fakeLocator, sw := range startedIntervals {
 		podRef := podFrom(fakeLocator)
 		nodeName, _ := monitorapi.NodeFromLocator(fakeLocator)
 
@@ -116,7 +132,7 @@ func (*apiserverGracefulShutdownAnalyzer) ConstructComputedIntervals(ctx context
 					Reason(monitorapi.IncompleteAPIServerShutdown),
 				).
 				Display().
-				Build(startTime, time.Time{}),
+				Build(sw.startedAt, time.Time{}),
 		)
 	}
 
@@ -145,7 +161,12 @@ func podFrom(locator string) monitorapi.PodReference {
 }
 
 func (*apiserverGracefulShutdownAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
-	return nil, nil
+	testName := "[sig-arch] connection(s) to a kube-apiserver instance should not be created very late in the graceful termination process (more than 80% has passed)"
+	checker := pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.LateConnectionDuringAPIServerShutdown, 1, 1)
+
+	junits := []*junitapi.JUnitTestCase{}
+	junits = append(junits, checker.Test(finalIntervals)...)
+	return junits, nil
 }
 
 func (w *apiserverGracefulShutdownAnalyzer) WriteContentToStorage(ctx context.Context, storageDir, timeSuffix string, finalIntervals monitorapi.Intervals, finalResourceState monitorapi.ResourcesMap) error {
@@ -161,7 +182,7 @@ func interesting(interval monitorapi.Interval) (monitorapi.IntervalReason, bool)
 	reason := interval.Message.Reason
 	switch reason {
 	// openshift-apiserver still is using the old event name TerminationStart
-	case "ShutdownInitiated", "TerminationStart", "TerminationGracefulTerminationFinished":
+	case "ShutdownInitiated", "TerminationStart", "TerminationGracefulTerminationFinished", "LateConnections":
 		return reason, true
 	default:
 		return "", false
