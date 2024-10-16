@@ -48,10 +48,6 @@ func (p *PatchSet) addOperation(op, path string, value interface{}) {
 		Path:  path,
 		Value: value,
 	}
-	if op == patchTestOperation {
-		p.patches = append([]PatchOperation{patch}, p.patches...)
-		return
-	}
 	p.patches = append(p.patches, patch)
 }
 

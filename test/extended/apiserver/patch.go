@@ -43,6 +43,19 @@ var _ = g.Describe("[sig-api-machinery] JSON Patch [apigroup:operator.openshift.
 			{NodeName: "master-1"},
 		}))
 	})
+	g.It("should delete multiple entries from an array when multiple test precondition provided", func() {
+		g.By("Creating KubeAPIServerOperator CR for the test")
+		resourceClient := createResourceClient(oc.AdminConfig(), gvr)
+		kasOperator := createWellKnownKubeAPIServerOperatorResource(ctx, resourceClient)
+
+		g.By("Applying a JSON Patch to remove a node status at index 0 and 1")
+		jsonPatch := jsonpatch.New().
+			WithRemove("/status/nodeStatuses/0", jsonpatch.NewTestCondition("/status/nodeStatuses/0/nodeName", "master-1")).
+			WithRemove("/status/nodeStatuses/0", jsonpatch.NewTestCondition("/status/nodeStatuses/0/nodeName", "master-2"))
+		kasOperator, err := applyJSONPatch(ctx, kasOperator.Name, jsonPatch, resourceClient)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(kasOperator.Status.NodeStatuses).To(o.HaveLen(0))
+	})
 	g.It("should error when the test precondition provided doesn't match", func() {
 		g.By("Creating KubeAPIServerOperator CR for the test")
 		resourceClient := createResourceClient(oc.AdminConfig(), gvr)
