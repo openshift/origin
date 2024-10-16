@@ -9,8 +9,6 @@ spec:
     tests:
     - testName: '[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery]
         etcd is able to apply automated backup daemonSet no-config configuration [Timeout:70m][apigroup:config.openshift.io]'
-    - testName: '[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery]
-        etcd is able to apply automated backup no-config configuration [Timeout:70m][apigroup:config.openshift.io]'
   - featureGate: CRDValidationRatcheting
     tests:
     - testName: '[sig-api-machinery] CRDValidationRatcheting [Privileged:ClusterAdmin]

@@ -1143,8 +1143,6 @@ var Annotations = map[string]string{
 
 	"[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery] etcd is able to apply automated backup daemonSet no-config configuration [Timeout:70m][apigroup:config.openshift.io]": "",
 
-	"[sig-etcd][OCPFeatureGate:AutomatedEtcdBackup][Suite:openshift/etcd/recovery] etcd is able to apply automated backup no-config configuration [Timeout:70m][apigroup:config.openshift.io]": "",
-
 	"[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to Slower [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-etcd][OCPFeatureGate:HardwareSpeed][Serial] etcd is able to set the hardware speed to Standard [Timeout:30m][apigroup:machine.openshift.io]": " [Suite:openshift/conformance/serial]",
