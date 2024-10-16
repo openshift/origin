@@ -663,7 +663,7 @@ func removeMember(oc *exutil.CLI, memberID string) {
 		_, err = utils.PodRunningReady(&pod)
 		if err == nil {
 			framework.Logf("found running etcd pod to exec member removal: %s", pod.Name)
-			member, err := oc.AsAdmin().Run("exec").Args("-n", openshiftEtcdNamespace, pod.Name, "-c", "etcdctl", "--", "etcdctl", "member", "remove", memberID).Output()
+			member, err := oc.AsAdmin().Run("exec").Args("-n", openshiftEtcdNamespace, pod.Name, "--", "etcdctl", "etcdctl", "member", "remove", memberID).Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(member).To(o.ContainSubstring("removed from cluster"))
 			return
