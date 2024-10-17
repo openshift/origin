@@ -25,19 +25,21 @@ type auditLogAnalyzer struct {
 
 	isTechPreview bool
 
-	summarizer             *summarizer
-	excessiveApplyChecker  *excessiveApplies
-	requestCountTracking   *countTracking
-	invalidRequestsChecker *invalidRequests
+	summarizer                    *summarizer
+	excessiveApplyChecker         *excessiveApplies
+	requestCountTracking          *countTracking
+	invalidRequestsChecker        *invalidRequests
+	requestsDuringShutdownChecker *lateRequestTracking
 
 	countsForInstall *CountsForRun
 }
 
 func NewAuditLogAnalyzer() monitortestframework.MonitorTest {
 	return &auditLogAnalyzer{
-		summarizer:             NewAuditLogSummarizer(),
-		excessiveApplyChecker:  CheckForExcessiveApplies(),
-		invalidRequestsChecker: CheckForInvalidMutations(),
+		summarizer:                    NewAuditLogSummarizer(),
+		excessiveApplyChecker:         CheckForExcessiveApplies(),
+		invalidRequestsChecker:        CheckForInvalidMutations(),
+		requestsDuringShutdownChecker: CheckForRequestsDuringShutdown(),
 	}
 }
 
@@ -79,6 +81,7 @@ func (w *auditLogAnalyzer) CollectData(ctx context.Context, storageDir string, b
 		w.summarizer,
 		w.excessiveApplyChecker,
 		w.invalidRequestsChecker,
+		w.requestsDuringShutdownChecker,
 	}
 	if w.requestCountTracking != nil {
 		auditLogHandlers = append(auditLogHandlers, w.requestCountTracking)
@@ -337,6 +340,26 @@ func (w *auditLogAnalyzer) EvaluateTestsFromConstructedIntervals(ctx context.Con
 				)
 			}
 		}
+	}
+
+	testName := "API LBs follow /readyz of kube-apiserver and stop sending requests before server shutdowns for external clients"
+	switch {
+	case len(w.requestsDuringShutdownChecker.auditIDs) > 0:
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+				FailureOutput: &junitapi.FailureOutput{
+					Message: fmt.Sprintf("The following requests arrived when apiserver was gracefully shutting down:\n%s", strings.Join(w.requestsDuringShutdownChecker.auditIDs, "\n")),
+					Output:  "more details in audit log",
+				},
+			},
+		)
+	default:
+		ret = append(ret,
+			&junitapi.JUnitTestCase{
+				Name: testName,
+			},
+		)
 	}
 
 	return ret, nil
