@@ -335,7 +335,7 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
 	}
 	if len(pollerPods.Items) == 0 {
-		failures = append(failures, "no pods found for poller %q", typeOfConnection)
+		failures = append(failures, fmt.Sprintf("no pods found for poller %q", typeOfConnection))
 	}
 
 	logJunit := &junitapi.JUnitTestCase{
