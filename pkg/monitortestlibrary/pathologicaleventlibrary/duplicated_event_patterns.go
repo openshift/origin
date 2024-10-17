@@ -992,14 +992,24 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 
 	ocpKubeAPIServerProgressingInterval := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 
-		isNodeInstaller := eventInterval.Message.Reason == monitorapi.NodeInstallerReason
-		isOperatorSource := eventInterval.Source == monitorapi.SourceOperatorState
-		isKubeAPI := eventInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "kube-apiserver"
+		switch {
+		// KubeAPI is progressing
+		case eventInterval.Message.Reason == monitorapi.NodeInstallerReason &&
+			eventInterval.Source == monitorapi.SourceOperatorState &&
+			eventInterval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "kube-apiserver" &&
+			eventInterval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing":
+			return true
 
-		isKubeAPIInstaller := isNodeInstaller && isOperatorSource && isKubeAPI
-		isKubeAPIInstallProgressing := isKubeAPIInstaller && eventInterval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing"
+		// KubeAPI unreachable
+		case eventInterval.Message.Reason == monitorapi.APIUnreachableFromClientMetrics &&
+			eventInterval.Source == monitorapi.SourceAPIUnreachableFromClient &&
+			(eventInterval.Locator.Keys[monitorapi.LocatorAPIUnreachableHostKey] == "internal-lb" || eventInterval.Locator.Keys[monitorapi.LocatorAPIUnreachableHostKey] == "service-network") &&
+			eventInterval.Message.Annotations[monitorapi.AnnotationReason] == "APIUnreachableFromClientMetrics":
+			return true
 
-		return isKubeAPIInstallProgressing
+		default:
+			return false
+		}
 	})
 
 	// We buffer 1 second since Before and After are not inclusive for time comparisons.
