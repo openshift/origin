@@ -35,6 +35,8 @@ require (
 	github.com/openshift/library-go v0.0.0-20241015130640-f9ecd211c68b
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.74.0
+	github.com/prometheus-operator/prometheus-operator/pkg/client v0.74.0
 	github.com/prometheus/client_golang v1.20.2
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.55.0
@@ -70,7 +72,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20240730131305-7a9a4e85957e
 	k8s.io/kubectl v0.31.1
 	k8s.io/kubernetes v1.31.1
-	k8s.io/pod-security-admission v0.0.0
+	k8s.io/pod-security-admission v0.30.0
 	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
 	sigs.k8s.io/cloud-provider-azure v1.30.4
 	sigs.k8s.io/kustomize/kyaml v0.17.1
@@ -301,6 +303,7 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/cloud-provider-azure/pkg/azclient v0.0.29 // indirect
 	sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16 // indirect
+	sigs.k8s.io/controller-runtime v0.18.4 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96 // indirect
 	sigs.k8s.io/kustomize/api v0.17.2 // indirect
