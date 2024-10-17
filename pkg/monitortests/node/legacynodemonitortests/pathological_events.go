@@ -5,6 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 )
 
@@ -55,8 +56,12 @@ func testBackoffPullingRegistryRedhatImage(events monitorapi.Intervals) []*junit
 // testBackoffStartingFailedContainer looks for this symptom in core namespaces:
 //
 //	reason/BackOff Back-off restarting failed container
-func testBackoffStartingFailedContainer(events monitorapi.Intervals) []*junitapi.JUnitTestCase {
+func testBackoffStartingFailedContainer(clusterData platformidentification.ClusterData, events monitorapi.Intervals) []*junitapi.JUnitTestCase {
 	testName := "[sig-cluster-lifecycle] pathological event should not see excessive Back-off restarting failed containers"
+
+	events = events.Filter(
+		monitorapi.Not(pathologicaleventlibrary.IsDuringAPIServerProgressingOnSNO(clusterData.Topology, events)),
+	)
 
 	return pathologicaleventlibrary.NewSingleEventThresholdCheck(testName, pathologicaleventlibrary.AllowBackOffRestartingFailedContainer,
 		pathologicaleventlibrary.DuplicateEventThreshold, pathologicaleventlibrary.BackoffRestartingFlakeThreshold).

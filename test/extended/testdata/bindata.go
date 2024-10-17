@@ -46,6 +46,7 @@
 // test/extended/testdata/aggregator/sample-apiserver-rc.yaml
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
+// test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml
 // test/extended/testdata/builds/application-template-custombuild.json
 // test/extended/testdata/builds/build-postcommit/docker.yaml
 // test/extended/testdata/builds/build-postcommit/imagestreams.yaml
@@ -16275,6 +16276,33 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/aggregator/sample-apiserver-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataApiserverOperatorKubeApiserverCrYaml = []byte(`apiVersion: operator.openshift.io/v1
+kind: KubeAPIServer
+metadata:
+  generateName: test-apiserver-
+spec:
+  managementState: Managed
+status:
+  nodeStatuses:
+    - nodeName: "master-1"
+    - nodeName: "master-2"
+`)
+
+func testExtendedTestdataApiserverOperatorKubeApiserverCrYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataApiserverOperatorKubeApiserverCrYaml, nil
+}
+
+func testExtendedTestdataApiserverOperatorKubeApiserverCrYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataApiserverOperatorKubeApiserverCrYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -55200,6 +55228,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml":                                             testExtendedTestdataAggregatorSampleApiserverRcYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml":                                             testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml":                                        testExtendedTestdataAggregatorSampleApiserverServiceYaml,
+	"test/extended/testdata/apiserver/operator-kube-apiserver-cr.yaml":                                       testExtendedTestdataApiserverOperatorKubeApiserverCrYaml,
 	"test/extended/testdata/builds/application-template-custombuild.json":                                    testExtendedTestdataBuildsApplicationTemplateCustombuildJson,
 	"test/extended/testdata/builds/build-postcommit/docker.yaml":                                             testExtendedTestdataBuildsBuildPostcommitDockerYaml,
 	"test/extended/testdata/builds/build-postcommit/imagestreams.yaml":                                       testExtendedTestdataBuildsBuildPostcommitImagestreamsYaml,
@@ -55755,6 +55784,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"sample-apiserver-rc.yaml":            {testExtendedTestdataAggregatorSampleApiserverRcYaml, map[string]*bintree{}},
 					"sample-apiserver-sa.yaml":            {testExtendedTestdataAggregatorSampleApiserverSaYaml, map[string]*bintree{}},
 					"sample-apiserver-service.yaml":       {testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
+				}},
+				"apiserver": {nil, map[string]*bintree{
+					"operator-kube-apiserver-cr.yaml": {testExtendedTestdataApiserverOperatorKubeApiserverCrYaml, map[string]*bintree{}},
 				}},
 				"builds": {nil, map[string]*bintree{
 					"application-template-custombuild.json": {testExtendedTestdataBuildsApplicationTemplateCustombuildJson, map[string]*bintree{}},

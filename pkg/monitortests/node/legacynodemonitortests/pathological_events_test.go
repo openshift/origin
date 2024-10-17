@@ -1,11 +1,14 @@
 package legacynodemonitortests
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/openshift/origin/pkg/monitortestlibrary/pathologicaleventlibrary"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,9 +83,11 @@ func Test_testBackoffStartingFailedContainer(t *testing.T) {
 	samplePod := "etcd-operator-6f9b4d9d4f-4q9q8"
 
 	tests := []struct {
-		name     string
-		interval monitorapi.Interval
-		kind     string
+		name           string
+		interval       monitorapi.Interval
+		extraIntervals monitorapi.Intervals
+		kind           string
+		clusterData    platformidentification.ClusterData
 	}{
 		{
 			name: "Test pass case",
@@ -108,11 +113,49 @@ func Test_testBackoffStartingFailedContainer(t *testing.T) {
 				11),
 			kind: "flake",
 		},
+		{
+			name: "Test sno case",
+			interval: monitorapi.Interval{
+				Condition: monitorapi.Condition{
+					Locator: monitorapi.NewLocator().PodFromNames(namespace, samplePod, ""),
+					Message: monitorapi.NewMessage().
+						Reason(monitorapi.IntervalReason("BackOff")).
+						HumanMessage("Back-off restarting failed container").
+						WithAnnotation(monitorapi.AnnotationCount, fmt.Sprintf("%d", 66)).Build(),
+				},
+				Source: monitorapi.SourceOperatorState,
+				From:   time.Unix(1728589240, 0),
+				To:     time.Unix(1728589345, 0),
+			},
+			extraIntervals: monitorapi.Intervals{
+				monitorapi.Interval{
+					Condition: monitorapi.Condition{
+						Locator: monitorapi.Locator{
+							Keys: map[monitorapi.LocatorKey]string{
+								monitorapi.LocatorClusterOperatorKey: "kube-apiserver",
+							},
+						},
+						Message: monitorapi.Message{
+							Reason: monitorapi.NodeInstallerReason,
+							Annotations: map[monitorapi.AnnotationKey]string{
+								monitorapi.AnnotationCondition: "Progressing",
+							},
+						},
+					},
+					Source: monitorapi.SourceOperatorState,
+					From:   time.Unix(1728589200, 0),
+					To:     time.Unix(1728589400, 0),
+				},
+			},
+			kind:        "pass",
+			clusterData: platformidentification.ClusterData{JobType: platformidentification.JobType{Topology: "single"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := monitorapi.Intervals{tt.interval}
-			junits := testBackoffStartingFailedContainer(e)
+			e = append(e, tt.extraIntervals...)
+			junits := testBackoffStartingFailedContainer(tt.clusterData, e)
 
 			// Find the junit with the namespace of openshift-etcd-operator int the testname
 			var testJunits []*junitapi.JUnitTestCase

@@ -355,6 +355,12 @@ func (a *basicAlertTest) InvariantCheck(allEventIntervals monitorapi.Intervals, 
 	state, message := a.failOrFlake(firingIntervals, pendingIntervals)
 
 	switch a.alertName {
+	case "KubeAPIErrorBudgetBurn":
+		// Currently this is a known issue that happens less often on HA but more frequently on single node
+		// TODO: Remove this flake when OCPBUGS-42083 is resolved
+		if state == fail && a.jobType.Topology == "single" {
+			state = flake
+		}
 	case "KubePodNotReady":
 		if state == fail && (kubePodNotReadyDueToImagePullBackoff(resourcesMap["events"], firingIntervals) || kubePodNotReadyDueToErrParsingSignature(resourcesMap["events"], firingIntervals)) {
 			// Since this is due to imagePullBackoff, change the state to flake instead of fail

@@ -35,6 +35,9 @@ func (*legacyMonitorTests) ConstructComputedIntervals(ctx context.Context, start
 }
 
 func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.Context, finalIntervals monitorapi.Intervals) ([]*junitapi.JUnitTestCase, error) {
+
+	clusterData, _ := platformidentification.BuildClusterData(context.Background(), w.adminRESTConfig)
+
 	containerFailures, err := testContainerFailures(w.adminRESTConfig, finalIntervals)
 	if err != nil {
 		return nil, err
@@ -64,7 +67,7 @@ func (w *legacyMonitorTests) EvaluateTestsFromConstructedIntervals(ctx context.C
 	junits = append(junits, testNodeHasSufficientMemory(finalIntervals)...)
 	junits = append(junits, testNodeHasSufficientPID(finalIntervals)...)
 	junits = append(junits, testBackoffPullingRegistryRedhatImage(finalIntervals)...)
-	junits = append(junits, testBackoffStartingFailedContainer(finalIntervals)...)
+	junits = append(junits, testBackoffStartingFailedContainer(clusterData, finalIntervals)...)
 	junits = append(junits, testConfigOperatorReadinessProbe(finalIntervals)...)
 	junits = append(junits, testConfigOperatorProbeErrorReadinessProbe(finalIntervals)...)
 	junits = append(junits, testConfigOperatorProbeErrorLivenessProbe(finalIntervals)...)

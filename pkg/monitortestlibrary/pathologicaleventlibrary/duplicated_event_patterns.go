@@ -733,6 +733,32 @@ func IsEventAfterInstallation(monitorEvent monitorapi.Interval, kubeClientConfig
 	return true, nil
 }
 
+func IsDuringAPIServerProgressingOnSNO(topology string, events monitorapi.Intervals) monitorapi.EventIntervalMatchesFunc {
+	if topology != "single" {
+		return func(eventInterval monitorapi.Interval) bool { return false }
+	}
+	ocpKubeAPIServerProgressingInterval := events.Filter(func(interval monitorapi.Interval) bool {
+		isNodeInstaller := interval.Message.Reason == monitorapi.NodeInstallerReason
+		isOperatorSource := interval.Source == monitorapi.SourceOperatorState
+		isKubeAPI := interval.Locator.Keys[monitorapi.LocatorClusterOperatorKey] == "kube-apiserver"
+
+		isKubeAPIInstaller := isNodeInstaller && isOperatorSource && isKubeAPI
+		isKubeAPIInstallProgressing := isKubeAPIInstaller && interval.Message.Annotations[monitorapi.AnnotationCondition] == "Progressing"
+
+		return isKubeAPIInstallProgressing
+	})
+
+	return func(i monitorapi.Interval) bool {
+		for _, progressingInterval := range ocpKubeAPIServerProgressingInterval {
+			// Before and After are not inclusive, we buffer 1 second for that.
+			if progressingInterval.From.Before(i.From.Add(time.Second)) && progressingInterval.To.After(i.To.Add(-1*time.Second)) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 func getInstallCompletionTime(kubeClientConfig *rest.Config) *metav1.Time {
 	configClient, err := configclient.NewForConfig(kubeClientConfig)
 	if err != nil {
@@ -976,13 +1002,19 @@ func newSingleNodeKubeAPIProgressingEventMatcher(finalIntervals monitorapi.Inter
 		return isKubeAPIInstallProgressing
 	})
 
+	// We buffer 1 second since Before and After are not inclusive for time comparisons.
+	for i := range ocpKubeAPIServerProgressingInterval {
+		ocpKubeAPIServerProgressingInterval[i].From = ocpKubeAPIServerProgressingInterval[i].From.Add(time.Second * -1)
+		ocpKubeAPIServerProgressingInterval[i].To = ocpKubeAPIServerProgressingInterval[i].To.Add(time.Second * 1)
+	}
+
 	if len(ocpKubeAPIServerProgressingInterval) > 0 {
 		logrus.Infof("found %d OCP Kube APIServer Progressing intervals", len(ocpKubeAPIServerProgressingInterval))
 	}
 	return &OverlapOtherIntervalsPathologicalEventMatcher{
 		delegate: &SimplePathologicalEventMatcher{
 			name:              "KubeAPIServerProgressingDuringSingleNodeUpgrade",
-			messageHumanRegex: regexp.MustCompile(`^(clusteroperator/kube-apiserver version .* changed from |Back-off restarting failed container)`),
+			messageHumanRegex: regexp.MustCompile(`^(clusteroperator/kube-apiserver version .* changed from |Back-off restarting failed container|.*Client\.Timeout exceeded while awaiting headers)`),
 			topology:          &snoTopology,
 		},
 		allowIfWithinIntervals: ocpKubeAPIServerProgressingInterval,

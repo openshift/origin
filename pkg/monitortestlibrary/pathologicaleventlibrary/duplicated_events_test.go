@@ -159,7 +159,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 			msg: monitorapi.NewMessage().HumanMessage("Readiness probe failed: Get \"https://10.0.30.87:9980/readyz\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)").
 				Reason("ProbeError").Build(),
 			expectedAllowName: "",
-			expectedMatchName: "EtcdReadinessProbeFailuresPerRevisionChange",
+			expectedMatchName: "EtcdReadinessProbeFailuresPerRevisionChange,KubeAPIServerProgressingDuringSingleNodeUpgrade",
 		},
 		{
 			name: "multiple versions found probably in transition",
@@ -192,7 +192,7 @@ func TestAllowedRepeatedEvents(t *testing.T) {
 				matches, matcher := registry.MatchesAny(i)
 				assert.True(t, matches, "event should have matched")
 				require.NotNil(t, matcher, "a matcher should have been returned")
-				assert.Equal(t, test.expectedMatchName, matcher.Name(), "event was not matched by the correct matcher")
+				assert.Contains(t, test.expectedMatchName, matcher.Name(), "event was not matched by the correct matcher")
 			}
 
 			if test.expectedAllowName != "" {
