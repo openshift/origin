@@ -4,12 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 
+	g "github.com/onsi/ginkgo/v2"
+	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 )
@@ -103,4 +109,39 @@ func DetermineImageFromRelease(ctx context.Context, oc *CLI, imageTagName string
 		}
 	}
 	return "", fmt.Errorf("Could not find image: %s", imageTagName)
+}
+
+func GetRandomString() string {
+	chars := "abcdefghijklmnopqrstuvwxyz"
+	seed := rand.New(rand.NewSource(time.Now().UnixNano()))
+	buffer := make([]byte, 8)
+	for index := range buffer {
+		buffer[index] = chars[seed.Intn(len(chars))]
+	}
+	return string(buffer)
+}
+
+// IsExternalOIDCCluster checks if the cluster is using external OIDC.
+func IsExternalOIDCCluster(oc *CLI) (bool, error) {
+	authType, stdErr, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("authentication/cluster", "-o=jsonpath={.spec.type}").Outputs()
+	if err != nil {
+		return false, fmt.Errorf("error checking if the cluster is using external OIDC: %v", stdErr)
+	}
+	e2e.Logf("Found authentication type used: %v", authType)
+
+	return authType == string(configv1.AuthenticationTypeOIDC), nil
+}
+
+func AssertWaitPollNoErr(e error, msg string) {
+	if e == nil {
+		return
+	}
+	var err error
+	if strings.Compare(e.Error(), "timed out waiting for the condition") == 0 || strings.Compare(e.Error(), "context deadline exceeded") == 0 {
+		err = fmt.Errorf("case: %v\nerror: %s", g.CurrentSpecReport().FullText(), msg)
+	} else {
+		err = fmt.Errorf("case: %v\nerror: %s", g.CurrentSpecReport().FullText(), e.Error())
+	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+
 }
