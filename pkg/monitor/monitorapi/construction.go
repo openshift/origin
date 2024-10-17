@@ -109,6 +109,30 @@ func (b *LocatorBuilder) NodeFromName(nodeName string) Locator {
 		Build()
 }
 
+func (b *LocatorBuilder) DeploymentFromName(namespace, deploymentName string) Locator {
+	return b.
+		withTargetType(LocatorTypeDeployment).
+		withNamespace(namespace).
+		withDeployment(deploymentName).
+		Build()
+}
+
+func (b *LocatorBuilder) DaemonSetFromName(namespace, daemonSetName string) Locator {
+	return b.
+		withTargetType(LocatorTypeDaemonSet).
+		withNamespace(namespace).
+		withDaemonSet(daemonSetName).
+		Build()
+}
+
+func (b *LocatorBuilder) StatefulSetFromName(namespace, statefulSetName string) Locator {
+	return b.
+		withTargetType(LocatorTypeStatefulSet).
+		withNamespace(namespace).
+		withStatefuulSet(statefulSetName).
+		Build()
+}
+
 func (b *LocatorBuilder) MachineFromName(machineName string) Locator {
 	return b.
 		withTargetType(LocatorTypeMachine).
@@ -249,6 +273,20 @@ func (b *LocatorBuilder) withNamespace(namespace string) *LocatorBuilder {
 
 func (b *LocatorBuilder) withNode(nodeName string) *LocatorBuilder {
 	b.annotations[LocatorNodeKey] = nodeName
+	return b
+}
+
+func (b *LocatorBuilder) withDeployment(deploymentName string) *LocatorBuilder {
+	b.annotations[LocatorDeploymentKey] = deploymentName
+	return b
+}
+
+func (b *LocatorBuilder) withDaemonSet(daemonSetName string) *LocatorBuilder {
+	b.annotations[LocatorDaemonSetKey] = daemonSetName
+	return b
+}
+func (b *LocatorBuilder) withStatefuulSet(statefulSetName string) *LocatorBuilder {
+	b.annotations[LocatorStatefulSetKey] = statefulSetName
 	return b
 }
 
