@@ -323,6 +323,7 @@ var staticSuites = []ginkgo.TestSuite{
 			}
 			return strings.Contains(name, "[Suite:openshift/network/virtualization")
 		},
+		Parallelism: 3,
 	},
 	{
 		Name: "experimental/reliability/minimal",

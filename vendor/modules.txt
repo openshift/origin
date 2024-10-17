@@ -531,10 +531,16 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
+# github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
+## explicit; go 1.12
+github.com/google/goexpect
 # github.com/google/gofuzz v1.2.0
 ## explicit; go 1.12
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
+# github.com/google/goterm v0.0.0-20190703233501-fc88cf888a3f
+## explicit
+github.com/google/goterm/term
 # github.com/google/pprof v0.0.0-20240827171923-fa2c70bbbfe5
 ## explicit; go 1.22
 github.com/google/pprof/profile
@@ -954,6 +960,11 @@ github.com/openshift/client-go/config/informers/externalversions/config/v1alpha1
 github.com/openshift/client-go/config/informers/externalversions/internalinterfaces
 github.com/openshift/client-go/config/listers/config/v1
 github.com/openshift/client-go/config/listers/config/v1alpha1
+github.com/openshift/client-go/console/applyconfigurations/console/v1
+github.com/openshift/client-go/console/applyconfigurations/internal
+github.com/openshift/client-go/console/clientset/versioned
+github.com/openshift/client-go/console/clientset/versioned/scheme
+github.com/openshift/client-go/console/clientset/versioned/typed/console/v1
 github.com/openshift/client-go/image/applyconfigurations/image/v1
 github.com/openshift/client-go/image/applyconfigurations/internal
 github.com/openshift/client-go/image/clientset/versioned
