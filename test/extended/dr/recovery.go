@@ -43,7 +43,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 		masters := masterNodes(oc)
 		// Need one node to back up from and another to restore to
-		o.Expect(len(masters)).To(o.BeNumerically(">=", 2))
+		o.Expect(len(masters)).To(o.BeNumerically(">=", 3))
 
 		// Pick one node to back up on
 		backupNode := masters[0]
@@ -124,7 +124,7 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		masters := masterNodes(oc)
-		o.Expect(len(masters)).To(o.BeNumerically(">=", 2))
+		o.Expect(len(masters)).To(o.BeNumerically(">=", 3))
 		backupNode := masters[0]
 		framework.Logf("Selecting node %q as the backup host", backupNode.Name)
 		recoveryNode := masters[1]
@@ -151,11 +151,6 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 		// we should come back with a single etcd static pod
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), 1)
-
-		// TODO(thomas): since we're bumping resources, that should not be necessary anymore
-		// err = runOVNRepairCommands(oc, recoveryNode, nonRecoveryNodes)
-		// o.Expect(err).ToNot(o.HaveOccurred())
-
 		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
 		// CEO will bring back the other etcd static pods again
 		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
@@ -163,5 +158,64 @@ var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/re
 
 		framework.Logf("asserting post backup resources are not found anymore...")
 		assertPostBackupResourcesAreNotFound(oc)
+	})
+})
+
+var _ = g.Describe("[sig-etcd][Feature:DisasterRecovery][Suite:openshift/etcd/recovery][Timeout:1h]", func() {
+	defer g.GinkgoRecover()
+
+	f := framework.NewDefaultFramework("recovery")
+	f.SkipNamespaceCreation = true
+	oc := exutil.NewCLIWithoutNamespace("recovery")
+
+	g.AfterEach(func() {
+		g.GinkgoT().Log("turning the quorum guard back on")
+		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": false}}}`)
+		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// we need to ensure this test also ends with a stable revision for api and etcd
+		g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
+		err = waitForApiServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = errors.Wrap(err, "cleanup timed out waiting for APIServer pods to stabilize on the same revision")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
+		err = waitForEtcdToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = errors.Wrap(err, "cleanup timed out waiting for etcd pods to stabilize on the same revision")
+		o.Expect(err).ToNot(o.HaveOccurred())
+	})
+
+	g.It("[Feature:EtcdRecovery][Disruptive] Recover with quorum restore", func() {
+		// ensure the CEO can still act without quorum, doing it first so the CEO can cycle while we install ssh keys
+		data := fmt.Sprintf(`{"spec": {"unsupportedConfigOverrides": {"useUnsupportedUnsafeNonHANonProductionUnstableEtcd": true}}}`)
+		_, err := oc.AdminOperatorClient().OperatorV1().Etcds().Patch(context.Background(), "cluster", types.MergePatchType, []byte(data), metav1.PatchOptions{})
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		// we need to ensure each test starts with a stable revision for api and etcd
+		g.GinkgoT().Log("waiting for api servers to stabilize on the same revision")
+		err = waitForApiServerToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = errors.Wrap(err, "cleanup timed out waiting for APIServer pods to stabilize on the same revision")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		g.GinkgoT().Log("waiting for etcd to stabilize on the same revision")
+		err = waitForEtcdToStabilizeOnTheSameRevision(g.GinkgoT(), oc)
+		err = errors.Wrap(err, "cleanup timed out waiting for etcd pods to stabilize on the same revision")
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		err = InstallSSHKeyOnControlPlaneNodes(oc)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		masters := masterNodes(oc)
+		o.Expect(len(masters)).To(o.BeNumerically(">=", 3))
+		recoveryNode := masters[2]
+
+		err = runQuorumRestoreScript(oc, recoveryNode)
+		o.Expect(err).ToNot(o.HaveOccurred())
+
+		forceOperandRedeployment(oc.AdminOperatorClient().OperatorV1())
+		// CEO will bring back the other etcd static pods again
+		waitForReadyEtcdStaticPods(oc.AdminKubeClient(), len(masters))
+		waitForOperatorsToSettle()
 	})
 })
