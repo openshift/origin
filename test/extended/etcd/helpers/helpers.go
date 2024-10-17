@@ -15,9 +15,11 @@ import (
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
 	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 
 	bmhelper "github.com/openshift/origin/test/extended/baremetal"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,6 +32,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 	"k8s.io/utils/pointer"
 )
@@ -595,6 +598,114 @@ func MachineNameToEtcdMemberName(ctx context.Context, kubeClient kubernetes.Inte
 		}
 	}
 	return "", fmt.Errorf("unable to find a node for the corresponding %q machine on the following machine's IPs: %v, checked: %v", machineName, machineIPListSet.List(), nodeNames)
+}
+
+// MasterNodes returns a list of master nodes
+func MasterNodes(ctx context.Context, kubeClient kubernetes.Interface) []*corev1.Node {
+	masterNodes, err := kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{LabelSelector: masterNodeRoleLabel})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	var nodes []*corev1.Node
+	for i := range masterNodes.Items {
+		node := &masterNodes.Items[i]
+		nodes = append(nodes, node)
+	}
+	return nodes
+}
+
+// NodeNameToMachineName finds a machine name that corresponds to the given node name
+// first it looks up a machine that corresponds to the node by comparing the ProviderID field
+//
+// # In cases the ProviderID is empty it will try to find a machine that matches an internal IP address
+//
+// note:
+// it will exit and report an error in case the machine was not found
+func NodeNameToMachineName(ctx context.Context, kubeClient kubernetes.Interface, machineClient machinev1beta1client.MachineInterface, nodeName string) (string, error) {
+	node, err := kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	masterMachines, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
+
+	if node.Spec.ProviderID != "" {
+		// case 1: find corresponding machine, match on providerID
+		var machineNames []string
+		for _, masterMachine := range masterMachines.Items {
+			if pointer.StringDeref(masterMachine.Spec.ProviderID, "") == node.Spec.ProviderID {
+				return masterMachine.Name, nil
+			}
+			machineNames = append(machineNames, masterMachine.Name)
+		}
+
+		return "", fmt.Errorf("unable to find a machine for the corresponding %q node on ProviderID: %v, checked: %v", nodeName, node.Spec.ProviderID, machineNames)
+	}
+
+	// case 2: match on an internal ip address
+	nodeIPListSet := sets.NewString()
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == corev1.NodeInternalIP {
+			nodeIPListSet.Insert(addr.Address)
+		}
+	}
+
+	var machineNames []string
+	for _, masterMachine := range masterMachines.Items {
+		for _, addr := range masterMachine.Status.Addresses {
+			if addr.Type == corev1.NodeInternalIP {
+				if nodeIPListSet.Has(addr.Address) {
+					return masterMachine.Name, nil
+				}
+			}
+			machineNames = append(machineNames, masterMachine.Name)
+		}
+	}
+
+	return "", fmt.Errorf("unable to find a machine for the correspoding %q node on the following nodes IP: %v, checked: %v", nodeName, nodeIPListSet.List(), machineNames)
+}
+
+// StopKubelet stops the kubelet on the given node by spwaning a pod on the node and running the stop kubelet command
+func StopKubelet(ctx context.Context, adminKubeClient kubernetes.Interface, node corev1.Node) error {
+	podSpec := applycorev1.PodSpec().WithRestartPolicy(corev1.RestartPolicyNever).WithHostNetwork(true).WithHostPID(true)
+	podSpec.Containers = []applycorev1.ContainerApplyConfiguration{
+		*applycorev1.Container().
+			WithName("kubelet-stopper").
+			WithSecurityContext(applycorev1.SecurityContext().WithPrivileged(true).WithRunAsUser(0)).
+			WithImage(image.ShellImage()).
+			WithVolumeMounts(applycorev1.VolumeMount().WithName("host").WithMountPath("/host")).
+			WithCommand("/bin/sh").
+			WithArgs("-c", "chroot /host /bin/sh -c 'sleep 1 && systemctl stop kubelet'"),
+	}
+	podSpec.NodeSelector = map[string]string{"kubernetes.io/hostname": node.Labels["kubernetes.io/hostname"]}
+	podSpec.Tolerations = []applycorev1.TolerationApplyConfiguration{*applycorev1.Toleration().WithOperator(corev1.TolerationOpExists)}
+	podSpec.Volumes = []applycorev1.VolumeApplyConfiguration{
+		*applycorev1.Volume().WithName("host").WithHostPath(applycorev1.HostPathVolumeSource().WithPath("/").WithType("Directory")),
+	}
+
+	pod := applycorev1.Pod("kubelet-stopper", "openshift-etcd").WithSpec(podSpec)
+	createdPod, err := adminKubeClient.CoreV1().Pods(*pod.Namespace).Apply(context.Background(), pod, metav1.ApplyOptions{FieldManager: *pod.Name})
+	if err != nil {
+		return fmt.Errorf("error applying pod %w", err)
+	}
+
+	err = wait.PollUntilContextTimeout(ctx, 15*time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
+		p, err := adminKubeClient.CoreV1().Pods("openshift-etcd").Get(context.Background(), createdPod.Name, metav1.GetOptions{})
+		if err != nil {
+			return true, fmt.Errorf("error retreving the pod %s : %w", createdPod.Name, err)
+		}
+
+		if p.Status.Phase == corev1.PodFailed {
+			return true, fmt.Errorf("pod failed with status %v", p.Status)
+		}
+
+		podReadyCondition := e2epod.FindPodConditionByType(&p.Status, corev1.PodReady)
+		if podReadyCondition == nil {
+			return false, nil
+		}
+
+		return podReadyCondition.Status == corev1.ConditionFalse, nil
+	})
+	return err
 }
 
 func InitPlatformSpecificConfiguration(oc *exutil.CLI) func() {
