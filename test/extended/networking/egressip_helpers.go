@@ -34,10 +34,8 @@ import (
 	frameworkpod "k8s.io/kubernetes/test/e2e/framework/pod"
 
 	configv1 "github.com/openshift/api/config/v1"
-	networkv1 "github.com/openshift/api/network/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	cloudnetwork "github.com/openshift/client-go/cloudnetwork/clientset/versioned"
-	networkclient "github.com/openshift/client-go/network/clientset/versioned/typed/network/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	imageutils "k8s.io/kubernetes/test/utils/image"
@@ -170,12 +168,12 @@ func getWorkerNodesOrdered(clientset kubernetes.Interface) ([]corev1.Node, error
 
 // findPacketSnifferInterface finds the interface that shall be used for packet capturing on all nodes in the list.
 // Return an error if there is no consensus about the interface that shall be used among nodes.
-func findPacketSnifferInterface(oc *exutil.CLI, networkPlugin string, egressIPNodesOrderedNames []string) (string, error) {
+func findPacketSnifferInterface(oc *exutil.CLI, egressIPNodesOrderedNames []string) (string, error) {
 	var intf string
 	var packetSnifferNode, packetSnifferInterface string
 	var err error
 	for _, node := range egressIPNodesOrderedNames {
-		intf, err = findPacketSnifferInterfaceOnNode(oc, networkPlugin, node)
+		intf, err = findPacketSnifferInterfaceOnNode(oc, node)
 		if err != nil {
 			return "", err
 		}
@@ -196,63 +194,8 @@ func findPacketSnifferInterface(oc *exutil.CLI, networkPlugin string, egressIPNo
 }
 
 // findPacketSnifferInterfaceOnNode finds the interface that shall be used for packet capturing on this node.
-func findPacketSnifferInterfaceOnNode(oc *exutil.CLI, networkPlugin, nodeName string) (string, error) {
-	if networkPlugin == OpenshiftSDNPluginName {
-		return findDefaultInterfaceForOpenShiftSDN(oc, nodeName)
-	}
-	if networkPlugin == OVNKubernetesPluginName {
-		return findBridgePhysicalInterface(oc, nodeName, "br-ex")
-	}
-	return "", fmt.Errorf("Invalid network plugin name: '%s'", networkPlugin)
-}
-
-// findDefaultInterfaceForOpenShiftSDN returns the default interface for a node with the OpenShiftSDN plugin.
-func findDefaultInterfaceForOpenShiftSDN(oc *exutil.CLI, nodeName string) (string, error) {
-	var podName string
-	var out string
-	var err error
-
-	type route struct {
-		Dev string
-	}
-	var defaultRoutes []route
-
-	out, err = runOcWithRetry(oc.AsAdmin(), "get",
-		"pods",
-		"-o", "name",
-		"-n", "openshift-sdn",
-		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
-		"-l", "app=sdn")
-	if err != nil {
-		return "", err
-	}
-	outReader := bufio.NewScanner(strings.NewReader(out))
-	re := regexp.MustCompile("^pod/(.*)")
-	for outReader.Scan() {
-		match := re.FindSubmatch([]byte(outReader.Text()))
-		if len(match) != 2 {
-			continue
-		}
-		podName = string(match[1])
-		break
-	}
-	if podName == "" {
-		return "", fmt.Errorf("Could not find a valid sdn pod on node '%s'", nodeName)
-	}
-	out, err = adminExecInPod(oc, "openshift-sdn", podName, "sdn", "ip -j route show default")
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal([]byte(out), &defaultRoutes)
-	if err != nil {
-		return "", err
-	}
-	if len(defaultRoutes) < 1 {
-		return "", fmt.Errorf("Invalid default route configuration for node %s: %s", nodeName, out)
-	}
-	// Return the first default route in the list, ip route show default should correctly order routes
-	// by metric.
-	return defaultRoutes[0].Dev, nil
+func findPacketSnifferInterfaceOnNode(oc *exutil.CLI, nodeName string) (string, error) {
+	return findBridgePhysicalInterface(oc, nodeName, "br-ex")
 }
 
 type ovnKubePodInfo struct {
@@ -1006,24 +949,12 @@ func buildReservedEgressIPList(oc *exutil.CLI, clientset kubernetes.Interface, c
 		reservedIPs = append(reservedIPs, cloudPrivateIPConfig.Name)
 	}
 
-	// egressip for OVNKubernetes - if we receive a failure here, it may simply be because
-	// we are on OpenShiftSDN, so ignore the error.
+	// egressips
 	egressipList, err := listEgressIPs(oc)
 	if err == nil {
 		for _, egressip := range egressipList.Items {
 			for _, ip := range egressip.Spec.EgressIPs {
 				reservedIPs = append(reservedIPs, ip)
-			}
-		}
-	}
-	// egressip for OpenShiftSDN - if we receive a failure here, it may simply be because
-	// we are on OVNKubernetes, so ignore the error.
-	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
-	hostSubnets, err := networkClient.HostSubnets().List(context.Background(), metav1.ListOptions{})
-	if err == nil {
-		for _, hostSubnet := range hostSubnets.Items {
-			for _, eip := range hostSubnet.EgressIPs {
-				reservedIPs = append(reservedIPs, string(eip))
 			}
 		}
 	}
@@ -1696,9 +1627,7 @@ func probeForRequest(oc *exutil.CLI, proberPodNamespace, proberPodName, url, tar
 
 // getTargetProtocolHostPort gets targetProtocol, targetHost, targetPort.
 // Special targetHost keyword "self" means that the tests should be against th cluster router.
-// networkPluginName is currently unused but passed in here in case it is needed in the future e.g. to modify the default settings
-// based on the pluginName, for example: if networkPluginName == OVNKubernetesPluginName {
-func getTargetProtocolHostPort(oc *exutil.CLI, hasIPv4, hasIPv6 bool, cloudType configv1.PlatformType, networkPluginName string) (string, string, int, error) {
+func getTargetProtocolHostPort(oc *exutil.CLI, hasIPv4, hasIPv6 bool, cloudType configv1.PlatformType) (string, string, int, error) {
 	var targetProtocol string
 	var targetPort int
 	var targetHost string
@@ -1776,146 +1705,6 @@ func egressIPStatusHasIP(oc *exutil.CLI, egressIPObjectName string, ip string) (
 	}
 
 	return false, "", nil
-}
-
-// sdnNamespaceAddEgressIP adds EgressIP <egressip> to netnamespace <namespace>.
-// oc patch netnamespace project1 --type=merge \  -p '{"egressIPs": ["192.168.1.100","192.168.1.101"]}'
-func sdnNamespaceAddEgressIP(oc *exutil.CLI, namespace string, egressIP string) error {
-	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
-	netns, err := networkClient.NetNamespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	netns.EgressIPs = append(netns.EgressIPs, networkv1.NetNamespaceEgressIP(egressIP))
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err = networkClient.NetNamespaces().Update(context.Background(), netns, metav1.UpdateOptions{})
-		return err
-	})
-	if retryErr != nil {
-		return fmt.Errorf("Update failed: %v", retryErr)
-	}
-	return nil
-}
-
-// sdnHostsubnetAddEgressIP adds EgressIP <egressIP> to hostsubnet <nodeName>.
-// oc patch hostsubnet node1 --type=merge -p \'{"egressIPs": ["192.168.1.100", "192.168.1.101", "192.168.1.102"]}'
-func sdnHostsubnetAddEgressIP(oc *exutil.CLI, nodeName string, egressIP string) error {
-	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
-	hostSubnet, err := networkClient.HostSubnets().Get(context.Background(), nodeName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	hostSubnet.EgressIPs = append(hostSubnet.EgressIPs, networkv1.HostSubnetEgressIP(egressIP))
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err = networkClient.HostSubnets().Update(context.Background(), hostSubnet, metav1.UpdateOptions{})
-		return err
-	})
-	if retryErr != nil {
-		return fmt.Errorf("Update failed: %v", retryErr)
-	}
-	return nil
-}
-
-// sdnNamespaceRemoveEgressIP removes EgressIP <egressip> to netnamespace <namespace>.
-func sdnNamespaceRemoveEgressIP(oc *exutil.CLI, namespace string, egressIP string) error {
-	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
-	netns, err := networkClient.NetNamespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	var newEgressIPs []networkv1.NetNamespaceEgressIP
-	for _, eip := range netns.EgressIPs {
-		if eip != networkv1.NetNamespaceEgressIP(egressIP) {
-			newEgressIPs = append(newEgressIPs, eip)
-		}
-	}
-	netns.EgressIPs = newEgressIPs
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err = networkClient.NetNamespaces().Update(context.Background(), netns, metav1.UpdateOptions{})
-		return err
-	})
-	if retryErr != nil {
-		return fmt.Errorf("Update failed: %v", retryErr)
-	}
-	return nil
-}
-
-// sdnHostsubnetRemoveEgressIP removes EgressIP <egressIP> to hostsubnet <nodeName>.
-func sdnHostsubnetRemoveEgressIP(oc *exutil.CLI, nodeName string, egressIP string) error {
-	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
-	hostSubnet, err := networkClient.HostSubnets().Get(context.Background(), nodeName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	var newEgressIPs []networkv1.HostSubnetEgressIP
-	for _, eip := range hostSubnet.EgressIPs {
-		if eip != networkv1.HostSubnetEgressIP(egressIP) {
-			newEgressIPs = append(newEgressIPs, eip)
-		}
-	}
-	hostSubnet.EgressIPs = newEgressIPs
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err = networkClient.HostSubnets().Update(context.Background(), hostSubnet, metav1.UpdateOptions{})
-		return err
-	})
-	if retryErr != nil {
-		return fmt.Errorf("Update failed: %v", retryErr)
-	}
-	return nil
-}
-
-// sdnHostsubnetSetEgressCIDR sets EgressIPCIDR <egressCIDR> for hostsubnet <nodeName>.
-func sdnHostsubnetSetEgressCIDR(oc *exutil.CLI, nodeName string, egressCIDR string) error {
-	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
-	hostSubnet, err := networkClient.HostSubnets().Get(context.Background(), nodeName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	hostSubnet.EgressCIDRs = []networkv1.HostSubnetEgressCIDR{networkv1.HostSubnetEgressCIDR(egressCIDR)}
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err = networkClient.HostSubnets().Update(context.Background(), hostSubnet, metav1.UpdateOptions{})
-		return err
-	})
-	if retryErr != nil {
-		return fmt.Errorf("Update failed: %v", retryErr)
-	}
-	return nil
-}
-
-// sdnHostsubnetFlushEgressIPs removes all EgressIPs from hostsubnet <nodeName>.
-func sdnHostsubnetFlushEgressIPs(oc *exutil.CLI, nodeName string) error {
-	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
-	hostSubnet, err := networkClient.HostSubnets().Get(context.Background(), nodeName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	hostSubnet.EgressIPs = []networkv1.HostSubnetEgressIP{}
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err = networkClient.HostSubnets().Update(context.Background(), hostSubnet, metav1.UpdateOptions{})
-		return err
-	})
-	if retryErr != nil {
-		return fmt.Errorf("Update failed: %v", retryErr)
-	}
-	return nil
-}
-
-// sdnHostsubnetFlushEgressCIDRs removes all EgressCIDRs from hostsubnet <nodeName>.
-func sdnHostsubnetFlushEgressCIDRs(oc *exutil.CLI, nodeName string) error {
-	networkClient := networkclient.NewForConfigOrDie(oc.AdminConfig())
-	hostSubnet, err := networkClient.HostSubnets().Get(context.Background(), nodeName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-	hostSubnet.EgressCIDRs = []networkv1.HostSubnetEgressCIDR{}
-	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		_, err = networkClient.HostSubnets().Update(context.Background(), hostSubnet, metav1.UpdateOptions{})
-		return err
-	})
-	if retryErr != nil {
-		return fmt.Errorf("Update failed: %v", retryErr)
-	}
-	return nil
 }
 
 // listEgressIPs uses the dynamic admin client to return a pointer to
