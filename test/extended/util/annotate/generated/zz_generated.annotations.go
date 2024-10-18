@@ -1561,16 +1561,6 @@ var Annotations = map[string]string{
 
 	"[sig-network] services when running openshift ipv4 cluster on bare metal [apigroup:config.openshift.io] ensures external auto assign cidr is configured correctly on the cluster [apigroup:config.openshift.io] [Serial]": " [Suite:openshift/conformance/serial]",
 
-	"[sig-network][Feature:CNIMigration] All nodes should be in ready state [Early][Suite:openshift/network/live-migration]": "",
-
-	"[sig-network][Feature:CNIMigration] Cluster operators should be stable [Late][Suite:openshift/network/live-migration]": "",
-
-	"[sig-network][Feature:CNIMigration] Cluster should not be live migrating before beginning migration [Early][Suite:openshift/network/live-migration]": "",
-
-	"[sig-network][Feature:CNIMigration] Should perform live migration [Disruptive][Suite:openshift/network/live-migration]": " [Serial]",
-
-	"[sig-network][Feature:CNIMigration] Target CNI should not be deployed [Early][Suite:openshift/network/live-migration]": "",
-
 	"[sig-network][Feature:EgressFirewall] egressFirewall should have no impact outside its namespace": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][Feature:EgressFirewall] when using openshift ovn-kubernetes should ensure egressfirewall is created": " [Suite:openshift/conformance/parallel]",
