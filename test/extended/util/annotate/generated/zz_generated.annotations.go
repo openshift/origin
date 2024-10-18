@@ -1565,13 +1565,11 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressFirewall] when using openshift ovn-kubernetes should ensure egressfirewall is created": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] EgressIPs can be assigned automatically [Skipped:Network/OVNKubernetes]": " [Serial] [Suite:openshift/conformance/serial]",
-
-	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] only pods matched by the pod selector should have the EgressIPs [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] only pods matched by the pod selector should have the EgressIPs": " [Serial] [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be deleted and recreated [Skipped:azure][apigroup:route.openshift.io]": " [Serial] [Suite:openshift/conformance/serial]",
 
-	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be updated [Skipped:Network/OpenShiftSDN]": " [Serial] [Suite:openshift/conformance/serial]",
+	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should have the assigned EgressIPs and EgressIPs can be updated": " [Serial] [Suite:openshift/conformance/serial]",
 
 	"[sig-network][Feature:EgressIP][apigroup:operator.openshift.io] [external-targets][apigroup:user.openshift.io][apigroup:security.openshift.io] pods should keep the assigned EgressIPs when being rescheduled to another node": " [Serial] [Suite:openshift/conformance/serial]",
 
