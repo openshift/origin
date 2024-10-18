@@ -27,8 +27,6 @@ import (
 	"k8s.io/klog/v2"
 	k8simage "k8s.io/kubernetes/test/utils/image"
 
-	configv1 "github.com/openshift/api/config/v1"
-	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -128,23 +126,6 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 		return err
 	}
 
-	imageRegistryEnabled, err := isImageRegistryEnabled(adminRESTConfig)
-	if err != nil {
-		return err
-	}
-
-	// Wait for pull secrets to have been created for the namespace default service accounts
-	// if image registry is enabled
-	if imageRegistryEnabled {
-		defaultSAAccounts := []string{"default"}
-		for _, sa := range defaultSAAccounts {
-			err = pna.waitForSASecrets(ctx, sa)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
 	// our pods tolerate masters, so create one for each of them.
 	nodes, err := pna.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -191,7 +172,7 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	pna.targetService = service
 
 	hostNetworkTargetDeployment.Spec.Replicas = &numNodes
-	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = image.LimitedShellImage()
+	hostNetworkTargetDeployment.Spec.Template.Spec.Containers[0].Image = openshiftTestsImagePullSpec
 	if _, err := pna.kubeClient.AppsV1().Deployments(pna.namespaceName).Create(context.Background(), hostNetworkTargetDeployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
@@ -335,7 +316,7 @@ func (pna *podNetworkAvalibility) collectDetailsForPoller(ctx context.Context, t
 		failures = append(failures, fmt.Sprintf("%d pods lacked sampler output: [%v]", len(podsWithoutIntervals), strings.Join(podsWithoutIntervals, ", ")))
 	}
 	if len(pollerPods.Items) == 0 {
-		failures = append(failures, "no pods found for poller %q", typeOfConnection)
+		failures = append(failures, fmt.Sprintf("no pods found for poller %q", typeOfConnection))
 	}
 
 	logJunit := &junitapi.JUnitTestCase{
@@ -394,50 +375,4 @@ func (pna *podNetworkAvalibility) Cleanup(ctx context.Context) error {
 
 	}
 	return nil
-}
-
-func (pna *podNetworkAvalibility) waitForSASecrets(ctx context.Context, name string) error {
-	waitFn := func(ctx context.Context) (bool, error) {
-		sa, err := pna.kubeClient.CoreV1().ServiceAccounts(pna.namespaceName).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			// If we can't access the service accounts, let's wait till the controller
-			// create it.
-			if apierrors.IsNotFound(err) || apierrors.IsForbidden(err) {
-				klog.Infof("Waiting for service account %q to be available: %v (will retry) ...", name, err)
-				return false, nil
-			}
-			return false, fmt.Errorf("failed to get service account %q: %v", name, err)
-		}
-		secretNames := []string{}
-		var hasDockercfg bool
-		for _, s := range sa.ImagePullSecrets {
-			if strings.Contains(s.Name, "-dockercfg-") {
-				hasDockercfg = true
-			}
-			secretNames = append(secretNames, s.Name)
-		}
-		if hasDockercfg {
-			return true, nil
-		}
-		klog.Infof("Waiting for service account %q secrets (%s) to include dockercfg ...", name, strings.Join(secretNames, ","))
-		return false, nil
-	}
-	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 3*time.Minute, true, waitFn)
-}
-
-func isImageRegistryEnabled(config *rest.Config) (bool, error) {
-	ocpConfig, err := configv1client.NewForConfig(config)
-	if err != nil {
-		return false, err
-	}
-	cv, err := ocpConfig.ConfigV1().ClusterVersions().Get(context.Background(), "version", metav1.GetOptions{})
-	if err != nil {
-		return false, err
-	}
-	for _, capability := range cv.Status.Capabilities.EnabledCapabilities {
-		if capability == configv1.ClusterVersionCapabilityImageRegistry {
-			return true, nil
-		}
-	}
-	return false, nil
 }
