@@ -42,6 +42,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/node_tuning"
 	_ "github.com/openshift/origin/test/extended/oauth"
 	_ "github.com/openshift/origin/test/extended/olm"
+	_ "github.com/openshift/origin/test/extended/olmv1"
 	_ "github.com/openshift/origin/test/extended/operators"
 	_ "github.com/openshift/origin/test/extended/poddisruptionbudget"
 	_ "github.com/openshift/origin/test/extended/pods"
