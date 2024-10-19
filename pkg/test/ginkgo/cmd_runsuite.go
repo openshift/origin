@@ -4,11 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-	"github.com/openshift/origin/test/extended/util"
 	"io/ioutil"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"math/rand"
 	"os"
@@ -19,6 +15,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
+	"github.com/openshift/origin/test/extended/util"
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/sirupsen/logrus"
 
@@ -223,7 +224,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		// 3. Use openshift-config secret/pull-secret from the cluster-under-test, if it exists
 		//    (Microshift does not).
 		// 4. Use unauthenticated access to the payload image and component images.
-		registryAuthFilePath := os.Getenv("REGISTRY_AUTH_FILE")
+		// registryAuthFilePath := os.Getenv("REGISTRY_AUTH_FILE")
+		registryAuthFilePath := fmt.Sprintf("%s/pull-secret-with-ci", os.Getenv("SHARED_DIR"))
 
 		// if the environment variable is not set, extract the target cluster's
 		// platform pull secret.

@@ -103,7 +103,7 @@ func DecodeProvider(providerTypeOrJSON string, dryRun, discover bool, clusterSta
 		"clusterState": clusterState,
 	}).Info("Decoding provider")
 	switch providerTypeOrJSON {
-	case "none":
+	case "none", "external":
 		config := &ClusterConfiguration{
 			ProviderName: "skeleton",
 		}
