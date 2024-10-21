@@ -55,6 +55,19 @@
         {
             "InClusterLocation": {
                 "configMapLocation": {
+                    "Namespace": "openshift-catalogd",
+                    "Name": "catalogd-trusted-ca-bundle"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
                     "Namespace": "openshift-cloud-controller-manager",
                     "Name": "ccm-trusted-ca"
                 },
@@ -135,32 +148,6 @@
                 "configMapLocation": {
                     "Namespace": "openshift-cluster-csi-drivers",
                     "Name": "gcp-pd-csi-driver-trusted-ca-bundle"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-cluster-csi-drivers",
-                    "Name": "openstack-cinder-csi-driver-trusted-ca-bundle"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-cluster-csi-drivers",
-                    "Name": "shared-resource-csi-driver-operator-trusted-ca-bundle"
                 },
                 "certificateAuthorityBundleInfo": {
                     "owningJiraComponent": "",
@@ -861,6 +848,19 @@
         {
             "InClusterLocation": {
                 "configMapLocation": {
+                    "Namespace": "openshift-operator-controller",
+                    "Name": "operator-controller-trusted-ca-bundle"
+                },
+                "certificateAuthorityBundleInfo": {
+                    "owningJiraComponent": "",
+                    "description": ""
+                }
+            },
+            "OnDiskLocation": null
+        },
+        {
+            "InClusterLocation": {
+                "configMapLocation": {
                     "Namespace": "openshift-ovn-kubernetes",
                     "Name": "ovn-ca"
                 },
@@ -1414,19 +1414,6 @@
                 "secretLocation": {
                     "Namespace": "openshift-machine-api",
                     "Name": "metal3-ironic-tls"
-                },
-                "certKeyInfo": {
-                    "owningJiraComponent": "",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-machine-config-operator",
-                    "Name": "machine-config-server-tls"
                 },
                 "certKeyInfo": {
                     "owningJiraComponent": "",
