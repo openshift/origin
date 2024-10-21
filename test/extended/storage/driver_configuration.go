@@ -28,7 +28,7 @@ const (
 )
 
 // This is [Serial] because it modifies ClusterCSIDriver.
-var _ = g.Describe("[sig-storage][Feature:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration", func() {
+var _ = g.Describe("[sig-storage][FeatureGate:VSphereDriverConfiguration][Serial][apigroup:operator.openshift.io] vSphere CSI Driver Configuration", func() {
 	defer g.GinkgoRecover()
 	var (
 		ctx                      = context.Background()
