@@ -9,6 +9,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	ocpv1 "github.com/openshift/api/config/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,9 +31,35 @@ import (
 var (
 	excludedBestEffortDeployments = map[string][]string{
 		"egress-router-cni-deployment": {"openshift-multus", "egress-router-cni-e2e"},
+
+		// Managed services exceptions OSD-26068
+		"addon-operator-manager":                    {"openshift-addon-operator"},
+		"addon-operator-webhooks":                   {"openshift-addon-operator"},
+		"custom-domains-operator":                   {"openshift-custom-domains-operator"},
+		"deployment-validation-operator":            {"openshift-deployment-validation-operator"},
+		"managed-node-metadata-operator":            {"openshift-managed-node-metadata-operator"},
+		"managed-upgrade-operator":                  {"openshift-managed-upgrade-operator"},
+		"configure-alertmanager-operator":           {"openshift-monitoring"},
+		"must-gather-operator":                      {"openshift-must-gather-operator"},
+		"obo-prometheus-operator-admission-webhook": {"openshift-observability-operator"},
+		"observability-operator":                    {"openshift-observability-operator"},
+		"ocm-agent":                                 {"openshift-ocm-agent-operator"},
+		"ocm-agent-operator":                        {"openshift-ocm-agent-operator"},
+		"osd-metrics-exporter":                      {"openshift-osd-metrics"},
+		"package-operator-manager":                  {"openshift-package-operator"},
+		"rbac-permissions-operator":                 {"openshift-rbac-permissions"},
+		"blackbox-exporter":                         {"openshift-route-monitor-operator"},
+		"route-monitor-operator-controller-manager": {"openshift-route-monitor-operator"},
+		"splunk-forwarder-operator":                 {"openshift-splunk-forwarder-operator"},
 	}
+
 	excludedBestEffortDaemonSets = map[string][]string{
 		"cni-sysctl-allowlist-ds": {"openshift-multus", "egress-router-cni-e2e"},
+
+		// Managed services OSD-26068
+		"audit-exporter":     {"openshift-security"},
+		"splunkforwarder-ds": {"openshift-security"},
+		"validation-webhook": {"openshift-validation-webhook"},
 	}
 )
 

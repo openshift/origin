@@ -7,11 +7,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 
-	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = Describe("[sig-arch] Managed cluster should", func() {
@@ -29,12 +30,32 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		// a pod in a namespace that begins with kube-* or openshift-* must come from our release payload
 		// TODO components in openshift-operators may not come from our payload, may want to weaken restriction
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
-		excludeNamespaces := sets.NewString("openshift-operator-lifecycle-manager", "openshift-marketplace")
+
+		excludeNamespaces := sets.NewString(
+			"openshift-operator-lifecycle-manager",
+			"openshift-marketplace",
+
+			// Managed services namespaces OSD-26069
+			"openshift-backplane-srep",
+			"openshift-backplane",
+			"openshift-custom-domains-operator",
+			"openshift-osd-metrics",
+			"openshift-rbac-permissions",
+			"openshift-route-monitor-operator",
+			"openshift-splunk-forwarder-operator",
+			"openshift-sre-pruning",
+			"openshift-validation-webhook",
+		)
 		excludePodPrefix := sets.NewString(
 			"revision-pruner-",  // operators have retry logic built in. these are like jobs but cannot rely on jobs
 			"installer-",        // operators have retry logic built in. these are like jobs but cannot rely on jobs
 			"must-gather-",      // operators have retry logic built in. these are like jobs but cannot rely on jobs
 			"recycler-for-nfs-", // recyclers are allowed to fail.  I guess a cluster-admin works out that he needs to take manual action.  sig-storage
+
+			// Managed services pods OSD-26069
+			"configure-alertmanager-operator-",
+			"osd-",
+			"splunkforwarder-",
 		)
 		for _, pod := range pods.Items {
 			// exclude non-control plane namespaces
