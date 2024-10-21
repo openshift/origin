@@ -117,7 +117,12 @@ func (o annotationRequirement) generateInspectionMarkdown(pkiInfo *certs.PKIRegi
 		violatingOwners := sets.StringKeySet(violatingCertsByOwner)
 		violatingOwners.Insert(sets.StringKeySet(violatingCABundlesByOwner).UnsortedList()...)
 		for _, owner := range violatingOwners.List() {
-			md.Title(3, fmt.Sprintf("%s (%d)", owner, len(violatingCertsByOwner[owner])+len(violatingCABundlesByOwner[owner])))
+			// Show custom label if owner is unset
+			ownerLabel := owner
+			if len(owner) == 0 {
+				ownerLabel = UnknownOwner
+			}
+			md.Title(3, fmt.Sprintf("%s (%d)", ownerLabel, len(violatingCertsByOwner[owner])+len(violatingCABundlesByOwner[owner])))
 			violatingCerts := violatingCertsByOwner[owner]
 			if len(violatingCerts) > 0 {
 				md.Title(4, fmt.Sprintf("Certificates (%d)", len(violatingCerts)))

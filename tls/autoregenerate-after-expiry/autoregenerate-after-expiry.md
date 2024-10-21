@@ -3,7 +3,7 @@
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
   - [Items Do NOT Meet the Requirement (258)](#Items-Do-NOT-Meet-the-Requirement-258)
-    - [ (4)](#-4)
+    - [Unknown Owner (4)](#Unknown-Owner-4)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [Bare Metal Hardware Provisioning / cluster-baremetal-operator (1)](#Bare-Metal-Hardware-Provisioning-/-cluster-baremetal-operator-1)
@@ -70,7 +70,7 @@ This assertion means that you have
 If you have not done this, you should not merge the annotation.
 
 ## Items Do NOT Meet the Requirement (258)
-###  (4)
+### Unknown Owner (4)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
 

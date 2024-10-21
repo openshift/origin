@@ -3,7 +3,7 @@
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
   - [Items Do NOT Meet the Requirement (127)](#Items-Do-NOT-Meet-the-Requirement-127)
-    - [ (4)](#-4)
+    - [Unknown Owner (4)](#Unknown-Owner-4)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
     - [Bare Metal Hardware Provisioning / cluster-baremetal-operator (1)](#Bare-Metal-Hardware-Provisioning-/-cluster-baremetal-operator-1)
@@ -63,7 +63,7 @@ These descriptions must be in the style of API documentation and must include
 To create a description, set the `openshift.io/description` annotation to the markdown formatted string describing your TLS artifact. 
 
 ## Items Do NOT Meet the Requirement (127)
-###  (4)
+### Unknown Owner (4)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
 
