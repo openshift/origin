@@ -263,48 +263,48 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 		releaseImageReferences, err := extractReleaseImageStream(extractLogger, registryAuthFilePath)
 		if err != nil {
-			return fmt.Errorf("unable to extract image references from release payload: %w", err)
-		}
+			err = fmt.Errorf("unable to extract image references from release payload: %w", err)
+		} else {
+			for _, externalBinary := range externalBinaries {
+				wg.Add(1)
+				go func(externalBinary externalBinaryStruct) {
+					defer wg.Done()
 
-		for _, externalBinary := range externalBinaries {
-			wg.Add(1)
-			go func(externalBinary externalBinaryStruct) {
-				defer wg.Done()
+					var skipReason string
+					if (externalBinary.includeForRun != nil && !externalBinary.includeForRun(runInformation)) ||
+						(externalBinary.excludeForRun != nil && externalBinary.excludeForRun(runInformation)) {
+						skipReason = "excluded by suite selection functions"
+					}
 
-				var skipReason string
-				if (externalBinary.includeForRun != nil && !externalBinary.includeForRun(runInformation)) ||
-					(externalBinary.excludeForRun != nil && externalBinary.excludeForRun(runInformation)) {
-					skipReason = "excluded by suite selection functions"
+					var tagTestSet []*testCase
+					var tagErr error
+					if len(skipReason) == 0 {
+						tagTestSet, tagErr = externalTestsForSuite(ctx, extractLogger, releaseImageReferences, externalBinary.imageTag, externalBinary.binaryPath, registryAuthFilePath)
+					}
+
+					resultCh <- externalBinaryResult{
+						err:            tagErr,
+						skipReason:     skipReason,
+						externalBinary: &externalBinary,
+						externalTests:  tagTestSet,
+					}
+
+				}(externalBinary)
+			}
+
+			wg.Wait()
+			close(resultCh)
+
+			for result := range resultCh {
+				if result.skipReason != "" {
+					extractLogger.Printf("Skipping test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.skipReason)
+				} else if result.err != nil {
+					extractLogger.Printf("Error during test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.err)
+					err = result.err
+				} else {
+					extractLogger.Printf("Discovered %v tests from image %q and binary %q\n", len(result.externalTests), result.externalBinary.imageTag, result.externalBinary.binaryPath)
+					externalTests = append(externalTests, result.externalTests...)
 				}
-
-				var tagTestSet []*testCase
-				var tagErr error
-				if len(skipReason) == 0 {
-					tagTestSet, tagErr = externalTestsForSuite(ctx, extractLogger, releaseImageReferences, externalBinary.imageTag, externalBinary.binaryPath, registryAuthFilePath)
-				}
-
-				resultCh <- externalBinaryResult{
-					err:            tagErr,
-					skipReason:     skipReason,
-					externalBinary: &externalBinary,
-					externalTests:  tagTestSet,
-				}
-
-			}(externalBinary)
-		}
-
-		wg.Wait()
-		close(resultCh)
-
-		for result := range resultCh {
-			if result.skipReason != "" {
-				extractLogger.Printf("Skipping test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.skipReason)
-			} else if result.err != nil {
-				extractLogger.Printf("Error during test discovery for image %q and binary %q: %v\n", result.externalBinary.imageTag, result.externalBinary.binaryPath, result.err)
-				err = result.err
-			} else {
-				extractLogger.Printf("Discovered %v tests from image %q and binary %q\n", len(result.externalTests), result.externalBinary.imageTag, result.externalBinary.binaryPath)
-				externalTests = append(externalTests, result.externalTests...)
 			}
 		}
 
