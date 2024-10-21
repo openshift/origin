@@ -205,16 +205,26 @@ func extractBinaryFromReleaseImage(logger *log.Logger, releaseImageReferences *i
 
 // runImageExtract extracts src from specified image to dst
 func runImageExtract(image, src, dst string, dockerConfigJsonPath string) error {
-	args := []string{"--kubeconfig=" + util.KubeConfigPath(), "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm"}
-	if len(dockerConfigJsonPath) > 0 {
-		args = append(args, fmt.Sprintf("--registry-config=%s", dockerConfigJsonPath))
+	var err error
+	var out []byte
+	maxRetries := 6
+	for i := 1; i <= maxRetries; i++ {
+		args := []string{"--kubeconfig=" + util.KubeConfigPath(), "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm"}
+		if len(dockerConfigJsonPath) > 0 {
+			args = append(args, fmt.Sprintf("--registry-config=%s", dockerConfigJsonPath))
+		}
+		cmd := exec.Command("oc", args...)
+		out, err = cmd.CombinedOutput()
+		if err != nil {
+			// Allow retries for up to one minute. The openshift internal registry
+			// occasionally reports "manifest unknown" when a new image has just
+			// been exposed through an imagestream.
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		return nil
 	}
-	cmd := exec.Command("oc", args...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("error during image extract: %w (%v)", err, string(out))
-	}
-	return nil
+	return fmt.Errorf("error during image extract: %w (%v)", err, string(out))
 }
 
 // ungzipFile checks if a binary is gzipped (ends with .gz) and decompresses it.
