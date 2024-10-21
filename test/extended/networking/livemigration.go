@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,11 +13,16 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/test/e2e/framework"
+	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	testutils "k8s.io/kubernetes/test/utils"
 	admissionapi "k8s.io/pod-security-admission/api"
 
+	nadapi "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
 	nadclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1"
 
 	"github.com/openshift/origin/test/extended/networking/kubevirt"
@@ -71,6 +78,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 
 						createNetworkFn(netConfig)
 
+						httpServerPods := prepareHTTPServerPods(f, netConfig, workerNodes)
 						vmCreationParams := kubevirt.CreationTemplateParams{
 							VMName:                    vmName,
 							VMNamespace:               f.Namespace.Name,
@@ -93,11 +101,19 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						}
 						Expect(initialAddresses).To(HaveLen(expectedNumberOfAddresses))
 
+						httpServerPodsIPs := httpServerTestPodsMultusNetworkIPs(netConfig, httpServerPods)
+
+						By("Check east/west traffic before test operation")
+						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
+
 						opCmd(virtClient, f.Namespace.Name, vmName)
 
 						By("Retrieving addresses after test operation")
 						obtainedAddresses := obtainAddresses(virtClient, netConfig, vmName)
 						Expect(obtainedAddresses).To(ConsistOf(initialAddresses))
+
+						By("Check east/west after test operation")
+						checkEastWestTraffic(virtClient, vmName, httpServerPodsIPs)
 					},
 						Entry(
 							"when the VM attached to a primary UDN is migrated between nodes",
@@ -169,11 +185,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 				Entry("NetworkAttachmentDefinitions", func(c networkAttachmentConfigParams) {
 					netConfig := newNetworkAttachmentConfig(c)
 					nad := generateNAD(netConfig)
+					By(fmt.Sprintf("Creating NetworkAttachmentDefinitions %s/%s", nad.Namespace, nad.Name))
 					_, err := nadClient.NetworkAttachmentDefinitions(c.namespace).Create(context.Background(), nad, metav1.CreateOptions{})
 					Expect(err).NotTo((HaveOccurred()))
 				}),
 				Entry("UserDefinedNetwork", func(c networkAttachmentConfigParams) {
 					udnManifest := generateUserDefinedNetworkManifest(&c)
+					By(fmt.Sprintf("Creating UserDefinedNetwork %s/%s", c.namespace, c.name))
 					Expect(applyManifest(c.namespace, udnManifest)).To(Succeed())
 					Expect(waitForUserDefinedNetworkReady(c.namespace, c.name, udnCrReadyTimeout)).To(Succeed())
 				}))
@@ -296,4 +314,150 @@ func migrateVM(cli *kubevirt.Client, vmNamespace, vmName string) {
 	By(fmt.Sprintf("Migrating vmi %s/%s", vmNamespace, vmName))
 	Expect(cli.CreateVMIM(vmName)).To(Succeed())
 	waitForVMIMSuccess(cli, vmNamespace, vmName)
+}
+
+func waitForPodsCondition(fr *framework.Framework, pods []*corev1.Pod, conditionFn func(g Gomega, pod *corev1.Pod)) {
+	for _, pod := range pods {
+		Eventually(func(g Gomega) {
+			var err error
+			pod, err = fr.ClientSet.CoreV1().Pods(fr.Namespace.Name).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+			conditionFn(g, pod)
+		}).
+			WithTimeout(time.Minute).
+			WithPolling(time.Second).
+			Should(Succeed())
+	}
+}
+
+func generateAgnhostPod(name, namespace, nodeName string, args ...string) *corev1.Pod {
+	agnHostPod := e2epod.NewAgnhostPod(namespace, name, nil, nil, nil, args...)
+	agnHostPod.Spec.NodeName = nodeName
+	return agnHostPod
+}
+
+func createHTTPServerPods(fr *framework.Framework, annotations map[string]string, selectedNodes []corev1.Node) []*corev1.Pod {
+	var pods []*corev1.Pod
+	for _, selectedNode := range selectedNodes {
+		pod := generateAgnhostPod(
+			"testpod-"+selectedNode.Name,
+			fr.Namespace.Name,
+			selectedNode.Name,
+			"netexec", "--http-port", "8000")
+		pod.Annotations = annotations
+		pods = append(pods, e2epod.NewPodClient(fr).CreateSync(context.TODO(), pod))
+	}
+	return pods
+}
+
+func updatePods(fr *framework.Framework, pods []*corev1.Pod) []*corev1.Pod {
+	for i, pod := range pods {
+		var err error
+		pod, err = fr.ClientSet.CoreV1().Pods(fr.Namespace.Name).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		pods[i] = pod
+	}
+	return pods
+}
+
+func podNetworkStatus(pod *v1.Pod, predicates ...func(nadapi.NetworkStatus) bool) ([]nadapi.NetworkStatus, error) {
+	podNetStatus, found := pod.Annotations[nadapi.NetworkStatusAnnot]
+	if !found {
+		return nil, fmt.Errorf("the pod must feature the `networks-status` annotation")
+	}
+
+	var netStatus []nadapi.NetworkStatus
+	if err := json.Unmarshal([]byte(podNetStatus), &netStatus); err != nil {
+		return nil, err
+	}
+
+	var netStatusMeetingPredicates []nadapi.NetworkStatus
+	for i := range netStatus {
+		for _, predicate := range predicates {
+			if predicate(netStatus[i]) {
+				netStatusMeetingPredicates = append(netStatusMeetingPredicates, netStatus[i])
+				continue
+			}
+		}
+	}
+	return netStatusMeetingPredicates, nil
+}
+func checkPodRunningReady() func(Gomega, *corev1.Pod) {
+	return func(g Gomega, pod *corev1.Pod) {
+		ok, err := testutils.PodRunningReady(pod)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ok).To(BeTrue())
+	}
+}
+
+func checkPodHasIPsAtNetwork(netName string, expectedNumberOfAddresses int) func(Gomega, *corev1.Pod) {
+	return func(g Gomega, pod *corev1.Pod) {
+		GinkgoHelper()
+		By(fmt.Sprintf("Checking pod annotations: %+v", pod.Annotations))
+		netStatus, err := podNetworkStatus(pod, func(status nadapi.NetworkStatus) bool {
+			return status.Name == netName
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(netStatus).To(HaveLen(1))
+		g.Expect(netStatus[0].IPs).To(HaveLen(expectedNumberOfAddresses))
+	}
+}
+
+func prepareHTTPServerPods(fr *framework.Framework, netConfig networkAttachmentConfigParams, selectedNodes []corev1.Node) []*corev1.Pod {
+	By("Preparing HTTP server pods")
+	httpServerPodsAnnotations := map[string]string{}
+	if netConfig.role != "primary" {
+		httpServerPodsAnnotations["k8s.v1.cni.cncf.io/networks"] = fmt.Sprintf(`[{"namespace": %q, "name": %q}]`, netConfig.namespace, netConfig.name)
+	}
+	var httpServerPodCondition func(Gomega, *corev1.Pod)
+	expectedNumberOfAddresses := len(strings.Split(netConfig.cidr, ","))
+	if netConfig.role != "primary" {
+		httpServerPodCondition = checkPodHasIPsAtNetwork(fmt.Sprintf("%s/%s", netConfig.namespace, netConfig.name), expectedNumberOfAddresses)
+	} else {
+		httpServerPodCondition = checkPodRunningReady()
+	}
+
+	httpServerTestPods := createHTTPServerPods(fr, httpServerPodsAnnotations, selectedNodes)
+	waitForPodsCondition(fr, httpServerTestPods, httpServerPodCondition)
+	return updatePods(fr, httpServerTestPods)
+}
+func httpServerTestPodsMultusNetworkIPs(netConfig networkAttachmentConfigParams, httpServerTestPods []*corev1.Pod) map[string][]string {
+	GinkgoHelper()
+	ips := map[string][]string{}
+	for _, pod := range httpServerTestPods {
+		var ovnPodAnnotation *PodAnnotation
+		Eventually(func() (*PodAnnotation, error) {
+			var err error
+			ovnPodAnnotation, err = unmarshalPodAnnotation(pod.Annotations, fmt.Sprintf("%s/%s", netConfig.namespace, netConfig.name))
+			return ovnPodAnnotation, err
+		}).
+			WithTimeout(5 * time.Second).
+			WithPolling(200 * time.Millisecond).
+			ShouldNot(BeNil())
+		for _, ipnet := range ovnPodAnnotation.IPs {
+			ips[pod.Name] = append(ips[pod.Name], ipnet.IP.String())
+		}
+	}
+	return ips
+
+}
+
+func checkEastWestTraffic(virtClient *kubevirt.Client, vmiName string, podIPsByName map[string][]string) {
+	GinkgoHelper()
+	Expect(virtClient.Login(vmiName, vmiName)).To(Succeed())
+	polling := 15 * time.Second
+	timeout := time.Minute
+	for podName, podIPs := range podIPsByName {
+		for _, podIP := range podIPs {
+			output := ""
+			Eventually(func() error {
+				var err error
+				output, err = virtClient.Console(vmiName, fmt.Sprintf("curl http://%s", net.JoinHostPort(podIP, "8000")))
+				return err
+			}).
+				WithPolling(polling).
+				WithTimeout(timeout).
+				Should(Succeed(), func() string { return podName + ": " + output })
+		}
+	}
 }
