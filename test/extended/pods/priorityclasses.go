@@ -13,6 +13,84 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+var excludedPriorityClassPods = map[string][]string{
+	// Managed service pods
+	"openshift-addon-operator": {
+		"addon-operator-catalog",
+		"addon-operator-manager",
+		"addon-operator-webhooks",
+	},
+	"openshift-backplane-srep": {
+		"osd-delete-ownerrefs-serviceaccounts",
+	},
+	"openshift-backplane": {
+		"osd-delete-backplane-serviceaccounts",
+	},
+	"openshift-custom-domains-operator": {
+		"custom-domains-operator",
+		"custom-domains-operator-registry",
+	},
+	"openshift-deployment-validation-operator": {
+		"deployment-validation-operator",
+		"deployment-validation-operator-catalog",
+	},
+	"openshift-managed-node-metadata-operator": {
+		"managed-node-metadata-operator",
+		"managed-node-metadata-operator-registry",
+	},
+	"openshift-managed-upgrade-operator": {
+		"managed-upgrade-operator",
+		"managed-upgrade-operator-catalog",
+	},
+	"openshift-monitoring": {
+		"osd-rebalance-infra-nodes",
+		"configure-alertmanager-operator",
+	},
+	"openshift-must-gather-operator": {
+		"must-gather-operator",
+		"must-gather-operator-registry",
+	},
+	"openshift-observability-operator": {
+		"observability-operator",
+		"obo-prometheus-operator",
+		"obo-prometheus-operator-admission-webhook",
+	},
+	"openshift-ocm-agent-operator": {
+		"ocm-agent",
+		"ocm-agent-operator",
+	},
+	"openshift-osd-metrics": {
+		"osd-metrics-exporter",
+		"osd-metrics-exporter-registry",
+	},
+	"openshift-package-operator": {
+		"package-operator-manager",
+	},
+	"openshift-rbac-permissions": {
+		"rbac-permissions-operator",
+		"rbac-permissions-operator-registry",
+	},
+	"openshift-route-monitor-operator": {
+		"route-monitor-operator-controller-manager",
+		"blackbox-exporter",
+	},
+	"openshift-security": {
+		"audit-exporter",
+		"splunkforwarder-ds",
+	},
+	"openshift-splunk-forwarder-operator": {
+		"splunk-forwarder-operator",
+		"splunk-forwarder-operator-catalog",
+	},
+	"openshift-sre-pruning": {
+		"deployments-pruner",
+		"builds-pruner",
+	},
+	"openshift-validation-webhook": {
+		"validation-webhook",
+	},
+}
+
 var _ = Describe("[sig-arch] Managed cluster should", func() {
 	oc := exutil.NewCLIWithoutNamespace("pod")
 
@@ -28,6 +106,7 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 		invalidPodPriority := sets.NewString()
 		// a pod in a namespace that begins with kube-* or openshift-*
 		namespacePrefixes := sets.NewString("kube-", "openshift-")
+	podLoop:
 		for _, pod := range pods.Items {
 			// exclude non-openshift and non-kubernetes platform pod
 			if !hasPrefixSet(pod.Namespace, namespacePrefixes) {
@@ -38,6 +117,15 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			// In future, if this assumption changes, we can revisit it.
 			if pod.Namespace == "openshift-marketplace" {
 				continue
+			}
+
+			// Exception list from the above
+			if prefixes, ok := excludedPriorityClassPods[pod.Namespace]; ok {
+				for _, prefix := range prefixes {
+					if strings.HasPrefix(pod.Name, prefix) {
+						continue podLoop
+					}
+				}
 			}
 
 			if !strings.HasPrefix(pod.Spec.PriorityClassName, "system-") && !strings.EqualFold(pod.Spec.PriorityClassName, "openshift-user-critical") {
