@@ -35,9 +35,9 @@
   - [etcd (31)](#etcd-31)
     - [Certificates (22)](#Certificates-22)
     - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-  - [kube-apiserver (45)](#kube-apiserver-45)
+  - [kube-apiserver (46)](#kube-apiserver-46)
     - [Certificates (25)](#Certificates-25)
-    - [Certificate Authority Bundles (20)](#Certificate-Authority-Bundles-20)
+    - [Certificate Authority Bundles (21)](#Certificate-Authority-Bundles-21)
   - [kube-controller-manager (12)](#kube-controller-manager-12)
     - [Certificates (3)](#Certificates-3)
     - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
@@ -737,7 +737,7 @@
 
 
 
-## kube-apiserver (45)
+## kube-apiserver (46)
 ### Certificates (25)
 1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
 
@@ -942,7 +942,7 @@
 
 
 
-### Certificate Authority Bundles (20)
+### Certificate Authority Bundles (21)
 1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
       **Description:** 
@@ -1109,7 +1109,20 @@
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-20. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+20. file /etc/kubernetes/kubeconfig
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
+      
+
+21. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       
