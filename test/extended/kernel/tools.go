@@ -3,11 +3,9 @@ package kernel
 import (
 	"context"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/pkg/errors"
@@ -253,56 +251,4 @@ func getReservedCores(oc *exutil.CLI) (int, error) {
 	}
 
 	return reservedEnd, nil
-}
-
-type rtevalOutput struct {
-	XMLName    xml.Name `xml:"rteval"`
-	Statistics struct {
-		XMLName               xml.Name `xml:"statistics"`
-		Samples               int      `xml:"samples"`
-		Minimum               int      `xml:"minimum"`
-		Maximum               int      `xml:"maximum"`
-		Median                float32  `xml:"median"`
-		Mode                  int      `xml:"mode"`
-		Range                 int      `xml:"range"`
-		Mean                  float32  `xml:"mean"`
-		MeanAbsoluteDeviation float32  `xml:"mean_absolute_deviation"`
-		StandardDeviation     float32  `xml:"standard_deviation"`
-	} `xml:"Measurements>Profile>cyclictest>system>statistics"`
-}
-
-func runRteval(oc *exutil.CLI) error {
-	// The working directory for the pod under test
-	// This is where rteval will create a directory and write results
-	rtevalWorkDir := "/tmp"
-
-	// Run the test
-	args := []string{rtPodName, "--", "rteval", "--duration=10m", fmt.Sprintf("--workdir=%s", rtevalWorkDir)}
-	_, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
-	if err != nil {
-		return errors.Wrap(err, "error running rteval")
-	}
-
-	// rteval-YYYYMMDD-S This is a directory created by rteval to hold the summary.xml file where S is the Sequence this has been run (should be 1 for this test)
-	today := time.Now().Format("20060102") // YYYYMMDD
-	summaryFile := fmt.Sprintf("%s/rteval-%s-%d/summary.xml", rtevalWorkDir, today, 1)
-
-	// Gather the results
-	args = []string{rtPodName, "--", "cat", summaryFile}
-	report, err := oc.SetNamespace(rtNamespace).Run("exec").Args(args...).Output()
-	if err != nil {
-		return errors.Wrap(err, "error retrieving rteval results")
-	}
-
-	var res rtevalOutput
-	if err := xml.Unmarshal([]byte(report), &res); err != nil {
-		return errors.Wrap(err, "Unable to parse rteval xml report")
-	}
-
-	// Verify we meet the threshold value
-	if res.Statistics.Maximum > rtevalThresholdusec {
-		return fmt.Errorf("maximum rteval latency of %d usec exceeded maximum allowed of %d usec", res.Statistics.Maximum, rtevalThresholdusec)
-	}
-
-	return nil
 }
