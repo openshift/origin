@@ -207,9 +207,9 @@ func extractBinaryFromReleaseImage(logger *log.Logger, releaseImageReferences *i
 func runImageExtract(image, src, dst string, dockerConfigJsonPath string) error {
 	var err error
 	var out []byte
-	maxRetries := 6
+	maxRetries := 30
 	for i := 1; i <= maxRetries; i++ {
-		args := []string{"--kubeconfig=" + util.KubeConfigPath(), "--v=4", "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm"}
+		args := []string{"--kubeconfig=" + util.KubeConfigPath(), "--v=8", "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm"}
 		if len(dockerConfigJsonPath) > 0 {
 			args = append(args, fmt.Sprintf("--registry-config=%s", dockerConfigJsonPath))
 		}
@@ -219,7 +219,8 @@ func runImageExtract(image, src, dst string, dockerConfigJsonPath string) error 
 			// Allow retries for up to one minute. The openshift internal registry
 			// occasionally reports "manifest unknown" when a new image has just
 			// been exposed through an imagestream.
-			time.Sleep(10 * time.Second)
+			time.Sleep(5 * time.Minute)
+			fmt.Printf("Error extracing %q from image %q to %q: %v\nOutput:\n%s\n", src, image, dst, err, string(out))
 			continue
 		}
 		return nil
