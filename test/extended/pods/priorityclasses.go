@@ -45,6 +45,7 @@ var excludedPriorityClassPods = map[string][]string{
 	"openshift-monitoring": {
 		"osd-rebalance-infra-nodes",
 		"configure-alertmanager-operator",
+		"osd-cluster-ready",
 	},
 	"openshift-must-gather-operator": {
 		"must-gather-operator",
@@ -73,6 +74,7 @@ var excludedPriorityClassPods = map[string][]string{
 	"openshift-route-monitor-operator": {
 		"route-monitor-operator-controller-manager",
 		"blackbox-exporter",
+		"route-monitor-operator-registry",
 	},
 	"openshift-security": {
 		"audit-exporter",
