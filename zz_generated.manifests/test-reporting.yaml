@@ -87,6 +87,8 @@ spec:
         on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should not update
         boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should stamp
+        coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
         boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update
@@ -97,6 +99,8 @@ spec:
         on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not
         update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]'
+    - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should stamp
+        coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update
         boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]'
     - testName: '[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update

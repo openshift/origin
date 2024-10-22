@@ -129,3 +129,34 @@ func DegradeOnOwnerRefTest(oc *exutil.CLI, fixture string) {
 	}, 30*time.Second, 2*time.Second).Should(o.BeTrue())
 	framework.Logf("Succesfully verified that the cluster operator is no longer degraded")
 }
+
+func EnsureConfigMapStampTest(oc *exutil.CLI, fixture string) {
+	// Update boot image configmap stamps with a "fake" value, wait for it to be updated back by the operator.
+	err := oc.Run("patch").Args("configmap", cmName, "-p", `{"data": {"MCOVersionHash": "fake-value"}}`, "-n", mcoNamespace).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	err = oc.Run("patch").Args("configmap", cmName, "-p", `{"data": {"MCOReleaseImageVersion": "fake-value"}}`, "-n", mcoNamespace).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Ensure atleast one master node is ready
+	WaitForOneMasterNodeToBeReady(oc)
+
+	// Verify that the configmap has been updated back to the correct value
+	o.Eventually(func() bool {
+		cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(mcoNamespace).Get(context.TODO(), cmName, metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("failed to grab configmap, error :%v", err)
+			return false
+		}
+		if cm.Data["MCOVersionHash"] == "fake-value" {
+			framework.Logf("MCOVersionHash has not been restored to the original value")
+			return false
+		}
+		if cm.Data["MCOReleaseImageVersion"] == "fake-value" {
+			framework.Logf("MCOReleaseImageVersion has not been restored to the original value")
+			return false
+		}
+		return true
+	}, 2*time.Minute, 5*time.Second).Should(o.BeTrue())
+	framework.Logf("Succesfully verified that the configmap has been correctly stamped")
+}

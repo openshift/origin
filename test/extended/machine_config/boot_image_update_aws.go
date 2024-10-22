@@ -50,4 +50,8 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", fun
 	g.It("Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]", func() {
 		DegradeOnOwnerRefTest(oc, allMachineSetFixture)
 	})
+
+	g.It("Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]", func() {
+		EnsureConfigMapStampTest(oc, allMachineSetFixture)
+	})
 })

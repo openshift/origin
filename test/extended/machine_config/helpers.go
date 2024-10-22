@@ -12,6 +12,7 @@ import (
 	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	opv1 "github.com/openshift/api/operator/v1"
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
+	machineconfigclient "github.com/openshift/client-go/machineconfiguration/clientset/versioned"
 	mcopclient "github.com/openshift/client-go/operator/clientset/versioned"
 
 	o "github.com/onsi/gomega"
@@ -258,5 +259,27 @@ func FindClusterOperatorStatusCondition(conditions []osconfigv1.ClusterOperatorS
 			return &conditions[i]
 		}
 	}
+	return nil
+}
+
+// WaitForOneMasterNodeToBeReady waits until atleast one master node has completed an update
+func WaitForOneMasterNodeToBeReady(oc *exutil.CLI) error {
+	machineConfigClient, err := machineconfigclient.NewForConfig(oc.KubeFramework().ClientConfig())
+	o.Expect(err).NotTo(o.HaveOccurred())
+	o.Eventually(func() bool {
+		mcp, err := machineConfigClient.MachineconfigurationV1().MachineConfigPools().Get(context.TODO(), "master", metav1.GetOptions{})
+		if err != nil {
+			framework.Logf("Failed to grab machineconfigpools, error :%v", err)
+			return false
+		}
+		// Check if the pool has atleast one updated node(mid-upgrade), or if the pool has completed the upgrade to the new config(the additional check for spec==status here is
+		// to ensure we are not checking an older "Updated" condition and the MCP fields haven't caught up yet
+		if (IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdating) && mcp.Status.UpdatedMachineCount > 0) ||
+			(IsMachineConfigPoolConditionTrue(mcp.Status.Conditions, mcfgv1.MachineConfigPoolUpdated) && (mcp.Spec.Configuration.Name == mcp.Status.Configuration.Name)) {
+			return true
+		}
+		framework.Logf("Waiting for atleast one ready control-plane node")
+		return false
+	}, 5*time.Minute, 10*time.Second).Should(o.BeTrue())
 	return nil
 }
