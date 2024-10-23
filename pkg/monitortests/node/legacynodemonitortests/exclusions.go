@@ -23,13 +23,6 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 	}
 	exceptions := []exceptionVariants{
 		{
-			// In this case, we found that we only saw failures for this container on bare metal.
-			// We did not find failures for vsphere where this is also run
-			// So if we start seeing failures on vsphere this would be a regression.
-			containerName:      "container/metal3-static-ip-set", // https://issues.redhat.com/browse/OCPBUGS-39314
-			platformsToExclude: "metal",
-		},
-		{
 			// ingress operator seems to only fail on the single topology.
 			// platform did not matter.
 			containerName:     "container/ingress-operator", // https://issues.redhat.com/browse/OCPBUGS-39315
