@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-const UnknownOwner = "Unknown"
+const UnknownOwner = "Unknown Owner"
 
 var (
 	onDiskCertKeyPairs = certs.CertKeyPairInfoByOnDiskLocation{
