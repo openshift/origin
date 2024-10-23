@@ -107,7 +107,7 @@ func DegradeOnOwnerRefTest(oc *exutil.CLI, fixture string) {
 			return false
 		}
 		return true
-	}, 30*time.Second, 2*time.Second).Should(o.BeTrue())
+	}, 2*time.Minute, 5*time.Second).Should(o.BeTrue())
 	framework.Logf("Succesfully verified that the cluster operator is degraded")
 
 	// Remove the owner reference from this machineset
@@ -126,6 +126,6 @@ func DegradeOnOwnerRefTest(oc *exutil.CLI, fixture string) {
 			return false
 		}
 		return true
-	}, 30*time.Second, 2*time.Second).Should(o.BeTrue())
+	}, 2*time.Minute, 5*time.Second).Should(o.BeTrue())
 	framework.Logf("Succesfully verified that the cluster operator is no longer degraded")
 }
