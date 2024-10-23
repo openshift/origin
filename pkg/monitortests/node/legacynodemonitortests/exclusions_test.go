@@ -40,22 +40,6 @@ func Test_test_exclusions(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "metal3-static-ipset3; metal platform; exclude",
-			mockJobData: platformidentification.JobType{
-				Platform: "metal",
-			},
-			event:    "namespace/openshift-machine-api ... container/metal3-static-ip-set restarted 4 times:",
-			expected: true,
-		},
-		{
-			name: "metal3-static-ipset3; vsphere platform; exclude",
-			mockJobData: platformidentification.JobType{
-				Platform: "vsphere",
-			},
-			event:    "namespace/openshift-machine-api ... container/metal3-static-ip-set restarted 4 times:",
-			expected: false,
-		},
-		{
 			name:        "multus; exclude for all platforms",
 			mockJobData: platformidentification.JobType{},
 			event:       "namespace/openshift-multus ... container/kube-multus restarted 4 times at:",
