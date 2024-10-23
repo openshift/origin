@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -26,6 +28,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
 	admissionapi "k8s.io/pod-security-admission/api"
@@ -155,10 +161,8 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 			err = wait.PollImmediate(2*time.Second, 240*time.Second, func() (bool, error) {
 				results, err = getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("http://%s/metrics", net.JoinHostPort(host, strconv.Itoa(int(metricsPort)))), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
-
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
-
 				if len(findGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
 					if findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0] >= float64(times) {
 						return true, nil
@@ -409,15 +413,94 @@ func getAuthenticatedURLViaPod(ns, execPodName, url, user, pass string) (string,
 	return output, nil
 }
 
-func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
-	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
-	output, err := e2eoutput.RunHostCmd(ns, execPodName, cmd)
+func Exec(namespace, podName, cmd string) (string, error) {
+	// Build Kubernetes configuration from kubeconfig file
+	config, err := clientcmd.BuildConfigFromFlags("", e2e.TestContext.KubeConfig)
 	if err != nil {
-		return "", fmt.Errorf("host command failed: %v\n%s", err, output)
+		fmt.Printf("Error creating config: %v\n", err)
+		return "", nil
 	}
-	return output, nil
+	// Create the clientset for accessing Kubernetes resources
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		fmt.Printf("Error creating clientset: %v\n", err)
+		return "", nil
+	}
+	// Execute the command in pod in the given namespace
+	stdout, err := execCommandInPod(clientset, config, namespace, podName, cmd)
+	if err != nil {
+		fmt.Printf("Error executing command: %v\n", err)
+		return "", err
+	}
+	return stdout, nil
 }
 
+func execCommandInPod(clientset *kubernetes.Clientset, config *rest.Config, namespace, podName, cmd string) (string, error) {
+	command := []string{"/bin/sh", "-c", "-x", cmd}
+	// Fetch the pod details and ensure it's running
+	pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod: %v", err)
+	}
+	if pod.Status.Phase != "Running" {
+		return "", fmt.Errorf("pod is not running")
+	}
+
+	// Create the exec request with the command to be executed in pod
+	req := clientset.CoreV1().RESTClient().
+		Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespace).
+		SubResource("exec").
+		Param("stdin", "true").
+		Param("stdout", "true").
+		Param("stderr", "true").
+		Param("tty", "true")
+
+	for _, cmd := range command {
+		req = req.Param("command", cmd)
+	}
+	// Use the SPDY executor to establish the connection and stream the command
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		return "", fmt.Errorf("failed to create SPDY executor: %v", err)
+	}
+	var stderr, stdout bytes.Buffer
+	var streamErr error
+	// Stream the input and output of the command
+	streamErr = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
+		Stdin:  os.Stdin,
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Tty:    true,
+	})
+	if streamErr != nil {
+		if strings.Contains(streamErr.Error(), "command terminated with exit code") {
+			return stdout.String(), nil
+		} else {
+			return "", fmt.Errorf("could not stream results: %w", streamErr)
+		}
+	}
+	stdoutOutput := strings.ReplaceAll(stdout.String(), "\r", "")
+	return stdoutOutput, nil
+}
+
+func getBearerTokenURLViaPod(ns, execPodName, url, bearer string) (string, error) {
+	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s' %q", bearer, url)
+	// Replacing e2eoutput.RunHostCmd function with Exec function below
+	// because the former prints the bearer token in case of test failure which leads to the entire CI log removal.
+	rawOutput, err := Exec(ns, execPodName, cmd)
+	output := parseOutput(rawOutput, bearer, url)
+	return output, err
+}
+
+func parseOutput(output, bearer, url string) string {
+	cmd := fmt.Sprintf("curl -s -k -H 'Authorization: Bearer %s'", bearer)
+	re := regexp.MustCompile(`\+\s+` + regexp.QuoteMeta(cmd) + `\s+[\'|\"]*` + regexp.QuoteMeta(url) + `[\'|\"]*`)
+	parsedOutput := re.ReplaceAllString(output, "")
+	return parsedOutput
+}
 func waitForAdmittedRoute(maxInterval time.Duration, client routev1client.RouteV1Interface, ns, name, ingressName string, errorOnRejection bool) (string, error) {
 	var routeHost string
 	err := wait.PollImmediate(time.Second, maxInterval, func() (bool, error) {
