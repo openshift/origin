@@ -42,7 +42,7 @@ type PKIRegistryInClusterCABundle struct {
 	// ConfigMapLocation points to the configmap location
 	ConfigMapLocation InClusterConfigMapLocation `json:"configMapLocation"`
 	// CABundleInfo stores metadata for the certificate authority bundle
-	CABundleInfo PKIRegistryCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo"`
+	CABundleInfo PKIRegistryCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo,omitempty"`
 }
 
 type PKIRegistryCABundle struct {
@@ -55,7 +55,7 @@ type PKIRegistryOnDiskCABundle struct {
 	// OnDiskLocation points to the ca bundle location on disk
 	OnDiskLocation OnDiskLocation `json:"onDiskLocation"`
 	// CABundleInfo stores metadata for the certificate authority bundle
-	CABundleInfo PKIRegistryCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo"`
+	CABundleInfo PKIRegistryCertificateAuthorityInfo `json:"certificateAuthorityBundleInfo,omitempty"`
 }
 
 // PKIRegistryCertificateAuthorityInfo holds information about certificate authority bundle

@@ -37,8 +37,7 @@ func (o OwnerRequirement) InspectRequirement(rawData []*certgraphapi.PKIList) (t
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v.md: %w", o.GetName(), err)
 	}
-	violations := generateViolationJSON(pkiInfo)
-	violationJSONBytes, err := json.MarshalIndent(violations, "", "    ")
+	violationJSONBytes, err := tlsmetadatainterfaces.MarshalViolationsToJSON(generateViolationJSON(pkiInfo))
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
 	}

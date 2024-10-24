@@ -1,6 +1,7 @@
 package tlsmetadatainterfaces
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"slices"
@@ -262,4 +263,41 @@ func PrintCABundleDetails(curr certgraphapi.PKIRegistryCABundle, md *markdown.Ma
 		}
 	}
 	md.Text("\n")
+}
+
+// MarshalViolationsToJSON removes certificateAuthorityBundleInfo / certKeyInfo from violations json
+// so that label update didn't trigger violations json to be updated as well
+func MarshalViolationsToJSON(violations *certs.PKIRegistryInfo) ([]byte, error) {
+	strippedViolations := &certs.PKIRegistryInfo{}
+	for _, existing := range violations.CertificateAuthorityBundles {
+		new := certgraphapi.PKIRegistryCABundle{}
+		if incluster := existing.InClusterLocation; incluster != nil {
+			new.InClusterLocation = &certgraphapi.PKIRegistryInClusterCABundle{
+				ConfigMapLocation: incluster.ConfigMapLocation,
+			}
+		}
+		if ondisk := existing.OnDiskLocation; ondisk != nil {
+			new.OnDiskLocation = &certgraphapi.PKIRegistryOnDiskCABundle{
+				OnDiskLocation: ondisk.OnDiskLocation,
+			}
+		}
+		strippedViolations.CertificateAuthorityBundles = append(strippedViolations.CertificateAuthorityBundles, new)
+	}
+
+	for _, existing := range violations.CertKeyPairs {
+		new := certgraphapi.PKIRegistryCertKeyPair{}
+		if incluster := existing.InClusterLocation; incluster != nil {
+			new.InClusterLocation = &certgraphapi.PKIRegistryInClusterCertKeyPair{
+				SecretLocation: incluster.SecretLocation,
+			}
+		}
+		if ondisk := existing.OnDiskLocation; ondisk != nil {
+			new.OnDiskLocation = &certgraphapi.PKIRegistryOnDiskCertKeyPair{
+				OnDiskLocation: ondisk.OnDiskLocation,
+			}
+		}
+		strippedViolations.CertKeyPairs = append(strippedViolations.CertKeyPairs, new)
+	}
+
+	return json.MarshalIndent(strippedViolations, "", "    ")
 }
