@@ -55,6 +55,9 @@ var (
 		// tests will fail (vendor/k8s.io/kubernetes/test/utils/image/manifest.go)
 		"registry.k8s.io/e2e-test-images/agnhost:2.52": 1,
 		"registry.k8s.io/e2e-test-images/nginx:1.15-4": 21,
+
+		// to spin fedora kubevirt VMs at e2e tests
+		"quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc": -1,
 	}
 )
 

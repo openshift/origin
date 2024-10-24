@@ -708,6 +708,7 @@ spec:
   ` + params.topology + `: 
     role: ` + nadToUdnParams[params.role] + `
     subnets: ` + subnets + `
+    ` + generateIPAMLifecycle(params) + `
 `
 }
 
@@ -736,6 +737,13 @@ func generateLayer3Subnets(cidrs string) []string {
 	return subnets
 }
 
+func generateIPAMLifecycle(params *networkAttachmentConfigParams) string {
+	if !params.allowPersistentIPs {
+		return ""
+	}
+	return "ipamLifecycle: Persistent"
+}
+
 func createManifest(namespace, manifest string) (func(), error) {
 	tmpDir, err := os.MkdirTemp("", "udn-test")
 	if err != nil {
@@ -757,6 +765,11 @@ func createManifest(namespace, manifest string) (func(), error) {
 		return cleanup, err
 	}
 	return cleanup, nil
+}
+
+func applyManifest(namespace, manifest string) error {
+	_, err := e2ekubectl.RunKubectlInput(namespace, manifest, "apply", "-f", "-")
+	return err
 }
 
 func waitForUserDefinedNetworkReady(namespace, name string, timeout time.Duration) error {
