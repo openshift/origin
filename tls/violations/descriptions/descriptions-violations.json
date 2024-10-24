@@ -423,6 +423,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions openshift-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -721,6 +725,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions openshift-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -816,6 +824,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -835,6 +847,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -911,6 +927,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -949,6 +969,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions openshift-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1439,6 +1463,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-controller-manager'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1458,6 +1486,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-scheduler'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1503,6 +1535,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions openshift-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1522,6 +1558,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1541,6 +1581,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1560,6 +1604,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1579,6 +1627,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[bz-kube-apiserver] kube-apiserver should be accessible by clients using internal load balancer without iptables issues'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1598,6 +1650,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1636,6 +1692,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1674,6 +1734,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1712,6 +1776,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions openshift-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1731,6 +1799,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'[sig-cli] Kubectl logs logs should be able to retrieve and filter logs  [Conformance] [Suite:openshift/conformance/parallel/minimal] [Suite:k8s]'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1750,6 +1822,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1826,6 +1902,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1845,6 +1925,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-apiserver'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1902,6 +1986,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-controller-manager'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",
@@ -1959,6 +2047,10 @@
                         {
                             "key": "openshift.io/owning-component",
                             "value": "kube-apiserver"
+                        },
+                        {
+                            "key": "certificates.openshift.io/auto-regenerate-after-offline-expiry",
+                            "value": "https://github.com/openshift/cluster-kube-apiserver-operator/pull/1631,'operator conditions kube-scheduler'"
                         }
                     ],
                     "owningJiraComponent": "kube-apiserver",

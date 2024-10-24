@@ -485,25 +485,6 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-config-managed",
-                    "Name": "kube-apiserver-aggregator-client-ca"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-config-managed",
                     "Name": "kube-apiserver-client-ca"
                 },
                 "certificateAuthorityBundleInfo": {
@@ -898,25 +879,6 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-kube-apiserver",
-                    "Name": "aggregator-client-ca"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-kube-apiserver",
                     "Name": "client-ca"
                 },
                 "certificateAuthorityBundleInfo": {
@@ -1016,44 +978,6 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-kube-apiserver-operator",
-                    "Name": "kube-apiserver-to-kubelet-client-ca"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-kube-apiserver-operator",
-                    "Name": "kube-control-plane-signer-ca"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-kube-apiserver-operator",
                     "Name": "loadbalancer-serving-ca"
                 },
                 "certificateAuthorityBundleInfo": {
@@ -1111,45 +1035,7 @@
             "InClusterLocation": {
                 "configMapLocation": {
                     "Namespace": "openshift-kube-apiserver-operator",
-                    "Name": "node-system-admin-ca"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-kube-apiserver-operator",
                     "Name": "service-network-serving-ca"
-                },
-                "certificateAuthorityBundleInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "configMapLocation": {
-                    "Namespace": "openshift-kube-controller-manager",
-                    "Name": "aggregator-client-ca"
                 },
                 "certificateAuthorityBundleInfo": {
                     "selectedCertMetadataAnnotations": [
@@ -1814,11 +1700,11 @@
                         },
                         {
                             "key": "openshift.io/description",
-                            "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalogd-catalogserver with hostname catalogd-catalogserver.openshift-catalogd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalogserver-cert'. The certificate is valid for 2 years."
+                            "value": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalogd-service with hostname catalogd-service.openshift-catalogd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalogserver-cert'. The certificate is valid for 2 years."
                         }
                     ],
                     "owningJiraComponent": "service-ca",
-                    "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalogd-catalogserver with hostname catalogd-catalogserver.openshift-catalogd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalogserver-cert'. The certificate is valid for 2 years."
+                    "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalogd-service with hostname catalogd-service.openshift-catalogd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalogserver-cert'. The certificate is valid for 2 years."
                 }
             },
             "OnDiskLocation": null
@@ -2573,44 +2459,6 @@
                         }
                     ],
                     "owningJiraComponent": "apiserver-auth",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-config-managed",
-                    "Name": "kube-controller-manager-client-cert-key"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-config-managed",
-                    "Name": "kube-scheduler-client-cert-key"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
                     "description": ""
                 }
             },
@@ -3428,63 +3276,6 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-kube-apiserver",
-                    "Name": "aggregator-client"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
-                    "Name": "check-endpoints-client-cert-key"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
-                    "Name": "control-plane-node-admin-client-cert-key"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
                     "Name": "etcd-client"
                 },
                 "certKeyInfo": {
@@ -3508,83 +3299,7 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-kube-apiserver",
-                    "Name": "external-loadbalancer-serving-certkey"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
-                    "Name": "internal-loadbalancer-serving-certkey"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
-                    "Name": "kubelet-client"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
                     "Name": "localhost-recovery-serving-certkey"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
-                    "Name": "localhost-serving-cert-certkey"
                 },
                 "certKeyInfo": {
                     "selectedCertMetadataAnnotations": [
@@ -3622,25 +3337,6 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-kube-apiserver",
-                    "Name": "service-network-serving-certkey"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver",
                     "Name": "webhook-authenticator"
                 },
                 "certKeyInfo": {
@@ -3651,25 +3347,6 @@
                         }
                     ],
                     "owningJiraComponent": "apiserver-auth",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver-operator",
-                    "Name": "aggregator-client-signer"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
                     "description": ""
                 }
             },
@@ -3694,44 +3371,6 @@
                     ],
                     "owningJiraComponent": "service-ca",
                     "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-apiserver-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-apiserver-operator-serving-cert'. The certificate is valid for 2 years."
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver-operator",
-                    "Name": "kube-apiserver-to-kubelet-signer"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver-operator",
-                    "Name": "kube-control-plane-signer"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
                 }
             },
             "OnDiskLocation": null
@@ -3797,44 +3436,6 @@
             "InClusterLocation": {
                 "secretLocation": {
                     "Namespace": "openshift-kube-apiserver-operator",
-                    "Name": "node-system-admin-client"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver-operator",
-                    "Name": "node-system-admin-signer"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-apiserver-operator",
                     "Name": "service-network-serving-signer"
                 },
                 "certKeyInfo": {
@@ -3864,25 +3465,6 @@
                         }
                     ],
                     "owningJiraComponent": "kube-controller-manager",
-                    "description": ""
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-controller-manager",
-                    "Name": "kube-controller-manager-client-cert-key"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
                     "description": ""
                 }
             },
@@ -3968,25 +3550,6 @@
                     ],
                     "owningJiraComponent": "service-ca",
                     "description": "Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/metrics with hostname metrics.openshift-kube-controller-manager-operator.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: kube-controller-manager-operator-serving-cert'. The certificate is valid for 2 years."
-                }
-            },
-            "OnDiskLocation": null
-        },
-        {
-            "InClusterLocation": {
-                "secretLocation": {
-                    "Namespace": "openshift-kube-scheduler",
-                    "Name": "kube-scheduler-client-cert-key"
-                },
-                "certKeyInfo": {
-                    "selectedCertMetadataAnnotations": [
-                        {
-                            "key": "openshift.io/owning-component",
-                            "value": "kube-apiserver"
-                        }
-                    ],
-                    "owningJiraComponent": "kube-apiserver",
-                    "description": ""
                 }
             },
             "OnDiskLocation": null

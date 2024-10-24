@@ -2,7 +2,7 @@
 
 ## Table of Contents
   - [How to meet the requirement](#How-to-meet-the-requirement)
-  - [Items Do NOT Meet the Requirement (258)](#Items-Do-NOT-Meet-the-Requirement-258)
+  - [Items Do NOT Meet the Requirement (235)](#Items-Do-NOT-Meet-the-Requirement-235)
     - [Unknown Owner (4)](#Unknown-Owner-4)
       - [Certificates (2)](#Certificates-2)
       - [Certificate Authority Bundles (2)](#Certificate-Authority-Bundles-2)
@@ -37,9 +37,9 @@
     - [etcd (31)](#etcd-31)
       - [Certificates (22)](#Certificates-22)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
-    - [kube-apiserver (45)](#kube-apiserver-45)
-      - [Certificates (25)](#Certificates-25)
-      - [Certificate Authority Bundles (20)](#Certificate-Authority-Bundles-20)
+    - [kube-apiserver (22)](#kube-apiserver-22)
+      - [Certificates (8)](#Certificates-8)
+      - [Certificate Authority Bundles (14)](#Certificate-Authority-Bundles-14)
     - [kube-controller-manager (12)](#kube-controller-manager-12)
       - [Certificates (3)](#Certificates-3)
       - [Certificate Authority Bundles (9)](#Certificate-Authority-Bundles-9)
@@ -48,7 +48,10 @@
     - [service-ca (100)](#service-ca-100)
       - [Certificates (97)](#Certificates-97)
       - [Certificate Authority Bundles (3)](#Certificate-Authority-Bundles-3)
-  - [Items That DO Meet the Requirement (0)](#Items-That-DO-Meet-the-Requirement-0)
+  - [Items That DO Meet the Requirement (23)](#Items-That-DO-Meet-the-Requirement-23)
+    - [kube-apiserver (23)](#kube-apiserver-23)
+      - [Certificates (17)](#Certificates-17)
+      - [Certificate Authority Bundles (6)](#Certificate-Authority-Bundles-6)
 
 
 ## How to meet the requirement
@@ -69,7 +72,7 @@ This assertion means that you have
       QE has required test every release that ensures the functionality works every release.
 If you have not done this, you should not merge the annotation.
 
-## Items Do NOT Meet the Requirement (258)
+## Items Do NOT Meet the Requirement (235)
 ### Unknown Owner (4)
 #### Certificates (2)
 1. ns/openshift-ingress secret/router-certs-default
@@ -759,104 +762,14 @@ If you have not done this, you should not merge the annotation.
 
 
 
-### kube-apiserver (45)
-#### Certificates (25)
-1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
+### kube-apiserver (22)
+#### Certificates (8)
+1. ns/openshift-kube-apiserver secret/localhost-recovery-serving-certkey
 
       **Description:** 
       
 
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
-      
-
-2. ns/openshift-config-managed secret/kube-scheduler-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      
-
-3. ns/openshift-kube-apiserver secret/aggregator-client
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.crt
-      
-
-4. ns/openshift-kube-apiserver secret/check-endpoints-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.crt
-      
-
-5. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/control-plane-node-admin-client-cert-key/tls.crt
-      
-
-6. ns/openshift-kube-apiserver secret/external-loadbalancer-serving-certkey
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.crt
-      
-
-7. ns/openshift-kube-apiserver secret/internal-loadbalancer-serving-certkey
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.crt
-      
-
-8. ns/openshift-kube-apiserver secret/kubelet-client
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt
-      
-
-9. ns/openshift-kube-apiserver secret/localhost-recovery-serving-certkey
-
-      **Description:** 
-      
-
-10. ns/openshift-kube-apiserver secret/localhost-serving-cert-certkey
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.crt
-      
-
-11. ns/openshift-kube-apiserver secret/node-kubeconfigs
+2. ns/openshift-kube-apiserver secret/node-kubeconfigs
 
       **Description:** 
       
@@ -869,119 +782,45 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-12. ns/openshift-kube-apiserver secret/service-network-serving-certkey
+3. ns/openshift-kube-apiserver-operator secret/loadbalancer-serving-signer
 
       **Description:** 
       
 
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.crt
-      
-
-13. ns/openshift-kube-apiserver-operator secret/aggregator-client-signer
+4. ns/openshift-kube-apiserver-operator secret/localhost-recovery-serving-signer
 
       **Description:** 
       
 
-14. ns/openshift-kube-apiserver-operator secret/kube-apiserver-to-kubelet-signer
+5. ns/openshift-kube-apiserver-operator secret/localhost-serving-signer
 
       **Description:** 
       
 
-15. ns/openshift-kube-apiserver-operator secret/kube-control-plane-signer
+6. ns/openshift-kube-apiserver-operator secret/service-network-serving-signer
 
       **Description:** 
       
 
-16. ns/openshift-kube-apiserver-operator secret/loadbalancer-serving-signer
+7. file /etc/kubernetes/kubeconfig
 
       **Description:** 
       
 
-17. ns/openshift-kube-apiserver-operator secret/localhost-recovery-serving-signer
-
-      **Description:** 
-      
-
-18. ns/openshift-kube-apiserver-operator secret/localhost-serving-signer
-
-      **Description:** 
-      
-
-19. ns/openshift-kube-apiserver-operator secret/node-system-admin-client
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
-      
-
-20. ns/openshift-kube-apiserver-operator secret/node-system-admin-signer
-
-      **Description:** 
-      
-
-21. ns/openshift-kube-apiserver-operator secret/service-network-serving-signer
-
-      **Description:** 
-      
-
-22. ns/openshift-kube-controller-manager secret/kube-controller-manager-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
-      
-
-23. ns/openshift-kube-scheduler secret/kube-scheduler-client-cert-key
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
-      
-
-24. file /etc/kubernetes/kubeconfig
-
-      **Description:** 
-      
-
-25. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
+8. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/bound-service-account-signing-key/service-account.key
 
       **Description:** 
       
 
 
 
-#### Certificate Authority Bundles (20)
+#### Certificate Authority Bundles (14)
 1. ns/openshift-config configmap/admin-kubeconfig-client-ca
 
       **Description:** 
       
 
-2. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-3. ns/openshift-config-managed configmap/kube-apiserver-client-ca
+2. ns/openshift-config-managed configmap/kube-apiserver-client-ca
 
       **Description:** 
       
@@ -993,7 +832,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-4. ns/openshift-config-managed configmap/kube-apiserver-server-ca
+3. ns/openshift-config-managed configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -1007,35 +846,12 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-5. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
+4. ns/openshift-config-managed configmap/kubelet-bootstrap-kubeconfig
 
       **Description:** 
       
 
-6. ns/openshift-controller-manager configmap/client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/kubelet-ca.crt
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
-      
-
-7. ns/openshift-kube-apiserver configmap/aggregator-client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-8. ns/openshift-kube-apiserver configmap/client-ca
+5. ns/openshift-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -1047,7 +863,19 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-9. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
+6. ns/openshift-kube-apiserver configmap/client-ca
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/kubelet-ca.crt
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
+      
+
+7. ns/openshift-kube-apiserver configmap/kube-apiserver-server-ca
 
       **Description:** 
       
@@ -1061,53 +889,27 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
       
 
-10. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
+8. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
 
       **Description:** 
       
 
-11. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
+9. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
 
       **Description:** 
       
 
-12. ns/openshift-kube-apiserver-operator configmap/loadbalancer-serving-ca
+10. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
 
       **Description:** 
       
 
-13. ns/openshift-kube-apiserver-operator configmap/localhost-recovery-serving-ca
+11. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
 
       **Description:** 
       
 
-14. ns/openshift-kube-apiserver-operator configmap/localhost-serving-ca
-
-      **Description:** 
-      
-
-15. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
-
-      **Description:** 
-      
-
-16. ns/openshift-kube-apiserver-operator configmap/service-network-serving-ca
-
-      **Description:** 
-      
-
-17. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
-
-      **Description:** 
-      
-
-      Other locations:
-
-      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
-      
-
-18. ns/openshift-kube-controller-manager configmap/client-ca
+12. ns/openshift-kube-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -1119,7 +921,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-19. ns/openshift-route-controller-manager configmap/client-ca
+13. ns/openshift-route-controller-manager configmap/client-ca
 
       **Description:** 
       
@@ -1131,7 +933,7 @@ If you have not done this, you should not merge the annotation.
       * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/client-ca/ca-bundle.crt
       
 
-20. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
+14. file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/trusted-ca-bundle/ca-bundle.crt
 
       **Description:** 
       
@@ -1238,7 +1040,7 @@ If you have not done this, you should not merge the annotation.
 
 5. ns/openshift-catalogd secret/catalogserver-cert
 
-      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalogd-catalogserver with hostname catalogd-catalogserver.openshift-catalogd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalogserver-cert'. The certificate is valid for 2 years.
+      **Description:** Secret contains a pair signed serving certificate/key that is generated by Service CA operator for service/catalogd-service with hostname catalogd-service.openshift-catalogd.svc and is annotated to the service with annotating a service resource with 'service.beta.openshift.io/serving-cert-secret-name: catalogserver-cert'. The certificate is valid for 2 years.
       
 
 6. ns/openshift-cloud-controller-manager-operator secret/cloud-controller-manager-operator-tls
@@ -1721,4 +1523,212 @@ If you have not done this, you should not merge the annotation.
 
 
 
-## Items That DO Meet the Requirement (0)
+## Items That DO Meet the Requirement (23)
+### kube-apiserver (23)
+#### Certificates (17)
+1. ns/openshift-config-managed secret/kube-controller-manager-client-cert-key
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+      
+
+2. ns/openshift-config-managed secret/kube-scheduler-client-cert-key
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      
+
+3. ns/openshift-kube-apiserver secret/aggregator-client
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/aggregator-client/tls.crt
+      
+
+4. ns/openshift-kube-apiserver secret/check-endpoints-client-cert-key
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/check-endpoints-client-cert-key/tls.crt
+      
+
+5. ns/openshift-kube-apiserver secret/control-plane-node-admin-client-cert-key
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/control-plane-node-admin-client-cert-key/tls.crt
+      
+
+6. ns/openshift-kube-apiserver secret/external-loadbalancer-serving-certkey
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/external-loadbalancer-serving-certkey/tls.crt
+      
+
+7. ns/openshift-kube-apiserver secret/internal-loadbalancer-serving-certkey
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/internal-loadbalancer-serving-certkey/tls.crt
+      
+
+8. ns/openshift-kube-apiserver secret/kubelet-client
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/kubelet-client/tls.crt
+      
+
+9. ns/openshift-kube-apiserver secret/localhost-serving-cert-certkey
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/localhost-serving-cert-certkey/tls.crt
+      
+
+10. ns/openshift-kube-apiserver secret/service-network-serving-certkey
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/service-network-serving-certkey/tls.crt
+      
+
+11. ns/openshift-kube-apiserver-operator secret/aggregator-client-signer
+
+      **Description:** 
+      
+
+12. ns/openshift-kube-apiserver-operator secret/kube-apiserver-to-kubelet-signer
+
+      **Description:** 
+      
+
+13. ns/openshift-kube-apiserver-operator secret/kube-control-plane-signer
+
+      **Description:** 
+      
+
+14. ns/openshift-kube-apiserver-operator secret/node-system-admin-client
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-ext.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/lb-int.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost-recovery.kubeconfig
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/secrets/node-kubeconfigs/localhost.kubeconfig
+      
+
+15. ns/openshift-kube-apiserver-operator secret/node-system-admin-signer
+
+      **Description:** 
+      
+
+16. ns/openshift-kube-controller-manager secret/kube-controller-manager-client-cert-key
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/secrets/kube-controller-manager-client-cert-key/tls.crt
+      
+
+17. ns/openshift-kube-scheduler secret/kube-scheduler-client-cert-key
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-scheduler-certs/secrets/kube-scheduler-client-cert-key/tls.crt
+      
+
+
+
+#### Certificate Authority Bundles (6)
+1. ns/openshift-config-managed configmap/kube-apiserver-aggregator-client-ca
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+2. ns/openshift-kube-apiserver configmap/aggregator-client-ca
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+3. ns/openshift-kube-apiserver-operator configmap/kube-apiserver-to-kubelet-client-ca
+
+      **Description:** 
+      
+
+4. ns/openshift-kube-apiserver-operator configmap/kube-control-plane-signer-ca
+
+      **Description:** 
+      
+
+5. ns/openshift-kube-apiserver-operator configmap/node-system-admin-ca
+
+      **Description:** 
+      
+
+6. ns/openshift-kube-controller-manager configmap/aggregator-client-ca
+
+      **Description:** 
+      
+
+      Other locations:
+
+      * file /etc/kubernetes/static-pod-resources/kube-apiserver-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      * file /etc/kubernetes/static-pod-resources/kube-controller-manager-certs/configmaps/aggregator-client-ca/ca-bundle.crt
+      
+
+
+
