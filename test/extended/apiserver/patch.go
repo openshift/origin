@@ -6,7 +6,6 @@ import (
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
-
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -20,6 +19,7 @@ import (
 	applyoperatorv1 "github.com/openshift/client-go/operator/applyconfigurations/operator/v1"
 	"github.com/openshift/library-go/pkg/apiserver/jsonpatch"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
+
 	"github.com/openshift/origin/test/extended/testdata"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -29,6 +29,14 @@ var _ = g.Describe("[sig-api-machinery] JSON Patch [apigroup:operator.openshift.
 	gvr := operatorv1.GroupVersion.WithResource("kubeapiservers")
 	gvk := operatorv1.GroupVersion.WithKind("KubeAPIServer")
 	oc := exutil.NewCLIWithoutNamespace("json-patch")
+
+	g.BeforeEach(func() {
+		isManagedServiceCluster, err := exutil.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
+		o.Expect(err).ToNot(o.HaveOccurred())
+		if isManagedServiceCluster {
+			g.Skip("skipping JSON Patch tests on managed service cluster")
+		}
+	})
 
 	g.It("should delete an entry from an array with a test precondition provided", func() {
 		g.By("Creating KubeAPIServerOperator CR for the test")

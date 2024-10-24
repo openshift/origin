@@ -61,6 +61,7 @@ import (
 	"github.com/openshift/library-go/pkg/build/naming"
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/library-go/pkg/image/imageutil"
+
 	"github.com/openshift/origin/test/extended/testdata"
 	utilimage "github.com/openshift/origin/test/extended/util/image"
 )
@@ -2261,6 +2262,19 @@ func IsSelfManagedHA(ctx context.Context, configClient clientconfigv1.Interface)
 	}
 
 	return infrastructure.Status.ControlPlaneTopology == configv1.HighlyAvailableTopologyMode, nil
+}
+
+func IsManagedServiceCluster(ctx context.Context, adminClient kubernetes.Interface) (bool, error) {
+	_, err := adminClient.CoreV1().Namespaces().Get(ctx, "openshift-backplane", metav1.GetOptions{})
+	if err == nil {
+		return true, nil
+	}
+
+	if !kapierrs.IsNotFound(err) {
+		return false, err
+	}
+
+	return false, nil
 }
 
 func IsSingleNode(ctx context.Context, configClient clientconfigv1.Interface) (bool, error) {
