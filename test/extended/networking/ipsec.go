@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
+	e2enode "k8s.io/kubernetes/test/e2e/framework/node"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
 	admissionapi "k8s.io/pod-security-admission/api"
 
@@ -84,6 +85,8 @@ var (
 	rightServerCertName = "right_server"
 	// Expiration date for certificates.
 	certExpirationDate = time.Date(2034, time.April, 10, 0, 0, 0, 0, time.UTC)
+	// http endpoint port for the pod traffic test
+	port uint16 = 8080
 )
 
 type trafficType string
@@ -204,6 +207,22 @@ func ensureIPsecDisabled(oc *exutil.CLI) error {
 			}
 			return done, nil
 		})
+}
+
+func restartIPsecDaemonSet(oc *exutil.CLI) error {
+	ds, err := getDaemonSet(oc, ovnNamespace, ovnIPsecDsName)
+	if err != nil {
+		return err
+	}
+	if ds == nil {
+		return fmt.Errorf("ipsec daemonset %s/%s doesn't exist", ovnNamespace, ovnIPsecDsName)
+	}
+	err = deleteDaemonSet(oc.AdminKubeClient(), ovnNamespace, ovnIPsecDsName)
+	if err != nil {
+		return err
+	}
+	// wait until CNO to reconcile IPsec daemonset.
+	return ensureIPsecEnabled(oc)
 }
 
 var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
@@ -569,8 +588,45 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			g.Entry("with IPsec in full mode", v1.IPsecModeFull),
 			g.Entry("with IPsec in external mode", v1.IPsecModeExternal),
 		)
+
+		g.It("check pod traffic are working across nodes after ipsec daemonset restart [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]", func() {
+			nodes, err := e2enode.GetReadySchedulableNodes(context.Background(), f.ClientSet)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(len(nodes.Items)).To(o.BeNumerically(">", 0))
+			err = configureIPsecMode(oc, v1.IPsecModeFull)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			waitForIPsecConfigToComplete(oc, v1.IPsecModeFull)
+			var pods []*corev1.Pod
+			for _, node := range nodes.Items {
+				pods = append(pods, e2epod.CreateExecPodOrFail(context.Background(), f.ClientSet, f.Namespace.Name, "ipsec-test-pod-", func(pod *corev1.Pod) {
+					pod.Spec.NodeName = node.Name
+					pod.Spec.Containers[0].Args = httpServerContainerCmd(port)
+				}))
+			}
+			checkPodCrossConnectivity(pods)
+			// Restart IPsec daemonset few times and check pod traffic is not impacted.
+			for i := 0; i < 10; i++ {
+				err = restartIPsecDaemonSet(oc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				checkPodCrossConnectivity(pods)
+			}
+		})
 	})
 })
+
+func checkPodCrossConnectivity(pods []*corev1.Pod) {
+	for _, sourcePod := range pods {
+		for _, targetPod := range pods {
+			if sourcePod.Name == targetPod.Name {
+				continue
+			}
+			framework.Logf("Checking pod connectivity from node %s to node %s", sourcePod.Spec.NodeName, targetPod.Spec.NodeName)
+			o.Consistently(func() bool {
+				return connectToServer(podConfiguration{namespace: sourcePod.Namespace, name: sourcePod.Name}, targetPod.Status.PodIP, int(port)) != nil
+			}, 5*time.Second).Should(o.BeTrue())
+		}
+	}
+}
 
 func waitForIPsecConfigToComplete(oc *exutil.CLI, ipsecMode v1.IPsecMode) {
 	switch ipsecMode {

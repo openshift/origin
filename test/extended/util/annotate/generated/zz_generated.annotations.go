@@ -1461,6 +1461,8 @@ var Annotations = map[string]string{
 
 	"[sig-network][Feature:EgressRouterCNI] when using openshift ovn-kubernetes should ensure ipv6 egressrouter cni resources are created [apigroup:operator.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check pod traffic are working across nodes after ipsec daemonset restart [apigroup:config.openshift.io] [Suite:openshift/network/ipsec]": "",
+
 	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic for east west IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in disabled mode": "",
 
 	"[sig-network][Feature:IPsec] when using openshift ovn-kubernetes check traffic for east west IPsec [apigroup:config.openshift.io] [Suite:openshift/network/ipsec] with IPsec in external mode": "",
