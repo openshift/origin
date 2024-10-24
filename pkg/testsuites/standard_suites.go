@@ -55,6 +55,7 @@ var staticSuites = []ginkgo.TestSuite{
 		},
 		Parallelism:          30,
 		MaximumAllowedFlakes: 15,
+		TestTimeout:          20 * time.Minute,
 	},
 	{
 		Name: "openshift/conformance/serial",
