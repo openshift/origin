@@ -123,10 +123,7 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals, nodeNameToMachine
 	var failures []string
 
 	unexpectedNodeUnreachables := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
-		if eventInterval.Message.Reason == monitorapi.NodeUnexpectedUnreachableReason {
-			return true
-		}
-		return false
+		return eventInterval.Message.Reason == monitorapi.NodeUnexpectedUnreachableReason
 	})
 
 	for _, unexpectedNodeUnreachable := range unexpectedNodeUnreachables {
@@ -158,6 +155,11 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals, nodeNameToMachine
 }
 
 func intervalStartDuring(needle monitorapi.Interval, haystack monitorapi.Intervals) bool {
+	if len(haystack) == 0 {
+		// If there are no deleted intervals
+		// we can assume that the unexpected event is significant.
+		return true
+	}
 	for _, curr := range haystack {
 		needleStartEqualOrAfterFrom := needle.From.Equal(curr.From) || needle.From.After(curr.From)
 		needleStartEqualOrBeforeTo := needle.From.Equal(curr.To) || needle.From.Before(curr.To)
