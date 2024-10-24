@@ -165,7 +165,7 @@ var _ = g.Describe("[sig-network][Feature:Router]", func() {
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
-					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), routeHost, http.StatusOK, times, proxyProtocol)
+					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", exutil.IPUrl(host)), routeHost, http.StatusOK, times, proxyProtocol)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 				g.By("retrying metrics until all backend servers appear")
