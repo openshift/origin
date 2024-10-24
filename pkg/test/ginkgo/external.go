@@ -123,7 +123,7 @@ func extractReleaseImageStream(logger *log.Logger, registryAuthFilePath string) 
 		logger.Printf("Using target cluster release image %q", releaseImage)
 	}
 
-	if err := runImageExtract(releaseImage, "/release-manifests/image-references", tmpDir, registryAuthFilePath); err != nil {
+	if err := runImageExtract(releaseImage, "/release-manifests/image-references", tmpDir, registryAuthFilePath, logger); err != nil {
 		return nil, fmt.Errorf("failed extracting image-references from %q: %w", releaseImage, err)
 	}
 	jsonFile, err := os.Open(filepath.Join(tmpDir, "image-references"))
@@ -177,7 +177,7 @@ func extractBinaryFromReleaseImage(logger *log.Logger, releaseImageReferences *i
 	}
 
 	startTime := time.Now()
-	if err := runImageExtract(image, binary, tmpDir, registryAuthFilePath); err != nil {
+	if err := runImageExtract(image, binary, tmpDir, registryAuthFilePath, logger); err != nil {
 		return "", fmt.Errorf("failed extracting %q from %q: %w", binary, image, err)
 	}
 	extractDuration := time.Since(startTime)
@@ -204,10 +204,12 @@ func extractBinaryFromReleaseImage(logger *log.Logger, releaseImageReferences *i
 }
 
 // runImageExtract extracts src from specified image to dst
-func runImageExtract(image, src, dst string, dockerConfigJsonPath string) error {
+func runImageExtract(image, src, dst string, dockerConfigJsonPath string, logger *log.Logger) error {
 	var err error
 	var out []byte
 	maxRetries := 6
+	startTime := time.Now()
+	logger.Printf("Run image extract for release image %q and src %q at %v", image, src, startTime)
 	for i := 1; i <= maxRetries; i++ {
 		args := []string{"--kubeconfig=" + util.KubeConfigPath(), "image", "extract", image, fmt.Sprintf("--path=%s:%s", src, dst), "--confirm"}
 		if len(dockerConfigJsonPath) > 0 {
@@ -222,6 +224,8 @@ func runImageExtract(image, src, dst string, dockerConfigJsonPath string) error 
 			time.Sleep(10 * time.Second)
 			continue
 		}
+		extractionTime := time.Since(startTime)
+		logger.Printf("Run image extract for release image %q at %v", image, extractionTime)
 		return nil
 	}
 	return fmt.Errorf("error during image extract: %w (%v)", err, string(out))
