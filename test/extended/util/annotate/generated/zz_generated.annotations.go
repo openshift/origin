@@ -1325,6 +1325,8 @@ var Annotations = map[string]string{
 
 	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
+	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
 	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial] Should update boot images only on MachineSets that are opted in [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
@@ -1332,6 +1334,8 @@ var Annotations = map[string]string{
 	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should degrade on a MachineSet with an OwnerReference [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should not update boot images on any MachineSet when not configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
+
+	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should stamp coreos-bootimages configmap with current MCO hash and release version [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
 	"[sig-mco][OCPFeatureGate:ManagedBootImages][Serial] Should update boot images on all MachineSets when configured [apigroup:machineconfiguration.openshift.io]": " [Suite:openshift/conformance/serial]",
 
