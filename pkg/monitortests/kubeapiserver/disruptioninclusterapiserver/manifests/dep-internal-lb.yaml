@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: internal-lb-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: internal-lb-monitor
+      apiserver.openshift.io/disruption-actor: poller
+  template:
+    metadata:
+      labels:
+        app: internal-lb-monitor
+        apiserver.openshift.io/disruption-actor: poller
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - internal-lb-monitor
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: internal-lb
+          command:
+            - openshift-tests
+            - run-disruption
+            - --output-file=/var/log/disruption-data/monitor-events/internal-lb-$(DEPLOYMENT_ID).txt
+            - --lb-type=$(LOAD_BALANCER)
+            - --stop-configmap=stop-configmap
+          env:
+            - name: KUBERNETES_SERVICE_HOST
+              value: api-int.foo.bar
+            - name: KUBERNETES_SERVICE_PORT
+              value: "6443"
+            - name: LOAD_BALANCER
+              value: "internal-lb"
+            - name: DEPLOYMENT_ID
+              #to be overwritten at deployment initialization time
+              value: "DEFAULT"
+          image: to-be-replaced
+          volumeMounts:
+            - mountPath: /var/log/disruption-data
+              name: artifacts
+          securityContext:
+            privileged: true
+            runAsUser: 0
+      hostNetwork: true
+      serviceAccountName: disruption-monitor-sa
+      volumes:
+        - hostPath:
+            path: /var/log/disruption-data
+            type: DirectoryOrCreate
+          name: artifacts
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/edge
+          effect: NoSchedule
