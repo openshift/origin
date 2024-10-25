@@ -18,14 +18,15 @@ import (
 
 	imagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
-	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const testName = "[sig-arch] Only known images used by tests"
@@ -81,6 +82,9 @@ func (w *clusterImageValidator) EvaluateTestsFromConstructedIntervals(ctx contex
 		"gcr.io/k8s-authenticated-test/",
 		"gcr.io/authenticated-image-pulling/",
 		"invalid.com/",
+
+		// ROSA
+		"default-route-openshift-image-registry.apps.ci-rosa",
 
 		// installed alongside OLM and managed externally
 		"registry.redhat.io/redhat/community-operator-index",
