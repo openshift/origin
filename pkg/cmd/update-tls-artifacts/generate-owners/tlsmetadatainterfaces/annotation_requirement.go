@@ -53,7 +53,7 @@ func (o annotationRequirement) InspectRequirement(rawData []*certgraphapi.PKILis
 		return nil, fmt.Errorf("failure marshalling %v.md: %w", o.GetName(), err)
 	}
 	violations := generateViolationJSONForAnnotationRequirement(o.GetAnnotationName(), pkiInfo)
-	violationJSONBytes, err := json.MarshalIndent(violations, "", "    ")
+	violationJSONBytes, err := MarshalViolationsToJSON(violations)
 	if err != nil {
 		return nil, fmt.Errorf("failure marshalling %v-violations.json: %w", o.GetName(), err)
 	}
