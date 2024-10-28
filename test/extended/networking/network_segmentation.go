@@ -330,6 +330,13 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								return err == nil
 							}, 4*time.Second).Should(BeFalse())
 						}
+						By("TROZET dumping sysctl output")
+						nodeName := udnPod.Spec.NodeName
+						if len(nodeName) > 0 {
+							result, err := oc.AsAdmin().Run("debug").Args("node/"+nodeName, "--", "chroot", "/host", "sysctl", "-a").Output()
+							Expect(err).NotTo(HaveOccurred())
+							framework.Failf("TROZET sysctl settings: %s", result)
+						}
 
 						By("asserting UDN pod can't reach default services via default network interface")
 						// route setup is already done, get kapi IPs
