@@ -202,6 +202,17 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 								PeriodSeconds:       1,
 								FailureThreshold:    1,
 							}
+							pod.Spec.Containers[0].StartupProbe = &v1.Probe{
+								ProbeHandler: v1.ProbeHandler{
+									HTTPGet: &v1.HTTPGetAction{
+										Path: "/healthz",
+										Port: intstr.FromInt32(port),
+									},
+								},
+								InitialDelaySeconds: 1,
+								PeriodSeconds:       1,
+								FailureThreshold:    3,
+							}
 							// add NET_ADMIN to change pod routes
 							pod.Spec.Containers[0].SecurityContext = &v1.SecurityContext{
 								Capabilities: &v1.Capabilities{
