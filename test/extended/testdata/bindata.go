@@ -50082,7 +50082,8 @@ spec:
       name: install-test-sa
   source:
     catalog:
-      packageName: quay-operator
+      packageName: {PACKAGENAME}
+      version: {VERSION}
       selector: {}
       upgradeConstraintPolicy: CatalogProvided
     sourceType: Catalog
