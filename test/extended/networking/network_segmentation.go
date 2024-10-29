@@ -338,7 +338,19 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 						for _, kapiIP := range kapi.Spec.ClusterIPs {
 							By("checking the UDN pod can't reach kapi service on IP " + kapiIP)
 							Consistently(func() bool {
-								return connectToServer(udnPodConfig, kapiIP, int(kapi.Spec.Ports[0].Port)) != nil
+								_, err := e2ekubectl.RunKubectl(
+									udnPodConfig.namespace,
+									"exec",
+									udnPodConfig.name,
+									"--",
+									"curl",
+									"--connect-timeout",
+									"2",
+									"--interface",
+									"eth0",
+									"--insecure",
+									fmt.Sprintf("https://%s/healthz", kapiIP))
+								return err != nil
 							}, 5*time.Second).Should(BeTrue())
 						}
 					},
