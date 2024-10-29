@@ -4,11 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
-	"github.com/openshift/origin/test/extended/util"
 	"io/ioutil"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"math/rand"
 	"os"
@@ -20,10 +16,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/onsi/ginkgo/v2"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
@@ -34,8 +32,10 @@ import (
 	"github.com/openshift/origin/pkg/monitor"
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
+	"github.com/openshift/origin/pkg/monitortestlibrary/platformidentification"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util"
 )
 
 const (
@@ -174,7 +174,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 		externalBinaries := []externalBinaryStruct{
 			{
 				imageTag:   "hyperkube",
-				binaryPath: "/usr/bin/k8s-tests",
+				binaryPath: "/usr/bin/k8s-tests-ext",
 			},
 		}
 
