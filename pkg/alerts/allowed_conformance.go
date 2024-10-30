@@ -35,6 +35,10 @@ func AllowedAlertsDuringConformance(featureSet configv1.FeatureSet) (allowedFiri
 			AlertName: "ExtremelyHighIndividualControlPlaneCPU",
 			Text:      "high CPU utilization during e2e runs is normal",
 		},
+		{
+			AlertName: "CDIDefaultStorageClassDegraded",
+			Text:      "not having rwx storage class should not be a must",
+		},
 	}
 	pendingAlertsWithBugs := MetricConditions{}
 	allowedPendingAlerts := MetricConditions{

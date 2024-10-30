@@ -44,4 +44,5 @@ var AllowedAlertNames = []string{
 
 	// indicates a problem in the external Telemeter service, presently very common, does not impact our ability to e2e test:
 	"TelemeterClientFailures",
+	"CDIDefaultStorageClassDegraded", // Installing openshift virt with RWX storage fire an alarm, that is not relevant for most of the tests.
 }
