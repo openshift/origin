@@ -346,6 +346,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 	fmt.Fprintf(o.Out, "Found %d tests (including externals)\n", len(tests))
 
+	// start test invocation loop here?
+
 	// this ensures the tests are always run in random order to avoid
 	// any intra-tests dependencies
 	suiteConfig, _ := ginkgo.GinkgoConfiguration()
@@ -651,7 +653,8 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	var syntheticTestResults []*junitapi.JUnitTestCase
 	var syntheticFailure bool
 
-	timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
+	// augment the timeSuffix with invocation_cnt when the invocation is > 0
+	timeSuffix := fmt.Sprintf("_invocation_%d_%s", 1, start.UTC().Format("20060102-150405"))
 
 	monitorTestResultState, err := m.Stop(ctx)
 	if err != nil {
@@ -701,6 +704,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 
 		// we only write the buffer if we have an artifact location
 		if len(o.JUnitDir) > 0 {
+			// why don't we use timesuffix
 			filename := fmt.Sprintf("openshift-tests-monitor_%s.txt", o.StartTime.UTC().Format("20060102-150405"))
 			if err := ioutil.WriteFile(filepath.Join(o.JUnitDir, filename), buf.Bytes(), 0644); err != nil {
 				fmt.Fprintf(o.ErrOut, "error: Failed to write monitor data: %v\n", err)
@@ -722,6 +726,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, mon
 	}
 
 	if len(o.JUnitDir) > 0 {
+		// review suite generation
 		finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, duration, tests, syntheticTestResults...)
 		if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, o.JUnitDir, o.ErrOut); err != nil {
 			fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
