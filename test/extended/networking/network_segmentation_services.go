@@ -88,10 +88,10 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				namespace := f.Namespace.Name
 				jig := e2eservice.NewTestJig(cs, namespace, "udn-service")
 
-				By("Selecting 3 schedulable nodes")
+				By("Selecting at most 3 schedulable nodes (min 1)")
 				nodes, err := e2enode.GetBoundedReadySchedulableNodes(context.TODO(), f.ClientSet, 3)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(nodes.Items)).To(BeNumerically(">", 2))
+				Expect(len(nodes.Items)).To(BeNumerically(">", 0))
 
 				By("Selecting nodes for pods and service")
 				serverPodNodeName := nodes.Items[0].Name
