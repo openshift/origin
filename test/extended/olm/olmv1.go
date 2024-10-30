@@ -1,13 +1,19 @@
 package operators
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -91,5 +97,73 @@ var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
 			o.Expect(meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionFalse)).To(o.BeTrue())
 			o.Expect(meta.IsStatusConditionPresentAndEqual(conditions, "Serving", metav1.ConditionTrue)).To(o.BeTrue())
 		}
+	})
+})
+
+var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
+	defer g.GinkgoRecover()
+
+	var (
+		baseDir   = exutil.FixturePath("testdata", "olmv1")
+		ceFile    = filepath.Join(baseDir, "install-operator.yaml")
+		newCeFile string
+	)
+	oc := exutil.NewCLI("openshift-operator-controller")
+
+	g.BeforeEach(func() {
+		exutil.PreTestDump()
+	})
+
+	g.AfterEach(func() {
+		if g.CurrentSpecReport().Failed() {
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+		oc.AsAdmin().WithoutNamespace().Run("delete").Args("-f", newCeFile).Execute()
+	})
+
+	g.It("should install a cluster extension", func(ctx g.SpecContext) {
+		// Check for tech preview, if this is not tech preview, bail
+		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
+			g.Skip("Test only runs in tech-preview")
+		}
+
+		ns := oc.Namespace()
+		g.By(fmt.Sprintf("Updating the namespace to: %q", ns))
+		newCeFile = ceFile + "." + ns
+		b, err := os.ReadFile(ceFile)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		s := string(b)
+		s = strings.ReplaceAll(s, "{REPLACE}", ns)
+		err = os.WriteFile(newCeFile, []byte(s), 0666)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("applying the necessary resources")
+		err = oc.AsAdmin().WithoutNamespace().Run("apply").Args("-f", newCeFile).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("waiting for the ClusterExtention to be installed")
+		err = wait.PollUntilContextTimeout(ctx, time.Second, 5*time.Minute, true, func(ctx context.Context) (done bool, err error) {
+			var conditions []metav1.Condition
+			output, err := oc.AsAdmin().WithoutNamespace().Run("get").Args("clusterextensions.olm.operatorframework.io", "install-test-ce", "-o=jsonpath={.status.conditions}").Output()
+			if err != nil {
+				return false, err
+			}
+			// no data yet, so try again
+			if output == "" {
+				return false, nil
+			}
+			err = json.Unmarshal([]byte(output), &conditions)
+			if err != nil {
+				return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
+			}
+			if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionFalse) {
+				return false, nil
+			}
+			if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionTrue) {
+				return false, nil
+			}
+			return true, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
