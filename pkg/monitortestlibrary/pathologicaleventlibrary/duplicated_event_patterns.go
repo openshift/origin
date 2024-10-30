@@ -11,11 +11,12 @@ import (
 	v1 "github.com/openshift/api/config/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned/typed/operator/v1"
-	"github.com/openshift/origin/pkg/monitor/monitorapi"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/monitor/monitorapi"
 )
 
 const (
@@ -343,6 +344,17 @@ func NewUniversalPathologicalEventMatchers(kubeConfig *rest.Config, finalInterva
 		name:               "KubeletUnhealthyReadinessProbeFailed",
 		messageReasonRegex: regexp.MustCompile(`^Unhealthy$`),
 		messageHumanRegex:  regexp.MustCompile(`Readiness probe failed`),
+	})
+
+	// Managed services osd-cluster-ready will fail until the OSD operators are ready, this triggers pathological events
+	registry.AddPathologicalEventMatcherOrDie(&SimplePathologicalEventMatcher{
+		name: "OSDClusterReadyRestart",
+		locatorKeyRegexes: map[monitorapi.LocatorKey]*regexp.Regexp{
+			monitorapi.LocatorNamespaceKey: regexp.MustCompile(`^openshift-monitoring`),
+			monitorapi.LocatorPodKey:       regexp.MustCompile(`.*osd-cluster-ready.*`),
+		},
+		messageReasonRegex: regexp.MustCompile(`^BackOff$`),
+		messageHumanRegex:  regexp.MustCompile(`Back-off restarting failed container.*osd-cluster-ready.*`),
 	})
 
 	/*

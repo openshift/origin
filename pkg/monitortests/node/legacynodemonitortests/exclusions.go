@@ -47,6 +47,13 @@ func isThisContainerRestartExcluded(locator string, exclusion Exclusion) bool {
 		{
 			containerName: "container/ovn-acl-logging", // https://issues.redhat.com/browse/OCPBUGS-42344
 		},
+		{
+			containerName: "container/managed-upgrade-operator", // https://issues.redhat.com/browse/OSD-26270
+		},
+		{
+			// Managed services like ROSA. This is expected.
+			containerName: "container/osd-cluster-ready",
+		},
 	}
 
 	for _, val := range exclusion.clusterData.ClusterVersionHistory {

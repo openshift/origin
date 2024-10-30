@@ -33,9 +33,8 @@ func checkSubresourceStatus(crdItemList []apiextensionsv1.CustomResourceDefiniti
 		"operatorpkis.network.operator.openshift.io",
 		"profiles.tuned.openshift.io",
 		"tuneds.tuned.openshift.io",
-		"sharedconfigmaps.sharedresource.openshift.io",            // https://bugzilla.redhat.com/show_bug.cgi?id=2088533
-		"sharedsecrets.sharedresource.openshift.io",               // https://bugzilla.redhat.com/show_bug.cgi?id=2088533
-		"managedfleetnotifications.ocmagent.managed.openshift.io", // OSD-26067
+		"sharedconfigmaps.sharedresource.openshift.io", // https://bugzilla.redhat.com/show_bug.cgi?id=2088533
+		"sharedsecrets.sharedresource.openshift.io",    // https://bugzilla.redhat.com/show_bug.cgi?id=2088533
 	)
 
 	failures := []string{}
@@ -103,6 +102,7 @@ func checkStatusInSchema(crdItemList []apiextensionsv1.CustomResourceDefinition)
 		"rangeallocations.security.internal.openshift.io",
 		"rolebindingrestrictions.authorization.openshift.io",
 		"securitycontextconstraints.security.openshift.io",
+		"managedfleetnotifications.ocmagent.managed.openshift.io", // OSD-26067
 	)
 
 	failures := []string{}
