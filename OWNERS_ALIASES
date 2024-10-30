@@ -54,3 +54,25 @@ aliases:
   - umohnani8 # Container Engine Tools
   - davidvossel # HyperShift on KubeVirt Platform
   - orenc1 # HyperShift on KubeVirt Platform
+  network-ingress-dns-test-case-approvers:
+  - frobware
+  - knobunc
+  - Miciah
+  - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
+  network-ingress-dns-test-case-reviewers:
+  - frobware
+  - knobunc
+  - Miciah
+  - miheer
+  - alebedev87
+  - candita
+  - gcs278
+  - rfredette
+  - Thealisyed
+  - grzpiotrowski
