@@ -74,6 +74,8 @@ type GinkgoRunSuiteOptions struct {
 
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
+
+	Invocations int
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -91,6 +93,7 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive. Empty default will be treated as Stable.")
 	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
 	flags.IntVar(&o.Count, "count", o.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
+	flags.IntVar(&o.Invocations, "invocations", o.Invocations, "Run the suite a specified number of times. Defaults to 1.")
 	flags.BoolVar(&o.FailFast, "fail-fast", o.FailFast, "If a test fails, exit immediately.")
 	flags.DurationVar(&o.Timeout, "timeout", o.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&o.IncludeSuccessOutput, "include-success", o.IncludeSuccessOutput, "Print output from successful tests.")
@@ -348,7 +351,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 
 	// start test invocation loop here?
 	var errs = make([]error, invocations)
-	for invocation := 1; invocations <= invocations; invocations++ {
+	for invocation := 1; invocation <= invocations; invocation++ {
 
 		// this ensures the tests are always run in random order to avoid
 		// any intra-tests dependencies

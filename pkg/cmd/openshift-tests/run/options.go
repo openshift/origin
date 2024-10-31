@@ -92,8 +92,8 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 	}
 
 	// run twice for openshift-tests
-	invocations := 2
-	exitErrs := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", invocations, monitorTestInfo, false)
+	o.GinkgoRunSuiteOptions.Invocations = 2
+	exitErrs := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", o.GinkgoRunSuiteOptions.Invocations, monitorTestInfo, false)
 
 	for i := range exitErrs {
 		if exitErrs[i] != nil {
