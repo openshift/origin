@@ -17,6 +17,7 @@ import (
 
 func generateJUnitTestSuiteResults(
 	name string,
+	invocation int,
 	duration time.Duration,
 	tests []*testCase,
 	syntheticTestResults ...*junitapi.JUnitTestCase) *junitapi.JUnitTestSuite {
@@ -28,6 +29,10 @@ func generateJUnitTestSuiteResults(
 			{
 				Name:  "TestVersion",
 				Value: version.Get().String(),
+			},
+			{
+				Name:  "Invocation",
+				Value: fmt.Sprintf("%d", invocation),
 			},
 		},
 	}

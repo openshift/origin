@@ -91,12 +91,18 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
 
-	exitErr := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", monitorTestInfo, false)
-	if exitErr != nil {
-		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
+	// run twice for openshift-tests
+	invocations := 2
+	exitErrs := o.GinkgoRunSuiteOptions.Run(o.Suite, "openshift-tests", invocations, monitorTestInfo, false)
+
+	for i := range exitErrs {
+		if exitErrs[i] != nil {
+			fmt.Fprintf(os.Stderr, "Suite run (%d) returned error: %s\n", i, exitErrs[i].Error())
+		}
 	}
 
 	// Special debugging carve-outs for teams is likely to age poorly.
 	clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
-	return exitErr
+	// overall exit status determined by the first invocation
+	return exitErrs[0]
 }
