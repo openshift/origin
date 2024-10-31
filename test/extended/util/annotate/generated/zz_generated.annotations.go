@@ -1433,6 +1433,18 @@ var Annotations = map[string]string{
 
 	"[sig-network] services when using a plugin in a mode that isolates namespaces by default should prevent connections to pods in different namespaces on the same node via service IPs": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities] should deploy frr-k8s crds when enabled": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities] should deploy frr-k8s pods when enabled": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities] should not remove the crds when disabled": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities] should reflect the frr status when an frrconfiguration is applied": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities] should remove the frr pods when disabled": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][Feature:AdditionalRoutingCapabilities][OCPFeatureGate:AdditionalRoutingCapabilities] should report invalid configurations": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][Feature:CNIMigration] All nodes should be in ready state [Early][Suite:openshift/network/live-migration]": "",
 
 	"[sig-network][Feature:CNIMigration] Cluster operators should be stable [Late][Suite:openshift/network/live-migration]": "",
