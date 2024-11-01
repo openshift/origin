@@ -13,6 +13,17 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+var excludedPriorityClassNamespaces = []string{
+	// OpenShift marketplace can have workloads pods that are created from Jobs which just have hashes
+	// They can be safely ignored as they're not part of core platform.
+	// In future, if this assumption changes, we can revisit it.
+	"openshift-marketplace",
+
+	// Managed service namespaces
+	"openshift-deployment-validation-operator",
+	"openshift-observability-operator",
+}
+
 var excludedPriorityClassPods = map[string][]string{
 	// Managed service pods
 	"openshift-addon-operator": {
@@ -30,10 +41,6 @@ var excludedPriorityClassPods = map[string][]string{
 		"custom-domains-operator",
 		"custom-domains-operator-registry",
 	},
-	"openshift-deployment-validation-operator": {
-		"deployment-validation-operator",
-		"deployment-validation-operator-catalog",
-	},
 	"openshift-managed-node-metadata-operator": {
 		"managed-node-metadata-operator",
 		"managed-node-metadata-operator-registry",
@@ -50,11 +57,6 @@ var excludedPriorityClassPods = map[string][]string{
 	"openshift-must-gather-operator": {
 		"must-gather-operator",
 		"must-gather-operator-registry",
-	},
-	"openshift-observability-operator": {
-		"observability-operator",
-		"obo-prometheus-operator",
-		"obo-prometheus-operator-admission-webhook",
 	},
 	"openshift-ocm-agent-operator": {
 		"ocm-agent",
@@ -114,14 +116,14 @@ var _ = Describe("[sig-arch] Managed cluster should", func() {
 			if !hasPrefixSet(pod.Namespace, namespacePrefixes) {
 				continue
 			}
-			// OpenShift marketplace can have workloads pods that are created from Jobs which just have hashes
-			// They can be safely ignored as they're not part of core platform.
-			// In future, if this assumption changes, we can revisit it.
-			if pod.Namespace == "openshift-marketplace" {
-				continue
+
+			// Exception lists from above
+			for _, ns := range excludedPriorityClassNamespaces {
+				if pod.Namespace == ns {
+					continue podLoop
+				}
 			}
 
-			// Exception list from the above
 			if prefixes, ok := excludedPriorityClassPods[pod.Namespace]; ok {
 				for _, prefix := range prefixes {
 					if strings.HasPrefix(pod.Name, prefix) {
