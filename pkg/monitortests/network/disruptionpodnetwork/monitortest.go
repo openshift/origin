@@ -31,6 +31,7 @@ import (
 	monitorserialization "github.com/openshift/origin/pkg/monitor/serialization"
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
+	"github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
@@ -108,6 +109,14 @@ func (pna *podNetworkAvalibility) StartCollection(ctx context.Context, adminREST
 	openshiftTestsImagePullSpec, err := GetOpenshiftTestsImagePullSpec(ctx, adminRESTConfig, pna.payloadImagePullSpec, nil)
 	if err != nil {
 		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("unable to determine openshift-tests image: %v", err)}
+		return pna.notSupportedReason
+	}
+
+	// Skip on ROSA TRT-1869
+	oc := util.NewCLIWithoutNamespace("openshift-tests")
+	isManagedServiceCluster, err := util.IsManagedServiceCluster(ctx, oc.AdminKubeClient())
+	if isManagedServiceCluster {
+		pna.notSupportedReason = &monitortestframework.NotSupportedError{Reason: fmt.Sprintf("pod network tests are unschedulable on ROSA TRT-1869")}
 		return pna.notSupportedReason
 	}
 

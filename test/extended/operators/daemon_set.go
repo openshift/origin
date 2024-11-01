@@ -9,12 +9,13 @@ import (
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
-	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-arch] Managed cluster", func() {
@@ -55,12 +56,16 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// These shouldn't be DaemonSets as they end up being scheduled to all nodes because contrary to selfhosted OCP
-		// there are no master nodes. Today it is unclear how networking will look like in the future so it isn't worth
-		// chaning yet. Future work and removal of these exceptions is tracked in https://issues.redhat.com/browse/HOSTEDCP-279
-		hyperShiftExceptions := sets.NewString(
+		exceptions := sets.NewString(
+			// These shouldn't be DaemonSets as they end up being scheduled to all nodes because contrary to selfhosted OCP
+			// there are no master nodes. Today it is unclear how networking will look like in the future so it isn't worth
+			// chaning yet. Future work and removal of these exceptions is tracked in https://issues.redhat.com/browse/HOSTEDCP-279
 			"openshift-multus/multus-admission-controller",
 			"openshift-sdn/sdn-controller",
+
+			// Managed service exceptions https://issues.redhat.com/browse/OSD-26323
+			"openshift-security/splunkforwarder-ds",
+			"openshift-validation-webhook/validation-webhook",
 		)
 
 		var debug []string
@@ -75,7 +80,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 					continue
 				}
 			}
-			if *controlPlaneTopology == configv1.ExternalTopologyMode && hyperShiftExceptions.Has(ds.Namespace+"/"+ds.Name) {
+			if *controlPlaneTopology == configv1.ExternalTopologyMode && exceptions.Has(ds.Namespace+"/"+ds.Name) {
 				continue
 			}
 
