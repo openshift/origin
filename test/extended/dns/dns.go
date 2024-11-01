@@ -32,13 +32,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/image"
 )
 
-func createDNSPod(oc *exutil.CLI, namespace, probeCmd string) *kapiv1.Pod {
-	controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	nodeSelector := map[string]string{}
-	if *controlPlaneTopology != ocpv1.ExternalTopologyMode {
-		nodeSelector = map[string]string{"node-role.kubernetes.io/master": ""}
-	}
+func createDNSPod(namespace, probeCmd string, nodeSelector map[string]string) *kapiv1.Pod {
 	pod := &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -417,6 +411,15 @@ func validateLocalDNSPodPreference(queryPodExec *exutil.PodExecutor, localDNSPod
 var _ = Describe("[sig-network-edge] DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 	oc := exutil.NewCLI("dns-dualstack")
+	nodeSelector := make(map[string]string)
+
+	BeforeEach(func() {
+		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		if *controlPlaneTopology != ocpv1.ExternalTopologyMode {
+			nodeSelector["node-role.kubernetes.io/master"] = ""
+		}
+	})
 
 	It("should answer endpoint and wildcard queries for the cluster", func() {
 		ctx := context.Background()
@@ -498,7 +501,7 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 
 		// Run a pod which probes DNS and exposes the results by HTTP.
 		By("creating a pod to probe DNS")
-		pod := createDNSPod(oc, f.Namespace.Name, cmd)
+		pod := createDNSPod(f.Namespace.Name, cmd, nodeSelector)
 		validateDNSResults(f, pod, expect, times)
 	})
 
@@ -586,7 +589,7 @@ var _ = Describe("[sig-network-edge] DNS", func() {
 
 		// Run a pod which probes DNS and exposes the results.
 		By("creating a pod to probe DNS")
-		pod := createDNSPod(oc, f.Namespace.Name, cmd)
+		pod := createDNSPod(f.Namespace.Name, cmd, nodeSelector)
 		validateDNSResults(f, pod, expect, times)
 	})
 
