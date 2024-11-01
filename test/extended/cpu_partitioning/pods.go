@@ -104,15 +104,13 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, deployment := range deployments.Items {
+			// If we find a deployment that is to be excluded from resource checks, we skip looking for their pods.
+			if isExcluded(excludedBestEffortDeployments, deployment.Namespace, deployment.Name) {
+				framework.Logf("skipping resource check on deployment (%s/%s) due to presence in BestEffort exclude list", deployment.Namespace, deployment.Name)
+				continue
+			}
+
 			if _, ok := deployment.Spec.Template.Annotations[workloadAnnotations]; ok {
-
-				// If we find a deployment that is to be excluded from resource checks, we skip looking for their pods.
-				// Note: annotation check is still performed prior to this skip.
-				if isExcluded(excludedBestEffortDeployments, deployment.Namespace, deployment.Name) {
-					framework.Logf("skipping resource check on deployment (%s/%s) due to presence in BestEffort exclude list", deployment.Namespace, deployment.Name)
-					continue
-				}
-
 				pods, err := oc.KubeClient().CoreV1().Pods(deployment.Namespace).List(ctx, metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(deployment.Spec.Template.Labels).String(),
 				})
@@ -150,15 +148,13 @@ var _ = g.Describe("[sig-node][apigroup:config.openshift.io] CPU Partitioning cl
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, daemonset := range daemonsets.Items {
+			// If we find a daemonset that is to be excluded from resource checks, we skip looking for their pods.
+			if isExcluded(excludedBestEffortDaemonSets, daemonset.Namespace, daemonset.Name) {
+				framework.Logf("skipping resource check on daemonset (%s/%s) due to presence in BestEffort exclude list", daemonset.Namespace, daemonset.Name)
+				continue
+			}
+
 			if _, ok := daemonset.Spec.Template.Annotations[workloadAnnotations]; ok {
-
-				// If we find a daemonset that is to be excluded from resource checks, we skip looking for their pods.
-				// Note: annotation check is still performed prior to this skip.
-				if isExcluded(excludedBestEffortDaemonSets, daemonset.Namespace, daemonset.Name) {
-					framework.Logf("skipping resource check on daemonset (%s/%s) due to presence in BestEffort exclude list", daemonset.Namespace, daemonset.Name)
-					continue
-				}
-
 				pods, err := oc.KubeClient().CoreV1().Pods(daemonset.Namespace).List(ctx, metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(daemonset.Spec.Template.Labels).String(),
 				})
