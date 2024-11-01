@@ -75,7 +75,13 @@ type GinkgoRunSuiteOptions struct {
 	ExactMonitorTests   []string
 	DisableMonitorTests []string
 
+	// Invocations allows for
+	// test suite(s) to be executed
+	// against a cluster multiple times
+	// denoting the artifacts with an invocation
+	// value to differentiate from standard runs
 	Invocations int
+	Invocation  int
 }
 
 func NewGinkgoRunSuiteOptions(streams genericclioptions.IOStreams) *GinkgoRunSuiteOptions {
@@ -93,7 +99,8 @@ func (o *GinkgoRunSuiteOptions) BindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.ClusterStabilityDuringTest, "cluster-stability", o.ClusterStabilityDuringTest, "cluster stability during test, usually dependent on the job: Stable or Disruptive. Empty default will be treated as Stable.")
 	flags.StringVar(&o.JUnitDir, "junit-dir", o.JUnitDir, "The directory to write test reports to.")
 	flags.IntVar(&o.Count, "count", o.Count, "Run each test a specified number of times. Defaults to 1 or the suite's preferred value. -1 will run forever.")
-	flags.IntVar(&o.Invocations, "invocations", o.Invocations, "Run the suite a specified number of times. Defaults to 1.")
+	flags.IntVar(&o.Invocations, "invocations", 1, "Run the suite a specified number of times. Defaults to 1.")
+	flags.IntVar(&o.Invocation, "invocation", 1, "The current invocation against the cluster if being controlled externally . Defaults to 1.")
 	flags.BoolVar(&o.FailFast, "fail-fast", o.FailFast, "If a test fails, exit immediately.")
 	flags.DurationVar(&o.Timeout, "timeout", o.Timeout, "Set the maximum time a test can run before being aborted. This is read from the suite by default, but will be 10 minutes otherwise.")
 	flags.BoolVar(&o.IncludeSuccessOutput, "include-success", o.IncludeSuccessOutput, "Print output from successful tests.")
@@ -160,7 +167,7 @@ type externalBinaryResult struct {
 	externalTests  []*testCase
 }
 
-func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, invocations int, monitorTestInfo monitortestframework.MonitorTestInitializationInfo, upgrade bool) []error {
+func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, invocation, invocations int, monitorTestInfo monitortestframework.MonitorTestInitializationInfo, upgrade bool) []error {
 	ctx := context.Background()
 
 	tests, err := testsForSuite()
@@ -351,7 +358,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 
 	// start test invocation loop here?
 	var errs = make([]error, invocations)
-	for invocation := 1; invocation <= invocations; invocation++ {
+	for inv := invocation; inv <= invocations; inv++ {
 
 		// this ensures the tests are always run in random order to avoid
 		// any intra-tests dependencies
@@ -361,7 +368,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 
 		tests = suite.Filter(tests)
 		if len(tests) == 0 {
-			errs[invocation-1] = fmt.Errorf("suite %q does not contain any tests", suite.Name)
+			errs[inv-1] = fmt.Errorf("suite %q does not contain any tests", suite.Name)
 			return errs
 		}
 
@@ -400,25 +407,25 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 
 		restConfig, err := clusterinfo.GetMonitorRESTConfig()
 		if err != nil {
-			errs[invocation-1] = err
+			errs[inv-1] = err
 			return errs
 		}
 
 		// skip tests due to newer k8s
 		tests, err = o.filterOutRebaseTests(restConfig, tests)
 		if err != nil {
-			errs[invocation-1] = err
+			errs[inv-1] = err
 			return errs
 		}
 
 		if len(o.JUnitDir) > 0 {
 			if _, err := os.Stat(o.JUnitDir); err != nil {
 				if !os.IsNotExist(err) {
-					errs[invocation-1] = fmt.Errorf("could not access --junit-dir: %v", err)
+					errs[inv-1] = fmt.Errorf("could not access --junit-dir: %v", err)
 					return errs
 				}
 				if err := os.MkdirAll(o.JUnitDir, 0755); err != nil {
-					errs[invocation-1] = fmt.Errorf("could not create --junit-dir: %v", err)
+					errs[inv-1] = fmt.Errorf("could not create --junit-dir: %v", err)
 					return errs
 				}
 			}
@@ -463,13 +470,13 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 			monitorTests,
 		)
 		if err := m.Start(ctx); err != nil {
-			errs[invocation-1] = err
+			errs[inv-1] = err
 			return errs
 		}
 
 		pc, err := SetupNewPodCollector(ctx)
 		if err != nil {
-			errs[invocation-1] = err
+			errs[inv-1] = err
 			return errs
 		}
 
@@ -665,10 +672,10 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 		var syntheticTestResults []*junitapi.JUnitTestCase
 		var syntheticFailure bool
 
-		// augment the timeSuffix with invocation when the invocation is > 0
+		// augment the timeSuffix with invocation when the invocation is > 1
 		timeSuffix := fmt.Sprintf("_%s", start.UTC().Format("20060102-150405"))
-		if invocation > 1 {
-			timeSuffix = fmt.Sprintf("_inv%d_%s", invocation, start.UTC().Format("20060102-150405"))
+		if inv > 1 {
+			timeSuffix = fmt.Sprintf("_inv%d_%s", inv, start.UTC().Format("20060102-150405"))
 		}
 		monitorTestResultState, err := m.Stop(ctx)
 		if err != nil {
@@ -741,7 +748,7 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 
 		if len(o.JUnitDir) > 0 {
 			// review suite generation
-			finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, invocation, duration, tests, syntheticTestResults...)
+			finalSuiteResults := generateJUnitTestSuiteResults(junitSuiteName, inv, duration, tests, syntheticTestResults...)
 			if err := writeJUnitReport(finalSuiteResults, "junit_e2e", timeSuffix, o.JUnitDir, o.ErrOut); err != nil {
 				fmt.Fprintf(o.Out, "error: Unable to write e2e JUnit xml results: %v", err)
 			}
@@ -754,19 +761,19 @@ func (o *GinkgoRunSuiteOptions) Run(suite *TestSuite, junitSuiteName string, inv
 		// save errors
 		if fail > 0 {
 			if len(failing) > 0 || suite.MaximumAllowedFlakes == 0 {
-				errs[invocation-1] = fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
+				errs[inv-1] = fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
 			}
-			fmt.Fprintf(o.Out, "invocation: %d, %d flakes detected, suite allows passing with only flakes\n\n", invocation, fail)
+			fmt.Fprintf(o.Out, "invocation: %d, %d flakes detected, suite allows passing with only flakes\n\n", inv, fail)
 		}
 
 		if syntheticFailure {
-			errs[invocation-1] = fmt.Errorf("failed because an invariant was violated, %d pass, %d skip (%s)\n", pass, skip, duration)
+			errs[inv-1] = fmt.Errorf("failed because an invariant was violated, %d pass, %d skip (%s)\n", pass, skip, duration)
 		}
 		if monitorTestResultState != monitor.Succeeded {
-			errs[invocation-1] = fmt.Errorf("failed due to a MonitorTest failure")
+			errs[inv-1] = fmt.Errorf("failed due to a MonitorTest failure")
 		}
 
-		fmt.Fprintf(o.Out, "invocation: %d, %d pass, %d skip (%s)\n", invocation, pass, skip, duration)
+		fmt.Fprintf(o.Out, "invocation: %d, %d pass, %d skip (%s)\n", inv, pass, skip, duration)
 	}
 
 	// if we didn't have an error on our first invocation
