@@ -45,10 +45,12 @@ func (w *operatorLogAnalyzer) StartCollection(ctx context.Context, adminRESTConf
 
 func scanAllOperatorPods(ctx context.Context, kubeClient kubernetes.Interface, logHandlers ...podaccess.LogHandler) error {
 	infraPods := []corev1.Pod{}
-	infraNs := []string{"openshift-kni-infra", "openshift-openstack-infra", "openshift-vsphere-infra"}
+	onPremPlatforms := []string{"kni", "openstack", "vsphere"}
 
-	for _, ns := range infraNs {
-		pods, err := kubeClient.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: "app=kni-infra-api-lb"})
+	for _, platform := range onPremPlatforms {
+		pods, err := kubeClient.CoreV1().
+			Pods(fmt.Sprintf("openshift-%s-infra", platform)).
+			List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("app=%s-infra-api-lb", platform)})
 		if err != nil {
 			return fmt.Errorf("couldn't list pods: %w", err)
 		}
