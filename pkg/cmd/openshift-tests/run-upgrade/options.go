@@ -118,9 +118,6 @@ func (o *RunUpgradeSuiteOptions) Run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
 
-	// test the output
-	o.GinkgoRunSuiteOptions.Invocation = 2
-
 	// can only run upgrade once
 	// we pass Invocation in the case this upgrade is being chained
 	// along after a previous upgrade and we want to note that in the output via invocation

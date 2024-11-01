@@ -91,8 +91,6 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "%s version: %s\n", filepath.Base(os.Args[0]), version.Get().String())
 	}
 
-	// run twice for openshift-tests
-	o.GinkgoRunSuiteOptions.Invocations = 2
 	// ensure we run at least 1 time in the case only invocation was provided
 	if o.GinkgoRunSuiteOptions.Invocations < o.GinkgoRunSuiteOptions.Invocation {
 		o.GinkgoRunSuiteOptions.Invocations = o.GinkgoRunSuiteOptions.Invocation
