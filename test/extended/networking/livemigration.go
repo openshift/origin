@@ -27,6 +27,7 @@ import (
 
 	"github.com/openshift/origin/test/extended/networking/kubevirt"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/origin/test/extended/util/image"
 )
 
 var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][Feature:Layer2LiveMigration] Kubevirt Virtual Machines", func() {
@@ -82,7 +83,7 @@ var _ = Describe("[sig-network][OCPFeatureGate:PersistentIPsForVirtualization][F
 						vmCreationParams := kubevirt.CreationTemplateParams{
 							VMName:                    vmName,
 							VMNamespace:               f.Namespace.Name,
-							FedoraContainterDiskImage: "quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc",
+							FedoraContainterDiskImage: image.LocationFor("quay.io/kubevirt/fedora-with-test-tooling-container-disk:20241024_891122a6fc"),
 						}
 						if netConfig.role == "primary" {
 							vmCreationParams.NetBindingName = bindingName
