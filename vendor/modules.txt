@@ -1121,6 +1121,17 @@ github.com/pmezard/go-difflib/difflib
 ## explicit; go 1.16
 github.com/pquerna/cachecontrol
 github.com/pquerna/cachecontrol/cacheobject
+# github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.74.0
+## explicit; go 1.21
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1alpha1
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1beta1
+# github.com/prometheus-operator/prometheus-operator/pkg/client v0.74.0
+## explicit; go 1.21
+github.com/prometheus-operator/prometheus-operator/pkg/client/applyconfiguration/monitoring/v1
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/scheme
+github.com/prometheus-operator/prometheus-operator/pkg/client/versioned/typed/monitoring/v1
 # github.com/prometheus/client_golang v1.20.2
 ## explicit; go 1.20
 github.com/prometheus/client_golang/api
@@ -3565,7 +3576,7 @@ k8s.io/kubernetes/third_party/forked/gonum/graph/traverse
 # k8s.io/mount-utils v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20241002124647-1892e4deb967
 ## explicit; go 1.22.0
 k8s.io/mount-utils
-# k8s.io/pod-security-admission v0.0.0 => github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20241002124647-1892e4deb967
+# k8s.io/pod-security-admission v0.30.0 => github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20241002124647-1892e4deb967
 ## explicit; go 1.22.0
 k8s.io/pod-security-admission/admission
 k8s.io/pod-security-admission/admission/api
@@ -3714,6 +3725,9 @@ sigs.k8s.io/cloud-provider-azure/pkg/azclient/virtualnetworklinkclient
 # sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader v0.0.16
 ## explicit; go 1.22.0
 sigs.k8s.io/cloud-provider-azure/pkg/azclient/configloader
+# sigs.k8s.io/controller-runtime v0.18.4
+## explicit; go 1.22.0
+sigs.k8s.io/controller-runtime/pkg/conversion
 # sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
 ## explicit; go 1.18
 sigs.k8s.io/json
