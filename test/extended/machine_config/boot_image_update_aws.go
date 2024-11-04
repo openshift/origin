@@ -27,6 +27,8 @@ var _ = g.Describe("[sig-mco][OCPFeatureGate:ManagedBootImagesAWS][Serial]", fun
 		skipUnlessTargetPlatform(oc, osconfigv1.AWSPlatformType)
 		//skip this test if the cluster is not using MachineAPI
 		skipUnlessFunctionalMachineAPI(oc)
+		//skip this test on single node platforms
+		skipOnSingleNodeTopology(oc)
 	})
 
 	g.AfterEach(func() {
