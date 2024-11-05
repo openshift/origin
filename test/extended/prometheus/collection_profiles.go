@@ -64,9 +64,6 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	r := &runner{}
 
 	g.BeforeAll(func() {
-		if !exutil.IsTechPreviewNoUpgrade(tctx, oc.AdminConfigClient()) {
-			g.Skip("skipping, this feature is only supported on TechPreviewNoUpgrade clusters")
-		}
 		var err error
 		r.kclient, err = kubernetes.NewForConfig(oc.AdminConfig())
 		if err != nil {
