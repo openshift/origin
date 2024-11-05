@@ -112,9 +112,9 @@ func unexpectedNodeNotReadyJunit(finalIntervals monitorapi.Intervals, nodeNameTo
 		})
 	}
 
-	if len(tests) == 0 {
-		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
-	}
+	// Let's flake this test.
+	// In OCPBUGS-44244, we found that this test has some red herrings.
+	tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	return tests
 }
 
@@ -151,9 +151,9 @@ func unreachableNodeTaint(finalIntervals monitorapi.Intervals, nodeNameToMachine
 		})
 	}
 
-	if len(tests) == 0 {
-		tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
-	}
+	// Let's flake this test.
+	// In OCPBUGS-44244, we found that this test has some red herrings.
+	tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
 	return tests
 }
 
