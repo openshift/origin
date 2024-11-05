@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiservergracefulrestart"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/apiunreachablefromclientmetrics"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/auditloganalyzer"
+	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionexternalapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptioninclusterapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/disruptionnewapiserver"
 	"github.com/openshift/origin/pkg/monitortests/kubeapiserver/faultyloadbalancer"
@@ -113,6 +114,7 @@ func newDefaultMonitorTests(info monitortestframework.MonitorTestInitializationI
 	monitorTestRegistry.AddMonitorTestOrDie("image-registry-availability", "Image Registry", disruptionimageregistry.NewAvailabilityInvariant())
 
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-disruption-invariant", "kube-apiserver", disruptionnewapiserver.NewDisruptionInvariant())
+	monitorTestRegistry.AddMonitorTestOrDie("apiserver-external-availability", "kube-apiserver", disruptionexternalapiserver.NewExternalDisruptionInvariant(info))
 	monitorTestRegistry.AddMonitorTestOrDie("apiserver-incluster-availability", "kube-apiserver", disruptioninclusterapiserver.NewInvariantInClusterDisruption(info))
 
 	monitorTestRegistry.AddMonitorTestOrDie("pod-network-avalibility", "Network / ovn-kubernetes", disruptionpodnetwork.NewPodNetworkAvalibilityInvariant(info))
