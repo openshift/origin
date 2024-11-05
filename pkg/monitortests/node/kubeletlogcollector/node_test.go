@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/monitor/monitorapi"
+	"github.com/openshift/origin/pkg/monitortestlibrary/utility"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,8 +45,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("Sep 27 08:59:59.857303"),
-				To:   systemdJournalLogTime("Sep 27 08:59:59.857303"),
+				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.857303"),
+				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.857303"),
 			},
 		},
 		{
@@ -72,8 +73,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("Sep 27 08:59:59.853216"),
-				To:   systemdJournalLogTime("Sep 27 08:59:59.853216"),
+				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.853216"),
+				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.853216"),
 			},
 		},
 		{
@@ -98,8 +99,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("Sep 27 08:59:59.853216"),
-				To:   systemdJournalLogTime("Sep 27 08:59:59.853216"),
+				From: utility.SystemdJournalLogTime("Sep 27 08:59:59.853216"),
+				To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.853216"),
 			},
 		},
 		{
@@ -123,8 +124,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("May 19 19:10:03.753983"),
-				To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+				From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
+				To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
 			},
 		},
 		{
@@ -148,8 +149,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("Jun 29 05:16:54.197389"),
-				To:   systemdJournalLogTime("Jun 29 05:16:55.197389"),
+				From: utility.SystemdJournalLogTime("Jun 29 05:16:54.197389"),
+				To:   utility.SystemdJournalLogTime("Jun 29 05:16:55.197389"),
 			},
 		},
 		{
@@ -173,8 +174,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("Jun 29 05:16:54.197389"),
-				To:   systemdJournalLogTime("Jun 29 05:16:55.197389"),
+				From: utility.SystemdJournalLogTime("Jun 29 05:16:54.197389"),
+				To:   utility.SystemdJournalLogTime("Jun 29 05:16:55.197389"),
 			},
 		},
 		{
@@ -202,8 +203,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("Jul 05 17:47:52.807876"),
-				To:   systemdJournalLogTime("Jul 05 17:47:52.807876"),
+				From: utility.SystemdJournalLogTime("Jul 05 17:47:52.807876"),
+				To:   utility.SystemdJournalLogTime("Jul 05 17:47:52.807876"),
 			},
 		},
 		{
@@ -231,8 +232,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("Jul 05 17:43:12.908344"),
-				To:   systemdJournalLogTime("Jul 05 17:43:12.908344"),
+				From: utility.SystemdJournalLogTime("Jul 05 17:43:12.908344"),
+				To:   utility.SystemdJournalLogTime("Jul 05 17:43:12.908344"),
 			},
 		},
 		{
@@ -262,8 +263,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						},
 					},
 				},
-				From: systemdJournalLogTime("Feb 01 05:37:45.731611"),
-				To:   systemdJournalLogTime("Feb 01 05:37:45.731611"),
+				From: utility.SystemdJournalLogTime("Feb 01 05:37:45.731611"),
+				To:   utility.SystemdJournalLogTime("Feb 01 05:37:45.731611"),
 			},
 		},
 		{
@@ -286,8 +287,8 @@ func TestMonitorApiIntervals(t *testing.T) {
 						Annotations:  map[monitorapi.AnnotationKey]string{},
 					},
 				},
-				From: systemdJournalLogTime("Apr 12 11:49:49.188086"),
-				To:   systemdJournalLogTime("Apr 12 11:49:50.188086"),
+				From: utility.SystemdJournalLogTime("Apr 12 11:49:49.188086"),
+				To:   utility.SystemdJournalLogTime("Apr 12 11:49:50.188086"),
 			},
 		},
 	}
@@ -514,8 +515,8 @@ func Test_messageTime(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := systemdJournalLogTime(tt.args.logLine); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("systemdJournalLogTime() = %v, want %v", got, tt.want)
+			if got := utility.SystemdJournalLogTime(tt.args.logLine); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("utility.SystemdJournalLogTime() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -611,8 +612,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("Sep 27 08:59:59.857303"),
-					To:   systemdJournalLogTime("Sep 27 08:59:59.857303"),
+					From: utility.SystemdJournalLogTime("Sep 27 08:59:59.857303"),
+					To:   utility.SystemdJournalLogTime("Sep 27 08:59:59.857303"),
 				},
 			},
 			want: monitorapi.Intervals(nil),
@@ -637,8 +638,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
 				},
 			},
 			want: monitorapi.Intervals(nil),
@@ -663,8 +664,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -683,8 +684,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -703,8 +704,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:13:17.753983"),
-					To:   systemdJournalLogTime("May 19 19:13:18.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983"),
 				},
 			},
 			want: monitorapi.Intervals{
@@ -725,8 +726,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
 				},
 			},
 		},
@@ -750,8 +751,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -770,8 +771,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -790,8 +791,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:13:17.753983"),
-					To:   systemdJournalLogTime("May 19 19:13:18.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -810,8 +811,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -830,8 +831,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:17.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:18.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:17.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:18.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -850,8 +851,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:13:17.753983"),
-					To:   systemdJournalLogTime("May 19 19:13:18.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:13:17.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:13:18.753983"),
 				},
 			},
 			want: monitorapi.Intervals{
@@ -872,8 +873,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -892,8 +893,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:03.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:04.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:03.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:04.753983"),
 				},
 			},
 		},
@@ -917,8 +918,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -937,8 +938,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
 				},
 				{
 					Condition: monitorapi.Condition{
@@ -957,8 +958,8 @@ func TestNodeLeaseClusters(t *testing.T) {
 							},
 						},
 					},
-					From: systemdJournalLogTime("May 19 19:10:13.753983"),
-					To:   systemdJournalLogTime("May 19 19:10:14.753983"),
+					From: utility.SystemdJournalLogTime("May 19 19:10:13.753983"),
+					To:   utility.SystemdJournalLogTime("May 19 19:10:14.753983"),
 				},
 			},
 			want: monitorapi.Intervals(nil),

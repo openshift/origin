@@ -70,12 +70,14 @@ func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingI
 		})
 		for _, phaseChange := range phaseChanges {
 			previousPhase := phaseChange.Message.Annotations[monitorapi.AnnotationPreviousPhase]
+			nodeName := phaseChange.Message.Annotations[monitorapi.AnnotationNode]
 			constructedIntervals = append(constructedIntervals,
 				monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
 					Locator(phaseChange.Locator).
 					Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhase).
 						Constructed(monitorapi.ConstructionOwnerMachineLifecycle).
 						WithAnnotation(monitorapi.AnnotationPhase, previousPhase).
+						WithAnnotation(monitorapi.AnnotationNode, nodeName).
 						HumanMessage(fmt.Sprintf("Machine is in %q", previousPhase))).
 					Display().
 					Build(previousChangeTime, phaseChange.From),
@@ -86,11 +88,13 @@ func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingI
 		}
 
 		deletionTime := time.Time{}
+		nodeName := "unknown"
 		deletedIntervals := monitorapi.Intervals(allMachineChanges).Filter(func(eventInterval monitorapi.Interval) bool {
 			return eventInterval.Message.Reason == monitorapi.MachineDeletedInAPI
 		})
 		if len(deletedIntervals) > 0 {
 			deletionTime = deletedIntervals[0].To
+			nodeName = deletedIntervals[0].Message.Annotations[monitorapi.AnnotationNode]
 		}
 		if len(lastPhase) > 0 {
 			constructedIntervals = append(constructedIntervals,
@@ -99,6 +103,7 @@ func (*machineWatcher) ConstructComputedIntervals(ctx context.Context, startingI
 					Message(monitorapi.NewMessage().Reason(monitorapi.MachinePhase).
 						Constructed(monitorapi.ConstructionOwnerMachineLifecycle).
 						WithAnnotation(monitorapi.AnnotationPhase, lastPhase).
+						WithAnnotation(monitorapi.AnnotationNode, nodeName).
 						HumanMessage(fmt.Sprintf("Machine is in %q", lastPhase))).
 					Display().
 					Build(previousChangeTime, deletionTime),
