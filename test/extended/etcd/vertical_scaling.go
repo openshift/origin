@@ -2,8 +2,6 @@ package etcd
 
 import (
 	"context"
-	"strconv"
-	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
 	o "github.com/onsi/gomega"
@@ -11,7 +9,7 @@ import (
 
 	machineclient "github.com/openshift/client-go/machine/clientset/versioned"
 	machinev1 "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1"
-	machinev1beta1 "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
+	machinev1beta1client "github.com/openshift/client-go/machine/clientset/versioned/typed/machine/v1beta1"
 	testlibraryapi "github.com/openshift/library-go/test/library/apiserver"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
@@ -30,7 +28,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 	var (
 		etcdClientFactory *scalingtestinglibrary.EtcdClientFactoryImpl
 		machineClientSet  *machineclient.Clientset
-		machineClient     machinev1beta1.MachineInterface
+		machineClient     machinev1beta1client.MachineInterface
 		nodeClient        v1.NodeInterface
 		cpmsClient        machinev1.ControlPlaneMachineSetInterface
 		kubeClient        kubernetes.Interface
@@ -156,7 +154,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 		}()
 
 		// step 1: add a new master node and wait until it is in Running state
-		machineName, err := scalingtestinglibrary.CreateNewMasterMachine(ctx, g.GinkgoT(), machineClient, -1)
+		machineName, err := scalingtestinglibrary.CreateNewMasterMachine(ctx, g.GinkgoT(), machineClient, nil)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		err = scalingtestinglibrary.EnsureMasterMachine(ctx, g.GinkgoT(), machineName, machineClient)
@@ -210,7 +208,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 	// 2) Delete a machine
 	// 3) Ensure the voting member count remains at 3 after the deletion of a machine and before a new machine is added,
 	// 	  to verify that scale-down hasn't occurred before scale up when cluster membership is healthy
-	// 4) Create a new master machine that belongs to the same index as the deleted machine and ensure it is running (scale-up)
+	// 4) Create a new master machine and ensure it is running (scale-up)
 	// 5) Scale-down is validated by confirming the member removal and changes in the cluster membership
 	g.It("is able to vertically scale up and down when CPMS is disabled [apigroup:machine.openshift.io]", func() {
 		if cpmsActive {
@@ -232,9 +230,16 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 		framework.Logf("CPMS is disabled. The test will delete an existing machine and manually create a new machine to validate scale-down doesn't happen before scale-up event")
 
 		// step 1: delete a running machine
-		deletedMachineName, err := scalingtestinglibrary.DeleteSingleMachine(ctx, g.GinkgoT(), machineClient)
+		//
+		// A copy of the machine to be deleted is made initially, so it can be used to clone a new machine, thereby ensuring
+		// the newly created machine belongs to the same index and is placed in the same availability zone as the deleted machine.
+		machineToDelete, err := scalingtestinglibrary.AnyRunningMasterMachine(ctx, g.GinkgoT(), machineClient)
+		err = errors.Wrap(err, "initial-action: failed to retrieve a running master machine for deletion")
 		o.Expect(err).ToNot(o.HaveOccurred())
-		framework.Logf("Deleted machine %q", deletedMachineName)
+
+		err = scalingtestinglibrary.DeleteMachine(ctx, g.GinkgoT(), machineClient, machineToDelete.Name)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		framework.Logf("Deleted machine %q", machineToDelete.Name)
 
 		// step 2: Verify the voting member count remain at 3 after the deletion of a machine and
 		// before a new machine is added to ensure scale-down hasn't occurred before scale up when cluster membership is healthy.
@@ -244,13 +249,7 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step 3: add a new master node and wait until it is in Running state.
-		// The new machine should belong to the same index as the deleted machine
-		// to satisfy the requirement of at least 1 Ready Replica per index.
-		deletedMachineIndex, err := strconv.ParseInt(deletedMachineName[strings.LastIndex(deletedMachineName, "-")+1:], 10, 32)
-		err = errors.Wrapf(err, "failed to parse index from deleted machine name: %s", deletedMachineName)
-		o.Expect(err).ToNot(o.HaveOccurred())
-
-		newMachineName, err := scalingtestinglibrary.CreateNewMasterMachine(ctx, g.GinkgoT(), machineClient, deletedMachineIndex)
+		newMachineName, err := scalingtestinglibrary.CreateNewMasterMachine(ctx, g.GinkgoT(), machineClient, machineToDelete)
 		o.Expect(err).ToNot(o.HaveOccurred())
 		framework.Logf("Created machine %q", newMachineName)
 
@@ -259,9 +258,9 @@ var _ = g.Describe("[sig-etcd][Feature:EtcdVerticalScaling][Suite:openshift/etcd
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		// step 4: wait for the machine pending deletion to have its member removed to indicate scale-down
-		framework.Logf("Waiting for etcd member %q to be removed", deletedMachineName)
-		deletedMemberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, oc.KubeClient(), machineClient, deletedMachineName)
-		err = errors.Wrapf(err, "failed to get etcd member name for deleted machine: %v", deletedMachineName)
+		framework.Logf("Waiting for etcd member %q to be removed", machineToDelete.Name)
+		deletedMemberName, err := scalingtestinglibrary.MachineNameToEtcdMemberName(ctx, oc.KubeClient(), machineClient, machineToDelete.Name)
+		err = errors.Wrapf(err, "failed to get etcd member name for deleted machine: %v", machineToDelete.Name)
 		o.Expect(err).ToNot(o.HaveOccurred())
 
 		err = scalingtestinglibrary.EnsureMemberRemoved(g.GinkgoT(), etcdClientFactory, deletedMemberName)
