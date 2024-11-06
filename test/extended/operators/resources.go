@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo/v2"
-	"github.com/openshift/origin/pkg/test/ginkgo/result"
-	exutil "github.com/openshift/origin/test/extended/util"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	"github.com/openshift/origin/pkg/test/ginkgo/result"
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[sig-arch] Managed cluster", func() {
@@ -33,9 +34,38 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			e2e.Failf("unable to list pods: %v", err)
 		}
 
+		exemptNamespaces := []string{
+			// Must-gather runs are excluded from this rule
+			"openshift-must-gather",
+
+			// Managed service namespaces - https://issues.redhat.com/browse/OSD-21708
+			"openshift-addon-operator",
+			"openshift-backplane",
+			"openshift-backplane-srep",
+			"openshift-custom-domains-operator",
+			"openshift-deployment-validation-operator",
+			"openshift-managed-node-metadata-operator",
+			"openshift-managed-upgrade-operator",
+			"openshift-marketplace",
+			"openshift-observability-operator",
+			"openshift-ocm-agent-operator",
+			"openshift-osd-metrics",
+			"openshift-package-operator",
+			"openshift-rbac-permissions",
+			"openshift-route-monitor-operator",
+			"openshift-security",
+			"openshift-splunk-forwarder-operator",
+			"openshift-sre-pruning",
+			"openshift-validation-webhook",
+		}
+
 		// pods that have a bug opened, every entry here must have a bug associated
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
+
+			// Managed service pods that have limits but not requests
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[cpu]":    "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[memory]": "https://issues.redhat.com/browse/OSD-21708",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
@@ -71,14 +101,17 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		waitingForFix := sets.NewString()
 		notAllowed := sets.NewString()
 		possibleFuture := sets.NewString()
+	podLoop:
 		for _, pod := range pods.Items {
 			// Only pods in the openshift-*, kube-*, and default namespaces are considered
 			if !strings.HasPrefix(pod.Namespace, "openshift-") && !strings.HasPrefix(pod.Namespace, "kube-") && pod.Namespace != "default" {
 				continue
 			}
-			// Must-gather runs are excluded from this rule
-			if strings.HasPrefix(pod.Namespace, "openshift-must-gather") {
-				continue
+
+			for _, ns := range exemptNamespaces {
+				if pod.Namespace == ns {
+					continue podLoop
+				}
 			}
 			// var controlPlaneTarget bool
 			// selector := labels.SelectorFromSet(pod.Spec.NodeSelector)
@@ -104,9 +137,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 						}
 					}
 				case "Job":
-					if pod.Namespace == "openshift-marketplace" {
-						ref.Name = "<batch_job>"
-					}
+					ref.Name = "<batch_job>"
 				case "Node":
 					continue
 				}
