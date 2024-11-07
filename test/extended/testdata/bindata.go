@@ -57777,6 +57777,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
                         <option value="e2e_test_failed">e2e Test Failed</option>
                         <option value="e2e_test_flaked">e2e Test Flaked</option>
                         <option value="interesting_events">Interesting Events</option>
+                        <option value="certificate_rotation">Certificate Rotation</option>
                     </select>
 ` + "`" + `
 
@@ -57819,6 +57820,7 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
         eventInterval.categories.e2e_test_flaked = isE2EFlaked(eventInterval);
         eventInterval.categories.e2e_test_passed = isE2EPassed(eventInterval);
         eventInterval.categories.endpoint_availability = isEndpointConnectivity(eventInterval);
+        eventInterval.categories.certificate_rotation = isCertificateRotation(eventInterval);
         eventInterval.categories.uncategorized = !_.some(eventInterval.categories); // will save time later during filtering and re-rendering since we don't render any uncategorized events
     });
 
@@ -57959,6 +57961,52 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
     function isAlert(eventInterval) {
         return eventInterval.source === "Alert"
+    }
+
+
+    function isCertificateRotation(eventInterval) {
+        if (eventInterval.source != 'KubeEvent') {
+            return false
+        }
+        if (eventInterval.message.reason === "CertificateUpdated") {
+            return true
+        };
+        if (eventInterval.message.reason === "CertificateRemoved") {
+            return true
+        };
+        if (eventInterval.message.reason === "CertificateUpdateFailed") {
+            return true
+        };
+        if (eventInterval.message.reason === "ConfigMapUpdated") {
+            return true
+        };
+        if (eventInterval.message.reason === "SignerUpdateRequired") {
+            return true
+        };
+        if (eventInterval.message.reason === "CABundleUpdateRequired") {
+            return true
+        };
+        if (eventInterval.message.reason === "TargetUpdateRequired") {
+            return true
+        };
+        if (eventInterval.message.reason === "CSRCreated") {
+            return true
+        };
+        if (eventInterval.message.reason === "CSRApproved") {
+            return true
+        };
+        if (eventInterval.message.reason === "CertificateRotationStarted") {
+            return true
+        };
+        if (eventInterval.message.reason === "ClientCertificateCreated") {
+            return true
+        };
+        if (eventInterval.message.reason === "NoValidCertificateFound") {
+            return true
+        };
+        
+                
+        return false;
     }
 
     function interestingEvents(item) {
@@ -58388,6 +58436,9 @@ var _e2echartNonSpyglassE2eChartTemplateHtml = []byte(`<html lang="en">
 
         timelineGroups.push({group: "interesting-events", data: []});
         createTimelineData(interestingEvents, timelineGroups[timelineGroups.length - 1].data, filteredEvents, "interesting_events");
+
+        timelineGroups.push({group: "certificate-rotation", data: []})
+        createTimelineData("CertificateRotation", timelineGroups[timelineGroups.length - 1].data, filteredEvents, "certificate_rotation")
 
         var segmentFunc = function (segment) {
             // Copy label to clipboard

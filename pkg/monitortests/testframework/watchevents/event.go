@@ -150,7 +150,7 @@ func recordAddOrUpdateEvent(
 				}
 			}
 		}
-	case "CABundleUpdateRequired", "SignerUpdateRequired", "TargetUpdateRequired", "CertificateUpdated", "CertificateRemoved", "CertificateUpdateFailed":
+	case "CABundleUpdateRequired", "SignerUpdateRequired", "TargetUpdateRequired", "CertificateUpdated", "CertificateRemoved", "CertificateUpdateFailed", "CSRCreated", "CSRApproved", "CertificateRotationStarted", "ClientCertificateCreated", "NoValidCertificateFound":
 		message = message.WithAnnotation(monitorapi.AnnotationInteresting, "true")
 	default:
 	}
