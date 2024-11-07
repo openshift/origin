@@ -1627,6 +1627,18 @@ var Annotations = map[string]string{
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes UserDefinedNetwork CRD controller should delete NetworkAttachmentDefinition when UserDefinedNetwork is deleted": " [Suite:openshift/conformance/parallel]",
 
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork can perform east/west traffic between nodes for two pods connected over a L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork can perform east/west traffic between nodes two pods connected over a L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork is isolated from the default network with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork is isolated from the default network with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork isolates overlapping CIDRs with L2 primary UDN": " [Suite:openshift/conformance/parallel]",
+
+	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using ClusterUserDefinedNetwork isolates overlapping CIDRs with L3 primary UDN": " [Suite:openshift/conformance/parallel]",
+
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions can perform east/west traffic between nodes for two pods connected over a L2 primary UDN": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:UserDefinedPrimaryNetworks] when using openshift ovn-kubernetes created using NetworkAttachmentDefinitions can perform east/west traffic between nodes two pods connected over a L3 primary UDN": " [Suite:openshift/conformance/parallel]",

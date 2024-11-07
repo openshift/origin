@@ -553,6 +553,20 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 				Expect(waitForUserDefinedNetworkReady(c.namespace, c.name, udnCrReadyTimeout)).To(Succeed())
 				return err
 			}),
+			Entry("ClusterUserDefinedNetwork", func(c networkAttachmentConfigParams) error {
+				cudnManifest := generateClusterUserDefinedNetworkManifest(&c)
+				cleanup, err := createManifest("", cudnManifest)
+				DeferCleanup(func() {
+					cleanup()
+					By("delete pods in test namespace to unblock CUDN CR & associate NAD deletion")
+					_, err := e2ekubectl.RunKubectl(c.namespace, "delete", "pod", "--all")
+					Expect(err).NotTo(HaveOccurred())
+					_, err = e2ekubectl.RunKubectl("", "delete", "clusteruserdefinednetwork", c.name)
+					Expect(err).NotTo(HaveOccurred())
+				})
+				Expect(waitForClusterUserDefinedNetworkReady(c.name, 5*time.Second)).To(Succeed())
+				return err
+			}),
 		)
 
 		Context("UserDefinedNetwork CRD controller", func() {
@@ -1062,13 +1076,14 @@ var _ = Describe("[sig-network][OCPFeatureGate:NetworkSegmentation][Feature:User
 	})
 })
 
+var nadToUdnParams = map[string]string{
+	"primary":   "Primary",
+	"secondary": "Secondary",
+	"layer2":    "Layer2",
+	"layer3":    "Layer3",
+}
+
 func generateUserDefinedNetworkManifest(params *networkAttachmentConfigParams) string {
-	nadToUdnParams := map[string]string{
-		"primary":   "Primary",
-		"secondary": "Secondary",
-		"layer2":    "Layer2",
-		"layer3":    "Layer3",
-	}
 	subnets := generateSubnetsYaml(params)
 	return `
 apiVersion: k8s.ovn.org/v1
@@ -1081,6 +1096,27 @@ spec:
     role: ` + nadToUdnParams[params.role] + `
     subnets: ` + subnets + `
     ` + generateIPAMLifecycle(params) + `
+`
+}
+
+func generateClusterUserDefinedNetworkManifest(params *networkAttachmentConfigParams) string {
+	subnets := generateSubnetsYaml(params)
+	return `
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: ` + params.name + `
+spec:
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: In
+      values: [` + params.namespace + `]
+  network:
+    topology: ` + nadToUdnParams[params.topology] + `
+    ` + params.topology + `: 
+      role: ` + nadToUdnParams[params.role] + `
+      subnets: ` + subnets + `
 `
 }
 
