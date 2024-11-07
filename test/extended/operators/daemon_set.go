@@ -56,15 +56,13 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 		controlPlaneTopology, err := exutil.GetControlPlaneTopology(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// These shouldn't be DaemonSets as they end up being scheduled to all nodes because contrary to selfhosted OCP
-		// there are no master nodes. Today it is unclear how networking will look like in the future so it isn't worth
-		// chaning yet. Future work and removal of these exceptions is tracked in https://issues.redhat.com/browse/HOSTEDCP-279
-		hyperShiftExceptions := sets.NewString(
+		exceptions := sets.NewString(
+			// These shouldn't be DaemonSets as they end up being scheduled to all nodes because contrary to selfhosted OCP
+			// there are no master nodes. Today it is unclear how networking will look like in the future so it isn't worth
+			// chaning yet. Future work and removal of these exceptions is tracked in https://issues.redhat.com/browse/HOSTEDCP-279
 			"openshift-multus/multus-admission-controller",
 			"openshift-sdn/sdn-controller",
-		)
 
-		exceptions := sets.NewString(
 			// Managed service exceptions https://issues.redhat.com/browse/OSD-26323
 			"openshift-security/splunkforwarder-ds",
 			"openshift-validation-webhook/validation-webhook",
@@ -82,10 +80,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 					continue
 				}
 			}
-			if *controlPlaneTopology == configv1.ExternalTopologyMode && hyperShiftExceptions.Has(ds.Namespace+"/"+ds.Name) {
-				continue
-			}
-			if exceptions.Has(ds.Namespace + "/" + ds.Name) {
+			if *controlPlaneTopology == configv1.ExternalTopologyMode && exceptions.Has(ds.Namespace+"/"+ds.Name) {
 				continue
 			}
 
