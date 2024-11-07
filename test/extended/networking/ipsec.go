@@ -1,9 +1,11 @@
 package networking
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,6 +20,8 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/framework"
 	e2epod "k8s.io/kubernetes/test/e2e/framework/pod"
+	e2eoutput "k8s.io/kubernetes/test/e2e/framework/pod/output"
+	"k8s.io/kubernetes/test/e2e/framework/statefulset"
 	admissionapi "k8s.io/pod-security-admission/api"
 
 	g "github.com/onsi/ginkgo/v2"
@@ -505,6 +509,30 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 		})
 
 		g.AfterEach(func() {
+			ipsecMode, err := getIPsecMode(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			if g.CurrentSpecReport().Failed() {
+				if ipsecMode == v1.IPsecModeFull {
+					var ipsecPods []string
+					srcIPsecPod, err := findIPsecPodonNode(oc, config.srcNodeConfig.nodeName)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					ipsecPods = append(ipsecPods, srcIPsecPod)
+					dstIPsecPod, err := findIPsecPodonNode(oc, config.dstNodeConfig.nodeName)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					ipsecPods = append(ipsecPods, dstIPsecPod)
+					for _, ipsecPod := range ipsecPods {
+						dumpPodCommand(ovnNamespace, ipsecPod, "cat /etc/ipsec.conf")
+						dumpPodCommand(ovnNamespace, ipsecPod, "cat /etc/ipsec.d/openshift.conf")
+						dumpPodCommand(ovnNamespace, ipsecPod, "ipsec status")
+						dumpPodCommand(ovnNamespace, ipsecPod, "ipsec trafficstatus")
+						dumpPodCommand(ovnNamespace, ipsecPod, "ip xfrm state")
+						dumpPodCommand(ovnNamespace, ipsecPod, "ip xfrm policy")
+					}
+				}
+				exutil.DumpPodStatesInNamespace(nmstateNamespace, oc)
+				exutil.DumpPodLogsStartingWithInNamespace("nmstate-handler", nmstateNamespace, oc)
+				exutil.DumpPodLogsStartingWithInNamespace("nmstate-operator", nmstateNamespace, oc)
+			}
 			g.By("remove left node ipsec configuration")
 			oc.AsAdmin().Run("delete").Args("-f", leftNodeIPsecNNCPYaml).Execute()
 			o.Eventually(func(g o.Gomega) bool {
@@ -532,7 +560,7 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			// Removal of IPsec certs are needed otherwise worker nodes still keeping
 			// stale ip xfrm state and policy entries created for north south traffic.
 			g.By("removing IPsec certs from worker nodes")
-			err := deleteNSCertMachineConfig(oc)
+			err = deleteNSCertMachineConfig(oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Eventually(func(g o.Gomega) bool {
 				pools, err := getMachineConfigPoolByLabel(oc, workerRoleMachineConfigLabel)
@@ -563,6 +591,12 @@ var _ = g.Describe("[sig-network][Feature:IPsec]", g.Ordered, func() {
 			checkPodTraffic(mode)
 			// N/S ipsec config is not in effect yet, so node traffic behaves as it were disabled
 			checkNodeTraffic(v1.IPsecModeDisabled)
+
+			// TODO: remove this block when https://issues.redhat.com/browse/RHEL-67307 is fixed.
+			if mode == v1.IPsecModeFull {
+				g.By(fmt.Sprintf("skip testing IPsec NS configuration with %s mode due to nmstate bug RHEL-67307", mode))
+				return
+			}
 
 			g.By("rollout IPsec configuration via nmstate")
 			err = ensureNmstateHandlerRunning(oc)
@@ -611,4 +645,38 @@ func waitForIPsecConfigToComplete(oc *exutil.CLI, ipsecMode v1.IPsecMode) {
 		err := ensureIPsecFullEnabled(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
+}
+
+func findIPsecPodonNode(oc *exutil.CLI, nodeName string) (string, error) {
+	out, err := runOcWithRetry(oc.AsAdmin(), "get",
+		"pods",
+		"-o", "name",
+		"-n", ovnNamespace,
+		"--field-selector", fmt.Sprintf("spec.nodeName=%s", nodeName),
+		"-l", "app=ovn-ipsec")
+	if err != nil {
+		return "", err
+	}
+	outReader := bufio.NewScanner(strings.NewReader(out))
+	re := regexp.MustCompile("^pod/(.*)")
+	var podName string
+	for outReader.Scan() {
+		match := re.FindSubmatch([]byte(outReader.Text()))
+		if len(match) != 2 {
+			continue
+		}
+		podName = string(match[1])
+		break
+	}
+	if podName == "" {
+		return "", fmt.Errorf("could not find a valid ovn-ipsec-host pod on node '%s'", nodeName)
+	}
+	return podName, nil
+}
+
+func dumpPodCommand(namespace, name, cmd string) {
+	g.GinkgoHelper()
+	stdout, err := e2eoutput.RunHostCmdWithRetries(namespace, name, cmd, statefulset.StatefulSetPoll, statefulset.StatefulPodTimeout)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	framework.Logf(name + ": " + strings.Join(strings.Split(stdout, "\n"), fmt.Sprintf("\n%s: ", name)))
 }
