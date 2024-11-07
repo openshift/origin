@@ -66,6 +66,9 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			// Managed service pods that have limits but not requests
 			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[cpu]":    "https://issues.redhat.com/browse/OSD-21708",
 			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[memory]": "https://issues.redhat.com/browse/OSD-21708",
+
+			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[cpu]":    "https://issues.redhat.com/browse/TRT-1871",
+			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[memory]": "https://issues.redhat.com/browse/TRT-1871",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
