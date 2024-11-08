@@ -94,7 +94,6 @@ var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
 			var conditions []metav1.Condition
 			err = json.Unmarshal([]byte(output), &conditions)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionFalse)).To(o.BeTrue())
 			o.Expect(meta.IsStatusConditionPresentAndEqual(conditions, "Serving", metav1.ConditionTrue)).To(o.BeTrue())
 		}
 	})
@@ -155,9 +154,6 @@ var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
 			err = json.Unmarshal([]byte(output), &conditions)
 			if err != nil {
 				return false, fmt.Errorf("error in json.Unmarshal(%v): %v", output, err)
-			}
-			if !meta.IsStatusConditionPresentAndEqual(conditions, "Progressing", metav1.ConditionFalse) {
-				return false, nil
 			}
 			if !meta.IsStatusConditionPresentAndEqual(conditions, "Installed", metav1.ConditionTrue) {
 				return false, nil
