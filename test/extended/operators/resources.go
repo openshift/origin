@@ -47,6 +47,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			"openshift-managed-node-metadata-operator",
 			"openshift-managed-upgrade-operator",
 			"openshift-marketplace",
+			"openshift-must-gather-operator",
 			"openshift-observability-operator",
 			"openshift-ocm-agent-operator",
 			"openshift-osd-metrics",
@@ -64,11 +65,14 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
 
 			// Managed service pods that have limits but not requests
-			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[cpu]":    "https://issues.redhat.com/browse/OSD-21708",
-			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[memory]": "https://issues.redhat.com/browse/OSD-21708",
-
-			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[cpu]":    "https://issues.redhat.com/browse/TRT-1871",
-			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[memory]": "https://issues.redhat.com/browse/TRT-1871",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[cpu]":      "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/request[cpu]":    "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[memory]":   "https://issues.redhat.com/browse/OSD-21708",
+			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/request[memory]": "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-cluster-ready/request[cpu]":                                            "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-cluster-ready/request[memory]":                                         "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[cpu]":                                    "https://issues.redhat.com/browse/OSD-21708",
+			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[memory]":                                 "https://issues.redhat.com/browse/OSD-21708",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
@@ -200,6 +204,7 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 						if len(wpPodAnnotation) > 0 && resource == "cpu" { // don't check for CPU request if the pod has a WP annotation
 							continue
 						}
+
 						v := c.Resources.Requests[v1.ResourceName(resource)]
 						if !v.IsZero() {
 							continue
