@@ -186,8 +186,8 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// set up
-		// apiserverName -> reader
-		logReaders := map[string]io.Reader{}
+		// apiserverName -> filePaths
+		auditLogsPerServer := map[string][]string{}
 		results := map[string]int{}
 
 		if *controlPlaneTopology == configv1.ExternalTopologyMode {
@@ -195,12 +195,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			pods, err := mgmtClusterOC.KubeClient().CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: "hypershift.openshift.io/control-plane-component=kube-apiserver"})
 			o.Expect(err).To(o.BeNil())
 			for _, pod := range pods.Items {
-				fileName, err := mgmtClusterOC.Run("logs", "-n", pod.Namespace, pod.Name, "-c", "audit-logs").OutputToFile(pod.Name + "-audit.log")
+				filePath, err := mgmtClusterOC.Run("logs", "-n", pod.Namespace, pod.Name, "-c", "audit-logs").OutputToFile(pod.Name + "-audit.log")
 				o.Expect(err).NotTo(o.HaveOccurred())
-				reader, err := os.Open(fileName)
+				reader, err := os.Open(filePath)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				defer reader.Close()
-				logReaders[pod.Namespace+"-"+pod.Name] = reader
+				err = reader.Close()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				auditLogsPerServer[pod.Namespace+"-"+pod.Name] = append(auditLogsPerServer[pod.Namespace+"-"+pod.Name], filePath)
 			}
 		} else {
 			tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
@@ -237,11 +238,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 
 					gzipReader, err := gzip.NewReader(file)
 					o.Expect(err).NotTo(o.HaveOccurred())
+					err = gzipReader.Close()
+					o.Expect(err).NotTo(o.HaveOccurred())
 
 					apiServerName := extractAPIServerNameFromAuditFile(fileName)
 					o.Expect(apiServerName).ToNot(o.BeEmpty())
 
-					logReaders[apiServerName] = gzipReader
+					auditLogsPerServer[apiServerName] = append(auditLogsPerServer[apiServerName], path)
 
 					return nil
 				})
@@ -249,28 +252,42 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 			}
 		}
 
-		for apiServerName, reader := range logReaders {
-			lateRequestCounter := 0
-			readFile := false
+		for apiServerName, auditLogs := range auditLogsPerServer {
+			for _, auditLog := range auditLogs {
+				lateRequestCounter := 0
+				func() {
+					file, err := os.Open(auditLog)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					defer file.Close()
 
-			scanner := bufio.NewScanner(reader)
-			for scanner.Scan() {
-				text := scanner.Text()
-				if !strings.HasSuffix(text, "}") {
-					continue // ignore truncated data
+					var reader io.Reader
+					reader = file
+					if isGzipFileByExtension(file.Name()) {
+						gzipReader, err := gzip.NewReader(file)
+						o.Expect(err).NotTo(o.HaveOccurred())
+						defer gzipReader.Close()
+						reader = gzipReader
+					}
+
+					scanner := bufio.NewScanner(reader)
+					for scanner.Scan() {
+						text := scanner.Text()
+						if !strings.HasSuffix(text, "}") {
+							continue // ignore truncated data
+						}
+						o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
+
+						if strings.Contains(text, "openshift.io/during-graceful") && strings.Contains(text, "openshift-origin-external-backend-sampler") {
+							lateRequestCounter++
+						}
+					}
+					o.Expect(scanner.Err()).NotTo(o.HaveOccurred())
+				}()
+
+				if lateRequestCounter > 0 {
+					previousLateRequestCounter, _ := results[apiServerName]
+					results[apiServerName] = previousLateRequestCounter + lateRequestCounter
 				}
-				o.Expect(text).To(o.HavePrefix(`{"kind":"Event",`))
-
-				if strings.Contains(text, "openshift.io/during-graceful") && strings.Contains(text, "openshift-origin-external-backend-sampler") {
-					lateRequestCounter++
-				}
-				readFile = true
-			}
-			o.Expect(readFile).To(o.BeTrue())
-
-			if lateRequestCounter > 0 {
-				previousLateRequestCounter, _ := results[apiServerName]
-				results[apiServerName] = previousLateRequestCounter + lateRequestCounter
 			}
 		}
 
@@ -287,6 +304,10 @@ var _ = g.Describe("[sig-api-machinery][Feature:APIServer][Late]", func() {
 		}
 	})
 })
+
+func isGzipFileByExtension(fileName string) bool {
+	return strings.HasSuffix(fileName, ".gz")
+}
 
 func extractAPIServerNameFromAuditFile(auditFileName string) string {
 	pos := strings.Index(auditFileName, "-audit")
