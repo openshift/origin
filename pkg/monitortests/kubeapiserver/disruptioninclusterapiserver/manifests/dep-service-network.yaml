@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-network-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-network-monitor
+      apiserver.openshift.io/disruption-actor: poller
+  template:
+    metadata:
+      labels:
+        app: service-network-monitor
+        apiserver.openshift.io/disruption-actor: poller
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - service-network-monitor
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: service-network
+          command:
+            - openshift-tests
+            - run-disruption
+            - --output-file=/var/log/disruption-data/monitor-events/service-network-monitor-$(DEPLOYMENT_ID).txt
+            - --lb-type=$(LOAD_BALANCER)
+            - --stop-configmap=stop-configmap
+          env:
+            - name: LOAD_BALANCER
+              value: service-network
+            - name: DEPLOYMENT_ID
+              #to be overwritten at deployment initialization time
+              value: "DEFAULT"
+          image: to-be-replaced
+          volumeMounts:
+            - mountPath: /var/log/disruption-data
+              name: artifacts
+          securityContext:
+            privileged: true
+            runAsUser: 0
+      serviceAccountName: disruption-monitor-sa
+      volumes:
+        - hostPath:
+            path: /var/log/disruption-data
+            type: DirectoryOrCreate
+          name: artifacts
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/edge
+          effect: NoSchedule
