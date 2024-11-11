@@ -187,6 +187,16 @@ func (ConsolePluginBackend) SwaggerDoc() map[string]string {
 	return map_ConsolePluginBackend
 }
 
+var map_ConsolePluginCSP = map[string]string{
+	"":          "ConsolePluginCSP holds configuration for a specific CSP directive",
+	"directive": "directive specifies which Content-Security-Policy directive to configure. Available directive types are DefaultSrc, ScriptSrc, StyleSrc, ImgSrc and FontSrc. DefaultSrc directive serves as a fallback for the other CSP fetch directives. For more information about the DefaultSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src ScriptSrc directive specifies valid sources for JavaScript. For more information about the ScriptSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src StyleSrc directive specifies valid sources for stylesheets. For more information about the StyleSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src ImgSrc directive specifies a valid sources of images and favicons. For more information about the ImgSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/img-src FontSrc directive specifies valid sources for fonts loaded using @font-face. For more information about the FontSrc directive, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/font-src",
+	"values":    "values defines an array of values to append to the console defaults for this directive. Each ConsolePlugin may define their own directives with their values. These will be set by the OpenShift web console's backend, as part of its Content-Security-Policy header. The array can contain at most 16 values. Each directive value must have a maximum length of 1024 characters and must not contain whitespace, commas (,), semicolons (;) or single quotes ('). The value '*' is not permitted. Each value in the array must be unique.",
+}
+
+func (ConsolePluginCSP) SwaggerDoc() map[string]string {
+	return map_ConsolePluginCSP
+}
+
 var map_ConsolePluginI18n = map[string]string{
 	"":         "ConsolePluginI18n holds information on localization resources that are served by the dynamic plugin.",
 	"loadType": "loadType indicates how the plugin's localization resource should be loaded. Valid values are Preload, Lazy and the empty string. When set to Preload, all localization resources are fetched when the plugin is loaded. When set to Lazy, localization resources are lazily loaded as and when they are required by the console. When omitted or set to the empty string, the behaviour is equivalent to Lazy type.",
@@ -251,11 +261,12 @@ func (ConsolePluginService) SwaggerDoc() map[string]string {
 }
 
 var map_ConsolePluginSpec = map[string]string{
-	"":            "ConsolePluginSpec is the desired plugin configuration.",
-	"displayName": "displayName is the display name of the plugin. The dispalyName should be between 1 and 128 characters.",
-	"backend":     "backend holds the configuration of backend which is serving console's plugin .",
-	"proxy":       "proxy is a list of proxies that describe various service type to which the plugin needs to connect to.",
-	"i18n":        "i18n is the configuration of plugin's localization resources.",
+	"":                      "ConsolePluginSpec is the desired plugin configuration.",
+	"displayName":           "displayName is the display name of the plugin. The dispalyName should be between 1 and 128 characters.",
+	"backend":               "backend holds the configuration of backend which is serving console's plugin .",
+	"proxy":                 "proxy is a list of proxies that describe various service type to which the plugin needs to connect to.",
+	"i18n":                  "i18n is the configuration of plugin's localization resources.",
+	"contentSecurityPolicy": "contentSecurityPolicy is a list of Content-Security-Policy (CSP) directives for the plugin. Each directive specifies a list of values, appropriate for the given directive type, for example a list of remote endpoints for fetch directives such as ScriptSrc. Console web application uses CSP to detect and mitigate certain types of attacks, such as cross-site scripting (XSS) and data injection attacks. Dynamic plugins should specify this field if need to load assets from outside the cluster or if violation reports are observed. Dynamic plugins should always prefer loading their assets from within the cluster, either by vendoring them, or fetching from a cluster service. CSP violation reports can be viewed in the browser's console logs during development and testing of the plugin in the OpenShift web console. Available directive types are DefaultSrc, ScriptSrc, StyleSrc, ImgSrc and FontSrc. Each of the available directives may be defined only once in the list. The value 'self' is automatically included in all fetch directives by the OpenShift web console's backend. For more information about the CSP directives, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy\n\nThe OpenShift web console server aggregates the CSP directives and values across its own default values and all enabled ConsolePlugin CRs, merging them into a single policy string that is sent to the browser via `Content-Security-Policy` HTTP response header.\n\nExample:\n  ConsolePlugin A directives:\n    script-src: https://script1.com/, https://script2.com/\n    font-src: https://font1.com/\n\n  ConsolePlugin B directives:\n    script-src: https://script2.com/, https://script3.com/\n    font-src: https://font2.com/\n    img-src: https://img1.com/\n\n  Unified set of CSP directives, passed to the OpenShift web console server:\n    script-src: https://script1.com/, https://script2.com/, https://script3.com/\n    font-src: https://font1.com/, https://font2.com/\n    img-src: https://img1.com/\n\n  OpenShift web console server CSP response header:\n    Content-Security-Policy: default-src 'self'; base-uri 'self'; script-src 'self' https://script1.com/ https://script2.com/ https://script3.com/; font-src 'self' https://font1.com/ https://font2.com/; img-src 'self' https://img1.com/; style-src 'self'; frame-src 'none'; object-src 'none'",
 }
 
 func (ConsolePluginSpec) SwaggerDoc() map[string]string {
