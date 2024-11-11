@@ -160,7 +160,7 @@ a running cluster.
 			logrus.Infof("loaded %d intervals", len(intervals))
 
 			logrus.Info("running tests")
-			junits := legacynetworkmonitortests.TestMultipleSingleSecondDisruptions(intervals, nil)
+			junits := legacynetworkmonitortests.TestMultipleSingleSecondDisruptions(intervals)
 			for _, junit := range junits {
 				if junit.FailureOutput != nil {
 					logrus.Errorf("FAIL: %s", junit.Name)
