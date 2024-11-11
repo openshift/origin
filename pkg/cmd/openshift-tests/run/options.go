@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/origin/pkg/clioptions/clusterdiscovery"
 	"github.com/openshift/origin/pkg/clioptions/imagesetup"
 	"github.com/openshift/origin/pkg/clioptions/iooptions"
 	"github.com/openshift/origin/pkg/monitortestframework"
@@ -96,7 +95,5 @@ func (o *RunSuiteOptions) Run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "Suite run returned error: %s\n", exitErr.Error())
 	}
 
-	// Special debugging carve-outs for teams is likely to age poorly.
-	clusterdiscovery.PrintStorageCapabilities(o.GinkgoRunSuiteOptions.Out)
 	return exitErr
 }
