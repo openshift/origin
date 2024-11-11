@@ -28,12 +28,12 @@ require (
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/openshift/api v0.0.0-20241001152557-e415140e5d5f
+	github.com/openshift/api v0.0.0-20241109205306-a2817b89f7e0
 	github.com/openshift/apiserver-library-go v0.0.0-20241001175710-6064b62894a6
 	github.com/openshift/build-machinery-go v0.0.0-20240613134303-8359781da660
-	github.com/openshift/client-go v0.0.0-20241001162912-da6d55e4611f
+	github.com/openshift/client-go v0.0.0-20241107164952-923091dd2b1a
 	github.com/openshift/cluster-network-operator v0.0.0-20240708200319-1cd8678b38fb
-	github.com/openshift/library-go v0.0.0-20241015130640-f9ecd211c68b
+	github.com/openshift/library-go v0.0.0-20241107160307-0064ad7bd060
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.74.0
@@ -52,10 +52,10 @@ require (
 	golang.org/x/crypto v0.27.0
 	golang.org/x/mod v0.20.0
 	golang.org/x/net v0.29.0
-	golang.org/x/oauth2 v0.21.0
+	golang.org/x/oauth2 v0.22.0
 	golang.org/x/sync v0.8.0
 	gonum.org/v1/plot v0.14.0
-	google.golang.org/grpc v1.65.0
+	google.golang.org/grpc v1.67.0
 	gopkg.in/ini.v1 v1.62.0
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -281,8 +281,8 @@ require (
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/genproto v0.0.0-20230822172742-b8732ec3820d // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240701130421-f6361c86f094 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240725223205-93522f1f2a9f // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240930140551-af27646dc61f // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240924160255-9d4c2d233b61 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -336,7 +336,7 @@ replace (
 	k8s.io/kube-scheduler => github.com/openshift/kubernetes/staging/src/k8s.io/kube-scheduler v0.0.0-20241002124647-1892e4deb967
 	k8s.io/kubectl => github.com/openshift/kubernetes/staging/src/k8s.io/kubectl v0.0.0-20241002124647-1892e4deb967
 	k8s.io/kubelet => github.com/openshift/kubernetes/staging/src/k8s.io/kubelet v0.0.0-20241002124647-1892e4deb967
-	k8s.io/kubernetes => github.com/openshift/kubernetes v1.30.1-0.20241002124647-1892e4deb967
+	k8s.io/kubernetes => github.com/openshift/kubernetes v1.30.1-0.20241111135607-a3f31a4f2c58
 	k8s.io/metrics => github.com/openshift/kubernetes/staging/src/k8s.io/metrics v0.0.0-20241002124647-1892e4deb967
 	k8s.io/mount-utils => github.com/openshift/kubernetes/staging/src/k8s.io/mount-utils v0.0.0-20241002124647-1892e4deb967
 	k8s.io/pod-security-admission => github.com/openshift/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20241002124647-1892e4deb967

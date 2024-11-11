@@ -346,6 +346,29 @@ networks.operator.openshift.io:
   TopLevelFeatureGates: []
   Version: v1
 
+olms.operator.openshift.io:
+  Annotations: {}
+  ApprovedPRNumber: https://github.com/openshift/api/pull/1504
+  CRDName: olms.operator.openshift.io
+  Capability: ""
+  Category: ""
+  FeatureGates:
+  - NewOLM
+  FilenameOperatorName: operator-lifecycle-manager
+  FilenameOperatorOrdering: "01"
+  FilenameRunLevel: "0000_10"
+  GroupName: operator.openshift.io
+  HasStatus: true
+  KindName: OLM
+  Labels: {}
+  PluralName: olms
+  PrinterColumns: []
+  Scope: Cluster
+  ShortNames: null
+  TopLevelFeatureGates:
+  - NewOLM
+  Version: v1
+
 openshiftapiservers.operator.openshift.io:
   Annotations: {}
   ApprovedPRNumber: https://github.com/openshift/api/pull/475

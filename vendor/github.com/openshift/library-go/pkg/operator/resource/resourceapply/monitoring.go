@@ -2,23 +2,17 @@ package resourceapply
 
 import (
 	"context"
-	errorsstdlib "errors"
-	"fmt"
 
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
-
-	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/resource/resourcehelper"
-
-	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 )
 
 var alertmanagerGVR = schema.GroupVersionResource{Group: "monitoring.coreos.com", Version: "v1", Resource: "alertmanagers"}
@@ -88,10 +82,10 @@ func ApplyUnstructuredResourceImproved(
 	}
 	existing, err := client.Resource(resourceGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		want, err := client.Resource(resourceGVR).Namespace(namespace).Create(ctx, required, metav1.CreateOptions{})
-		resourcehelper.ReportCreateEvent(recorder, required, err)
+		want, errCreate := client.Resource(resourceGVR).Namespace(namespace).Create(ctx, required, metav1.CreateOptions{})
+		resourcehelper.ReportCreateEvent(recorder, required, errCreate)
 		cache.UpdateCachedResourceMetadata(required, want)
-		return want, true, err
+		return want, true, errCreate
 	}
 	if err != nil {
 		return nil, false, err
@@ -102,43 +96,14 @@ func ApplyUnstructuredResourceImproved(
 		return existing, false, nil
 	}
 
-	// Ensure metadata field is present on the object.
 	existingCopy := existing.DeepCopy()
-	existingObjectMeta, found, err := unstructured.NestedMap(existingCopy.Object, "metadata")
-	if err != nil {
-		return nil, false, err
-	}
-	if !found {
-		return nil, false, errorsstdlib.New(fmt.Sprintf("metadata not found in the existing object: %s/%s", existing.GetNamespace(), existingCopy.GetName()))
-	}
-	requiredObjectMeta, found, err := unstructured.NestedMap(required.Object, "metadata")
-	if err != nil {
-		return nil, false, err
-	}
-	if !found {
-		return nil, false, errorsstdlib.New(fmt.Sprintf("metadata not found in the required object: %s/%s", required.GetNamespace(), required.GetName()))
-	}
 
-	// Cast the metadata to the correct type.
-	var existingObjectMetaTyped, requiredObjectMetaTyped metav1.ObjectMeta
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(existingObjectMeta, &existingObjectMetaTyped)
+	// Replace and/or merge certain metadata fields.
+	didMetadataModify := false
+	err = resourcemerge.EnsureObjectMetaForUnstructured(&didMetadataModify, existingCopy, required)
 	if err != nil {
 		return nil, false, err
 	}
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(requiredObjectMeta, &requiredObjectMetaTyped)
-	if err != nil {
-		return nil, false, err
-	}
-
-	// Fail-fast if the resource versions differ.
-	if requiredObjectMetaTyped.ResourceVersion != "" && existingObjectMetaTyped.ResourceVersion != requiredObjectMetaTyped.ResourceVersion {
-		err = errors.NewConflict(resourceGVR.GroupResource(), name, fmt.Errorf("rejected to update %s %s because the object has been modified: desired/actual ResourceVersion: %v/%v", existing.GetKind(), existing.GetName(), requiredObjectMetaTyped.ResourceVersion, existingObjectMetaTyped.ResourceVersion))
-		return nil, false, err
-	}
-
-	// Check if the metadata objects differ.
-	didMetadataModify := ptr.To(false)
-	resourcemerge.EnsureObjectMeta(didMetadataModify, &existingObjectMetaTyped, requiredObjectMetaTyped)
 
 	// Deep-check the spec objects for equality, and update the cache in either case.
 	if defaultingFunc == nil {
@@ -147,26 +112,26 @@ func ApplyUnstructuredResourceImproved(
 	if equalityChecker == nil {
 		equalityChecker = equality.Semantic
 	}
-	existingCopy, didSpecModify, err := ensureGenericSpec(required, existingCopy, defaultingFunc, equalityChecker)
+	didSpecModify := false
+	err = ensureGenericSpec(&didSpecModify, required, existingCopy, defaultingFunc, equalityChecker)
 	if err != nil {
 		return nil, false, err
 	}
-	if !didSpecModify && !*didMetadataModify {
+	if !didSpecModify && !didMetadataModify {
 		// Update cache even if certain fields are not modified, in order to maintain a consistent cache based on the
 		// resource hash. The resource hash depends on the entire metadata, not just the fields that were checked above,
 		cache.UpdateCachedResourceMetadata(required, existingCopy)
 		return existingCopy, false, nil
 	}
 
+	// Perform update if resource exists but different from the required (desired) one.
 	if klog.V(4).Enabled() {
 		klog.Infof("%s %q changes: %v", resourceGVR.String(), namespace+"/"+name, JSONPatchNoError(existing, existingCopy))
 	}
-
-	// Perform update if resource exists but different from the required (desired) one.
-	actual, err := client.Resource(resourceGVR).Namespace(namespace).Update(ctx, required, metav1.UpdateOptions{})
-	resourcehelper.ReportUpdateEvent(recorder, required, err)
-	cache.UpdateCachedResourceMetadata(required, actual)
-	return actual, true, err
+	actual, errUpdate := client.Resource(resourceGVR).Namespace(namespace).Update(ctx, existingCopy, metav1.UpdateOptions{})
+	resourcehelper.ReportUpdateEvent(recorder, existingCopy, errUpdate)
+	cache.UpdateCachedResourceMetadata(existingCopy, actual)
+	return actual, true, errUpdate
 }
 
 // DeleteUnstructuredResource deletes the unstructured resource.
@@ -182,27 +147,27 @@ func DeleteUnstructuredResource(ctx context.Context, client dynamic.Interface, r
 	return nil, true, nil
 }
 
-func ensureGenericSpec(required, existing *unstructured.Unstructured, mimicDefaultingFn mimicDefaultingFunc, equalityChecker equalityChecker) (*unstructured.Unstructured, bool, error) {
+func ensureGenericSpec(didSpecModify *bool, required, existing *unstructured.Unstructured, mimicDefaultingFn mimicDefaultingFunc, equalityChecker equalityChecker) error {
 	mimicDefaultingFn(required)
 	requiredSpec, _, err := unstructured.NestedMap(required.UnstructuredContent(), "spec")
 	if err != nil {
-		return nil, false, err
+		return err
 	}
 	existingSpec, _, err := unstructured.NestedMap(existing.UnstructuredContent(), "spec")
 	if err != nil {
-		return nil, false, err
+		return err
 	}
 
 	if equalityChecker.DeepEqual(existingSpec, requiredSpec) {
-		return existing, false, nil
+		return nil
 	}
 
-	existingCopy := existing.DeepCopy()
-	if err := unstructured.SetNestedMap(existingCopy.UnstructuredContent(), requiredSpec, "spec"); err != nil {
-		return nil, true, err
+	if err = unstructured.SetNestedMap(existing.UnstructuredContent(), requiredSpec, "spec"); err != nil {
+		return err
 	}
+	*didSpecModify = true
 
-	return existingCopy, true, nil
+	return nil
 }
 
 // mimicDefaultingFunc is used to set fields that are defaulted.  This allows for sparse manifests to apply correctly.
