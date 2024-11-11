@@ -23,6 +23,12 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
+
 	"github.com/openshift/origin/pkg/clioptions/clusterinfo"
 	"github.com/openshift/origin/pkg/defaultmonitortests"
 	"github.com/openshift/origin/pkg/monitor"
@@ -30,11 +36,6 @@ import (
 	"github.com/openshift/origin/pkg/monitortestframework"
 	"github.com/openshift/origin/pkg/riskanalysis"
 	"github.com/openshift/origin/pkg/test/ginkgo/junitapi"
-	"github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
 )
 
 const (
