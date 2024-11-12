@@ -83,15 +83,26 @@ func startMachineMonitoring(ctx context.Context, m monitorapi.RecorderWriter, cl
 		// this is last so machine deleted shows up last when queried
 		func(machine, oldMachine *machine.Machine) []monitorapi.Interval {
 			var intervals []monitorapi.Interval
-			if machine != nil {
+			if machine == nil {
 				return intervals
+			}
+			nodeName := "<unknown>"
+			oldHasNodeRef := oldMachine != nil && oldMachine.Status.NodeRef != nil
+			newHasNodeRef := machine.Status.NodeRef != nil
+			if oldHasNodeRef {
+				nodeName = oldMachine.Status.NodeRef.Name
+			}
+
+			if newHasNodeRef {
+				nodeName = machine.Status.NodeRef.Name
 			}
 
 			now := time.Now()
 			intervals = append(intervals,
 				monitorapi.NewInterval(monitorapi.SourceMachine, monitorapi.Info).
-					Locator(monitorapi.NewLocator().MachineFromName(oldMachine.Name)).
+					Locator(monitorapi.NewLocator().MachineFromName(machine.Name)).
 					Message(monitorapi.NewMessage().Reason(monitorapi.MachineDeletedInAPI).
+						WithAnnotation(monitorapi.AnnotationNode, nodeName).
 						HumanMessage("Machine deleted")).
 					Build(now, now))
 			return intervals
