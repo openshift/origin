@@ -15,6 +15,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	configv1 "github.com/openshift/api/config/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -22,15 +24,13 @@ const (
 	olmv1GroupName = "olm.operatorframework.io"
 )
 
-var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 CRDs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
 		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
+		checkTestSkip(ctx, oc)
 
 		// supports multiple versions during transision
 		providedAPIs := []struct {
@@ -68,15 +68,13 @@ var _ = g.Describe("[sig-olmv1] OLMv1 CRDs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 Catalogs", func() {
 	defer g.GinkgoRecover()
 	oc := exutil.NewCLIWithoutNamespace("default")
 
 	g.It("should be installed", func(ctx g.SpecContext) {
 		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
+		checkTestSkip(ctx, oc)
 
 		providedCatalogs := []string{
 			"openshift-certified-operators",
@@ -99,7 +97,7 @@ var _ = g.Describe("[sig-olmv1] OLMv1 Catalogs", func() {
 	})
 })
 
-var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
+var _ = g.Describe("[sig-olmv1][OCPFeatureGate:NewOLM] OLMv1 operator installation", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -122,9 +120,7 @@ var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
 
 	g.It("should install a cluster extension", func(ctx g.SpecContext) {
 		// Check for tech preview, if this is not tech preview, bail
-		if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-			g.Skip("Test only runs in tech-preview")
-		}
+		checkTestSkip(ctx, oc)
 
 		ns := oc.Namespace()
 		g.By(fmt.Sprintf("Updating the namespace to: %q", ns))
@@ -163,3 +159,14 @@ var _ = g.Describe("[sig-olmv1] OLMv1 operator installation", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
+
+func checkTestSkip(ctx context.Context, oc *exutil.CLI) {
+	if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
+		g.Skip("Test only runs in tech-preview")
+	}
+	cap, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1)
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if !cap {
+		g.Skip("Test only runs with OLMv1 capability")
+	}
+}
