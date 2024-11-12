@@ -210,6 +210,48 @@ func startNodeMonitoring(ctx context.Context, m monitorapi.RecorderWriter, clien
 			}
 			return intervals
 		},
+		// Watch for node reporting DiskPressure and create a point in time interval if we see this.
+		// We don't particularly care how long it was reported for, only that it happened.
+		func(node, oldNode *corev1.Node) []monitorapi.Interval {
+			var intervals []monitorapi.Interval
+
+			var oldNodeDiskPressure bool
+			if oldNode != nil {
+				for _, c := range oldNode.Status.Conditions {
+					if c.Type == corev1.NodeDiskPressure && c.Status == corev1.ConditionTrue {
+						oldNodeDiskPressure = true
+					}
+				}
+			}
+			var newNodeDiskPressure bool
+			if node != nil {
+				for _, c := range node.Status.Conditions {
+					if c.Type == corev1.NodeDiskPressure && c.Status == corev1.ConditionTrue {
+						newNodeDiskPressure = true
+					}
+				}
+			}
+			now := time.Now()
+			if !oldNodeDiskPressure && newNodeDiskPressure {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Warning).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeDiskPressure).
+							HumanMessage("kubelet began reporting disk pressure")).
+						Display().
+						Build(now, now))
+			}
+			if oldNodeDiskPressure && !newNodeDiskPressure {
+				intervals = append(intervals,
+					monitorapi.NewInterval(monitorapi.SourceNodeMonitor, monitorapi.Info).
+						Locator(monitorapi.NewLocator().NodeFromName(node.Name)).
+						Message(monitorapi.NewMessage().Reason(monitorapi.NodeNoDiskPressure).
+							HumanMessage("kubelet is not reporting disk pressure")).
+						Display().
+						Build(now, now))
+			}
+			return intervals
+		},
 	}
 
 	nodeInformer := informercorev1.NewNodeInformer(client, time.Hour, nil)
