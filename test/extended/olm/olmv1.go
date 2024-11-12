@@ -245,9 +245,6 @@ func WaitForCondition(oc *exutil.CLI, status bool) (done bool, err error) {
 }
 
 func checkTestSkip(ctx context.Context, oc *exutil.CLI) {
-	if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-		g.Skip("Test only runs in tech-preview")
-	}
 	// Hardcoded until openshift/api is updated:
 	// import (	configv1 "github.com/openshift/api/config/v1" )
 	// configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1
