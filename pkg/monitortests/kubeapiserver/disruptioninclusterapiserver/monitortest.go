@@ -55,8 +55,12 @@ var (
 	serviceAccountYaml []byte
 	//go:embed manifests/dep-internal-lb.yaml
 	internalLBDeploymentYaml []byte
+	//go:embed manifests/pdb-internal-lb.yaml
+	internalLBPDBYaml []byte
 	//go:embed manifests/dep-service-network.yaml
 	serviceNetworkDeploymentYaml []byte
+	//go:embed manifests/pdb-service-network.yaml
+	serviceNetworkPDBYaml []byte
 	//go:embed manifests/dep-localhost.yaml
 	localhostDeploymentYaml    []byte
 	rbacPrivilegedCRBName      string
@@ -69,7 +73,7 @@ type InvariantInClusterDisruption struct {
 	openshiftTestsImagePullSpec string
 	payloadImagePullSpec        string
 	notSupportedReason          string
-	allNodes                    int32
+	replicas                    int32
 	controlPlaneNodes           int32
 
 	adminRESTConfig *rest.Config
@@ -115,7 +119,7 @@ func (i *InvariantInClusterDisruption) createInternalLBDeployment(ctx context.Co
 	deploymentObj.SetNamespace(i.namespaceName)
 	deploymentObj.Spec.Template.Spec.Containers[0].Env[0].Value = apiIntHost
 	// set amount of deployment replicas to make sure it runs on all nodes
-	deploymentObj.Spec.Replicas = &i.allNodes
+	deploymentObj.Spec.Replicas = &i.replicas
 	// we need to use the openshift-tests image of the destination during an upgrade.
 	deploymentObj.Spec.Template.Spec.Containers[0].Image = i.openshiftTestsImagePullSpec
 
@@ -138,11 +142,23 @@ func (i *InvariantInClusterDisruption) createServiceNetworkDeployment(ctx contex
 	deploymentObj := resourceread.ReadDeploymentV1OrDie(serviceNetworkDeploymentYaml)
 	deploymentObj.SetNamespace(i.namespaceName)
 	// set amount of deployment replicas to make sure it runs on all nodes
-	deploymentObj.Spec.Replicas = &i.allNodes
+	deploymentObj.Spec.Replicas = &i.replicas
 	// we need to use the openshift-tests image of the destination during an upgrade.
 	deploymentObj.Spec.Template.Spec.Containers[0].Image = i.openshiftTestsImagePullSpec
 
-	return i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
+	err := i.createDeploymentAndWaitToRollout(ctx, deploymentObj)
+	if err != nil {
+		return err
+	}
+
+	pdbObj := resourceread.ReadPodDisruptionBudgetV1OrDie(serviceNetworkPDBYaml)
+	pdbObj.SetNamespace(i.namespaceName)
+	client := i.kubeClient.PolicyV1().PodDisruptionBudgets(i.namespaceName)
+	_, err = client.Create(ctx, pdbObj, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("error creating PDB %s: %v", deploymentObj.Namespace, err)
+	}
+	return nil
 }
 
 func (i *InvariantInClusterDisruption) createLocalhostDeployment(ctx context.Context) error {
@@ -352,8 +368,10 @@ func (i *InvariantInClusterDisruption) StartCollection(ctx context.Context, admi
 	if err != nil {
 		return fmt.Errorf("error getting nodes: %v", err)
 	}
-	i.allNodes = int32(len(allNodes.Items))
-
+	i.replicas = 2
+	if len(allNodes.Items) == 1 {
+		i.replicas = 1
+	}
 	controlPlaneNodes, err := i.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set{"node-role.kubernetes.io/master": ""}.AsSelector().String(),
 	})
