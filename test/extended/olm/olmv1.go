@@ -247,9 +247,6 @@ func WaitForCondition(oc *exutil.CLI, status bool) (done bool, err error) {
 }
 
 func checkTestSkip(ctx context.Context, oc *exutil.CLI) {
-	if !exutil.IsTechPreviewNoUpgrade(ctx, oc.AdminConfigClient()) {
-		g.Skip("Test only runs in tech-preview")
-	}
 	cap, err := exutil.IsCapabilityEnabled(oc, configv1.ClusterVersionCapabilityOperatorLifecycleManagerV1)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	if !cap {
