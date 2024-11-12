@@ -81,7 +81,16 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		var operatorConfiguration *v1.ConfigMap
 		o.Eventually(func() error {
 			operatorConfiguration, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
-			return err
+			if err != nil {
+				if errors.IsNotFound(err) {
+					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
+				}
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
 		}).Should(o.BeNil())
 		r.originalOperatorConfiguration = operatorConfiguration
 	})
@@ -89,8 +98,12 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	g.AfterAll(func() {
 		currentConfiguration, err := r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
 		o.Expect(err).To(o.BeNil())
-		currentConfiguration.Data = r.originalOperatorConfiguration.Data
-		_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
+		if r.originalOperatorConfiguration != nil {
+			currentConfiguration.Data = r.originalOperatorConfiguration.Data
+			_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
+		} else {
+			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
+		}
 		o.Expect(err).To(o.BeNil())
 	})
 
