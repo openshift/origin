@@ -43,41 +43,53 @@ type TestingT interface {
 	Logf(format string, args ...interface{})
 }
 
-// CreateNewMasterMachine creates a new master node by cloning an existing Machine resource.
-// machineIndex is used to identify the index to which machine should be created to.
-// machineIndex of -1 to be passed if index needn't be taken into consideration while creating the machine
-func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface, machineIndex int64) (string, error) {
+// AnyRunningMasterMachine finds and returns a running master machine from the cluster.
+func AnyRunningMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (*machinev1beta1.Machine, error) {
 	machineList, err := machineClient.List(ctx, metav1.ListOptions{LabelSelector: masterMachineLabelSelector})
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("unable to list master machines: %w", err)
 	}
-	var machineToClone *machinev1beta1.Machine
+
 	for _, machine := range machineList.Items {
 		machinePhase := pointer.StringDeref(machine.Status.Phase, "Unknown")
 		if machinePhase == "Running" {
-			machineToClone = &machine
-			break
+			return &machine, nil
 		}
 		t.Logf("%q machine is in unexpected %q state", machine.Name, machinePhase)
 	}
+	return nil, fmt.Errorf("no running master machines found")
+}
 
-	if machineToClone == nil {
-		return "", fmt.Errorf("unable to find a running master machine to clone")
-	}
-	// assigning a new Name and clearing ProviderID is enough
-	// for MAO to pick it up and provision a new master machine/node
-	if machineIndex == -1 {
+// CreateNewMasterMachine creates a new master node by cloning an existing Machine resource.
+// If templateMachine is provided, it will be cloned. Otherwise a running machine will be picked for cloning.
+func CreateNewMasterMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface, templateMachine *machinev1beta1.Machine) (string, error) {
+	var machineToClone *machinev1beta1.Machine
+	var err error
+
+	//if templateMachine is not provided, get a running master machine to clone
+	if templateMachine == nil {
+		machineToClone, err = AnyRunningMasterMachine(ctx, t, machineClient)
+		if err != nil {
+			return "", err
+		}
+
+		// assigning a new Name and clearing ProviderID is enough
+		// for MAO to pick it up and provision a new master machine/node
 		machineToClone.Name = fmt.Sprintf("%s-clone", machineToClone.Name)
 	} else {
+		//if templateMachine is provided, form the new machine name using the same clusterIdRole and index
+		machineToClone = templateMachine.DeepCopy()
+		machineIndex := machineToClone.Name[strings.LastIndex(machineToClone.Name, "-")+1:]
 		machineClusterIdRole := machineToClone.Name[:strings.LastIndex(machineToClone.Name, "-")]
-		machineToClone.Name = fmt.Sprintf("%s-%s-%d", machineClusterIdRole, rand.String(5), machineIndex)
+		machineToClone.Name = fmt.Sprintf("%s-%s-%s", machineClusterIdRole, rand.String(5), machineIndex)
 	}
+
 	machineToClone.Spec.ProviderID = nil
 	machineToClone.ResourceVersion = ""
 	machineToClone.Annotations = map[string]string{}
 	machineToClone.Spec.LifecycleHooks = machinev1beta1.LifecycleHooks{}
 
-	clonedMachine, err := machineClient.Create(context.TODO(), machineToClone, metav1.CreateOptions{})
+	clonedMachine, err := machineClient.Create(ctx, machineToClone, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -193,6 +205,21 @@ func recoverClusterToInitialStateIfNeeded(ctx context.Context, t TestingT, machi
 	})
 }
 
+// DeleteMachine deletes the given machine and returns error if any issues occur during deletion
+func DeleteMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface, machineToDelete string) error {
+	t.Logf("attempting to delete machine '%q'", machineToDelete)
+	if err := machineClient.Delete(ctx, machineToDelete, metav1.DeleteOptions{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			t.Logf("machine '%q' was listed but not found or already deleted", machineToDelete)
+			return nil
+		}
+		return err
+	}
+	t.Logf("successfully deleted machine '%q'", machineToDelete)
+	return nil
+}
+
+// DeleteSingleMachine deletes the master machine with lowest index. Returns the deleted machine name and error if any issues occur during deletion
 func DeleteSingleMachine(ctx context.Context, t TestingT, machineClient machinev1beta1client.MachineInterface) (string, error) {
 	machineToDelete := ""
 	// list master machines
@@ -209,15 +236,9 @@ func DeleteSingleMachine(ctx context.Context, t TestingT, machineClient machinev
 	sort.Strings(machineNames)
 	machineToDelete = machineNames[0]
 
-	t.Logf("attempting to delete machine '%q'", machineToDelete)
-	if err := machineClient.Delete(ctx, machineToDelete, metav1.DeleteOptions{}); err != nil {
-		if apierrors.IsNotFound(err) {
-			t.Logf("machine '%q' was listed but not found or already deleted", machineToDelete)
-			return "", nil
-		}
+	if err = DeleteMachine(ctx, t, machineClient, machineToDelete); err != nil {
 		return "", err
 	}
-	t.Logf("successfully deleted machine '%q'", machineToDelete)
 	return machineToDelete, nil
 }
 
