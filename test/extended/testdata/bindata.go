@@ -50056,12 +50056,12 @@ var _testExtendedTestdataOlmv1InstallOperatorYaml = []byte(`apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: install-test-sa
-  namespace: {REPLACE}
+  namespace: {NAMESPACE}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: crb-{REPLACE}
+  name: crb-{NAMESPACE}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -50069,17 +50069,16 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: install-test-sa
-  namespace: {REPLACE}
+  namespace: {NAMESPACE}
 ---
-apiVersion: olm.operatorframework.io/v1alpha1
+apiVersion: olm.operatorframework.io/v1
 kind: ClusterExtension
 metadata:
   name: install-test-ce
 spec:
-  install:
-    namespace: {REPLACE}
-    serviceAccount:
-      name: install-test-sa
+  namespace: {NAMESPACE}
+  serviceAccount:
+    name: install-test-sa
   source:
     catalog:
       packageName: {PACKAGENAME}
