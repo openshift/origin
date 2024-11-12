@@ -48,6 +48,7 @@ func (*nodeWatcher) EvaluateTestsFromConstructedIntervals(ctx context.Context, f
 	junits := []*junitapi.JUnitTestCase{}
 	junits = append(junits, unexpectedNodeNotReadyJunit(finalIntervals)...)
 	junits = append(junits, unreachableNodeTaint(finalIntervals)...)
+	junits = append(junits, nodeDiskPressure(finalIntervals)...)
 	return junits, nil
 }
 
@@ -118,4 +119,32 @@ func intervalStartDuring(needle monitorapi.Interval, haystack monitorapi.Interva
 		}
 	}
 	return false
+}
+
+func nodeDiskPressure(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
+	const testName = "[[Jira:\"Test Framework\"]] kubelet should not report DiskPressure"
+
+	diskPressureIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
+		return eventInterval.Message.Reason == monitorapi.NodeDiskPressure
+	})
+
+	var failures []string
+	for _, dpi := range diskPressureIntervals {
+		failures = append(failures, dpi.String())
+	}
+
+	var tests []*junitapi.JUnitTestCase
+	if len(failures) > 0 {
+		tests = append(tests, &junitapi.JUnitTestCase{
+			Name:      testName,
+			SystemOut: strings.Join(failures, "\n"),
+			FailureOutput: &junitapi.FailureOutput{
+				Output: fmt.Sprintf("found %d intervals where a node began reporting DiskPressure:\n\n%v", len(failures), strings.Join(failures, "\n")),
+			},
+		})
+	}
+
+	// until we know how widespread this is, mark this as a flake
+	tests = append(tests, &junitapi.JUnitTestCase{Name: testName})
+	return tests
 }
