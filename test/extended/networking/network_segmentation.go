@@ -845,7 +845,7 @@ func assertUDNStatusReportsConsumers(udnNamesapce, udnName, expectedPodName stri
 	var conditions []metav1.Condition
 	Expect(json.Unmarshal([]byte(conditionsRaw), &conditions)).To(Succeed())
 	conditions = normalizeConditions(conditions)
-	expectedMsg := fmt.Sprintf("failed to verify NAD not in use [%[1]s/%[2]s]: network in use by the following pods: [%[1]s/%[3]s]",
+	expectedMsg := fmt.Sprintf("failed to delete NetworkAttachmentDefinition [%[1]s/%[2]s]: network in use by the following pods: [%[1]s/%[3]s]",
 		udnNamesapce, udnName, expectedPodName)
 	Expect(conditions).To(Equal([]metav1.Condition{
 		{
