@@ -122,7 +122,7 @@ func intervalStartDuring(needle monitorapi.Interval, haystack monitorapi.Interva
 }
 
 func nodeDiskPressure(finalIntervals monitorapi.Intervals) []*junitapi.JUnitTestCase {
-	const testName = "[[Jira:\"Test Framework\"]] kubelet should not report DiskPressure"
+	const testName = "[Jira:\"Test Framework\"] kubelet should not report DiskPressure"
 
 	diskPressureIntervals := finalIntervals.Filter(func(eventInterval monitorapi.Interval) bool {
 		return eventInterval.Message.Reason == monitorapi.NodeDiskPressure
