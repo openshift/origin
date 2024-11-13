@@ -74,6 +74,9 @@ func (rr RequestResponse) Protocol() string {
 	if rr.Response != nil {
 		return rr.Response.Proto
 	}
+	if rr.Request != nil {
+		return rr.Request.Proto
+	}
 	return "<none>"
 }
 
@@ -114,5 +117,5 @@ func IsRetryAfter(resp *http.Response) (string, bool) {
 }
 
 func (rr RequestResponse) ShutdownInProgress() bool {
-	return rr.ShutdownResponse != nil && rr.ShutdownResponse.ShutdownInProgress == true
+	return rr.ShutdownResponse != nil && rr.ShutdownResponse.ShutdownInProgress
 }
