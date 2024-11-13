@@ -73,6 +73,10 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-cluster-ready/request[memory]":                                         "https://issues.redhat.com/browse/OSD-21708",
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[cpu]":                                    "https://issues.redhat.com/browse/OSD-21708",
 			"batch/v1/Job/openshift-monitoring/<batch_job>/container/osd-rebalance-infra-nodes/request[memory]":                                 "https://issues.redhat.com/browse/OSD-21708",
+
+			// ovn pods
+			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[cpu]":    "https://issues.redhat.com/browse/TRT-1871",
+			"apps/v1/DaemonSet/openshift-multus/cni-sysctl-allowlist-ds/container/kube-multus-additional-cni-plugins/request[memory]": "https://issues.redhat.com/browse/TRT-1871",
 		}
 
 		// pods with an exception granted, the value should be the justification and the approver (a release architect)
