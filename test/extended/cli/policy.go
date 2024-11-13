@@ -35,7 +35,6 @@ var _ = g.Describe("[sig-cli] policy", func() {
 
 		out, err = oc.Run("policy", "scc-subject-review").Args("-f", simpleDeployment, "-o=jsonpath={.status.allowedBy.name}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		// it should be o.Equal but temporarily we need to eliminate the warning message prepended to the output.
-		o.Expect(out).To(o.HaveSuffix("restricted-v2"))
+		o.Expect(out).To(o.Equal("restricted-v2"))
 	})
 })
