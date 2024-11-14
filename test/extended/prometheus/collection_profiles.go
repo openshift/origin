@@ -108,19 +108,24 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 	})
 
 	g.Context("initially, in a homogeneous default environment,", func() {
+		profile := collectionProfileDefault
+
 		g.BeforeAll(func() {
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				enabled, err := r.isProfileEnabled(collectionProfileDefault)
+				enabled, err := r.isProfileEnabled(profile)
 				if err != nil {
 					return err
 				}
 				if !enabled {
-					return fmt.Errorf("collection profile %q is not enabled", collectionProfileDefault)
+					return fmt.Errorf("collection profile %q is not enabled", profile)
 				}
 
 				return nil
 			}).Should(o.BeNil())
 		})
+
 		g.It("should expose default metrics", func() {
 			o.Eventually(func() error {
 				defaultOnlyMetric := "prometheus_engine_query_log_enabled"
