@@ -13,85 +13,22 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var excludedPriorityClassNamespaces = []string{
+var excludedPriorityClassNamespaces = append([]string{
 	// OpenShift marketplace can have workloads pods that are created from Jobs which just have hashes
 	// They can be safely ignored as they're not part of core platform.
-	// In future, if this assumption changes, we can revisit it.
-	"openshift-marketplace",
+	// In the future, if this assumption changes, we can revisit it.
+	"openshift-marketplace"},
 
-	// Managed service namespaces
-	"openshift-deployment-validation-operator",
-	"openshift-observability-operator",
-}
+	// Managed services namespaces
+	exutil.ManagedServiceNamespaces.UnsortedList()...,
+)
 
 var excludedPriorityClassPods = map[string][]string{
-	// Managed service pods
-	"openshift-addon-operator": {
-		"addon-operator-catalog",
-		"addon-operator-manager",
-		"addon-operator-webhooks",
-	},
-	"openshift-backplane-srep": {
-		"osd-delete-ownerrefs-serviceaccounts",
-	},
-	"openshift-backplane": {
-		"osd-delete-backplane-serviceaccounts",
-	},
-	"openshift-custom-domains-operator": {
-		"custom-domains-operator",
-		"custom-domains-operator-registry",
-	},
-	"openshift-managed-node-metadata-operator": {
-		"managed-node-metadata-operator",
-		"managed-node-metadata-operator-registry",
-	},
-	"openshift-managed-upgrade-operator": {
-		"managed-upgrade-operator",
-		"managed-upgrade-operator-catalog",
-	},
+	// Managed services pods running in platform namespaces
 	"openshift-monitoring": {
 		"osd-rebalance-infra-nodes",
 		"configure-alertmanager-operator",
 		"osd-cluster-ready",
-	},
-	"openshift-must-gather-operator": {
-		"must-gather-operator",
-		"must-gather-operator-registry",
-	},
-	"openshift-ocm-agent-operator": {
-		"ocm-agent",
-		"ocm-agent-operator",
-	},
-	"openshift-osd-metrics": {
-		"osd-metrics-exporter",
-		"osd-metrics-exporter-registry",
-	},
-	"openshift-package-operator": {
-		"package-operator-manager",
-	},
-	"openshift-rbac-permissions": {
-		"rbac-permissions-operator",
-		"rbac-permissions-operator-registry",
-	},
-	"openshift-route-monitor-operator": {
-		"route-monitor-operator-controller-manager",
-		"blackbox-exporter",
-		"route-monitor-operator-registry",
-	},
-	"openshift-security": {
-		"audit-exporter",
-		"splunkforwarder-ds",
-	},
-	"openshift-splunk-forwarder-operator": {
-		"splunk-forwarder-operator",
-		"splunk-forwarder-operator-catalog",
-	},
-	"openshift-sre-pruning": {
-		"deployments-pruner",
-		"builds-pruner",
-	},
-	"openshift-validation-webhook": {
-		"validation-webhook",
 	},
 }
 

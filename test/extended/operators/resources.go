@@ -34,37 +34,19 @@ var _ = g.Describe("[sig-arch] Managed cluster", func() {
 			e2e.Failf("unable to list pods: %v", err)
 		}
 
-		exemptNamespaces := []string{
+		exemptNamespaces := append([]string{
 			// Must-gather runs are excluded from this rule
 			"openshift-must-gather",
-
+		},
 			// Managed service namespaces - https://issues.redhat.com/browse/OSD-21708
-			"openshift-addon-operator",
-			"openshift-backplane",
-			"openshift-backplane-srep",
-			"openshift-custom-domains-operator",
-			"openshift-deployment-validation-operator",
-			"openshift-managed-node-metadata-operator",
-			"openshift-managed-upgrade-operator",
-			"openshift-marketplace",
-			"openshift-must-gather-operator",
-			"openshift-observability-operator",
-			"openshift-ocm-agent-operator",
-			"openshift-osd-metrics",
-			"openshift-package-operator",
-			"openshift-rbac-permissions",
-			"openshift-route-monitor-operator",
-			"openshift-security",
-			"openshift-splunk-forwarder-operator",
-			"openshift-sre-pruning",
-			"openshift-validation-webhook",
-		}
+			exutil.ManagedServiceNamespaces.UnsortedList()...,
+		)
 
 		// pods that have a bug opened, every entry here must have a bug associated
 		knownBrokenPods := map[string]string{
 			//"<apiVersion>/<kind>/<namespace>/<name>/(initContainer|container)/<container_name>/<violation_type>": "<url to bug>",
 
-			// Managed service pods that have limits but not requests
+			// Managed service pods that have limits but not requests, that are in platform namespaces
 			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[cpu]":      "https://issues.redhat.com/browse/OSD-21708",
 			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/request[cpu]":    "https://issues.redhat.com/browse/OSD-21708",
 			"apps/v1/Deployment/openshift-monitoring/configure-alertmanager-operator/container/configure-alertmanager-operator/limit[memory]":   "https://issues.redhat.com/browse/OSD-21708",
