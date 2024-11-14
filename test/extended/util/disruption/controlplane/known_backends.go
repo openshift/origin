@@ -22,7 +22,8 @@ func StartAPIMonitoringUsingNewBackend(
 	recorder monitorapi.Recorder,
 	clusterConfig *rest.Config,
 	kubeClient kubernetes.Interface,
-	lb backend.LoadBalancerType) ([]disruptionci.Sampler, error) {
+	lb backend.LoadBalancerType,
+	source string) ([]disruptionci.Sampler, error) {
 
 	samplers := []disruptionci.Sampler{}
 	errs := []error{}
@@ -34,19 +35,19 @@ func StartAPIMonitoringUsingNewBackend(
 	}
 	path := fmt.Sprintf("/api/v1/namespaces/default?resourceVersion=%s", ns.ResourceVersion)
 
-	sampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb, path)
+	sampler, err := createKubeAPIMonitoringWithNewConnectionsHTTP2(factory, lb, path, source)
 	samplers = append(samplers, sampler)
 	errs = append(errs, err)
 
-	sampler, err = createKubeAPIMonitoringWithConnectionReuseHTTP2(factory, lb, path)
+	sampler, err = createKubeAPIMonitoringWithConnectionReuseHTTP2(factory, lb, path, source)
 	samplers = append(samplers, sampler)
 	errs = append(errs, err)
 
-	sampler, err = createKubeAPIMonitoringWithNewConnectionsHTTP1(factory, lb, path)
+	sampler, err = createKubeAPIMonitoringWithNewConnectionsHTTP1(factory, lb, path, source)
 	samplers = append(samplers, sampler)
 	errs = append(errs, err)
 
-	sampler, err = createKubeAPIMonitoringWithConnectionReuseHTTP1(factory, lb, path)
+	sampler, err = createKubeAPIMonitoringWithConnectionReuseHTTP1(factory, lb, path, source)
 	samplers = append(samplers, sampler)
 	errs = append(errs, err)
 
@@ -64,11 +65,11 @@ func StartAPIMonitoringUsingNewBackend(
 	stream := streams.Items[0]
 	path = fmt.Sprintf("/apis/image.openshift.io/v1/namespaces/openshift/imagestreams/%s?resourceVersion=%s", stream.Name, stream.ResourceVersion)
 
-	sampler, err = createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory, lb, path)
+	sampler, err = createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory, lb, path, source)
 	samplers = append(samplers, sampler)
 	errs = append(errs, err)
 
-	sampler, err = createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory, lb, path)
+	sampler, err = createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory, lb, path, source)
 	samplers = append(samplers, sampler)
 	errs = append(errs, err)
 
@@ -84,7 +85,7 @@ func StartAPIMonitoringUsingNewBackend(
 	return samplers, utilerrors.NewAggregate(errs)
 }
 
-func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string) (disruptionci.Sampler, error) {
+func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -96,10 +97,11 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string) (disruptionci.Sampler, error) {
+func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -111,10 +113,11 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factor
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType, path string) (disruptionci.Sampler, error) {
+func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -126,10 +129,11 @@ func createKubeAPIMonitoringWithNewConnectionsHTTP1(factory disruptionci.Factory
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType, path string) (disruptionci.Sampler, error) {
+func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.KubeAPIServer,
@@ -141,10 +145,11 @@ func createKubeAPIMonitoringWithConnectionReuseHTTP1(factory disruptionci.Factor
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string) (disruptionci.Sampler, error) {
+func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.OpenShiftAPIServer,
@@ -156,10 +161,11 @@ func createOpenShiftAPIMonitoringWithNewConnectionsHTTP2(factory disruptionci.Fa
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
 
-func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string) (disruptionci.Sampler, error) {
+func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.Factory, lb backend.LoadBalancerType, path string, source string) (disruptionci.Sampler, error) {
 	return factory.New(disruptionci.TestConfiguration{
 		TestDescriptor: disruptionci.TestDescriptor{
 			TargetServer:     disruptionci.OpenShiftAPIServer,
@@ -171,5 +177,6 @@ func createOpenShiftAPIMonitoringWithConnectionReuseHTTP2(factory disruptionci.F
 		Timeout:                      15 * time.Second,
 		SampleInterval:               time.Second,
 		EnableShutdownResponseHeader: true,
+		Source:                       source,
 	})
 }
