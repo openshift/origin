@@ -75,18 +75,15 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		}
 		r.pclient = oc.NewPrometheusClient(tctx)
 
-		fmt.Println("fetching operator configuration")
 		var operatorConfiguration *v1.ConfigMap
 		o.Eventually(func() error {
 			operatorConfiguration, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
 			if err != nil {
-				fmt.Println("error fetching operator configuration")
 				if errors.IsNotFound(err) {
-					fmt.Println("creating operator configuration")
+					g.By("initially, creating a configuration for the operator as it did not exist")
 					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
 				}
 				if err != nil {
-					fmt.Println("error creating operator configuration")
 					return err
 				}
 			}
@@ -101,8 +98,10 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		o.Expect(err).To(o.BeNil())
 		if r.originalOperatorConfiguration != nil {
 			currentConfiguration.Data = r.originalOperatorConfiguration.Data
+			g.By("restoring the original configuration for the operator")
 			_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
 		} else {
+			g.By("cleaning up the configuration for the operator as it did not exist pre-job")
 			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
 		}
 		o.Expect(err).To(o.BeNil())
@@ -345,6 +344,7 @@ func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, colle
 	} else {
 		gotDataConfigYAML, ok := configuration.Data["config.yaml"]
 		if !ok {
+			configuration.Data = make(map[string]string)
 			configuration.Data["config.yaml"] = dataConfigYAML
 		} else {
 			var gotDataConfigYAMLMap map[string]interface{}
