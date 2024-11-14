@@ -30,6 +30,7 @@ spec:
             - openshift-tests
             - run-disruption
             - --output-file=/var/log/disruption-data/monitor-events/service-network-monitor-$(DEPLOYMENT_ID).txt
+            - --source-name=$(POD_NAME)
             - --lb-type=$(LOAD_BALANCER)
             - --stop-configmap=stop-configmap
           env:
@@ -38,6 +39,10 @@ spec:
             - name: DEPLOYMENT_ID
               #to be overwritten at deployment initialization time
               value: "DEFAULT"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           image: to-be-replaced
           volumeMounts:
             - mountPath: /var/log/disruption-data
