@@ -10,7 +10,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	e2eskipper "k8s.io/kubernetes/test/e2e/framework/skipper"
 
+	osconfigv1 "github.com/openshift/api/config/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -120,12 +122,24 @@ func (p requirePodsOnDifferentNodesTest) run(oc *exutil.CLI) {
 	}
 }
 
+// skipOnSingleNodeTopology skips the test if the cluster is using single-node topology
+func skipOnSingleNodeTopology(oc *exutil.CLI) {
+	infra, err := oc.AdminConfigClient().ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	if infra.Status.ControlPlaneTopology == osconfigv1.SingleReplicaTopologyMode {
+		e2eskipper.Skipf("This test does not apply to single-node topologies")
+	}
+}
+
 var _ = g.Describe("[sig-scheduling][Early]", func() {
 	defer g.GinkgoRecover()
 
 	oc := exutil.NewCLI("scheduling-pod-check")
 
 	g.BeforeEach(func() {
+		//skip this test on single node platforms
+		skipOnSingleNodeTopology(oc)
+
 		_, err := exutil.WaitForRouterServiceIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
