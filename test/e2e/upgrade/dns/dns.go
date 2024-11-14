@@ -10,7 +10,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	exutil "github.com/openshift/origin/test/extended/util"
 	kappsv1 "k8s.io/api/apps/v1"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,12 +67,12 @@ func (t *UpgradeTest) Test(ctx context.Context, f *framework.Framework, done <-c
 	time.Sleep(1 * time.Minute)
 
 	// TODO: Remove once OCPBUGS-42777 is resolved
-	ex := exutil.NewCLIWithFramework(f)
-	if isSNO, err := exutil.IsSingleNode(ctx, ex.AdminConfigClient()); err == nil && isSNO {
-		ginkgo.By(fmt.Sprintf("SNO cluster detected, adding extra minute wait time at %v", time.Now().UTC()))
-		// Add one minute for more data to be collected for validation
-		time.Sleep(1 * time.Minute)
-	}
+	/*	ex := exutil.NewCLIWithFramework(f)
+		if isSNO, err := exutil.IsSingleNode(ctx, ex.AdminConfigClient()); err == nil && isSNO {
+			ginkgo.By(fmt.Sprintf("SNO cluster detected, adding extra minute wait time at %v", time.Now().UTC()))
+			// Add one minute for more data to be collected for validation
+			time.Sleep(1 * time.Minute)
+		} */
 
 	ginkgo.By("Validating DNS results after upgrade")
 	ginkgo.By(fmt.Sprintf("Starting post-upgrade DNS validation at %v", time.Now().UTC()))
