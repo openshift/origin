@@ -83,6 +83,7 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 			operatorConfiguration, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Get(tctx, operatorConfigurationName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
+					g.By("initially, creating a configuration for the operator as it did not exist")
 					err = r.makeCollectionProfileConfigurationFor(tctx, collectionProfileDefault)
 				}
 				if err != nil {
@@ -100,27 +101,34 @@ var _ = g.Describe("[sig-instrumentation][OCPFeatureGate:MetricsCollectionProfil
 		o.Expect(err).To(o.BeNil())
 		if r.originalOperatorConfiguration != nil {
 			currentConfiguration.Data = r.originalOperatorConfiguration.Data
+			g.By("restoring the original configuration for the operator")
 			_, err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Update(tctx, currentConfiguration, metav1.UpdateOptions{})
 		} else {
+			g.By("cleaning up the configuration for the operator as it did not exist pre-job")
 			err = r.kclient.CoreV1().ConfigMaps(operatorNamespaceName).Delete(tctx, operatorConfigurationName, metav1.DeleteOptions{})
 		}
 		o.Expect(err).To(o.BeNil())
 	})
 
 	g.Context("initially, in a homogeneous default environment,", func() {
+		profile := collectionProfileDefault
+
 		g.BeforeAll(func() {
+			err := r.makeCollectionProfileConfigurationFor(tctx, profile)
+			o.Expect(err).To(o.BeNil())
 			o.Eventually(func() error {
-				enabled, err := r.isProfileEnabled(collectionProfileDefault)
+				enabled, err := r.isProfileEnabled(profile)
 				if err != nil {
 					return err
 				}
 				if !enabled {
-					return fmt.Errorf("collection profile %q is not enabled", collectionProfileDefault)
+					return fmt.Errorf("collection profile %q is not enabled", profile)
 				}
 
 				return nil
 			}).Should(o.BeNil())
 		})
+
 		g.It("should expose default metrics", func() {
 			o.Eventually(func() error {
 				defaultOnlyMetric := "prometheus_engine_query_log_enabled"
@@ -344,6 +352,7 @@ func (r runner) makeCollectionProfileConfigurationFor(ctx context.Context, colle
 	} else {
 		gotDataConfigYAML, ok := configuration.Data["config.yaml"]
 		if !ok {
+			configuration.Data = make(map[string]string)
 			configuration.Data["config.yaml"] = dataConfigYAML
 		} else {
 			var gotDataConfigYAMLMap map[string]interface{}
